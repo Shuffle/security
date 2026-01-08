@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Container, Typography, Button, Chip, Stack } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,21 @@ import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstruct
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import { API_CONFIG } from '@/config/api';
+
+// Type for authenticated apps from API
+interface ApiAuthEntry {
+  app: {
+    id: string;
+    name: string;
+    large_image?: string;
+  };
+  active?: boolean;
+  validation?: {
+    valid: boolean;
+    error?: string;
+  };
+}
 
 const steps = [
   { label: 'Select Tools', icon: <IntegrationInstructionsIcon /> },
@@ -28,6 +43,7 @@ const OnboardingPage = () => {
   const [selectedApps, setSelectedApps] = useState<AlgoliaSearchApp[]>([]);
   const [searchQuery, setSearchQuery] = useState('email');
   const [authStates, setAuthStates] = useState<Record<string, ToolAuthState>>({});
+  const [authenticatedApps, setAuthenticatedApps] = useState<ApiAuthEntry[]>([]);
   const [enrichmentState, setEnrichmentState] = useState<EnrichmentState>({
     threat_list: { enabled: true, config: {} },
     ai_triage: { enabled: true, config: {} },
@@ -35,6 +51,32 @@ const OnboardingPage = () => {
     slack_notify: { enabled: true, config: {} },
     auto_assign: { enabled: true, config: {} },
   });
+
+  // Fetch authenticated apps from API
+  useEffect(() => {
+    const fetchAuthenticatedApps = async () => {
+      if (!API_CONFIG.apiKey) return;
+      
+      try {
+        const response = await fetch(`${API_CONFIG.baseUrl}/api/v1/apps/authentication`, {
+          headers: {
+            'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+          },
+        });
+        if (response.ok) {
+          const result = await response.json();
+          const authData = result.data || result;
+          if (Array.isArray(authData)) {
+            setAuthenticatedApps(authData);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch authenticated apps:', error);
+      }
+    };
+    
+    fetchAuthenticatedApps();
+  }, []);
 
   const handleNext = () => {
     if (activeStep === steps.length - 1) {
@@ -278,6 +320,7 @@ const OnboardingPage = () => {
                       <AppAuthConfig
                         apps={selectedApps}
                         authStates={authStates}
+                        authenticatedApps={authenticatedApps}
                         onAuthChange={handleAuthChange}
                         onTestConnection={handleTestConnection}
                       />
