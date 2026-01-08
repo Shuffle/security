@@ -232,14 +232,12 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
     return (
       <div
         key={app.objectID}
-        className={`singul-dropdown-item ${selected ? 'singul-selected' : ''} ${isHighlighted ? 'singul-highlighted' : ''}`}
+        className={`singul-dropdown-item ${selected ? 'singul-selected' : ''}`}
         style={{
           ...customStyles.dropdownItem,
           ...(selected ? customStyles.selectedItem : {}),
-          ...(isHighlighted ? customStyles.dropdownItemHover : {}),
         }}
         onClick={() => selectApp(app)}
-        onMouseEnter={() => setSelectedIndex(index)}
       >
         <div className="singul-app-info" style={customStyles.appInfo}>
           {app.image_url && (

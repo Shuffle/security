@@ -213,12 +213,6 @@
   overflow: hidden;
 }
 
-.singul-dropdown-grid .singul-dropdown-item:hover,
-.singul-results-grid .singul-dropdown-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
 .singul-dropdown-grid .singul-dropdown-item.singul-selected,
 .singul-results-grid .singul-dropdown-item.singul-selected {
   border-color: var(--singul-item-selected-border);
