@@ -78,7 +78,10 @@ export interface AppAuthentication {
   fields: Array<{ key: string; value: string }>;
   id: string;
   label: string;
+  /** Whether the app has authentication configured (credentials entered) */
+  configured?: boolean;
   validation: {
+    /** Whether the authentication has been validated (tests ran successfully) */
     valid: boolean;
     error?: string;
   };
@@ -127,7 +130,7 @@ export interface SingulJSProps {
   className?: string;
   
   // Custom Rendering
-  renderItem?: (app: AlgoliaSearchApp, isSelected: boolean, onSelect: () => void, isAuthenticated: boolean) => React.ReactNode;
+  renderItem?: (app: AlgoliaSearchApp, isSelected: boolean, onSelect: () => void, authState: { configured: boolean; validated: boolean }) => React.ReactNode;
   renderEmptyState?: () => React.ReactNode;
   renderLoadingState?: () => React.ReactNode;
   

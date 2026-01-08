@@ -290,14 +290,13 @@
   white-space: nowrap;
 }
 
-/* Authentication Badge */
+/* Authentication Badge - Base */
 .singul-auth-badge {
   position: absolute;
   bottom: -4px;
   right: -4px;
   width: 18px;
   height: 18px;
-  background-color: #22c55e;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -311,12 +310,21 @@
   color: white;
 }
 
+/* Validated Badge - Green (tests passed) */
+.singul-validated-badge {
+  background-color: #22c55e;
+}
+
+/* Configured Badge - Orange (credentials entered but not tested) */
+.singul-configured-badge {
+  background-color: #f59e0b;
+}
+
+/* Auth Labels */
 .singul-auth-label {
   display: inline-block;
   margin-left: 8px;
   padding: 2px 6px;
-  background-color: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
   font-size: 10px;
   font-weight: 600;
   border-radius: 4px;
@@ -324,8 +332,23 @@
   letter-spacing: 0.5px;
 }
 
-.singul-dropdown-item.singul-authenticated {
+.singul-validated-label {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.singul-configured-label {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+/* Item states */
+.singul-dropdown-item.singul-validated {
   border-color: rgba(34, 197, 94, 0.3);
+}
+
+.singul-dropdown-item.singul-configured {
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
 .singul-checkbox {
