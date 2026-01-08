@@ -90,9 +90,9 @@ export const HeroSection = () => {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                Accessible
+                Configurable
               </Box>{' '}
-              Case Management
+              Alert & Case Management
             </Typography>
           </motion.div>
 
@@ -105,14 +105,14 @@ export const HeroSection = () => {
               variant="h5"
               sx={{
                 color: 'text.secondary',
-                maxWidth: 600,
+                maxWidth: 650,
                 mx: 'auto',
                 mb: 5,
                 fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
-              Open-source security operations, built on Shuffle Automation.
+              Open-source automation for security, IT, and support operations—built on Shuffle.
             </Typography>
           </motion.div>
 
