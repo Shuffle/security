@@ -81,12 +81,12 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
     }
   }, [apiKey, apiBaseUrl]);
 
-  // Auto-select authenticated apps when they're loaded
+  // Auto-select validated apps when they're loaded (validated = tests ran successfully)
   useEffect(() => {
     if (authenticatedApps.length > 0 && results.length > 0) {
-      const validAuthApps = authenticatedApps.filter(auth => auth.validation?.valid);
+      const validatedApps = authenticatedApps.filter(auth => auth.validation?.valid);
       const appsToAutoSelect = results.filter(app => 
-        validAuthApps.some(auth => auth.app.name.toLowerCase() === app.name.toLowerCase())
+        validatedApps.some(auth => auth.app.name.toLowerCase() === app.name.toLowerCase())
       );
       
       if (appsToAutoSelect.length > 0) {
@@ -145,12 +145,28 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Check if an app is authenticated (valid)
-  const isAppAuthenticated = useCallback((app: AlgoliaSearchApp) => {
+  // Check if an app is configured (has credentials)
+  const isAppConfigured = useCallback((app: AlgoliaSearchApp) => {
+    const authApp = authenticatedApps.find(
+      auth => auth.app.name.toLowerCase() === app.name.toLowerCase()
+    );
+    return authApp?.configured === true || (authApp?.fields && authApp.fields.length > 0);
+  }, [authenticatedApps]);
+
+  // Check if an app is validated (tests passed)
+  const isAppValidated = useCallback((app: AlgoliaSearchApp) => {
     return authenticatedApps.some(
       auth => auth.app.name.toLowerCase() === app.name.toLowerCase() && auth.validation?.valid
     );
   }, [authenticatedApps]);
+
+  // Get auth state for an app
+  const getAppAuthState = useCallback((app: AlgoliaSearchApp) => {
+    return {
+      configured: isAppConfigured(app),
+      validated: isAppValidated(app),
+    };
+  }, [isAppConfigured, isAppValidated]);
 
   // Perform search
   const performSearch = useCallback(async (searchQuery: string) => {
@@ -281,7 +297,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
   const renderAppItem = (app: AlgoliaSearchApp, index: number) => {
     const selected = isAppSelected(app);
     const isHighlighted = index === selectedIndex;
-    const authenticated = isAppAuthenticated(app);
+    const authState = getAppAuthState(app);
 
     // Use custom render if provided
     if (renderItem) {
@@ -291,15 +307,19 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
           onClick={() => selectApp(app)}
           onMouseEnter={() => setSelectedIndex(index)}
         >
-          {renderItem(app, selected, () => selectApp(app), authenticated)}
+          {renderItem(app, selected, () => selectApp(app), authState)}
         </div>
       );
     }
 
+    // Determine which status to show: validated > configured > none
+    const showValidated = authState.validated;
+    const showConfigured = authState.configured && !authState.validated;
+
     return (
       <div
         key={app.objectID}
-        className={`singul-dropdown-item ${selected ? 'singul-selected' : ''} ${authenticated ? 'singul-authenticated' : ''}`}
+        className={`singul-dropdown-item ${selected ? 'singul-selected' : ''} ${authState.validated ? 'singul-validated' : ''} ${authState.configured ? 'singul-configured' : ''}`}
         style={{
           ...customStyles.dropdownItem,
           ...(selected ? customStyles.selectedItem : {}),
@@ -315,10 +335,17 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
                 className="singul-app-icon"
                 style={customStyles.appIcon}
               />
-              {authenticated && (
-                <div className="singul-auth-badge" title="Already authenticated">
+              {authState.validated && (
+                <div className="singul-auth-badge singul-validated-badge" title="Validated">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              )}
+              {showConfigured && (
+                <div className="singul-auth-badge singul-configured-badge" title="Configured">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                 </div>
               )}
@@ -327,8 +354,11 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
           <div className="singul-app-details" style={customStyles.appDetails}>
             <span className="singul-app-name" style={customStyles.appName}>
               {app.name.replace(/_/g, ' ')}
-              {authenticated && (
-                <span className="singul-auth-label">Connected</span>
+              {showValidated && (
+                <span className="singul-auth-label singul-validated-label">Validated</span>
+              )}
+              {showConfigured && (
+                <span className="singul-auth-label singul-configured-label">Configured</span>
               )}
             </span>
             {showDescription && app.description && (
