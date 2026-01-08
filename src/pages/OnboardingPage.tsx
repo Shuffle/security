@@ -17,7 +17,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 const steps = [
   { label: 'Select Tools', icon: <IntegrationInstructionsIcon /> },
   { label: 'Authentication', icon: <VpnKeyIcon /> },
-  { label: 'Enrichment', icon: <AutoFixHighIcon /> },
+  { label: 'Automate', icon: <AutoFixHighIcon /> },
   { label: 'Complete', icon: <RocketLaunchIcon /> },
 ];
 
@@ -187,10 +187,17 @@ const OnboardingPage = () => {
               {steps.map((step, index) => (
                 <Box
                   key={step.label}
+                  onClick={() => setActiveStep(index)}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 1.5,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      '& .step-label': {
+                        color: index === activeStep ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                      },
+                    },
                   }}
                 >
                   <Box
@@ -218,11 +225,13 @@ const OnboardingPage = () => {
                     {index < activeStep ? <CheckCircleOutlineIcon fontSize="small" /> : step.icon}
                   </Box>
                   <Typography
+                    className="step-label"
                     variant="body2"
                     sx={{
                       color: index === activeStep ? 'white' : 'rgba(255, 255, 255, 0.4)',
                       fontWeight: index === activeStep ? 600 : 400,
                       display: { xs: 'none', sm: 'block' },
+                      transition: 'color 0.2s ease',
                     }}
                   >
                     {step.label}
