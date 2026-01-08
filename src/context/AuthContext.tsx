@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { getApiUrl, API_ENDPOINTS } from '@/config/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   sessionToken: string | null;
   login: (token: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -25,10 +26,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSessionToken(token);
   };
 
-  const logout = () => {
+  const logout = useCallback(async () => {
+    // Call the Shuffle logout API
+    try {
+      await fetch(getApiUrl(API_ENDPOINTS.logout), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (err) {
+      console.error('Logout API call failed:', err);
+    }
+    
+    // Clear local state regardless of API success
     localStorage.removeItem('session_token');
     setSessionToken(null);
-  };
+  }, [sessionToken]);
 
   return (
     <AuthContext.Provider
