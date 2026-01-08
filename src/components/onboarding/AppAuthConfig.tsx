@@ -78,6 +78,20 @@ interface AppAuthentication {
   parameters?: AuthParameter[];
 }
 
+// API authentication entry (from /api/v1/apps/authentication)
+interface ApiAuthEntry {
+  app: {
+    id: string;
+    name: string;
+    large_image?: string;
+  };
+  active?: boolean;
+  validation?: {
+    valid: boolean;
+    error?: string;
+  };
+}
+
 interface DecodedApp {
   name: string;
   description: string;
@@ -88,6 +102,7 @@ interface DecodedApp {
 interface AppAuthConfigProps {
   apps: AlgoliaSearchApp[];
   authStates: Record<string, AppAuthState>;
+  authenticatedApps?: ApiAuthEntry[];
   onAuthChange: (appId: string, credentials: Record<string, string>) => void;
   onTestConnection: (appId: string) => void;
 }
@@ -112,6 +127,7 @@ const AppAuthCard = ({
   onToggle,
   onAuthChange,
   onTestConnection,
+  apiAuthEntry,
 }: {
   app: AlgoliaSearchApp;
   authState: AppAuthState;
@@ -119,7 +135,11 @@ const AppAuthCard = ({
   onToggle: () => void;
   onAuthChange: (appId: string, credentials: Record<string, string>) => void;
   onTestConnection: (appId: string) => void;
+  apiAuthEntry?: ApiAuthEntry;
 }) => {
+  // Compute configured/tested status from API auth entry
+  const isConfigured = apiAuthEntry?.active === true;
+  const isTested = apiAuthEntry?.validation?.valid === true;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appConfig, setAppConfig] = useState<DecodedApp | null>(null);
@@ -633,7 +653,7 @@ const AppAuthCard = ({
               </Typography>
             )}
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
             {appConfig?.authentication?.type && (
               <Chip
                 label={appConfig.authentication.type.toUpperCase()}
@@ -646,16 +666,26 @@ const AppAuthCard = ({
                 }}
               />
             )}
+            {/* Configured status chip */}
             <Chip
-              icon={statusConfig.icon || undefined}
-              label={statusConfig.label}
+              label={isConfigured ? 'Configured' : 'Not configured'}
               size="small"
               sx={{
-                backgroundColor: `${statusConfig.color}15`,
-                color: statusConfig.color,
+                backgroundColor: isConfigured ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: isConfigured ? '#f59e0b' : '#ef4444',
                 fontWeight: 500,
-                fontSize: '0.7rem',
-                '& .MuiChip-icon': { color: statusConfig.color },
+                fontSize: '0.65rem',
+              }}
+            />
+            {/* Tested status chip */}
+            <Chip
+              label={isTested ? 'Tested' : 'Not tested'}
+              size="small"
+              sx={{
+                backgroundColor: isTested ? 'rgba(34, 197, 94, 0.15)' : 'rgba(156, 163, 175, 0.15)',
+                color: isTested ? '#22c55e' : '#9ca3af',
+                fontWeight: 500,
+                fontSize: '0.65rem',
               }}
             />
             <Tooltip title="View documentation">
@@ -852,10 +882,18 @@ const AppAuthCard = ({
 export const AppAuthConfig = ({
   apps,
   authStates,
+  authenticatedApps = [],
   onAuthChange,
   onTestConnection,
 }: AppAuthConfigProps) => {
   const [expanded, setExpanded] = useState<string | false>(apps[0]?.objectID || false);
+
+  // Helper to find the API auth entry for an app
+  const getApiAuthEntry = (app: AlgoliaSearchApp): ApiAuthEntry | undefined => {
+    return authenticatedApps.find(
+      auth => auth.app?.name?.toLowerCase() === app.name.toLowerCase()
+    );
+  };
 
   if (apps.length === 0) {
     return (
@@ -897,6 +935,7 @@ export const AppAuthConfig = ({
           {apps.map((app) => {
             const authState = authStates[app.objectID] || { systemId: app.objectID, status: 'pending' as const, credentials: {} };
             const isExpanded = expanded === app.objectID;
+            const apiAuthEntry = getApiAuthEntry(app);
 
             return (
               <AppAuthCard
@@ -907,6 +946,7 @@ export const AppAuthConfig = ({
                 onToggle={() => setExpanded(isExpanded ? false : app.objectID)}
                 onAuthChange={onAuthChange}
                 onTestConnection={onTestConnection}
+                apiAuthEntry={apiAuthEntry}
               />
             );
           })}
