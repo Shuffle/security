@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
+  TextField,
   Button,
   Card,
   CardContent,
@@ -10,10 +11,14 @@ import {
   CircularProgress,
   Chip,
   IconButton,
+  Link,
   Divider,
   FormControl,
   Select,
   MenuItem,
+  Checkbox,
+  ListItemText,
+  OutlinedInput,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -39,6 +44,36 @@ export interface AppAuthState {
   errorMessage?: string;
 }
 
+// Helper to check if auth type is OAuth2 (includes oauth2-app variant)
+const isOAuth2Type = (type: string | undefined): boolean => {
+  if (!type) return false;
+  const lowerType = type.toLowerCase();
+  return lowerType === 'oauth2' || lowerType === 'oauth2-app';
+};
+
+interface AuthParameter {
+  description: string;
+  example: string;
+  id: string;
+  name: string;
+  required: boolean;
+  schema: {
+    type: string;
+  };
+}
+
+interface AppAuthentication {
+  type: string;
+  description?: string;
+  redirect_uri?: string;
+  token_uri?: string;
+  refresh_uri?: string;
+  scope?: string[];
+  client_id?: string;
+  client_secret?: string;
+  parameters?: AuthParameter[];
+}
+
 // API authentication entry (from /api/v1/apps/authentication)
 interface ApiAuthEntry {
   id?: string;
@@ -53,6 +88,13 @@ interface ApiAuthEntry {
     valid: boolean;
     error?: string;
   };
+}
+
+interface DecodedApp {
+  name: string;
+  description: string;
+  authentication: AppAuthentication;
+  large_image?: string;
 }
 
 interface AppAuthConfigProps {
@@ -139,6 +181,60 @@ const AppAuthCard = ({
   const isConfigured = selectedAuth?.active === true || apiAuthEntries.some(a => a.active === true);
   const isTested = selectedAuth?.validation?.valid === true || apiAuthEntries.some(a => a.validation?.valid === true);
 
+  // App config fetching for dynamic fields
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [appConfig, setAppConfig] = useState<DecodedApp | null>(null);
+
+  useEffect(() => {
+    const fetchAppConfig = async () => {
+      if (!isExpanded || appConfig) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(getApiUrl(`/apps/${app.objectID}/config`), {
+          headers: {
+            'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch app configuration');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.app) {
+          const decodedAppString = atob(data.app);
+          const decodedApp = JSON.parse(decodedAppString) as DecodedApp;
+          setAppConfig(decodedApp);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load configuration');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAppConfig();
+  }, [isExpanded, app.objectID, appConfig]);
+
+  const auth = appConfig?.authentication;
+  const isOAuth2 = isOAuth2Type(auth?.type);
+
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
+
+  // Update scopes when auth loads
+  useEffect(() => {
+    if (auth?.scope) {
+      setSelectedScopes(auth.scope);
+    }
+  }, [auth?.scope]);
+
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsContent, setDocsContent] = useState<string>('');
   const [docsLoading, setDocsLoading] = useState(false);
@@ -168,6 +264,248 @@ const AppAuthCard = ({
   const handleOpenDocs = () => {
     setDocsOpen(true);
     fetchDocs();
+  };
+
+  // Render OAuth2 fields - only for OAuth2 apps
+  const renderOAuth2Fields = () => {
+    if (!auth || !isOAuth2) return null;
+
+    const availableScopes = auth.scope || [];
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* Quick Connect Button - OAuth2 only */}
+        <Button
+          variant="outlined"
+          fullWidth
+          startIcon={
+            app.image_url ? (
+              <Box
+                component="img"
+                src={app.image_url}
+                alt={app.name}
+                sx={{ width: 24, height: 24, borderRadius: 1, objectFit: 'contain' }}
+              />
+            ) : <LockIcon />
+          }
+          onClick={() => {
+            const authUrl = `https://shuffler.io/appauth?app_id=${app.objectID}`;
+            window.open(authUrl, '_blank', 'width=600,height=700');
+          }}
+          sx={{
+            py: 1.5,
+            borderColor: 'rgba(255, 102, 0, 0.4)',
+            color: 'white',
+            fontWeight: 600,
+            textTransform: 'none',
+            fontSize: '1rem',
+            '&:hover': {
+              borderColor: '#FF6600',
+              backgroundColor: 'rgba(255, 102, 0, 0.08)',
+            },
+          }}
+        >
+          Quick Connect with {app.name.replace(/_/g, ' ')}
+        </Button>
+
+        {/* OR Divider */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Divider sx={{ flex: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+          <Typography sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.875rem' }}>OR configure manually</Typography>
+          <Divider sx={{ flex: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+        </Box>
+
+        {/* Manual OAuth2 Fields */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+            Redirect URL: <Typography component="span" sx={{ color: '#FF6600', fontWeight: 600 }}>
+              {auth.redirect_uri || 'https://shuffler.io/set_authentication'}
+            </Typography>
+          </Typography>
+
+          <TextField
+            label="Client ID"
+            placeholder="Enter your Client ID"
+            value={authState.credentials['client_id'] || ''}
+            onChange={(e) =>
+              onAuthChange(app.objectID, {
+                ...authState.credentials,
+                client_id: e.target.value,
+              })
+            }
+            fullWidth
+            size="small"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: 2,
+                '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
+                '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+              },
+              '& .MuiInputBase-input': { color: 'white' },
+              '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
+            }}
+          />
+
+          <TextField
+            label="Client Secret"
+            type="password"
+            placeholder="Enter your Client Secret"
+            value={authState.credentials['client_secret'] || ''}
+            onChange={(e) =>
+              onAuthChange(app.objectID, {
+                ...authState.credentials,
+                client_secret: e.target.value,
+              })
+            }
+            fullWidth
+            size="small"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: 2,
+                '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
+                '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+              },
+              '& .MuiInputBase-input': { color: 'white' },
+              '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
+            }}
+          />
+
+          {/* Scopes */}
+          {availableScopes.length > 0 && (
+            <FormControl fullWidth size="small">
+              <Select
+                multiple
+                value={selectedScopes}
+                onChange={(e) => {
+                  const value = e.target.value as string[];
+                  setSelectedScopes(value);
+                  onAuthChange(app.objectID, {
+                    ...authState.credentials,
+                    scopes: value.join(' '),
+                  });
+                }}
+                input={<OutlinedInput />}
+                renderValue={(selected) => selected.length === 0 ? 'Select Scopes' : `${selected.length} scope(s) selected`}
+                displayEmpty
+                sx={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                  borderRadius: 2,
+                  color: 'white',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.1)' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#FF6600' },
+                  '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.5)' },
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      maxHeight: 300,
+                    },
+                  },
+                }}
+              >
+                {availableScopes.map((scope) => (
+                  <MenuItem key={scope} value={scope} sx={{ color: 'white' }}>
+                    <Checkbox 
+                      checked={selectedScopes.indexOf(scope) > -1}
+                      sx={{ color: 'rgba(255, 255, 255, 0.5)', '&.Mui-checked': { color: '#FF6600' } }}
+                    />
+                    <ListItemText primary={scope} sx={{ '& .MuiTypography-root': { color: 'white' } }} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </Box>
+      </Box>
+    );
+  };
+
+  // Render parameter fields - for non-OAuth2 apps with parameters
+  const renderParameterFields = () => {
+    if (isOAuth2) return null;
+    if (!auth?.parameters || auth.parameters.length === 0) return null;
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {auth.parameters.map((param) => (
+          <TextField
+            key={param.id}
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {param.name}
+                {param.required && (
+                  <Typography component="span" sx={{ color: '#ef4444', fontSize: '0.8rem' }}>*</Typography>
+                )}
+              </Box>
+            }
+            type={param.name.toLowerCase().includes('password') || param.name.toLowerCase().includes('secret') || param.name.toLowerCase().includes('key') ? 'password' : 'text'}
+            placeholder={param.example || `Enter ${param.name}`}
+            value={authState.credentials[param.id] || ''}
+            onChange={(e) =>
+              onAuthChange(app.objectID, {
+                ...authState.credentials,
+                [param.id]: e.target.value,
+              })
+            }
+            fullWidth
+            size="small"
+            helperText={param.description}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: 2,
+                '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
+                '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+              },
+              '& .MuiInputBase-input': { color: 'white' },
+              '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
+              '& .MuiFormHelperText-root': { color: 'rgba(255, 255, 255, 0.4)' },
+            }}
+          />
+        ))}
+      </Box>
+    );
+  };
+
+  // Render generic API key field - for non-OAuth2 apps without parameters
+  const renderApiKeyFields = () => {
+    if (isOAuth2 || (auth?.parameters && auth.parameters.length > 0)) return null;
+
+    return (
+      <TextField
+        label="API Key"
+        type="password"
+        placeholder="Enter your API key"
+        value={authState.credentials['api_key'] || ''}
+        onChange={(e) =>
+          onAuthChange(app.objectID, {
+            ...authState.credentials,
+            api_key: e.target.value,
+          })
+        }
+        fullWidth
+        size="small"
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: 2,
+            '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
+            '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+            '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+          },
+          '& .MuiInputBase-input': { color: 'white' },
+          '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
+        }}
+      />
+    );
   };
   return (
     <motion.div variants={itemVariants}>
@@ -410,53 +748,85 @@ const AppAuthCard = ({
               </Box>
             )}
 
-            {/* Show message when no auths exist or "Add new" is selected */}
+            {/* Show form when no auths exist or "Add new" is selected */}
             {(apiAuthEntries.length === 0 || showAddNewForm) && (
               <Box sx={{ 
                 p: 3, 
                 backgroundColor: 'rgba(0, 0, 0, 0.2)', 
                 borderRadius: 2,
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                textAlign: 'center',
               }}>
                 <Typography variant="subtitle2" sx={{ color: '#FF6600', fontWeight: 600, mb: 2 }}>
-                  {apiAuthEntries.length === 0 ? 'No Authentication Configured' : 'Add New Authentication'}
+                  {apiAuthEntries.length === 0 ? 'Configure Authentication' : 'Add New Authentication'}
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 3 }}>
-                  Use the button below to authenticate with {app.name.replace(/_/g, ' ')} via Shuffle.
-                </Typography>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={
-                    app.image_url ? (
-                      <Box
-                        component="img"
-                        src={app.image_url}
-                        alt={app.name}
-                        sx={{ width: 24, height: 24, borderRadius: 1, objectFit: 'contain' }}
-                      />
-                    ) : <LockIcon />
-                  }
-                  onClick={() => {
-                    const authUrl = `https://shuffler.io/appauth?app_id=${app.objectID}`;
-                    window.open(authUrl, '_blank', 'width=600,height=700');
-                  }}
-                  sx={{
-                    py: 1.5,
-                    borderColor: 'rgba(255, 102, 0, 0.4)',
-                    color: 'white',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    '&:hover': {
-                      borderColor: '#FF6600',
-                      backgroundColor: 'rgba(255, 102, 0, 0.08)',
-                    },
-                  }}
-                >
-                  Connect with {app.name.replace(/_/g, ' ')}
-                </Button>
+                
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+                    <CircularProgress size={32} sx={{ color: '#FF6600' }} />
+                    <Typography sx={{ ml: 2, color: 'rgba(255, 255, 255, 0.5)' }}>
+                      Loading configuration...
+                    </Typography>
+                  </Box>
+                ) : error ? (
+                  <Alert
+                    severity="error"
+                    sx={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      color: '#ef4444',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: 2,
+                    }}
+                  >
+                    {error}
+                  </Alert>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {/* Render dynamic fields based on auth type */}
+                    {renderOAuth2Fields()}
+                    {renderParameterFields()}
+                    {renderApiKeyFields()}
+
+                    {authState.status === 'error' && authState.errorMessage && (
+                      <Alert
+                        severity="error"
+                        sx={{
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                          color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          borderRadius: 2,
+                        }}
+                      >
+                        {authState.errorMessage}
+                      </Alert>
+                    )}
+
+                    {/* Test Connection button for non-OAuth2 apps */}
+                    {!isOAuth2 && (
+                      <Button
+                        variant="contained"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTestConnection(app.objectID);
+                        }}
+                        disabled={authState.status === 'testing'}
+                        sx={{
+                          background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
+                          boxShadow: '0 4px 14px rgba(255, 102, 0, 0.25)',
+                          fontWeight: 600,
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #FF8533 0%, #FF9955 100%)',
+                          },
+                          '&.Mui-disabled': {
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            color: 'rgba(255, 255, 255, 0.3)',
+                          },
+                        }}
+                      >
+                        {authState.status === 'testing' ? 'Testing...' : 'Test Connection'}
+                      </Button>
+                    )}
+                  </Box>
+                )}
               </Box>
             )}
           </Box>
