@@ -80,6 +80,8 @@ interface AppAuthentication {
 
 // API authentication entry (from /api/v1/apps/authentication)
 interface ApiAuthEntry {
+  id?: string;
+  label?: string;
   app: {
     id: string;
     name: string;
@@ -105,6 +107,7 @@ interface AppAuthConfigProps {
   authenticatedApps?: ApiAuthEntry[];
   onAuthChange: (appId: string, credentials: Record<string, string>) => void;
   onTestConnection: (appId: string) => void;
+  onSelectAuth?: (appId: string, authId: string) => void;
 }
 
 const containerVariants = {
@@ -120,6 +123,8 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
+const ADD_NEW_AUTH = '__add_new__';
+
 const AppAuthCard = ({
   app,
   authState,
@@ -127,7 +132,8 @@ const AppAuthCard = ({
   onToggle,
   onAuthChange,
   onTestConnection,
-  apiAuthEntry,
+  apiAuthEntries,
+  onSelectAuth,
 }: {
   app: AlgoliaSearchApp;
   authState: AppAuthState;
@@ -135,11 +141,32 @@ const AppAuthCard = ({
   onToggle: () => void;
   onAuthChange: (appId: string, credentials: Record<string, string>) => void;
   onTestConnection: (appId: string) => void;
-  apiAuthEntry?: ApiAuthEntry;
+  apiAuthEntries: ApiAuthEntry[];
+  onSelectAuth?: (appId: string, authId: string) => void;
 }) => {
-  // Compute configured/tested status from API auth entry
-  const isConfigured = apiAuthEntry?.active === true;
-  const isTested = apiAuthEntry?.validation?.valid === true;
+  // Track selected auth from dropdown
+  const [selectedAuthId, setSelectedAuthId] = useState<string>(() => {
+    // Default to first existing auth if available
+    return apiAuthEntries.length > 0 ? (apiAuthEntries[0].id || apiAuthEntries[0].label || '0') : ADD_NEW_AUTH;
+  });
+
+  // Update selection when apiAuthEntries changes
+  useEffect(() => {
+    if (apiAuthEntries.length > 0 && selectedAuthId === ADD_NEW_AUTH) {
+      setSelectedAuthId(apiAuthEntries[0].id || apiAuthEntries[0].label || '0');
+    }
+  }, [apiAuthEntries, selectedAuthId]);
+
+  const showAddNewForm = selectedAuthId === ADD_NEW_AUTH;
+  
+  // Get the currently selected auth entry
+  const selectedAuth = apiAuthEntries.find(
+    auth => (auth.id || auth.label || '') === selectedAuthId
+  );
+
+  // Compute configured/tested status from selected auth entry
+  const isConfigured = selectedAuth?.active === true || apiAuthEntries.some(a => a.active === true);
+  const isTested = selectedAuth?.validation?.valid === true || apiAuthEntries.some(a => a.validation?.valid === true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appConfig, setAppConfig] = useState<DecodedApp | null>(null);
@@ -724,36 +751,120 @@ const AppAuthCard = ({
             sx={{
               px: 3,
               pb: 3,
-              pt: 1,
+              pt: 2,
               borderTop: '1px solid rgba(255, 255, 255, 0.05)',
             }}
           >
-            {loading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={32} sx={{ color: '#FF6600' }} />
-                <Typography sx={{ ml: 2, color: 'rgba(255, 255, 255, 0.5)' }}>
-                  Loading configuration...
+            {/* Auth Selection Dropdown - always at top */}
+            {apiAuthEntries.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 1 }}>
+                  Select authentication
                 </Typography>
-              </Box>
-            ) : error ? (
-              <Alert
-                severity="error"
-                sx={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: 2,
-                }}
-              >
-                {error}
-              </Alert>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {renderOAuth2Fields()}
-                {renderParameterFields()}
-                {renderApiKeyFields()}
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={selectedAuthId}
+                    onChange={(e) => {
+                      const value = e.target.value as string;
+                      setSelectedAuthId(value);
+                      if (value !== ADD_NEW_AUTH && onSelectAuth) {
+                        onSelectAuth(app.objectID, value);
+                      }
+                    }}
+                    sx={{
+                      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                      borderRadius: 2,
+                      color: 'white',
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#FF6600' },
+                      '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.5)' },
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          backgroundColor: '#1a1a1a',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                        },
+                      },
+                    }}
+                  >
+                    {apiAuthEntries.map((authEntry, index) => {
+                      const entryId = authEntry.id || authEntry.label || index.toString();
+                      const entryLabel = authEntry.label || `Auth ${index + 1}`;
+                      const isActive = authEntry.active === true;
+                      const isValid = authEntry.validation?.valid === true;
+                      return (
+                        <MenuItem key={entryId} value={entryId} sx={{ color: 'white' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                            <Typography sx={{ flex: 1 }}>{entryLabel}</Typography>
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              <Chip
+                                label={isActive ? 'Configured' : 'Not configured'}
+                                size="small"
+                                sx={{
+                                  height: 20,
+                                  fontSize: '0.6rem',
+                                  backgroundColor: isActive ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                  color: isActive ? '#f59e0b' : '#ef4444',
+                                }}
+                              />
+                              <Chip
+                                label={isValid ? 'Tested' : 'Not tested'}
+                                size="small"
+                                sx={{
+                                  height: 20,
+                                  fontSize: '0.6rem',
+                                  backgroundColor: isValid ? 'rgba(34, 197, 94, 0.15)' : 'rgba(156, 163, 175, 0.15)',
+                                  color: isValid ? '#22c55e' : '#9ca3af',
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
+                    <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', my: 1 }} />
+                    <MenuItem value={ADD_NEW_AUTH} sx={{ color: '#FF6600', fontWeight: 600 }}>
+                      + Add new authentication
+                    </MenuItem>
+                  </Select>
+                </FormControl>
 
-                {authState.status === 'error' && authState.errorMessage && (
+                {/* Show selected auth info if not adding new */}
+                {!showAddNewForm && selectedAuth && (
+                  <Box sx={{ 
+                    mt: 2, 
+                    p: 2, 
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)', 
+                    borderRadius: 2,
+                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CheckCircleIcon sx={{ color: '#22c55e', fontSize: 20 }} />
+                      <Typography sx={{ color: 'white', fontWeight: 500 }}>
+                        Using: {selectedAuth.label || 'Selected authentication'}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1 }}>
+                      This authentication is already configured. Select "Add new authentication" to create another one.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {/* Show form only if no auths exist OR "Add new" is selected */}
+            {(apiAuthEntries.length === 0 || showAddNewForm) && (
+              <>
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+                    <CircularProgress size={32} sx={{ color: '#FF6600' }} />
+                    <Typography sx={{ ml: 2, color: 'rgba(255, 255, 255, 0.5)' }}>
+                      Loading configuration...
+                    </Typography>
+                  </Box>
+                ) : error ? (
                   <Alert
                     severity="error"
                     sx={{
@@ -763,35 +874,55 @@ const AppAuthCard = ({
                       borderRadius: 2,
                     }}
                   >
-                    {authState.errorMessage}
+                    {error}
                   </Alert>
-                )}
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {renderOAuth2Fields()}
+                    {renderParameterFields()}
+                    {renderApiKeyFields()}
 
-                {!isOAuth2 && (
-                  <Button
-                    variant="contained"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTestConnection(app.objectID);
-                    }}
-                    disabled={authState.status === 'testing'}
-                    sx={{
-                      background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
-                      boxShadow: '0 4px 14px rgba(255, 102, 0, 0.25)',
-                      fontWeight: 600,
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #FF8533 0%, #FF9955 100%)',
-                      },
-                      '&.Mui-disabled': {
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        color: 'rgba(255, 255, 255, 0.3)',
-                      },
-                    }}
-                  >
-                    {authState.status === 'testing' ? 'Testing...' : 'Test Connection'}
-                  </Button>
+                    {authState.status === 'error' && authState.errorMessage && (
+                      <Alert
+                        severity="error"
+                        sx={{
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                          color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          borderRadius: 2,
+                        }}
+                      >
+                        {authState.errorMessage}
+                      </Alert>
+                    )}
+
+                    {!isOAuth2 && (
+                      <Button
+                        variant="contained"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTestConnection(app.objectID);
+                        }}
+                        disabled={authState.status === 'testing'}
+                        sx={{
+                          background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
+                          boxShadow: '0 4px 14px rgba(255, 102, 0, 0.25)',
+                          fontWeight: 600,
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #FF8533 0%, #FF9955 100%)',
+                          },
+                          '&.Mui-disabled': {
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            color: 'rgba(255, 255, 255, 0.3)',
+                          },
+                        }}
+                      >
+                        {authState.status === 'testing' ? 'Testing...' : 'Test Connection'}
+                      </Button>
+                    )}
+                  </Box>
                 )}
-              </Box>
+              </>
             )}
           </Box>
         </Collapse>
@@ -885,12 +1016,13 @@ export const AppAuthConfig = ({
   authenticatedApps = [],
   onAuthChange,
   onTestConnection,
+  onSelectAuth,
 }: AppAuthConfigProps) => {
   const [expanded, setExpanded] = useState<string | false>(apps[0]?.objectID || false);
 
-  // Helper to find the API auth entry for an app
-  const getApiAuthEntry = (app: AlgoliaSearchApp): ApiAuthEntry | undefined => {
-    return authenticatedApps.find(
+  // Helper to find ALL API auth entries for an app
+  const getApiAuthEntries = (app: AlgoliaSearchApp): ApiAuthEntry[] => {
+    return authenticatedApps.filter(
       auth => auth.app?.name?.toLowerCase() === app.name.toLowerCase()
     );
   };
@@ -935,7 +1067,7 @@ export const AppAuthConfig = ({
           {apps.map((app) => {
             const authState = authStates[app.objectID] || { systemId: app.objectID, status: 'pending' as const, credentials: {} };
             const isExpanded = expanded === app.objectID;
-            const apiAuthEntry = getApiAuthEntry(app);
+            const apiAuthEntries = getApiAuthEntries(app);
 
             return (
               <AppAuthCard
@@ -946,7 +1078,8 @@ export const AppAuthConfig = ({
                 onToggle={() => setExpanded(isExpanded ? false : app.objectID)}
                 onAuthChange={onAuthChange}
                 onTestConnection={onTestConnection}
-                apiAuthEntry={apiAuthEntry}
+                apiAuthEntries={apiAuthEntries}
+                onSelectAuth={onSelectAuth}
               />
             );
           })}
