@@ -32,6 +32,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const [loading, setLoading] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated } = useAuth();
@@ -100,8 +101,11 @@ const AuthPage = ({ mode }: AuthPageProps) => {
       }
 
       if (data.session_token) {
+        setSuccess(true);
         login(data.session_token);
-        navigate(from, { replace: true });
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 1500);
       } else if (!isLogin) {
         // Registration successful, redirect to login
         navigate('/login', { state: { message: 'Registration successful. Please log in.' } });
@@ -206,6 +210,36 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                   }
                 </Typography>
               </Box>
+
+              {success && (
+                <Alert
+                  severity="success"
+                  sx={{
+                    mb: 3,
+                    bgcolor: 'rgba(76,175,80,0.1)',
+                    color: '#4caf50',
+                    border: '1px solid rgba(76,175,80,0.3)',
+                    '& .MuiAlert-icon': { color: '#4caf50' },
+                  }}
+                >
+                  Login successful! Redirecting...
+                </Alert>
+              )}
+
+              {mfaRequired && !success && (
+                <Alert
+                  severity="info"
+                  sx={{
+                    mb: 3,
+                    bgcolor: 'rgba(255,102,0,0.1)',
+                    color: '#FF6600',
+                    border: '1px solid rgba(255,102,0,0.3)',
+                    '& .MuiAlert-icon': { color: '#FF6600' },
+                  }}
+                >
+                  Two-factor authentication required
+                </Alert>
+              )}
 
               {error && (
                 <Alert
