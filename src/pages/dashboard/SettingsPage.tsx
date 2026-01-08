@@ -59,8 +59,8 @@ const SettingsPage = () => {
     }
   }, [sessionToken]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     window.location.href = '/login';
   };
 
