@@ -120,8 +120,10 @@ export interface SingulJSProps {
   // Authentication
   /** API key for fetching authenticated apps from /api/v1/apps/authentication */
   apiKey?: string;
-  /** Base URL for API calls (default: https://shuffler.io) */
+  /** Base URL for Shuffle API calls (default: https://shuffler.io) */
   apiBaseUrl?: string;
+  /** Base URL for Singul API calls (default: https://singul.io) */
+  singulBaseUrl?: string;
   /** Manually provided authenticated apps (used when apiKey is not provided) */
   authenticatedApps?: AppAuthentication[];
   
