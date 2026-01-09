@@ -33,6 +33,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
   hitsPerPage = 15,
   apiKey,
   apiBaseUrl = 'https://shuffler.io',
+  singulBaseUrl = 'https://singul.io',
   authenticatedApps: externalAuthenticatedApps,
   customStyles = {},
   className = '',
