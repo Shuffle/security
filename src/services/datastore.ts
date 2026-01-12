@@ -160,8 +160,10 @@ export const deleteDatastoreItem = async (
 
 // Category constants for consistency
 export const DATASTORE_CATEGORIES = {
-  ALERTS: 'shuffle-alerts',
-  CASES: 'shuffle-cases',
-  TEMPLATES: 'shuffle-templates',
-  CONFIGURATION: 'shuffle-cases-configuration',
+  ALERTS: 'shuffle-security alerts',
+  CASES: 'shuffle-security cases',
+  TEMPLATES: 'shuffle-security templates',
+  CONFIGURATION: 'shuffle-security configuration',
+  IOCS: 'shuffle-security iocs',
+  CUSTOM_FIELDS: 'shuffle-security custom-fields',
 } as const;
