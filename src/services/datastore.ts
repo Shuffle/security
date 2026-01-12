@@ -2,10 +2,10 @@
  * Shuffle Datastore Service
  * 
  * Provides reusable functions for interacting with the Shuffle datastore API.
- * Supports CRUD operations with category-based organization.
+ * Uses the correct Shuffle cache API endpoints.
  */
 
-import { API_CONFIG, getAuthHeader } from '@/config/api';
+import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
 
 export interface DatastoreItem {
   key: string;
@@ -22,6 +22,22 @@ export interface DatastoreResponse {
 }
 
 /**
+ * Get current org ID from user info in localStorage
+ */
+const getOrgId = (): string | null => {
+  try {
+    const userInfo = localStorage.getItem('shuffle_user_info');
+    if (userInfo) {
+      const parsed = JSON.parse(userInfo);
+      return parsed.active_org?.id || null;
+    }
+  } catch {
+    // Ignore parsing errors
+  }
+  return null;
+};
+
+/**
  * Set a single item in the datastore
  */
 export const setDatastoreItem = async (
@@ -29,14 +45,18 @@ export const setDatastoreItem = async (
   value: string | object,
   category: string
 ): Promise<DatastoreResponse> => {
-  // API always expects a list, even for single items
-  const payload = [{
+  const orgId = getOrgId();
+  if (!orgId) {
+    return { success: false, error: 'No organization ID found' };
+  }
+
+  const payload = {
     key,
     value: typeof value === 'string' ? value : JSON.stringify(value),
     category,
-  }];
+  };
 
-  const response = await fetch(`${API_CONFIG.baseUrl}/api/v2/datastore`, {
+  const response = await fetch(getApiUrl(`/orgs/${orgId}/set_cache`), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -59,23 +79,17 @@ export const setDatastoreItems = async (
   items: { key: string; value: string | object }[],
   category: string
 ): Promise<DatastoreResponse> => {
-  const payload = items.map(item => ({
-    key: item.key,
-    value: typeof item.value === 'string' ? item.value : JSON.stringify(item.value),
-    category,
-  }));
+  const orgId = getOrgId();
+  if (!orgId) {
+    return { success: false, error: 'No organization ID found' };
+  }
 
-  const response = await fetch(`${API_CONFIG.baseUrl}/api/v2/datastore`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeader(API_CONFIG.apiKey),
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    return { success: false, error: `Failed to set datastore items: ${response.statusText}` };
+  // Set items one by one since set_cache doesn't support bulk in v1
+  for (const item of items) {
+    const result = await setDatastoreItem(item.key, item.value, category);
+    if (!result.success) {
+      return result;
+    }
   }
 
   return { success: true };
@@ -88,22 +102,43 @@ export const getDatastoreItem = async (
   key: string,
   category: string
 ): Promise<DatastoreResponse & { item?: DatastoreItem }> => {
-  const response = await fetch(
-    `${API_CONFIG.baseUrl}/api/v2/datastore/${encodeURIComponent(key)}?category=${category}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(API_CONFIG.apiKey),
-      },
-    }
-  );
+  const orgId = getOrgId();
+  if (!orgId) {
+    return { success: false, error: 'No organization ID found' };
+  }
+
+  const payload: Record<string, string> = {
+    key,
+  };
+  
+  if (category) {
+    payload.category = category;
+  }
+
+  const response = await fetch(getApiUrl(`/orgs/${orgId}/get_cache`), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(API_CONFIG.apiKey),
+    },
+    body: JSON.stringify(payload),
+  });
 
   if (!response.ok) {
+    // 404 means key doesn't exist - not an error, just empty
+    if (response.status === 404) {
+      return { success: true, item: undefined };
+    }
     return { success: false, error: `Failed to get datastore item: ${response.statusText}` };
   }
 
   const data = await response.json();
+  
+  // API returns success: false if key not found
+  if (data.success === false && !data.value) {
+    return { success: true, item: undefined };
+  }
+  
   return { success: true, item: data };
 };
 
@@ -113,8 +148,13 @@ export const getDatastoreItem = async (
 export const getDatastoreByCategory = async (
   category: string
 ): Promise<DatastoreResponse> => {
+  const orgId = getOrgId();
+  if (!orgId) {
+    return { success: false, error: 'No organization ID found' };
+  }
+
   const response = await fetch(
-    `${API_CONFIG.baseUrl}/api/v2/datastore/category/${category}`,
+    getApiUrl(`/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}`),
     {
       method: 'GET',
       headers: {
@@ -129,7 +169,7 @@ export const getDatastoreByCategory = async (
   }
 
   const data = await response.json();
-  // API returns items in 'keys' array, not 'data'
+  // API returns items in 'keys' array
   return { success: true, data: Array.isArray(data) ? data : data.keys || data.data || [] };
 };
 
@@ -140,16 +180,27 @@ export const deleteDatastoreItem = async (
   key: string,
   category: string
 ): Promise<DatastoreResponse> => {
-  const response = await fetch(
-    `${API_CONFIG.baseUrl}/api/v2/datastore/${encodeURIComponent(key)}?category=${category}`,
-    {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(API_CONFIG.apiKey),
-      },
-    }
-  );
+  const orgId = getOrgId();
+  if (!orgId) {
+    return { success: false, error: 'No organization ID found' };
+  }
+
+  const payload: Record<string, string> = {
+    key,
+  };
+  
+  if (category) {
+    payload.category = category;
+  }
+
+  const response = await fetch(getApiUrl(`/orgs/${orgId}/delete_cache`), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(API_CONFIG.apiKey),
+    },
+    body: JSON.stringify(payload),
+  });
 
   if (!response.ok) {
     return { success: false, error: `Failed to delete datastore item: ${response.statusText}` };
