@@ -109,6 +109,7 @@ export const getDatastoreItem = async (
 
   const payload: Record<string, string> = {
     key,
+    org_id: orgId,
   };
   
   if (category) {
