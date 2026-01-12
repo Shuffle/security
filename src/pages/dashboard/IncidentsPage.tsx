@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -19,6 +19,12 @@ import {
   TablePagination,
   CircularProgress,
   Tooltip,
+  Menu,
+  MenuItem,
+  TableSortLabel,
+  FormControlLabel,
+  Switch,
+  Divider,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import SearchIcon from '@mui/icons-material/Search';
@@ -26,7 +32,9 @@ import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import { useDatastore } from '@/hooks/useDatastore';
+import { useAuth } from '@/context/AuthContext';
 import { DATASTORE_CATEGORIES, getDatastoreByCategory, setDatastoreItems } from '@/services/datastore';
 import { CreateIncidentDialog, OCSFIncidentFinding, Observable } from '@/components/incidents/CreateIncidentDialog';
 import { IncidentDetailDialog } from '@/components/incidents/IncidentDetailDialog';
@@ -34,42 +42,31 @@ import { IncidentDetailDialog } from '@/components/incidents/IncidentDetailDialo
 // Legacy categories for migration
 const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
 const LEGACY_SECURITY_ALERTS_CATEGORY = 'shuffle-security_alerts';
-
-// Check if migration already happened (stored in localStorage)
 const MIGRATION_KEY = 'shuffle_incidents_migrated_v1';
 
-// Migrate data from old categories to new INCIDENTS category (one-time only)
 const migrateToIncidents = async (): Promise<number> => {
-  // Skip if already migrated
-  if (localStorage.getItem(MIGRATION_KEY)) {
-    return 0;
-  }
+  if (localStorage.getItem(MIGRATION_KEY)) return 0;
 
   try {
     let allItems: { key: string; value: string }[] = [];
 
-    // Fetch from old alert category
     const oldAlerts = await getDatastoreByCategory(LEGACY_ALERTS_CATEGORY);
-    if (oldAlerts.success && oldAlerts.data && oldAlerts.data.length > 0) {
+    if (oldAlerts.success && oldAlerts.data?.length) {
       allItems = [...allItems, ...oldAlerts.data.map(item => ({ key: item.key, value: item.value }))];
     }
 
-    // Fetch from security_alerts category
     const securityAlerts = await getDatastoreByCategory(LEGACY_SECURITY_ALERTS_CATEGORY);
-    if (securityAlerts.success && securityAlerts.data && securityAlerts.data.length > 0) {
+    if (securityAlerts.success && securityAlerts.data?.length) {
       allItems = [...allItems, ...securityAlerts.data.map(item => ({ key: item.key, value: item.value }))];
     }
 
     if (allItems.length === 0) {
-      // Mark as migrated even if no data (nothing to migrate)
       localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
       return 0;
     }
 
-    // Write to new INCIDENTS category
     const result = await setDatastoreItems(allItems, DATASTORE_CATEGORIES.INCIDENTS);
     if (result.success) {
-      console.log(`Migrated ${allItems.length} items to INCIDENTS category`);
       localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
       return allItems.length;
     }
@@ -88,7 +85,9 @@ interface DisplayIncident {
   status: string;
   assignee: string | null;
   created: string;
+  createdTs: number;
   edited?: string;
+  editedTs?: number;
   tlp?: string;
   pap?: string;
   references?: string[];
@@ -97,12 +96,43 @@ interface DisplayIncident {
   rawOCSF?: OCSFIncidentFinding;
 }
 
+// Column configuration
+type ColumnKey = 'title' | 'source' | 'severity' | 'tlp' | 'status' | 'assignee' | 'created' | 'edited';
+
+interface ColumnConfig {
+  key: ColumnKey;
+  label: string;
+  defaultVisible: boolean;
+  sortable: boolean;
+}
+
+const COLUMNS: ColumnConfig[] = [
+  { key: 'title', label: 'Incident', defaultVisible: true, sortable: true },
+  { key: 'source', label: 'Source', defaultVisible: false, sortable: true },
+  { key: 'severity', label: 'Severity', defaultVisible: true, sortable: true },
+  { key: 'tlp', label: 'TLP', defaultVisible: false, sortable: true },
+  { key: 'status', label: 'Status', defaultVisible: true, sortable: true },
+  { key: 'assignee', label: 'Assignee', defaultVisible: true, sortable: true },
+  { key: 'created', label: 'Created', defaultVisible: false, sortable: true },
+  { key: 'edited', label: 'Last Updated', defaultVisible: true, sortable: true },
+];
+
+const STORAGE_KEY_COLUMNS = 'incidents_visible_columns';
+
 const severityColors: Record<string, string> = {
   critical: '#ef4444',
   high: '#f97316',
   medium: '#eab308',
   low: '#22c55e',
   informational: '#3b82f6',
+};
+
+const severityOrder: Record<string, number> = {
+  critical: 5,
+  high: 4,
+  medium: 3,
+  low: 2,
+  informational: 1,
 };
 
 const statusColors: Record<string, { bg: string; text: string }> = {
@@ -120,7 +150,6 @@ const tlpColors: Record<string, string> = {
   'TLP:RED': '#ef4444',
 };
 
-// Convert OCSF severity to display severity
 const mapOCSFSeverity = (severityId: number): string => {
   switch (severityId) {
     case 1: return 'informational';
@@ -132,7 +161,6 @@ const mapOCSFSeverity = (severityId: number): string => {
   }
 };
 
-// Convert OCSF status to display status
 const mapOCSFStatus = (statusId: number): string => {
   switch (statusId) {
     case 1: return 'new';
@@ -142,7 +170,6 @@ const mapOCSFStatus = (statusId: number): string => {
   }
 };
 
-// Format timestamp from datastore (Unix seconds to readable date)
 const formatTimestamp = (timestamp: number | string | undefined): string => {
   if (!timestamp) return 'Unknown';
   const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
@@ -152,12 +179,15 @@ const formatTimestamp = (timestamp: number | string | undefined): string => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
-// Parse incident from datastore (handles both OCSF Incident Finding and legacy formats)
+const parseTimestamp = (timestamp: number | string | undefined): number => {
+  if (!timestamp) return 0;
+  const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+  return ts < 10000000000 ? ts * 1000 : ts;
+};
+
 const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number }): DisplayIncident | null => {
   try {
     const data = JSON.parse(item.value);
-    
-    // Check if it's OCSF format (has finding_info or severity_id)
     const isOCSF = data.finding_info || data.severity_id !== undefined;
     
     if (isOCSF) {
@@ -170,7 +200,9 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         status: mapOCSFStatus(ocsf.status_id),
         assignee: ocsf.assignee || null,
         created: formatTimestamp(item.created),
+        createdTs: parseTimestamp(item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
+        editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
         tlp: ocsf.tlp,
         pap: ocsf.pap,
         references: ocsf.finding_info?.references,
@@ -179,7 +211,6 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         rawOCSF: ocsf,
       };
     } else {
-      // Legacy format - simple object with direct properties
       return {
         id: data.id || item.key,
         title: data.title || 'Untitled',
@@ -188,7 +219,9 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         status: (data.status || 'new').toLowerCase().replace('_', ''),
         assignee: data.assignee || null,
         created: formatTimestamp(item.created),
+        createdTs: parseTimestamp(item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
+        editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
         tlp: data.tlp,
         pap: data.pap,
         references: data.references,
@@ -201,6 +234,8 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
   }
 };
 
+type SortDirection = 'asc' | 'desc';
+
 interface Filters {
   severity: string | null;
   status: string | null;
@@ -208,25 +243,45 @@ interface Filters {
 }
 
 const IncidentsPage = () => {
+  const { userInfo } = useAuth();
+  const currentUsername = userInfo?.username || '';
+
   const [selected, setSelected] = useState<string[]>([]);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [incidents, setIncidents] = useState<DisplayIncident[]>([]);
   const [filters, setFilters] = useState<Filters>({ severity: null, status: null, tlp: null });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<DisplayIncident | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<ColumnKey>('edited');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_COLUMNS);
+    if (saved) {
+      try {
+        return new Set(JSON.parse(saved) as ColumnKey[]);
+      } catch {
+        // Fall through to defaults
+      }
+    }
+    return new Set(COLUMNS.filter(c => c.defaultVisible).map(c => c.key));
+  });
+  const [columnMenuAnchor, setColumnMenuAnchor] = useState<null | HTMLElement>(null);
 
   const { items: datastoreItems, isLoading, error, fetchItems, addItem } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
   });
 
-  // Migrate data from old categories and fetch incidents on mount
   useEffect(() => {
     const init = async () => {
       const migratedCount = await migrateToIncidents();
       if (migratedCount > 0) {
-        console.log(`Migration complete: ${migratedCount} items moved to incidents`);
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
       await fetchItems();
@@ -234,18 +289,131 @@ const IncidentsPage = () => {
     init();
   }, [fetchItems]);
 
-  // Parse datastore items
   useEffect(() => {
     const realIncidents: DisplayIncident[] = datastoreItems
       .map((item) => parseIncidentFromDatastore(item))
       .filter((a): a is DisplayIncident => a !== null);
-
     setIncidents(realIncidents);
   }, [datastoreItems]);
 
+  // Save column visibility
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify([...visibleColumns]));
+  }, [visibleColumns]);
+
+  // Smart default filter based on user
+  const smartFilteredIncidents = useMemo(() => {
+    // First, check if user has assigned incidents
+    const userIncidents = incidents.filter(i => i.assignee === currentUsername && i.status !== 'resolved');
+    if (userIncidents.length > 0) {
+      return userIncidents;
+    }
+
+    // If no assigned incidents, show "new" ones
+    const newIncidents = incidents.filter(i => i.status === 'new');
+    if (newIncidents.length > 0) {
+      return newIncidents;
+    }
+
+    // Otherwise show all non-resolved
+    return incidents.filter(i => i.status !== 'resolved');
+  }, [incidents, currentUsername]);
+
+  // Apply additional filters and search
+  const filteredIncidents = useMemo(() => {
+    let result = smartFilteredIncidents;
+
+    // Apply chip filters
+    if (filters.severity) {
+      result = result.filter(i => i.severity === filters.severity);
+    }
+    if (filters.status) {
+      result = result.filter(i => i.status === filters.status);
+    }
+    if (filters.tlp) {
+      result = result.filter(i => i.tlp === filters.tlp);
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(i => 
+        i.title.toLowerCase().includes(q) ||
+        i.id.toLowerCase().includes(q) ||
+        i.source.toLowerCase().includes(q) ||
+        (i.assignee && i.assignee.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [smartFilteredIncidents, filters, searchQuery]);
+
+  // Sort incidents
+  const sortedIncidents = useMemo(() => {
+    const sorted = [...filteredIncidents];
+    
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'title':
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case 'source':
+          comparison = a.source.localeCompare(b.source);
+          break;
+        case 'severity':
+          comparison = (severityOrder[a.severity] || 0) - (severityOrder[b.severity] || 0);
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case 'assignee':
+          comparison = (a.assignee || '').localeCompare(b.assignee || '');
+          break;
+        case 'created':
+          comparison = a.createdTs - b.createdTs;
+          break;
+        case 'edited':
+          comparison = (a.editedTs || a.createdTs) - (b.editedTs || b.createdTs);
+          break;
+        case 'tlp':
+          comparison = (a.tlp || '').localeCompare(b.tlp || '');
+          break;
+        default:
+          comparison = 0;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [filteredIncidents, sortBy, sortDirection]);
+
+  const handleSort = (column: ColumnKey) => {
+    if (sortBy === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const toggleColumn = (key: ColumnKey) => {
+    setVisibleColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
-      setSelected(incidents.map((i) => i.id));
+      setSelected(sortedIncidents.map((i) => i.id));
     } else {
       setSelected([]);
     }
@@ -272,16 +440,13 @@ const IncidentsPage = () => {
     const incident = incidents.find(i => i.id === incidentId);
     if (!incident || !incident.rawOCSF) return;
 
-    // Optimistically update local state immediately
     setIncidents(prev => prev.map(i => 
-      i.id === incidentId 
-        ? { ...i, status: 'resolved' } 
-        : i
+      i.id === incidentId ? { ...i, status: 'resolved' } : i
     ));
 
     const updatedOCSF: OCSFIncidentFinding = {
       ...incident.rawOCSF,
-      status_id: 3, // Resolved
+      status_id: 3,
       status: 'Resolved',
     };
 
@@ -305,14 +470,6 @@ const IncidentsPage = () => {
     await fetchItems();
   };
 
-  // Filter incidents based on active filters
-  const filteredIncidents = incidents.filter((incident) => {
-    if (filters.severity && incident.severity !== filters.severity) return false;
-    if (filters.status && incident.status !== filters.status) return false;
-    if (filters.tlp && incident.tlp !== filters.tlp) return false;
-    return true;
-  });
-
   const handleChipFilter = (type: keyof Filters, value: string) => (e: React.MouseEvent) => {
     e.stopPropagation();
     setFilters((prev) => ({
@@ -324,10 +481,102 @@ const IncidentsPage = () => {
 
   const clearFilters = () => {
     setFilters({ severity: null, status: null, tlp: null });
+    setSearchQuery('');
     setPage(0);
   };
 
-  const hasActiveFilters = filters.severity || filters.status || filters.tlp;
+  const hasActiveFilters = filters.severity || filters.status || filters.tlp || searchQuery.trim();
+
+  const renderCellContent = (incident: DisplayIncident, column: ColumnKey) => {
+    switch (column) {
+      case 'title':
+        return (
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {incident.title}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {incident.id}
+            </Typography>
+          </Box>
+        );
+      case 'source':
+        return (
+          <Chip
+            label={incident.source}
+            size="small"
+            sx={{ backgroundColor: 'rgba(148, 163, 184, 0.1)' }}
+          />
+        );
+      case 'severity':
+        return (
+          <Chip
+            label={incident.severity}
+            size="small"
+            onClick={handleChipFilter('severity', incident.severity)}
+            sx={{
+              backgroundColor: `${severityColors[incident.severity] || '#94a3b8'}20`,
+              color: severityColors[incident.severity] || '#94a3b8',
+              fontWeight: 500,
+              textTransform: 'capitalize',
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: `${severityColors[incident.severity] || '#94a3b8'}35` },
+            }}
+          />
+        );
+      case 'tlp':
+        return incident.tlp ? (
+          <Chip
+            label={incident.tlp}
+            size="small"
+            onClick={handleChipFilter('tlp', incident.tlp)}
+            sx={{
+              backgroundColor: `${tlpColors[incident.tlp] || '#94a3b8'}20`,
+              color: tlpColors[incident.tlp] || '#94a3b8',
+              border: tlpColors[incident.tlp] === '#ffffff' ? '1px solid #666' : 'none',
+              fontWeight: 500,
+              fontSize: '0.7rem',
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: `${tlpColors[incident.tlp] || '#94a3b8'}35` },
+            }}
+          />
+        ) : null;
+      case 'status':
+        return (
+          <Chip
+            label={incident.status.replace('_', ' ')}
+            size="small"
+            onClick={handleChipFilter('status', incident.status)}
+            sx={{
+              backgroundColor: statusColors[incident.status]?.bg || 'rgba(148, 163, 184, 0.1)',
+              color: statusColors[incident.status]?.text || '#94a3b8',
+              fontWeight: 500,
+              textTransform: 'capitalize',
+              cursor: 'pointer',
+              '&:hover': { opacity: 0.8 },
+            }}
+          />
+        );
+      case 'assignee':
+        return incident.assignee || (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>—</Typography>
+        );
+      case 'created':
+        return (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {incident.created}
+          </Typography>
+        );
+      case 'edited':
+        return (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {incident.edited || incident.created}
+          </Typography>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <motion.div
@@ -342,9 +591,7 @@ const IncidentsPage = () => {
           </Typography>
           {isLoading && <CircularProgress size={20} />}
           {error && (
-            <Typography variant="caption" color="error">
-              {error}
-            </Typography>
+            <Typography variant="caption" color="error">{error}</Typography>
           )}
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
@@ -372,6 +619,8 @@ const IncidentsPage = () => {
             <TextField
               size="small"
               placeholder="Search incidents..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -379,13 +628,17 @@ const IncidentsPage = () => {
                   </InputAdornment>
                 ),
               }}
-              sx={{ width: 300 }}
+              sx={{ width: 280 }}
             />
+
+            <Tooltip title="Configure columns">
+              <IconButton onClick={(e) => setColumnMenuAnchor(e.currentTarget)} size="small">
+                <ViewColumnIcon />
+              </IconButton>
+            </Tooltip>
+
             {hasActiveFilters && (
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Filters:
-                </Typography>
                 {filters.severity && (
                   <Chip
                     label={`Severity: ${filters.severity}`}
@@ -403,17 +656,14 @@ const IncidentsPage = () => {
                   />
                 )}
                 {filters.tlp && (
-                  <Chip
-                    label={filters.tlp}
-                    size="small"
-                    onDelete={() => setFilters((prev) => ({ ...prev, tlp: null }))}
-                  />
+                  <Chip label={filters.tlp} size="small" onDelete={() => setFilters((prev) => ({ ...prev, tlp: null }))} />
                 )}
                 <Button size="small" onClick={clearFilters} sx={{ minWidth: 'auto' }}>
-                  Clear all
+                  Clear
                 </Button>
               </Box>
             )}
+
             {selected.length > 0 && (
               <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
                 <Button variant="outlined" color="primary">
@@ -424,28 +674,36 @@ const IncidentsPage = () => {
           </Box>
 
           <TableContainer>
-            <Table>
+            <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox">
                     <Checkbox
-                      indeterminate={selected.length > 0 && selected.length < filteredIncidents.length}
-                      checked={filteredIncidents.length > 0 && selected.length === filteredIncidents.length}
+                      indeterminate={selected.length > 0 && selected.length < sortedIncidents.length}
+                      checked={sortedIncidents.length > 0 && selected.length === sortedIncidents.length}
                       onChange={handleSelectAll}
                     />
                   </TableCell>
-                  <TableCell>Incident</TableCell>
-                  <TableCell>Source</TableCell>
-                  <TableCell>Severity</TableCell>
-                  <TableCell>TLP</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Assignee</TableCell>
-                  <TableCell>Created</TableCell>
+                  {COLUMNS.filter(c => visibleColumns.has(c.key)).map((col) => (
+                    <TableCell key={col.key}>
+                      {col.sortable ? (
+                        <TableSortLabel
+                          active={sortBy === col.key}
+                          direction={sortBy === col.key ? sortDirection : 'asc'}
+                          onClick={() => handleSort(col.key)}
+                        >
+                          {col.label}
+                        </TableSortLabel>
+                      ) : (
+                        col.label
+                      )}
+                    </TableCell>
+                  ))}
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredIncidents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((incident) => (
+                {sortedIncidents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((incident) => (
                   <TableRow
                     key={incident.id}
                     hover
@@ -459,96 +717,15 @@ const IncidentsPage = () => {
                         onChange={() => handleSelect(incident.id)}
                       />
                     </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {incident.title}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {incident.id}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={incident.source}
-                        size="small"
-                        sx={{ backgroundColor: 'rgba(148, 163, 184, 0.1)' }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={incident.severity}
-                        size="small"
-                        onClick={handleChipFilter('severity', incident.severity)}
-                        sx={{
-                          backgroundColor: `${severityColors[incident.severity] || '#94a3b8'}20`,
-                          color: severityColors[incident.severity] || '#94a3b8',
-                          fontWeight: 500,
-                          textTransform: 'capitalize',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            backgroundColor: `${severityColors[incident.severity] || '#94a3b8'}35`,
-                          },
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {incident.tlp && (
-                        <Chip
-                          label={incident.tlp}
-                          size="small"
-                          onClick={handleChipFilter('tlp', incident.tlp)}
-                          sx={{
-                            backgroundColor: `${tlpColors[incident.tlp] || '#94a3b8'}20`,
-                            color: tlpColors[incident.tlp] || '#94a3b8',
-                            border: tlpColors[incident.tlp] === '#ffffff' ? '1px solid #666' : 'none',
-                            fontWeight: 500,
-                            fontSize: '0.7rem',
-                            cursor: 'pointer',
-                            '&:hover': {
-                              backgroundColor: `${tlpColors[incident.tlp] || '#94a3b8'}35`,
-                            },
-                          }}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={incident.status.replace('_', ' ')}
-                        size="small"
-                        onClick={handleChipFilter('status', incident.status)}
-                        sx={{
-                          backgroundColor: statusColors[incident.status]?.bg || 'rgba(148, 163, 184, 0.1)',
-                          color: statusColors[incident.status]?.text || '#94a3b8',
-                          fontWeight: 500,
-                          textTransform: 'capitalize',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            opacity: 0.8,
-                          },
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {incident.assignee || (
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          Unassigned
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {incident.created}
-                      </Typography>
-                    </TableCell>
+                    {COLUMNS.filter(c => visibleColumns.has(c.key)).map((col) => (
+                      <TableCell key={col.key}>
+                        {renderCellContent(incident, col.key)}
+                      </TableCell>
+                    ))}
                     <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                       <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                         <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRowClick(incident)}
-                          >
+                          <IconButton size="small" onClick={() => handleRowClick(incident)}>
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -567,16 +744,26 @@ const IncidentsPage = () => {
                     </TableCell>
                   </TableRow>
                 ))}
+                {sortedIncidents.length === 0 && !isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={COLUMNS.filter(c => visibleColumns.has(c.key)).length + 2} sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        No incidents found
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
 
           <TablePagination
             component="div"
-            count={filteredIncidents.length}
+            count={sortedIncidents.length}
             page={page}
             onPageChange={(_, newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[25, 50, 100]}
             onRowsPerPageChange={(e) => {
               setRowsPerPage(parseInt(e.target.value, 10));
               setPage(0);
@@ -584,6 +771,30 @@ const IncidentsPage = () => {
           />
         </CardContent>
       </Card>
+
+      {/* Column visibility menu */}
+      <Menu
+        anchorEl={columnMenuAnchor}
+        open={Boolean(columnMenuAnchor)}
+        onClose={() => setColumnMenuAnchor(null)}
+        PaperProps={{
+          sx: { bgcolor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', minWidth: 200 },
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ px: 2, py: 1, color: 'text.secondary' }}>
+          Visible Columns
+        </Typography>
+        <Divider />
+        {COLUMNS.map((col) => (
+          <MenuItem key={col.key} onClick={() => toggleColumn(col.key)} dense>
+            <FormControlLabel
+              control={<Switch size="small" checked={visibleColumns.has(col.key)} />}
+              label={col.label}
+              sx={{ width: '100%', m: 0 }}
+            />
+          </MenuItem>
+        ))}
+      </Menu>
 
       <CreateIncidentDialog
         open={createDialogOpen}
