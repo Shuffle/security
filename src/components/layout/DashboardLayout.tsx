@@ -5,7 +5,7 @@ import { AppSidebar } from './AppSidebar';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
-const SIDEBAR_STATE_KEY = 'shuffle-cases-sidebar-collapsed';
+const SIDEBAR_STATE_KEY = 'shuffle-security-sidebar-collapsed';
 
 interface DashboardLayoutProps {
   children?: ReactNode;

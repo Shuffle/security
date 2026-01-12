@@ -26,7 +26,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import { useDatastore } from '@/hooks/useDatastore';
 
-const CATEGORY = 'shuffle-cases iocs';
+import { DATASTORE_CATEGORIES } from '@/services/datastore';
+
+const CATEGORY = DATASTORE_CATEGORIES.IOCS;
 
 interface IOCType {
   name: string;
