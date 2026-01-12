@@ -29,9 +29,47 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useDatastore } from '@/hooks/useDatastore';
-import { DATASTORE_CATEGORIES } from '@/services/datastore';
+import { DATASTORE_CATEGORIES, getDatastoreByCategory, setDatastoreItems } from '@/services/datastore';
 import { CreateAlertDialog, OCSFDetection, Observable } from '@/components/alerts/CreateAlertDialog';
 import { AlertDetailDialog } from '@/components/alerts/AlertDetailDialog';
+
+// Legacy category for migration
+const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
+
+// Migrate data from old category to new category (runs once)
+const migrateAlertsData = async (): Promise<number> => {
+  try {
+    // Check if we already migrated
+    const migrationKey = 'alerts-migration-complete';
+    const migrated = localStorage.getItem(migrationKey);
+    if (migrated) return 0;
+
+    // Fetch from old category
+    const oldData = await getDatastoreByCategory(LEGACY_ALERTS_CATEGORY);
+    if (!oldData.success || !oldData.data || oldData.data.length === 0) {
+      localStorage.setItem(migrationKey, 'true');
+      return 0;
+    }
+
+    // Prepare items for new category
+    const itemsToMigrate = oldData.data.map(item => ({
+      key: item.key,
+      value: item.value,
+    }));
+
+    // Write to new category
+    const result = await setDatastoreItems(itemsToMigrate, DATASTORE_CATEGORIES.ALERTS);
+    if (result.success) {
+      localStorage.setItem(migrationKey, 'true');
+      console.log(`Migrated ${itemsToMigrate.length} alerts to new category`);
+      return itemsToMigrate.length;
+    }
+    return 0;
+  } catch (err) {
+    console.error('Migration failed:', err);
+    return 0;
+  }
+};
 
 interface DisplayAlert {
   id: string;
@@ -172,9 +210,16 @@ const AlertsPage = () => {
     category: DATASTORE_CATEGORIES.ALERTS,
   });
 
-  // Fetch alerts from datastore on mount
+  // Migrate data from old category and fetch alerts on mount
   useEffect(() => {
-    fetchItems();
+    const init = async () => {
+      const migratedCount = await migrateAlertsData();
+      if (migratedCount > 0) {
+        console.log(`Migration complete: ${migratedCount} alerts moved`);
+      }
+      fetchItems();
+    };
+    init();
   }, [fetchItems]);
 
   // Parse datastore items (OCSF format) and combine with dummy alerts
