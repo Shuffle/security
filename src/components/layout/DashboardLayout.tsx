@@ -1,5 +1,5 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { AppSidebar } from './AppSidebar';
 
@@ -13,15 +13,29 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutProps) => {
+  const location = useLocation();
+  const isOnboarding = location.pathname === '/onboarding';
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (defaultCollapsed !== undefined) return defaultCollapsed;
+    // Always collapse on onboarding page regardless of saved state
+    if (isOnboarding || defaultCollapsed) return true;
     const saved = localStorage.getItem(SIDEBAR_STATE_KEY);
     return saved === 'true';
   });
 
+  // Force collapse when navigating to onboarding
   useEffect(() => {
-    localStorage.setItem(SIDEBAR_STATE_KEY, String(sidebarCollapsed));
-  }, [sidebarCollapsed]);
+    if (isOnboarding) {
+      setSidebarCollapsed(true);
+    }
+  }, [isOnboarding]);
+
+  // Only persist state when NOT on onboarding page
+  useEffect(() => {
+    if (!isOnboarding) {
+      localStorage.setItem(SIDEBAR_STATE_KEY, String(sidebarCollapsed));
+    }
+  }, [sidebarCollapsed, isOnboarding]);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'hsl(var(--background))' }}>
