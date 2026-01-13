@@ -6,20 +6,22 @@ import {
   Clock,
   MessageSquare,
   AlertTriangle,
-  Shield,
+  User,
 } from 'lucide-react';
 
 interface DisplayIncident {
   id: string;
   status: string;
   severity: string;
+  assignee?: string | null;
   createdTs: number;
   editedTs?: number;
 }
 
 interface IncidentStatsCardsProps {
   incidents: DisplayIncident[];
-  onFilterChange?: (type: 'status' | 'severity', value: string | null) => void;
+  onFilterChange?: (type: 'status' | 'severity' | 'assignee', value: string | null) => void;
+  currentUsername?: string;
 }
 
 interface StatCardProps {
@@ -105,7 +107,7 @@ const StatCard = ({ icon: Icon, iconColor, iconBg, value, label, trend, delay, o
   </motion.div>
 );
 
-export const IncidentStatsCards = ({ incidents, onFilterChange }: IncidentStatsCardsProps) => {
+export const IncidentStatsCards = ({ incidents, onFilterChange, currentUsername }: IncidentStatsCardsProps) => {
   // Calculate stats
   const resolvedCount = incidents.filter(i => i.status === 'resolved').length;
   const totalCount = incidents.length;
@@ -113,6 +115,7 @@ export const IncidentStatsCards = ({ incidents, onFilterChange }: IncidentStatsC
   
   const criticalCount = incidents.filter(i => i.severity === 'critical' || i.severity === 'high').length;
   const newCount = incidents.filter(i => i.status === 'new').length;
+  const yourCount = currentUsername ? incidents.filter(i => i.assignee === currentUsername && i.status !== 'resolved').length : 0;
 
   // Calculate average response time (time from created to first update)
   const incidentsWithUpdates = incidents.filter(i => i.editedTs && i.editedTs !== i.createdTs);
@@ -140,13 +143,25 @@ export const IncidentStatsCards = ({ incidents, onFilterChange }: IncidentStatsC
         gap: 2,
       }}
     >
+      {currentUsername && (
+        <StatCard
+          icon={User}
+          iconColor="#a855f7"
+          iconBg="rgba(168, 85, 247, 0.15)"
+          value={yourCount}
+          label="Yours"
+          delay={0}
+          clickable={!!onFilterChange}
+          onClick={() => onFilterChange?.('assignee', currentUsername)}
+        />
+      )}
       <StatCard
         icon={MessageSquare}
         iconColor="#22b8cf"
         iconBg="rgba(34, 184, 207, 0.15)"
         value={newCount}
         label="New"
-        delay={0}
+        delay={0.05}
         clickable={!!onFilterChange}
         onClick={() => onFilterChange?.('status', 'new')}
       />
