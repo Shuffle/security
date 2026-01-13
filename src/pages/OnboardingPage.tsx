@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Container, Typography, Button, Chip, Stack } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TicketingSystemSearch } from '@/components/onboarding/TicketingSystemSearch';
 import type { AlgoliaSearchApp } from '@/lib/singul-local';
 import { AppAuthConfig, AppAuthState, AuthStatus } from '@/components/onboarding/AppAuthConfig';
@@ -35,15 +35,29 @@ interface ApiAuthEntry {
 }
 
 const steps = [
-  { label: 'Select Tools', icon: <IntegrationInstructionsIcon /> },
-  { label: 'Authentication', icon: <VpnKeyIcon /> },
-  { label: 'Automate', icon: <AutoFixHighIcon /> },
-  { label: 'Complete', icon: <RocketLaunchIcon /> },
+  { label: 'Select Tools', icon: <IntegrationInstructionsIcon />, path: '/onboarding/tools' },
+  { label: 'Authentication', icon: <VpnKeyIcon />, path: '/onboarding/authenticate' },
+  { label: 'Automate', icon: <AutoFixHighIcon />, path: '/onboarding/automate' },
+  { label: 'Complete', icon: <RocketLaunchIcon />, path: '/onboarding/complete' },
 ];
+
+// Map paths to step indices
+const pathToStep: Record<string, number> = {
+  '/onboarding': 0,
+  '/onboarding/tools': 0,
+  '/onboarding/authenticate': 1,
+  '/onboarding/automate': 2,
+  '/onboarding/complete': 3,
+};
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
-  const [activeStep, setActiveStep] = useState(0);
+  const location = useLocation();
+  
+  // Derive initial step from URL
+  const getStepFromPath = () => pathToStep[location.pathname] ?? 0;
+  
+  const [activeStep, setActiveStep] = useState(getStepFromPath);
   const [selectedApps, setSelectedApps] = useState<AlgoliaSearchApp[]>([]);
   const [searchQuery, setSearchQuery] = useState('email');
   const [authStates, setAuthStates] = useState<Record<string, AppAuthState>>({});
@@ -56,6 +70,21 @@ const OnboardingPage = () => {
     chat_notify: { enabled: true, config: {} },
   });
 
+  // Sync URL when step changes
+  useEffect(() => {
+    const targetPath = steps[activeStep].path;
+    if (location.pathname !== targetPath) {
+      navigate(targetPath, { replace: true });
+    }
+  }, [activeStep, location.pathname, navigate]);
+
+  // Sync step when URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const stepFromPath = getStepFromPath();
+    if (stepFromPath !== activeStep) {
+      setActiveStep(stepFromPath);
+    }
+  }, [location.pathname]);
   // Load saved selected tools from datastore on mount
   useEffect(() => {
     const loadSavedTools = async () => {

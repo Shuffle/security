@@ -54,6 +54,10 @@ const App = () => (
               }
             >
               <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/onboarding/tools" element={<OnboardingPage />} />
+              <Route path="/onboarding/authenticate" element={<OnboardingPage />} />
+              <Route path="/onboarding/automate" element={<OnboardingPage />} />
+              <Route path="/onboarding/complete" element={<OnboardingPage />} />
             </Route>
             
             {/* Product routes with shared layout */}
