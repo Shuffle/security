@@ -10,17 +10,34 @@ import {
   ListItemText,
   Avatar,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '@/config/api';
 
 interface Integration {
   id: string;
   name: string;
   icon: string;
   status: 'connected' | 'error' | 'pending';
+}
+
+interface ApiAuthEntry {
+  app: {
+    id: string;
+    name: string;
+    large_image?: string;
+  };
+  active?: boolean;
+  validation?: {
+    valid: boolean;
+    error?: string;
+  };
 }
 
 interface IntegrationStatusProps {
@@ -31,23 +48,47 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(true);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Load integrations from localStorage (temporary until backend)
+  // Fetch enabled integrations from API
   useEffect(() => {
-    const stored = localStorage.getItem('connected_integrations');
-    if (stored) {
+    const fetchIntegrations = async () => {
+      if (!API_CONFIG.apiKey) return;
+      
+      setLoading(true);
       try {
-        const parsed = JSON.parse(stored);
-        setIntegrations(
-          parsed.map((sys: { id: string; name: string; icon: string }) => ({
-            ...sys,
-            status: 'connected' as const,
-          }))
-        );
-      } catch {
-        setIntegrations([]);
+        const response = await fetch(`${API_CONFIG.baseUrl}/api/v1/apps/authentication`, {
+          headers: {
+            'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+          },
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          const authData: ApiAuthEntry[] = result.data || result;
+          
+          if (Array.isArray(authData)) {
+            // Filter to only show active/validated apps
+            const enabledApps = authData.filter(entry => 
+              entry.active || entry.validation?.valid
+            );
+            
+            setIntegrations(enabledApps.map(entry => ({
+              id: entry.app.id,
+              name: entry.app.name,
+              icon: entry.app.large_image || entry.app.name.charAt(0).toUpperCase(),
+              status: entry.validation?.valid ? 'connected' : entry.active ? 'pending' : 'error',
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch integrations:', error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+    
+    fetchIntegrations();
   }, []);
 
   const getStatusColor = (status: Integration['status']) => {
@@ -61,48 +102,76 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
     }
   };
 
+  const getStatusIcon = (status: Integration['status']) => {
+    switch (status) {
+      case 'connected':
+        return <CheckCircleIcon sx={{ fontSize: 12, color: 'hsl(var(--severity-low))' }} />;
+      case 'error':
+        return <ErrorIcon sx={{ fontSize: 12, color: 'hsl(var(--severity-critical))' }} />;
+      default:
+        return null;
+    }
+  };
+
   if (collapsed) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 1, gap: 0.5 }}>
-        {integrations.slice(0, 3).map((integration) => (
-          <Tooltip key={integration.id} title={`${integration.name} - ${integration.status}`} placement="right">
-            <Box
-              sx={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Avatar
-                sx={{
-                  width: 28,
-                  height: 28,
-                  backgroundColor: 'hsl(var(--muted))',
-                  fontSize: '0.9rem',
-                }}
-              >
-                {integration.icon}
-              </Avatar>
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: getStatusColor(integration.status),
-                  border: '1px solid hsl(var(--card))',
-                }}
-              />
-            </Box>
-          </Tooltip>
-        ))}
-        {integrations.length > 3 && (
-          <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
-            +{integrations.length - 3}
-          </Typography>
+        {loading ? (
+          <CircularProgress size={20} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+        ) : (
+          <>
+            {integrations.slice(0, 3).map((integration) => (
+              <Tooltip key={integration.id} title={`${integration.name} - ${integration.status}`} placement="right">
+                <Box
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {integration.icon.startsWith('http') ? (
+                    <Avatar
+                      src={integration.icon}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        backgroundColor: 'hsl(var(--muted))',
+                      }}
+                    />
+                  ) : (
+                    <Avatar
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        backgroundColor: 'hsl(var(--muted))',
+                        fontSize: '0.9rem',
+                      }}
+                    >
+                      {integration.icon}
+                    </Avatar>
+                  )}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: getStatusColor(integration.status),
+                      border: '1px solid hsl(var(--card))',
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+            ))}
+            {integrations.length > 3 && (
+              <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
+                +{integrations.length - 3}
+              </Typography>
+            )}
+          </>
         )}
         <Tooltip title="Add Integration" placement="right">
           <IconButton
@@ -136,7 +205,9 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
           Integrations
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {integrations.length > 0 && (
+          {loading ? (
+            <CircularProgress size={14} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+          ) : integrations.length > 0 ? (
             <Chip
               label={integrations.length}
               size="small"
@@ -147,7 +218,7 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
                 color: 'hsl(var(--primary))',
               }}
             />
-          )}
+          ) : null}
           {expanded ? (
             <ExpandLess sx={{ fontSize: 18, color: 'hsl(var(--muted-foreground))' }} />
           ) : (
@@ -169,16 +240,27 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
               }}
             >
               <Box sx={{ position: 'relative', mr: 1.5 }}>
-                <Avatar
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    backgroundColor: 'hsl(var(--muted))',
-                    fontSize: '0.8rem',
-                  }}
-                >
-                  {integration.icon}
-                </Avatar>
+                {integration.icon.startsWith('http') ? (
+                  <Avatar
+                    src={integration.icon}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      backgroundColor: 'hsl(var(--muted))',
+                    }}
+                  />
+                ) : (
+                  <Avatar
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      backgroundColor: 'hsl(var(--muted))',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    {integration.icon}
+                  </Avatar>
+                )}
                 <Box
                   sx={{
                     position: 'absolute',
@@ -198,10 +280,11 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
                   sx: { color: 'hsl(var(--foreground))', fontSize: '0.8rem' },
                 }}
               />
+              {getStatusIcon(integration.status)}
             </ListItem>
           ))}
 
-          {integrations.length === 0 && (
+          {!loading && integrations.length === 0 && (
             <ListItem sx={{ py: 1, px: 1.5 }}>
               <ListItemText
                 primary="No integrations"
