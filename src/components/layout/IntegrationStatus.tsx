@@ -58,17 +58,30 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
           const authData: ApiAuthEntry[] = result.data || result;
           
           if (Array.isArray(authData)) {
-            // Filter to only show active/validated apps
-            const enabledApps = authData.filter(entry => 
-              entry.active || entry.validation?.valid
-            );
+            // Deduplicate by app.id, prioritizing validated entries
+            const appMap = new Map<string, { entry: ApiAuthEntry; isValidated: boolean }>();
             
-            setIntegrations(enabledApps.map(entry => ({
+            authData.forEach(entry => {
+              if (!entry.active && !entry.validation?.valid) return; // Skip inactive/unvalidated
+              
+              const existing = appMap.get(entry.app.id);
+              const isValidated = entry.validation?.valid === true;
+              
+              // Keep this entry if: no existing, or this one is validated and existing isn't
+              if (!existing || (isValidated && !existing.isValidated)) {
+                appMap.set(entry.app.id, { entry, isValidated });
+              }
+            });
+            
+            // Convert to integration objects
+            const dedupedIntegrations = Array.from(appMap.values()).map(({ entry }) => ({
               id: entry.app.id,
               name: entry.app.name,
-              icon: entry.app.large_image || entry.app.name.charAt(0).toUpperCase(),
-              status: entry.validation?.valid ? 'connected' : entry.active ? 'pending' : 'error',
-            })));
+              icon: entry.app.large_image || '',
+              status: entry.validation?.valid ? 'connected' as const : 'pending' as const,
+            }));
+            
+            setIntegrations(dedupedIntegrations);
           }
         }
       } catch (error) {
@@ -164,27 +177,38 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
                     },
                   }}
                 >
-                  {integration.icon.startsWith('http') ? (
-                    <Avatar
+                  {integration.icon ? (
+                    <Box
+                      component="img"
                       src={integration.icon}
+                      alt={integration.name}
                       sx={{
                         width: 26,
                         height: 26,
+                        borderRadius: '50%',
+                        objectFit: 'contain',
                         backgroundColor: 'hsl(var(--muted))',
+                        p: 0.25,
+                      }}
+                      onError={(e) => {
+                        // Fallback to initial if image fails
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.setAttribute('style', 'display: flex');
                       }}
                     />
-                  ) : (
-                    <Avatar
-                      sx={{
-                        width: 26,
-                        height: 26,
-                        backgroundColor: 'hsl(var(--muted))',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      {integration.icon}
-                    </Avatar>
-                  )}
+                  ) : null}
+                  <Avatar
+                    sx={{
+                      width: 26,
+                      height: 26,
+                      backgroundColor: 'hsl(var(--muted))',
+                      fontSize: '0.75rem',
+                      display: integration.icon ? 'none' : 'flex',
+                    }}
+                  >
+                    {integration.name.charAt(0).toUpperCase()}
+                  </Avatar>
                   <Box
                     sx={{
                       position: 'absolute',
