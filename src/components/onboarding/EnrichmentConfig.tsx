@@ -177,23 +177,17 @@ export const EnrichmentConfig = ({
 
   // Build dynamic options based on connected apps
   const enrichmentOptions = useMemo(() => {
-    // Get validated/active apps and deduplicate using shared utility
+    // Get active apps and deduplicate using shared utility
     const dedupedApps = deduplicateAuthApps(
       authenticatedApps.filter(auth => auth.active || auth.validation?.valid)
     );
     
-    // Create a map of validated app names for quick lookup
-    const validatedAppNames = new Set<string>();
-    dedupedApps.forEach(({ app }) => {
-      validatedAppNames.add(app.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_'));
+    // Create a map of app names to their validation status for quick lookup
+    const appValidationMap = new Map<string, boolean>();
+    dedupedApps.forEach(({ app, hasValidAuth }) => {
+      const normalized = app.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
+      appValidationMap.set(normalized, hasValidAuth);
     });
-    
-    // Convert back to AuthAppEntry format with bestImage applied
-    const validatedApps: AuthAppEntry[] = dedupedApps.map(({ app, bestImage }) => ({
-      app: { ...app, large_image: bestImage || app.large_image },
-      active: true,
-      validation: { valid: true },
-    }));
     
     // Build ingestion sources by category - include both validated AND selected apps
     const ingestionByCategory: Record<IngestionCategory, ConnectedApp[]> = {
@@ -203,24 +197,29 @@ export const EnrichmentConfig = ({
       siem: [],
     };
     
-    // First add validated apps
-    validatedApps.forEach(auth => {
-      const category = getIngestionCategory(auth);
+    // First add authenticated apps (validated or just active)
+    dedupedApps.forEach(({ app, bestImage, hasValidAuth }) => {
+      const mockEntry: AuthAppEntry = {
+        app: { ...app, large_image: bestImage || app.large_image },
+        active: true,
+        validation: { valid: hasValidAuth },
+      };
+      const category = getIngestionCategory(mockEntry);
       if (category) {
         ingestionByCategory[category].push({
-          id: auth.app.id,
-          name: auth.app.name,
-          image: auth.app.large_image,
-          isValidated: true,
-          isSelected: isAppSelected(auth.app.name),
+          id: app.id,
+          name: app.name,
+          image: bestImage || app.large_image,
+          isValidated: hasValidAuth, // Use actual validation status
+          isSelected: isAppSelected(app.name),
         });
       }
     });
     
-    // Then add selected apps that aren't validated yet (for each category)
+    // Then add selected apps that aren't already in the list (for each category)
     selectedApps.forEach(app => {
       const normalizedName = app.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
-      if (validatedAppNames.has(normalizedName)) return; // Already added
+      if (appValidationMap.has(normalizedName)) return; // Already added from authenticated apps
       
       // Create a mock AuthAppEntry to check category
       const mockEntry: AuthAppEntry = {
@@ -262,11 +261,15 @@ export const EnrichmentConfig = ({
       return opt;
     });
     
-    // Email apps for Email Notifications (already deduplicated)
-    const emailApps = validatedApps.filter(auth => isEmailApp(auth.app.name));
+    // Email apps for Email Notifications - filter from deduplicated apps with valid auth
+    const emailApps = dedupedApps.filter(({ app, hasValidAuth }) => 
+      hasValidAuth && isEmailApp(app.name)
+    );
     
-    // Communication apps for Chat Notifications (already deduplicated)
-    const commApps = validatedApps.filter(auth => isCommunicationApp(auth));
+    // Communication apps for Chat Notifications - filter from deduplicated apps with valid auth
+    const commApps = dedupedApps.filter(({ app, hasValidAuth }) => 
+      hasValidAuth && isCommunicationApp({ app, active: true, validation: { valid: true } })
+    );
     
     // Add Email Notifications
     options.push({
@@ -278,10 +281,10 @@ export const EnrichmentConfig = ({
       icon: <EmailIcon />,
       color: '#22c55e',
       category: 'response',
-      connectedApps: emailApps.map(auth => ({
-        id: auth.app.id,
-        name: auth.app.name,
-        image: auth.app.large_image,
+      connectedApps: emailApps.map(({ app, bestImage }) => ({
+        id: app.id,
+        name: app.name,
+        image: bestImage || app.large_image,
       })),
     });
     
@@ -295,10 +298,10 @@ export const EnrichmentConfig = ({
       icon: <ChatIcon />,
       color: '#8b5cf6',
       category: 'response',
-      connectedApps: commApps.map(auth => ({
-        id: auth.app.id,
-        name: auth.app.name,
-        image: auth.app.large_image,
+      connectedApps: commApps.map(({ app, bestImage }) => ({
+        id: app.id,
+        name: app.name,
+        image: bestImage || app.large_image,
       })),
     });
     
