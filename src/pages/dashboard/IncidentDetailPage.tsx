@@ -57,6 +57,8 @@ import {
   IncidentTask,
 } from '@/components/incidents/CreateIncidentDialog';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
+import { MentionText } from '@/components/incidents/MentionText';
+import { TaskDateTimePicker } from '@/components/incidents/TaskDateTimePicker';
 import { toast } from 'sonner';
 
 interface TaskTemplate {
@@ -1305,20 +1307,27 @@ const IncidentDetailPage = () => {
                         </Select>
                       </FormControl>
                       
-                      <TextField
-                        type="date"
-                        size="small"
+                      <TaskDateTimePicker
                         value={task.dueDate || ''}
-                        onChange={(e) => handleUpdateTaskDueDate(task.id, e.target.value)}
-                        InputProps={{ disableUnderline: true, sx: { fontSize: '0.75rem' } }}
-                        variant="standard"
-                        sx={{ width: 120 }}
+                        onChange={(value) => handleUpdateTaskDueDate(task.id, value)}
                       />
+                      
+                      {/* Spacer to separate date picker from delete */}
+                      <Box sx={{ width: 16 }} />
                       
                       <IconButton 
                         size="small" 
                         onClick={() => handleDeleteTask(task.id)}
-                        sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444' } }}
+                        sx={{ 
+                          color: 'text.disabled',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 1,
+                          '&:hover': { 
+                            color: '#ef4444',
+                            bgcolor: 'rgba(239, 68, 68, 0.1)',
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                          } 
+                        }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -1654,7 +1663,7 @@ const IncidentDetailPage = () => {
               size="small"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
+              placeholder="Add a comment... (use @username to mention)"
               fullWidth
               multiline
               maxRows={4}
@@ -1698,9 +1707,11 @@ const IncidentDetailPage = () => {
                         {formatRelativeTime(item.timestamp)}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ color: item.type === 'comment' ? 'text.primary' : 'text.secondary', fontSize: '0.85rem' }}>
-                      {item.content}
-                    </Typography>
+                    <MentionText 
+                      text={item.content} 
+                      variant="body2" 
+                      sx={{ color: item.type === 'comment' ? 'text.primary' : 'text.secondary', fontSize: '0.85rem' }}
+                    />
                   </Box>
                 </Box>
               ))
