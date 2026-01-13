@@ -50,7 +50,7 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
-
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const defaultLimit = collapsed ? 4 : 8;
   const displayLimit = expanded ? integrations.length : defaultLimit;
   const hasMore = integrations.length > defaultLimit;
@@ -221,7 +221,7 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
                     },
                   }}
                 >
-                  {integration.icon ? (
+                  {integration.icon && !failedImages.has(integration.id) ? (
                     <Box
                       component="img"
                       src={integration.icon}
@@ -234,25 +234,23 @@ export const IntegrationStatus = ({ collapsed }: IntegrationStatusProps) => {
                         backgroundColor: 'hsl(var(--muted))',
                         p: 0.25,
                       }}
-                      onError={(e) => {
-                        // Fallback to initial if image fails
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.setAttribute('style', 'display: flex');
+                      onError={() => {
+                        setFailedImages(prev => new Set(prev).add(integration.id));
                       }}
                     />
-                  ) : null}
-                  <Avatar
-                    sx={{
-                      width: 26,
-                      height: 26,
-                      backgroundColor: 'hsl(var(--muted))',
-                      fontSize: '0.75rem',
-                      display: integration.icon ? 'none' : 'flex',
-                    }}
-                  >
-                    {integration.name.charAt(0).toUpperCase()}
-                  </Avatar>
+                  ) : (
+                    <Avatar
+                      sx={{
+                        width: 26,
+                        height: 26,
+                        backgroundColor: 'hsl(var(--muted))',
+                        fontSize: '0.75rem',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    >
+                      {integration.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                  )}
                   <Box
                     sx={{
                       position: 'absolute',
