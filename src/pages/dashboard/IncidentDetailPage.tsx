@@ -358,8 +358,8 @@ const IncidentDetailPage = () => {
   
   const [isSaving, setIsSaving] = useState(false);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState(0); // 0=Tasks, 1=Details, 2=Correlations, 3=Activity
-  const [correlations, setCorrelations] = useState<Array<{ key: string; value: string; created?: number }>>([]);
+  const [activeTab, setActiveTab] = useState(0); // 0=Tasks, 1=Details, 2=Observables, 3=Correlations
+  const [correlations, setCorrelations] = useState<Array<{ key: string; ref?: Array<{ category: string; key: string }>; matched_key?: string }>>([]);
   const [correlationsLoading, setCorrelationsLoading] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSaveRef = useRef(false);
@@ -1065,111 +1065,115 @@ const IncidentDetailPage = () => {
         </Box>
       </Box>
 
-      {/* Modern Pill Tabs */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        mb: 3,
-      }}>
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 0.5, 
-          p: 0.5, 
-          bgcolor: 'rgba(255,255,255,0.03)', 
-          borderRadius: 2,
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          {[
-            { label: 'Tasks', count: tasks.length > 0 ? `${tasks.filter(t => t.completed).length}/${tasks.length}` : null },
-            { label: 'Details', count: null },
-            { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading },
-            { label: 'Activity', count: activity.length > 0 ? activity.length : null },
-          ].map((tab, index) => (
-            <Box
-              key={tab.label}
-              onClick={() => setActiveTab(index)}
-              sx={{
-                px: 2,
-                py: 1,
-                borderRadius: 1.5,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                transition: 'all 0.2s ease',
-                bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
-                color: activeTab === index ? '#ff6600' : 'text.secondary',
-                fontWeight: activeTab === index ? 600 : 400,
-                fontSize: '0.875rem',
-                '&:hover': {
-                  bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
-                },
-              }}
-            >
-              {tab.label}
-              {tab.loading ? (
-                <CircularProgress size={12} sx={{ color: 'text.secondary' }} />
-              ) : tab.count !== null && (
+      {/* Main content with Activity sidebar */}
+      <Box sx={{ display: 'flex', gap: 3 }}>
+        {/* Left content area */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {/* Modern Pill Tabs */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            mb: 3,
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 0.5, 
+              p: 0.5, 
+              bgcolor: 'rgba(255,255,255,0.03)', 
+              borderRadius: 2,
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              {[
+                { label: 'Tasks', count: tasks.length > 0 ? `${tasks.filter(t => t.completed).length}/${tasks.length}` : null },
+                { label: 'Details', count: null },
+                { label: 'Observables', count: editedObservables.length > 0 ? editedObservables.length : null },
+                { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading },
+              ].map((tab, index) => (
                 <Box
-                  component="span"
+                  key={tab.label}
+                  onClick={() => setActiveTab(index)}
                   sx={{
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.3)' : 'rgba(255,255,255,0.08)',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1.5,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    transition: 'all 0.2s ease',
+                    bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
                     color: activeTab === index ? '#ff6600' : 'text.secondary',
+                    fontWeight: activeTab === index ? 600 : 400,
+                    fontSize: '0.875rem',
+                    '&:hover': {
+                      bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                    },
                   }}
                 >
-                  {tab.count}
+                  {tab.label}
+                  {tab.loading ? (
+                    <CircularProgress size={12} sx={{ color: 'text.secondary' }} />
+                  ) : tab.count !== null && (
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        px: 0.75,
+                        py: 0.25,
+                        borderRadius: 1,
+                        bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.3)' : 'rgba(255,255,255,0.08)',
+                        color: activeTab === index ? '#ff6600' : 'text.secondary',
+                      }}
+                    >
+                      {tab.count}
+                    </Box>
+                  )}
                 </Box>
-              )}
+              ))}
             </Box>
-          ))}
-        </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Quick metadata chips */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <FormControl size="small">
-              <Select
-                value={editedSeverity}
-                onChange={(e) => setEditedSeverity(e.target.value)}
-                variant="standard"
-                disableUnderline
-                sx={{ 
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  color: severityColors[editedSeverity],
-                  textTransform: 'capitalize',
-                }}
-              >
-                {severityOptions.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Typography variant="caption" sx={{ color: 'text.disabled' }}>|</Typography>
-            <FormControl size="small">
-              <Select
-                value={editedAssignee}
-                onChange={(e) => setEditedAssignee(e.target.value)}
-                variant="standard"
-                disableUnderline
-                displayEmpty
-                sx={{ fontSize: '0.8rem' }}
-              >
-                <MenuItem value=""><em>Unassigned</em></MenuItem>
-                {users.map((user) => (
-                  <MenuItem key={user.id} value={user.username}>{user.username}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Quick metadata chips */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <FormControl size="small">
+                  <Select
+                    value={editedSeverity}
+                    onChange={(e) => setEditedSeverity(e.target.value)}
+                    variant="standard"
+                    disableUnderline
+                    sx={{ 
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      color: severityColors[editedSeverity],
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {severityOptions.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>|</Typography>
+                <FormControl size="small">
+                  <Select
+                    value={editedAssignee}
+                    onChange={(e) => setEditedAssignee(e.target.value)}
+                    variant="standard"
+                    disableUnderline
+                    displayEmpty
+                    sx={{ fontSize: '0.8rem' }}
+                  >
+                    <MenuItem value=""><em>Unassigned</em></MenuItem>
+                    {users.map((user) => (
+                      <MenuItem key={user.id} value={user.username}>{user.username}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
           </Box>
-        </Box>
-      </Box>
 
       {/* Tab Content */}
       {activeTab === 0 && (
