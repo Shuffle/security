@@ -242,23 +242,16 @@ const IncidentsPage = () => {
     setIncidents(realIncidents);
   }, [datastoreItems]);
 
-  // Apply smart defaults on initial load only
+  // Apply smart defaults on initial load only - default to "New" status
   const [smartDefaultApplied, setSmartDefaultApplied] = useState(false);
 
   useEffect(() => {
     if (!smartDefaultApplied && incidents.length > 0) {
-      const userIncidents = incidents.filter(i => i.assignee === currentUsername && i.status !== 'resolved');
-      if (userIncidents.length > 0) {
-        setFilters(prev => ({ ...prev, assignee: currentUsername }));
-      } else {
-        const newIncidents = incidents.filter(i => i.status === 'new');
-        if (newIncidents.length > 0) {
-          setFilters(prev => ({ ...prev, status: 'new' }));
-        }
-      }
+      // Always default to "New" status filter
+      setFilters(prev => ({ ...prev, status: 'new' }));
       setSmartDefaultApplied(true);
     }
-  }, [incidents, currentUsername, smartDefaultApplied]);
+  }, [incidents, smartDefaultApplied]);
 
   // Filter incidents
   const filteredByAssignee = useMemo(() => {
@@ -522,7 +515,8 @@ const IncidentsPage = () => {
         {/* Stats sidebar */}
         <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
           <IncidentStatsCards 
-            incidents={incidents} 
+            incidents={incidents}
+            currentUsername={currentUsername}
             onFilterChange={(type, value) => {
               setFilters(prev => ({
                 ...prev,
