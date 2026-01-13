@@ -25,9 +25,9 @@ export const TicketingSystemSearch = ({
   const singulRef = useRef<SingulJSHandle>(null);
 
   const categories = [
-    { id: 'email', label: 'Email', icon: Mail, description: 'Gmail, Outlook, Exchange', searchTerm: 'email' },
-    { id: 'siem', label: 'SIEM', icon: Radar, description: 'Splunk, Sentinel, QRadar', searchTerm: 'siem' },
-    { id: 'edr', label: 'EDR', icon: Search, description: 'CrowdStrike, Carbon Black', searchTerm: 'edr' },
+    { id: 'email', label: 'Email', icon: Mail, description: 'Inboxes & mail servers', searchTerm: 'email' },
+    { id: 'siem', label: 'SIEM', icon: Radar, description: 'Log aggregation', searchTerm: 'siem' },
+    { id: 'edr', label: 'EDR', icon: Search, description: 'Endpoint detection', searchTerm: 'edr' },
     { id: 'other', label: 'Anywhere Else', icon: Globe, description: 'Any other source', searchTerm: '' },
   ];
 
@@ -49,7 +49,7 @@ export const TicketingSystemSearch = ({
           mb: 1,
         }}
       >
-        Connect Your Alert Sources
+        Connect Your Source Data
       </Typography>
       <Typography
         variant="body1"
