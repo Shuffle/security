@@ -113,7 +113,7 @@ interface AppAuthConfigProps {
   authStates: Record<string, AppAuthState>;
   authenticatedApps?: ApiAuthEntry[];
   onAuthChange: (appId: string, credentials: Record<string, string>) => void;
-  onTestConnection: (appId: string) => void;
+  onTestConnection: (appId: string, authenticationId?: string) => void;
   onSaveAuth: (appId: string, credentials: Record<string, string>) => Promise<boolean>;
   onSelectAuth?: (appId: string, authId: string) => void;
 }
@@ -149,7 +149,7 @@ const AppAuthCard = ({
   isExpanded: boolean;
   onToggle: () => void;
   onAuthChange: (appId: string, credentials: Record<string, string>) => void;
-  onTestConnection: (appId: string) => void;
+  onTestConnection: (appId: string, authenticationId?: string) => void;
   onSaveAuth: (appId: string, credentials: Record<string, string>) => Promise<boolean>;
   apiAuthEntries: ApiAuthEntry[];
   onSelectAuth?: (appId: string, authId: string) => void;
@@ -866,7 +866,7 @@ const AppAuthCard = ({
                         fullWidth={false}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onTestConnection(app.objectID);
+                          onTestConnection(app.objectID, selectedAuthId !== ADD_NEW_AUTH ? selectedAuthId : undefined);
                         }}
                         disabled={authState.status === 'testing'}
                         sx={{
@@ -1038,7 +1038,7 @@ const AppAuthCard = ({
                           variant="contained"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onTestConnection(app.objectID);
+                            onTestConnection(app.objectID, selectedAuthId !== ADD_NEW_AUTH ? selectedAuthId : undefined);
                           }}
                           disabled={authState.status === 'testing' || !isConfigured}
                           sx={{

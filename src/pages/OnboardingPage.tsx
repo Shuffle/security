@@ -208,7 +208,7 @@ const OnboardingPage = () => {
     }));
   };
 
-  const handleTestConnection = async (systemId: string) => {
+  const handleTestConnection = async (systemId: string, authenticationId?: string) => {
     // Find the app info
     const app = selectedApps.find(a => a.objectID === systemId);
     if (!app) return;
@@ -222,6 +222,16 @@ const OnboardingPage = () => {
     }));
 
     try {
+      // Build request body with optional authentication_id
+      const requestBody: Record<string, string> = {
+        action: 'test_api',
+        app: app.name.toLowerCase(),
+      };
+      
+      if (authenticationId) {
+        requestBody.authentication_id = authenticationId;
+      }
+
       // Call API to test the connection
       const response = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
         method: 'POST',
@@ -229,10 +239,7 @@ const OnboardingPage = () => {
           'Authorization': `Bearer ${API_CONFIG.apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          action: 'test_api',
-          app: app.name.toLowerCase(),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
