@@ -1030,8 +1030,8 @@ const AppAuthCard = ({
                       </Button>
                     </Box>
 
-                    {/* Status messages */}
-                    {authState.status === 'error' && authState.errorMessage && (
+                    {/* Status messages - only show for current test session */}
+                    {localTestStatus === 'error' && authState.errorMessage && (
                       <Box sx={{ 
                         px: { xs: 2, sm: 2.5 }, 
                         pb: { xs: 2, sm: 2.5 },
@@ -1078,7 +1078,7 @@ const AppAuthCard = ({
                         </Alert>
                       </Box>
                     )}
-                    {authState.status === 'connected' && (
+                    {localTestStatus === 'success' && (
                       <Box sx={{ 
                         px: { xs: 2, sm: 2.5 }, 
                         pb: { xs: 2, sm: 2.5 },
