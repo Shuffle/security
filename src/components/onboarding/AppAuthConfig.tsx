@@ -250,15 +250,9 @@ const AppAuthCard = ({
     }
   }, [authState.status, selectedAuth?.validation?.valid, wasPreValidated]);
   
-  // Auto-switch to "Add new authentication" on credential errors (401/403)
-  // These errors indicate the credentials are invalid and need to be re-entered
+  // Track credential errors (401/403) to show warning but don't auto-switch
+  // User can manually switch back to other auths or add new one
   const isCredentialError = authState.errorCode === 401 || authState.errorCode === 403;
-  useEffect(() => {
-    if (isCredentialError && selectedAuthId !== ADD_NEW_AUTH) {
-      setSelectedAuthId(ADD_NEW_AUTH);
-      setUserHasSelected(true); // Prevent auto-override
-    }
-  }, [isCredentialError, selectedAuthId]);
 
   const showAddNewForm = selectedAuthId === ADD_NEW_AUTH;
 
@@ -903,7 +897,14 @@ const AppAuthCard = ({
                       },
                     }}
                   >
-                    {apiAuthEntries.map((authEntry, index) => {
+                    {/* Sort by created date - most recent first */}
+                    {[...apiAuthEntries]
+                      .sort((a, b) => {
+                        const aTime = a.created || a.edited || 0;
+                        const bTime = b.created || b.edited || 0;
+                        return bTime - aTime; // Descending (newest first)
+                      })
+                      .map((authEntry, index) => {
                       const entryId = authEntry.id || authEntry.label || index.toString();
                       const entryLabel = authEntry.label || `Auth ${index + 1}`;
                       const isActive = authEntry.active === true;
@@ -1424,19 +1425,7 @@ const AppAuthCard = ({
                       </Alert>
                     )}
 
-                    {saveSuccess === true && (
-                      <Alert
-                        severity="success"
-                        sx={{
-                          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                          color: '#22c55e',
-                          border: '1px solid rgba(34, 197, 94, 0.3)',
-                          borderRadius: 2,
-                        }}
-                      >
-                        Authentication saved successfully!
-                      </Alert>
-                    )}
+                    {/* Success message removed per user request */}
 
                     {saveSuccess === false && (
                       <Alert
