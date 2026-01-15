@@ -40,7 +40,11 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const { login, isAuthenticated, isLoading: authLoading, refreshUserInfo } = useAuth();
 
   const isLogin = mode === 'login';
-  const from = location.state?.from?.pathname || '/incidents';
+  
+  // Get return URL from state (set by ProtectedRoute) or from URL param (persists on refresh)
+  const searchParams = new URLSearchParams(location.search);
+  const returnUrl = searchParams.get('returnUrl');
+  const from = location.state?.from?.pathname || returnUrl || '/incidents';
 
   // Redirect if already authenticated (e.g., via API key)
   useEffect(() => {

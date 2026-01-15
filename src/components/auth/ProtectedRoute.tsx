@@ -27,7 +27,9 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Pass return URL both in state and as URL param (param persists on refresh)
+    const returnUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnUrl=${returnUrl}`} state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
