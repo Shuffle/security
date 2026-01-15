@@ -411,113 +411,104 @@ const DetectionLoopVisual = () => {
         overflow: 'hidden',
       }}
     >
-      {/* Left side: SVG curved return path with animated dot going UP */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: 8,
-          top: 24,
-          bottom: 24,
-          width: 40,
-          pointerEvents: 'none',
-        }}
-      >
-        <svg
-          width="40"
-          height="100%"
-          style={{ position: 'absolute', inset: 0 }}
-        >
-          {/* Curved return path */}
-          <path
-            d="M 32 100% C 32 100%, 12 100%, 12 calc(100% - 20px) L 12 20 C 12 8, 32 8, 32 0"
-            fill="none"
-            stroke="rgba(14, 165, 233, 0.35)"
-            strokeWidth="2"
-            strokeDasharray="6 4"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-        {/* Animated dot going upward */}
+      {/* Loop container with curved return path */}
+      <Box sx={{ display: 'flex', position: 'relative' }}>
+        {/* Left side: SVG curved return path with animated arrow */}
         <Box
-          component={motion.div}
-          animate={{ 
-            top: ['calc(100% - 8px)', '8px'],
-            left: ['24px', '4px', '4px', '24px'],
-          }}
-          transition={{ 
-            duration: 3, 
-            repeat: Infinity, 
-            ease: 'linear',
-            times: [0, 0.15, 0.85, 1],
-          }}
           sx={{
             position: 'absolute',
-            width: 10,
-            height: 10,
-            borderRadius: '50%',
-            background: '#0ea5e9',
-            boxShadow: '0 0 12px 4px rgba(14, 165, 233, 0.5)',
+            left: 8,
+            top: 12,
+            bottom: 12,
+            width: 32,
           }}
-        />
-      </Box>
-
-      {/* Main flow - stages */}
-      <Stack spacing={0} sx={{ position: 'relative', zIndex: 1 }}>
-        {stages.map((stage, i) => (
-          <motion.div
-            key={stage.label}
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.12 }}
+        >
+          <svg
+            width="32"
+            height="100%"
+            viewBox="0 0 32 200"
+            preserveAspectRatio="none"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {/* Icon with connector */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 48 }}>
-                <Box
-                  component={motion.div}
-                  animate={{ scale: [1, 1.08, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    background: `linear-gradient(135deg, ${stage.color}20 0%, ${stage.color}10 100%)`,
-                    border: `1px solid ${stage.color}40`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.4rem',
-                    position: 'relative',
-                    zIndex: 2,
-                  }}
-                >
-                  {stage.icon}
-                </Box>
-                {i < stages.length - 1 && (
+            {/* Dashed path */}
+            <path
+              id="loopPath"
+              d="M 28 195 C 28 195, 8 195, 8 180 L 8 20 C 8 5, 28 5, 28 5"
+              fill="none"
+              stroke="rgba(14, 165, 233, 0.4)"
+              strokeWidth="2"
+              strokeDasharray="6 4"
+            />
+            {/* Animated circle following the path */}
+            <motion.circle
+              r="5"
+              fill="#0ea5e9"
+              initial={{ offsetDistance: '0%' }}
+              animate={{ offsetDistance: '100%' }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+              style={{
+                offsetPath: 'path("M 28 195 C 28 195, 8 195, 8 180 L 8 20 C 8 5, 28 5, 28 5")',
+              }}
+            />
+          </svg>
+        </Box>
+
+        {/* Main flow */}
+        <Stack spacing={0} sx={{ flex: 1, pl: 5 }}>
+          {stages.map((stage, i) => (
+            <motion.div
+              key={stage.label}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.12 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {/* Icon with connector */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 48 }}>
                   <Box
+                    component={motion.div}
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
                     sx={{
-                      width: 2,
-                      height: 24,
-                      background: `linear-gradient(to bottom, ${stage.color}60, ${stages[i + 1].color}60)`,
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      background: `linear-gradient(135deg, ${stage.color}20 0%, ${stage.color}10 100%)`,
+                      border: `1px solid ${stage.color}40`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.4rem',
                     }}
-                  />
-                )}
+                  >
+                    {stage.icon}
+                  </Box>
+                  {i < stages.length - 1 && (
+                    <Box
+                      sx={{
+                        width: 2,
+                        height: 24,
+                        background: `linear-gradient(to bottom, ${stage.color}60, ${stages[i + 1].color}60)`,
+                      }}
+                    />
+                  )}
+                </Box>
+                
+                {/* Content */}
+                <Box sx={{ flex: 1, py: 1 }}>
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', color: stage.color }}>
+                    {stage.label}
+                  </Typography>
+                  <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                    {stage.desc}
+                  </Typography>
+                </Box>
               </Box>
-              
-              {/* Content */}
-              <Box sx={{ flex: 1, py: 1 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.95rem', color: stage.color }}>
-                  {stage.label}
-                </Typography>
-                <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-                  {stage.desc}
-                </Typography>
-              </Box>
-            </Box>
-          </motion.div>
-        ))}
-      </Stack>
+            </motion.div>
+          ))}
+        </Stack>
+      </Box>
     </Box>
   );
 };
