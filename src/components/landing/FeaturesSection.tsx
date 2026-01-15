@@ -396,7 +396,7 @@ const features: Omit<FeatureSectionProps, 'reverse'>[] = [
   {
     icon: null,
     title: 'Automatic Security',
-    highlight: 'You Control',
+    highlight: 'For You',
     description: 'The platform handles the grunt work automatically—but always asks permission before acting. You decide when automation runs free and when it pauses for your approval.',
     bullets: [
       'Automatic triage and threat enrichment in seconds',
