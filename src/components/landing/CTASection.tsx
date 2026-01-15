@@ -2,6 +2,7 @@ import { Box, Container, Typography, Button, Stack } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { trackCTA } from '@/lib/analytics';
 
 export const CTASection = () => {
   return (
@@ -115,10 +116,11 @@ export const CTASection = () => {
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
+              onClick={() => trackCTA('start_for_free', 'cta_section')}
               sx={{
-                py: 2,
-                px: 6,
-                fontSize: '1.15rem',
+                py: { xs: 1.5, md: 2 },
+                px: { xs: 4, md: 6 },
+                fontSize: { xs: '1rem', md: '1.15rem' },
                 fontWeight: 600,
                 borderRadius: 3,
                 background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',

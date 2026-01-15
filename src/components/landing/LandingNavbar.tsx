@@ -18,6 +18,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { trackCTA, trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 
 const navItems = [
   { label: 'Features', href: '#features' },
@@ -165,6 +166,7 @@ export const LandingNavbar = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         variant="contained"
+                        onClick={() => trackCTA('get_started', 'navbar')}
                       >
                         Get Started
                       </Button>
@@ -235,7 +237,10 @@ export const LandingNavbar = () => {
                     rel="noopener noreferrer"
                     variant="contained"
                     fullWidth
-                    onClick={handleDrawerToggle}
+                    onClick={() => {
+                      trackCTA('get_started', 'mobile_drawer');
+                      handleDrawerToggle();
+                    }}
                   >
                     Get Started
                   </Button>

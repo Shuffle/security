@@ -18,6 +18,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { getApiUrl, API_ENDPOINTS, API_CONFIG } from '@/config/api';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { useAuth } from '@/context/AuthContext';
+import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -83,6 +84,9 @@ const AuthPage = ({ mode }: AuthPageProps) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
+
+    // Track auth attempt
+    trackPredefinedEvent(isLogin ? GA_EVENTS.LOGIN_START : GA_EVENTS.REGISTER_START);
 
     if (!isLogin && password !== confirmPassword) {
       setError('Passwords do not match');
@@ -162,6 +166,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         
         setSuccess(true);
         setLoading(false);
+        trackPredefinedEvent(GA_EVENTS.LOGIN_SUCCESS);
         await login(sessionToken);
         setTimeout(() => {
           navigate(from, { replace: true });
@@ -169,11 +174,14 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         return;
       } else if (!isLogin) {
         // Registration successful, redirect to login
+        trackPredefinedEvent(GA_EVENTS.REGISTER_SUCCESS);
         navigate('/login', { state: { message: 'Registration successful. Please log in.' } });
       } else {
         throw new Error('Login failed: No session token received');
       }
     } catch (err) {
+      trackPredefinedEvent(isLogin ? GA_EVENTS.LOGIN_FAILURE : GA_EVENTS.LOGIN_FAILURE, 
+        err instanceof Error ? err.message : 'unknown_error');
       setError(err instanceof Error ? err.message : `An error occurred during ${isLogin ? 'login' : 'registration'}`);
     } finally {
       setLoading(false);

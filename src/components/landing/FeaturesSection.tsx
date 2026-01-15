@@ -323,7 +323,7 @@ const IntegrationsVisual = () => (
     }}
   >
     {/* Integration grid with styled boxes */}
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: { xs: 1.5, md: 2 } }}>
       {[
         { name: 'Splunk', abbr: 'SPL', color: '#65A637' },
         { name: 'CrowdStrike', abbr: 'CS', color: '#E01E5A' },
