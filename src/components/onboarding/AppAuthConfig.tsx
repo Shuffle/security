@@ -43,6 +43,7 @@ export interface AppAuthState {
   credentials: Record<string, string>;
   errorMessage?: string;
   successMessage?: string;
+  warningMessage?: string;
   workflowId?: string;
   executionId?: string;
 }
@@ -1180,16 +1181,33 @@ const AppAuthCard = ({
                         pb: { xs: 2, sm: 2.5 },
                       }}>
                         <Alert
-                          severity="success"
+                          severity={authState.warningMessage ? "warning" : "success"}
                           sx={{
-                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                            color: '#22c55e',
-                            border: '1px solid rgba(34, 197, 94, 0.2)',
+                            backgroundColor: authState.warningMessage 
+                              ? 'rgba(245, 158, 11, 0.1)' 
+                              : 'rgba(34, 197, 94, 0.1)',
+                            color: authState.warningMessage ? '#f59e0b' : '#22c55e',
+                            border: authState.warningMessage 
+                              ? '1px solid rgba(245, 158, 11, 0.2)' 
+                              : '1px solid rgba(34, 197, 94, 0.2)',
                             borderRadius: 2,
-                            '& .MuiAlert-icon': { color: '#22c55e' },
+                            '& .MuiAlert-icon': { 
+                              color: authState.warningMessage ? '#f59e0b' : '#22c55e' 
+                            },
                           }}
                         >
-                          {authState.successMessage || 'Connection verified successfully'}
+                          {authState.warningMessage ? (
+                            <Box>
+                              <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
+                                {authState.successMessage || 'Connection probably working'}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                                {authState.warningMessage}
+                              </Typography>
+                            </Box>
+                          ) : (
+                            authState.successMessage || 'Connection verified successfully'
+                          )}
                         </Alert>
                       </Box>
                     )}

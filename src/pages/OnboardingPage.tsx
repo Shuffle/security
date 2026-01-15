@@ -283,6 +283,7 @@ const OnboardingPage = () => {
       let isValid = false;
       let errorMessage = 'Failed to connect. Please check your credentials.';
       let successMessage = '';
+      let warningMessage = '';
       let parsedStatus = '';
       let workflowId = result.workflow_id || '';
       let executionId = result.execution_id || '';
@@ -327,8 +328,23 @@ const OnboardingPage = () => {
         try {
           // Parse the result field (or raw_response as fallback)
           const resultData = parseResultData(result);
-          // Check if status exists in the parsed result
-          if (resultData && resultData.status) {
+          
+          // Generic check for "error" field in response body (e.g., Slack returns 200 OK with error in body)
+          const hasErrorInBody = resultData && (
+            resultData.error !== undefined || 
+            resultData.ok === false ||
+            (typeof resultData === 'object' && 'error' in resultData)
+          );
+          
+          if (hasErrorInBody) {
+            // API returned 200 but has error in body - this is a cautionary success
+            const errorDetail = resultData.error || resultData.reason || 'unknown error in response';
+            isValid = true; // Still mark as valid since HTTP was successful
+            successMessage = `Connection likely working, but API returned an error: ${typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail)}`;
+            // Set a warning flag for UI to show cautionary styling
+            warningMessage = 'The API responded successfully but included an error field. This may indicate partial functionality or incorrect credentials.';
+          } else if (resultData && resultData.status) {
+            // Check if status exists in the parsed result
             parsedStatus = resultData.status;
             // Consider success if status indicates OK (common patterns: 200, ok, success, healthy, etc.)
             const statusLower = String(parsedStatus).toLowerCase();
@@ -442,6 +458,7 @@ const OnboardingPage = () => {
           status: (isValid || isNowValid) ? 'connected' : 'error',
           errorMessage: (isValid || isNowValid) ? undefined : errorMessage,
           successMessage: (isValid || isNowValid) ? (successMessage || 'Connection verified') : undefined,
+          warningMessage: (isValid || isNowValid) ? warningMessage : undefined,
           workflowId: (isValid || isNowValid) ? undefined : workflowId,
           executionId: (isValid || isNowValid) ? undefined : executionId,
         },
