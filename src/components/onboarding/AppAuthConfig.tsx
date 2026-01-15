@@ -98,6 +98,8 @@ interface ApiAuthEntry {
     large_image?: string;
   };
   active?: boolean;
+  created?: number;
+  edited?: number;
   validation?: {
     valid: boolean;
     error?: string;
@@ -840,30 +842,53 @@ const AppAuthCard = ({
                       const entryLabel = authEntry.label || `Auth ${index + 1}`;
                       const isActive = authEntry.active === true;
                       const isValid = authEntry.validation?.valid === true;
+                      
+                      // Format timestamp for tooltips
+                      const formatTimestamp = (ts?: number): string => {
+                        if (!ts) return 'Unknown';
+                        const date = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
+                        return date.toLocaleString();
+                      };
+                      
+                      const configuredDate = authEntry.created || authEntry.edited;
+                      const lastValidDate = authEntry.validation?.last_valid;
+                      
                       return (
                         <MenuItem key={entryId} value={entryId} sx={{ color: 'white', py: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', minWidth: 0 }}>
                             <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-                              <Chip
-                                label={isActive ? 'Configured' : 'Not configured'}
-                                size="small"
-                                sx={{
-                                  height: 20,
-                                  fontSize: '0.6rem',
-                                  backgroundColor: isActive ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                  color: isActive ? '#f59e0b' : '#ef4444',
-                                }}
-                              />
-                              <Chip
-                                label={isValid ? 'Tested' : 'Not tested'}
-                                size="small"
-                                sx={{
-                                  height: 20,
-                                  fontSize: '0.6rem',
-                                  backgroundColor: isValid ? 'rgba(34, 197, 94, 0.15)' : 'rgba(156, 163, 175, 0.15)',
-                                  color: isValid ? '#22c55e' : '#9ca3af',
-                                }}
-                              />
+                              <Tooltip 
+                                title={isActive ? `Created: ${formatTimestamp(configuredDate)}` : 'Not configured'}
+                                arrow
+                                placement="top"
+                              >
+                                <Chip
+                                  label={isActive ? 'Configured' : 'Not configured'}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.6rem',
+                                    backgroundColor: isActive ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                    color: isActive ? '#f59e0b' : '#ef4444',
+                                  }}
+                                />
+                              </Tooltip>
+                              <Tooltip 
+                                title={lastValidDate ? `Last valid: ${formatTimestamp(lastValidDate)}` : 'Never validated'}
+                                arrow
+                                placement="top"
+                              >
+                                <Chip
+                                  label={isValid ? 'Tested' : 'Not tested'}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.6rem',
+                                    backgroundColor: isValid ? 'rgba(34, 197, 94, 0.15)' : 'rgba(156, 163, 175, 0.15)',
+                                    color: isValid ? '#22c55e' : '#9ca3af',
+                                  }}
+                                />
+                              </Tooltip>
                             </Box>
                             <Typography sx={{ 
                               flex: 1, 
