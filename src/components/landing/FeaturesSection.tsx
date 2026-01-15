@@ -322,17 +322,17 @@ const IntegrationsVisual = () => (
       border: '1px solid rgba(139, 92, 246, 0.12)',
     }}
   >
-    {/* Integration grid with real icons */}
+    {/* Integration grid with styled boxes */}
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
       {[
-        { name: 'Splunk', icon: 'https://shuffler.io/images/apps/shuffle/splunk.svg' },
-        { name: 'CrowdStrike', icon: 'https://shuffler.io/images/apps/shuffle/crowdstrike_falcon.svg' },
-        { name: 'Sentinel', icon: 'https://shuffler.io/images/apps/shuffle/microsoft_sentinel.svg' },
-        { name: 'ServiceNow', icon: 'https://shuffler.io/images/apps/shuffle/servicenow.svg' },
-        { name: 'VirusTotal', icon: 'https://shuffler.io/images/apps/shuffle/virustotal.svg' },
-        { name: 'TheHive', icon: 'https://shuffler.io/images/apps/shuffle/thehive.svg' },
-        { name: 'Jira', icon: 'https://shuffler.io/images/apps/shuffle/jira.svg' },
-        { name: 'Slack', icon: 'https://shuffler.io/images/apps/shuffle/slack.svg' },
+        { name: 'Splunk', abbr: 'SPL', color: '#65A637' },
+        { name: 'CrowdStrike', abbr: 'CS', color: '#E01E5A' },
+        { name: 'AWS', abbr: 'AWS', color: '#FF9900' },
+        { name: 'ServiceNow', abbr: 'SN', color: '#81B5A1' },
+        { name: 'VirusTotal', abbr: 'VT', color: '#394EFF' },
+        { name: 'Azure', abbr: 'AZ', color: '#0089D6' },
+        { name: 'Jira', abbr: 'JRA', color: '#0052CC' },
+        { name: 'GCP', abbr: 'GCP', color: '#4285F4' },
       ].map((int, i) => (
         <motion.div
           key={int.name}
@@ -346,8 +346,8 @@ const IntegrationsVisual = () => (
             sx={{
               aspectRatio: '1',
               borderRadius: 3,
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: `linear-gradient(135deg, ${int.color}15 0%, ${int.color}08 100%)`,
+              border: `1px solid ${int.color}30`,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -357,18 +357,13 @@ const IntegrationsVisual = () => (
               p: 2,
               transition: 'all 0.2s ease',
               '&:hover': {
-                background: 'rgba(139, 92, 246, 0.1)',
-                borderColor: 'rgba(139, 92, 246, 0.3)',
+                background: `${int.color}20`,
+                borderColor: `${int.color}50`,
               },
             }}
           >
-            <Box
-              component="img"
-              src={int.icon}
-              alt={int.name}
-              sx={{ width: 32, height: 32, objectFit: 'contain' }}
-            />
-            <Typography sx={{ color: 'text.secondary', fontSize: '0.7rem', fontWeight: 500 }}>{int.name}</Typography>
+            <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: int.color }}>{int.abbr}</Typography>
+            <Typography sx={{ color: 'text.secondary', fontSize: '0.65rem', fontWeight: 500, textAlign: 'center' }}>{int.name}</Typography>
           </Box>
         </motion.div>
       ))}
