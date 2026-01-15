@@ -34,6 +34,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
   apiKey,
   apiBaseUrl = 'https://shuffler.io',
   singulBaseUrl = 'https://singul.io',
+  hideAuthStatus = false,
   authenticatedApps: externalAuthenticatedApps,
   customStyles = {},
   className = '',
@@ -341,19 +342,21 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
             <span className="singul-app-name" style={customStyles.appName}>
               {app.name.replace(/_/g, ' ')}
             </span>
-            {/* Show both status chips */}
-            <div className="singul-auth-chips">
-              {authState.configured ? (
-                <span className="singul-auth-label singul-configured-label">Configured</span>
-              ) : (
-                <span className="singul-auth-label singul-not-configured-label">Not configured</span>
-              )}
-              {authState.validated ? (
-                <span className="singul-auth-label singul-validated-label">Tested</span>
-              ) : (
-                <span className="singul-auth-label singul-not-tested-label">Not tested</span>
-              )}
-            </div>
+            {/* Show both status chips - only if not hidden */}
+            {!hideAuthStatus && (
+              <div className="singul-auth-chips">
+                {authState.configured ? (
+                  <span className="singul-auth-label singul-configured-label">Configured</span>
+                ) : (
+                  <span className="singul-auth-label singul-not-configured-label">Not configured</span>
+                )}
+                {authState.validated ? (
+                  <span className="singul-auth-label singul-validated-label">Tested</span>
+                ) : (
+                  <span className="singul-auth-label singul-not-tested-label">Not tested</span>
+                )}
+              </div>
+            )}
             {showDescription && app.description && (
               <span className="singul-app-description" style={customStyles.appDescription}>
                 {app.description}

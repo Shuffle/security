@@ -167,9 +167,9 @@ export default function AppsPage() {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(6, 1fr)' },
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
                 gap: 2,
-                mb: 2,
+                mb: 4,
               }}
             >
               {categories.map((category) => {
@@ -226,36 +226,6 @@ export default function AppsPage() {
                   </Box>
                 );
               })}
-            </Box>
-
-            {/* Browse All button */}
-            <Box
-              sx={{
-                p: 1.5,
-                backgroundColor: activeCategory === 'other' ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid',
-                borderColor: activeCategory === 'other' ? '#FF6600' : 'rgba(255, 255, 255, 0.06)',
-                borderRadius: 2,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1.5,
-                mb: 4,
-                '&:hover': {
-                  borderColor: 'rgba(255, 102, 0, 0.4)',
-                  backgroundColor: activeCategory === 'other' ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                },
-              }}
-              onClick={() => handleCategoryClick('other', '')}
-            >
-              <Globe size={18} color={activeCategory === 'other' ? '#FF6600' : 'rgba(255, 255, 255, 0.5)'} />
-              <Typography
-                sx={{ color: activeCategory === 'other' ? '#FF6600' : 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}
-              >
-                {catchAllCategory.label}
-              </Typography>
             </Box>
 
             {/* Singul Search Component */}
@@ -341,6 +311,7 @@ export default function AppsPage() {
                 inline
                 hitsPerPage={28}
                 preventDefault
+                hideAuthStatus
                 initialQuery={searchQuery}
                 onSearchChange={(query) => {
                   setSearchQuery(query);
