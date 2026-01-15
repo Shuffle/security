@@ -310,18 +310,32 @@ const OnboardingPage = () => {
             parsedStatus = resultData.status;
             // Consider success if status indicates OK (common patterns: 200, ok, success, healthy, etc.)
             const statusLower = String(parsedStatus).toLowerCase();
-            const isGoodStatus = statusLower === 'ok' || 
+            const statusNum = Number(parsedStatus);
+            
+            // Check for explicit failure statuses first (4xx, 5xx HTTP codes)
+            const isErrorStatus = (statusNum >= 400 && statusNum < 600) ||
+                                  statusLower === 'error' ||
+                                  statusLower === 'failed' ||
+                                  statusLower === 'unauthorized' ||
+                                  statusLower === 'forbidden';
+            
+            const isGoodStatus = !isErrorStatus && (
+                                 statusLower === 'ok' || 
                                  statusLower === 'success' || 
                                  statusLower === 'healthy' ||
                                  statusLower === 'connected' ||
                                  statusLower === '200' ||
-                                 Number(parsedStatus) === 200;
+                                 statusNum === 200);
             
-            if (isGoodStatus) {
+            if (isErrorStatus) {
+              // Explicit failure - include reason from parsed result if available
+              const reason = resultData.reason ? ` • ${resultData.reason}` : '';
+              errorMessage = `Connection failed • Status: ${parsedStatus}${reason}`;
+            } else if (isGoodStatus) {
               isValid = true;
               successMessage = `Connection verified • Status: ${parsedStatus}`;
             } else {
-              // Include reason from parsed result if available
+              // Unknown status - treat as error to be safe
               const reason = resultData.reason ? ` • ${resultData.reason}` : '';
               errorMessage = `Connection failed • Status: ${parsedStatus}${reason}`;
             }
