@@ -8,6 +8,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import EmailIcon from '@mui/icons-material/Email';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import BuildIcon from '@mui/icons-material/Build';
+import { trackCTA } from '@/lib/analytics';
 
 // Floating integration icons - styled boxes with names
 const floatingIcons = [
@@ -259,10 +260,11 @@ export const HeroSection = () => {
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
+              onClick={() => trackCTA('start_for_free', 'hero')}
               sx={{
-                py: 2,
-                px: 6,
-                fontSize: '1.2rem',
+                py: { xs: 1.5, md: 2 },
+                px: { xs: 4, md: 6 },
+                fontSize: { xs: '1rem', md: '1.2rem' },
                 fontWeight: 600,
                 borderRadius: 3,
                 background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',

@@ -3,10 +3,11 @@ import { Box, Container, Typography, Button } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { Mail, Radar, Search, Globe, Ticket, Cloud, Shield } from 'lucide-react';
+import { Mail, Radar, Search, Globe, Cloud, Shield } from 'lucide-react';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { Footer } from '@/components/landing/Footer';
 import { SingulJS, SingulJSHandle } from '@/lib/singul-local';
+import { trackCTA, trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 
 const categories = [
   { id: 'cloud', label: 'Cloud', icon: Cloud, description: 'AWS, Azure, GCP', searchTerm: 'cloud' },
@@ -46,6 +47,7 @@ export default function AppsPage() {
   const handleCategoryClick = (categoryId: string, searchTerm: string) => {
     setSearchQuery(searchTerm);
     setSearchParams(searchTerm ? { category: categoryId } : {});
+    trackPredefinedEvent(GA_EVENTS.CATEGORY_FILTER, categoryId);
     if (singulRef.current) {
       singulRef.current.search(searchTerm);
     }
@@ -131,10 +133,11 @@ export default function AppsPage() {
                 variant="contained"
                 size="large"
                 endIcon={<ArrowForwardIcon />}
+                onClick={() => trackCTA('get_started_free', 'apps_hero')}
                 sx={{
-                  py: 1.5,
-                  px: 4,
-                  fontSize: '1rem',
+                  py: { xs: 1.25, md: 1.5 },
+                  px: { xs: 3, md: 4 },
+                  fontSize: { xs: '0.9rem', md: '1rem' },
                   fontWeight: 600,
                   borderRadius: 3,
                   background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
@@ -277,6 +280,15 @@ export default function AppsPage() {
                   maxHeight: '600px',
                   mt: 3,
                 },
+                '& .singul-results-grid': {
+                  display: 'grid !important',
+                  gridTemplateColumns: {
+                    xs: 'repeat(2, 1fr) !important',
+                    sm: 'repeat(3, 1fr) !important',
+                    md: 'repeat(4, 1fr) !important',
+                  },
+                  gap: { xs: '12px !important', md: '16px !important' },
+                },
                 '& .singul-dropdown-item': {
                   backgroundColor: 'rgba(255, 255, 255, 0.02)',
                   borderRadius: '12px',
@@ -291,8 +303,8 @@ export default function AppsPage() {
                   backgroundColor: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   color: '#ffffff',
-                  fontSize: '1rem',
-                  padding: '14px 16px',
+                  fontSize: { xs: '0.9rem', md: '1rem' },
+                  padding: { xs: '12px 14px', md: '14px 16px' },
                   borderRadius: '12px',
                   '&:focus': {
                     borderColor: '#FF6600',
@@ -308,9 +320,11 @@ export default function AppsPage() {
                 },
                 '& .singul-app-name': {
                   color: '#ffffff',
+                  fontSize: { xs: '0.8rem', md: '0.9rem' },
                 },
                 '& .singul-app-description': {
                   color: 'rgba(255, 255, 255, 0.5)',
+                  fontSize: { xs: '0.7rem', md: '0.75rem' },
                 },
                 '& .singul-empty-state, & .singul-end-of-results': {
                   color: 'rgba(255, 255, 255, 0.4)',
@@ -320,7 +334,7 @@ export default function AppsPage() {
               <SingulJS
                 ref={singulRef}
                 authToken=""
-                placeholder="Search integrations... (e.g., Splunk, CrowdStrike, ServiceNow, AWS)"
+                placeholder="Search integrations... (e.g., Splunk, CrowdStrike)"
                 layout="grid"
                 gridColumns={4}
                 showDescription
@@ -328,8 +342,14 @@ export default function AppsPage() {
                 hitsPerPage={28}
                 preventDefault
                 initialQuery={searchQuery}
-                onSearchChange={setSearchQuery}
+                onSearchChange={(query) => {
+                  setSearchQuery(query);
+                  if (query.length > 2) {
+                    trackPredefinedEvent(GA_EVENTS.SEARCH_USED, query);
+                  }
+                }}
                 onAppSelected={({ app }) => {
+                  trackPredefinedEvent(GA_EVENTS.APP_VIEWED, app.name);
                   window.location.href = `/register?app=${encodeURIComponent(app.name)}`;
                 }}
               />
@@ -357,10 +377,11 @@ export default function AppsPage() {
                 to="/register"
                 variant="outlined"
                 size="large"
+                onClick={() => trackCTA('start_building', 'apps_bottom')}
                 sx={{
-                  py: 1.5,
-                  px: 4,
-                  fontSize: '1rem',
+                  py: { xs: 1.25, md: 1.5 },
+                  px: { xs: 3, md: 4 },
+                  fontSize: { xs: '0.9rem', md: '1rem' },
                   fontWeight: 600,
                   borderRadius: 3,
                   borderColor: 'rgba(255, 102, 0, 0.5)',

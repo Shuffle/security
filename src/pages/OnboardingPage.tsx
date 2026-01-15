@@ -20,6 +20,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import { API_CONFIG, getApiUrl } from '@/config/api';
 import { setDatastoreItem, getDatastoreItem } from '@/services/datastore';
 import { deduplicateAuthApps } from '@/lib/utils';
+import { trackOnboardingStep, trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 
 // Datastore category for onboarding config (using shuffle-security_ prefix for consistency)
 const ONBOARDING_CONFIG_CATEGORY = 'shuffle-security_onboarding';
@@ -192,10 +193,15 @@ const OnboardingPage = () => {
         (app) => authStates[app.objectID]?.status === 'connected'
       );
       localStorage.setItem('connected_integrations', JSON.stringify(connectedApps));
+      trackPredefinedEvent(GA_EVENTS.ONBOARDING_COMPLETE, undefined, connectedApps.length);
       navigate('/incidents');
     } else {
+      const nextStep = activeStep + 1;
+      // Track step progression
+      trackOnboardingStep(nextStep, steps[nextStep].label);
+      
       // Navigate immediately (optimistic)
-      setActiveStep((prev) => prev + 1);
+      setActiveStep(nextStep);
       
       // When moving from step 2 (More Tools) to step 3 (Authentication)
       // Run API calls in background
