@@ -1,28 +1,28 @@
 # Setup Guide
 
-This guide explains how to configure Shuffle Cases to connect to your Shuffle Automation backend.
+This guide explains how to configure Shutdown Security to connect to your Shuffle Automation backend.
 
 ## Prerequisites
 
-Before setting up Shuffle Cases, ensure you have:
+Before setting up Shutdown Security, ensure you have:
 
 - A running **Shuffle Automation** instance (Cloud or self-hosted)
 - Valid credentials to authenticate with your Shuffle instance
-- Network connectivity between Shuffle Cases and your Shuffle backend
+- Network connectivity between Shutdown Security and your Shuffle backend
 
 ## Understanding the Connection
 
-Shuffle Cases is a **frontend-only application** that communicates with the Shuffle Automation API. It does not store any data locally — all alerts, cases, and workflows are managed by your Shuffle backend.
+Shutdown Security is a **frontend-only application** that communicates with the Shuffle Automation API. It does not store any data locally — all alerts, cases, and workflows are managed by your Shuffle backend.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                     Your Environment                         │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
-│   ┌─────────────────┐         ┌─────────────────────────┐   │
-│   │  Shuffle Cases  │  ────▶  │   Shuffle Automation    │   │
-│   │   (This App)    │  ◀────  │      (Backend API)      │   │
-│   └─────────────────┘         └─────────────────────────┘   │
+│   ┌───────────────────┐       ┌─────────────────────────┐   │
+│   │ Shutdown Security │ ────▶ │   Shuffle Automation    │   │
+│   │    (This App)     │ ◀──── │      (Backend API)      │   │
+│   └───────────────────┘       └─────────────────────────┘   │
 │          │                              │                    │
 │          │                              │                    │
 │          ▼                              ▼                    │
@@ -60,7 +60,7 @@ The recommended approach is to set the `VITE_SHUFFLE_API_URL` environment variab
 
 #### Step 1: Create a `.env` file
 
-In the root of your Shuffle Cases deployment, create a `.env` file:
+In the root of your Shutdown Security deployment, create a `.env` file:
 
 ```bash
 # Copy the example file
@@ -133,7 +133,7 @@ baseUrl: 'https://shuffle.yourdomain.com'
 
 ## Authentication
 
-Shuffle Cases uses the same authentication as Shuffle Automation. When you log in:
+Shutdown Security uses the same authentication as Shuffle Automation. When you log in:
 
 1. Your credentials are sent to the Shuffle API (`POST /api/v1/login`)
 2. Shuffle returns a session token
@@ -142,7 +142,7 @@ Shuffle Cases uses the same authentication as Shuffle Automation. When you log i
 
 ### Important Notes
 
-- **No social login** — Shuffle Cases uses username/password authentication only
+- **No social login** — Shutdown Security uses username/password authentication only
 - **Session management** — Sessions are controlled by your Shuffle instance settings
 - **API keys** — For automation, you can also use Shuffle API keys
 
@@ -152,7 +152,7 @@ Shuffle Cases uses the same authentication as Shuffle Automation. When you log i
 
 After configuration, verify your setup:
 
-1. Navigate to Shuffle Cases in your browser
+1. Navigate to Shutdown Security in your browser
 2. Click **Sign In**
 3. Enter your Shuffle credentials
 4. If successful, you'll be redirected to the dashboard
@@ -162,7 +162,7 @@ After configuration, verify your setup:
 | Issue | Possible Cause | Solution |
 |-------|---------------|----------|
 | Connection refused | Wrong URL or Shuffle not running | Verify the URL and that Shuffle is accessible |
-| CORS errors | Cross-origin requests blocked | Ensure Shuffle allows requests from your Cases domain |
+| CORS errors | Cross-origin requests blocked | Ensure Shuffle allows requests from your Shutdown Security domain |
 | 401 Unauthorized | Invalid credentials | Check your username/password |
 | Network timeout | Firewall or connectivity issue | Check network connectivity to Shuffle |
 
@@ -170,13 +170,13 @@ After configuration, verify your setup:
 
 ## CORS Configuration (Self-Hosted)
 
-If you're running Shuffle Cases on a different domain than your Shuffle instance, you may need to configure CORS on your Shuffle backend.
+If you're running Shutdown Security on a different domain than your Shuffle instance, you may need to configure CORS on your Shuffle backend.
 
-In your Shuffle environment configuration, ensure the Cases domain is allowed:
+In your Shuffle environment configuration, ensure the Shutdown Security domain is allowed:
 
 ```yaml
 # Example: Docker environment variable
-SHUFFLE_ALLOWED_ORIGINS=https://cases.yourdomain.com
+SHUFFLE_ALLOWED_ORIGINS=https://security.yourdomain.com
 ```
 
 Refer to the [Shuffle documentation](https://shuffler.io/docs) for detailed CORS configuration.

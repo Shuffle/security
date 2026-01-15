@@ -20,6 +20,10 @@ interface DocLink {
   href?: string;
 }
 
+interface DocsSidebarProps {
+  onNavigate?: () => void;
+}
+
 const docLinks: DocLink[] = [
   { label: 'Overview', slug: 'index', icon: <HomeIcon /> },
   { label: 'Setup Guide', slug: 'setup', icon: <SettingsIcon /> },
@@ -42,8 +46,12 @@ const externalLinks: DocLink[] = [
   },
 ];
 
-export const DocsSidebar = () => {
+export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
+
+  const handleClick = () => {
+    onNavigate?.();
+  };
 
   return (
     <Box
@@ -75,6 +83,7 @@ export const DocsSidebar = () => {
             <ListItemButton
               component={Link}
               to={link.slug === 'index' ? '/docs' : `/docs/${link.slug}`}
+              onClick={handleClick}
               selected={slug === link.slug || (slug === 'index' && link.slug === 'index')}
               sx={{
                 borderRadius: 1,
