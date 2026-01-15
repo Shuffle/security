@@ -45,11 +45,15 @@ export default function AppsPage() {
   };
 
   const handleCategoryClick = (categoryId: string, searchTerm: string) => {
-    setSearchQuery(searchTerm);
-    setSearchParams(searchTerm ? { category: categoryId } : {});
-    trackPredefinedEvent(GA_EVENTS.CATEGORY_FILTER, categoryId);
+    // Toggle off if clicking the same category
+    const isAlreadyActive = activeCategory === categoryId;
+    const newSearchTerm = isAlreadyActive ? '' : searchTerm;
+    
+    setSearchQuery(newSearchTerm);
+    setSearchParams(newSearchTerm ? { category: categoryId } : {});
+    trackPredefinedEvent(GA_EVENTS.CATEGORY_FILTER, isAlreadyActive ? 'clear' : categoryId);
     if (singulRef.current) {
-      singulRef.current.search(searchTerm);
+      singulRef.current.search(newSearchTerm);
     }
   };
 
