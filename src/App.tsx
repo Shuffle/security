@@ -18,6 +18,7 @@ import UsersPage from '@/pages/dashboard/UsersPage';
 import OrganizationsPage from '@/pages/dashboard/OrganizationsPage';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
 import DocsPage from '@/pages/docs/DocsPage';
+import AppsPage from '@/pages/AppsPage';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/apps" element={<AppsPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/register" element={<AuthPage mode="register" />} />
             <Route path="/docs" element={<DocsPage />} />

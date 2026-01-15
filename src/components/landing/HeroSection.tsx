@@ -255,7 +255,7 @@ export const HeroSection = () => {
           >
             <Button
               component={Link}
-              to="/login"
+              to="/register"
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
