@@ -153,39 +153,6 @@ export const HeroSection = () => {
 
       <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
         <Box sx={{ textAlign: 'center' }}>
-          {/* Playful badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
-                mb: 4,
-                py: 1,
-                px: 2.5,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, rgba(255, 102, 0, 0.15) 0%, rgba(255, 133, 51, 0.1) 100%)',
-                border: '1px solid rgba(255, 102, 0, 0.25)',
-              }}
-            >
-              <Box
-                component={motion.div}
-                animate={{ rotate: [0, 15, -15, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                sx={{ fontSize: '1.2rem' }}
-              >
-                🚀
-              </Box>
-              <Typography sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.9rem' }}>
-                Connect in minutes, not months
-              </Typography>
-            </Box>
-          </motion.div>
-
           {/* Main headline */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
