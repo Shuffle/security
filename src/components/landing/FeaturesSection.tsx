@@ -1,5 +1,6 @@
 import { Box, Container, Typography, Grid, Stack } from '@mui/material';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 interface FeatureSectionProps {
   icon: React.ReactNode;
@@ -343,6 +344,8 @@ const IntegrationsVisual = () => (
           whileHover={{ scale: 1.1, y: -4 }}
         >
           <Box
+            component={Link}
+            to={`/apps?search=${encodeURIComponent(int.name)}`}
             sx={{
               aspectRatio: '1',
               borderRadius: 3,
@@ -355,6 +358,7 @@ const IntegrationsVisual = () => (
               gap: 1,
               cursor: 'pointer',
               p: 2,
+              textDecoration: 'none',
               transition: 'all 0.2s ease',
               '&:hover': {
                 background: `${int.color}20`,
@@ -368,7 +372,19 @@ const IntegrationsVisual = () => (
         </motion.div>
       ))}
     </Box>
-    <Box sx={{ mt: 3, p: 2, borderRadius: 2, background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+    <Box 
+      component={Link}
+      to="/apps"
+      sx={{ 
+        mt: 3, 
+        p: 2, 
+        borderRadius: 2, 
+        background: 'rgba(139, 92, 246, 0.1)', 
+        border: '1px solid rgba(139, 92, 246, 0.2)',
+        textDecoration: 'none',
+        display: 'block',
+      }}
+    >
       <Typography sx={{ color: '#8b5cf6', fontSize: '0.85rem', textAlign: 'center' }}>
         3,000+ integrations • REST API • Webhooks • SDK
       </Typography>
