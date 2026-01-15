@@ -1454,32 +1454,38 @@ const AppAuthCard = ({
 
                     {/* Save button only - Test Connection is available after selecting saved auth */}
                     {!isOAuth2 && (
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSave();
-                        }}
-                        disabled={saving || !isFormValid()}
-                        sx={{
-                          background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
-                          boxShadow: '0 4px 14px rgba(255, 102, 0, 0.25)',
-                          fontWeight: 600,
-                          textTransform: 'none',
-                          fontSize: { xs: '0.875rem', sm: '1rem' },
-                          py: { xs: 1.25, sm: 1 },
-                          '&:hover': {
-                            background: 'linear-gradient(135deg, #FF8533 0%, #FF9955 100%)',
-                          },
-                          '&.Mui-disabled': {
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            color: 'rgba(255, 255, 255, 0.3)',
-                          },
-                        }}
-                      >
-                        {saving ? 'Saving...' : 'Save Authentication'}
-                      </Button>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSave();
+                          }}
+                          disabled={saving || !isFormValid()}
+                          sx={{
+                            borderColor: isFormValid() ? 'rgba(255, 102, 0, 0.5)' : 'rgba(255, 255, 255, 0.1)',
+                            color: isFormValid() ? '#FF6600' : 'rgba(255, 255, 255, 0.3)',
+                            fontWeight: 500,
+                            textTransform: 'none',
+                            fontSize: '0.85rem',
+                            px: 2.5,
+                            py: 0.75,
+                            borderRadius: 1.5,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              borderColor: '#FF6600',
+                              backgroundColor: 'rgba(255, 102, 0, 0.08)',
+                            },
+                            '&.Mui-disabled': {
+                              borderColor: 'rgba(255, 255, 255, 0.1)',
+                              color: 'rgba(255, 255, 255, 0.3)',
+                            },
+                          }}
+                        >
+                          {saving ? 'Saving...' : 'Save'}
+                        </Button>
+                      </Box>
                     )}
                   </Box>
                 )}
