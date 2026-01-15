@@ -126,6 +126,8 @@ export interface SingulJSProps {
   singulBaseUrl?: string;
   /** Manually provided authenticated apps (used when apiKey is not provided) */
   authenticatedApps?: AppAuthentication[];
+  /** Hide the auth status chips (Configured/Not configured, Tested/Not tested) */
+  hideAuthStatus?: boolean;
   
   // Styling
   customStyles?: CustomStyles;
