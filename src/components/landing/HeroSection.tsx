@@ -2,20 +2,26 @@ import { Box, Container, Typography, Button } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CloudIcon from '@mui/icons-material/Cloud';
+import SecurityIcon from '@mui/icons-material/Security';
+import StorageIcon from '@mui/icons-material/Storage';
+import EmailIcon from '@mui/icons-material/Email';
+import BugReportIcon from '@mui/icons-material/BugReport';
+import BuildIcon from '@mui/icons-material/Build';
 
-// Floating integration icons with real shuffler.io icons
+// Floating integration icons - styled boxes with names
 const floatingIcons = [
-  { name: 'Splunk', icon: 'https://shuffler.io/images/apps/shuffle/splunk.svg', x: '6%', y: '12%', delay: 0, size: 56 },
-  { name: 'CrowdStrike', icon: 'https://shuffler.io/images/apps/shuffle/crowdstrike_falcon.svg', x: '88%', y: '15%', delay: 0.15, size: 52 },
-  { name: 'Sentinel', icon: 'https://shuffler.io/images/apps/shuffle/microsoft_sentinel.svg', x: '4%', y: '45%', delay: 0.3, size: 48 },
-  { name: 'ServiceNow', icon: 'https://shuffler.io/images/apps/shuffle/servicenow.svg', x: '92%', y: '40%', delay: 0.45, size: 50 },
-  { name: 'VirusTotal', icon: 'https://shuffler.io/images/apps/shuffle/virustotal.svg', x: '10%', y: '75%', delay: 0.6, size: 46 },
-  { name: 'TheHive', icon: 'https://shuffler.io/images/apps/shuffle/thehive.svg', x: '85%', y: '70%', delay: 0.75, size: 52 },
-  { name: 'Jira', icon: 'https://shuffler.io/images/apps/shuffle/jira.svg', x: '18%', y: '28%', delay: 0.9, size: 44 },
-  { name: 'Slack', icon: 'https://shuffler.io/images/apps/shuffle/slack.svg', x: '80%', y: '85%', delay: 1.05, size: 48 },
+  { name: 'Splunk', abbr: 'SPL', color: '#65A637', x: '6%', y: '12%', delay: 0, size: 56 },
+  { name: 'CrowdStrike', abbr: 'CS', color: '#E01E5A', x: '88%', y: '15%', delay: 0.15, size: 52 },
+  { name: 'AWS', abbr: 'AWS', color: '#FF9900', x: '4%', y: '45%', delay: 0.3, size: 48 },
+  { name: 'ServiceNow', abbr: 'SN', color: '#81B5A1', x: '92%', y: '40%', delay: 0.45, size: 50 },
+  { name: 'Azure', abbr: 'AZ', color: '#0089D6', x: '10%', y: '75%', delay: 0.6, size: 46 },
+  { name: 'GCP', abbr: 'GCP', color: '#4285F4', x: '85%', y: '70%', delay: 0.75, size: 52 },
+  { name: 'Jira', abbr: 'JRA', color: '#0052CC', x: '18%', y: '28%', delay: 0.9, size: 44 },
+  { name: 'Slack', abbr: 'SLK', color: '#4A154B', x: '80%', y: '85%', delay: 1.05, size: 48 },
 ];
 
-const FloatingIcon = ({ name, icon, x, y, delay, size }: typeof floatingIcons[0]) => (
+const FloatingIcon = ({ name, abbr, color, x, y, delay, size }: typeof floatingIcons[0]) => (
   <motion.div
     initial={{ opacity: 0, scale: 0 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -43,36 +49,46 @@ const FloatingIcon = ({ name, icon, x, y, delay, size }: typeof floatingIcons[0]
           width: size,
           height: size,
           borderRadius: 3,
-          background: 'rgba(255, 255, 255, 0.06)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`,
+          border: `1px solid ${color}40`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           backdropFilter: 'blur(12px)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          boxShadow: `0 8px 32px ${color}20`,
           overflow: 'hidden',
           transition: 'all 0.3s ease',
           '&:hover': {
             transform: 'scale(1.15)',
-            borderColor: 'rgba(255, 102, 0, 0.4)',
-            boxShadow: '0 12px 40px rgba(255, 102, 0, 0.2)',
+            borderColor: color,
+            boxShadow: `0 12px 40px ${color}40`,
           },
         }}
       >
-        <Box
-          component="img"
-          src={icon}
-          alt={name}
-          sx={{
-            width: size * 0.65,
-            height: size * 0.65,
-            objectFit: 'contain',
+        <Typography 
+          sx={{ 
+            fontSize: size * 0.28, 
+            fontWeight: 700, 
+            color,
+            letterSpacing: '-0.02em',
           }}
-        />
+        >
+          {abbr}
+        </Typography>
       </Box>
     </motion.div>
   </motion.div>
 );
+
+// Category icons with MUI icons
+const categoryIcons: Record<string, React.ReactNode> = {
+  'SIEM': <StorageIcon sx={{ fontSize: 20 }} />,
+  'Email': <EmailIcon sx={{ fontSize: 20 }} />,
+  'EDR': <BugReportIcon sx={{ fontSize: 20 }} />,
+  'ITSM': <BuildIcon sx={{ fontSize: 20 }} />,
+  'Threat Intel': <SecurityIcon sx={{ fontSize: 20 }} />,
+  'Cloud': <CloudIcon sx={{ fontSize: 20 }} />,
+};
 
 export const HeroSection = () => {
   return (
@@ -304,12 +320,12 @@ export const HeroSection = () => {
                 }}
               >
                 {[
-                  { name: 'SIEM', icon: 'https://shuffler.io/images/apps/shuffle/splunk.svg' },
-                  { name: 'Email', icon: 'https://shuffler.io/images/apps/shuffle/gmail.svg' },
-                  { name: 'EDR', icon: 'https://shuffler.io/images/apps/shuffle/crowdstrike_falcon.svg' },
-                  { name: 'ITSM', icon: 'https://shuffler.io/images/apps/shuffle/servicenow.svg' },
-                  { name: 'Threat Intel', icon: 'https://shuffler.io/images/apps/shuffle/virustotal.svg' },
-                  { name: 'Cloud', icon: 'https://shuffler.io/images/apps/shuffle/aws.svg' },
+                  { name: 'Cloud', color: '#4285F4' },
+                  { name: 'SIEM', color: '#65A637' },
+                  { name: 'Email', color: '#EA4335' },
+                  { name: 'EDR', color: '#E01E5A' },
+                  { name: 'ITSM', color: '#81B5A1' },
+                  { name: 'Threat Intel', color: '#8b5cf6' },
                 ].map((cat, i) => (
                   <motion.div
                     key={cat.name}
@@ -322,25 +338,21 @@ export const HeroSection = () => {
                         py: 1.5,
                         px: 3,
                         borderRadius: 3,
-                        background: 'rgba(255, 255, 255, 0.04)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        background: `${cat.color}10`,
+                        border: `1px solid ${cat.color}30`,
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1.5,
                         transition: 'all 0.2s ease',
+                        color: cat.color,
                         '&:hover': {
-                          background: 'rgba(255, 102, 0, 0.08)',
-                          borderColor: 'rgba(255, 102, 0, 0.3)',
+                          background: `${cat.color}20`,
+                          borderColor: `${cat.color}50`,
                           transform: 'translateY(-2px)',
                         },
                       }}
                     >
-                      <Box
-                        component="img"
-                        src={cat.icon}
-                        alt={cat.name}
-                        sx={{ width: 24, height: 24, objectFit: 'contain' }}
-                      />
+                      {categoryIcons[cat.name]}
                       <Typography sx={{ color: 'text.primary', fontSize: '0.9rem', fontWeight: 500 }}>
                         {cat.name}
                       </Typography>
