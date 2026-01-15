@@ -65,7 +65,7 @@ export const AppHeader = ({ title = 'Dashboard' }: AppHeaderProps) => {
           >
             <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
             <InputBase
-              placeholder="Search alerts, cases..."
+              placeholder="Search incidents..."
               sx={{
                 color: 'inherit',
                 width: { xs: 150, sm: 250 },

@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Container } from '@mui/material';
+import { Box, Container, IconButton, Drawer } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { DocsSidebar } from '@/components/docs/DocsSidebar';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 
 const DocsPage = () => {
   const { slug = 'index' } = useParams<{ slug: string }>();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -14,8 +17,50 @@ const DocsPage = () => {
       {/* Spacer for fixed navbar */}
       <Box sx={{ height: 64 }} />
       
+      {/* Mobile menu button */}
+      <Box
+        sx={{
+          display: { xs: 'flex', md: 'none' },
+          position: 'fixed',
+          top: 72,
+          left: 8,
+          zIndex: 1100,
+        }}
+      >
+        <IconButton
+          onClick={() => setMobileOpen(true)}
+          sx={{
+            backgroundColor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            '&:hover': { backgroundColor: 'action.hover' },
+          }}
+        >
+          <MenuIcon />
+        </IconButton>
+      </Box>
+
+      {/* Mobile drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            width: 280,
+            backgroundColor: 'background.default',
+          },
+        }}
+      >
+        <Box sx={{ pt: 2 }}>
+          <DocsSidebar onNavigate={() => setMobileOpen(false)} />
+        </Box>
+      </Drawer>
+      
       <Box sx={{ display: 'flex', flex: 1 }}>
-        {/* Sidebar */}
+        {/* Desktop Sidebar */}
         <Box
           sx={{
             display: { xs: 'none', md: 'block' },
@@ -39,7 +84,7 @@ const DocsPage = () => {
             minHeight: 'calc(100vh - 64px)',
           }}
         >
-          <Container maxWidth="lg" sx={{ py: 6 }}>
+          <Container maxWidth="lg" sx={{ py: 6, px: { xs: 2, sm: 3, md: 6 } }}>
             <MarkdownRenderer slug={slug} />
           </Container>
         </Box>
