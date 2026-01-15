@@ -148,7 +148,7 @@
 /* Inline Results Container */
 .singul-results-container {
   margin-top: 16px;
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
 }
 

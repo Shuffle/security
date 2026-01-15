@@ -1,12 +1,36 @@
+import { useRef, useState } from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { Mail, Radar, Search, Globe, Ticket, Cloud, Shield } from 'lucide-react';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { Footer } from '@/components/landing/Footer';
-import { SingulJS } from '@/lib/singul-local';
+import { SingulJS, SingulJSHandle } from '@/lib/singul-local';
+
+const categories = [
+  { id: 'cloud', label: 'Cloud', icon: Cloud, description: 'AWS, Azure, GCP', searchTerm: 'cloud' },
+  { id: 'siem', label: 'SIEM', icon: Radar, description: 'Log aggregation', searchTerm: 'siem' },
+  { id: 'email', label: 'Email', icon: Mail, description: 'Inboxes & mail', searchTerm: 'email' },
+  { id: 'edr', label: 'EDR', icon: Search, description: 'Endpoint detection', searchTerm: 'edr' },
+  { id: 'threat', label: 'Threat Intel', icon: Shield, description: 'IOC enrichment', searchTerm: 'threat intel' },
+  { id: 'cases', label: 'ITSM', icon: Ticket, description: 'Ticketing & support', searchTerm: 'itsm' },
+];
+
+const catchAllCategory = { id: 'other', label: 'Browse All 3,000+ Integrations', icon: Globe, searchTerm: '' };
 
 export default function AppsPage() {
+  const singulRef = useRef<SingulJSHandle>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const getActiveCategory = () => {
+    const lowerQuery = searchQuery.toLowerCase().trim();
+    if (lowerQuery === '') return 'other';
+    return categories.find(c => c.searchTerm && lowerQuery.includes(c.searchTerm.toLowerCase()))?.id || null;
+  };
+
+  const activeCategory = getActiveCategory();
+
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <LandingNavbar />
@@ -15,7 +39,7 @@ export default function AppsPage() {
       <Box
         sx={{
           pt: { xs: 12, md: 16 },
-          pb: { xs: 8, md: 12 },
+          pb: { xs: 4, md: 6 },
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -42,7 +66,7 @@ export default function AppsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Box sx={{ textAlign: 'center', mb: 5 }}>
               <Typography
                 variant="h1"
                 sx={{
@@ -106,7 +130,7 @@ export default function AppsPage() {
         </Container>
       </Box>
 
-      {/* Search section */}
+      {/* Category buttons and search section */}
       <Box sx={{ flex: 1, pb: 12 }}>
         <Container maxWidth="lg">
           <motion.div
@@ -114,35 +138,188 @@ export default function AppsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
+            {/* Category Grid */}
             <Box
               sx={{
-                p: { xs: 3, md: 5 },
-                borderRadius: 4,
-                background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'grid',
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(6, 1fr)' },
+                gap: 2,
+                mb: 2,
+              }}
+            >
+              {categories.map((category) => {
+                const isActive = activeCategory === category.id;
+                return (
+                  <Box
+                    key={category.id}
+                    sx={{
+                      p: 2.5,
+                      backgroundColor: isActive ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid',
+                      borderColor: isActive ? '#FF6600' : 'rgba(255, 255, 255, 0.08)',
+                      borderRadius: 3,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      textAlign: 'center',
+                      '&:hover': {
+                        borderColor: 'rgba(255, 102, 0, 0.5)',
+                        backgroundColor: isActive ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                      },
+                    }}
+                    onClick={() => {
+                      const term = category.searchTerm || '';
+                      setSearchQuery(term);
+                      if (singulRef.current) {
+                        singulRef.current.search(term);
+                      }
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        backgroundColor: isActive ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                        border: '2px solid',
+                        borderColor: isActive ? '#FF6600' : 'rgba(255, 255, 255, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mx: 'auto',
+                        mb: 1,
+                        transition: 'all 0.3s ease',
+                      }}
+                    >
+                      <category.icon size={18} color={isActive ? '#FF6600' : 'rgba(255, 255, 255, 0.6)'} />
+                    </Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ color: 'white', fontWeight: 600, mb: 0.25 }}
+                    >
+                      {category.label}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: 'rgba(255, 255, 255, 0.4)', display: 'block', fontSize: '0.7rem' }}
+                    >
+                      {category.description}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* Browse All button */}
+            <Box
+              sx={{
+                p: 1.5,
+                backgroundColor: activeCategory === 'other' ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid',
+                borderColor: activeCategory === 'other' ? '#FF6600' : 'rgba(255, 255, 255, 0.06)',
+                borderRadius: 2,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1.5,
+                mb: 4,
+                '&:hover': {
+                  borderColor: 'rgba(255, 102, 0, 0.4)',
+                  backgroundColor: activeCategory === 'other' ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                },
+              }}
+              onClick={() => {
+                setSearchQuery('');
+                if (singulRef.current) {
+                  singulRef.current.search('');
+                }
+              }}
+            >
+              <Globe size={18} color={activeCategory === 'other' ? '#FF6600' : 'rgba(255, 255, 255, 0.5)'} />
+              <Typography
+                sx={{ color: activeCategory === 'other' ? '#FF6600' : 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}
+              >
+                {catchAllCategory.label}
+              </Typography>
+            </Box>
+
+            {/* Singul Search Component */}
+            <Box
+              sx={{
+                '--singul-input-bg': 'rgba(255, 255, 255, 0.03)',
+                '--singul-input-border': '1px solid rgba(255, 255, 255, 0.1)',
+                '--singul-input-color': '#ffffff',
+                '--singul-input-focus-border': '#FF6600',
+                '--singul-input-focus-shadow': '0 0 0 3px rgba(255, 102, 0, 0.15)',
+                '--singul-placeholder-color': 'rgba(255, 255, 255, 0.4)',
+                '--singul-icon-color': 'rgba(255, 255, 255, 0.4)',
+                '--singul-dropdown-bg': '#1a1a1a',
+                '--singul-dropdown-border': '1px solid rgba(255, 255, 255, 0.1)',
+                '--singul-item-border': '1px solid rgba(255, 255, 255, 0.06)',
+                '--singul-item-hover-bg': 'rgba(255, 102, 0, 0.1)',
+                '--singul-app-name-color': '#ffffff',
+                '--singul-app-description-color': 'rgba(255, 255, 255, 0.5)',
+                '--singul-empty-state-color': 'rgba(255, 255, 255, 0.4)',
+                '--singul-grid-gap': '16px',
+                '& .singul-results-container': {
+                  maxHeight: '600px',
+                  mt: 3,
+                },
+                '& .singul-dropdown-item': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 102, 0, 0.08)',
+                    borderColor: 'rgba(255, 102, 0, 0.3)',
+                  },
+                },
+                '& .singul-search-input': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#ffffff',
+                  fontSize: '1rem',
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  '&:focus': {
+                    borderColor: '#FF6600',
+                    boxShadow: '0 0 0 3px rgba(255, 102, 0, 0.15)',
+                  },
+                  '&::placeholder': {
+                    color: 'rgba(255, 255, 255, 0.4)',
+                  },
+                },
+                '& .singul-app-icon': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                },
+                '& .singul-app-name': {
+                  color: '#ffffff',
+                },
+                '& .singul-app-description': {
+                  color: 'rgba(255, 255, 255, 0.5)',
+                },
+                '& .singul-empty-state, & .singul-end-of-results': {
+                  color: 'rgba(255, 255, 255, 0.4)',
+                },
               }}
             >
               <SingulJS
+                ref={singulRef}
                 authToken=""
-                placeholder="Search 3,000+ integrations... (e.g., Splunk, CrowdStrike, ServiceNow)"
+                placeholder="Search integrations... (e.g., Splunk, CrowdStrike, ServiceNow, AWS)"
                 layout="grid"
                 gridColumns={4}
                 showDescription
                 inline
-                hitsPerPage={24}
+                hitsPerPage={28}
                 preventDefault
+                initialQuery={searchQuery}
+                onSearchChange={setSearchQuery}
                 onAppSelected={({ app }) => {
-                  // Navigate to register with app context
                   window.location.href = `/register?app=${encodeURIComponent(app.name)}`;
-                }}
-                customStyles={{
-                  container: {
-                    width: '100%',
-                  },
-                  input: {
-                    fontSize: '1.1rem',
-                    padding: '16px 20px',
-                  },
                 }}
               />
             </Box>
