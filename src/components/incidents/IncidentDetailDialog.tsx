@@ -104,8 +104,8 @@ export const IncidentDetailDialog = ({ open, incident, onClose, onResolve, onUpd
       setEditedTlp(incident.tlp || 'TLP:AMBER');
       setEditedPap(incident.pap || 'PAP:AMBER');
       setEditedReferences(incident.references || []);
-      setEditedObservables(incident.observables || []);
-      setEditedCustomFields(incident.rawOCSF?.customFields || {});
+      const customAttrs = incident.rawOCSF?.metadata?.extensions?.custom_attributes;
+      setEditedCustomFields(customAttrs?.customFields || (incident.rawOCSF as any)?.customFields || {});
       setHasChanges(false);
     }
   }, [incident]);
@@ -121,9 +121,10 @@ export const IncidentDetailDialog = ({ open, incident, onClose, onResolve, onUpd
       editedTlp !== (incident.tlp || 'TLP:AMBER') ||
       editedPap !== (incident.pap || 'PAP:AMBER') ||
       JSON.stringify(editedReferences) !== JSON.stringify(incident.references || []) ||
-      JSON.stringify(editedObservables) !== JSON.stringify(incident.observables || []) ||
-      JSON.stringify(editedCustomFields) !== JSON.stringify(incident.rawOCSF?.customFields || {});
-    setHasChanges(changed);
+      JSON.stringify(editedObservables) !== JSON.stringify(incident.observables || []);
+    const customAttrsForCompare = incident.rawOCSF?.metadata?.extensions?.custom_attributes;
+    const changedCustomFields = JSON.stringify(editedCustomFields) !== JSON.stringify(customAttrsForCompare?.customFields || (incident.rawOCSF as any)?.customFields || {});
+    setHasChanges(changed || changedCustomFields);
   }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedTlp, editedPap, editedReferences, editedObservables, editedCustomFields]);
 
   const handleAddReference = () => {
@@ -165,20 +166,31 @@ export const IncidentDetailDialog = ({ open, incident, onClose, onResolve, onUpd
     setSaving(true);
     const severityOption = severityOptions.find(s => s.value === editedSeverity);
     
+    // Get existing finding info from list (new) or direct (legacy)
+    const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
+    
     const updates: Partial<OCSFIncidentFinding> = {
       message: editedMessage || editedTitle,
       severity_id: severityOption?.id || 3,
       severity: severityOption?.label || 'Medium',
-      tlp: editedTlp,
-      pap: editedPap,
       assignee: editedAssignee.trim() || undefined,
       observables: editedObservables.length > 0 ? editedObservables : undefined,
-      customFields: Object.keys(editedCustomFields).length > 0 ? editedCustomFields : undefined,
-      finding_info: {
-        ...incident.rawOCSF.finding_info,
+      finding_info_list: [{
+        ...existingFindingInfo,
         title: editedTitle,
         references: editedReferences.length > 0 ? editedReferences : undefined,
         src_url: editedReferences[0] || '',
+      }],
+      metadata: {
+        ...incident.rawOCSF.metadata,
+        extensions: {
+          custom_attributes: {
+            ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
+            tlp: editedTlp,
+            pap: editedPap,
+            customFields: Object.keys(editedCustomFields).length > 0 ? editedCustomFields : undefined,
+          },
+        },
       },
     };
 

@@ -107,7 +107,25 @@ export interface IncidentTask {
   attachments?: FileAttachment[]; // File attachments
 }
 
-// OCSF Incident Finding format (class_id: 2005)
+// OCSF Incident Finding format (class_uid: 2005)
+// Finding info structure for the finding_info_list array
+export interface FindingInfo {
+  title: string;
+  uid: string;
+  src_url?: string;
+  types?: string[];
+  references?: string[];
+}
+
+// Custom attributes stored under metadata.extensions
+export interface CustomAttributes {
+  tlp?: string;
+  pap?: string;
+  tasks?: IncidentTask[];
+  activity?: ActivityItem[];
+  customFields?: Record<string, string | number | boolean>;
+}
+
 export interface OCSFIncidentFinding {
   class_uid: 2005; // Incident Finding
   class_name: 'Incident Finding';
@@ -118,33 +136,25 @@ export interface OCSFIncidentFinding {
   type_name: string;
   activity_id: number;
   activity_name: string;
-  status_id: number;
+  status_id: number; // 1=New, 2=In Progress, 3=Resolved, 4=On Hold
   status: string;
+  status_detail?: string; // Resolution reason when status is Resolved
   time: number;
-  finding_info: {
-    title: string;
-    uid: string;
-    src_url?: string;
-    types?: string[];
-    references?: string[];
-  };
+  // Finding info as an array (OCSF standard)
+  finding_info_list: FindingInfo[];
   observables?: Observable[];
-  tlp?: string;
-  pap?: string;
   assignee?: string;
-  customFields?: Record<string, string | number | boolean>;
   // Linked detection findings (for grouping)
   related_findings?: string[];
-  // Activity/collaboration tracking
-  activity?: ActivityItem[];
-  // Tasks/checklist
-  tasks?: IncidentTask[];
   metadata: {
     product: {
       name: string;
       vendor_name: string;
     };
     version: string;
+    extensions?: {
+      custom_attributes?: CustomAttributes;
+    };
   };
 }
 
@@ -273,25 +283,29 @@ export const CreateIncidentDialog = ({ open, onClose, onSubmit }: CreateIncident
       status_id: 1, // Always start as New
       status: 'New',
       time: Date.now(),
-      finding_info: {
+      finding_info_list: [{
         title,
         uid: incidentId,
         src_url: references[0] || '',
         types: [source || 'Manual'],
         references: references.length > 0 ? references : undefined,
-      },
+      }],
       observables: observables.length > 0 ? observables : undefined,
-      tlp,
-      pap,
       assignee: assignee.trim() || undefined,
-      customFields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
-      tasks: tasks.length > 0 ? tasks : undefined,
       metadata: {
         product: {
           name: source || 'Manual Entry',
           vendor_name: 'Shuffle',
         },
         version: '1.0.0',
+        extensions: {
+          custom_attributes: {
+            tlp,
+            pap,
+            customFields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
+            tasks: tasks.length > 0 ? tasks : undefined,
+          },
+        },
       },
     };
 
