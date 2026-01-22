@@ -105,7 +105,7 @@ const OnboardingPage = () => {
   const [enrichmentState, setEnrichmentState] = useState<EnrichmentState>({
     automatic_ingestion: { enabled: true, config: {} },
     integration_search: { enabled: true, config: {} },
-    threat_list: { enabled: true, config: {} },
+    threat_intel: { enabled: true, config: {} },
     email_notify: { enabled: true, config: {} },
     chat_notify: { enabled: true, config: {} },
   });
