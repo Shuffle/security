@@ -127,14 +127,22 @@ const parseTimestamp = (timestamp: number | string | undefined): number => {
 const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number }): DisplayIncident | null => {
   try {
     const data = JSON.parse(item.value);
-    const isOCSF = data.finding_info || data.severity_id !== undefined;
+    // Support both new (finding_info_list) and legacy (finding_info) OCSF formats
+    const isOCSF = data.finding_info_list || data.finding_info || data.severity_id !== undefined;
     
     if (isOCSF) {
       const ocsf = data as OCSFIncidentFinding;
+      // Get finding info from list (new format) or direct property (legacy)
+      const findingInfo = ocsf.finding_info_list?.[0] || (ocsf as any).finding_info;
+      // Get custom attributes from metadata.extensions (new) or root level (legacy)
+      const customAttrs = ocsf.metadata?.extensions?.custom_attributes;
+      const tlp = customAttrs?.tlp || (ocsf as any).tlp;
+      const pap = customAttrs?.pap || (ocsf as any).pap;
+      
       return {
-        id: ocsf.finding_info?.uid || item.key,
-        title: ocsf.finding_info?.title || ocsf.message || 'Untitled',
-        source: ocsf.metadata?.product?.name || ocsf.finding_info?.types?.[0] || 'Unknown',
+        id: findingInfo?.uid || item.key,
+        title: findingInfo?.title || ocsf.message || 'Untitled',
+        source: ocsf.metadata?.product?.name || findingInfo?.types?.[0] || 'Unknown',
         severity: mapOCSFSeverity(ocsf.severity_id),
         status: mapOCSFStatus(ocsf.status_id),
         assignee: ocsf.assignee || null,
@@ -142,9 +150,9 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         createdTs: parseTimestamp(item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
         editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
-        tlp: ocsf.tlp,
-        pap: ocsf.pap,
-        references: ocsf.finding_info?.references,
+        tlp,
+        pap,
+        references: findingInfo?.references,
         observables: ocsf.observables,
         relatedFindings: ocsf.related_findings,
         rawOCSF: ocsf,
@@ -315,7 +323,7 @@ const IncidentsPage = () => {
   };
 
   const handleCreateIncident = async (ocsf: OCSFIncidentFinding) => {
-    const key = ocsf.finding_info.uid;
+    const key = ocsf.finding_info_list[0].uid;
     await addItem(key, ocsf);
     await fetchItems();
   };

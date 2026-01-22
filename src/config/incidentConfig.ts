@@ -1,37 +1,49 @@
 // Shared incident status and severity configuration
 // Used across IncidentCardView, IncidentsPage, IncidentDetailPage, and IncidentStatsCards
 
-import { Clock, Zap, Flame, CheckCircle, LucideIcon } from 'lucide-react';
+import { Clock, Zap, Flame, CheckCircle, PauseCircle, LucideIcon } from 'lucide-react';
 
 export const statusConfig: Record<string, { 
   icon: LucideIcon; 
   color: string; 
   bg: string; 
   label: string;
+  id: number; // OCSF status_id
 }> = {
   new: { 
     icon: Clock, 
     color: '#22b8cf', 
     bg: 'rgba(34, 184, 207, 0.15)',
     label: 'New',
+    id: 1,
   },
   in_progress: { 
     icon: Zap, 
     color: '#f97316', 
     bg: 'rgba(249, 115, 22, 0.15)',
     label: 'In Progress',
-  },
-  escalated: { 
-    icon: Flame, 
-    color: '#ef4444', 
-    bg: 'rgba(239, 68, 68, 0.15)',
-    label: 'Escalated',
+    id: 2,
   },
   resolved: { 
     icon: CheckCircle, 
     color: '#22c55e', 
     bg: 'rgba(34, 197, 94, 0.15)',
     label: 'Resolved',
+    id: 3,
+  },
+  on_hold: { 
+    icon: PauseCircle, 
+    color: '#a855f7', 
+    bg: 'rgba(168, 85, 247, 0.15)',
+    label: 'On Hold',
+    id: 4,
+  },
+  escalated: { 
+    icon: Flame, 
+    color: '#ef4444', 
+    bg: 'rgba(239, 68, 68, 0.15)',
+    label: 'Escalated',
+    id: 5,
   },
 };
 

@@ -150,6 +150,7 @@ const mapOCSFStatus = (statusId: number): string => {
     case 1: return 'new';
     case 2: return 'in_progress';
     case 3: return 'resolved';
+    case 4: return 'on_hold';
     default: return 'new';
   }
 };
@@ -157,14 +158,25 @@ const mapOCSFStatus = (statusId: number): string => {
 const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number }): DisplayIncident | null => {
   try {
     const data = JSON.parse(item.value);
-    const isOCSF = data.finding_info || data.severity_id !== undefined;
+    // Support both new (finding_info_list) and legacy (finding_info) OCSF formats
+    const isOCSF = data.finding_info_list || data.finding_info || data.severity_id !== undefined;
     
     if (isOCSF) {
       const ocsf = data as OCSFIncidentFinding;
+      // Get finding info from list (new format) or direct property (legacy)
+      const findingInfo = ocsf.finding_info_list?.[0] || (ocsf as any).finding_info;
+      // Get custom attributes from metadata.extensions (new) or root level (legacy)
+      const customAttrs = ocsf.metadata?.extensions?.custom_attributes;
+      const tlp = customAttrs?.tlp || (ocsf as any).tlp;
+      const pap = customAttrs?.pap || (ocsf as any).pap;
+      const tasks = customAttrs?.tasks || (ocsf as any).tasks;
+      const activity = customAttrs?.activity || (ocsf as any).activity;
+      const customFields = customAttrs?.customFields || (ocsf as any).customFields;
+      
       return {
-        id: ocsf.finding_info?.uid || item.key,
-        title: ocsf.finding_info?.title || ocsf.message || 'Untitled',
-        source: ocsf.metadata?.product?.name || ocsf.finding_info?.types?.[0] || 'Unknown',
+        id: findingInfo?.uid || item.key,
+        title: findingInfo?.title || ocsf.message || 'Untitled',
+        source: ocsf.metadata?.product?.name || findingInfo?.types?.[0] || 'Unknown',
         severity: mapOCSFSeverity(ocsf.severity_id),
         status: mapOCSFStatus(ocsf.status_id),
         assignee: ocsf.assignee || null,
@@ -172,13 +184,14 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         createdTs: parseTimestamp(item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
         editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
-        tlp: ocsf.tlp,
-        pap: ocsf.pap,
-        references: ocsf.finding_info?.references,
+        tlp,
+        pap,
+        references: findingInfo?.references,
         observables: ocsf.observables,
-        customFields: ocsf.customFields,
+        customFields,
         relatedFindings: ocsf.related_findings,
-        activity: ocsf.activity || [],
+        activity: activity || [],
+        tasks,
         rawOCSF: ocsf,
       };
     }
@@ -352,9 +365,10 @@ const IncidentDetailPage = () => {
         setEditedTlp(parsed.tlp || 'TLP:AMBER');
         setEditedReferences(parsed.references || []);
         setEditedObservables(parsed.observables || []);
-        setEditedCustomFields(parsed.rawOCSF?.customFields || {});
+        const customAttrs = parsed.rawOCSF?.metadata?.extensions?.custom_attributes;
+        setEditedCustomFields(customAttrs?.customFields || (parsed.rawOCSF as any)?.customFields || {});
         setActivity(parsed.activity || []);
-        const loadedTasks = parsed.tasks || parsed.rawOCSF?.tasks || [];
+        const loadedTasks = parsed.tasks || customAttrs?.tasks || (parsed.rawOCSF as any)?.tasks || [];
         setTasks(loadedTasks);
         // Auto-switch to Details tab if no tasks (only on initial load)
         if (showLoading && loadedTasks.length === 0) {
@@ -436,7 +450,11 @@ const IncidentDetailPage = () => {
     pendingSaveRef.current = false;
     
     const severityOption = severityOptions.find(s => s.value === editedSeverity);
-    const statusId = editedStatus === 'new' ? 1 : editedStatus === 'in_progress' ? 2 : 3;
+    const statusId = statusConfig[editedStatus]?.id || 1;
+    
+    // Get existing finding info from list (new) or direct (legacy)
+    const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
+    const statusLabel = editedStatus === 'new' ? 'New' : editedStatus === 'in_progress' ? 'In Progress' : editedStatus === 'on_hold' ? 'On Hold' : 'Resolved';
     
     const updatedData = incident.rawOCSF ? {
       ...incident.rawOCSF,
@@ -444,18 +462,25 @@ const IncidentDetailPage = () => {
       severity_id: severityOption?.id || 3,
       severity: severityOption?.label || 'Medium',
       status_id: statusId,
-      status: editedStatus === 'new' ? 'New' : editedStatus === 'in_progress' ? 'In Progress' : 'Resolved',
-      tlp: editedTlp,
+      status: statusLabel,
       assignee: editedAssignee.trim() || undefined,
       observables: editedObservables.length > 0 ? editedObservables : undefined,
-      customFields: Object.keys(editedCustomFields).length > 0 ? editedCustomFields : undefined,
-      activity,
-      tasks: tasks.length > 0 ? tasks : undefined,
-      finding_info: {
-        ...incident.rawOCSF.finding_info,
+      finding_info_list: [{
+        ...existingFindingInfo,
         title: editedTitle,
         references: editedReferences.length > 0 ? editedReferences : undefined,
         src_url: editedReferences[0] || '',
+      }],
+      metadata: {
+        ...incident.rawOCSF.metadata,
+        extensions: {
+          custom_attributes: {
+            tlp: editedTlp,
+            customFields: Object.keys(editedCustomFields).length > 0 ? editedCustomFields : undefined,
+            activity,
+            tasks: tasks.length > 0 ? tasks : undefined,
+          },
+        },
       },
     } : {
       id: incident.id,
@@ -489,6 +514,7 @@ const IncidentDetailPage = () => {
       clearTimeout(saveTimeoutRef.current);
     }
     
+    const customAttrs = incident.rawOCSF?.metadata?.extensions?.custom_attributes;
     const hasChanges = 
       editedTitle !== incident.title ||
       editedMessage !== (incident.rawOCSF?.message || '') ||
@@ -498,8 +524,8 @@ const IncidentDetailPage = () => {
       editedTlp !== (incident.tlp || 'TLP:AMBER') ||
       JSON.stringify(editedReferences) !== JSON.stringify(incident.references || []) ||
       JSON.stringify(editedObservables) !== JSON.stringify(incident.observables || []) ||
-      JSON.stringify(editedCustomFields) !== JSON.stringify(incident.rawOCSF?.customFields || {}) ||
-      JSON.stringify(tasks) !== JSON.stringify(incident.tasks || incident.rawOCSF?.tasks || []);
+      JSON.stringify(editedCustomFields) !== JSON.stringify(customAttrs?.customFields || (incident.rawOCSF as any)?.customFields || {}) ||
+      JSON.stringify(tasks) !== JSON.stringify(incident.tasks || customAttrs?.tasks || (incident.rawOCSF as any)?.tasks || []);
     
     if (hasChanges) {
       pendingSaveRef.current = true;
@@ -613,8 +639,16 @@ const IncidentDetailPage = () => {
     setCommentAttachments([]);
     
     const updatedOCSF: OCSFIncidentFinding = {
-      ...incident.rawOCSF,
-      activity: updatedActivity,
+      ...incident.rawOCSF!,
+      metadata: {
+        ...incident.rawOCSF!.metadata,
+        extensions: {
+          custom_attributes: {
+            ...incident.rawOCSF!.metadata?.extensions?.custom_attributes,
+            activity: updatedActivity,
+          },
+        },
+      },
     };
     await addItem(incident.id, updatedOCSF);
     toast.success('Comment added');
@@ -637,30 +671,29 @@ const IncidentDetailPage = () => {
     
     const updatedActivity = [...activity, resolveActivity];
     
+    const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
     const resolvedData = incident.rawOCSF ? {
       ...incident.rawOCSF,
       status_id: 3,
       status: 'Resolved',
-      resolution: {
-        reason: resolutionData.reason,
-        notes: resolutionData.notes,
-        resolved_by: currentUsername,
-        resolved_at: Date.now(),
+      status_detail: `${resolutionData.reason}${resolutionData.notes ? `: ${resolutionData.notes}` : ''}`,
+      metadata: {
+        ...incident.rawOCSF.metadata,
+        extensions: {
+          custom_attributes: {
+            ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
+            activity: updatedActivity,
+          },
+        },
       },
-      activity: updatedActivity,
     } : {
       id: incident.id,
       title: editedTitle,
       source: incident.source,
       severity: editedSeverity,
       status: 'resolved',
+      status_detail: `${resolutionData.reason}${resolutionData.notes ? `: ${resolutionData.notes}` : ''}`,
       assignee: editedAssignee.trim() || undefined,
-      resolution: {
-        reason: resolutionData.reason,
-        notes: resolutionData.notes,
-        resolved_by: currentUsername,
-        resolved_at: Date.now(),
-      },
       activity: updatedActivity,
     };
 
