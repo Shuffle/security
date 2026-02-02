@@ -129,6 +129,13 @@ const DetectionOnboardingPage = () => {
     sigmaForwarder: boolean;
     webhook: boolean;
   }>({ syslogTcp: false, syslogUdp: false, sigmaForwarder: false, webhook: false });
+  const [testRuleStatus, setTestRuleStatus] = useState<{
+    loading: boolean;
+    checked: boolean;
+    ready: boolean;
+    message?: string;
+    ruleId?: string;
+  }>({ loading: false, checked: false, ready: false });
   const [expandedStep, setExpandedStep] = useState<number | null>(1);
   const [deploymentDialog, setDeploymentDialog] = useState<{
     open: boolean;
@@ -749,10 +756,78 @@ const DetectionOnboardingPage = () => {
     }
   };
 
+  // Check for "Test Notepad Event" detection rule
+  const checkTestDetectionRule = async () => {
+    setTestRuleStatus({ loading: true, checked: false, ready: false });
+    
+    try {
+      const response = await fetch(getApiUrl('/api/v1/detections/Sigma'), {
+        headers: {
+          'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        setTestRuleStatus({
+          loading: false,
+          checked: true,
+          ready: false,
+          message: 'Failed to fetch detection rules',
+        });
+        return;
+      }
+
+      const data = await response.json();
+      const rules = data.detection_info || [];
+      
+      // Look for "Test Notepad Event" rule
+      const testRule = rules.find((r: any) => 
+        r.title?.toLowerCase().includes('test notepad event') || 
+        r.name?.toLowerCase().includes('test notepad event')
+      );
+
+      if (testRule && testRule.is_enabled) {
+        setTestRuleStatus({
+          loading: false,
+          checked: true,
+          ready: true,
+          ruleId: testRule.file_id || testRule.id,
+          message: 'Test Notepad Event rule enabled',
+        });
+      } else if (testRule) {
+        setTestRuleStatus({
+          loading: false,
+          checked: true,
+          ready: false,
+          ruleId: testRule.file_id || testRule.id,
+          message: 'Test Notepad Event rule exists but not enabled',
+        });
+      } else {
+        setTestRuleStatus({
+          loading: false,
+          checked: true,
+          ready: false,
+          message: 'Test Notepad Event rule not found',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to check test detection rule:', error);
+      setTestRuleStatus({
+        loading: false,
+        checked: true,
+        ready: false,
+        message: 'Error checking detection rules',
+      });
+    }
+  };
+
   // Check both pipeline and webhook status
   const checkManualTestReadiness = async () => {
     const hookId = await checkPipelineStatus();
-    await checkWebhookWorkflow(hookId || undefined);
+    await Promise.all([
+      checkWebhookWorkflow(hookId || undefined),
+      checkTestDetectionRule(),
+    ]);
   };
 
   // Test detection rules
@@ -1659,7 +1734,7 @@ const DetectionOnboardingPage = () => {
                 </Box>
 
                 {/* Webhook Workflow Status */}
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: 1.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Box
@@ -1709,6 +1784,39 @@ const DetectionOnboardingPage = () => {
                   </Typography>
                 </Box>
 
+                {/* Test Notepad Event Detection Rule Status */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: testRuleStatus.loading 
+                            ? 'hsl(var(--muted-foreground))'
+                            : testRuleStatus.ready 
+                              ? 'hsl(var(--severity-low))' 
+                              : 'hsl(var(--severity-medium))',
+                        }}
+                      />
+                      <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', fontWeight: 500 }}>
+                        Test Notepad Event Rule
+                      </Typography>
+                      {testRuleStatus.loading && (
+                        <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                      )}
+                    </Box>
+                  </Box>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', pl: 2 }}>
+                    {testRuleStatus.loading 
+                      ? 'Checking...' 
+                      : testRuleStatus.checked 
+                        ? testRuleStatus.message 
+                        : 'Required detection for testing'}
+                  </Typography>
+                </Box>
+
                 {pipelinesStatus.loading && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <CircularProgress size={14} sx={{ color: 'hsl(var(--muted-foreground))' }} />
@@ -1738,7 +1846,7 @@ const DetectionOnboardingPage = () => {
                   </Button>
                   <Button
                     onClick={() => testRules('manual')}
-                    disabled={testStatus.loading || !pipelinesStatus.sigmaForwarder.ready || !webhookStatus.ready}
+                    disabled={testStatus.loading || !pipelinesStatus.sigmaForwarder.ready || !webhookStatus.ready || !testRuleStatus.ready}
                     variant="contained"
                     size="small"
                     sx={{
