@@ -14,6 +14,7 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Tooltip,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -1841,28 +1842,65 @@ const DetectionOnboardingPage = () => {
                   Manual Test
                 </Typography>
                 
-                {/* Sigma Forwarder Status */}
+                {/* 1. Test Notepad Event Detection Rule Status */}
                 <Box sx={{ mb: 1.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: pipelinesStatus.loading 
-                            ? 'hsl(var(--muted-foreground))'
-                            : pipelinesStatus.sigmaForwarder.ready 
-                              ? 'hsl(var(--severity-low))' 
-                              : pipelinesStatus.sigmaForwarder.isLocalhost
-                                ? 'hsl(var(--severity-high, var(--severity-medium)))'
+                    <Tooltip title="A simple Sigma rule that detects 'notepad.exe' process events. Used to verify the detection pipeline is working end-to-end." arrow placement="right">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'help' }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            backgroundColor: testRuleStatus.loading 
+                              ? 'hsl(var(--muted-foreground))'
+                              : testRuleStatus.ready 
+                                ? 'hsl(var(--severity-low))' 
                                 : 'hsl(var(--severity-medium))',
-                        }}
-                      />
-                      <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', fontWeight: 500 }}>
-                        Sigma Detection Forwarder
-                      </Typography>
-                    </Box>
+                          }}
+                        />
+                        <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', fontWeight: 500 }}>
+                          Test Notepad Event Rule
+                        </Typography>
+                        {testRuleStatus.loading && (
+                          <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                        )}
+                      </Box>
+                    </Tooltip>
+                  </Box>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', pl: 2 }}>
+                    {testRuleStatus.loading 
+                      ? 'Checking...' 
+                      : testRuleStatus.checked 
+                        ? testRuleStatus.message 
+                        : 'Required detection for testing'}
+                  </Typography>
+                </Box>
+
+                {/* 2. Sigma Forwarder Status */}
+                <Box sx={{ mb: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
+                    <Tooltip title="A pipeline that evaluates incoming syslog events against your enabled Sigma rules and forwards matches to the webhook workflow." arrow placement="right">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'help' }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            backgroundColor: pipelinesStatus.loading 
+                              ? 'hsl(var(--muted-foreground))'
+                              : pipelinesStatus.sigmaForwarder.ready 
+                                ? 'hsl(var(--severity-low))' 
+                                : pipelinesStatus.sigmaForwarder.isLocalhost
+                                  ? 'hsl(var(--severity-high, var(--severity-medium)))'
+                                  : 'hsl(var(--severity-medium))',
+                          }}
+                        />
+                        <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', fontWeight: 500 }}>
+                          Sigma Detection Forwarder
+                        </Typography>
+                      </Box>
+                    </Tooltip>
                     {(!pipelinesStatus.sigmaForwarder.ready || pipelinesStatus.sigmaForwarder.isLocalhost) && pipelinesStatus.checked && (
                       <Button
                         onClick={() => deployPipeline('sigmaForwarder')}
@@ -1906,29 +1944,31 @@ const DetectionOnboardingPage = () => {
                   </Typography>
                 </Box>
 
-                {/* Webhook Workflow Status */}
-                <Box sx={{ mb: 1.5 }}>
+                {/* 3. Webhook Workflow Status */}
+                <Box sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: webhookStatus.loading 
-                            ? 'hsl(var(--muted-foreground))'
-                            : webhookStatus.ready 
-                              ? 'hsl(var(--severity-low))' 
-                              : 'hsl(var(--severity-medium))',
-                        }}
-                      />
-                      <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', fontWeight: 500 }}>
-                        Workflow (Webhook)
-                      </Typography>
-                      {webhookStatus.loading && (
-                        <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
-                      )}
-                    </Box>
+                    <Tooltip title="A workflow triggered by webhook that receives detected events from the Sigma Forwarder and creates alerts or incidents." arrow placement="right">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'help' }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            backgroundColor: webhookStatus.loading 
+                              ? 'hsl(var(--muted-foreground))'
+                              : webhookStatus.ready 
+                                ? 'hsl(var(--severity-low))' 
+                                : 'hsl(var(--severity-medium))',
+                          }}
+                        />
+                        <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', fontWeight: 500 }}>
+                          Ingestion Webhook
+                        </Typography>
+                        {webhookStatus.loading && (
+                          <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                        )}
+                      </Box>
+                    </Tooltip>
                     {!webhookStatus.ready && webhookStatus.checked && (
                       <Button
                         onClick={deployWebhookWorkflow}
@@ -1954,39 +1994,6 @@ const DetectionOnboardingPage = () => {
                       : webhookStatus.checked 
                         ? webhookStatus.message 
                         : 'Requires: Ingestion Webhook workflow'}
-                  </Typography>
-                </Box>
-
-                {/* Test Notepad Event Detection Rule Status */}
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: testRuleStatus.loading 
-                            ? 'hsl(var(--muted-foreground))'
-                            : testRuleStatus.ready 
-                              ? 'hsl(var(--severity-low))' 
-                              : 'hsl(var(--severity-medium))',
-                        }}
-                      />
-                      <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', fontWeight: 500 }}>
-                        Test Notepad Event Rule
-                      </Typography>
-                      {testRuleStatus.loading && (
-                        <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
-                      )}
-                    </Box>
-                  </Box>
-                  <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', pl: 2 }}>
-                    {testRuleStatus.loading 
-                      ? 'Checking...' 
-                      : testRuleStatus.checked 
-                        ? testRuleStatus.message 
-                        : 'Required detection for testing'}
                   </Typography>
                 </Box>
 
