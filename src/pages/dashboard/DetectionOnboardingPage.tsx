@@ -857,43 +857,39 @@ const DetectionOnboardingPage = () => {
     }
 
     try {
-      // Step 0: Clean up old test pipelines
+      // Step 0: Clean up old test pipelines from environment data
       setTestStatus({ loading: true, checked: false, success: false, message: 'Cleaning old tests...' });
       try {
-        const pipelinesResponse = await fetch(getApiUrl('/api/v1/triggers/pipeline'), {
-          headers: {
-            'Authorization': `Bearer ${API_CONFIG.apiKey}`,
-          },
+        const env = environments.find(e => e.id === selectedEnvId);
+        const pipelines = env?.data_lake?.pipelines || [];
+        const pipelineList = Array.isArray(pipelines) ? pipelines : [];
+        
+        // Find old notepad test pipelines (those containing notepad.exe in command)
+        const oldTestPipelines = pipelineList.filter((p: any) => {
+          const pipelineStr = typeof p === 'string' ? p : (p?.command || p?.name || JSON.stringify(p));
+          return pipelineStr.includes('notepad.exe') && pipelineStr.includes('parse_syslog');
         });
         
-        if (pipelinesResponse.ok) {
-          const allPipelines = await pipelinesResponse.json();
-          const pipelineList = Array.isArray(allPipelines) ? allPipelines : (allPipelines.pipelines || []);
-          
-          // Find old notepad test pipelines (those containing notepad.exe in command)
-          const oldTestPipelines = pipelineList.filter((p: any) => {
-            const cmd = p.command || p.name || '';
-            return cmd.includes('notepad.exe') && cmd.includes('parse_syslog');
-          });
-          
-          // Delete old test pipelines
-          for (const oldPipeline of oldTestPipelines) {
-            try {
-              await fetch(getApiUrl('/api/v1/triggers/pipeline'), {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${API_CONFIG.apiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  id: oldPipeline.id,
-                  type: 'stop',
-                  environment: selectedEnvironment?.Name || '',
-                }),
-              });
-            } catch (deleteError) {
-              console.warn('Failed to delete old test pipeline:', deleteError);
-            }
+        // Stop old test pipelines
+        for (const oldPipeline of oldTestPipelines) {
+          try {
+            const pipelineStr = typeof oldPipeline === 'string' ? oldPipeline : (oldPipeline?.command || oldPipeline?.name || '');
+            await fetch(getApiUrl('/api/v1/triggers/pipeline'), {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: pipelineStr,
+                id: typeof oldPipeline === 'object' ? oldPipeline.id : undefined,
+                type: 'stop',
+                command: pipelineStr,
+                environment: selectedEnvironment?.Name || '',
+              }),
+            });
+          } catch (deleteError) {
+            console.warn('Failed to stop old test pipeline:', deleteError);
           }
         }
       } catch (cleanupError) {
