@@ -988,40 +988,29 @@ const DetectionOnboardingPage = () => {
     }
 
     try {
-      // Step 0: Clean up old test pipelines from environment data
+      // Define test command and pipeline name upfront
+      const testCommand = `from {message: "<165>1 2025-10-06T12:34:56.789Z myhost.example.com myapp 1234 ID47 [huh eventSource=\\"App\\" EventID=\\"4688\\" NewProcessName=\\"notepad.exe\\" Context=\\"Testing\\"] This is a test log message"} | this = message.parse_syslog() | import`;
+      const pipelineName = testCommand.replace(/ /g, '-').substring(0, 100);
+
+      // Step 0: Stop any existing test pipeline with the same name (even if failed)
       try {
-        const env = environments.find(e => e.id === selectedEnvId);
-        const pipelines = env?.data_lake?.pipelines || [];
-        const pipelineList = Array.isArray(pipelines) ? pipelines : [];
-        
-        const oldTestPipelines = pipelineList.filter((p: any) => {
-          const pipelineStr = typeof p === 'string' ? p : (p?.command || p?.name || JSON.stringify(p));
-          return pipelineStr.includes('notepad.exe') && pipelineStr.includes('parse_syslog');
+        await fetch(getApiUrl('/api/v1/triggers/pipeline'), {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: pipelineName,
+            type: 'stop',
+            command: testCommand,
+            environment: selectedEnvironment?.Name || '',
+          }),
         });
-        
-        for (const oldPipeline of oldTestPipelines) {
-          try {
-            const pipelineStr = typeof oldPipeline === 'string' ? oldPipeline : (oldPipeline?.command || oldPipeline?.name || '');
-            await fetch(getApiUrl('/api/v1/triggers/pipeline'), {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${API_CONFIG.apiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                name: pipelineStr,
-                id: typeof oldPipeline === 'object' ? oldPipeline.id : undefined,
-                type: 'stop',
-                command: pipelineStr,
-                environment: selectedEnvironment?.Name || '',
-              }),
-            });
-          } catch (deleteError) {
-            console.warn('Failed to stop old test pipeline:', deleteError);
-          }
-        }
-      } catch (cleanupError) {
-        console.warn('Failed to clean up old test pipelines:', cleanupError);
+        // Wait 2 seconds for the stop to take effect
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (stopError) {
+        console.warn('Failed to stop existing test pipeline (may not exist):', stopError);
       }
 
       // Step 1: Get current execution count to compare later
@@ -1039,8 +1028,6 @@ const DetectionOnboardingPage = () => {
       }
 
       // Step 2: Send test event via pipeline trigger
-      const testCommand = `from {message: "<165>1 2025-10-06T12:34:56.789Z myhost.example.com myapp 1234 ID47 [huh eventSource=\\"App\\" EventID=\\"4688\\" NewProcessName=\\"notepad.exe\\" Context=\\"Testing\\"] This is a test log message"} | this = message.parse_syslog() | import`;
-      
       const triggerResponse = await fetch(getApiUrl('/api/v1/triggers/pipeline'), {
         method: 'POST',
         headers: {
@@ -1048,7 +1035,7 @@ const DetectionOnboardingPage = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: testCommand.replace(/ /g, '-').substring(0, 100),
+          name: pipelineName,
           id: crypto.randomUUID(),
           type: 'start',
           command: testCommand,
