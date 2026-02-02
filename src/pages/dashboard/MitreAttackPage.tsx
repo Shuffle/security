@@ -483,12 +483,25 @@ const MitreAttackPage = () => {
                             <Chip
                               label={technique.externalId}
                               size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigateToTechnique(technique.externalId, selectedTacticShortName);
+                              }}
                               sx={{
                                 height: 20,
                                 fontSize: '0.7rem',
-                                backgroundColor: 'hsl(var(--primary) / 0.15)',
-                                color: 'hsl(var(--primary))',
+                                backgroundColor: highlightedTechnique === technique.externalId
+                                  ? 'hsl(var(--primary))'
+                                  : 'hsl(var(--primary) / 0.15)',
+                                color: highlightedTechnique === technique.externalId
+                                  ? 'hsl(var(--primary-foreground))'
+                                  : 'hsl(var(--primary))',
                                 border: 'none',
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'hsl(var(--primary))',
+                                  color: 'hsl(var(--primary-foreground))',
+                                },
                               }}
                             />
                           </Box>
@@ -553,11 +566,24 @@ const MitreAttackPage = () => {
                                     <Chip
                                       label={sub.externalId}
                                       size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigateToTechnique(sub.externalId, selectedTacticShortName);
+                                      }}
                                       sx={{
                                         height: 18,
                                         fontSize: '0.65rem',
-                                        backgroundColor: 'hsl(var(--secondary))',
-                                        color: 'hsl(var(--secondary-foreground))',
+                                        backgroundColor: isSubHighlighted
+                                          ? 'hsl(var(--primary))'
+                                          : 'hsl(var(--secondary))',
+                                        color: isSubHighlighted
+                                          ? 'hsl(var(--primary-foreground))'
+                                          : 'hsl(var(--secondary-foreground))',
+                                        cursor: 'pointer',
+                                        '&:hover': {
+                                          backgroundColor: 'hsl(var(--primary))',
+                                          color: 'hsl(var(--primary-foreground))',
+                                        },
                                       }}
                                     />
                                   </Box>
