@@ -29,10 +29,10 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import TuneIcon from '@mui/icons-material/Tune';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
-import RuleIcon from '@mui/icons-material/Rule';
+import RadarIcon from '@mui/icons-material/Radar';
+import { Braces, Waypoints } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { IntegrationStatus } from './IntegrationStatus';
-import mitreAttackLogo from '@/assets/mitre-attack-logo.png';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -58,11 +58,11 @@ const navItems: NavItem[] = [
   },
   { 
     label: 'Detection', 
-    icon: <RuleIcon />,
+    icon: <RadarIcon />,
     path: '/detection',
     children: [
-      { label: 'Sigma Rules', path: '/detection/sigma', icon: <RuleIcon fontSize="small" /> },
-      { label: 'MITRE ATT&CK', path: '/detection/mitre', icon: <img src={mitreAttackLogo} alt="MITRE ATT&CK" style={{ width: 18, height: 18, objectFit: 'contain', borderRadius: 2 }} /> },
+      { label: 'Sigma Rules', path: '/detection/sigma', icon: <Braces size={16} /> },
+      { label: 'MITRE ATT&CK', path: '/detection/mitre', icon: <Waypoints size={16} /> },
     ],
   },
   { label: 'Users', icon: <PeopleIcon />, path: '/users' },
