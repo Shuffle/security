@@ -179,21 +179,26 @@ const DetectionOnboardingPage = () => {
     }
   }, [selectedEnvId]);
 
-  // Auto-expand to step 2 if selected sensor is detection-ready
+  // Auto-check sensor and rules status on load, auto-expand to appropriate step
   useEffect(() => {
-    if (selectedEnvId && environments.length > 0) {
+    const autoCheckStatus = async () => {
+      if (!selectedEnvId || environments.length === 0 || !API_CONFIG.apiKey) return;
+      
       const env = environments.find(e => e.id === selectedEnvId);
-      if (env && isSensorRunning(env) && isPipelineReady(env)) {
-        // Sensor is running and detection-ready, mark step 1 as complete and expand step 2
+      if (!env) return;
+
+      const sensorRunning = isSensorRunning(env);
+      const pipelineReady = isPipelineReady(env);
+
+      // Update sensor status
+      if (sensorRunning && pipelineReady) {
         setSensorStatus({
           loading: false,
           checked: true,
           success: true,
           message: `Detection pipeline is enabled and ready`,
         });
-        setExpandedStep(2);
-      } else if (env && isSensorRunning(env)) {
-        // Sensor is running but not detection-ready yet
+      } else if (sensorRunning) {
         setSensorStatus({
           loading: false,
           checked: true,
@@ -201,7 +206,54 @@ const DetectionOnboardingPage = () => {
           message: 'Sensor is running but detection pipeline is not yet configured',
         });
       }
-    }
+
+      // If sensor is ready, also check rules
+      if (sensorRunning && pipelineReady) {
+        try {
+          const response = await fetch(getApiUrl('/api/v1/detections/Sigma'), {
+            headers: {
+              'Authorization': `Bearer ${API_CONFIG.apiKey}`,
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const rules = data.detection_info || [];
+            const enabledRules = rules.filter((r: any) => r.is_enabled === true);
+            
+            if (enabledRules.length > 0) {
+              // Rules are enabled, mark step 2 complete and expand step 3
+              setRulesStatus({
+                loading: false,
+                checked: true,
+                success: true,
+                message: `${enabledRules.length} rules enabled`,
+              });
+              setExpandedStep(3);
+            } else {
+              // No rules enabled, expand step 2
+              setRulesStatus({
+                loading: false,
+                checked: true,
+                success: false,
+                message: 'No rules enabled yet',
+              });
+              setExpandedStep(2);
+            }
+          } else {
+            setExpandedStep(2);
+          }
+        } catch (error) {
+          console.error('Failed to auto-check rules:', error);
+          setExpandedStep(2);
+        }
+      } else if (sensorRunning) {
+        // Sensor running but not detection-ready, stay on step 1 or expand step 2
+        setExpandedStep(2);
+      }
+    };
+
+    autoCheckStatus();
   }, [selectedEnvId, environments]);
 
   const selectedEnvironment = environments.find(e => e.id === selectedEnvId);
