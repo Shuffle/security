@@ -564,8 +564,8 @@ const IncidentsPage = () => {
           )}
         </Box>
         
-        {/* Stats sidebar */}
-        <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+        {/* Stats sidebar - sticky on desktop */}
+        <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 24, alignSelf: 'flex-start' }}>
           <IncidentStatsCards 
             incidents={incidents}
             currentUsername={currentUsername}
