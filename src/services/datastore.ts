@@ -192,7 +192,9 @@ export const getDatastoreByCategory = async (
     return { success: false, error: 'No organization ID found' };
   }
 
-  let url = `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}&top=1000`;
+  // Use higher limit for incidents, default 100 for others
+  const limit = category === DATASTORE_CATEGORIES.INCIDENTS ? 1000 : 100;
+  let url = `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}&top=${limit}`;
   if (cursor) {
     url += `&cursor=${encodeURIComponent(cursor)}`;
   }
