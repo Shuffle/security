@@ -236,7 +236,7 @@ export const TaskEditor = ({
                   )}
                 </IconButton>
                 
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ flex: 1, minWidth: 200 }}>
                   <MentionInput
                     value={task.title}
                     onChange={(value) => handleUpdateTaskTitle(task.id, value)}
