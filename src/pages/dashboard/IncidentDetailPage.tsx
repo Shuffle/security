@@ -2431,8 +2431,6 @@ const IncidentDetailPage = () => {
           bgcolor: 'hsl(var(--card))',
           borderRadius: 2,
           border: '1px solid hsl(var(--border))',
-          overflow: 'hidden',
-          maxHeight: { xs: 400, lg: 'calc(100vh - 180px)' },
           order: { xs: 2, lg: 0 },
         }}>
           {/* Activity Header */}
@@ -2527,8 +2525,6 @@ const IncidentDetailPage = () => {
 
           {/* Activity Feed */}
           <Box sx={{ 
-            flex: 1, 
-            overflowY: 'auto',
             p: 1.5,
             display: 'flex',
             flexDirection: 'column',
