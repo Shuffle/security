@@ -21,8 +21,9 @@ import CustomFieldsPage from '@/pages/dashboard/CustomFieldsPage';
 import UsersPage from '@/pages/dashboard/UsersPage';
 import OrganizationsPage from '@/pages/dashboard/OrganizationsPage';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
-
+import AgentActivityPage from '@/pages/dashboard/AgentActivityPage';
 import DocsPage from '@/pages/docs/DocsPage';
+
 import AppsPage from '@/pages/AppsPage';
 import NotFound from './pages/NotFound';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -87,7 +88,7 @@ const App = () => (
               <Route path="/incidents/ioc-types" element={<IOCTypesPage />} />
               <Route path="/incidents/threat-feeds" element={<ThreatFeedsPage />} />
               <Route path="/incidents/custom-fields" element={<CustomFieldsPage />} />
-              
+              <Route path="/agent" element={<AgentActivityPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/organizations" element={<OrganizationsPage />} />
               <Route path="/settings" element={<SettingsPage />} />

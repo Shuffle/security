@@ -1,0 +1,115 @@
+/**
+ * Hook for fetching and managing agent activity data
+ */
+
+import { useState, useEffect, useCallback } from 'react';
+import { searchAgentActivity, AgentRun, AgentActivityParams } from '@/services/agentActivity';
+
+export interface AgentActivityStats {
+  totalRuns: number;
+  successCount: number;
+  failedCount: number;
+  runningCount: number;
+  successRate: number;
+  avgDuration: number;
+}
+
+export const useAgentActivity = (autoFetch = true) => {
+  const [runs, setRuns] = useState<AgentRun[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [cursor, setCursor] = useState('');
+  const [hasMore, setHasMore] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchActivity = useCallback(async (params: AgentActivityParams = {}, append = false) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await searchAgentActivity({
+        limit: 50,
+        status: statusFilter,
+        ...params,
+      });
+      if (result.success) {
+        setRuns(prev => append ? [...prev, ...result.runs] : result.runs);
+        setCursor(result.cursor);
+        setHasMore(!!result.cursor && result.runs.length > 0);
+      } else {
+        setError('Failed to fetch agent activity');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch agent activity');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [statusFilter]);
+
+  const loadMore = useCallback(() => {
+    if (cursor && !isLoading) {
+      fetchActivity({ cursor }, true);
+    }
+  }, [cursor, isLoading, fetchActivity]);
+
+  const refresh = useCallback(() => {
+    fetchActivity({ cursor: '' });
+  }, [fetchActivity]);
+
+  // Compute stats
+  const stats: AgentActivityStats = {
+    totalRuns: runs.length,
+    successCount: runs.filter(r => r.status === 'FINISHED' || r.status === 'SUCCESS').length,
+    failedCount: runs.filter(r => r.status === 'FAILED' || r.status === 'ABORTED').length,
+    runningCount: runs.filter(r => r.status === 'EXECUTING' || r.status === 'RUNNING').length,
+    successRate: runs.length > 0
+      ? (runs.filter(r => r.status === 'FINISHED' || r.status === 'SUCCESS').length / runs.length) * 100
+      : 0,
+    avgDuration: runs.length > 0
+      ? runs.reduce((sum, r) => {
+          if (r.started_at && r.completed_at) {
+            const start = new Date(r.started_at).getTime();
+            const end = new Date(r.completed_at).getTime();
+            return sum + (end - start) / 1000;
+          }
+          return sum + (r.duration || 0);
+        }, 0) / runs.length
+      : 0,
+  };
+
+  // Filter runs by search query
+  const filteredRuns = searchQuery
+    ? runs.filter(r => {
+        const q = searchQuery.toLowerCase();
+        return (
+          r.execution_id?.toLowerCase().includes(q) ||
+          r.status?.toLowerCase().includes(q) ||
+          r.execution_argument?.toLowerCase().includes(q) ||
+          r.execution_source?.toLowerCase().includes(q) ||
+          r.workflow?.name?.toLowerCase().includes(q)
+        );
+      })
+    : runs;
+
+  useEffect(() => {
+    if (autoFetch) {
+      fetchActivity();
+    }
+  }, [autoFetch, fetchActivity]);
+
+  return {
+    runs: filteredRuns,
+    allRuns: runs,
+    isLoading,
+    error,
+    hasMore,
+    stats,
+    statusFilter,
+    searchQuery,
+    setStatusFilter,
+    setSearchQuery,
+    loadMore,
+    refresh,
+    fetchActivity,
+  };
+};

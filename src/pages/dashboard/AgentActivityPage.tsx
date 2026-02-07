@@ -1,0 +1,275 @@
+/**
+ * Security Agent Activity Page
+ * Shows real-time agent execution feed, stats, and activity overview
+ */
+
+import { useState } from 'react';
+import {
+  Box,
+  Typography,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Tooltip,
+  Chip,
+  CircularProgress,
+  Button,
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { motion } from 'framer-motion';
+import { Bot, Activity, Pause, Settings } from 'lucide-react';
+import { useAgentActivity } from '@/hooks/useAgentActivity';
+import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
+import AgentActivityStatsPanel from '@/components/agent/AgentActivityStats';
+import AgentPermissionsDrawer from '@/components/agent/AgentPermissionsDrawer';
+import { useAgentPermissions } from '@/hooks/useAgentPermissions';
+
+const STATUS_FILTERS = [
+  { label: 'All', value: '' },
+  { label: 'Completed', value: 'FINISHED' },
+  { label: 'Running', value: 'EXECUTING' },
+  { label: 'Failed', value: 'FAILED' },
+];
+
+const AgentActivityPage = () => {
+  const {
+    runs,
+    isLoading,
+    error,
+    hasMore,
+    stats,
+    statusFilter,
+    searchQuery,
+    setStatusFilter,
+    setSearchQuery,
+    loadMore,
+    refresh,
+  } = useAgentActivity();
+
+  const { enabledPermissions, totalPermissions } = useAgentPermissions();
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1400 }}>
+        {/* Page header */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          mb: 4,
+          px: 3,
+          py: 2.5,
+          borderRadius: 2,
+          bgcolor: 'hsl(var(--card))',
+          border: '1px solid hsl(var(--border))',
+        }}>
+          <Box sx={{
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'hsla(var(--primary) / 0.12)',
+            color: 'hsl(var(--primary))',
+            flexShrink: 0,
+          }}>
+            <Bot size={26} />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.25 }}>
+              <Typography sx={{ fontWeight: 600, fontSize: '1.15rem', color: 'hsl(var(--foreground))' }}>
+                Security Agent
+              </Typography>
+              <Chip
+                label="Active"
+                size="small"
+                sx={{
+                  height: 22,
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  bgcolor: 'hsla(var(--severity-low) / 0.15)',
+                  color: 'hsl(var(--severity-low))',
+                  '& .MuiChip-label': { px: 1 },
+                  '&::before': {
+                    content: '""',
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    bgcolor: 'hsl(var(--severity-low))',
+                    ml: 1,
+                    mr: -0.25,
+                  },
+                }}
+              />
+            </Box>
+            <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
+              Cybersecurity Agent · {enabledPermissions}/{totalPermissions} permissions enabled
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Tooltip title="Refresh">
+              <IconButton
+                onClick={refresh}
+                size="small"
+                sx={{
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 1.5,
+                  color: 'hsl(var(--muted-foreground))',
+                  px: 1.5,
+                  '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
+                }}
+              >
+                <RefreshIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+            <Button
+              size="small"
+              startIcon={<Settings size={14} />}
+              onClick={() => setPermissionsOpen(true)}
+              sx={{
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 1.5,
+                color: 'hsl(var(--muted-foreground))',
+                textTransform: 'none',
+                fontSize: '0.8rem',
+                px: 1.5,
+                '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
+              }}
+            >
+              Permissions
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Content layout */}
+        <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+          {/* Left: Feed */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {/* Search & Filter bar */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+              <TextField
+                placeholder="Search agent activity..."
+                size="small"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: 'hsl(var(--muted-foreground))' }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{
+                  flex: 1,
+                  maxWidth: 360,
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'hsl(var(--card))',
+                    borderRadius: 1.5,
+                    fontSize: '0.85rem',
+                    '& fieldset': { borderColor: 'hsl(var(--border))' },
+                    '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.3)' },
+                    '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                  },
+                  '& .MuiInputBase-input': { color: 'hsl(var(--foreground))' },
+                }}
+              />
+              <Tooltip title="Toggle filters">
+                <IconButton
+                  size="small"
+                  onClick={() => setShowFilters(!showFilters)}
+                  sx={{
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 1.5,
+                    color: showFilters ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                  }}
+                >
+                  <FilterListIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            {/* Status filter chips */}
+            {showFilters && (
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                {STATUS_FILTERS.map((f) => (
+                  <Chip
+                    key={f.value}
+                    label={f.label}
+                    size="small"
+                    variant={statusFilter === f.value ? 'filled' : 'outlined'}
+                    onClick={() => setStatusFilter(f.value)}
+                    sx={{
+                      fontSize: '0.75rem',
+                      borderColor: statusFilter === f.value ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                      bgcolor: statusFilter === f.value ? 'hsla(var(--primary) / 0.15)' : 'transparent',
+                      color: statusFilter === f.value ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                      '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+
+            {/* Loading */}
+            {isLoading && runs.length === 0 ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                <CircularProgress size={28} sx={{ color: 'hsl(var(--primary))' }} />
+              </Box>
+            ) : error ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <Typography sx={{ color: 'hsl(var(--severity-critical))', fontSize: '0.9rem', mb: 1 }}>
+                  {error}
+                </Typography>
+                <Button size="small" onClick={refresh} sx={{ color: 'hsl(var(--primary))', textTransform: 'none' }}>
+                  Try again
+                </Button>
+              </Box>
+            ) : (
+              <>
+                <AgentActivityFeed runs={runs} />
+                
+                {/* Load more */}
+                {hasMore && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                    <Button
+                      size="small"
+                      onClick={loadMore}
+                      disabled={isLoading}
+                      sx={{
+                        color: 'hsl(var(--primary))',
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      {isLoading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : null}
+                      Load more
+                    </Button>
+                  </Box>
+                )}
+              </>
+            )}
+          </Box>
+
+          {/* Right: Stats */}
+          <Box sx={{ width: { xs: '100%', lg: 340 }, flexShrink: 0 }}>
+            <AgentActivityStatsPanel stats={stats} />
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Permissions drawer */}
+      <AgentPermissionsDrawer open={permissionsOpen} onClose={() => setPermissionsOpen(false)} />
+    </motion.div>
+  );
+};
+
+export default AgentActivityPage;
