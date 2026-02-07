@@ -372,6 +372,19 @@ const IncidentDetailPage = () => {
   const [correlationsLoading, setCorrelationsLoading] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSaveRef = useRef(false);
+  // Track the initial normalized values so auto-save doesn't fire on load
+  const initialValuesRef = useRef<{
+    title: string;
+    message: string;
+    severity: string;
+    assignee: string;
+    status: string;
+    tlp: string;
+    references: string;
+    observables: string;
+    customFields: string;
+    tasks: string;
+  } | null>(null);
   
   const { users, loading: usersLoading } = useUsers();
   const { fields: customFields } = useCustomFields();
@@ -438,6 +451,19 @@ const IncidentDetailPage = () => {
           id: task.id || `task-${Date.now()}-${index}`,
         }));
         setTasks(normalizedTasks);
+        // Snapshot the normalized values so auto-save won't fire on load
+        initialValuesRef.current = {
+          title: parsed.title,
+          message: htmlToPlainText(rawDesc),
+          severity: parsed.severity,
+          assignee: normalizedAssignee,
+          status: parsed.status,
+          tlp: parsed.tlp || 'TLP:AMBER',
+          references: JSON.stringify(parsed.references || []),
+          observables: JSON.stringify(parsed.observables || []),
+          customFields: JSON.stringify(loadedCustomFields),
+          tasks: JSON.stringify(normalizedTasks),
+        };
         // Auto-switch to Details tab if no tasks (only on initial load)
         if (showLoading && loadedTasks.length === 0) {
           setActiveTab(1);
@@ -592,6 +618,19 @@ const IncidentDetailPage = () => {
 
     try {
       await addItem(incident.id, updatedData);
+      // Update the initial snapshot so future comparisons are against the saved state
+      initialValuesRef.current = {
+        title: editedTitle,
+        message: editedMessage,
+        severity: editedSeverity,
+        assignee: editedAssignee,
+        status: editedStatus,
+        tlp: editedTlp,
+        references: JSON.stringify(editedReferences),
+        observables: JSON.stringify(editedObservables),
+        customFields: JSON.stringify(editedCustomFields),
+        tasks: JSON.stringify(tasks),
+      };
     } catch (error) {
       toast.error('Failed to save changes');
     } finally {
@@ -601,24 +640,25 @@ const IncidentDetailPage = () => {
 
   // Debounced auto-save
   useEffect(() => {
-    if (!incident) return;
+    if (!incident || !initialValuesRef.current) return;
     
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     
-    const customAttrs = incident.rawOCSF?.metadata?.extensions?.custom_attributes;
+    // Compare against the initial normalized values, not raw data
+    const init = initialValuesRef.current;
     const hasChanges = 
-      editedTitle !== incident.title ||
-      editedMessage !== (incident.rawOCSF?.message || '') ||
-      editedSeverity !== incident.severity ||
-      editedAssignee !== (incident.assignee || '') ||
-      editedStatus !== incident.status ||
-      editedTlp !== (incident.tlp || 'TLP:AMBER') ||
-      JSON.stringify(editedReferences) !== JSON.stringify(incident.references || []) ||
-      JSON.stringify(editedObservables) !== JSON.stringify(incident.observables || []) ||
-      JSON.stringify(editedCustomFields) !== JSON.stringify((incident.rawOCSF as any)?.customFields || (incident.rawOCSF as any)?.custom_fields || customAttrs?.customFields || (customAttrs as any)?.custom_fields || {}) ||
-      JSON.stringify(tasks) !== JSON.stringify(incident.tasks || customAttrs?.tasks || (incident.rawOCSF as any)?.tasks || []);
+      editedTitle !== init.title ||
+      editedMessage !== init.message ||
+      editedSeverity !== init.severity ||
+      editedAssignee !== init.assignee ||
+      editedStatus !== init.status ||
+      editedTlp !== init.tlp ||
+      JSON.stringify(editedReferences) !== init.references ||
+      JSON.stringify(editedObservables) !== init.observables ||
+      JSON.stringify(editedCustomFields) !== init.customFields ||
+      JSON.stringify(tasks) !== init.tasks;
     
     if (hasChanges) {
       pendingSaveRef.current = true;
