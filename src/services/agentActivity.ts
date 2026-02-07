@@ -1,0 +1,88 @@
+/**
+ * Agent Activity Service
+ * Fetches workflow execution data for the AI agent from the Shuffle API.
+ */
+
+import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
+
+export interface AgentRun {
+  execution_id: string;
+  workflow_id: string;
+  status: string;
+  started_at: string;
+  completed_at?: string;
+  result?: string;
+  execution_argument?: string;
+  execution_source?: string;
+  workflow?: {
+    name?: string;
+    description?: string;
+    actions?: Array<{
+      app_name?: string;
+      label?: string;
+    }>;
+  };
+  // Duration in seconds
+  duration?: number;
+}
+
+export interface AgentActivityResponse {
+  success: boolean;
+  runs: AgentRun[];
+  cursor: string;
+}
+
+export interface AgentActivityParams {
+  cursor?: string;
+  limit?: number;
+  status?: string;
+  startTime?: string;
+  endTime?: string;
+  suborgRuns?: boolean;
+}
+
+/**
+ * Search agent workflow executions
+ */
+export const searchAgentActivity = async (
+  params: AgentActivityParams = {}
+): Promise<AgentActivityResponse> => {
+  const {
+    cursor = '',
+    limit = 50,
+    status = '',
+    startTime = '',
+    endTime = '',
+    suborgRuns = false,
+  } = params;
+
+  const payload = {
+    workflow_id: 'AGENT',
+    cursor,
+    limit,
+    status,
+    start_time: startTime,
+    end_time: endTime,
+    suborg_runs: suborgRuns,
+  };
+
+  const response = await fetch(getApiUrl('/api/v1/workflows/search'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(API_CONFIG.apiKey),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch agent activity: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return {
+    success: data.success ?? false,
+    runs: data.runs || [],
+    cursor: data.cursor || '',
+  };
+};

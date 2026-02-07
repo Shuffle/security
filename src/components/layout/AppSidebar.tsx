@@ -66,6 +66,7 @@ const navItems: NavItem[] = [
       { label: 'MITRE ATT&CK', path: '/detection/mitre', icon: <Waypoints size={16} /> },
     ],
   },
+  { label: 'Agent', icon: <Bot size={22} />, path: '/agent' },
   { label: 'Users', icon: <PeopleIcon />, path: '/users' },
 ];
 
