@@ -200,6 +200,11 @@ const AgentActivityPage = () => {
                   }}
                 />
               ))}
+
+              {/* Inline loading indicator — visible when switching filters with existing results */}
+              {isLoading && runs.length > 0 && (
+                <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))', ml: 0.5 }} />
+              )}
             </Box>
 
             {/* Loading */}
