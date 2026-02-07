@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogTitle,
@@ -115,6 +116,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   automations: initialAutomations,
   onAutomationsChange,
 }) => {
+  const navigate = useNavigate();
   const [automations, setAutomations] = useState<CategoryAutomation[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -348,28 +350,51 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       <DialogContent sx={{ px: 4, pb: 3 }}>
         {/* Ingestion Sources */}
         {ingestionApps.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ 
-                mb: 1.5, 
-                fontWeight: 500, 
-                textTransform: 'uppercase', 
-                letterSpacing: 0.5,
-                fontSize: '0.75rem',
-              }}
-            >
-              <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <DownloadIcon sx={{ fontSize: 14 }} />
-                Ingestion Sources
+          <Box
+            onClick={() => {
+              onClose();
+              navigate('/onboarding/automate');
+            }}
+            sx={{
+              mb: 3,
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.04)',
+                borderColor: 'rgba(255,255,255,0.14)',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DownloadIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                <Typography sx={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  color: 'text.secondary',
+                }}>
+                  Ingestion Sources
+                </Typography>
               </Box>
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Typography sx={{
+                fontSize: '0.68rem',
+                color: 'rgba(255,255,255,0.35)',
+                fontWeight: 500,
+              }}>
+                Configure →
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
               {ingestionApps.map(app => (
                 <Chip
                   key={app.name}
-                  label={app.name}
+                  label={app.name.replace(/_/g, ' ')}
                   size="small"
                   avatar={app.image ? (
                     <Box
@@ -380,12 +405,14 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                     />
                   ) : undefined}
                   sx={{
-                    bgcolor: app.validated ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255,255,255,0.05)',
+                    bgcolor: app.validated ? 'rgba(34, 197, 94, 0.10)' : 'rgba(255,255,255,0.05)',
                     color: app.validated ? '#4ade80' : 'rgba(255,255,255,0.4)',
                     border: '1px solid',
-                    borderColor: app.validated ? 'rgba(34, 197, 94, 0.25)' : 'rgba(255,255,255,0.08)',
-                    fontSize: '0.8rem',
+                    borderColor: app.validated ? 'rgba(34, 197, 94, 0.20)' : 'rgba(255,255,255,0.08)',
+                    fontSize: '0.78rem',
+                    height: 28,
                     '& .MuiChip-avatar': { ml: 0.5 },
+                    pointerEvents: 'none',
                   }}
                 />
               ))}
