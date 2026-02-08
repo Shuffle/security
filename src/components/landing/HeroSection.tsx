@@ -257,7 +257,7 @@ export const HeroSection = () => {
                 fontSize: '0.9rem',
               }}
             >
-              No credit card required • Setup in 5 minutes
+              Setup in 5 minutes
             </Typography>
           </motion.div>
 

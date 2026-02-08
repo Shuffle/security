@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { motion } from 'framer-motion';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Mail, Radar, Search, Globe, Cloud, Shield } from 'lucide-react';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
@@ -23,7 +24,8 @@ export default function AppsPage() {
   const singulRef = useRef<SingulJSHandle>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
-
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   // Initialize from URL query param
   useEffect(() => {
     const categoryParam = searchParams.get('category');
@@ -333,7 +335,11 @@ export default function AppsPage() {
                 }}
                 onAppSelected={({ app }) => {
                   trackPredefinedEvent(GA_EVENTS.APP_VIEWED, app.name);
-                  window.location.href = `/register?app=${encodeURIComponent(app.name)}`;
+                  if (isAuthenticated) {
+                    navigate(`/apps/${encodeURIComponent(app.name.toLowerCase())}`);
+                  } else {
+                    window.location.href = `/register?app=${encodeURIComponent(app.name)}`;
+                  }
                 }}
               />
             </Box>
