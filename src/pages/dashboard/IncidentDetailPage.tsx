@@ -1353,41 +1353,6 @@ const IncidentDetailPage = () => {
               </IconButton>
             </Tooltip>
 
-            <Button 
-              variant="outlined"
-              size="small"
-              startIcon={<SecurityIcon sx={{ fontSize: 16 }} />}
-              onClick={() => toast.info('Enrich functionality coming soon')}
-              disabled={isSaving}
-              sx={{ 
-                borderColor: 'hsl(var(--border))',
-                color: 'hsl(var(--foreground))',
-                height: 32,
-                minWidth: 'auto',
-                px: 1.5,
-                '&:hover': { borderColor: '#22b8cf', bgcolor: 'rgba(34, 184, 207, 0.1)' },
-              }}
-            >
-              Enrich
-            </Button>
-
-            <Button 
-              variant="outlined"
-              size="small"
-              startIcon={<AutoFixHighIcon sx={{ fontSize: 16 }} />}
-              onClick={() => toast.info('AI Agent functionality coming soon')}
-              disabled={isSaving}
-              sx={{ 
-                borderColor: 'hsl(var(--border))',
-                color: 'hsl(var(--foreground))',
-                height: 32,
-                minWidth: 'auto',
-                px: 1.5,
-                '&:hover': { borderColor: '#a855f7', bgcolor: 'rgba(168, 85, 247, 0.1)' },
-              }}
-            >
-              AI Agent
-            </Button>
 
             {!isResolved && (
               <Button 
