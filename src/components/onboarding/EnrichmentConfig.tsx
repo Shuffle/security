@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { AppAuthCard, type AppAuthState, type ApiAuthEntry as AppAuthApiEntry } from '@/components/onboarding/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/lib/singul-local';
 import {
@@ -1561,7 +1562,16 @@ export const EnrichmentConfig = ({
                 arrow
                 placement="top"
               >
-                <Box sx={{ position: 'relative' }}>
+                <Box
+                  component={RouterLink}
+                  to={`/apps/${encodeURIComponent(dedupedApp.app.name.toLowerCase())}`}
+                  sx={{
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease',
+                    '&:hover': { transform: 'scale(1.15)' },
+                  }}
+                >
                   {dedupedApp.bestImage ? (
                     <Avatar
                       src={dedupedApp.bestImage}
