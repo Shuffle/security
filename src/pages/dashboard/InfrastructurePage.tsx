@@ -226,24 +226,41 @@ const TOOL_CATEGORIES: ToolCategory[] = [
 
 // ── Data flow edge definitions ─────────────────────────────────────────────────
 
-const DATA_FLOWS: { source: string; target: string; label: string; animated?: boolean }[] = [
-  { source: 'siem', target: 'case_management', label: 'Alerts', animated: true },
-  { source: 'network', target: 'siem', label: 'Flow logs' },
-  { source: 'edr', target: 'siem', label: 'Telemetry' },
-  { source: 'iam', target: 'siem', label: 'Auth logs' },
-  { source: 'email', target: 'case_management', label: 'Phishing reports' },
-  { source: 'threat_intel', target: 'case_management', label: 'Enrichment', animated: true },
-  { source: 'threat_intel', target: 'network', label: 'IOC feeds' },
-  { source: 'threat_intel', target: 'edr', label: 'Hash feeds' },
-  { source: 'case_management', target: 'communication', label: 'Notifications', animated: true },
-  { source: 'case_management', target: 'iam', label: 'Disable accounts' },
-  { source: 'case_management', target: 'edr', label: 'Containment' },
-  { source: 'asset_management', target: 'case_management', label: 'Asset context' },
-  { source: 'email', target: 'threat_intel', label: 'Phishing IOCs' },
-  { source: 'cloud', target: 'siem', label: 'Audit logs', animated: true },
-  { source: 'cloud', target: 'asset_management', label: 'Resource inventory' },
-  { source: 'cloud', target: 'iam', label: 'Identity events' },
-  { source: 'threat_intel', target: 'cloud', label: 'IOC feeds' },
+const DATA_FLOWS: { source: string; target: string; label: string; animated?: boolean; description: string }[] = [
+  { source: 'siem', target: 'case_management', label: 'Alerts', animated: true,
+    description: 'SIEM-generated alerts are the primary trigger for new cases. Automating this flow ensures no critical detection goes uninvestigated and reduces mean time to respond (MTTR).' },
+  { source: 'network', target: 'siem', label: 'Flow logs',
+    description: 'Network flow logs (NetFlow, DNS, proxy) give the SIEM east-west and north-south visibility. Without them, lateral movement and C2 traffic go undetected.' },
+  { source: 'edr', target: 'siem', label: 'Telemetry',
+    description: 'Endpoint telemetry (process trees, file hashes, registry changes) enriches SIEM detections with host-level context, enabling accurate correlation rules.' },
+  { source: 'iam', target: 'siem', label: 'Auth logs',
+    description: 'Authentication and authorization logs reveal credential abuse, impossible travel, privilege escalation, and brute-force attempts across the identity layer.' },
+  { source: 'email', target: 'case_management', label: 'Phishing reports',
+    description: 'User-reported phishing emails create cases for triage. Automating intake with deduplication and auto-enrichment drastically cuts analyst workload.' },
+  { source: 'threat_intel', target: 'case_management', label: 'Enrichment', animated: true,
+    description: 'Threat intelligence enriches cases with reputation scores, malware families, threat actor attribution, and related IOCs — giving analysts immediate context.' },
+  { source: 'threat_intel', target: 'network', label: 'IOC feeds',
+    description: 'Pushing IOC feeds (malicious IPs, domains) to network tools enables proactive blocking at the perimeter before threats reach endpoints.' },
+  { source: 'threat_intel', target: 'edr', label: 'Hash feeds',
+    description: 'File hash feeds allow EDR solutions to block or quarantine known-malicious binaries on endpoints in real time, preventing execution.' },
+  { source: 'case_management', target: 'communication', label: 'Notifications', animated: true,
+    description: 'Automated notifications keep stakeholders informed of incident status, escalations, and required actions — critical for SLA compliance and coordination.' },
+  { source: 'case_management', target: 'iam', label: 'Disable accounts',
+    description: 'When a compromised account is identified, automated disablement through IAM stops the attacker from maintaining access while the investigation continues.' },
+  { source: 'case_management', target: 'edr', label: 'Containment',
+    description: 'Network isolation or process killing on compromised endpoints contains the threat, preventing lateral movement while preserving forensic evidence.' },
+  { source: 'asset_management', target: 'case_management', label: 'Asset context',
+    description: 'Asset context (owner, criticality, business unit, OS) helps analysts prioritize cases and understand blast radius during an incident.' },
+  { source: 'email', target: 'threat_intel', label: 'Phishing IOCs',
+    description: 'Extracting IOCs from phishing emails (sender domains, URLs, attachments) and feeding them into threat intel platforms helps detect broader campaigns.' },
+  { source: 'cloud', target: 'siem', label: 'Audit logs', animated: true,
+    description: 'Cloud audit logs (CloudTrail, Activity Log, Audit Logs) provide visibility into API calls, configuration changes, and access patterns across cloud environments.' },
+  { source: 'cloud', target: 'asset_management', label: 'Resource inventory',
+    description: 'Auto-syncing cloud resources into asset management ensures the CMDB stays current, preventing blind spots in vulnerability management and incident response.' },
+  { source: 'cloud', target: 'iam', label: 'Identity events',
+    description: 'Cloud identity events (role changes, permission grants, federation configs) feed IAM monitoring to detect privilege escalation in cloud environments.' },
+  { source: 'threat_intel', target: 'cloud', label: 'IOC feeds',
+    description: 'Pushing IOC feeds to cloud-native security tools (GuardDuty, Sentinel, SCC) enables detection of known-malicious activity within cloud workloads.' },
 ];
 
 // ── Category-to-app mapping ────────────────────────────────────────────────────
@@ -432,6 +449,120 @@ const NODE_POSITIONS: Record<string, { x: number; y: number }> = {
   communication:    { x: 720,  y: 520 },
 };
 
+// ── Edge Detail Drawer ──────────────────────────────────────────────────────────
+
+const EdgeDetailDrawer = ({
+  flow,
+  open,
+  onClose,
+}: {
+  flow: (typeof DATA_FLOWS)[number] | null;
+  open: boolean;
+  onClose: () => void;
+}) => {
+  if (!flow) return null;
+  const sourceCat = TOOL_CATEGORIES.find(c => c.id === flow.source);
+  const targetCat = TOOL_CATEGORIES.find(c => c.id === flow.target);
+
+  return (
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        sx: {
+          width: { xs: '100%', sm: 440 },
+          background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
+          borderLeft: '1px solid hsl(var(--border))',
+          boxShadow: '-8px 0 32px rgba(0,0,0,0.4)',
+        },
+      }}
+    >
+      {/* Header */}
+      <Box sx={{
+        px: 3,
+        py: 2.5,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        borderBottom: '1px solid hsl(var(--border))',
+      }}>
+        <Box sx={{
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'hsla(var(--primary) / 0.12)',
+          color: 'hsl(var(--primary))',
+        }}>
+          <ArrowRight size={22} />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+            {flow.label}
+          </Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+            Data Flow Connection
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+
+      {/* Flow direction */}
+      <Box sx={{ px: 3, py: 2.5, borderBottom: '1px solid hsl(var(--border))' }}>
+        <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>
+          Connection Path
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+          {sourceCat && (
+            <Chip
+              icon={<Box sx={{ display: 'flex', color: `hsl(var(${sourceCat.color}))` }}>{sourceCat.icon}</Box>}
+              label={sourceCat.label}
+              size="small"
+              sx={{
+                bgcolor: `hsla(var(${sourceCat.color}) / 0.1)`,
+                color: `hsl(var(${sourceCat.color}))`,
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                border: `1px solid hsla(var(${sourceCat.color}) / 0.25)`,
+              }}
+            />
+          )}
+          <ArrowRight size={16} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+          {targetCat && (
+            <Chip
+              icon={<Box sx={{ display: 'flex', color: `hsl(var(${targetCat.color}))` }}>{targetCat.icon}</Box>}
+              label={targetCat.label}
+              size="small"
+              sx={{
+                bgcolor: `hsla(var(${targetCat.color}) / 0.1)`,
+                color: `hsl(var(${targetCat.color}))`,
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                border: `1px solid hsla(var(${targetCat.color}) / 0.25)`,
+              }}
+            />
+          )}
+        </Box>
+      </Box>
+
+      {/* Description */}
+      <Box sx={{ px: 3, py: 2.5 }}>
+        <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>
+          Why This Matters
+        </Typography>
+        <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', lineHeight: 1.7 }}>
+          {flow.description}
+        </Typography>
+      </Box>
+    </Drawer>
+  );
+};
+
 // ── Detail Drawer ──────────────────────────────────────────────────────────────
 
 const CategoryDetailDrawer = ({
@@ -600,6 +731,7 @@ const InfrastructureContent = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const [selectedEdgeIdx, setSelectedEdgeIdx] = useState<number | null>(null);
   const [categoryApps, setCategoryApps] = useState<Record<string, MatchedApp[]>>({});
   const [savedHandles, setSavedHandles] = useState<HandleOverrides>({});
   const [savedPositions, setSavedPositions] = useState<Record<string, { x: number; y: number }> | null>(null);
@@ -699,6 +831,7 @@ const InfrastructureContent = () => {
 
   const handleSelect = useCallback((id: string) => {
     setSelectedId(prev => prev === id ? null : id);
+    setSelectedEdgeIdx(null);
   }, []);
 
   const handleHover = useCallback((id: string | null) => {
@@ -940,8 +1073,14 @@ const InfrastructureContent = () => {
           minZoom={0.3}
           maxZoom={1.5}
           proOptions={{ hideAttribution: true }}
+          nodesConnectable={false}
           onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
           onEdgeMouseLeave={() => setHoveredEdgeId(null)}
+          onEdgeClick={(_, edge) => {
+            const idx = parseInt(edge.id.replace('e-', ''), 10);
+            setSelectedEdgeIdx(prev => prev === idx ? null : idx);
+            setSelectedId(null);
+          }}
           edgesUpdatable
           onReconnect={onReconnect}
         >
@@ -1047,11 +1186,16 @@ const InfrastructureContent = () => {
         </Tooltip>
       </Box>
 
-      {/* Detail drawer */}
+      {/* Detail drawers */}
       <CategoryDetailDrawer
         category={selectedCategory}
         open={!!selectedCategory}
         onClose={() => setSelectedId(null)}
+      />
+      <EdgeDetailDrawer
+        flow={selectedEdgeIdx !== null ? DATA_FLOWS[selectedEdgeIdx] || null : null}
+        open={selectedEdgeIdx !== null}
+        onClose={() => setSelectedEdgeIdx(null)}
       />
     </Box>
   );
