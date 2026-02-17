@@ -420,8 +420,9 @@ const CategoryNode = ({ data }: { data: CategoryNodeData }) => {
     <>
       {/* Each side has both source and target handles — visually highlight only the relevant type during edge update */}
       {(['Top', 'Bottom', 'Left', 'Right'] as const).map(side => {
-        const showTarget = isEdgeUpdating && edgeUpdateHandleType === 'target';
-        const showSource = isEdgeUpdating && edgeUpdateHandleType === 'source';
+        // When dragging source end, RF needs a target handle to drop on (and vice versa)
+        const showTarget = isEdgeUpdating && edgeUpdateHandleType === 'source';
+        const showSource = isEdgeUpdating && edgeUpdateHandleType === 'target';
         return (
           <React.Fragment key={side}>
             <Handle
@@ -1459,15 +1460,11 @@ const InfrastructureContent = () => {
 
   // Track reconnection state for visual feedback
   const edgeUpdateSuccessful = useRef(true);
-  const draggedEndRef = useRef<'source' | 'target' | null>(null);
 
   const onEdgeUpdateStart = useCallback((_: any, edge: Edge, handleType: 'source' | 'target') => {
-    // ReactFlow reports handleType inversely — flip it to match actual dragged end
-    const actualDraggedEnd = handleType === 'source' ? 'target' : 'source';
-    console.log('[EdgeUpdateStart] edge:', edge.id, 'handleType:', handleType, 'actualDraggedEnd:', actualDraggedEnd, 'source:', edge.source, 'target:', edge.target);
+    console.log('[EdgeUpdateStart] edge:', edge.id, 'handleType:', handleType, 'source:', edge.source, 'target:', edge.target);
     edgeUpdateSuccessful.current = false;
-    draggedEndRef.current = actualDraggedEnd;
-    setUpdatingEdgeNodes({ source: edge.source, target: edge.target, draggedEnd: actualDraggedEnd });
+    setUpdatingEdgeNodes({ source: edge.source, target: edge.target, draggedEnd: handleType });
   }, []);
 
   // Allow all connections during edge update — our onEdgeUpdate normalizes direction
@@ -1489,7 +1486,8 @@ const InfrastructureContent = () => {
     console.log('[EdgeUpdate] draggedEnd:', (updatingEdgeNodes as any)?.draggedEnd);
     edgeUpdateSuccessful.current = true;
 
-    const draggedEnd = draggedEndRef.current;
+    // Determine which end was being dragged
+    const draggedEnd = (updatingEdgeNodes as any)?.draggedEnd as 'source' | 'target' | undefined;
 
     // Normalize: ensure source and target nodes stay the same, only handles change
     let sourceNode = oldEdge.source;
