@@ -714,20 +714,24 @@ const InfrastructureContent = () => {
 
       const edgeId = `e-${idx}`;
       const isEdgeHovered = hoveredEdgeId === edgeId;
-      // Even when hovering/selecting, if either side is missing keep it greyed out
-      const isHighlighted = !eitherMissing && (isEdgeHovered || (activeId && (flow.source === activeId || flow.target === activeId)));
+      // Highlight on hover/select — always, even if missing
+      const isHighlighted = isEdgeHovered || (activeId && (flow.source === activeId || flow.target === activeId));
 
       const hasAnyFocus = activeId || hoveredEdgeId;
 
       // Determine stroke color
       let stroke: string;
-      if (eitherMissing) {
-        stroke = 'hsla(var(--muted-foreground) / 0.15)';
-      } else if (isEdgeHovered) {
+      if (isEdgeHovered) {
+        // Direct edge hover always gets full source color
         const srcCat = TOOL_CATEGORIES.find(c => c.id === flow.source);
         stroke = srcCat ? `hsl(var(${srcCat.color}))` : 'hsl(var(--primary))';
+      } else if (isHighlighted) {
+        stroke = activeColor;
       } else if (hasAnyFocus) {
-        stroke = isHighlighted ? activeColor : 'hsla(var(--muted-foreground) / 0.06)';
+        stroke = 'hsla(var(--muted-foreground) / 0.06)';
+      } else if (eitherMissing) {
+        // Visible grey — not faded out, just neutral
+        stroke = 'hsla(var(--muted-foreground) / 0.35)';
       } else if (bothActive) {
         stroke = 'hsl(var(--primary))';
       } else {
@@ -745,8 +749,8 @@ const InfrastructureContent = () => {
           stroke,
           strokeWidth: isHighlighted ? 2.5 : bothActive ? 1.5 : 1,
           strokeDasharray: eitherMissing && !isHighlighted ? '6 4' : undefined,
-          opacity: eitherMissing && !isHighlighted ? 0.5 : 1,
-          transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
+          opacity: 1,
+          transition: 'stroke 0.2s, stroke-width 0.2s',
           cursor: 'pointer',
         },
         labelStyle: {
@@ -755,9 +759,9 @@ const InfrastructureContent = () => {
           fill: isHighlighted
             ? 'hsl(var(--foreground))'
             : eitherMissing
-              ? 'hsla(var(--muted-foreground) / 0.4)'
+              ? 'hsl(var(--muted-foreground))'
               : 'hsl(var(--muted-foreground))',
-          opacity: hasAnyFocus && !isHighlighted ? 0.15 : eitherMissing ? 0.6 : 0.8,
+          opacity: hasAnyFocus && !isHighlighted ? 0.15 : 0.8,
         },
         labelBgStyle: {
           fill: 'hsl(var(--background))',
@@ -767,7 +771,7 @@ const InfrastructureContent = () => {
           type: MarkerType.ArrowClosed,
           width: 14,
           height: 14,
-          color: isHighlighted ? (isEdgeHovered ? stroke : activeColor) : eitherMissing ? 'hsla(var(--muted-foreground) / 0.15)' : stroke,
+          color: isHighlighted ? stroke : eitherMissing ? 'hsla(var(--muted-foreground) / 0.35)' : stroke,
         },
       };
     }),
