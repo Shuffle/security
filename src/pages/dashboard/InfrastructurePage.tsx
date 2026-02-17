@@ -590,9 +590,9 @@ const EdgeDetailDrawer = ({
   return (
     <Drawer
       anchor="right"
+      variant="persistent"
       open={open}
       onClose={onClose}
-      ModalProps={{ BackdropProps: { invisible: true } }}
       PaperProps={{
         sx: {
           width: { xs: '100%', sm: 440 },
