@@ -450,7 +450,14 @@ const NODE_POSITIONS: Record<string, { x: number; y: number }> = {
   communication:    { x: 720,  y: 520 },
 };
 
-// ── Edge Detail Drawer ──────────────────────────────────────────────────────────
+/** Look up a tool category's color CSS variable and icon by ID. Reusable across the app. */
+export const getToolCategoryMeta = (categoryId: string): { color: string; icon: React.ReactNode; label: string } | null => {
+  const cat = TOOL_CATEGORIES.find(c => c.id === categoryId);
+  if (!cat) return null;
+  return { color: cat.color, icon: cat.icon, label: cat.label };
+};
+
+
 
 const EdgeDetailDrawer = ({
   flow,
@@ -462,8 +469,9 @@ const EdgeDetailDrawer = ({
   onClose: () => void;
 }) => {
   if (!flow) return null;
-  const sourceCat = TOOL_CATEGORIES.find(c => c.id === flow.source);
-  const targetCat = TOOL_CATEGORIES.find(c => c.id === flow.target);
+  const sourceCat = getToolCategoryMeta(flow.source);
+  const targetCat = getToolCategoryMeta(flow.target);
+  const headerColor = sourceCat?.color || '--primary';
 
   return (
     <Drawer
@@ -495,10 +503,10 @@ const EdgeDetailDrawer = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          bgcolor: 'hsla(var(--primary) / 0.12)',
-          color: 'hsl(var(--primary))',
+          bgcolor: `hsla(var(${headerColor}) / 0.12)`,
+          color: `hsl(var(${headerColor}))`,
         }}>
-          <ArrowRight size={22} />
+          {sourceCat?.icon || <ArrowRight size={22} />}
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: 'hsl(var(--foreground))' }}>
