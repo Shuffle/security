@@ -266,6 +266,12 @@ const DATA_FLOWS: { source: string; target: string; label: string; animated?: bo
     description: 'Cloud identity events (role changes, permission grants, federation configs) feed IAM monitoring to detect privilege escalation in cloud environments.' },
   { source: 'threat_intel', target: 'cloud', label: 'IOC feeds',
     description: 'Pushing IOC feeds to cloud-native security tools (GuardDuty, Sentinel, SCC) enables detection of known-malicious activity within cloud workloads.' },
+  { source: 'case_management', target: 'cloud', label: 'Cloud response',
+    description: 'Automated response actions in cloud environments — revoking keys, isolating instances, modifying security groups — contain threats before they spread across cloud infrastructure.' },
+  { source: 'case_management', target: 'network', label: 'Block rules',
+    description: 'Pushing firewall block rules from cases to network devices enables immediate perimeter-level containment of malicious IPs, domains, and traffic patterns.' },
+  { source: 'case_management', target: 'email', label: 'Quarantine',
+    description: 'Quarantining or purging malicious emails from mailboxes during an active investigation prevents additional users from falling victim to the same campaign.' },
 ];
 
 // ── Category-to-app mapping ────────────────────────────────────────────────────
