@@ -925,6 +925,176 @@ export const getToolCategoryMeta = (categoryId: string): { color: string; icon: 
   return { color: cat.color, icon: cat.icon, label: cat.label };
 };
 
+// ── Shared Data Flow Card ──────────────────────────────────────────────────────
+
+const DataFlowCard = ({
+  flow,
+  edgeId,
+  enabled,
+  variant = 'full',
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  flow: (typeof DATA_FLOWS)[number];
+  edgeId: string;
+  enabled: boolean;
+  variant?: 'full' | 'compact';
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) => {
+  const sourceCat = TOOL_CATEGORIES.find(c => c.id === flow.source);
+  const targetCat = TOOL_CATEGORIES.find(c => c.id === flow.target);
+  const flowColor = sourceCat?.color || '--primary';
+
+  if (variant === 'compact') {
+    return (
+      <Box
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          px: 1.5,
+          py: 1,
+          ml: 1,
+          mb: 0.5,
+          borderRadius: 1.5,
+          border: '1px solid transparent',
+          cursor: 'pointer',
+          opacity: enabled ? 1 : 0.45,
+          transition: 'all 0.15s ease',
+          '&:hover': {
+            bgcolor: 'hsla(var(--muted-foreground) / 0.06)',
+            borderColor: 'hsl(var(--border))',
+            opacity: enabled ? 1 : 0.7,
+          },
+        }}
+      >
+        <Box sx={{
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          bgcolor: enabled ? `hsl(var(${flowColor}))` : 'hsl(var(--muted-foreground))',
+          flexShrink: 0,
+        }} />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: enabled ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))' }}>
+            {flow.label}
+          </Typography>
+          <Typography sx={{ fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            → {targetCat?.label || flow.target}
+          </Typography>
+        </Box>
+        {!enabled && (
+          <Typography sx={{ fontSize: '0.6rem', color: 'hsl(var(--muted-foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.1)', px: 0.75, py: 0.25, borderRadius: 0.75, flexShrink: 0 }}>
+            Not configured
+          </Typography>
+        )}
+        {targetCat && (
+          <Box sx={{ color: enabled ? `hsl(var(${targetCat.color}))` : 'hsl(var(--muted-foreground))', display: 'flex', '& svg': { width: 14, height: 14 }, opacity: 0.6 }}>
+            {targetCat.icon}
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
+  // Full variant
+  return (
+    <Box
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      sx={{
+        mb: 1.5,
+        p: 2,
+        borderRadius: 2,
+        border: enabled
+          ? `1px solid hsla(var(${flowColor}) / 0.2)`
+          : '1px solid hsl(var(--border))',
+        bgcolor: 'hsl(var(--card))',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        opacity: enabled ? 1 : 0.45,
+        '&:hover': enabled ? {
+          bgcolor: `hsla(var(${flowColor}) / 0.06)`,
+          borderColor: `hsla(var(${flowColor}) / 0.4)`,
+        } : {
+          bgcolor: 'hsla(var(--muted-foreground) / 0.06)',
+          opacity: 0.7,
+        },
+      }}
+    >
+      {/* Title row */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+        <Typography sx={{
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          color: enabled ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+          flex: 1,
+        }}>
+          {flow.label}
+        </Typography>
+        {!enabled && (
+          <Typography sx={{ fontSize: '0.6rem', color: 'hsl(var(--muted-foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.1)', px: 0.75, py: 0.25, borderRadius: 0.75, flexShrink: 0 }}>
+            Not configured
+          </Typography>
+        )}
+      </Box>
+
+      {/* Source → Target chips */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+        {sourceCat && (
+          <Chip
+            icon={<Box sx={{ display: 'flex', color: enabled ? `hsl(var(${sourceCat.color}))` : 'hsl(var(--muted-foreground))', '& svg': { width: 12, height: 12 } }}>{sourceCat.icon}</Box>}
+            label={sourceCat.label}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: '0.65rem',
+              bgcolor: enabled ? `hsla(var(${sourceCat.color}) / 0.08)` : 'hsla(var(--muted-foreground) / 0.06)',
+              color: enabled ? `hsl(var(${sourceCat.color}))` : 'hsl(var(--muted-foreground))',
+              border: enabled ? `1px solid hsla(var(${sourceCat.color}) / 0.2)` : '1px solid hsl(var(--border))',
+              fontWeight: 600,
+              '& .MuiChip-icon': { ml: 0.5 },
+            }}
+          />
+        )}
+        <ArrowRight size={12} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+        {targetCat && (
+          <Chip
+            icon={<Box sx={{ display: 'flex', color: enabled ? `hsl(var(${targetCat.color}))` : 'hsl(var(--muted-foreground))', '& svg': { width: 12, height: 12 } }}>{targetCat.icon}</Box>}
+            label={targetCat.label}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: '0.65rem',
+              bgcolor: enabled ? `hsla(var(${targetCat.color}) / 0.08)` : 'hsla(var(--muted-foreground) / 0.06)',
+              color: enabled ? `hsl(var(${targetCat.color}))` : 'hsl(var(--muted-foreground))',
+              border: enabled ? `1px solid hsla(var(${targetCat.color}) / 0.2)` : '1px solid hsl(var(--border))',
+              fontWeight: 600,
+              '& .MuiChip-icon': { ml: 0.5 },
+            }}
+          />
+        )}
+      </Box>
+
+      {/* Description */}
+      <Typography sx={{
+        fontSize: '0.73rem',
+        color: enabled ? 'hsl(var(--muted-foreground))' : 'hsla(var(--muted-foreground) / 0.6)',
+        lineHeight: 1.55,
+      }}>
+        {flow.description}
+      </Typography>
+    </Box>
+  );
+};
+
 
 // ── All Data Flows Drawer ──────────────────────────────────────────────────────
 
@@ -933,11 +1103,13 @@ const AllDataFlowsDrawer = ({
   onClose,
   onSelectFlow,
   onSelectCategory,
+  activeCategories,
 }: {
   open: boolean;
   onClose: () => void;
   onSelectFlow: (edgeIdx: number) => void;
   onSelectCategory: (categoryId: string) => void;
+  activeCategories: Set<string>;
 }) => {
   // Group flows by source category
   const groupedFlows = useMemo(() => {
@@ -1036,47 +1208,16 @@ const AllDataFlowsDrawer = ({
               </Box>
 
               {/* Individual flows */}
-              {flows.map(({ flow, idx }) => {
-                const targetCat = TOOL_CATEGORIES.find(c => c.id === flow.target);
-                return (
-                  <Box
-                    key={idx}
-                    onClick={() => { onClose(); onSelectFlow(idx); }}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      px: 1.5,
-                      py: 1,
-                      ml: 1,
-                      mb: 0.5,
-                      borderRadius: 1.5,
-                      border: '1px solid transparent',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      '&:hover': {
-                        bgcolor: 'hsla(var(--muted-foreground) / 0.06)',
-                        borderColor: 'hsl(var(--border))',
-                      },
-                    }}
-                  >
-                    <ArrowRight size={12} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                        {flow.label}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        → {targetCat?.label || flow.target}
-                      </Typography>
-                    </Box>
-                    {targetCat && (
-                      <Box sx={{ color: `hsl(var(${targetCat.color}))`, display: 'flex', '& svg': { width: 14, height: 14 }, opacity: 0.6 }}>
-                        {targetCat.icon}
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
+              {flows.map(({ flow, idx }) => (
+                <DataFlowCard
+                  key={idx}
+                  flow={flow}
+                  edgeId={`e-${idx}`}
+                  enabled={activeCategories.has(flow.source) && activeCategories.has(flow.target)}
+                  variant="compact"
+                  onClick={() => { onClose(); onSelectFlow(idx); }}
+                />
+              ))}
             </Box>
           );
         })}
@@ -1219,6 +1360,7 @@ const CategoryDetailDrawer = ({
   onEdgeHover,
   onEdgeClick,
   onViewAllFlows,
+  activeCategories,
 }: {
   category: ToolCategory | null;
   matchedApps: MatchedApp[];
@@ -1227,6 +1369,7 @@ const CategoryDetailDrawer = ({
   onEdgeHover: (edgeId: string | null) => void;
   onEdgeClick: (edgeIdx: number) => void;
   onViewAllFlows: () => void;
+  activeCategories: Set<string>;
 }) => {
   const navigate = useNavigate();
   if (!category) return null;
@@ -1406,94 +1549,20 @@ const CategoryDetailDrawer = ({
               }}
             />
           </Box>
-          {connectedFlows.map(({ flow, idx, isSource, otherCat }) => {
+          {connectedFlows.map(({ flow, idx }) => {
             const edgeId = `e-${idx}`;
-            const sourceCat = TOOL_CATEGORIES.find(c => c.id === flow.source);
-            const targetCat = TOOL_CATEGORIES.find(c => c.id === flow.target);
-            const hasOtherCat = !!otherCat;
-            const flowColor = hasOtherCat ? (sourceCat?.color || colorVar) : undefined;
-
+            const isEnabled = activeCategories.has(flow.source) && activeCategories.has(flow.target);
             return (
-              <Box
+              <DataFlowCard
                 key={edgeId}
+                flow={flow}
+                edgeId={edgeId}
+                enabled={isEnabled}
+                variant="full"
+                onClick={() => onEdgeClick(idx)}
                 onMouseEnter={() => onEdgeHover(edgeId)}
                 onMouseLeave={() => onEdgeHover(null)}
-                onClick={() => onEdgeClick(idx)}
-                sx={{
-                  mb: 1.5,
-                  p: 2,
-                  borderRadius: 2,
-                  border: hasOtherCat
-                    ? `1px solid hsla(var(${flowColor}) / 0.2)`
-                    : '1px solid hsl(var(--border))',
-                  bgcolor: 'hsl(var(--card))',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': hasOtherCat ? {
-                    bgcolor: `hsla(var(${flowColor}) / 0.06)`,
-                    borderColor: `hsla(var(${flowColor}) / 0.4)`,
-                  } : {
-                    bgcolor: 'hsla(var(--muted-foreground) / 0.06)',
-                  },
-                  opacity: hasOtherCat ? 1 : 0.5,
-                }}
-              >
-                {/* Title */}
-                <Typography sx={{
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  color: hasOtherCat ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                  mb: 0.5,
-                }}>
-                  {flow.label}
-                </Typography>
-
-                {/* Source → Target chips */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-                  {sourceCat && (
-                    <Chip
-                      icon={<Box sx={{ display: 'flex', color: `hsl(var(${sourceCat.color}))`, '& svg': { width: 12, height: 12 } }}>{sourceCat.icon}</Box>}
-                      label={sourceCat.label}
-                      size="small"
-                      sx={{
-                        height: 22,
-                        fontSize: '0.65rem',
-                        bgcolor: `hsla(var(${sourceCat.color}) / 0.08)`,
-                        color: `hsl(var(${sourceCat.color}))`,
-                        border: `1px solid hsla(var(${sourceCat.color}) / 0.2)`,
-                        fontWeight: 600,
-                        '& .MuiChip-icon': { ml: 0.5 },
-                      }}
-                    />
-                  )}
-                  <ArrowRight size={12} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                  {targetCat && (
-                    <Chip
-                      icon={<Box sx={{ display: 'flex', color: `hsl(var(${targetCat.color}))`, '& svg': { width: 12, height: 12 } }}>{targetCat.icon}</Box>}
-                      label={targetCat.label}
-                      size="small"
-                      sx={{
-                        height: 22,
-                        fontSize: '0.65rem',
-                        bgcolor: `hsla(var(${targetCat.color}) / 0.08)`,
-                        color: `hsl(var(${targetCat.color}))`,
-                        border: `1px solid hsla(var(${targetCat.color}) / 0.2)`,
-                        fontWeight: 600,
-                        '& .MuiChip-icon': { ml: 0.5 },
-                      }}
-                    />
-                  )}
-                </Box>
-
-                {/* Description */}
-                <Typography sx={{
-                  fontSize: '0.73rem',
-                  color: hasOtherCat ? 'hsl(var(--muted-foreground))' : 'hsla(var(--muted-foreground) / 0.6)',
-                  lineHeight: 1.55,
-                }}>
-                  {flow.description}
-                </Typography>
-              </Box>
+              />
             );
           })}
         </Box>
@@ -2238,6 +2307,7 @@ const InfrastructureContent = () => {
           setSelectedId(null);
           setShowAllFlows(true);
         }}
+        activeCategories={activeCategories}
       />
       <AllDataFlowsDrawer
         open={showAllFlows}
@@ -2250,6 +2320,7 @@ const InfrastructureContent = () => {
           setShowAllFlows(false);
           setSelectedId(catId);
         }}
+        activeCategories={activeCategories}
       />
       <EdgeDetailDrawer
         flow={selectedEdgeIdx !== null ? DATA_FLOWS[selectedEdgeIdx] || null : null}
