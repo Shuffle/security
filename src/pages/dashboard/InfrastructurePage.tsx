@@ -666,17 +666,24 @@ const GradientEdge = ({
     onWaypointsChange?.(newWp);
   };
 
-  // Compute arrowhead from the LAST segment of the actual expanded path,
-  // so it always points the correct way regardless of handle orientation.
+  // Compute arrowhead direction from the last expanded segment, snapped to the
+  // nearest cardinal axis so a 1-px rounding error never flips the orientation.
   const expandedForArrow = expandToOrthogonal(allPoints);
   const arrowColor = data?.useGradient ? targetColor : (style.stroke as string || 'hsl(var(--muted-foreground))');
   let arrowAngle = 0;
   if (expandedForArrow.length >= 2) {
     const prev = expandedForArrow[expandedForArrow.length - 2];
     const last = expandedForArrow[expandedForArrow.length - 1];
-    arrowAngle = Math.atan2(last.y - prev.y, last.x - prev.x) * (180 / Math.PI);
+    const dx = last.x - prev.x;
+    const dy = last.y - prev.y;
+    // Snap to nearest 90° so a sub-pixel orthogonal stub never points the wrong way
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      arrowAngle = dx >= 0 ? 0 : 180;
+    } else {
+      arrowAngle = dy >= 0 ? 90 : -90;
+    }
   }
-  const arrowSize = 9;
+  const arrowSize = 12;
   const ax = expandedForArrow[expandedForArrow.length - 1]?.x ?? targetX;
   const ay = expandedForArrow[expandedForArrow.length - 1]?.y ?? targetY;
 
