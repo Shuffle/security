@@ -325,11 +325,11 @@ const DATA_FLOWS: { source: string; target: string; label: string; animated?: bo
     description: 'Network flow logs (NetFlow, DNS, proxy) give the SIEM east-west and north-south visibility. Without them, lateral movement and C2 traffic go undetected.',
     agenticDescription: 'An agent monitors ingested flow logs for anomalous patterns (beaconing, port scans, unusual data volumes), generates hypotheses, and creates enriched SIEM alerts with analyst-ready summaries.' },
   // e-2
-  { phase: 'ingest', source: 'edr', target: 'siem', label: 'Telemetry',
+  { phase: 'correlation', source: 'edr', target: 'siem', label: 'Telemetry',
     description: 'Endpoint telemetry (process trees, file hashes, registry changes) enriches SIEM detections with host-level context, enabling accurate correlation rules.',
     agenticDescription: 'An agent cross-references endpoint telemetry with known attack patterns, surfaces hidden process chains, and annotates SIEM events with host risk scores before they reach an analyst.' },
   // e-3
-  { phase: 'ingest', source: 'iam', target: 'siem', label: 'Auth logs',
+  { phase: 'correlation', source: 'iam', target: 'siem', label: 'Auth logs',
     description: 'Authentication and authorization logs reveal credential abuse, impossible travel, privilege escalation, and brute-force attempts across the identity layer.',
     agenticDescription: 'An agent detects impossible travel, credential stuffing patterns, and privilege escalation attempts in auth logs, then creates SIEM alerts with user risk context and recommended actions.' },
   // e-4
@@ -1129,8 +1129,8 @@ const DataFlowCard = ({
         </Box>
         {isAgentic && (
           <Tooltip title="Agentic mode enabled" arrow>
-            <Typography sx={{ fontSize: '0.6rem', px: 0.75, py: 0.25, borderRadius: 0.75, flexShrink: 0, bgcolor: 'hsla(var(--primary) / 0.12)', border: '1px solid hsla(var(--primary) / 0.3)', color: 'hsl(var(--primary))' }}>
-              🤖
+            <Typography sx={{ fontSize: '0.6rem', px: 0.75, py: 0.25, borderRadius: 0.75, flexShrink: 0, bgcolor: 'hsla(var(--primary) / 0.12)', border: '1px solid hsla(var(--primary) / 0.3)', color: 'hsl(var(--primary))', fontWeight: 700, letterSpacing: '0.04em' }}>
+              AI
             </Typography>
           </Tooltip>
         )}
@@ -1760,7 +1760,7 @@ const EdgeDetailDrawer = ({
           <Box sx={{ px: 3, py: 2.5, bgcolor: isAgenticEnabled ? 'hsla(var(--primary) / 0.04)' : 'transparent', transition: 'background 0.2s' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: isAgenticEnabled ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>
-                🤖 Agentic Mode
+                Agentic Mode
               </Typography>
               <Button
                 size="small"
