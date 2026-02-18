@@ -2565,7 +2565,7 @@ const InfrastructureContent = () => {
           onNodeDragStop={handleNodeDragStop}
           onEdgesChange={onEdgesChange}
           snapToGrid
-          snapGrid={[5, 5]}
+          snapGrid={[2, 2]}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
