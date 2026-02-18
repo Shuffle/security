@@ -327,70 +327,70 @@ const DATA_FLOWS: { source: string; target: string; label: string; animated?: bo
     description: 'Network flow logs (NetFlow, DNS, proxy) give the SIEM east-west and north-south visibility. Without them, lateral movement and C2 traffic go undetected.',
     agenticDescription: 'An agent monitors ingested flow logs for anomalous patterns (beaconing, port scans, unusual data volumes), generates hypotheses, and creates enriched SIEM alerts with analyst-ready summaries.' },
   // e-2
-  { phase: 'correlation', source: 'edr', target: 'siem', label: 'Telemetry',
-    tags: ['Logs', 'Detection', 'Correlation'],
-    description: 'Endpoint telemetry (process trees, file hashes, registry changes) enriches SIEM detections with host-level context, enabling accurate correlation rules.',
-    agenticDescription: 'An agent cross-references endpoint telemetry with known attack patterns, surfaces hidden process chains, and annotates SIEM events with host risk scores before they reach an analyst.' },
-  // e-3
-  { phase: 'correlation', source: 'iam', target: 'siem', label: 'Auth logs',
-    tags: ['Logs', 'Detection', 'Correlation'],
-    description: 'Authentication and authorization logs reveal credential abuse, impossible travel, privilege escalation, and brute-force attempts across the identity layer.',
-    agenticDescription: 'An agent detects impossible travel, credential stuffing patterns, and privilege escalation attempts in auth logs, then creates SIEM alerts with user risk context and recommended actions.' },
-  // e-4
-  { phase: 'ingest', source: 'email', target: 'case_management', label: 'Phishing reports',
-    tags: ['Alert', 'Logs'],
-    description: 'User-reported phishing emails create cases for triage. Automating intake with deduplication and auto-enrichment drastically cuts analyst workload.',
-    agenticDescription: 'An agent parses reported emails, extracts and enriches all IOCs, determines phishing verdict using threat intel, and auto-closes low-risk reports while escalating confirmed campaigns.' },
-  // e-5
-  { phase: 'correlation', source: 'threat_intel', target: 'case_management', label: 'Enrichment', animated: true,
-    tags: ['Intel', 'Correlation', 'Context'],
-    description: 'Threat intelligence enriches cases with reputation scores, malware families, threat actor attribution, and related IOCs — giving analysts immediate context.',
-    agenticDescription: 'An agent autonomously enriches all observables in a case, maps findings to MITRE ATT&CK, identifies related campaigns, and updates case severity and recommended playbook based on findings.' },
-  // e-6
-  { phase: 'response', source: 'threat_intel', target: 'network', label: 'IOC feeds',
-    tags: ['Intel', 'Response', 'Prevention'],
-    description: 'Threat intel feeds pushed to network devices include IPs, domains, URLs, and ASNs for perimeter blocking, as well as MITRE ATT&CK techniques used to inform detection rule tuning on IDS/IPS and NDR sensors. Network controls act at layer 3–7, so indicator types must be network-observable.',
-    agenticDescription: 'An agent curates and validates IOC feeds before pushing, deduplicates against existing block rules, removes expired indicators, and maps active techniques to IDS/IPS signatures — ensuring network policy stays accurate without manual review.' },
-  // e-7
-  { phase: 'response', source: 'threat_intel', target: 'edr', label: 'IOC feeds',
-    tags: ['Intel', 'Response', 'Prevention', 'Detection'],
-    description: 'Endpoint-targeted IOC feeds include file hashes (MD5/SHA256), process names, registry keys, certificate thumbprints, and parent-child process trees for behavioral blocking. MITRE ATT&CK technique mappings inform custom detection rules. Unlike network devices, EDR can act on host-observable artifacts invisible to the perimeter.',
-    agenticDescription: 'An agent validates hash and behavioral indicator accuracy against multiple intel sources, maps techniques to EDR rule coverage gaps, prioritizes by threat severity, and generates a blocking report with rollback instructions.' },
-  // e-8
-  { phase: 'response', source: 'case_management', target: 'communication', label: 'Notifications', animated: true,
-    tags: ['Response', 'Alert'],
-    description: 'Automated notifications keep stakeholders informed of incident status, escalations, and required actions — critical for SLA compliance and coordination.',
-    agenticDescription: 'An agent drafts context-aware incident summaries, determines the right audience and channel for each update, and adapts tone (technical vs. executive) based on the recipient.' },
-  // e-9
-  { phase: 'response', source: 'case_management', target: 'iam', label: 'Disable accounts',
-    tags: ['Response', 'Containment'],
-    description: 'When a compromised account is identified, automated disablement through IAM stops the attacker from maintaining access while the investigation continues.',
-    agenticDescription: 'An agent validates the compromise signal, checks the user\'s business criticality, executes targeted disablement or session revocation, and documents the action with rollback steps in the case.' },
-  // e-10
-  { phase: 'response', source: 'case_management', target: 'edr', label: 'Containment',
-    tags: ['Response', 'Containment'],
-    description: 'Network isolation or process killing on compromised endpoints contains the threat, preventing lateral movement while preserving forensic evidence.',
-    agenticDescription: 'An agent determines the right containment scope (process, network, host), triggers isolation, collects forensic artifacts autonomously, and creates a detailed timeline for the investigation.' },
-  // e-11
-  { phase: 'correlation', source: 'asset_management', target: 'case_management', label: 'Asset context',
-    tags: ['Context', 'Correlation'],
-    description: 'Asset context (owner, criticality, business unit, OS) helps analysts prioritize cases and understand blast radius during an incident.',
-    agenticDescription: 'An agent automatically fetches asset owner, business criticality, and known vulnerabilities for every observable in a case, recalculates impact score, and suggests prioritization.' },
-  // e-12
-  { phase: 'correlation', source: 'email', target: 'threat_intel', label: 'Phishing IOCs',
-    tags: ['Intel', 'Correlation', 'Logs'],
-    description: 'Extracting IOCs from phishing emails (sender domains, URLs, attachments) and feeding them into threat intel platforms helps detect broader campaigns.',
-    agenticDescription: 'An agent detonates suspicious attachments and URLs in a sandbox, extracts all IOCs, correlates with known campaigns, and auto-publishes confirmed indicators to the threat intel platform.' },
-  // e-13
-  { phase: 'ingest', source: 'cloud', target: 'siem', label: 'Audit logs', animated: true,
-    tags: ['Logs', 'Detection'],
-    description: 'Cloud audit logs (CloudTrail, Activity Log, Audit Logs) provide visibility into API calls, configuration changes, and access patterns across cloud environments.',
-    agenticDescription: 'An agent detects anomalous API call patterns, privilege escalation, and misconfiguration events in cloud audit logs, then generates prioritized SIEM alerts with remediation context.' },
-  // e-14
   { phase: 'ingest', source: 'cloud', target: 'asset_management', label: 'Resource inventory',
     tags: ['Logs', 'Context'],
     description: 'Auto-syncing cloud resources into the asset inventory ensures the CMDB stays current, preventing blind spots in vulnerability management and incident response.',
     agenticDescription: 'An agent continuously reconciles cloud inventory with the CMDB, flags newly exposed resources, identifies shadow IT, and marks assets with missing security controls for immediate action.' },
+  // e-3
+  { phase: 'correlation', source: 'edr', target: 'siem', label: 'Telemetry',
+    tags: ['Logs', 'Detection', 'Correlation'],
+    description: 'Endpoint telemetry (process trees, file hashes, registry changes) enriches SIEM detections with host-level context, enabling accurate correlation rules.',
+    agenticDescription: 'An agent cross-references endpoint telemetry with known attack patterns, surfaces hidden process chains, and annotates SIEM events with host risk scores before they reach an analyst.' },
+  // e-4
+  { phase: 'correlation', source: 'iam', target: 'siem', label: 'Auth logs',
+    tags: ['Logs', 'Detection', 'Correlation'],
+    description: 'Authentication and authorization logs reveal credential abuse, impossible travel, privilege escalation, and brute-force attempts across the identity layer.',
+    agenticDescription: 'An agent detects impossible travel, credential stuffing patterns, and privilege escalation attempts in auth logs, then creates SIEM alerts with user risk context and recommended actions.' },
+  // e-5
+  { phase: 'ingest', source: 'email', target: 'case_management', label: 'Phishing reports',
+    tags: ['Alert', 'Logs'],
+    description: 'User-reported phishing emails create cases for triage. Automating intake with deduplication and auto-enrichment drastically cuts analyst workload.',
+    agenticDescription: 'An agent parses reported emails, extracts and enriches all IOCs, determines phishing verdict using threat intel, and auto-closes low-risk reports while escalating confirmed campaigns.' },
+  // e-6
+  { phase: 'correlation', source: 'threat_intel', target: 'case_management', label: 'Enrichment', animated: true,
+    tags: ['Intel', 'Correlation', 'Context'],
+    description: 'Threat intelligence enriches cases with reputation scores, malware families, threat actor attribution, and related IOCs — giving analysts immediate context.',
+    agenticDescription: 'An agent autonomously enriches all observables in a case, maps findings to MITRE ATT&CK, identifies related campaigns, and updates case severity and recommended playbook based on findings.' },
+  // e-7
+  { phase: 'response', source: 'threat_intel', target: 'network', label: 'IOC feeds',
+    tags: ['Intel', 'Response', 'Prevention'],
+    description: 'Threat intel feeds pushed to network devices include IPs, domains, URLs, and ASNs for perimeter blocking, as well as MITRE ATT&CK techniques used to inform detection rule tuning on IDS/IPS and NDR sensors. Network controls act at layer 3–7, so indicator types must be network-observable.',
+    agenticDescription: 'An agent curates and validates IOC feeds before pushing, deduplicates against existing block rules, removes expired indicators, and maps active techniques to IDS/IPS signatures — ensuring network policy stays accurate without manual review.' },
+  // e-8
+  { phase: 'response', source: 'threat_intel', target: 'edr', label: 'IOC feeds',
+    tags: ['Intel', 'Response', 'Prevention', 'Detection'],
+    description: 'Endpoint-targeted IOC feeds include file hashes (MD5/SHA256), process names, registry keys, certificate thumbprints, and parent-child process trees for behavioral blocking. MITRE ATT&CK technique mappings inform custom detection rules. Unlike network devices, EDR can act on host-observable artifacts invisible to the perimeter.',
+    agenticDescription: 'An agent validates hash and behavioral indicator accuracy against multiple intel sources, maps techniques to EDR rule coverage gaps, prioritizes by threat severity, and generates a blocking report with rollback instructions.' },
+  // e-9
+  { phase: 'response', source: 'case_management', target: 'communication', label: 'Notifications', animated: true,
+    tags: ['Response', 'Alert'],
+    description: 'Automated notifications keep stakeholders informed of incident status, escalations, and required actions — critical for SLA compliance and coordination.',
+    agenticDescription: 'An agent drafts context-aware incident summaries, determines the right audience and channel for each update, and adapts tone (technical vs. executive) based on the recipient.' },
+  // e-10
+  { phase: 'response', source: 'case_management', target: 'iam', label: 'Disable accounts',
+    tags: ['Response', 'Containment'],
+    description: 'When a compromised account is identified, automated disablement through IAM stops the attacker from maintaining access while the investigation continues.',
+    agenticDescription: 'An agent validates the compromise signal, checks the user\'s business criticality, executes targeted disablement or session revocation, and documents the action with rollback steps in the case.' },
+  // e-11
+  { phase: 'response', source: 'case_management', target: 'edr', label: 'Containment',
+    tags: ['Response', 'Containment'],
+    description: 'Network isolation or process killing on compromised endpoints contains the threat, preventing lateral movement while preserving forensic evidence.',
+    agenticDescription: 'An agent determines the right containment scope (process, network, host), triggers isolation, collects forensic artifacts autonomously, and creates a detailed timeline for the investigation.' },
+  // e-12
+  { phase: 'correlation', source: 'asset_management', target: 'case_management', label: 'Asset context',
+    tags: ['Context', 'Correlation'],
+    description: 'Asset context (owner, criticality, business unit, OS) helps analysts prioritize cases and understand blast radius during an incident.',
+    agenticDescription: 'An agent automatically fetches asset owner, business criticality, and known vulnerabilities for every observable in a case, recalculates impact score, and suggests prioritization.' },
+  // e-13
+  { phase: 'correlation', source: 'email', target: 'threat_intel', label: 'Phishing IOCs',
+    tags: ['Intel', 'Correlation', 'Logs'],
+    description: 'Extracting IOCs from phishing emails (sender domains, URLs, attachments) and feeding them into threat intel platforms helps detect broader campaigns.',
+    agenticDescription: 'An agent detonates suspicious attachments and URLs in a sandbox, extracts all IOCs, correlates with known campaigns, and auto-publishes confirmed indicators to the threat intel platform.' },
+  // e-14
+  { phase: 'ingest', source: 'cloud', target: 'siem', label: 'Audit logs', animated: true,
+    tags: ['Logs', 'Detection'],
+    description: 'Cloud audit logs (CloudTrail, Activity Log, Audit Logs) provide visibility into API calls, configuration changes, and access patterns across cloud environments.',
+    agenticDescription: 'An agent detects anomalous API call patterns, privilege escalation, and misconfiguration events in cloud audit logs, then generates prioritized SIEM alerts with remediation context.' },
   // e-15
   { phase: 'correlation', source: 'cloud', target: 'iam', label: 'Identity events',
     tags: ['Logs', 'Correlation', 'Detection'],
