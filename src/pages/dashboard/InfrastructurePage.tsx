@@ -316,53 +316,69 @@ export const FLOW_PHASES: { id: FlowPhase; label: string; subtitle: string; step
 ];
 
 const DATA_FLOWS: { source: string; target: string; label: string; animated?: boolean; description: string; phase: FlowPhase }[] = [
-  // ── Phase 1: Ingest & Tool Setup ──
+  // e-0
   { phase: 'ingest', source: 'siem', target: 'case_management', label: 'Alerts', animated: true,
     description: 'SIEM-generated alerts are the primary trigger for new cases. Automating this flow ensures no critical detection goes uninvestigated and reduces mean time to respond (MTTR).' },
+  // e-1
   { phase: 'ingest', source: 'network', target: 'siem', label: 'Flow logs',
     description: 'Network flow logs (NetFlow, DNS, proxy) give the SIEM east-west and north-south visibility. Without them, lateral movement and C2 traffic go undetected.' },
+  // e-2
   { phase: 'ingest', source: 'edr', target: 'siem', label: 'Telemetry',
     description: 'Endpoint telemetry (process trees, file hashes, registry changes) enriches SIEM detections with host-level context, enabling accurate correlation rules.' },
+  // e-3
   { phase: 'ingest', source: 'iam', target: 'siem', label: 'Auth logs',
     description: 'Authentication and authorization logs reveal credential abuse, impossible travel, privilege escalation, and brute-force attempts across the identity layer.' },
+  // e-4
   { phase: 'ingest', source: 'email', target: 'case_management', label: 'Phishing reports',
     description: 'User-reported phishing emails create cases for triage. Automating intake with deduplication and auto-enrichment drastically cuts analyst workload.' },
-  { phase: 'ingest', source: 'edr', target: 'case_management', label: 'EDR alerts', animated: true,
-    description: 'EDR-generated alerts (malware detections, suspicious process executions, ransomware behavior) are forwarded directly to Case Management to open or update incidents, bypassing the SIEM for faster response on high-confidence endpoint detections.' },
-  { phase: 'ingest', source: 'cloud', target: 'siem', label: 'Audit logs', animated: true,
-    description: 'Cloud audit logs (CloudTrail, Activity Log, Audit Logs) provide visibility into API calls, configuration changes, and access patterns across cloud environments.' },
-  { phase: 'ingest', source: 'cloud', target: 'asset_management', label: 'Resource inventory',
-    description: 'Auto-syncing cloud resources into asset management ensures the CMDB stays current, preventing blind spots in vulnerability management and incident response.' },
-
-  // ── Phase 2: Agents & Response Actions ──
-  { phase: 'response', source: 'case_management', target: 'communication', label: 'Notifications', animated: true,
-    description: 'Automated notifications keep stakeholders informed of incident status, escalations, and required actions — critical for SLA compliance and coordination.' },
-  { phase: 'response', source: 'case_management', target: 'iam', label: 'Disable accounts',
-    description: 'When a compromised account is identified, automated disablement through IAM stops the attacker from maintaining access while the investigation continues.' },
-  { phase: 'response', source: 'case_management', target: 'edr', label: 'Containment',
-    description: 'Network isolation or process killing on compromised endpoints contains the threat, preventing lateral movement while preserving forensic evidence.' },
-  { phase: 'response', source: 'case_management', target: 'network', label: 'Block rules',
-    description: 'Pushing firewall block rules from cases to network devices enables immediate perimeter-level containment of malicious IPs, domains, and traffic patterns.' },
-  { phase: 'response', source: 'case_management', target: 'email', label: 'Quarantine',
-    description: 'Quarantining or purging malicious emails from mailboxes during an active investigation prevents additional users from falling victim to the same campaign.' },
-  { phase: 'response', source: 'case_management', target: 'cloud', label: 'Cloud response',
-    description: 'Automated response actions in cloud environments — revoking keys, isolating instances, modifying security groups — contain threats before they spread across cloud infrastructure.' },
-  { phase: 'response', source: 'threat_intel', target: 'network', label: 'IOC feeds',
-    description: 'Pushing IOC feeds (malicious IPs, domains) to network tools enables proactive blocking at the perimeter before threats reach endpoints.' },
-  { phase: 'response', source: 'threat_intel', target: 'edr', label: 'Hash feeds',
-    description: 'File hash feeds allow EDR solutions to block or quarantine known-malicious binaries on endpoints in real time, preventing execution.' },
-
-  // ── Phase 3: Context & Correlation ──
+  // e-5
   { phase: 'correlation', source: 'threat_intel', target: 'case_management', label: 'Enrichment', animated: true,
     description: 'Threat intelligence enriches cases with reputation scores, malware families, threat actor attribution, and related IOCs — giving analysts immediate context.' },
+  // e-6
+  { phase: 'response', source: 'threat_intel', target: 'network', label: 'IOC feeds',
+    description: 'Pushing IOC feeds (malicious IPs, domains) to network tools enables proactive blocking at the perimeter before threats reach endpoints.' },
+  // e-7
+  { phase: 'response', source: 'threat_intel', target: 'edr', label: 'Hash feeds',
+    description: 'File hash feeds allow EDR solutions to block or quarantine known-malicious binaries on endpoints in real time, preventing execution.' },
+  // e-8
+  { phase: 'response', source: 'case_management', target: 'communication', label: 'Notifications', animated: true,
+    description: 'Automated notifications keep stakeholders informed of incident status, escalations, and required actions — critical for SLA compliance and coordination.' },
+  // e-9
+  { phase: 'response', source: 'case_management', target: 'iam', label: 'Disable accounts',
+    description: 'When a compromised account is identified, automated disablement through IAM stops the attacker from maintaining access while the investigation continues.' },
+  // e-10
+  { phase: 'response', source: 'case_management', target: 'edr', label: 'Containment',
+    description: 'Network isolation or process killing on compromised endpoints contains the threat, preventing lateral movement while preserving forensic evidence.' },
+  // e-11
   { phase: 'correlation', source: 'asset_management', target: 'case_management', label: 'Asset context',
     description: 'Asset context (owner, criticality, business unit, OS) helps analysts prioritize cases and understand blast radius during an incident.' },
+  // e-12
   { phase: 'correlation', source: 'email', target: 'threat_intel', label: 'Phishing IOCs',
     description: 'Extracting IOCs from phishing emails (sender domains, URLs, attachments) and feeding them into threat intel platforms helps detect broader campaigns.' },
+  // e-13
+  { phase: 'ingest', source: 'cloud', target: 'siem', label: 'Audit logs', animated: true,
+    description: 'Cloud audit logs (CloudTrail, Activity Log, Audit Logs) provide visibility into API calls, configuration changes, and access patterns across cloud environments.' },
+  // e-14
+  { phase: 'ingest', source: 'cloud', target: 'asset_management', label: 'Resource inventory',
+    description: 'Auto-syncing cloud resources into asset management ensures the CMDB stays current, preventing blind spots in vulnerability management and incident response.' },
+  // e-15
   { phase: 'correlation', source: 'cloud', target: 'iam', label: 'Identity events',
     description: 'Cloud identity events (role changes, permission grants, federation configs) feed IAM monitoring to detect privilege escalation in cloud environments.' },
+  // e-16
   { phase: 'correlation', source: 'threat_intel', target: 'cloud', label: 'IOC feeds',
     description: 'Pushing IOC feeds to cloud-native security tools (GuardDuty, Sentinel, SCC) enables detection of known-malicious activity within cloud workloads.' },
+  // e-17
+  { phase: 'response', source: 'case_management', target: 'cloud', label: 'Cloud response',
+    description: 'Automated response actions in cloud environments — revoking keys, isolating instances, modifying security groups — contain threats before they spread across cloud infrastructure.' },
+  // e-18
+  { phase: 'response', source: 'case_management', target: 'network', label: 'Block rules',
+    description: 'Pushing firewall block rules from cases to network devices enables immediate perimeter-level containment of malicious IPs, domains, and traffic patterns.' },
+  // e-19
+  { phase: 'response', source: 'case_management', target: 'email', label: 'Quarantine',
+    description: 'Quarantining or purging malicious emails from mailboxes during an active investigation prevents additional users from falling victim to the same campaign.' },
+  // e-20 — NEW: EDR → Case Management (direct alert path)
+  { phase: 'ingest', source: 'edr', target: 'case_management', label: 'EDR alerts', animated: true,
+    description: 'EDR-generated alerts (malware detections, suspicious process executions, ransomware behavior) are forwarded directly to Case Management to open or update incidents, bypassing the SIEM for faster response on high-confidence endpoint detections.' },
 ];
 
 // ── Category-to-app mapping ────────────────────────────────────────────────────
@@ -950,6 +966,7 @@ const DEFAULT_HANDLES: Record<string, { sourceHandle: string; targetHandle: stri
   'e-17': { sourceHandle: 'left-source', targetHandle: 'top-target' },
   'e-18': { sourceHandle: 'left-source', targetHandle: 'top-target' },
   'e-19': { sourceHandle: 'bottom-source', targetHandle: 'right-target' },
+  'e-20': { sourceHandle: 'bottom-source', targetHandle: 'top-target' },
 };
 
 const DEFAULT_WAYPOINTS: Record<string, Array<{ x: number; y: number }>> = {
