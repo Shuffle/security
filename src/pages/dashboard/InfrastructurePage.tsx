@@ -21,7 +21,6 @@ import ReactFlow, {
   useReactFlow,
   ReactFlowProvider,
   BackgroundVariant,
-  MarkerType,
   reconnectEdge,
   
   BaseEdge,
@@ -667,6 +666,20 @@ const GradientEdge = ({
     onWaypointsChange?.(newWp);
   };
 
+  // Compute arrowhead from the LAST segment of the actual expanded path,
+  // so it always points the correct way regardless of handle orientation.
+  const expandedForArrow = expandToOrthogonal(allPoints);
+  const arrowColor = data?.useGradient ? targetColor : (style.stroke as string || 'hsl(var(--muted-foreground))');
+  let arrowAngle = 0;
+  if (expandedForArrow.length >= 2) {
+    const prev = expandedForArrow[expandedForArrow.length - 2];
+    const last = expandedForArrow[expandedForArrow.length - 1];
+    arrowAngle = Math.atan2(last.y - prev.y, last.x - prev.x) * (180 / Math.PI);
+  }
+  const arrowSize = 9;
+  const ax = expandedForArrow[expandedForArrow.length - 1]?.x ?? targetX;
+  const ay = expandedForArrow[expandedForArrow.length - 1]?.y ?? targetY;
+
   return (
     <>
       <defs>
@@ -694,7 +707,13 @@ const GradientEdge = ({
           strokeWidth: isVisible ? 3 : (style.strokeWidth || 2),
           transition: 'stroke-width 0.15s ease',
         }}
-        markerEnd={markerEnd}
+      />
+      {/* Custom arrowhead rotated to match the actual last path segment */}
+      <polygon
+        points={`0,${-arrowSize * 0.5} ${arrowSize},0 0,${arrowSize * 0.5}`}
+        fill={arrowColor}
+        transform={`translate(${ax},${ay}) rotate(${arrowAngle})`}
+        style={{ pointerEvents: 'none', transition: 'fill 0.2s' }}
       />
       {/* Label on hover */}
       {label && isVisible && (
@@ -2680,12 +2699,7 @@ const InfrastructureContent = () => {
           fill: 'hsl(var(--background))',
           fillOpacity: 0.85,
         },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 14,
-          height: 14,
-          color: useGradient ? tgtColor : stroke,
-        },
+        // Arrow is drawn as a custom SVG polygon inside GradientEdge, always oriented to the last segment
       };
     }),
     [activeId, hoveredId, activeColor, activeCategories, isCategoryActiveForEdge, enabledFlows, hoveredEdgeId, selectedEdgeIdx, savedHandles, savedWaypoints, persistWaypoints, simulatedEdgeIds, simulatedPhases]
