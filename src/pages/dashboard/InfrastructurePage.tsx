@@ -154,6 +154,7 @@ const TOOL_CATEGORIES: ToolCategory[] = [
       'Scan endpoints for known IOC file hashes',
       'Collect forensic artifacts during investigation',
       'Push detection rules from Sigma to endpoint agents',
+      'Forward high-confidence EDR alerts directly to Case Management, skipping SIEM for faster response',
     ],
   },
   {
@@ -329,6 +330,8 @@ const DATA_FLOWS: { source: string; target: string; label: string; animated?: bo
     description: 'Pushing firewall block rules from cases to network devices enables immediate perimeter-level containment of malicious IPs, domains, and traffic patterns.' },
   { source: 'case_management', target: 'email', label: 'Quarantine',
     description: 'Quarantining or purging malicious emails from mailboxes during an active investigation prevents additional users from falling victim to the same campaign.' },
+  { source: 'edr', target: 'case_management', label: 'EDR alerts', animated: true,
+    description: 'EDR-generated alerts (malware detections, suspicious process executions, ransomware behavior) are forwarded directly to Case Management to open or update incidents, bypassing the SIEM for faster response on high-confidence endpoint detections.' },
 ];
 
 // ── Category-to-app mapping ────────────────────────────────────────────────────
