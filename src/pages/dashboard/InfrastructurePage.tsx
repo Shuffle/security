@@ -1288,6 +1288,8 @@ const EdgeDetailDrawer = ({
   activeCategories,
   configuredCategories,
   categoryApps,
+  enabledFlows,
+  onToggleEnabled,
 }: {
   flow: (typeof DATA_FLOWS)[number] | null;
   edgeIdx: number | null;
@@ -1298,11 +1300,13 @@ const EdgeDetailDrawer = ({
   activeCategories: Set<string>;
   configuredCategories: Set<string>;
   categoryApps: Record<string, MatchedApp[]>;
+  enabledFlows: Set<string>;
+  onToggleEnabled: (edgeId: string) => void;
 }) => {
-  const [enabling, setEnabling] = React.useState(false);
-  const [enableResult, setEnableResult] = React.useState<'success' | 'error' | null>(null);
-
   if (!flow) return null;
+  const edgeId = edgeIdx !== null ? `e-${edgeIdx}` : '';
+  const isManuallyEnabled = enabledFlows.has(edgeId);
+
   const sourceCat = getToolCategoryMeta(flow.source);
   const targetCat = getToolCategoryMeta(flow.target);
   const headerColor = sourceCat?.color || '--primary';
@@ -1311,14 +1315,15 @@ const EdgeDetailDrawer = ({
   const targetConfigured = configuredCategories.has(flow.target);
   const sourceActive = activeCategories.has(flow.source);
   const targetActive = activeCategories.has(flow.target);
-  const flowState = getFlowState(sourceConfigured, targetConfigured);
+  const baseFlowState = getFlowState(sourceConfigured, targetConfigured);
+  const flowState: FlowState = isManuallyEnabled && baseFlowState === 'missing_config' ? 'enabled' : baseFlowState;
   const badge = FLOW_STATE_BADGE[flowState];
 
   // Check if at least one side has a validated app
   const sourceApps = categoryApps[flow.source] || [];
   const targetApps = categoryApps[flow.target] || [];
   const hasValidApp = sourceApps.some(a => a.hasValidAuth) || targetApps.some(a => a.hasValidAuth);
-  const canEnable = flowState === 'missing_config' && hasValidApp;
+  const canEnable = baseFlowState === 'missing_config' && hasValidApp;
 
   return (
     <Drawer
@@ -1420,50 +1425,51 @@ const EdgeDetailDrawer = ({
               ? 'Both categories are configured but this flow has not been tested yet.'
               : 'One or both categories have no apps configured yet.'}
           </Typography>
-          {canEnable && (
-            <Box sx={{ mt: 1.5 }}>
-              {enableResult === 'success' ? (
-                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(142 71% 45%)', fontWeight: 600 }}>
-                  ✓ Flow marked as Enabled
-                </Typography>
-              ) : enableResult === 'error' ? (
-                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--destructive))', fontWeight: 600 }}>
-                  Failed to enable. Please try again.
-                </Typography>
-              ) : (
-                <Button
-                  size="small"
-                  disabled={enabling}
-                  onClick={async () => {
-                    setEnabling(true);
-                    try {
-                      // Placeholder: actual test logic will be implemented per-flow
-                      await new Promise(resolve => setTimeout(resolve, 800));
-                      setEnableResult('success');
-                    } catch {
-                      setEnableResult('error');
-                    } finally {
-                      setEnabling(false);
-                    }
-                  }}
-                  sx={{
-                    bgcolor: 'hsl(142 71% 45%)',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    px: 2,
-                    py: 0.5,
-                    borderRadius: 1.5,
-                    textTransform: 'none',
-                    '&:hover': { bgcolor: 'hsl(142 71% 38%)' },
-                    '&:disabled': { opacity: 0.6 },
-                  }}
-                >
-                  {enabling ? 'Enabling…' : 'Enable Flow'}
-                </Button>
-              )}
+          {/* Enable / Revert buttons */}
+          {flowState === 'enabled' ? (
+            <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Typography sx={{ fontSize: '0.75rem', color: 'hsl(142 71% 45%)', fontWeight: 600 }}>
+                ✓ Manually marked as Enabled
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => onToggleEnabled(edgeId)}
+                sx={{
+                  color: 'hsl(var(--muted-foreground))',
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  px: 1.5,
+                  py: 0.25,
+                  borderRadius: 1,
+                  textTransform: 'none',
+                  border: '1px solid hsla(var(--muted-foreground) / 0.25)',
+                  '&:hover': { bgcolor: 'hsla(var(--muted-foreground) / 0.1)', borderColor: 'hsl(var(--muted-foreground))' },
+                }}
+              >
+                Mark as Misconfigured
+              </Button>
             </Box>
-          )}
+          ) : canEnable ? (
+            <Box sx={{ mt: 1.5 }}>
+              <Button
+                size="small"
+                onClick={() => onToggleEnabled(edgeId)}
+                sx={{
+                  bgcolor: 'hsl(142 71% 45%)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  px: 2,
+                  py: 0.5,
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: 'hsl(142 71% 38%)' },
+                }}
+              >
+                Mark as Enabled
+              </Button>
+            </Box>
+          ) : null}
         </Box>
       </Box>
 
@@ -1838,6 +1844,7 @@ const HelperLinesRenderer = ({ horizontal, vertical }: { horizontal?: number; ve
 const POSITION_CACHE_KEY = 'infrastructure_node_positions';
 const HANDLE_CACHE_KEY = 'infrastructure_edge_handles';
 const WAYPOINT_CACHE_KEY = 'infrastructure_edge_waypoints';
+const ENABLED_FLOWS_CACHE_KEY = 'infrastructure_enabled_flows';
 
 type WaypointOverrides = Record<string, Array<{ x: number; y: number }>>;
 type HandleOverrides = Record<string, { sourceHandle?: string; targetHandle?: string }>;
@@ -1854,6 +1861,7 @@ const InfrastructureContent = () => {
   const [categoryApps, setCategoryApps] = useState<Record<string, MatchedApp[]>>({});
   const [savedHandles, setSavedHandles] = useState<HandleOverrides>({});
   const [savedWaypoints, setSavedWaypoints] = useState<WaypointOverrides>({});
+  const [enabledFlows, setEnabledFlows] = useState<Set<string>>(new Set());
   const [updatingEdgeNodes, setUpdatingEdgeNodes] = useState<{ source: string; target: string; draggedEnd: 'source' | 'target' } | null>(null);
   const updatingEdgeNodesRef = useRef<{ source: string; target: string; draggedEnd: 'source' | 'target' } | null>(null);
   const [savedPositions, setSavedPositions] = useState<Record<string, { x: number; y: number }> | null>(null);
@@ -1865,10 +1873,11 @@ const InfrastructureContent = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-      const [posResult, handleResult, waypointResult] = await Promise.all([
+      const [posResult, handleResult, waypointResult, enabledResult] = await Promise.all([
         getDatastoreItem(POSITION_CACHE_KEY, DATASTORE_CATEGORIES.INFRASTRUCTURE),
         getDatastoreItem(HANDLE_CACHE_KEY, DATASTORE_CATEGORIES.INFRASTRUCTURE),
         getDatastoreItem(WAYPOINT_CACHE_KEY, DATASTORE_CATEGORIES.INFRASTRUCTURE),
+        getDatastoreItem(ENABLED_FLOWS_CACHE_KEY, DATASTORE_CATEGORIES.INFRASTRUCTURE),
       ]);
       if (posResult.success && posResult.item?.value) {
         const parsed = typeof posResult.item.value === 'string' ? JSON.parse(posResult.item.value) : posResult.item.value;
@@ -1882,6 +1891,10 @@ const InfrastructureContent = () => {
         const parsed = typeof waypointResult.item.value === 'string' ? JSON.parse(waypointResult.item.value) : waypointResult.item.value;
         if (parsed && typeof parsed === 'object') setSavedWaypoints(parsed);
       }
+      if (enabledResult.success && enabledResult.item?.value) {
+        const parsed = typeof enabledResult.item.value === 'string' ? JSON.parse(enabledResult.item.value) : enabledResult.item.value;
+        if (Array.isArray(parsed)) setEnabledFlows(new Set(parsed));
+      }
       } catch (e) {
         console.warn('Failed to load infrastructure config:', e);
       } finally {
@@ -1891,7 +1904,20 @@ const InfrastructureContent = () => {
     loadData();
   }, []);
 
-  // Save positions to datastore (debounced)
+  // Toggle a flow between enabled and misconfigured, persisted to datastore
+  const toggleFlowEnabled = useCallback((edgeId: string) => {
+    setEnabledFlows(prev => {
+      const next = new Set(prev);
+      if (next.has(edgeId)) {
+        next.delete(edgeId);
+      } else {
+        next.add(edgeId);
+      }
+      setDatastoreItem(ENABLED_FLOWS_CACHE_KEY, Array.from(next), DATASTORE_CATEGORIES.INFRASTRUCTURE)
+        .catch(e => console.warn('Failed to save enabled flows:', e));
+      return next;
+    });
+  }, []);
   const persistPositions = useCallback((positions: Record<string, { x: number; y: number }>) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -2007,20 +2033,19 @@ const InfrastructureContent = () => {
     DATA_FLOWS.map((flow, idx) => {
       const sourceActive = activeCategories.has(flow.source);
       const targetActive = activeCategories.has(flow.target);
-      const flowState = getFlowState(sourceActive, targetActive);
-      const bothActive = flowState === 'enabled';
-      const eitherMissing = flowState !== 'enabled';
-
       const edgeId = `e-${idx}`;
+      const isManuallyEnabled = enabledFlows.has(edgeId);
+      // Effective state: manually enabled overrides missing_config → enabled
+      const baseFlowState = getFlowState(sourceActive, targetActive);
+      const flowState: FlowState = isManuallyEnabled && baseFlowState === 'missing_config' ? 'enabled' : baseFlowState;
+      const bothActive = flowState === 'enabled';
+
       const isSelected = selectedEdgeIdx === idx;
       // When a branch is selected, ignore hover on other edges
       const isEdgeHovered = selectedEdgeIdx !== null ? isSelected : hoveredEdgeId === edgeId;
       // Highlight on hover/select
       const isConnected = isEdgeHovered || (activeId && (flow.source === activeId || flow.target === activeId));
-      // Only fully highlight (color + animate) if both sides have apps
       const isFullyHighlighted = isConnected && bothActive;
-      // Highlighted but not enabled — show as grey highlight
-      const isDisabledHighlighted = isConnected && !bothActive;
 
       const hasAnyFocus = selectedEdgeIdx !== null || activeId || hoveredEdgeId;
 
@@ -2030,32 +2055,32 @@ const InfrastructureContent = () => {
       const srcColor = srcCat ? `hsl(var(${srcCat.color}))` : 'hsl(var(--primary))';
       const tgtColor = tgtCat ? `hsl(var(${tgtCat.color}))` : 'hsl(var(--primary))';
 
-      // Determine stroke color
+      // Determine stroke color — on hover always show the real gradient
       let stroke: string;
       let useGradient = false;
-      if (isEdgeHovered && bothActive) {
+      if (isEdgeHovered) {
+        // Always show gradient on hover regardless of state
         useGradient = true;
         stroke = srcColor;
       } else if (isFullyHighlighted) {
         useGradient = true;
         stroke = activeColor;
-      } else if (isDisabledHighlighted) {
-        stroke = 'hsla(var(--muted-foreground) / 0.4)';
+      } else if (isConnected && !bothActive) {
+        // Dimmed highlight for non-enabled connected edges
+        stroke = flowState === 'missing_config' ? 'hsl(45 93% 47%)' : 'hsla(var(--muted-foreground) / 0.4)';
       } else if (hasAnyFocus) {
         stroke = 'hsla(var(--muted-foreground) / 0.06)';
       } else if (bothActive) {
         useGradient = true;
         stroke = srcColor;
       } else if (flowState === 'missing_config') {
-        // Both configured but not validated — yellow dashed
         stroke = 'hsl(45 93% 47%)';
       } else {
-        // disabled — grey dashed
         stroke = 'hsla(var(--muted-foreground) / 0.18)';
       }
 
-      // Stroke dash pattern: any non-enabled state gets dashes
-      const strokeDasharray: string | undefined = bothActive ? undefined : '3 5';
+      // Stroke dash pattern: only non-enabled gets dashes (but clear when hovered)
+      const strokeDasharray: string | undefined = (bothActive || isEdgeHovered) ? undefined : '3 5';
 
       // Apply saved handle overrides or use defaults
       const handleOverride = savedHandles[edgeId];
@@ -2117,7 +2142,7 @@ const InfrastructureContent = () => {
         },
       };
     }),
-    [activeId, activeColor, activeCategories, hoveredEdgeId, selectedEdgeIdx, savedHandles, savedWaypoints, persistWaypoints]
+    [activeId, activeColor, activeCategories, enabledFlows, hoveredEdgeId, selectedEdgeIdx, savedHandles, savedWaypoints, persistWaypoints]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -2611,6 +2636,8 @@ const InfrastructureContent = () => {
         activeCategories={activeCategories}
         configuredCategories={activeCategories}
         categoryApps={categoryApps}
+        enabledFlows={enabledFlows}
+        onToggleEnabled={toggleFlowEnabled}
         onSelectCategory={(catId) => {
           setSelectedEdgeIdx(null);
           setSelectedId(catId);
