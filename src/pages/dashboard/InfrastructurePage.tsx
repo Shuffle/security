@@ -930,9 +930,19 @@ export const getToolCategoryMeta = (categoryId: string): { color: string; icon: 
 
 type FlowState = 'disabled' | 'missing_config' | 'enabled';
 
-const getFlowState = (sourceActive: boolean, targetActive: boolean): FlowState => {
-  if (sourceActive && targetActive) return 'enabled';
-  if (sourceActive || targetActive) return 'missing_config';
+/**
+ * disabled      — one or both categories have no apps configured at all
+ * missing_config — both categories have apps, but neither/one is validated (tested)
+ * enabled       — both categories have at least one validated (tested) app
+ */
+const getFlowState = (
+  sourceConfigured: boolean,
+  targetConfigured: boolean,
+  sourceValidated: boolean,
+  targetValidated: boolean,
+): FlowState => {
+  if (sourceValidated && targetValidated) return 'enabled';
+  if (sourceConfigured && targetConfigured) return 'missing_config';
   return 'disabled';
 };
 
@@ -944,10 +954,10 @@ const FLOW_STATE_BADGE: Record<FlowState, { label: string; color: string; bg: st
     border: 'hsla(var(--muted-foreground) / 0.2)',
   },
   missing_config: {
-    label: 'Disabled',
-    color: 'hsla(var(--muted-foreground) / 0.7)',
-    bg: 'hsla(var(--muted-foreground) / 0.08)',
-    border: 'hsla(var(--muted-foreground) / 0.2)',
+    label: 'Misconfigured',
+    color: 'hsl(45 93% 47%)',
+    bg: 'hsla(45 93% 47% / 0.1)',
+    border: 'hsla(45 93% 47% / 0.3)',
   },
   enabled: {
     label: 'Enabled',
@@ -1141,6 +1151,7 @@ const AllDataFlowsDrawer = ({
   onSelectFlow,
   onSelectCategory,
   activeCategories,
+  configuredCategories,
   highlightEdgeIdx,
 }: {
   open: boolean;
@@ -1148,6 +1159,7 @@ const AllDataFlowsDrawer = ({
   onSelectFlow: (edgeIdx: number) => void;
   onSelectCategory: (categoryId: string) => void;
   activeCategories: Set<string>;
+  configuredCategories: Set<string>;
   highlightEdgeIdx: number | null;
 }) => {
   // Group flows by source category
@@ -1253,7 +1265,7 @@ const AllDataFlowsDrawer = ({
                   flow={flow}
                   edgeId={`e-${idx}`}
                   enabled={activeCategories.has(flow.source) && activeCategories.has(flow.target)}
-                  flowState={getFlowState(activeCategories.has(flow.source), activeCategories.has(flow.target))}
+                  flowState={getFlowState(configuredCategories.has(flow.source), configuredCategories.has(flow.target), activeCategories.has(flow.source), activeCategories.has(flow.target))}
                   highlighted={highlightEdgeIdx === idx}
                   variant="compact"
                   onClick={() => { onClose(); onSelectFlow(idx); }}
@@ -1277,6 +1289,7 @@ const EdgeDetailDrawer = ({
   onSelectCategory,
   onViewAllFlows,
   activeCategories,
+  configuredCategories,
 }: {
   flow: (typeof DATA_FLOWS)[number] | null;
   edgeIdx: number | null;
@@ -1285,15 +1298,18 @@ const EdgeDetailDrawer = ({
   onSelectCategory: (categoryId: string) => void;
   onViewAllFlows: (fromEdgeIdx: number) => void;
   activeCategories: Set<string>;
+  configuredCategories: Set<string>;
 }) => {
   if (!flow) return null;
   const sourceCat = getToolCategoryMeta(flow.source);
   const targetCat = getToolCategoryMeta(flow.target);
   const headerColor = sourceCat?.color || '--primary';
 
+  const sourceConfigured = configuredCategories.has(flow.source);
+  const targetConfigured = configuredCategories.has(flow.target);
   const sourceActive = activeCategories.has(flow.source);
   const targetActive = activeCategories.has(flow.target);
-  const flowState = getFlowState(sourceActive, targetActive);
+  const flowState = getFlowState(sourceConfigured, targetConfigured, sourceActive, targetActive);
   const badge = FLOW_STATE_BADGE[flowState];
 
   return (
@@ -1472,6 +1488,7 @@ const CategoryDetailDrawer = ({
   onEdgeClick,
   onViewAllFlows,
   activeCategories,
+  configuredCategories,
 }: {
   category: ToolCategory | null;
   matchedApps: MatchedApp[];
@@ -1481,6 +1498,7 @@ const CategoryDetailDrawer = ({
   onEdgeClick: (edgeIdx: number) => void;
   onViewAllFlows: () => void;
   activeCategories: Set<string>;
+  configuredCategories: Set<string>;
 }) => {
   const navigate = useNavigate();
   const hasApps = matchedApps.length > 0;
@@ -1696,7 +1714,7 @@ const CategoryDetailDrawer = ({
           {connectedFlows.map(({ flow, idx }) => {
             const edgeId = `e-${idx}`;
             const isEnabled = activeCategories.has(flow.source) && activeCategories.has(flow.target);
-            const flowState = getFlowState(activeCategories.has(flow.source), activeCategories.has(flow.target));
+            const flowState = getFlowState(configuredCategories.has(flow.source), configuredCategories.has(flow.target), activeCategories.has(flow.source), activeCategories.has(flow.target));
             return (
               <DataFlowCard
                 key={edgeId}
@@ -1948,7 +1966,7 @@ const InfrastructureContent = () => {
       // "Enabled" requires both sides to have validated (tested) auth
       const sourceValidated = validatedCategories.has(flow.source);
       const targetValidated = validatedCategories.has(flow.target);
-      const flowState = getFlowState(sourceValidated, targetValidated);
+      const flowState = getFlowState(sourceActive, targetActive, sourceValidated, targetValidated);
       const bothActive = flowState === 'enabled';
       const eitherMissing = flowState !== 'enabled';
 
@@ -1987,8 +2005,11 @@ const InfrastructureContent = () => {
       } else if (bothActive) {
         useGradient = true;
         stroke = srcColor;
+      } else if (flowState === 'missing_config') {
+        // Both configured but not validated — yellow dashed
+        stroke = 'hsl(45 93% 47%)';
       } else {
-        // disabled or missing_config — grey
+        // disabled — grey dashed
         stroke = 'hsla(var(--muted-foreground) / 0.18)';
       }
 
@@ -2472,6 +2493,7 @@ const InfrastructureContent = () => {
           setShowAllFlows(true);
         }}
         activeCategories={validatedCategories}
+        configuredCategories={activeCategories}
       />
 
       {/* Edge state legend — bottom-left overlay */}
@@ -2502,6 +2524,14 @@ const InfrastructureContent = () => {
           </svg>
           <Typography sx={{ fontSize: '0.68rem', color: 'hsl(var(--foreground))' }}>Enabled</Typography>
         </Box>
+        {/* Misconfigured */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <svg width="28" height="8" style={{ flexShrink: 0 }}>
+            <line x1="0" y1="4" x2="28" y2="4" stroke="hsl(45 93% 47%)" strokeWidth="1.5" strokeDasharray="3 5" />
+            <polygon points="22,1 28,4 22,7" fill="hsl(45 93% 47%)" />
+          </svg>
+          <Typography sx={{ fontSize: '0.68rem', color: 'hsl(45 93% 47%)' }}>Misconfigured</Typography>
+        </Box>
         {/* Disabled */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <svg width="28" height="8" style={{ flexShrink: 0 }}>
@@ -2523,6 +2553,7 @@ const InfrastructureContent = () => {
           setSelectedId(catId);
         }}
         activeCategories={validatedCategories}
+        configuredCategories={activeCategories}
         highlightEdgeIdx={lastViewedEdgeIdx}
       />
       <EdgeDetailDrawer
@@ -2531,6 +2562,7 @@ const InfrastructureContent = () => {
         open={selectedEdgeIdx !== null}
         onClose={() => setSelectedEdgeIdx(null)}
         activeCategories={validatedCategories}
+        configuredCategories={activeCategories}
         onSelectCategory={(catId) => {
           setSelectedEdgeIdx(null);
           setSelectedId(catId);
