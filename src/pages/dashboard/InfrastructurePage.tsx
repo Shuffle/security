@@ -599,7 +599,7 @@ const GradientEdge = ({
         path={edgePath}
         style={{
           ...style,
-          stroke: `url(#${gradientId})`,
+          stroke: data?.useGradient ? `url(#${gradientId})` : style.stroke,
           strokeWidth: isVisible ? 3 : (style.strokeWidth || 2),
           transition: 'stroke-width 0.15s ease',
         }}
@@ -1975,6 +1975,7 @@ const InfrastructureContent = () => {
         zIndex: isConnected ? 10 : 0,
         type: 'gradient',
         data: {
+          useGradient,
           sourceColor: useGradient ? srcColor : stroke,
           targetColor: useGradient ? tgtColor : stroke,
           isEdgeHovered,
