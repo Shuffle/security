@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
   Box,
@@ -15,6 +15,8 @@ import {
   Collapse,
   Autocomplete,
   TextField,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PeopleIcon from '@mui/icons-material/People';
@@ -140,6 +142,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const { userInfo, setActiveOrg } = useAuth();
   const [expandedItems, setExpandedItems] = useState<string[]>(['Incidents']);
   const [agentDrawerOpen, setAgentDrawerOpen] = useState(false);
+  const [toolMenuAnchor, setToolMenuAnchor] = useState<null | HTMLElement>(null);
 
   const organizations = userInfo?.orgs || [];
   const sortedOrgs = sortOrgsWithHierarchy(organizations);
@@ -225,29 +228,28 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           minHeight: 64,
         }}
       >
-        {/* Shuffle Logo - Links to Home */}
-        <Tooltip title="Go to Home" placement="right">
-          <Box
-            component={Link}
-            to="/"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              flexShrink: 0,
-              textDecoration: 'none',
-              '&:hover': {
-                opacity: 0.8,
-              },
-            }}
-          >
-            <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
-              <path
-                d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
-                fill="#FF6600"
-              />
-            </svg>
-            {!collapsed && (
+        <Box
+          onClick={(e) => !collapsed && setToolMenuAnchor(e.currentTarget)}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            flexShrink: 0,
+            cursor: collapsed ? 'default' : 'pointer',
+            borderRadius: 1,
+            '&:hover': {
+              opacity: 0.8,
+            },
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
+            <path
+              d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
+              fill="#FF6600"
+            />
+          </svg>
+          {!collapsed && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                 <Typography sx={{ 
                   background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
@@ -258,13 +260,75 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                 }}>
                   Shutdown
                 </Typography>
-                <Typography sx={{ color: '#FFFFFF', fontWeight: 600, fontSize: '1rem' }}>
+                <Typography sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, fontSize: '1rem' }}>
                   Security
                 </Typography>
               </Box>
-            )}
-          </Box>
-        </Tooltip>
+              <ExpandMore sx={{ fontSize: 16, color: 'hsl(var(--muted-foreground))', ml: 0.5 }} />
+            </Box>
+          )}
+        </Box>
+        <Menu
+          anchorEl={toolMenuAnchor}
+          open={Boolean(toolMenuAnchor)}
+          onClose={() => setToolMenuAnchor(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          slotProps={{
+            paper: {
+              sx: {
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 1.5,
+                mt: 0.5,
+                minWidth: 220,
+                zIndex: 1400,
+              },
+            },
+          }}
+        >
+          <MenuItem
+            onClick={() => {
+              window.open('https://shuffler.io', '_blank');
+              setToolMenuAnchor(null);
+            }}
+            sx={{
+              py: 1.5,
+              px: 2,
+              gap: 1.5,
+              '&:hover': { backgroundColor: 'hsl(var(--muted))' },
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
+              <path d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z" fill="#FF6600" />
+            </svg>
+            <Typography sx={{ fontSize: '0.875rem', color: 'hsl(var(--foreground))' }}>
+              Shuffle Automation
+            </Typography>
+          </MenuItem>
+          <MenuItem
+            selected
+            sx={{
+              py: 1.5,
+              px: 2,
+              gap: 1.5,
+              backgroundColor: 'hsl(var(--muted)) !important',
+              '&:hover': { backgroundColor: 'hsl(var(--muted))' },
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
+              <path d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z" fill="#FF6600" />
+            </svg>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+              <Typography sx={{ fontSize: '0.875rem', color: 'hsl(var(--foreground))' }}>
+                Shuffle Security
+              </Typography>
+              <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                (Shutdown)
+              </Typography>
+            </Box>
+          </MenuItem>
+        </Menu>
 
         {/* Toggle button - inside when expanded */}
         {!collapsed && (
