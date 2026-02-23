@@ -784,11 +784,11 @@ const DataFlowCard = ({
           </Typography>
         </Box>
         {showTags && flow.tags && flow.tags.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.4, mt: 0.25 }}>
-            {flow.tags.map(tag => {
+          <Box sx={{ display: 'flex', gap: 0.4, mt: 0.25 }}>
+            {flow.tags.slice(0, 3).map(tag => {
               const tc = TAG_COLORS[tag] ?? DEFAULT_TAG_COLOR;
               return (
-                <Typography key={tag} sx={{ fontSize: '0.58rem', px: 0.5, py: 0.1, borderRadius: 0.5, fontWeight: 600, letterSpacing: '0.03em', color: tc.color, bgcolor: tc.bg, border: `1px solid ${tc.border}`, lineHeight: 1.4 }}>
+                <Typography key={tag} sx={{ fontSize: '0.55rem', px: 0.5, py: 0.1, borderRadius: 0.5, fontWeight: 600, letterSpacing: '0.03em', color: tc.color, bgcolor: tc.bg, border: `1px solid ${tc.border}`, lineHeight: 1.3 }}>
                   {tag}
                 </Typography>
               );
