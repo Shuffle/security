@@ -301,12 +301,13 @@ const IncidentsPage = () => {
   useEffect(() => {
     const fetchIngestionApps = async () => {
       try {
-        const [authResponse, configResponse] = await Promise.all([
+        const [authResponse, configResponse, selectedToolsResponse] = await Promise.all([
           fetch(getApiUrl('/api/v1/apps/authentication'), {
             credentials: 'include',
             headers: { ...getAuthHeader() },
           }),
           getDatastoreItem('automation_config', 'shuffle-security_onboarding'),
+          getDatastoreItem('selected_tools', 'shuffle-security_onboarding'),
         ]);
 
         if (authResponse.ok) {
@@ -322,7 +323,18 @@ const IncidentsPage = () => {
             enabledToolIds = config?.automatic_ingestion?.tools;
           }
 
-          setIngestionApps(extractValidatedIngestionApps(authApps, enabledToolIds));
+          // Selected apps from onboarding (used as default enablement when no explicit toggle exists)
+          let selectedAppNames: string[] = [];
+          if (selectedToolsResponse.success && selectedToolsResponse.item?.value) {
+            const selectedTools = typeof selectedToolsResponse.item.value === 'string'
+              ? JSON.parse(selectedToolsResponse.item.value)
+              : selectedToolsResponse.item.value;
+            if (Array.isArray(selectedTools)) {
+              selectedAppNames = selectedTools.map((app: any) => app?.name).filter(Boolean);
+            }
+          }
+
+          setIngestionApps(extractValidatedIngestionApps(authApps, enabledToolIds, selectedAppNames));
         }
       } catch (error) {
         console.error('Failed to fetch ingestion apps:', error);
