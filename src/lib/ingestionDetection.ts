@@ -61,19 +61,21 @@ export interface ValidatedIngestionApp {
 /**
  * Extract validated apps from the raw /api/v1/apps/authentication response.
  * Returns deduplicated apps that have valid authentication.
- * Pass enabledToolIds (keyed by app ID) to mark which are actually enabled for ingestion.
- * Also pass the raw auth response to resolve ID-to-name mapping for enabled lookups.
+ *
+ * Enablement logic mirrors onboarding:
+ * 1) If tool has explicit override in tools map -> use it
+ * 2) Otherwise, enabled when selected in onboarding + validated
  */
 export function extractValidatedIngestionApps(
   authApiResponse: any[],
   enabledToolIds?: Record<string, boolean>,
+  selectedAppNames?: string[],
 ): ValidatedIngestionApp[] {
   const dedupedApps = deduplicateAuthApps(
     authApiResponse.filter(auth => auth.active || auth.validation?.valid)
   );
 
   // Build a reverse map: app ID -> normalized name from ALL auth entries
-  // so we can match enabledToolIds (which use per-entry IDs) to deduplicated apps
   const idToNormalizedName = new Map<string, string>();
   authApiResponse.forEach(auth => {
     if (auth.app?.id && auth.app?.name) {
@@ -82,16 +84,20 @@ export function extractValidatedIngestionApps(
     }
   });
 
-  // Build a set of normalized names that are enabled
-  const enabledNames = new Set<string>();
+  const explicitTrueNames = new Set<string>();
+  const explicitFalseNames = new Set<string>();
   if (enabledToolIds) {
     for (const [id, value] of Object.entries(enabledToolIds)) {
-      if (value === true) {
-        const name = idToNormalizedName.get(id);
-        if (name) enabledNames.add(name);
-      }
+      const name = idToNormalizedName.get(id);
+      if (!name) continue;
+      if (value === true) explicitTrueNames.add(name);
+      if (value === false) explicitFalseNames.add(name);
     }
   }
+
+  const selectedNames = new Set(
+    (selectedAppNames || []).map(name => name.toLowerCase().trim().replace(/[\s_\-]+/g, '_'))
+  );
 
   const apps: ValidatedIngestionApp[] = [];
 
@@ -100,10 +106,14 @@ export function extractValidatedIngestionApps(
     const category = getIngestionCategory(app.name, app.categories) || 'other';
     const normalizedName = app.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
 
-    // Enabled only if this normalized name is in the enabled set
-    const enabled = enabledToolIds
-      ? enabledNames.has(normalizedName)
-      : false;
+    let enabled = false;
+    if (explicitTrueNames.has(normalizedName)) {
+      enabled = true;
+    } else if (explicitFalseNames.has(normalizedName)) {
+      enabled = false;
+    } else {
+      enabled = selectedNames.has(normalizedName);
+    }
 
     apps.push({
       id: app.id,
