@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Box, IconButton, Popover, Typography, Chip, Button } from '@mui/material';
 import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import DownloadIcon from '@mui/icons-material/Download';
 import { ValidatedIngestionApp } from '@/lib/ingestionDetection';
@@ -95,7 +96,7 @@ export const IngestionSourceButton = ({ app }: IngestionSourceButtonProps) => {
           </Button>
           <Button
             size="small"
-            startIcon={<BlockIcon sx={{ fontSize: 14 }} />}
+            startIcon={app.enabled ? <BlockIcon sx={{ fontSize: 14 }} /> : <CheckCircleOutlineIcon sx={{ fontSize: 14 }} />}
             onClick={() => {
               // TODO: implement disable logic
               setAnchorEl(null);
@@ -104,14 +105,14 @@ export const IngestionSourceButton = ({ app }: IngestionSourceButtonProps) => {
               justifyContent: 'flex-start',
               textTransform: 'none',
               fontSize: '0.75rem',
-              color: 'hsl(var(--destructive))',
+              color: app.enabled ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
               px: 1,
               py: 0.5,
               borderRadius: 1,
-              '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.1)' },
+              '&:hover': { bgcolor: app.enabled ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--primary) / 0.1)' },
             }}
           >
-            Disable app
+            {app.enabled ? 'Deactivate' : 'Activate'}
           </Button>
         </Box>
       </Popover>
