@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
 import { useLocation, Link } from 'react-router-dom';
 import {
@@ -39,6 +39,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { SHUFFLE_AUTOMATION_URL } from '@/config/api';
 import { IntegrationStatus } from './IntegrationStatus';
+import { SidebarSearchDialog } from './SidebarSearchDialog';
 import AgentPermissionsDrawer from '@/components/agent/AgentPermissionsDrawer';
 
 const drawerWidth = 260;
@@ -149,7 +150,20 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const [toolMenuAnchor, setToolMenuAnchor] = useState<null | HTMLElement>(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   const [hoverExpanded, setHoverExpanded] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Ctrl+K keyboard shortcut
+  useEffect(() => {
+    const handleGlobalKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handleGlobalKey);
+    return () => document.removeEventListener('keydown', handleGlobalKey);
+  }, []);
 
   // The sidebar appears expanded if it's actually expanded OR hover-expanded
   const visuallyCollapsed = collapsed && !hoverExpanded;
@@ -357,6 +371,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
       {!visuallyCollapsed ? (
         <Box sx={{ px: 2, mb: 2 }}>
           <Box
+            onClick={() => setSearchOpen(true)}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -365,6 +380,8 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
               px: 1.5,
               py: 1,
               gap: 1,
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: 'hsl(var(--accent))' },
             }}
           >
             <SearchIcon sx={{ color: 'hsl(var(--muted-foreground))', fontSize: 20 }} />
@@ -391,7 +408,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
       ) : (
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
           <Tooltip title="Search (Ctrl+K)" placement="right">
-            <IconButton size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            <IconButton size="small" onClick={() => setSearchOpen(true)} sx={{ color: 'hsl(var(--muted-foreground))' }}>
               <SearchIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -899,6 +916,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         </Menu>
       </Box>
     </Box>
+    <SidebarSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );
 };
