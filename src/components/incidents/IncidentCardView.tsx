@@ -13,6 +13,7 @@ import {
   Terminal,
   Bug,
   ListTodo,
+  Link2,
 } from 'lucide-react';
 import { statusConfig, severityColors } from '@/config/incidentConfig';
 import { useState, useEffect, useRef } from 'react';
@@ -30,6 +31,7 @@ interface DisplayIncident {
   editedTs?: number;
   tlp?: string;
   taskCount?: number;
+  correlationCount?: number;
 }
 
 interface IncidentCardViewProps {
@@ -419,6 +421,14 @@ export const IncidentCardView = ({
 
               {/* Chips */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                {(incident.correlationCount ?? 0) > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--muted-foreground))' }}>
+                    <Link2 size={14} />
+                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 500 }}>
+                      {incident.correlationCount}
+                    </Typography>
+                  </Box>
+                )}
                 <Chip
                   label={incident.severity || 'unknown'}
                   size="small"

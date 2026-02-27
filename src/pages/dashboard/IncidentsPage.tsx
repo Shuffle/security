@@ -265,6 +265,7 @@ const IncidentsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkResolveDialogOpen, setBulkResolveDialogOpen] = useState(false);
   const [isBulkResolving, setIsBulkResolving] = useState(false);
+  const [correlationCounts, setCorrelationCounts] = useState<Record<string, number>>({});
 
   // Sorting
   const [sortBy, setSortBy] = useState<SortKey>('edited');
@@ -363,6 +364,51 @@ const IncidentsPage = () => {
         return incident;
       });
   }, [datastoreItems, validUsernames]);
+
+  // Fetch correlation counts for all incidents (batched)
+  useEffect(() => {
+    if (incidents.length === 0) return;
+    
+    const CORR_NOISE = new Set([
+      'new', 'in_progress', 'resolved', 'escalated', 'closed', 'open', 'pending',
+      'critical', 'high', 'medium', 'low', 'informational', 'info', 'warning', 'error',
+      'unknown', 'none', 'null', 'undefined', 'true', 'false',
+    ]);
+
+    const fetchAll = async () => {
+      const ids = incidents.map(i => i.id);
+      const counts: Record<string, number> = {};
+      
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+        const batch = ids.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(async (incId) => {
+            const res = await fetch(getApiUrl('/api/v2/correlations'), {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+              body: JSON.stringify({ type: 'datastore', key: incId, category: DATASTORE_CATEGORIES.INCIDENTS }),
+            });
+            if (!res.ok) return { id: incId, count: 0 };
+            const data = await res.json();
+            const arr = Array.isArray(data) ? data : (data.correlations || data.data || []);
+            const filtered = arr.filter((c: { key: string }) => !CORR_NOISE.has(c.key.toLowerCase()));
+            return { id: incId, count: filtered.length };
+          })
+        );
+        for (const r of results) {
+          if (r.status === 'fulfilled') {
+            counts[r.value.id] = r.value.count;
+          }
+        }
+      }
+      
+      setCorrelationCounts(counts);
+    };
+
+    fetchAll();
+  }, [incidents.length]);
 
   // Split into relevant and irrelevant
   const [relevantIncidents, irrelevantCount] = useMemo(() => {
@@ -484,6 +530,15 @@ const IncidentsPage = () => {
 
     return sorted;
   }, [filteredIncidents, sortBy, sortDirection]);
+
+  // Enrich sorted incidents with correlation counts
+  const enrichedIncidents = useMemo(() => {
+    if (Object.keys(correlationCounts).length === 0) return sortedIncidents;
+    return sortedIncidents.map(inc => ({
+      ...inc,
+      correlationCount: correlationCounts[inc.id] || 0,
+    }));
+  }, [sortedIncidents, correlationCounts]);
 
   const getIncidentUrl = (incident: DisplayIncident) => {
     return `/incidents/${incident.id}`;
@@ -948,7 +1003,7 @@ const IncidentsPage = () => {
         {/* Card list */}
         <Box sx={{ maxWidth: '100%', overflowX: 'hidden' }}>
           <IncidentCardView
-            incidents={sortedIncidents}
+            incidents={enrichedIncidents}
             getIncidentUrl={getIncidentUrl}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
