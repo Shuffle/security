@@ -37,6 +37,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { IncidentCardView } from '@/components/incidents/IncidentCardView';
 import { IncidentStatsCards } from '@/components/incidents/IncidentStatsCards';
 import { IncidentsEmptyState } from '@/components/incidents/IncidentsEmptyState';
+import { IngestionSourceButton } from '@/components/incidents/IngestionSourceButton';
 
 import { toast } from 'sonner';
 
@@ -700,40 +701,7 @@ const IncidentsPage = () => {
               py: 0.5,
             }}>
               {ingestionApps.map(app => (
-                <Tooltip key={app.name} title={`${app.name.replace(/_/g, ' ')}${app.enabled ? '' : ' (not active)'}`}>
-                  <IconButton
-                    component={Link}
-                    to={`/apps/${app.name.toLowerCase()}`}
-                    size="small"
-                    sx={{
-                      width: 30,
-                      height: 30,
-                      border: '1px solid',
-                      borderColor: app.enabled ? 'rgba(34, 197, 94, 0.20)' : 'transparent',
-                      bgcolor: app.enabled ? 'rgba(34, 197, 94, 0.10)' : 'transparent',
-                      borderRadius: 1,
-                      opacity: app.enabled ? 1 : 0.35,
-                      filter: app.enabled ? 'none' : 'grayscale(1)',
-                      transition: 'opacity 0.15s ease, filter 0.15s ease',
-                      '&:hover': {
-                        bgcolor: app.enabled ? 'rgba(34, 197, 94, 0.18)' : 'rgba(255,255,255,0.1)',
-                        opacity: app.enabled ? 1 : 0.7,
-                        filter: 'none',
-                      },
-                    }}
-                  >
-                    {app.image ? (
-                      <Box
-                        component="img"
-                        src={app.image}
-                        alt={app.name}
-                        sx={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'contain' }}
-                      />
-                    ) : (
-                      <DownloadIcon sx={{ fontSize: 16, color: app.enabled ? '#4ade80' : 'rgba(255,255,255,0.4)' }} />
-                    )}
-                  </IconButton>
-                </Tooltip>
+                <IngestionSourceButton key={app.name} app={app} />
               ))}
               <Tooltip title="Add ingestion source">
                 <IconButton
