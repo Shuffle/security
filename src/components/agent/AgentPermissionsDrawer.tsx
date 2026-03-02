@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -14,6 +14,7 @@ import {
   Drawer,
   Tab,
   Tabs,
+  Popover,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -50,7 +51,9 @@ import {
 import { useAgentPermissions, RiskLevel, AgentPermissionCategory } from '@/hooks/useAgentPermissions';
 import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
 import AgentIcon from '@/components/agent/AgentIcon';
-import { IntegrationStatus } from '@/components/layout/IntegrationStatus';
+import AddIcon from '@mui/icons-material/Add';
+import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
+import { deduplicateAuthApps } from '@/lib/utils';
 
 // Per-permission icons for a more modern look
 const PERMISSION_ICONS: Record<string, React.ReactNode> = {
@@ -113,6 +116,14 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   Server: <Server size={18} />,
 };
 
+const AGENT_TOOLS_KEY = 'agent_enabled_tools';
+
+interface AgentTool {
+  id: string;
+  name: string;
+  image?: string;
+}
+
 interface AgentPermissionsDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -137,6 +148,67 @@ const AgentPermissionsDrawer = ({ open, onClose }: AgentPermissionsDrawerProps) 
   );
   const [activeTab, setActiveTab] = useState(0);
   const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
+
+  // Agent tools state
+  const [agentTools, setAgentTools] = useState<AgentTool[]>([]);
+  const [enabledTools, setEnabledTools] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(AGENT_TOOLS_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
+  const [toolsLoading, setToolsLoading] = useState(false);
+  const [toolsPopover, setToolsPopover] = useState<{ anchor: HTMLElement; tool: AgentTool } | null>(null);
+
+  // Fetch authenticated apps for tools list
+  const fetchAgentTools = useCallback(async () => {
+    if (!API_CONFIG.apiKey) return;
+    setToolsLoading(true);
+    try {
+      const resp = await fetch(getApiUrl('/api/v1/apps/authentication'), {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      });
+      if (resp.ok) {
+        const result = await resp.json();
+        const authData = Array.isArray(result) ? result : (result.data || []);
+        const deduped = deduplicateAuthApps(authData.filter((a: any) => a.active || a.validation?.valid));
+        const tools: AgentTool[] = deduped
+          .filter(d => d.hasValidAuth)
+          .map(({ app, bestImage }) => ({
+            id: app.id,
+            name: app.name,
+            image: bestImage || app.large_image || '',
+          }));
+        setAgentTools(tools);
+
+        // If nothing stored yet, enable all by default
+        const stored = localStorage.getItem(AGENT_TOOLS_KEY);
+        if (!stored) {
+          const allNames = new Set(tools.map(t => t.name));
+          setEnabledTools(allNames);
+          localStorage.setItem(AGENT_TOOLS_KEY, JSON.stringify([...allNames]));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch agent tools:', err);
+    }
+    setToolsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (open) fetchAgentTools();
+  }, [open, fetchAgentTools]);
+
+  const toggleTool = (name: string) => {
+    setEnabledTools(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      localStorage.setItem(AGENT_TOOLS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+    setToolsPopover(null);
+  };
 
   // Always reset to Permissions tab when the drawer opens
   useState(() => {
@@ -375,24 +447,160 @@ const AgentPermissionsDrawer = ({ open, onClose }: AgentPermissionsDrawerProps) 
                 {/* Tools / Integrations the agent can use */}
                 <Box sx={{
                   mb: 3,
-                  px: 2,
-                  py: 2,
-                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  bgcolor: 'hsl(var(--muted) / 0.4)',
                   border: '1px solid hsl(var(--border))',
-                  bgcolor: 'hsl(var(--background))',
+                  borderRadius: 1.5,
+                  px: 0.75,
+                  py: 0.5,
+                  flexWrap: 'wrap',
                 }}>
-                  <Typography sx={{
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'hsl(var(--muted-foreground))',
-                    mb: 1,
-                  }}>
-                    Tools
-                  </Typography>
-                  <IntegrationStatus collapsed={false} iconSize={24} />
+                  {toolsLoading ? (
+                    <CircularProgress size={16} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                  ) : (
+                    <>
+                      {agentTools.map(tool => {
+                        const isEnabled = enabledTools.has(tool.name);
+                        const displayName = tool.name.replace(/_/g, ' ');
+                        return (
+                          <Box key={tool.id} sx={{ position: 'relative' }}>
+                            <Tooltip title={displayName} placement="bottom">
+                              <IconButton
+                                onClick={(e) => setToolsPopover({ anchor: e.currentTarget, tool })}
+                                size="small"
+                                sx={{
+                                  width: 30,
+                                  height: 30,
+                                  border: '1px solid',
+                                  borderColor: isEnabled ? 'rgba(34, 197, 94, 0.20)' : 'transparent',
+                                  bgcolor: isEnabled ? 'rgba(34, 197, 94, 0.10)' : 'transparent',
+                                  borderRadius: 1,
+                                  opacity: isEnabled ? 1 : 0.35,
+                                  filter: isEnabled ? 'none' : 'grayscale(1)',
+                                  transition: 'opacity 0.15s ease, filter 0.15s ease',
+                                  '&:hover': {
+                                    bgcolor: isEnabled ? 'rgba(34, 197, 94, 0.18)' : 'rgba(255,255,255,0.1)',
+                                    opacity: isEnabled ? 1 : 0.7,
+                                    filter: 'none',
+                                  },
+                                }}
+                              >
+                                {tool.image ? (
+                                  <Box
+                                    component="img"
+                                    src={tool.image}
+                                    alt={tool.name}
+                                    sx={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'contain' }}
+                                  />
+                                ) : (
+                                  <Box sx={{
+                                    width: 18, height: 18, borderRadius: '50%',
+                                    bgcolor: 'hsl(var(--muted))',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '0.6rem', fontWeight: 600, color: 'hsl(var(--foreground))',
+                                  }}>
+                                    {tool.name.charAt(0).toUpperCase()}
+                                  </Box>
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        );
+                      })}
+                      <Tooltip title="Add Integration" placement="bottom">
+                        <IconButton
+                          component={Link}
+                          to="/onboarding"
+                          size="small"
+                          onClick={onClose}
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            color: 'hsl(var(--muted-foreground))',
+                            border: '1px dashed hsl(var(--border))',
+                            borderRadius: 1,
+                            '&:hover': {
+                              bgcolor: 'hsl(var(--muted))',
+                              borderStyle: 'solid',
+                              color: 'hsl(var(--primary))',
+                            },
+                          }}
+                        >
+                          <AddIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </>
+                  )}
                 </Box>
+
+                {/* Tool toggle popover */}
+                {toolsPopover && (
+                  <Popover
+                    open
+                    anchorEl={toolsPopover.anchor}
+                    onClose={() => setToolsPopover(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          mt: 0.5,
+                          bgcolor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: 1.5,
+                          p: 1.5,
+                          minWidth: 160,
+                        },
+                      },
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', textTransform: 'capitalize', mb: 1, display: 'block' }}>
+                      {toolsPopover.tool.name.replace(/_/g, ' ')}
+                      {!enabledTools.has(toolsPopover.tool.name) && (
+                        <Chip label="Disabled" size="small" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }} />
+                      )}
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      <Button
+                        component="a"
+                        href={`/apps/${toolsPopover.tool.name.toLowerCase()}`}
+                        target="_blank"
+                        size="small"
+                        startIcon={<Globe size={14} />}
+                        onClick={() => setToolsPopover(null)}
+                        sx={{
+                          justifyContent: 'flex-start',
+                          textTransform: 'none',
+                          fontSize: '0.75rem',
+                          color: 'hsl(var(--foreground))',
+                          px: 1, py: 0.5,
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                        }}
+                      >
+                        Visit app
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={enabledTools.has(toolsPopover.tool.name) ? <Ban size={14} /> : <Zap size={14} />}
+                        onClick={() => toggleTool(toolsPopover.tool.name)}
+                        sx={{
+                          justifyContent: 'flex-start',
+                          textTransform: 'none',
+                          fontSize: '0.75rem',
+                          color: enabledTools.has(toolsPopover.tool.name) ? 'hsl(var(--destructive))' : 'hsl(var(--severity-low))',
+                          px: 1, py: 0.5,
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: enabledTools.has(toolsPopover.tool.name) ? 'hsl(var(--destructive) / 0.1)' : 'hsla(var(--severity-low) / 0.1)' },
+                        }}
+                      >
+                        {enabledTools.has(toolsPopover.tool.name) ? 'Disable for Agent' : 'Enable for Agent'}
+                      </Button>
+                    </Box>
+                  </Popover>
+                )}
 
                 {/* Categories — all disabled */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.5, pointerEvents: 'none' }}>
