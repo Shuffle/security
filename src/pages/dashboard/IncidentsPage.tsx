@@ -796,9 +796,16 @@ const IncidentsPage = () => {
                           body: JSON.stringify({ execution_source: 'manual', start: '' }),
                         });
                         if (resp.ok) {
-                          toast.success('Sync started — new incidents will appear shortly');
-                          // Refresh incidents after a short delay
-                          setTimeout(() => fetchItems(), 3000);
+                          toast.success('Sync started — polling for new incidents…');
+                          // Poll every 5s for 30s
+                          let pollCount = 0;
+                          const pollInterval = setInterval(async () => {
+                            pollCount++;
+                            await fetchItems();
+                            if (pollCount >= 6) {
+                              clearInterval(pollInterval);
+                            }
+                          }, 5000);
                         } else {
                           toast.error('Failed to trigger sync');
                         }
