@@ -21,6 +21,7 @@ import {
   InputLabel,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import RestoreIcon from '@mui/icons-material/Restore';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import WebhookIcon from '@mui/icons-material/Webhook';
@@ -103,7 +104,8 @@ const automationConfigs = [
     color: '#10b981',
     apiIcon: '',
     apiType: 'singul',
-    hasConfig: false,
+    optionKey: 'prompts',
+    hasConfig: true,
   },
   {
     type: 'enrich',
@@ -160,6 +162,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   const [webhookUrl, setWebhookUrl] = useState('');
   const [ingestionApps, setIngestionApps] = useState<ValidatedIngestionApp[]>([]);
   const [securityRulesText, setSecurityRulesText] = useState('');
+  const [aiAgentPrompts, setAiAgentPrompts] = useState<string[]>(['']);
 
   const fetchIngestionApps = async () => {
     try {
@@ -272,6 +275,19 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           setSecurityRulesText(rulesOption.value);
         }
       }
+
+      const aiAutomation = existingByName.get('Run AI Agent');
+      if (aiAutomation?.options) {
+        const promptsOption = aiAutomation.options.find(o => o.key === 'prompts');
+        if (promptsOption?.value) {
+          const parsed = promptsOption.value.split('\n').filter(Boolean);
+          setAiAgentPrompts(parsed.length > 0 ? parsed : ['']);
+        } else {
+          setAiAgentPrompts(['']);
+        }
+      } else {
+        setAiAgentPrompts(['']);
+      }
     }
   }, [open, initialAutomations]);
 
@@ -315,6 +331,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           optionValue = webhookUrl;
         } else if (config.type === 'security_rules') {
           optionValue = securityRulesText;
+        } else if (config.type === 'ai_agent') {
+          optionValue = aiAgentPrompts.filter(p => p.trim()).join('\n');
         }
         
         const baseAutomation: AutomationApiFormat = {
@@ -640,6 +658,56 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                     </Box>
                   )}
 
+                  {/* AI Agent Configuration - multiple prompts */}
+                  {automation.enabled && automation.type === 'ai_agent' && (
+                    <Box sx={{ px: 2, pb: 2, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {aiAgentPrompts.map((prompt, idx) => (
+                        <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            placeholder={`Prompt ${idx + 1}...`}
+                            value={prompt}
+                            onChange={(e) => {
+                              const updated = [...aiAgentPrompts];
+                              updated[idx] = e.target.value;
+                              setAiAgentPrompts(updated);
+                              setHasChanges(true);
+                            }}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                bgcolor: 'rgba(0,0,0,0.2)',
+                                fontSize: '0.85rem',
+                              },
+                            }}
+                          />
+                          {aiAgentPrompts.length > 1 && (
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setAiAgentPrompts(aiAgentPrompts.filter((_, i) => i !== idx));
+                                setHasChanges(true);
+                              }}
+                              sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444' } }}
+                            >
+                              <CloseIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          )}
+                        </Box>
+                      ))}
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setAiAgentPrompts([...aiAgentPrompts, '']);
+                          setHasChanges(true);
+                        }}
+                        sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: '0.8rem', color: '#10b981' }}
+                      >
+                        + Add prompt
+                      </Button>
+                    </Box>
+                  )}
+
                   {/* Webhook Configuration */}
                   {automation.enabled && automation.type === 'webhook' && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
@@ -761,7 +829,23 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
 
-      <DialogActions sx={{ px: 4, py: 2.5, justifyContent: 'flex-end' }}>
+      <DialogActions sx={{ px: 4, py: 2.5, justifyContent: 'space-between' }}>
+        <Button
+          size="small"
+          startIcon={<RestoreIcon />}
+          onClick={() => {
+            setAutomations(automations.map(a => {
+              if (a.type === 'enrich') return { ...a, enabled: true, trigger: 'on_edit' as const };
+              if (a.type === 'security_rules') return { ...a, enabled: true, trigger: 'on_edit' as const };
+              return a;
+            }));
+            setSecurityRulesText('merge if always; deny if has_deleted_field');
+            setHasChanges(true);
+          }}
+          sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.8rem' }}
+        >
+          Reset to default
+        </Button>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
           <Button onClick={onClose} disabled={isSaving}>
             Cancel
