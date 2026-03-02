@@ -513,12 +513,6 @@ export const IncidentCardView = ({
                 />
               </Box>
 
-              {/* Chevron - only show on hover, hide in selection mode */}
-              {!showCheck && (
-                <Box sx={{ opacity: hoveredId === incident.id ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-                  <ChevronRight size={20} color="hsl(var(--muted-foreground))" />
-                </Box>
-              )}
             </Box>
           </motion.div>
         );
