@@ -1379,7 +1379,14 @@ const IncidentDetailPage = () => {
               <FormControl size="small" variant="standard">
                 <Select
                   value={editedStatus}
-                  onChange={(e) => setEditedStatus(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'resolved') {
+                      setShowResolveDialog(true);
+                      return;
+                    }
+                    setEditedStatus(val);
+                  }}
                   disableUnderline
                   sx={{
                     fontSize: '0.7rem',
