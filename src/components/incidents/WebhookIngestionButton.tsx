@@ -72,7 +72,7 @@ export const WebhookIngestionButton = ({ webhook, onToggled }: WebhookIngestionB
           headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
             label: 'Ingest Tickets_webhook',
-            action: 'remove',
+            action_name: 'remove',
           }),
         });
         if (!res.ok) throw new Error('Failed to remove webhook workflow');
