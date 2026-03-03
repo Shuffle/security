@@ -108,9 +108,10 @@ const App = () => (
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
-            {/* App detail: uses sidebar when authenticated, standalone when guest */}
+            {/* App detail & usecase detail: uses sidebar when authenticated, standalone when guest */}
             <Route element={<ConditionalDashboardLayout />}>
               <Route path="/apps/:appname" element={<AppDetailPage />} />
+              <Route path="/usecases/:flowId" element={<DataFlowDetailPage />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
