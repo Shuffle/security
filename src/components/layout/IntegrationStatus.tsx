@@ -34,9 +34,13 @@ interface IntegrationStatusProps {
   onDisable?: (name: string) => void;
   /** Set of app names that are currently disabled */
   disabledApps?: Set<string>;
+  /** Show all integrations without truncation */
+  showAll?: boolean;
+  /** Hide the Add Integration button */
+  hideAddButton?: boolean;
 }
 
-export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps }: IntegrationStatusProps) => {
+export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps, showAll, hideAddButton }: IntegrationStatusProps) => {
   const [allIntegrations, setAllIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -48,9 +52,9 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
     ? allIntegrations.filter(i => filterApps.some(f => f.toLowerCase() === i.name.toLowerCase()))
     : allIntegrations;
 
-  const defaultLimit = collapsed ? 4 : 8;
-  const displayLimit = expanded ? integrations.length : defaultLimit;
-  const hasMore = integrations.length > defaultLimit;
+  const defaultLimit = showAll ? integrations.length : (collapsed ? 4 : 8);
+  const displayLimit = showAll ? integrations.length : (expanded ? integrations.length : defaultLimit);
+  const hasMore = !showAll && integrations.length > defaultLimit;
 
   // Fetch enabled integrations from API
   useEffect(() => {
@@ -386,6 +390,7 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
             )}
             
             {/* Add button */}
+            {!hideAddButton && (
             <Tooltip title="Add Integration" placement="bottom">
               {onAddClick ? (
                 <IconButton
@@ -426,6 +431,7 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
                 </IconButton>
               )}
             </Tooltip>
+            )}
           </>
         )}
       </Box>
