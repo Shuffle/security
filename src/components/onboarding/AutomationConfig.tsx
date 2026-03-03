@@ -1581,7 +1581,7 @@ export const AutomationConfig = ({
 
       {/* Connected Apps — reuse sidebar component */}
       <Box sx={{ mb: 3 }}>
-        <IntegrationStatus collapsed={false} iconSize={30} />
+        <IntegrationStatus collapsed={false} iconSize={30} showAll hideAddButton />
       </Box>
 
       {/* Automation Sections */}
