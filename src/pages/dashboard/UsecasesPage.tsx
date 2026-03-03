@@ -228,7 +228,7 @@ export default function UsecasesPage() {
             }}
           >
             {group.flows.map((flow) => (
-              <UsecaseCard key={flow.id} flow={flow} drift={getDrift(flow.id)} apiLoaded={apiLoaded} onClick={() => navigate(`/infrastructure/flows/${flow.id}`)} />
+              <UsecaseCard key={flow.id} flow={flow} drift={getDrift(flow.id)} apiLoaded={apiLoaded} onClick={() => navigate(`/usecases/${flow.id}`)} />
             ))}
           </Box>
         </Box>

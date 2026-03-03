@@ -309,8 +309,8 @@ const DataFlowDetailPage = () => {
         <Typography sx={{ fontSize: '1.2rem', color: 'hsl(var(--muted-foreground))', mb: 2 }}>
           Data flow not found
         </Typography>
-        <Button onClick={() => navigate('/infrastructure')} sx={{ color: 'hsl(var(--primary))', textTransform: 'none' }}>
-          ← Back to Infrastructure
+        <Button onClick={() => navigate('/usecases')} sx={{ color: 'hsl(var(--primary))', textTransform: 'none' }}>
+          ← Back to Usecases
         </Button>
       </Box>
     );
@@ -336,7 +336,7 @@ const DataFlowDetailPage = () => {
       {/* Back nav */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <Button
-          onClick={() => navigate('/infrastructure')}
+          onClick={() => navigate('/usecases')}
           startIcon={<ArrowLeft size={14} />}
           sx={{
             color: 'hsl(var(--muted-foreground))',
@@ -346,7 +346,7 @@ const DataFlowDetailPage = () => {
             '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
           }}
         >
-          Infrastructure
+          Usecases
         </Button>
       </Box>
 
@@ -596,7 +596,7 @@ const DataFlowDetailPage = () => {
                 return (
                   <Box
                     key={rf.id}
-                    onClick={() => navigate(`/infrastructure/flows/${rf.id}`)}
+                    onClick={() => navigate(`/usecases/${rf.id}`)}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -629,7 +629,7 @@ const DataFlowDetailPage = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 2 }}>
         {prevFlow ? (
           <Button
-            onClick={() => navigate(`/infrastructure/flows/${prevFlow.id}`)}
+            onClick={() => navigate(`/usecases/${prevFlow.id}`)}
             startIcon={<ArrowLeft size={14} />}
             sx={{
               color: 'hsl(var(--muted-foreground))',
@@ -644,7 +644,7 @@ const DataFlowDetailPage = () => {
         ) : <Box />}
         {nextFlow ? (
           <Button
-            onClick={() => navigate(`/infrastructure/flows/${nextFlow.id}`)}
+            onClick={() => navigate(`/usecases/${nextFlow.id}`)}
             endIcon={<ArrowRight size={14} />}
             sx={{
               color: 'hsl(var(--muted-foreground))',
