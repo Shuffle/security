@@ -468,7 +468,7 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
           <Tab
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                Local Model
+                Local LLM
                 {hasOpenAIAuth && <CheckCircle2 size={13} style={{ color: 'hsl(142, 71%, 45%)' }} />}
               </Box>
             }
@@ -1145,7 +1145,7 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
         )}
 
         {activeTab === 2 && (
-          /* ── Local Model Tab ── */
+          /* ── Local LLM Tab ── */
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <Box sx={{
               px: 2.5,
