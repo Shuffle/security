@@ -18,7 +18,7 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle } from 'lucide-react';
+import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
   FLOW_PHASES,
@@ -102,21 +102,34 @@ export default function UsecasesPage() {
             All data flows across your security stack — grouped by implementation phase.
           </Typography>
         </Box>
-        <Chip
-          icon={<Activity size={14} />}
-          label="Infrastructure"
+        <Box
           component={Link}
           to="/infrastructure"
-          clickable
-          size="small"
           sx={{
-            bgcolor: 'hsl(var(--muted))',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 2,
+            py: 1,
+            borderRadius: 1.5,
+            border: '1px solid hsl(var(--border))',
+            bgcolor: 'hsl(var(--card))',
             color: 'hsl(var(--foreground))',
+            textDecoration: 'none',
+            fontSize: '0.85rem',
             fontWeight: 500,
-            mt: 0.5,
-            '&:hover': { bgcolor: 'hsl(var(--muted-foreground) / 0.2)' },
+            transition: 'all 0.15s ease',
+            '&:hover': {
+              bgcolor: 'hsl(var(--muted))',
+              borderColor: 'hsl(var(--primary) / 0.4)',
+              boxShadow: '0 2px 8px hsl(var(--primary) / 0.1)',
+            },
           }}
-        />
+        >
+          <Network size={16} />
+          Infrastructure
+          <ArrowRight size={14} style={{ opacity: 0.5 }} />
+        </Box>
       </Box>
 
       {/* Filters */}
