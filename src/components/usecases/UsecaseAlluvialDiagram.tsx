@@ -18,6 +18,7 @@ import {
   EDR_PATTERNS,
   EMAIL_APP_PATTERNS,
   findIngestTicketsWorkflow,
+  findForwardTicketsWorkflow,
   extractWorkflowAppNames,
   normalizeAppName,
 } from '@/lib/ingestionDetection';
@@ -175,6 +176,7 @@ export default function UsecaseAlluvialDiagram({
 }: UsecaseAlluvialDiagramProps) {
   const [allApps, setAllApps] = useState<AppNode[]>([]);
   const [ingestAppNames, setIngestAppNames] = useState<Set<string> | null>(null);
+  const [forwardAppNames, setForwardAppNames] = useState<Set<string> | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch authenticated + active apps, and ingest workflow
@@ -241,7 +243,7 @@ export default function UsecaseAlluvialDiagram({
           } catch (_) {}
         }
 
-        // Parse ingest workflow
+        // Parse ingest & forward workflows
         if (workflowsRes.ok) {
           try {
             const wfData = await workflowsRes.json();
@@ -249,6 +251,10 @@ export default function UsecaseAlluvialDiagram({
             const ingestWf = findIngestTicketsWorkflow(workflows);
             if (ingestWf) {
               setIngestAppNames(extractWorkflowAppNames(ingestWf));
+            }
+            const forwardWf = findForwardTicketsWorkflow(workflows);
+            if (forwardWf) {
+              setForwardAppNames(extractWorkflowAppNames(forwardWf));
             }
           } catch (_) {}
         }
@@ -279,10 +285,16 @@ export default function UsecaseAlluvialDiagram({
     return allApps.filter(a => matchesCategory(a.name, sourceCategory));
   }, [allApps, sourceCategory, highlightCategory, ingestAppNames]);
 
-  const targetApps = useMemo(
-    () => allApps.filter(a => matchesCategory(a.name, targetCategory)),
-    [allApps, targetCategory],
-  );
+  // Target/destination apps: use Forward Tickets workflow as source of truth when available
+  const targetApps = useMemo(() => {
+    if (highlightCategory && forwardAppNames && forwardAppNames.size > 0) {
+      // Show apps from the Forward Tickets workflow that match the target category
+      return allApps.filter(a =>
+        forwardAppNames.has(normalizeAppName(a.name)) && matchesCategory(a.name, targetCategory)
+      );
+    }
+    return allApps.filter(a => matchesCategory(a.name, targetCategory));
+  }, [allApps, targetCategory, highlightCategory, forwardAppNames]);
 
   const sourceMeta = TOOL_CATEGORIES.find(c => c.id === sourceCategory);
   const targetMeta = TOOL_CATEGORIES.find(c => c.id === targetCategory);
