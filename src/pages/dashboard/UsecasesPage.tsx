@@ -13,8 +13,6 @@ import {
   TextField,
   InputAdornment,
   Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
   Select as MuiSelect,
   MenuItem,
   FormControl,
@@ -166,32 +164,25 @@ export default function UsecasesPage() {
           </MuiSelect>
         </FormControl>
 
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={phaseFilter}
-          onChange={(_, v) => v && setPhaseFilter(v)}
-          sx={{
-            '& .MuiToggleButton-root': {
-              textTransform: 'none',
-              color: 'hsl(var(--muted-foreground))',
-              borderColor: 'hsl(var(--border))',
-              fontSize: '0.8rem',
-              px: 1.5,
-              '&.Mui-selected': {
-                bgcolor: 'hsl(var(--accent))',
-                color: 'hsl(var(--accent-foreground))',
-              },
-            },
-          }}
-        >
-          <ToggleButton value="all">All</ToggleButton>
-          {FLOW_PHASES.map((p) => (
-            <ToggleButton key={p.id} value={p.id}>
-              {p.step}. {p.label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel sx={{ color: 'hsl(var(--muted-foreground))' }}>Phase</InputLabel>
+          <MuiSelect
+            value={phaseFilter}
+            label="Phase"
+            onChange={(e) => setPhaseFilter(e.target.value as FlowPhase | 'all')}
+            sx={{
+              bgcolor: 'hsl(var(--card))',
+              color: 'hsl(var(--foreground))',
+              '& fieldset': { borderColor: 'hsl(var(--border))' },
+              '& .MuiSelect-icon': { color: 'hsl(var(--muted-foreground))' },
+            }}
+          >
+            <MenuItem value="all">All Phases</MenuItem>
+            {FLOW_PHASES.map((p) => (
+              <MenuItem key={p.id} value={p.id}>{p.step}. {p.label}</MenuItem>
+            ))}
+          </MuiSelect>
+        </FormControl>
       </Box>
 
       {/* Grouped card grid */}
