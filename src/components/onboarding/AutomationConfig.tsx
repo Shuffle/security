@@ -401,13 +401,16 @@ export const AutomationConfig = ({
       if (opt.id === 'forward_updates') {
         // Use the same categorized ingestionSources UI as automatic_ingestion
         const forwardSources: IngestionSource[] = [
-          { category: 'email', label: 'Email', apps: sortApps(ingestionByCategory.email) },
           { category: 'cases', label: 'Cases', apps: sortApps(ingestionByCategory.cases) },
-          { category: 'edr', label: 'EDR', apps: sortApps(ingestionByCategory.edr) },
-          { category: 'siem', label: 'SIEM', apps: sortApps(ingestionByCategory.siem) },
         ];
-        if (ingestionByCategory.other.length > 0) {
-          forwardSources.push({ category: 'other', label: 'Other', apps: sortApps(ingestionByCategory.other), isOther: true });
+        const otherForwardApps = [
+          ...sortApps(ingestionByCategory.email),
+          ...sortApps(ingestionByCategory.edr),
+          ...sortApps(ingestionByCategory.siem),
+          ...sortApps(ingestionByCategory.other),
+        ];
+        if (otherForwardApps.length > 0) {
+          forwardSources.push({ category: 'other', label: 'Other', apps: otherForwardApps, isOther: true });
         }
         const fwdTotal = forwardSources.flatMap(s => s.apps).length;
         const fwdValidated = forwardSources.flatMap(s => s.apps).filter(a => a.isValidated).length;
