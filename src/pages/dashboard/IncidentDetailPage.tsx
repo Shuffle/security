@@ -1394,12 +1394,16 @@ const IncidentDetailPage = () => {
                   }}
                   renderValue={(val) => statusConfig[val]?.label || val.replace('_', ' ')}
                 >
-                  {Object.entries(statusConfig).map(([key, cfg]) => (
-                    <MenuItem key={key} value={key} sx={{ fontSize: '0.8rem', gap: 1 }}>
-                      <cfg.icon size={14} color={cfg.color} />
-                      {cfg.label}
-                    </MenuItem>
-                  ))}
+                  {Object.entries(statusConfig).map(([key, cfg]) => {
+                    const isDisabled = key === 'on_hold' || key === 'escalated';
+                    return (
+                      <MenuItem key={key} value={key} disabled={isDisabled} sx={{ fontSize: '0.8rem', gap: 1, opacity: isDisabled ? 0.4 : 1 }}>
+                        <cfg.icon size={14} color={cfg.color} />
+                        {cfg.label}
+                        {isDisabled && <Typography component="span" sx={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', ml: 'auto' }}>Soon</Typography>}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
               
