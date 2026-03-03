@@ -45,7 +45,6 @@ export const WebhookIngestionButton = ({ webhook, onToggled }: WebhookIngestionB
   };
 
   const handleToggle = async () => {
-    if (!webhook.workflowId) return;
 
     const willBeEnabled = !isEnabled;
     setOptimisticEnabled(willBeEnabled);
