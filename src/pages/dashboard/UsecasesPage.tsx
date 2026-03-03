@@ -12,18 +12,19 @@ import {
   Chip,
   TextField,
   InputAdornment,
+  Tooltip,
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
-import { Search, ArrowRight, Download, Zap, Activity } from 'lucide-react';
+import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
-  DEFAULT_USECASES,
   FLOW_PHASES,
   TOOL_CATEGORIES,
   type FlowPhase,
   type Usecase,
 } from '@/config/usecases';
+import { useUsecases, type UsecaseDrift } from '@/hooks/useUsecases';
 import UsecaseAlluvialDiagram from '@/components/usecases/UsecaseAlluvialDiagram';
 
 const categoryLabel = (id: string) =>
@@ -42,9 +43,10 @@ export default function UsecasesPage() {
   const [phaseFilter, setPhaseFilter] = useState<FlowPhase | 'all'>('all');
 
   const navigate = useNavigate();
+  const { usecases, apiLoaded, getDrift } = useUsecases();
 
   const filtered = useMemo(() => {
-    let list = DEFAULT_USECASES;
+    let list = usecases;
     if (phaseFilter !== 'all') {
       list = list.filter((u) => u.phase === phaseFilter);
     }
@@ -60,7 +62,7 @@ export default function UsecasesPage() {
       );
     }
     return list;
-  }, [search, phaseFilter]);
+  }, [search, phaseFilter, usecases]);
 
   // Group by phase in order
   const grouped = useMemo(() => {
@@ -202,7 +204,7 @@ export default function UsecasesPage() {
             }}
           >
             {group.flows.map((flow) => (
-              <UsecaseCard key={flow.id} flow={flow} onClick={() => navigate(`/infrastructure/flows/${flow.id}`)} />
+              <UsecaseCard key={flow.id} flow={flow} drift={getDrift(flow.id)} apiLoaded={apiLoaded} onClick={() => navigate(`/infrastructure/flows/${flow.id}`)} />
             ))}
           </Box>
         </Box>
@@ -217,9 +219,34 @@ export default function UsecasesPage() {
   );
 }
 
-function UsecaseCard({ flow, onClick }: { flow: Usecase; onClick: () => void }) {
+function UsecaseCard({ flow, drift, apiLoaded, onClick }: { flow: Usecase; drift?: UsecaseDrift; apiLoaded: boolean; onClick: () => void }) {
   const sourceCat = categoryLabel(flow.source);
   const targetCat = categoryLabel(flow.target);
+
+  // Determine sync status
+  const isSynced = drift && drift.drifts.length === 0; // matched with no drift
+  const isLocalOnly = !drift || drift.drifts.includes('local_only');
+  const hasDrift = drift && drift.drifts.length > 0 && !isLocalOnly;
+
+  const syncIcon = !apiLoaded ? null : isSynced ? (
+    <Tooltip title="Synced with API" placement="top" arrow>
+      <Box sx={{ display: 'inline-flex' }}>
+        <CheckCircle2 size={14} style={{ color: 'hsl(var(--severity-low))' }} />
+      </Box>
+    </Tooltip>
+  ) : hasDrift ? (
+    <Tooltip title={`Drift detected: ${drift!.drifts.join(', ')}`} placement="top" arrow>
+      <Box sx={{ display: 'inline-flex' }}>
+        <AlertTriangle size={14} style={{ color: 'hsl(var(--severity-medium))' }} />
+      </Box>
+    </Tooltip>
+  ) : (
+    <Tooltip title="Not found in API" placement="top" arrow>
+      <Box sx={{ display: 'inline-flex' }}>
+        <Circle size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
+      </Box>
+    </Tooltip>
+  );
 
   return (
     <Card
@@ -235,10 +262,13 @@ function UsecaseCard({ flow, onClick }: { flow: Usecase; onClick: () => void }) 
       }}
     >
       <CardActionArea onClick={onClick} sx={{ p: 2.5, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', height: '100%' }}>
-        {/* Label */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', mb: 0.5 }}>
-          {flow.label}
-        </Typography>
+        {/* Label + sync icon */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, width: '100%' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', flexGrow: 1 }}>
+            {flow.label}
+          </Typography>
+          {syncIcon}
+        </Box>
 
         {/* Source → Target */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
