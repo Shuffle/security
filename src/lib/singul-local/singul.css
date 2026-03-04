@@ -212,7 +212,7 @@
 .singul-results-grid .singul-dropdown-item {
   border: 1px solid var(--singul-item-border);
   border-radius: var(--singul-dropdown-border-radius);
-  max-height: 120px;
+  padding: 10px 12px;
   overflow: hidden;
 }
 
@@ -293,82 +293,62 @@
   white-space: nowrap;
 }
 
-/* Authentication Badge - Base */
-.singul-auth-badge {
+/* Status Dot — overlaid on app icon */
+.singul-status-dot {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(0, 0, 0, 0.3);
-}
-
-.singul-auth-badge svg {
+  bottom: -2px;
+  right: -2px;
   width: 10px;
   height: 10px;
-  color: white;
+  border-radius: 50%;
+  border: 2px solid rgba(17, 17, 17, 0.9);
+  pointer-events: none;
 }
 
-/* Validated Badge - Green (tests passed) */
-.singul-validated-badge {
+.singul-dot-validated {
   background-color: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
 }
 
-/* Configured Badge - Orange (credentials entered but not tested) */
-.singul-configured-badge {
+.singul-dot-configured {
   background-color: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
 }
 
-/* Auth Chips Container */
-.singul-auth-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
+.singul-dot-inactive {
+  background-color: rgba(156, 163, 175, 0.5);
 }
 
-/* Auth Labels */
-.singul-auth-label {
-  display: inline-block;
-  padding: 2px 6px;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.singul-validated-label {
-  background-color: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-.singul-configured-label {
-  background-color: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-}
-
-.singul-not-configured-label {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-}
-
-.singul-not-tested-label {
-  background-color: rgba(156, 163, 175, 0.15);
-  color: #9ca3af;
-}
-
-/* Item states */
+/* Item border colors based on auth state */
 .singul-dropdown-item.singul-validated {
   border-color: rgba(34, 197, 94, 0.3);
 }
 
 .singul-dropdown-item.singul-configured {
   border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Grid items: compact icon */
+.singul-results-grid .singul-app-icon,
+.singul-dropdown-grid .singul-app-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.singul-results-grid .singul-app-info,
+.singul-dropdown-grid .singul-app-info {
+  gap: 8px;
+  align-items: center;
+}
+
+/* Grid items: tighter category chip */
+.singul-results-grid .singul-app-category,
+.singul-dropdown-grid .singul-app-category {
+  margin-top: 2px;
+  font-size: 9px;
+  padding: 1px 6px;
 }
 
 .singul-checkbox {
