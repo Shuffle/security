@@ -339,7 +339,10 @@ const DetectionOnboardingPage = () => {
   // Helper to get pipeline count
   const getPipelineCount = (env: Environment): number => {
     if (!env.data_lake?.pipelines) return 0;
-    return Array.isArray(env.data_lake.pipelines) ? env.data_lake.pipelines.length : 0;
+    const p = env.data_lake.pipelines;
+    if (Array.isArray(p)) return p.length;
+    if (typeof p === 'object') return Object.keys(p).length;
+    return 0;
   };
 
   // Helper to check if detection pipeline is ready (data_lake.enabled = true)
