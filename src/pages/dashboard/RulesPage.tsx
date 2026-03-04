@@ -746,9 +746,27 @@ const RulesPage = () => {
                       <Tooltip title="Download">
                         <IconButton
                           size="small"
-                          component="a"
-                          href={getFileDownloadUrl(file.id)}
-                          target="_blank"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(getFileDownloadUrl(file.id), {
+                                credentials: 'include',
+                                headers: getAuthHeader(),
+                              });
+                              if (!response.ok) throw new Error('Download failed');
+                              const blob = await response.blob();
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = file.filename.endsWith('.yml') ? file.filename : `${file.filename}.yml`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            } catch (e) {
+                              console.error('Download error:', e);
+                              toast.error('Failed to download file');
+                            }
+                          }}
                           sx={{ color: 'hsl(var(--muted-foreground))' }}
                         >
                           <DownloadIcon fontSize="small" />
