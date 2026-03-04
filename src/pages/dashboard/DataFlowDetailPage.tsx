@@ -267,7 +267,7 @@ const DataFlowDetailPage = () => {
           Data flow not found
         </Typography>
         <Button onClick={() => navigate('/usecases')} sx={{ color: 'hsl(var(--primary))', textTransform: 'none' }}>
-          ← Back to Usecases
+          ← Back to Automations
         </Button>
       </Box>
     );
@@ -303,7 +303,7 @@ const DataFlowDetailPage = () => {
             '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
           }}
         >
-          Usecases
+          Automations
         </Button>
       </Box>
 

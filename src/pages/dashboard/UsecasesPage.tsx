@@ -39,7 +39,7 @@ const phaseIcon = (phase: FlowPhase) => {
 };
 
 export default function UsecasesPage() {
-  usePageMeta({ title: 'Usecases', description: 'Overview of all security data flows grouped by implementation phase.' });
+  usePageMeta({ title: 'Automations', description: 'Overview of all security data flows grouped by implementation phase.' });
 
   const [search, setSearch] = useState('');
   const [phaseFilter, setPhaseFilter] = useState<FlowPhase | 'all'>('all');
@@ -96,7 +96,7 @@ export default function UsecasesPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: 'hsl(var(--foreground))' }}>
-            Usecases
+            Automations
           </Typography>
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
             All data flows across your security stack — grouped by implementation phase.
@@ -136,7 +136,7 @@ export default function UsecasesPage() {
       <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
-          placeholder="Search usecases…"
+          placeholder="Search automations…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{
@@ -259,7 +259,7 @@ export default function UsecasesPage() {
 
       {filtered.length === 0 && (
         <Typography sx={{ color: 'hsl(var(--muted-foreground))', textAlign: 'center', py: 8 }}>
-          No usecases match your search.
+          No automations match your search.
         </Typography>
       )}
     </Box>
