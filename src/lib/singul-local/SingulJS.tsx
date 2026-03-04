@@ -329,36 +329,29 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
       >
         <div className="singul-app-info" style={customStyles.appInfo}>
           {app.image_url && (
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <img
                 src={app.image_url}
                 alt={app.name}
                 className="singul-app-icon"
                 style={customStyles.appIcon}
               />
+              {/* Color-coded status dot */}
+              {!hideAuthStatus && (
+                <span
+                  className={`singul-status-dot ${
+                    authState.validated ? 'singul-dot-validated' :
+                    authState.configured ? 'singul-dot-configured' :
+                    'singul-dot-inactive'
+                  }`}
+                />
+              )}
             </div>
           )}
           <div className="singul-app-details" style={customStyles.appDetails}>
             <span className="singul-app-name" style={customStyles.appName}>
               {app.name.replace(/_/g, ' ')}
             </span>
-            {/* Show both status chips - only if not hidden */}
-            {!hideAuthStatus && (
-              <div className="singul-auth-chips">
-                {!authState.validated && (
-                  authState.configured ? (
-                    <span className="singul-auth-label singul-configured-label">Configured</span>
-                  ) : (
-                    <span className="singul-auth-label singul-not-configured-label">Not configured</span>
-                  )
-                )}
-                {authState.validated ? (
-                  <span className="singul-auth-label singul-validated-label">Tested</span>
-                ) : (
-                  <span className="singul-auth-label singul-not-tested-label">Not tested</span>
-                )}
-              </div>
-            )}
             {showDescription && app.description && (
               <span className="singul-app-description" style={customStyles.appDescription}>
                 {app.description}
