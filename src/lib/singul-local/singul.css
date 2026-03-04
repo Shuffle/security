@@ -316,8 +316,8 @@
 }
 
 .singul-dot-activated {
-  background-color: #3b82f6;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+  background-color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
 }
 
 .singul-dot-inactive {
