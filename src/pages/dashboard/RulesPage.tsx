@@ -720,46 +720,42 @@ const RulesPage = () => {
       </Box>
 
       {/* Table */}
-      <Card sx={{ 
-        backgroundColor: 'hsl(var(--card))', 
-        border: '1px solid hsl(var(--border))',
-        borderRadius: 2,
-      }}>
-        {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress size={32} sx={{ color: 'hsl(var(--primary))' }} />
-          </Box>
-        ) : filteredFiles.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <SecurityIcon sx={{ fontSize: 48, color: 'hsl(var(--muted-foreground))', mb: 2 }} />
-            <Typography sx={{ color: 'hsl(var(--muted-foreground))' }}>
-              {searchQuery ? 'No rules match your search' : 'No Sigma rules uploaded yet'}
-            </Typography>
-            {!searchQuery && (
-              <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mt: 1 }}>
-                Upload .yml or .yaml files to get started
-              </Typography>
-            )}
-          </Box>
-        ) : (
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}>
+          <CircularProgress size={32} sx={{ color: 'hsl(var(--primary))' }} />
+        </Box>
+      ) : filteredFiles.length === 0 ? (
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.9rem' }}>
+            {searchQuery ? 'No rules match your search' : 'No rules uploaded yet. Upload .yml or .yaml files to get started.'}
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{
+          border: '1px solid hsl(var(--border))',
+          borderRadius: 1.5,
+          overflow: 'hidden',
+        }}>
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground font-medium">Filename</TableHead>
-                <TableHead className="text-muted-foreground font-medium">Labels</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-right">Actions</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs" style={{ width: '45%', maxWidth: 0 }}>Rule</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs w-[30%]">Labels</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs w-[25%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredFiles.map((file) => (
-                <TableRow key={file.id} className="border-b border-border">
-                  <TableCell className="font-medium text-foreground">
+                <TableRow key={file.id} className="border-b border-border hover:bg-muted/50">
+                  <TableCell className="py-3" style={{ maxWidth: 0 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <SecurityIcon sx={{ color: 'hsl(var(--primary))', fontSize: 18 }} />
-                      {file.filename}
+                      <SecurityIcon sx={{ color: 'hsl(var(--primary))', fontSize: 18, flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, color: 'hsl(var(--foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {file.filename}
+                      </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3">
                     <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                       {file.labels?.map((label) => (
                         <Chip
@@ -768,7 +764,8 @@ const RulesPage = () => {
                           size="small"
                           sx={{
                             height: 22,
-                            fontSize: '0.75rem',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
                             backgroundColor: 'hsl(var(--muted))',
                             color: 'hsl(var(--muted-foreground))',
                             border: '1px solid hsl(var(--border))',
@@ -777,15 +774,15 @@ const RulesPage = () => {
                       ))}
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3">
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                       <Tooltip title="Edit">
                         <IconButton
                           size="small"
                           onClick={() => handleEditFile(file)}
-                          sx={{ color: 'hsl(var(--muted-foreground))' }}
+                          sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: '#FF6600' } }}
                         >
-                          <EditIcon fontSize="small" />
+                          <EditIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Download">
@@ -814,16 +811,16 @@ const RulesPage = () => {
                           }}
                           sx={{ color: 'hsl(var(--muted-foreground))' }}
                         >
-                          <DownloadIcon fontSize="small" />
+                          <DownloadIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
                         <IconButton
                           size="small"
                           onClick={() => handleDeleteFile(file)}
-                          sx={{ color: 'hsl(var(--destructive))' }}
+                          sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' } }}
                         >
-                          <DeleteIcon fontSize="small" />
+                          <DeleteIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                     </Box>
@@ -832,8 +829,8 @@ const RulesPage = () => {
               ))}
             </TableBody>
           </Table>
-        )}
-      </Card>
+        </Box>
+      )}
 
       {/* View Dialog */}
       <Dialog
