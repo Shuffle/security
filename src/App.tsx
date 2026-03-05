@@ -1,4 +1,5 @@
 import { ThemeProvider, CssBaseline, Box } from '@mui/material';
+import { AppDetailProvider } from '@/context/AppDetailContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -40,12 +41,12 @@ const ConditionalDashboardLayout = () => {
   if (isLoading) return <Outlet />;
   if (isAuthenticated) return <DashboardLayout />;
   return (
-    <>
+    <AppDetailProvider>
       <LandingNavbar />
       <Box sx={{ pt: '72px' }}>
         <Outlet />
       </Box>
-    </>
+    </AppDetailProvider>
   );
 };
 
