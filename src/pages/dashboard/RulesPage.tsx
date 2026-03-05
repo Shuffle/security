@@ -210,6 +210,7 @@ const RulesPage = () => {
   const [preAiContent, setPreAiContent] = useState<string | null>(null);
   const [loadingDefaultRules, setLoadingDefaultRules] = useState(false);
   const [hasValidSensor, setHasValidSensor] = useState(true);
+  const [aiPrompt, setAiPrompt] = useState('');
 
   useEffect(() => {
     const checkSensors = async () => {
@@ -459,16 +460,18 @@ const RulesPage = () => {
     }
     setIsGenerating(true);
     setPreAiContent(ruleContent);
+    const instruction = aiPrompt.trim()
+      ? `Modify this Sigma detection rule according to the following instruction: "${aiPrompt.trim()}". Only output the updated YAML, no explanation:\n\n${ruleContent}`
+      : `Improve and fix this Sigma detection rule. Keep the same intent but enhance the detection logic, fix any YAML issues, and add missing fields if appropriate. Only output the improved YAML, no explanation:\n\n${ruleContent}`;
     try {
-      const { success, result, error } = await askAI({
-        query: `Improve and fix this Sigma detection rule. Keep the same intent but enhance the detection logic, fix any YAML issues, and add missing fields if appropriate. Only output the improved YAML, no explanation:\n\n${ruleContent}`,
-      });
+      const { success, result, error } = await askAI({ query: instruction });
       if (success && result) {
         const cleaned = result.replace(/^```(?:ya?ml)?\n?/i, '').replace(/\n?```$/i, '').trim();
         setRuleContent(cleaned);
         setJustGenerated(true);
         setTimeout(() => setJustGenerated(false), 3000);
-        toast.success('Rule improved by AI');
+        setAiPrompt('');
+        toast.success('Rule updated by AI');
       } else {
         toast.error(error || 'Failed to improve rule');
         setPreAiContent(null);
@@ -484,6 +487,7 @@ const RulesPage = () => {
   const handleEditFile = async (file: ShuffleFile) => {
     setEditingFile(file);
     setSampleLog('');
+    setAiPrompt('');
     setPreAiContent(null);
     setJustGenerated(false);
     setIsCreateDialogOpen(true);
@@ -1067,22 +1071,47 @@ const RulesPage = () => {
                 )}
               </Box>
               {editingFile ? (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={isGenerating ? <CircularProgress size={14} color="inherit" /> : <AutoFixHighIcon sx={{ fontSize: 14 }} />}
-                  onClick={handleImproveWithAI}
-                  disabled={isGenerating || !ruleContent.trim()}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.75rem',
-                    borderColor: 'hsl(var(--border))',
-                    color: 'hsl(var(--primary))',
-                    '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
-                  }}
-                >
-                  {isGenerating ? 'Improving…' : 'Improve with AI'}
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    size="small"
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="e.g. Add more false positives, broaden detection…"
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleImproveWithAI(); } }}
+                    sx={{
+                      minWidth: 300,
+                      '& .MuiOutlinedInput-root': {
+                        height: 32,
+                        fontSize: '0.8rem',
+                        backgroundColor: 'hsl(var(--muted))',
+                        '& fieldset': { borderColor: 'hsl(var(--border))' },
+                        '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                        '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                      },
+                      '& .MuiOutlinedInput-input': {
+                        color: 'hsl(var(--foreground))',
+                        '&::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 1 },
+                      },
+                    }}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={isGenerating ? <CircularProgress size={14} color="inherit" /> : <AutoFixHighIcon sx={{ fontSize: 14 }} />}
+                    onClick={handleImproveWithAI}
+                    disabled={isGenerating || !ruleContent.trim()}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'nowrap',
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--primary))',
+                      '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
+                    }}
+                  >
+                    {isGenerating ? 'Improving…' : aiPrompt.trim() ? 'Apply' : 'Improve'}
+                  </Button>
+                </Box>
               ) : (
                 <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                   <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', mr: 0.5, lineHeight: '24px' }}>
