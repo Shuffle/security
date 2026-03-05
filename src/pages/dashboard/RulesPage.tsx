@@ -954,7 +954,8 @@ const RulesPage = () => {
           {editingFile ? 'Edit Sigma Rule' : 'Create Sigma Rule'}
         </DialogTitle>
         <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          {/* Sample Log + Generate */}
+          {/* Sample Log + Generate — only for new rules */}
+          {!editingFile && (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -1019,6 +1020,7 @@ const RulesPage = () => {
               ))}
             </Box>
           </Box>
+          )}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
