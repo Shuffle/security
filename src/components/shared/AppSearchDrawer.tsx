@@ -105,6 +105,8 @@ interface AppSearchDrawerProps {
   showPipelinesBanner?: boolean;
   /** If provided, selecting an app calls this instead of opening AppDetailDrawer */
   onQuickSelect?: (app: { name: string; icon: string; categories: string[] }) => void;
+  /** If provided, called before default behavior. Return true to prevent opening detail drawer. */
+  onSelectOverride?: (app: { name: string; icon: string; categories: string[] }) => boolean;
 }
 
 export default function AppSearchDrawer({
@@ -117,6 +119,7 @@ export default function AppSearchDrawer({
   width = 560,
   showPipelinesBanner = false,
   onQuickSelect,
+  onSelectOverride,
 }: AppSearchDrawerProps) {
   const [detailAppName, setDetailAppName] = useState<string | null>(null);
 
@@ -126,13 +129,17 @@ export default function AppSearchDrawer({
   };
 
   const handleAppSelected = (detail: AppSelectedEvent) => {
+    const appInfo = {
+      name: detail.app.name,
+      icon: detail.app.image_url || '',
+      categories: detail.app.categories || [],
+    };
     if (onQuickSelect) {
-      onQuickSelect({
-        name: detail.app.name,
-        icon: detail.app.image_url || '',
-        categories: detail.app.categories || [],
-      });
+      onQuickSelect(appInfo);
       onClose();
+      return;
+    }
+    if (onSelectOverride?.(appInfo)) {
       return;
     }
     setDetailAppName(detail.app.name);
