@@ -110,6 +110,7 @@ export default function AppDetailDrawer({
   const [isActivated, setIsActivated] = useState<boolean | null>(null);
   const [activatedAppId, setActivatedAppId] = useState<string | null>(null);
   const [activateLoading, setActivateLoading] = useState(false);
+  const [resolvedAlgoliaId, setResolvedAlgoliaId] = useState<string | null>(null);
   const [authExpanded, setAuthExpanded] = useState(true);
   const [incidentStats, setIncidentStats] = useState<{ ingested: number; forwarded: number } | null>(null);
 
@@ -129,6 +130,7 @@ export default function AppDetailDrawer({
     setAppLoading(true);
     setAppInfo(null);
     setIsActivated(null);
+    setResolvedAlgoliaId(null);
 
     const normalizedName = appName.toLowerCase().replace(/[\s_\-]+/g, '_');
     const searchName = appName.replace(/_/g, ' ');
@@ -149,6 +151,7 @@ export default function AppDetailDrawer({
 
         if (match) {
           algoliaId = match.objectID;
+          setResolvedAlgoliaId(algoliaId);
           setAppInfo({
             name: match.name || searchName,
             description: match.description || '',
@@ -290,7 +293,8 @@ export default function AppDetailDrawer({
         if (!res.ok) throw new Error('Deactivate failed');
         setActivatedAppId(null);
       } else {
-        const searchRes = await fetch(getApiUrl(`/api/v1/apps/${encodeURIComponent(appName)}/config`), {
+        const configId = resolvedAlgoliaId || appName;
+        const searchRes = await fetch(getApiUrl(`/api/v1/apps/${encodeURIComponent(configId)}/config`), {
           credentials: 'include', headers: { ...getAuthHeader() },
         });
         if (!searchRes.ok) throw new Error('Could not find app');
