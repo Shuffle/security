@@ -1438,6 +1438,53 @@ export default function UsecaseAlluvialDiagram({
           setSearchOpen(null);
           return true; // Handled — don't open detail drawer
         } : undefined}
+        onDetailClose={isLoggedIn ? async (appName) => {
+          // After authenticating, re-check if app is now valid and auto-add
+          try {
+            const res = await fetch(getApiUrl('/api/v1/apps/authentication'), {
+              credentials: 'include',
+              headers: getAuthHeader(),
+            });
+            if (!res.ok) return;
+            const result = await res.json();
+            const authData: AuthAppEntry[] = result.data || result;
+            const deduped = deduplicateAuthApps(authData);
+            const match = deduped.find(d => normalizeAppName(d.app.name) === normalizeAppName(appName));
+            if (!match?.hasValidAuth) return;
+
+            // Update allApps with the new/updated app
+            const newNode: AppNode = {
+              id: match.app.id,
+              name: match.app.name,
+              icon: match.bestImage || match.app.large_image || '',
+              hasValidAuth: true,
+              isActiveOnly: false,
+            };
+            setAllApps(prev => {
+              const exists = prev.some(a => normalizeAppName(a.name) === normalizeAppName(appName));
+              if (exists) {
+                return prev.map(a => normalizeAppName(a.name) === normalizeAppName(appName) ? { ...a, ...newNode } : a);
+              }
+              return [...prev, newNode];
+            });
+
+            // Auto-add to the correct side
+            const side = searchOpen || 'right';
+            if (side === 'left' && highlightCategory) {
+              handleToggleSync(match.app.name, true);
+              setHiddenApps(prev => { const n = new Set(prev); n.delete(match.app.name.toLowerCase()); return n; });
+              const { toast } = await import('sonner');
+              toast.success(`${match.app.name.replace(/_/g, ' ')} authenticated & added to ingestion`);
+            } else {
+              handleToggleForward(match.app.name, true);
+              setHiddenApps(prev => { const n = new Set(prev); n.delete(match.app.name.toLowerCase()); return n; });
+              const { toast } = await import('sonner');
+              toast.success(`${match.app.name.replace(/_/g, ' ')} authenticated & added to forwarding`);
+            }
+          } catch (err) {
+            console.error('[AlluvialDiagram] post-auth check failed:', err);
+          }
+        } : undefined}
       />
 
 
