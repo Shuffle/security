@@ -467,7 +467,7 @@ export const IncidentCardView = ({
                     {incident.labels.slice(0, 3).map((label, idx) => (
                       <Chip
                         key={`label-${idx}`}
-                        icon={<Tag size={10} />}
+                        
                         label={label}
                         size="small"
                         onClick={(e) => {
