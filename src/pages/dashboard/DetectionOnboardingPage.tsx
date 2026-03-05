@@ -1436,8 +1436,8 @@ const DetectionOnboardingPage = () => {
               <Typography sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                 Install a Sensor
               </Typography>
-              {/* Only show status chips when step is collapsed */}
-              {expandedStep !== 1 && selectedEnvironment && (() => {
+              {/* Status chips for selected environment */}
+              {selectedEnvironment && (() => {
                 const running = isSensorRunning(selectedEnvironment);
                 const pipelineReady = isPipelineReady(selectedEnvironment);
                 const pipelineCount = getPipelineCount(selectedEnvironment);
