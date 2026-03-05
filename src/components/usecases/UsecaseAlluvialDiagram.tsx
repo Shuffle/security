@@ -292,6 +292,7 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
         onClose={() => setAnchorEl(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ zIndex: 1600 }}
         slotProps={{
           paper: {
             sx: {
