@@ -616,6 +616,12 @@ export default function UsecaseAlluvialDiagram({
     if (app.icon) {
       setGuestAppIcons(prev => ({ ...prev, [app.name.toLowerCase()]: app.icon }));
     }
+    // Clear from hiddenApps in case it was previously removed
+    setHiddenApps(prev => {
+      const next = new Set(prev);
+      next.delete(app.name.toLowerCase());
+      return next;
+    });
   };
 
   // Locally disabled apps (hidden from the diagram)
