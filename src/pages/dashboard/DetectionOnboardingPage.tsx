@@ -15,6 +15,10 @@ import {
   MenuItem,
   InputLabel,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -85,6 +89,9 @@ const DetectionOnboardingPage = () => {
   const [selectedEnvId, setSelectedEnvId] = useState<string>('');
   const [newEnvName, setNewEnvName] = useState('');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogName, setCreateDialogName] = useState('');
+  const [creatingEnv, setCreatingEnv] = useState(false);
   const [loadingEnvs, setLoadingEnvs] = useState(true);
   const [loadingDefaultRules, setLoadingDefaultRules] = useState(false);
   
@@ -329,6 +336,48 @@ const DetectionOnboardingPage = () => {
     if (env.Type === 'cloud') return true;
     const now = Math.floor(Date.now() / 1000);
     return env.checkin > 0 && (now - env.checkin) < 300;
+  };
+
+  // Create a new environment via PUT /api/v1/setenvironments
+  const handleCreateEnvironment = async () => {
+    const name = createDialogName.trim();
+    if (!name) return;
+    setCreatingEnv(true);
+    try {
+      const allEnvs = [
+        ...environments,
+        { Name: name, Type: 'onprem' },
+      ];
+      const res = await fetch(getApiUrl('/api/v1/setenvironments'), {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(allEnvs),
+      });
+      if (res.ok) {
+        const envRes = await fetch(getApiUrl('/api/v1/getenvironments'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (envRes.ok) {
+          const envData: Environment[] = await envRes.json();
+          const nonArchived = envData.filter(e => !e.archived);
+          setEnvironments(nonArchived);
+          const newEnv = nonArchived.find(e => e.Name === name && e.Type !== 'cloud');
+          if (newEnv) {
+            setSelectedEnvId(newEnv.id);
+            localStorage.setItem(LAST_SENSOR_KEY, newEnv.id);
+          }
+        }
+        setCreateDialogOpen(false);
+      } else {
+        console.error('Failed to create environment:', res.status);
+      }
+    } catch (err) {
+      console.error('Error creating environment:', err);
+    } finally {
+      setCreatingEnv(false);
+    }
   };
 
   // Helper to check if sensor is valid (not cloud type)
@@ -1570,24 +1619,27 @@ const DetectionOnboardingPage = () => {
                     />
                   )}
                   
-                  <Tooltip title="Coming soon">
-                    <span>
-                      <Button
-                        disabled
-                        variant="outlined"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        sx={{
-                          borderColor: 'hsl(var(--border))',
-                          color: 'hsl(var(--muted-foreground))',
-                          textTransform: 'none',
-                          height: 40,
-                        }}
-                      >
-                        Create New
-                      </Button>
-                    </span>
-                  </Tooltip>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      setCreateDialogName('');
+                      setCreateDialogOpen(true);
+                    }}
+                    sx={{
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--muted-foreground))',
+                      textTransform: 'none',
+                      height: 40,
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary))',
+                      },
+                    }}
+                  >
+                    Create New
+                  </Button>
                 </Box>
 
                 {selectedEnvironment && !isCreatingNew && (
@@ -2599,6 +2651,68 @@ const DetectionOnboardingPage = () => {
         environmentId={isCreatingNew ? '' : selectedEnvId}
         environmentAuth={isCreatingNew ? '' : (selectedEnvironment?.auth || '')}
       />
+
+      {/* Create New Sensor Dialog */}
+      <Dialog
+        open={createDialogOpen}
+        onClose={() => !creatingEnv && setCreateDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            minWidth: 400,
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: 'hsl(var(--foreground))', fontSize: '1rem' }}>
+          Create New Sensor
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.875rem', mb: 2 }}>
+            Enter a name for your new on-prem sensor environment.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            value={createDialogName}
+            onChange={(e) => setCreateDialogName(e.target.value)}
+            placeholder="e.g. Production Sensor"
+            onKeyDown={(e) => e.key === 'Enter' && createDialogName.trim() && handleCreateEnvironment()}
+            size="small"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'hsl(var(--muted))',
+                '& fieldset': { borderColor: 'hsl(var(--border))' },
+                '&:hover fieldset': { borderColor: 'hsl(var(--primary))' },
+                '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+              },
+              '& .MuiInputBase-input': { color: 'hsl(var(--foreground))' },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setCreateDialogOpen(false)}
+            disabled={creatingEnv}
+            sx={{ color: 'hsl(var(--muted-foreground))', textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreateEnvironment}
+            disabled={!createDialogName.trim() || creatingEnv}
+            variant="contained"
+            sx={{
+              backgroundColor: 'hsl(var(--primary))',
+              color: 'hsl(var(--primary-foreground))',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)' },
+            }}
+          >
+            {creatingEnv ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
