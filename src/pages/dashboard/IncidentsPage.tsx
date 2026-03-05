@@ -1236,27 +1236,7 @@ const IncidentsPage = () => {
                 />
               )}
 
-              {/* Tag quick-filter chips */}
-              {!filters.tag && allTags.length > 0 && (
-                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap', maxWidth: 320, overflow: 'hidden' }}>
-                  {allTags.slice(0, 8).map(tag => (
-                    <Chip
-                      key={tag}
-                      label={tag}
-                      size="small"
-                      onClick={() => setFilters(prev => ({ ...prev, tag }))}
-                      sx={{
-                        fontSize: '0.7rem',
-                        height: 24,
-                        backgroundColor: 'rgba(6, 182, 212, 0.08)',
-                        color: '#06b6d4',
-                        cursor: 'pointer',
-                        '&:hover': { backgroundColor: 'rgba(6, 182, 212, 0.2)' },
-                      }}
-                    />
-                  ))}
-                </Box>
-              )}
+              {/* Tag quick-filter chips removed — use tag chips on incident cards instead */}
 
               {!isDefaultFilter && (
                 <Button size="small" onClick={resetToDefaults} sx={{ minWidth: 'auto', height: 36 }}>
