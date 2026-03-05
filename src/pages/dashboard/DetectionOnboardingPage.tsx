@@ -32,6 +32,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AddIcon from '@mui/icons-material/Add';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
 import { DeploymentInstructions } from '@/components/detection/DeploymentInstructions';
+import WebhookStatusBanner from '@/components/detection/WebhookStatusBanner';
 import azureLogo from '@/assets/azure-logo.png';
 import gcpLogo from '@/assets/gcp-logo.png';
 import awsLogo from '@/assets/aws-logo.png';
@@ -1389,6 +1390,11 @@ const DetectionOnboardingPage = () => {
             Learn more about Shuffle Pipelines →
           </Box>
         </Typography>
+      </Box>
+
+      {/* Webhook status */}
+      <Box sx={{ mb: 3 }}>
+        <WebhookStatusBanner />
       </Box>
 
       {/* Coming Soon banner */}

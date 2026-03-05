@@ -37,6 +37,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/config/api';
 import { Link } from 'react-router-dom';
 import { askAI } from '@/services/ai';
+import WebhookStatusBanner from '@/components/detection/WebhookStatusBanner';
 
 interface Environment {
   id: string;
@@ -761,6 +762,10 @@ Use case: ${aiPrompt}`,
 
   return (
     <Box sx={{ p: 4, maxWidth: 1400, mx: 'auto' }}>
+      {/* Webhook status */}
+      <Box sx={{ mb: 3 }}>
+        <WebhookStatusBanner />
+      </Box>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
         <Box>
