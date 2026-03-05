@@ -1165,6 +1165,55 @@ export default function UsecaseAlluvialDiagram({
         onQuickSelect={!isLoggedIn ? (app) => {
           if (searchOpen) addGuestApp(searchOpen, app);
         } : undefined}
+        onSelectOverride={isLoggedIn ? (app) => {
+          // Check if this app is already authenticated
+          const matchedApp = allApps.find(a => 
+            normalizeAppName(a.name) === normalizeAppName(app.name) && a.hasValidAuth
+          );
+          if (!matchedApp) return false; // Not authenticated — open detail drawer
+
+          // Already authenticated: add to the workflow directly
+          if (searchOpen === 'left' && highlightCategory) {
+            // Add to ingestion sources
+            handleToggleSync(matchedApp.name, true);
+            // Also unhide if it was hidden
+            setHiddenApps(prev => {
+              const next = new Set(prev);
+              next.delete(matchedApp.name.toLowerCase());
+              return next;
+            });
+            import('sonner').then(({ toast }) => toast.success(`${matchedApp.name.replace(/_/g, ' ')} added to ingestion sources`));
+          } else if (searchOpen === 'right') {
+            // Add to forward workflow
+            setForwardAppNames(prev => {
+              const next = new Set(prev || []);
+              next.add(normalizeAppName(matchedApp.name));
+              return next;
+            });
+            setHiddenApps(prev => {
+              const next = new Set(prev);
+              next.delete(matchedApp.name.toLowerCase());
+              return next;
+            });
+            // Trigger forward workflow update
+            fetch(getApiUrl('/api/v2/workflows/generate'), {
+              method: 'POST',
+              credentials: 'include',
+              headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                label: 'Forward Tickets',
+                app_name: matchedApp.name,
+                category: 'cases',
+              }),
+            }).then(() => {
+              import('sonner').then(({ toast }) => toast.success(`${matchedApp.name.replace(/_/g, ' ')} added to forwarding`));
+            }).catch(() => {
+              import('sonner').then(({ toast }) => toast.error('Failed to update forwarding'));
+            });
+          }
+          setSearchOpen(null);
+          return true; // Handled — don't open detail drawer
+        } : undefined}
       />
 
 
