@@ -44,7 +44,7 @@ interface IngestionApp {
 interface IncidentCardViewProps {
   incidents: DisplayIncident[];
   onIncidentClick?: (incident: DisplayIncident) => void;
-  onFilterChange?: (type: 'severity' | 'status' | 'assignee' | 'source', value: string) => void;
+  onFilterChange?: (type: 'severity' | 'status' | 'assignee' | 'source' | 'tag', value: string) => void;
   getIncidentUrl?: (incident: DisplayIncident) => string;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
@@ -473,6 +473,7 @@ export const IncidentCardView = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
+                          onFilterChange?.('tag', label);
                         }}
                         sx={{
                           backgroundColor: 'rgba(6, 182, 212, 0.12)',
