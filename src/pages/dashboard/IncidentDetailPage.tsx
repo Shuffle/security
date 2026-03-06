@@ -1541,10 +1541,11 @@ const IncidentDetailPage = () => {
               </Typography>
 
             </Box>
+            </Box>
           </Box>
 
           {/* Right side actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, flexWrap: 'wrap' }}>
             {isSaving && <CircularProgress size={18} />}
             {isResyncing && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
