@@ -30,6 +30,7 @@ interface DocsSidebarProps {
 const docLinks: DocLink[] = [
   { label: 'Overview', slug: 'index', icon: <HomeIcon /> },
   { label: 'Getting Started', slug: 'getting-started', icon: <SettingsIcon /> },
+  { label: 'Incident Creation', slug: 'incident-creation', icon: <ReportProblemIcon /> },
   { label: 'Shuffle Pipelines', slug: 'shuffle-pipelines', icon: <SensorsIcon /> },
   { label: 'Self-Hosting', slug: 'setup', icon: <DnsIcon /> },
 ];
