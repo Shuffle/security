@@ -907,7 +907,7 @@ const IncidentsPage = () => {
           {(ingestionApps.length > 0 || webhookIngestion.exists || webhookIngestion.enabled) && (
             <Box sx={{ 
               position: 'relative',
-              display: 'flex', 
+              display: { xs: 'none', md: 'flex' }, 
               alignItems: 'center', 
               gap: 0.5,
               bgcolor: 'hsl(var(--muted) / 0.4)',
