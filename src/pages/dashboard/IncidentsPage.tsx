@@ -892,9 +892,9 @@ const IncidentsPage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
             Incidents
           </Typography>
           {isLoading && <CircularProgress size={20} />}
@@ -902,12 +902,12 @@ const IncidentsPage = () => {
             <Typography variant="caption" color="error">{error}</Typography>
           )}
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {/* Ingestion Sources - grouped in a subtle container with add button */}
           {(ingestionApps.length > 0 || webhookIngestion.exists || webhookIngestion.enabled) && (
             <Box sx={{ 
               position: 'relative',
-              display: 'flex', 
+              display: { xs: 'none', md: 'flex' }, 
               alignItems: 'center', 
               gap: 0.5,
               bgcolor: 'hsl(var(--muted) / 0.4)',
@@ -1079,7 +1079,7 @@ const IncidentsPage = () => {
       {/* Floating Filter Bar - sticky */}
       <Card sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'hsl(var(--card))' }}>
         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Select all checkbox - always visible */}
             <Tooltip title={selectedIds.size === sortedIncidents.length ? 'Deselect all' : 'Select all'}>
               <Checkbox
@@ -1115,7 +1115,7 @@ const IncidentsPage = () => {
                 ),
                 sx: { height: 36 },
               }}
-              sx={{ width: 280 }}
+              sx={{ width: { xs: 160, sm: 280 }, minWidth: 0, flexShrink: 1 }}
             />
 
             {/* Selection count and bulk actions */}
@@ -1324,7 +1324,7 @@ const IncidentsPage = () => {
         </Box>
         
         {/* Stats sidebar - sticky on desktop */}
-        <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto' }}>
+        <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', order: { xs: -1, lg: 0 } }}>
           <IncidentStatsCards 
             incidents={activeIncidents}
             currentUsername={currentUsername}

@@ -1342,18 +1342,20 @@ const IncidentDetailPage = () => {
         {/* Main header card */}
         <Box sx={{ 
           display: 'flex',
-          alignItems: 'center',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          flexDirection: { xs: 'column', sm: 'row' },
           gap: 2,
           p: 2,
           borderRadius: 2,
           bgcolor: 'hsl(var(--card))',
           border: '1px solid hsl(var(--border))',
         }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
           {/* Icon */}
           <Box
             sx={{
-              width: 56,
-              height: 56,
+              width: { xs: 40, sm: 56 },
+              height: { xs: 40, sm: 56 },
               borderRadius: 2,
               display: 'flex',
               alignItems: 'center',
@@ -1539,10 +1541,11 @@ const IncidentDetailPage = () => {
               </Typography>
 
             </Box>
+            </Box>
           </Box>
 
           {/* Right side actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, flexWrap: 'wrap' }}>
             {isSaving && <CircularProgress size={18} />}
             {isResyncing && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1810,6 +1813,11 @@ const IncidentDetailPage = () => {
               bgcolor: 'rgba(255,255,255,0.03)', 
               borderRadius: 2,
               border: '1px solid rgba(255,255,255,0.06)',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
             }}>
               {[
                 { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null },

@@ -103,9 +103,9 @@ export default function UsecasesPage() {
   return (
     <Box sx={{ px: { xs: 2, md: 4 }, py: 4, maxWidth: 1200, mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: 'hsl(var(--foreground))' }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: 'hsl(var(--foreground))', fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
             Automations
           </Typography>
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -129,6 +129,7 @@ export default function UsecasesPage() {
             fontSize: '0.85rem',
             fontWeight: 500,
             transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
             '&:hover': {
               bgcolor: 'hsl(var(--muted))',
               borderColor: 'hsl(var(--primary) / 0.4)',
@@ -188,14 +189,14 @@ export default function UsecasesPage() {
       )}
 
       {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 1.5, mb: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           placeholder="Search automations…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{
-            width: 280,
+            width: { xs: '100%', sm: 280 },
             '& .MuiOutlinedInput-root': {
               bgcolor: 'hsl(var(--card))',
               color: 'hsl(var(--foreground))',
@@ -211,7 +212,7 @@ export default function UsecasesPage() {
           }}
         />
 
-        <FormControl size="small" sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 'calc(50% - 6px)', sm: 200 } }}>
           <InputLabel sx={{ color: 'hsl(var(--muted-foreground))' }}>Phase</InputLabel>
           <MuiSelect
             value={phaseFilter}
@@ -231,7 +232,7 @@ export default function UsecasesPage() {
           </MuiSelect>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 160 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 'calc(50% - 6px)', sm: 160 } }}>
           <InputLabel sx={{ color: 'hsl(var(--muted-foreground))' }}>Category</InputLabel>
           <MuiSelect
             value={categoryFilter}
@@ -251,7 +252,7 @@ export default function UsecasesPage() {
           </MuiSelect>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 140 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 'calc(50% - 6px)', sm: 140 } }}>
           <InputLabel sx={{ color: 'hsl(var(--muted-foreground))' }}>Type</InputLabel>
           <MuiSelect
             value={tagFilter}

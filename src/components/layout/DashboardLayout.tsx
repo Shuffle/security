@@ -2,6 +2,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { AppSidebar } from './AppSidebar';
+import { MobileBottomNav } from './MobileBottomNav';
 import { AppDetailProvider, useAppDetail } from '@/context/AppDetailContext';
 import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
 
@@ -73,12 +74,15 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
             },
             overflowY: 'auto',
             overflowX: 'hidden',
+            // Add bottom padding on mobile for the bottom nav
+            pb: { xs: '80px', sm: 0 },
           }}
         >
-          <Box sx={{ p: { xs: 1, sm: 2, md: 3 }, width: '100%', maxWidth: '100%' }}>
+          <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, width: '100%', maxWidth: '100%' }}>
             {children || <Outlet />}
           </Box>
         </Box>
+        <MobileBottomNav />
         <GlobalAppDetailDrawer />
       </Box>
     </AppDetailProvider>
