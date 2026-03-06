@@ -1625,10 +1625,23 @@ const IncidentDetailPage = () => {
                       setIsResyncing(false);
                       return;
                     }
-                    setTimeout(() => {
-                      loadIncident(false);
+                    const previousEdited = incident.rawOCSF?.edited || incident.rawOCSF?.metadata?.modified_time_dt || '';
+                    setTimeout(async () => {
+                      await loadIncident(false);
                       setIsResyncing(false);
-                      toast.success('Resync complete — data reloaded');
+                      // Compare edited timestamp to detect changes
+                      const result = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS);
+                      const newEdited = (() => {
+                        try {
+                          const val = JSON.parse(result.item?.value || '{}');
+                          return val.edited || val.metadata?.modified_time_dt || '';
+                        } catch { return ''; }
+                      })();
+                      if (newEdited && newEdited !== previousEdited) {
+                        toast.success('Resync complete — update found');
+                      } else {
+                        toast.info('Resync complete — no changes detected');
+                      }
                     }, 30000);
                   } catch {
                     toast.error('Resync failed');
