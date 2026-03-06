@@ -103,9 +103,9 @@ export default function UsecasesPage() {
   return (
     <Box sx={{ px: { xs: 2, md: 4 }, py: 4, maxWidth: 1200, mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: 'hsl(var(--foreground))' }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: 'hsl(var(--foreground))', fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
             Automations
           </Typography>
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -129,6 +129,7 @@ export default function UsecasesPage() {
             fontSize: '0.85rem',
             fontWeight: 500,
             transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
             '&:hover': {
               bgcolor: 'hsl(var(--muted))',
               borderColor: 'hsl(var(--primary) / 0.4)',
