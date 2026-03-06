@@ -424,6 +424,7 @@ const IncidentDetailPage = () => {
   
   const [isSaving, setIsSaving] = useState(false);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
+  const [isResyncing, setIsResyncing] = useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState<null | HTMLElement>(null);
   const [showForwardDialog, setShowForwardDialog] = useState(false);
    const [activeTab, setActiveTab] = useState(0); // 0=Tasks, 1=Details, 2=Observables, 3=Correlations, 4=Raw
