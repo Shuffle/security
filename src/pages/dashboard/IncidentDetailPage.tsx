@@ -1342,7 +1342,8 @@ const IncidentDetailPage = () => {
         {/* Main header card */}
         <Box sx={{ 
           display: 'flex',
-          alignItems: 'center',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          flexDirection: { xs: 'column', sm: 'row' },
           gap: 2,
           p: 2,
           borderRadius: 2,
