@@ -616,7 +616,7 @@ const IncidentDetailPage = () => {
         const labelsStr = JSON.stringify(parsed.labels || []);
         initialValuesRef.current = {
           title: parsed.title,
-          message: htmlToPlainText(decodeIfBase64(rawDesc)),
+          message: htmlToPlainText(processedDesc),
           severity: parsed.severity,
           assignee: normalizedAssignee,
           status: parsed.status,
