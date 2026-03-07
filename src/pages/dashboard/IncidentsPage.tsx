@@ -141,7 +141,7 @@ const isAIAssignee = (assignee: string | null | undefined): boolean => {
 const meaningfulString = (val: unknown): string | undefined => {
   if (typeof val !== 'string') return undefined;
   const trimmed = val.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  return trimmed.length > 0 ? decodeHtmlEntities(trimmed) : undefined;
 };
 
 const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number }): DisplayIncident | null => {

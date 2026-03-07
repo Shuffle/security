@@ -178,7 +178,7 @@ const meaningfulString = (val: unknown): string | undefined => {
       // Not valid JSON, treat as regular string
     }
   }
-  return trimmed;
+  return decodeHtmlEntities(trimmed);
 };
 
 const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number }): DisplayIncident | null => {
