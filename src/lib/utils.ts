@@ -98,21 +98,36 @@ export function decodeHtmlEntities(text: string): string {
  */
 export function decodeIfBase64(text: string): string {
   if (!text || text.length < 8) return text;
-  // Strip all whitespace for validation (base64 may contain spaces, newlines, etc.)
-  const stripped = text.replace(/\s+/g, '');
+  // Strip all whitespace (base64 from email clients often has line breaks, spaces)
+  let stripped = text.replace(/\s+/g, '');
   if (stripped.length < 8) return text;
-  // Must look like base64: only valid chars, length divisible by 4 (with optional padding)
+
+  // Convert URL-safe base64 (Gmail/Outlook use - and _ instead of + and /)
+  stripped = stripped.replace(/-/g, '+').replace(/_/g, '/');
+
+  // Add missing padding (Gmail often omits trailing =)
+  const pad = stripped.length % 4;
+  if (pad === 2) stripped += '==';
+  else if (pad === 3) stripped += '=';
+  else if (pad === 1) return text; // invalid base64 length
+
+  // Must look like base64: only valid chars with optional padding
   if (!/^[A-Za-z0-9+/]+=*$/.test(stripped)) return text;
-  if (stripped.length % 4 !== 0) return text;
+
   try {
     const decoded = atob(stripped);
+    if (decoded.length === 0) return text;
     // Check that the result is mostly printable ASCII/UTF-8
-    const printableRatio = decoded.split('').filter(c => {
-      const code = c.charCodeAt(0);
-      return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 || code > 127;
-    }).length / decoded.length;
+    let printable = 0;
+    for (let i = 0; i < decoded.length; i++) {
+      const code = decoded.charCodeAt(i);
+      if ((code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 || code > 127) {
+        printable++;
+      }
+    }
+    const printableRatio = printable / decoded.length;
     // If ≥85% printable, it's likely real text
-    if (printableRatio >= 0.85 && decoded.length > 0) {
+    if (printableRatio >= 0.85) {
       // Try UTF-8 decode for multi-byte chars
       try {
         return decodeURIComponent(escape(decoded));
