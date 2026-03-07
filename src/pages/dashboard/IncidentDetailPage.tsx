@@ -1564,7 +1564,8 @@ const IncidentDetailPage = () => {
             <Tooltip title="Refresh">
               <IconButton 
                 size="small"
-                onClick={() => loadIncident(false)}
+                onClick={() => loadIncident(true)}
+                disabled={loading}
                 sx={{ 
                   border: '1px solid hsl(var(--border))',
                   borderRadius: 1,
@@ -1572,7 +1573,7 @@ const IncidentDetailPage = () => {
                   height: 32,
                 }}
               >
-                <RefreshIcon fontSize="small" />
+                <RefreshIcon fontSize="small" sx={{ animation: loading ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
               </IconButton>
             </Tooltip>
 
