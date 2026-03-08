@@ -153,6 +153,8 @@ export interface AppAuthCardProps {
   onSaveAuth: (appId: string, credentials: Record<string, string>) => Promise<boolean>;
   apiAuthEntries: ApiAuthEntry[];
   onSelectAuth?: (appId: string, authId: string) => void;
+  /** Called to refresh auth entries (e.g. after OAuth popup closes) */
+  onRefreshAuth?: () => Promise<void> | void;
 }
 
 const containerVariants = {
@@ -180,6 +182,7 @@ export const AppAuthCard = ({
   onSaveAuth,
   apiAuthEntries,
   onSelectAuth,
+  onRefreshAuth,
 }: AppAuthCardProps) => {
   // Helper to get best default auth: prioritize validated, otherwise last entry
   const getBestDefaultAuth = (entries: ApiAuthEntry[]): string => {
@@ -229,11 +232,26 @@ export const AppAuthCard = ({
   // This is used to determine if we should trust the 200 response as source of truth
   const [wasPreValidatedPerAuth, setWasPreValidatedPerAuth] = useState<Record<string, boolean>>({});
 
-  // Update selection when apiAuthEntries changes, but only on initial load (not after user selection)
+  // Track previous entry count to detect new auths added (e.g. from OAuth popup)
+  const prevEntryCountRef = useRef(apiAuthEntries.length);
+
+  // Update selection when apiAuthEntries changes
   useEffect(() => {
-    if (apiAuthEntries.length > 0 && !userHasSelected) {
-      setSelectedAuthId(getBestDefaultAuth(apiAuthEntries));
+    if (apiAuthEntries.length > 0) {
+      // If a new entry was added (count increased), auto-select the newest one
+      if (apiAuthEntries.length > prevEntryCountRef.current) {
+        const sorted = [...apiAuthEntries].sort((a, b) => {
+          const aTime = a.created || a.edited || 0;
+          const bTime = b.created || b.edited || 0;
+          return bTime - aTime;
+        });
+        const newestId = sorted[0]?.id || sorted[0]?.label || '0';
+        setSelectedAuthId(newestId);
+      } else if (!userHasSelected) {
+        setSelectedAuthId(getBestDefaultAuth(apiAuthEntries));
+      }
     }
+    prevEntryCountRef.current = apiAuthEntries.length;
   }, [apiAuthEntries, userHasSelected]);
   
   // Track pre-validation state when auth selection changes (for first-time tests)
@@ -501,7 +519,15 @@ export const AppAuthCard = ({
           }
           onClick={() => {
             const authUrl = `https://shuffler.io/appauth?app_id=${app.objectID}`;
-            window.open(authUrl, '_blank', 'width=600,height=700');
+            const popup = window.open(authUrl, '_blank', 'width=600,height=700');
+            if (popup && onRefreshAuth) {
+              const pollTimer = setInterval(() => {
+                if (popup.closed) {
+                  clearInterval(pollTimer);
+                  onRefreshAuth();
+                }
+              }, 500);
+            }
           }}
           sx={{
             py: 1.5,
@@ -980,6 +1006,7 @@ export const AppAuthCard = ({
                         return bTime - aTime; // Descending (newest first)
                       })
                       .map((authEntry, index) => {
+                      const isLatest = index === 0 && apiAuthEntries.length > 1;
                       const entryId = authEntry.id || authEntry.label || index.toString();
                       const entryLabel = authEntry.label || `Auth ${index + 1}`;
                       const isActive = authEntry.active === true;
@@ -1031,6 +1058,19 @@ export const AppAuthCard = ({
                                   }}
                                 />
                               </Tooltip>
+                              {isLatest && (
+                                <Chip
+                                  label="Latest"
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.6rem',
+                                    fontWeight: 700,
+                                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                                    color: '#818cf8',
+                                  }}
+                                />
+                              )}
                             </Box>
                             <Typography sx={{ 
                               flex: 1, 

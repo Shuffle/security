@@ -128,6 +128,7 @@ export const AddAppModal = ({ open, onClose, initialQuery, categoryLabel }: AddA
     handleAuthChange,
     handleTestConnection,
     handleSaveAuth,
+    refreshAuth,
   } = useAppAuthFlow();
 
   // Reset when modal opens/closes
@@ -257,6 +258,7 @@ export const AddAppModal = ({ open, onClose, initialQuery, categoryLabel }: AddA
                     onTestConnection={handleTestConnection}
                     onSaveAuth={handleSaveAuth}
                     apiAuthEntries={authenticatedApps}
+                    onRefreshAuth={refreshAuth}
                   />
                 ) : null}
               </motion.div>
