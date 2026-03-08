@@ -652,8 +652,8 @@ const IncidentDetailPage = () => {
           labels: labelsStr,
         };
         console.log(`[Perf] State hydration: ${(performance.now() - stateStart).toFixed(1)}ms`);
-        // Auto-switch to Details tab if no tasks (only on initial load)
-        if (showLoading && loadedTasks.length === 0) {
+        // Auto-switch to Details tab if no tasks (only on initial load, and only if no tab param)
+        if (showLoading && loadedTasks.length === 0 && !searchParams.get('tab')) {
           setActiveTab(1);
         }
         setLoading(false);
