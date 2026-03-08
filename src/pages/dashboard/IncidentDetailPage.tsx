@@ -50,6 +50,7 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ForwardIcon from '@mui/icons-material/Forward';
 import CloseIcon from '@mui/icons-material/Close';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import Menu from '@mui/material/Menu';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
