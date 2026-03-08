@@ -45,7 +45,10 @@ export const useDatastore = ({ category }: UseDatastoreOptions): UseDatastoreRet
   const [categoryConfig, setCategoryConfig] = useState<CategoryConfig | null>(null);
 
   const fetchItems = useCallback(async (cursorParam?: string) => {
-    setIsLoading(true);
+    // Only show loading spinner on initial fetch to avoid UI flicker on refresh
+    if (!hasFetched) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const response = await getDatastoreByCategory(category, cursorParam);
@@ -78,7 +81,7 @@ export const useDatastore = ({ category }: UseDatastoreOptions): UseDatastoreRet
       setIsLoading(false);
       setHasFetched(true);
     }
-  }, [category]);
+  }, [category, hasFetched]);
 
   const fetchNextPage = useCallback(async () => {
     if (cursor && !isLoading) {
