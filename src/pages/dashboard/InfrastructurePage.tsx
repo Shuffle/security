@@ -1863,7 +1863,7 @@ const CategoryDetailDrawer = ({
           open={showSearch}
           onClose={() => {
             setShowSearch(false);
-            fetchApps();
+            onRefreshApps?.();
           }}
           initialQuery={category.label}
           categoryLabel={category.label}
