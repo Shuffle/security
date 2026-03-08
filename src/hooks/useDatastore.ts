@@ -47,10 +47,11 @@ export const useDatastore = ({ category }: UseDatastoreOptions): UseDatastoreRet
   const [categoryConfig, setCategoryConfig] = useState<CategoryConfig | null>(null);
 
   const fetchItems = useCallback(async (cursorParam?: string) => {
-    // Only show loading spinner on initial fetch to avoid UI flicker on refresh
+    // Only show full loading spinner on initial fetch to avoid UI flicker
     if (!hasFetched) {
       setIsLoading(true);
     }
+    setIsRefreshing(true);
     setError(null);
     try {
       const response = await getDatastoreByCategory(category, cursorParam);
