@@ -465,11 +465,9 @@ const IncidentsPage = () => {
     }, 3000);
   }, [ingestionApps, fetchIngestionApps]);
 
-  // Auto-sync when arriving from onboarding with ?autoSync=1
-  const autoSyncTriggered = useCallback(async () => {
-    if (!searchParams.has('autoSync') || !ingestWorkflowId || isSyncing) return;
-    // Clear the param so it doesn't re-trigger
-    setSearchParams((prev) => { prev.delete('autoSync'); return prev; }, { replace: true });
+  // Reusable sync trigger — executes the ingest workflow and polls for results
+  const triggerSync = useCallback(async () => {
+    if (!ingestWorkflowId || isSyncing) return;
     setIsSyncing(true);
     try {
       const resp = await fetch(getApiUrl(`/api/v1/workflows/${ingestWorkflowId}/execute`), {
@@ -490,12 +488,21 @@ const IncidentsPage = () => {
           }
         }, 10000);
       } else {
+        toast.error('Failed to trigger sync');
         setIsSyncing(false);
       }
     } catch {
+      toast.error('Failed to trigger sync');
       setIsSyncing(false);
     }
-  }, [searchParams, ingestWorkflowId, isSyncing, setSearchParams, fetchItems]);
+  }, [ingestWorkflowId, isSyncing, fetchItems]);
+
+  // Auto-sync when arriving from onboarding with ?autoSync=1
+  const autoSyncTriggered = useCallback(async () => {
+    if (!searchParams.has('autoSync') || !ingestWorkflowId || isSyncing) return;
+    setSearchParams((prev) => { prev.delete('autoSync'); return prev; }, { replace: true });
+    await triggerSync();
+  }, [searchParams, ingestWorkflowId, isSyncing, setSearchParams, triggerSync]);
 
   useEffect(() => {
     autoSyncTriggered();
