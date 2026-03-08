@@ -10,7 +10,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import { Link } from 'react-router-dom';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
-import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
+import { deduplicateAuthApps, backfillAppImages, type AuthAppEntry } from '@/lib/utils';
 import { useAppDetail } from '@/context/AppDetailContext';
 
 interface Integration {
