@@ -1043,6 +1043,19 @@ export const AppAuthCard = ({
                                   }}
                                 />
                               </Tooltip>
+                              {isLatest && (
+                                <Chip
+                                  label="Latest"
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.6rem',
+                                    fontWeight: 700,
+                                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                                    color: '#818cf8',
+                                  }}
+                                />
+                              )}
                             </Box>
                             <Typography sx={{ 
                               flex: 1, 
