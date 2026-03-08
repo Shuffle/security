@@ -25,6 +25,7 @@ import ChatIcon from '@mui/icons-material/Chat';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import DownloadIcon from '@mui/icons-material/Download';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -52,6 +53,7 @@ const readableAppName = (name: string): string =>
 const AUTOMATION_WORKFLOW_LABELS: Record<string, string[]> = {
   automatic_ingestion: getAutomationLabels('automatic_ingestion'),
   forward_updates: getAutomationLabels('forward_updates'),
+  assign_escalate: getAutomationLabels('assign_escalate'),
   threat_intel: getAutomationLabels('threat_intel'),
   notifications: getAutomationLabels('notifications'),
 };
@@ -137,6 +139,14 @@ const baseEnrichmentOptions: (Omit<EnrichmentOption, 'connectedApps'> & { isDyna
     color: '#f59e0b',
     category: 'enrichment',
     isDynamic: true,
+  },
+  {
+    id: 'assign_escalate',
+    name: 'Assign & Escalate',
+    description: 'Auto-assign incidents based on schedules and escalate unacknowledged alerts',
+    icon: <AssignmentIndIcon />,
+    color: '#6366f1',
+    category: 'response',
   },
   {
     id: 'integration_search',
