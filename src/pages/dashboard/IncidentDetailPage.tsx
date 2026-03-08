@@ -1944,6 +1944,7 @@ const IncidentDetailPage = () => {
                   } catch {
                     toast.error('Resync failed');
                     setIsResyncing(false);
+                    resyncState.remove(incident.id);
                   }
                 }}
               >
