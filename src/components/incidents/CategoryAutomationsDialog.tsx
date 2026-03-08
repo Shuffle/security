@@ -60,6 +60,7 @@ interface CategoryAutomationsDialogProps {
   automations: CategoryAutomation[] | null;
   onAutomationsChange: (automations: CategoryAutomation[]) => void;
   initialSettings?: { timeout?: number; public?: boolean };
+  onSaved?: () => void;
 }
 
 const WEEKS_OPTIONS = [
