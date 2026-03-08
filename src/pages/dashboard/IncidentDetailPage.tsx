@@ -715,6 +715,7 @@ const IncidentDetailPage = () => {
 
     autoResyncTriggeredRef.current = true;
     setIsResyncing(true);
+    resyncState.add(incident.id);
     toast.success(`Resyncing from ${source}…`, { duration: 30000 });
 
     (async () => {
