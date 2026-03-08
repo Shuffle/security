@@ -1449,7 +1449,7 @@ const IncidentsPage = () => {
             onSelectionChange={setSelectedIds}
             isLoading={isLoading}
             ingestionApps={ingestionApps}
-            resyncingId={resyncingId}
+            resyncingIds={allResyncingIds}
             resyncingSource={resyncingSource}
             onFilterChange={(type, value) => {
               setFilters(prev => ({
