@@ -420,6 +420,8 @@ const IncidentsPage = () => {
       }
     } catch (error) {
       console.error('Failed to fetch ingestion apps:', error);
+    } finally {
+      setIngestionLoading(false);
     }
   }, []);
 
