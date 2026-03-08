@@ -750,11 +750,13 @@ const IncidentDetailPage = () => {
             clearInterval(pollInterval);
             await loadIncident(false);
             setIsResyncing(false);
+            resyncState.remove(incident.id);
             toast.success('Resync complete — update found');
           } else if (pollCount >= 6) {
             clearInterval(pollInterval);
             await loadIncident(false);
             setIsResyncing(false);
+            resyncState.remove(incident.id);
             toast.info('Resync complete — no changes detected');
           }
         }, 5000);
