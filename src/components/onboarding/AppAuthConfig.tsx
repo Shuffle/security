@@ -153,6 +153,8 @@ export interface AppAuthCardProps {
   onSaveAuth: (appId: string, credentials: Record<string, string>) => Promise<boolean>;
   apiAuthEntries: ApiAuthEntry[];
   onSelectAuth?: (appId: string, authId: string) => void;
+  /** Called to refresh auth entries (e.g. after OAuth popup closes) */
+  onRefreshAuth?: () => Promise<void> | void;
 }
 
 const containerVariants = {
