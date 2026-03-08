@@ -1719,6 +1719,15 @@ const IncidentDetailPage = () => {
                 <ForwardIcon sx={{ fontSize: 16, mr: 1 }} />
                 Forward
               </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setActionsMenuAnchor(null);
+                  setShowShareDialog(true);
+                }}
+              >
+                <LinkIcon sx={{ fontSize: 16, mr: 1 }} />
+                Share
+              </MenuItem>
               {!isResolved && <Divider />}
               {!isResolved && (
                 <MenuItem
