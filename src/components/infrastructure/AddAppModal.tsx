@@ -128,6 +128,7 @@ export const AddAppModal = ({ open, onClose, initialQuery, categoryLabel }: AddA
     handleAuthChange,
     handleTestConnection,
     handleSaveAuth,
+    refreshAuth,
   } = useAppAuthFlow();
 
   // Reset when modal opens/closes
