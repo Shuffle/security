@@ -19,7 +19,7 @@ export function useAppAuthFlow() {
   const [authenticatedApps, setAuthenticatedApps] = useState<ApiAuthEntry[]>([]);
   const [authLoading, setAuthLoading] = useState(false);
 
-  const fetchAuthForApp = useCallback(async (appName: string) => {
+  const fetchAuthForApp = useCallback(async (appName: string, appImageUrl?: string) => {
     
     setAuthLoading(true);
     try {
@@ -31,9 +31,18 @@ export function useAppAuthFlow() {
         const result = await response.json();
         const authData = result.data || result;
         if (Array.isArray(authData)) {
-          const appEntries = authData.filter(
-            (a: ApiAuthEntry) => a.app?.name?.toLowerCase() === appName.toLowerCase()
-          );
+          const normalize = (n: string) => n.toLowerCase().replace(/[\s_\-]+/g, '_');
+          const appEntries = authData
+            .filter(
+              (a: ApiAuthEntry) => normalize(a.app?.name || '') === normalize(appName)
+            )
+            .map((a: ApiAuthEntry) => ({
+              ...a,
+              app: {
+                ...a.app,
+                large_image: a.app?.large_image || appImageUrl || '',
+              },
+            }));
           setAuthenticatedApps(appEntries);
         }
       }
