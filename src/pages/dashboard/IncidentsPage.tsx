@@ -540,7 +540,7 @@ const IncidentsPage = () => {
     return [relevant, irrelevant] as const;
   }, [incidents]);
 
-  const [showIrrelevant, setShowIrrelevant] = useState(false);
+  const [showIrrelevant, setShowIrrelevant] = useState(true);
   const [resyncingId, setResyncingId] = useState<string | null>(null);
   const [resyncingSource, setResyncingSource] = useState<string>('');
   const autoResyncQueueRef = useRef<Set<string>>(new Set());
@@ -1523,7 +1523,7 @@ const IncidentsPage = () => {
                 </Typography>
               </Box>
               <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', opacity: 0.7, fontSize: '0.7rem' }}>
-                {showIrrelevant ? 'Showing' : 'Hidden'}
+                {showIrrelevant ? 'Click to hide' : 'Hidden'}
               </Typography>
             </Box>
           )}
