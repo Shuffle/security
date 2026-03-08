@@ -1731,6 +1731,7 @@ const CategoryDetailDrawer = ({
   configuredCategories: Set<string>;
   disabledAppsForCategory?: Set<string>;
   onToggleAppDisabledForCategory?: (appName: string) => void;
+  onRefreshApps?: () => void;
 }) => {
   const navigate = useNavigate();
   const hasApps = matchedApps.length > 0;
