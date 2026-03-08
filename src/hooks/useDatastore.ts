@@ -21,6 +21,7 @@ interface UseDatastoreOptions {
 interface UseDatastoreReturn {
   items: DatastoreItem[];
   isLoading: boolean;
+  isRefreshing: boolean;
   hasFetched: boolean;
   error: string | null;
   cursor: string | null;
