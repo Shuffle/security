@@ -1369,6 +1369,8 @@ const IncidentsPage = () => {
             onSelectionChange={setSelectedIds}
             isLoading={isLoading}
             ingestionApps={ingestionApps}
+            resyncingId={resyncingId}
+            resyncingSource={resyncingSource}
             onFilterChange={(type, value) => {
               setFilters(prev => ({
                 ...prev,
