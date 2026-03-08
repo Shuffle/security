@@ -1860,7 +1860,10 @@ const CategoryDetailDrawer = ({
         {/* Add App Modal */}
         <AddAppModal
           open={showSearch}
-          onClose={() => setShowSearch(false)}
+          onClose={() => {
+            setShowSearch(false);
+            fetchApps();
+          }}
           initialQuery={category.label}
           categoryLabel={category.label}
         />
