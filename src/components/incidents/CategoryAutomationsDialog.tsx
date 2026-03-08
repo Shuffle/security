@@ -404,6 +404,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       const enabledAutomations = automations.filter(a => a.enabled);
       onAutomationsChange(enabledAutomations);
       toast.success('Automations saved');
+      onSaved?.();
       onClose();
     } catch (error) {
       toast.error('Failed to save automations');
