@@ -238,6 +238,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         assignee: data.assignee || null,
         created: formatTimestamp(item.created),
         createdTs: parseTimestamp(item.created),
+        originCreatedTs: parseTimestamp(item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
         editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
         tlp: data.tlp,
