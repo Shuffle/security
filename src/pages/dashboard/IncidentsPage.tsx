@@ -801,7 +801,8 @@ const IncidentsPage = () => {
 
 
   const getIncidentUrl = (incident: DisplayIncident) => {
-    return `/incidents/${incident.id}`;
+    const isInvalidData = (!incident.title || incident.title === 'Untitled Incident' || incident.title === 'Requires sync') && !incident.source;
+    return `/incidents/${incident.id}${isInvalidData ? '?tab=raw' : ''}`;
   };
 
   const handleCreateIncident = async (ocsf: OCSFIncidentFinding) => {
