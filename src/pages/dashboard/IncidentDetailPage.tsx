@@ -3231,6 +3231,7 @@ const IncidentDetailPage = () => {
           borderRadius: 2,
           border: '1px solid hsl(var(--border))',
           order: { xs: 2, lg: 0 },
+          ...(isPublicView && { pointerEvents: 'none' }),
         }}>
           {/* Agent runs loading indicator */}
           {agentRunsLoading && (
