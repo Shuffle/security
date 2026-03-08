@@ -1897,7 +1897,7 @@ const IncidentDetailPage = () => {
               <Divider />
               {/* Resync */}
               <MenuItem
-                disabled={isSaving || !incident?.source || (() => {
+                disabled={isSaving || !incident?.source || incident?.source === 'Tenzir' || (() => {
                   const product = incident?.rawOCSF?.product || incident?.rawOCSF?.metadata?.product;
                   const name = product?.name;
                   const id = product?.id;
