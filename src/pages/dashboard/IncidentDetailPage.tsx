@@ -502,6 +502,7 @@ const IncidentDetailPage = () => {
     console.log(`[Perf] Incident fetch: ${fetchTime.toFixed(1)}ms, size: ${((result.item?.value?.length || 0) / 1024).toFixed(1)}KB`);
     
     if (result.success && result.item) {
+      setPublicAuthorization(result.item.public_authorization || '');
       const itemData = {
         key: result.item.key || id,
         value: result.item.value,
