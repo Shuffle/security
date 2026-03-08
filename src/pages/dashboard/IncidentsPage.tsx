@@ -454,7 +454,9 @@ const IncidentsPage = () => {
           }),
         });
         toast.success('Ingestion sources updated');
-        fetchIngestionApps();
+        await fetchIngestionApps();
+        // Auto-trigger sync after sources change
+        triggerSync();
       } catch (error) {
         console.error('Failed to update ingestion sources:', error);
         toast.error('Failed to update ingestion sources');
@@ -465,11 +467,9 @@ const IncidentsPage = () => {
     }, 3000);
   }, [ingestionApps, fetchIngestionApps]);
 
-  // Auto-sync when arriving from onboarding with ?autoSync=1
-  const autoSyncTriggered = useCallback(async () => {
-    if (!searchParams.has('autoSync') || !ingestWorkflowId || isSyncing) return;
-    // Clear the param so it doesn't re-trigger
-    setSearchParams((prev) => { prev.delete('autoSync'); return prev; }, { replace: true });
+  // Reusable sync trigger — executes the ingest workflow and polls for results
+  const triggerSync = useCallback(async () => {
+    if (!ingestWorkflowId || isSyncing) return;
     setIsSyncing(true);
     try {
       const resp = await fetch(getApiUrl(`/api/v1/workflows/${ingestWorkflowId}/execute`), {
@@ -490,12 +490,21 @@ const IncidentsPage = () => {
           }
         }, 10000);
       } else {
+        toast.error('Failed to trigger sync');
         setIsSyncing(false);
       }
     } catch {
+      toast.error('Failed to trigger sync');
       setIsSyncing(false);
     }
-  }, [searchParams, ingestWorkflowId, isSyncing, setSearchParams, fetchItems]);
+  }, [ingestWorkflowId, isSyncing, fetchItems]);
+
+  // Auto-sync when arriving from onboarding with ?autoSync=1
+  const autoSyncTriggered = useCallback(async () => {
+    if (!searchParams.has('autoSync') || !ingestWorkflowId || isSyncing) return;
+    setSearchParams((prev) => { prev.delete('autoSync'); return prev; }, { replace: true });
+    await triggerSync();
+  }, [searchParams, ingestWorkflowId, isSyncing, setSearchParams, triggerSync]);
 
   useEffect(() => {
     autoSyncTriggered();
@@ -1024,35 +1033,7 @@ const IncidentsPage = () => {
             isSyncing={isSyncing}
             isUpdatingApps={isUpdatingApps}
             isLoading={ingestionLoading}
-            onSyncNow={ingestWorkflowId ? async () => {
-              setIsSyncing(true);
-              try {
-                const resp = await fetch(getApiUrl(`/api/v1/workflows/${ingestWorkflowId}/execute`), {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-                  body: JSON.stringify({ execution_source: 'manual', start: '' }),
-                });
-                if (resp.ok) {
-                  toast.success('Sync started — polling for new incidents…');
-                  let pollCount = 0;
-                  const pollInterval = setInterval(async () => {
-                    pollCount++;
-                    await fetchItems();
-                    if (pollCount >= 6) {
-                      clearInterval(pollInterval);
-                      setIsSyncing(false);
-                    }
-                  }, 10000);
-                } else {
-                  toast.error('Failed to trigger sync');
-                  setIsSyncing(false);
-                }
-              } catch {
-                toast.error('Failed to trigger sync');
-                setIsSyncing(false);
-              }
-            } : undefined}
+            onSyncNow={ingestWorkflowId ? triggerSync : undefined}
             onCreateIncident={() => setCreateDialogOpen(true)}
           />
         )}
@@ -1148,36 +1129,7 @@ const IncidentsPage = () => {
                   <IconButton
                     size="small"
                     disabled={isSyncing || isUpdatingApps}
-                    onClick={async () => {
-                      setIsSyncing(true);
-                      try {
-                        const resp = await fetch(getApiUrl(`/api/v1/workflows/${ingestWorkflowId}/execute`), {
-                          method: 'POST',
-                          credentials: 'include',
-                          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-                          body: JSON.stringify({ execution_source: 'manual', start: '' }),
-                        });
-                        if (resp.ok) {
-                          toast.success('Sync started — polling for new incidents…');
-                          // Poll every 10s for 60s, keep syncing state active
-                          let pollCount = 0;
-                          const pollInterval = setInterval(async () => {
-                            pollCount++;
-                            await fetchItems();
-                            if (pollCount >= 6) {
-                              clearInterval(pollInterval);
-                              setIsSyncing(false);
-                            }
-                          }, 10000);
-                        } else {
-                          toast.error('Failed to trigger sync');
-                          setIsSyncing(false);
-                        }
-                      } catch {
-                        toast.error('Failed to trigger sync');
-                        setIsSyncing(false);
-                      }
-                    }}
+                    onClick={triggerSync}
                     sx={{
                       width: 28,
                       height: 28,
@@ -1568,6 +1520,11 @@ const IncidentsPage = () => {
         automations={categoryAutomations}
         onAutomationsChange={setCategoryAutomations}
         initialSettings={categoryConfig?.settings}
+        onSaved={() => {
+          // Re-fetch ingestion apps & workflows, then auto-sync
+          fetchIngestionApps();
+          triggerSync();
+        }}
       />
 
       <ResolveIncidentDialog

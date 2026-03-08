@@ -60,6 +60,7 @@ interface CategoryAutomationsDialogProps {
   automations: CategoryAutomation[] | null;
   onAutomationsChange: (automations: CategoryAutomation[]) => void;
   initialSettings?: { timeout?: number; public?: boolean };
+  onSaved?: () => void;
 }
 
 const WEEKS_OPTIONS = [
@@ -150,6 +151,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   automations: initialAutomations,
   onAutomationsChange,
   initialSettings,
+  onSaved,
 }) => {
   const navigate = useNavigate();
   const [automations, setAutomations] = useState<CategoryAutomation[]>([]);
@@ -402,6 +404,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       const enabledAutomations = automations.filter(a => a.enabled);
       onAutomationsChange(enabledAutomations);
       toast.success('Automations saved');
+      onSaved?.();
       onClose();
     } catch (error) {
       toast.error('Failed to save automations');
