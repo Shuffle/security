@@ -503,7 +503,9 @@ const IncidentDetailPage = () => {
 
     const loadStart = performance.now();
     if (showLoading) setLoading(true);
-    const result = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS);
+    const result = isPublicView
+      ? await getDatastoreItemPublic(id, publicOrg!, publicAuth!)
+      : await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS);
     const fetchTime = performance.now() - loadStart;
     console.log(`[Perf] Incident fetch: ${fetchTime.toFixed(1)}ms, size: ${((result.item?.value?.length || 0) / 1024).toFixed(1)}KB`);
     
