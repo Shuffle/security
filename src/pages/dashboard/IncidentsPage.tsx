@@ -214,6 +214,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         assignee: legacyData.assignee || null,
         created: formatTimestamp(item.created),
         createdTs: parseTimestamp(item.created),
+        originCreatedTs: parseTimestamp(item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
         editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
         tlp: typeof tlp === 'string' ? tlp : (tlp ? TLP_LABELS[tlp]?.label : undefined),
