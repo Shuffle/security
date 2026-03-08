@@ -172,6 +172,7 @@ export const useDatastore = ({ category }: UseDatastoreOptions): UseDatastoreRet
   return {
     items,
     isLoading,
+    isRefreshing,
     hasFetched,
     error,
     cursor,
