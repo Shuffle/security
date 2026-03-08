@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
 import type { AppAuthState, AuthStatus, ApiAuthEntry } from '@/components/onboarding/AppAuthConfig';
+import { refreshAllIntegrationStatus } from '@/components/layout/IntegrationStatus';
 
 // Helper to process auth data and invalidate entries older than 30 days
 const processAuthData = (authData: ApiAuthEntry[]): ApiAuthEntry[] => {
@@ -203,8 +204,9 @@ export function useAppAuth() {
         if (sn === 401 || sn === 403) errorCode = sn;
       }
 
-      // Refresh auth list
+      // Refresh auth list & notify all IntegrationStatus instances
       await fetchAuthenticatedApps();
+      refreshAllIntegrationStatus();
 
       setAuthStates((prev) => ({
         ...prev,
@@ -224,6 +226,7 @@ export function useAppAuth() {
     } catch (error) {
       await new Promise(resolve => setTimeout(resolve, 3000));
       await fetchAuthenticatedApps();
+      refreshAllIntegrationStatus();
 
       setAuthStates((prev) => ({
         ...prev,
@@ -267,6 +270,7 @@ export function useAppAuth() {
 
       if (response.ok) {
         await fetchAuthenticatedApps();
+        refreshAllIntegrationStatus();
         return true;
       }
       return false;

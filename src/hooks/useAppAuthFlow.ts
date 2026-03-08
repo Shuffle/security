@@ -8,6 +8,7 @@ import { useState, useCallback } from 'react';
 import type { AlgoliaSearchApp } from '@/lib/singul-local';
 import type { AppAuthState, ApiAuthEntry } from '@/components/onboarding/AppAuthConfig';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
+import { refreshAllIntegrationStatus } from '@/components/layout/IntegrationStatus';
 
 export function useAppAuthFlow() {
   const [selectedApp, setSelectedApp] = useState<AlgoliaSearchApp | null>(null);
@@ -97,6 +98,7 @@ export function useAppAuthFlow() {
       const isValid = response.ok && validActions.includes(result.action) && result.success === true;
 
       await fetchAuthForApp(selectedApp.name, selectedApp.image_url);
+      refreshAllIntegrationStatus();
 
       setAuthState(prev => ({
         ...prev,
@@ -144,6 +146,7 @@ export function useAppAuthFlow() {
       const result = await response.json();
       if (response.ok && result.success !== false) {
         await fetchAuthForApp(selectedApp.name, selectedApp.image_url);
+        refreshAllIntegrationStatus();
         return true;
       }
       return false;
