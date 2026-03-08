@@ -1397,6 +1397,24 @@ const IncidentDetailPage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
+      {/* Read-only banner for shared/public view */}
+      {isPublicView && (
+        <Box sx={{
+          mb: 2,
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}>
+          <VisibilityIcon sx={{ fontSize: 18, color: '#3b82f6' }} />
+          <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 500 }}>
+            Shared view — This incident is read-only.
+          </Typography>
+        </Box>
+      )}
       {/* Compact Header */}
       <Box sx={{ mb: 2 }}>
         {/* Back link */}
