@@ -96,6 +96,7 @@ interface DisplayIncident {
   assignee: string | null;
   created: string;
   createdTs: number;
+  originCreatedTs?: number;
   edited?: string;
   editedTs?: number;
   tlp?: string;
