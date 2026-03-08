@@ -3023,6 +3023,7 @@ const InfrastructureContent = () => {
         configuredCategories={activeCategories}
         disabledAppsForCategory={disabledApps}
         onToggleAppDisabledForCategory={toggleAppDisabled}
+        onRefreshApps={fetchApps}
       />
 
       {/* Edge state legend — bottom-right overlay */}
