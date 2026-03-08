@@ -198,6 +198,20 @@ const meaningfulString = (val: unknown): string | undefined => {
   return decodeHtmlEntities(trimmed);
 };
 
+/**
+ * Resolve the "created" timestamp for an incident.
+ * Priority: value.created_time → item.created (datastore envelope).
+ */
+const resolveCreatedTs = (data: any, itemCreated?: number): number => {
+  if (data?.created_time) {
+    const ct = typeof data.created_time === 'string' && /^\d+$/.test(data.created_time)
+      ? Number(data.created_time) : data.created_time;
+    const ms = normalizeToMs(ct);
+    if (ms > 0) return ms;
+  }
+  return normalizeToMs(itemCreated);
+};
+
 const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number }): DisplayIncident | null => {
   const parseStart = performance.now();
   try {
@@ -248,8 +262,8 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         severity: mapOCSFSeverity(ocsf.severity_id || 3),
         status: mapOCSFStatus(ocsf.status_id || 1),
         assignee: customAttrs?.assignee || (data as any).assignee || null,
-        created: formatTimestamp(item.created),
-        createdTs: parseTimestamp(item.created),
+        created: formatTimestamp(resolveCreatedTs(data, item.created)),
+        createdTs: resolveCreatedTs(data, item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
         editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
         tlp: tlpLabel,
@@ -281,8 +295,8 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         severity: mapOCSFSeverity(legacyData.severity_id),
         status: mapOCSFStatus(legacyData.status_id),
         assignee: legacyData.assignee || null,
-        created: formatTimestamp(item.created),
-        createdTs: parseTimestamp(item.created),
+        created: formatTimestamp(resolveCreatedTs(legacyData, item.created)),
+        createdTs: resolveCreatedTs(legacyData, item.created),
         edited: item.edited ? formatTimestamp(item.edited) : undefined,
         editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
         tlp: typeof tlp === 'string' ? tlp : (tlp ? TLP_LABELS[tlp]?.label : undefined),
@@ -306,8 +320,8 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       severity: data.severity || 'medium',
       status: data.status || 'new',
       assignee: data.assignee || null,
-      created: data.created || formatTimestamp(item.created),
-      createdTs: parseTimestamp(item.created),
+      created: formatTimestamp(resolveCreatedTs(data, item.created)),
+      createdTs: resolveCreatedTs(data, item.created),
       edited: item.edited ? formatTimestamp(item.edited) : undefined,
       editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
       tlp: data.tlp,
