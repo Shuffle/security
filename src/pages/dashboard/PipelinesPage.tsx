@@ -731,7 +731,7 @@ Use case: ${aiPrompt}`,
   // Resolve dynamic webhook URLs in templates
   const availableTemplates = DEFAULT_PIPELINES.map(t => {
     if (t._dynamicWebhook && webhookUrl) {
-      return { ...t, command: `export live=true | sigma "/tmp/sigma_rules" | set uid = uuid() | set event.source = "Tenzir" | to "${webhookUrl}"`, hasPlaceholders: false };
+      return { ...t, command: `export live=true | sigma "/tmp/sigma_rules" | set uid = uuid() | set source = "Tenzir" | to "${webhookUrl}"`, hasPlaceholders: false };
     }
     if (t._dynamicWebhook && !webhookUrl) {
       return { ...t, command: 'export live=true | sigma "/tmp/sigma_rules" | set uid = uuid() | set event.source = "Tenzir" | to "<enable webhook on Incidents page>"', hasPlaceholders: true };
