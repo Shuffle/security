@@ -7,8 +7,12 @@ type Listener = () => void;
 
 const resyncingIds = new Set<string>();
 const listeners = new Set<Listener>();
+let snapshot: Set<string> = new Set();
 
-const notify = () => listeners.forEach(fn => fn());
+const notify = () => {
+  snapshot = new Set(resyncingIds);
+  listeners.forEach(fn => fn());
+};
 
 export const resyncState = {
   add(id: string) {
@@ -26,8 +30,8 @@ export const resyncState = {
     listeners.add(listener);
     return () => { listeners.delete(listener); };
   },
-  /** Current snapshot */
+  /** Current snapshot — stable reference between mutations */
   getAll(): Set<string> {
-    return new Set(resyncingIds);
+    return snapshot;
   },
 };
