@@ -737,6 +737,7 @@ const IncidentDetailPage = () => {
         if (!response.ok) {
           toast.error('Auto-resync failed');
           setIsResyncing(false);
+          resyncState.remove(incident.id);
           return;
         }
         // Poll every 5s for up to 30s checking if the item was updated
