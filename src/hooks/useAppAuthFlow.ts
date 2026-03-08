@@ -8,6 +8,7 @@ import { useState, useCallback } from 'react';
 import type { AlgoliaSearchApp } from '@/lib/singul-local';
 import type { AppAuthState, ApiAuthEntry } from '@/components/onboarding/AppAuthConfig';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
+import { refreshAllIntegrationStatus } from '@/components/layout/IntegrationStatus';
 
 export function useAppAuthFlow() {
   const [selectedApp, setSelectedApp] = useState<AlgoliaSearchApp | null>(null);
