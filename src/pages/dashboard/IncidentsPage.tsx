@@ -512,8 +512,13 @@ const IncidentsPage = () => {
 
   // Helper: check if an incident has meaningful content (title or description)
   const hasContent = (incident: DisplayIncident): boolean => {
-    const hasTitle = !!incident.title;
+    // If rawOCSF only has 'unmapped' as a meaningful top-level field, treat as irrelevant
     const raw = incident.rawOCSF as any;
+    if (raw && typeof raw === 'object') {
+      const keys = Object.keys(raw).filter(k => k !== 'class_uid' && k !== 'class_name');
+      if (keys.length === 1 && keys[0] === 'unmapped') return false;
+    }
+    const hasTitle = !!incident.title;
     const hasDesc = !!(raw?.desc || raw?.message || raw?.finding_info?.title || raw?.finding_info_list?.[0]?.title);
     return hasTitle || hasDesc;
   };

@@ -435,10 +435,16 @@ export const IncidentCardView = ({
                       }}
                     >
                       {incident.title && incident.title !== 'Untitled Incident' && incident.title !== 'Requires sync' ? incident.title : (
-                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: '#f59e0b', fontStyle: 'italic', fontWeight: 500 }}>
-                          <RefreshIcon sx={{ fontSize: 14 }} />
-                          Requires sync
-                        </Box>
+                        incident.source ? (
+                          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: '#f59e0b', fontStyle: 'italic', fontWeight: 500 }}>
+                            <RefreshIcon sx={{ fontSize: 14 }} />
+                            Requires sync
+                          </Box>
+                        ) : (
+                          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--muted-foreground))', fontStyle: 'italic', fontWeight: 500, fontSize: '0.85rem' }}>
+                            Invalid data. Validate ingest or contact support@shuffler.io
+                          </Box>
+                        )
                       )}
                     </Typography>
                   )}
