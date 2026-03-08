@@ -1581,6 +1581,79 @@ const IncidentDetailPage = () => {
               </IconButton>
             </Tooltip>
 
+            {/* Share Dialog */}
+            <Dialog
+              open={showShareDialog}
+              onClose={() => setShowShareDialog(false)}
+              maxWidth="sm"
+              fullWidth
+              PaperProps={{ sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 2 } }}
+            >
+              <DialogTitle sx={{ pb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Share Incident</Typography>
+                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                  Anyone with this link can view the incident without logging in.
+                </Typography>
+              </DialogTitle>
+              <DialogContent>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', mb: 0.5, display: 'block' }}>
+                    Public link
+                  </Typography>
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 1.5,
+                    borderRadius: 1.5,
+                    bgcolor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid hsl(var(--border))',
+                  }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        flex: 1,
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        color: 'hsl(var(--foreground))',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        minWidth: 0,
+                        userSelect: 'all',
+                      }}
+                    >
+                      {`${window.location.origin}/incidents/${incident?.id}?authorization=${publicAuthorization}&org=${userInfo?.active_org?.id || ''}`}
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        const url = `${window.location.origin}/incidents/${incident?.id}?authorization=${publicAuthorization}&org=${userInfo?.active_org?.id || ''}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success('Link copied to clipboard');
+                      }}
+                      sx={{
+                        flexShrink: 0,
+                        textTransform: 'none',
+                        borderColor: 'hsl(var(--border))',
+                        color: 'hsl(var(--foreground))',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        '&:hover': { borderColor: 'hsl(var(--primary))', color: 'hsl(var(--primary))' },
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </Box>
+                  {!publicAuthorization && (
+                    <Typography variant="caption" sx={{ color: '#fb923c', mt: 1, display: 'block' }}>
+                      No public authorization token found for this incident. The link may not work for unauthenticated users.
+                    </Typography>
+                  )}
+                </Box>
+              </DialogContent>
+            </Dialog>
 
             <Tooltip title="Actions">
               <IconButton
