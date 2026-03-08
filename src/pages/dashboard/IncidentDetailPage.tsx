@@ -3218,6 +3218,7 @@ const IncidentDetailPage = () => {
           />
         </Box>
       )}
+      </Box>{/* End isPublicView pointer-events wrapper */}
         </Box>
 
         {/* Right Activity Sidebar - Shows at bottom on smaller screens */}
