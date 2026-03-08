@@ -42,6 +42,7 @@ import { IngestionSourceButton } from '@/components/incidents/IngestionSourceBut
 import { WebhookIngestionButton, WebhookIngestionInfo } from '@/components/incidents/WebhookIngestionButton';
 
 import { toast } from 'sonner';
+import { resyncState } from '@/lib/resyncState';
 
 // Legacy categories for migration
 const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
