@@ -50,6 +50,7 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ForwardIcon from '@mui/icons-material/Forward';
 import CloseIcon from '@mui/icons-material/Close';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import Menu from '@mui/material/Menu';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
@@ -907,7 +908,7 @@ const IncidentDetailPage = () => {
 
   // Debounced auto-save
   useEffect(() => {
-    if (!incident || !initialValuesRef.current) return;
+    if (!incident || !initialValuesRef.current || isPublicView) return;
     
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -1397,6 +1398,24 @@ const IncidentDetailPage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
+      {/* Read-only banner for shared/public view */}
+      {isPublicView && (
+        <Box sx={{
+          mb: 2,
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}>
+          <VisibilityIcon sx={{ fontSize: 18, color: '#3b82f6' }} />
+          <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 500 }}>
+            Shared view — This incident is read-only.
+          </Typography>
+        </Box>
+      )}
       {/* Compact Header */}
       <Box sx={{ mb: 2 }}>
         {/* Back link */}
@@ -1456,14 +1475,15 @@ const IncidentDetailPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <TextField
                 value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
+                onChange={(e) => !isPublicView && setEditedTitle(e.target.value)}
                 variant="standard"
+                inputProps={{ readOnly: isPublicView }}
                 InputProps={{
                   disableUnderline: true,
                   sx: { 
                     fontSize: '1.1rem', 
                     fontWeight: 600,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+                    ...(!isPublicView && { '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }),
                     borderRadius: 1,
                     px: 0.5,
                   },
@@ -1471,7 +1491,7 @@ const IncidentDetailPage = () => {
                 sx={{ flex: 1 }}
               />
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap', ...(isPublicView && { pointerEvents: 'none' }) }}>
               {/* Status dropdown */}
               <FormControl size="small" variant="standard">
                 <Select
@@ -1722,6 +1742,7 @@ const IncidentDetailPage = () => {
               </DialogContent>
             </Dialog>
 
+            {!isPublicView && (
             <Tooltip title="Actions">
               <IconButton
                 size="small"
@@ -1736,6 +1757,7 @@ const IncidentDetailPage = () => {
                 <MoreVertIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+            )}
             <Menu
               anchorEl={actionsMenuAnchor}
               open={Boolean(actionsMenuAnchor)}
@@ -2033,6 +2055,7 @@ const IncidentDetailPage = () => {
           </Box>
 
           {/* Tab Content */}
+      <Box sx={isPublicView ? { pointerEvents: 'none', '& input, & textarea, & select, & button:not([data-public-ok])': { opacity: 0.7 } } : {}}>
       {activeTab === 0 && (
         /* Tasks Tab */
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -3197,6 +3220,7 @@ const IncidentDetailPage = () => {
           />
         </Box>
       )}
+      </Box>{/* End isPublicView pointer-events wrapper */}
         </Box>
 
         {/* Right Activity Sidebar - Shows at bottom on smaller screens */}
@@ -3209,6 +3233,7 @@ const IncidentDetailPage = () => {
           borderRadius: 2,
           border: '1px solid hsl(var(--border))',
           order: { xs: 2, lg: 0 },
+          ...(isPublicView && { pointerEvents: 'none' }),
         }}>
           {/* Agent runs loading indicator */}
           {agentRunsLoading && (
