@@ -26,7 +26,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
 import { useUsers } from '@/hooks/useUsers';
-import { DATASTORE_CATEGORIES, getDatastoreByCategory, setDatastoreItems, CategoryAutomation, deleteDatastoreItems } from '@/services/datastore';
+import { DATASTORE_CATEGORIES, getDatastoreByCategory, getDatastoreItem, setDatastoreItems, CategoryAutomation, deleteDatastoreItems } from '@/services/datastore';
 import { CreateIncidentDialog, ActivityItem } from '@/components/incidents/CreateIncidentDialog';
 import { OCSFIncidentFinding, Observable, TLP_LABELS, convertLegacyTlp, mapOCSFSeverity, mapOCSFStatus } from '@/config/ocsfIncidentSchema';
 import { deduplicateTasks, decodeHtmlEntities } from '@/lib/utils';
