@@ -713,7 +713,7 @@ const IncidentDetailPage = () => {
     // Only trigger if incident has no meaningful title and has a resyncable source
     if (incident.title) return;
     const source = incident.source || '';
-    if (!source) return;
+    if (!source || source === 'Tenzir') return;
     // Check source is not a product id/uid (same guard as manual resync)
     const product = incident.rawOCSF?.product || incident.rawOCSF?.metadata?.product;
     if (product?.name && (product.name === product.id || product.name === product.uid)) return;
