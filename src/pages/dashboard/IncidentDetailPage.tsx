@@ -427,6 +427,8 @@ const IncidentDetailPage = () => {
   const [isResyncing, setIsResyncing] = useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState<null | HTMLElement>(null);
   const [showForwardDialog, setShowForwardDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [publicAuthorization, setPublicAuthorization] = useState<string>('');
    const [activeTab, setActiveTab] = useState(0); // 0=Tasks, 1=Details, 2=Observables, 3=Correlations, 4=Raw
    const [rawJsonText, setRawJsonText] = useState('');
   const [forwardingApps, setForwardingApps] = useState<Array<{ id: string; name: string; large_image: string; categories: string[] }>>([]);
