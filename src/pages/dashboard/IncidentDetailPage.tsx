@@ -763,6 +763,7 @@ const IncidentDetailPage = () => {
       } catch {
         toast.error('Auto-resync failed');
         setIsResyncing(false);
+        resyncState.remove(incident.id);
       }
     })();
   }, [loading, incident, isResyncing, isPublicView, loadIncident]);
