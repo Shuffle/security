@@ -3754,6 +3754,17 @@ const IncidentDetailPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Merge Dialog */}
+      <MergeIncidentDialog
+        open={showMergeDialog}
+        onClose={() => setShowMergeDialog(false)}
+        currentIncidentId={incident?.id || ''}
+        currentIncidentTitle={incident?.title || ''}
+        onMergeComplete={() => {
+          loadIncident(false);
+        }}
+      />
     </motion.div>
   );
 };
