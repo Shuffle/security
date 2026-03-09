@@ -2017,6 +2017,18 @@ const IncidentDetailPage = () => {
                 <ForwardIcon sx={{ fontSize: 16, mr: 1 }} />
                 Forward
               </MenuItem>
+              <Divider />
+              {/* Merge */}
+              <MenuItem
+                disabled={isSaving}
+                onClick={() => {
+                  setActionsMenuAnchor(null);
+                  setShowMergeDialog(true);
+                }}
+              >
+                <MergeIcon sx={{ fontSize: 16, mr: 1 }} />
+                Merge Into…
+              </MenuItem>
               {!isResolved && <Divider />}
               {!isResolved && (
                 <MenuItem
