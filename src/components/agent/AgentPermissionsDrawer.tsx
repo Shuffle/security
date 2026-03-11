@@ -52,6 +52,7 @@ import {
 import { useAgentPermissions, RiskLevel, AgentPermissionCategory } from '@/hooks/useAgentPermissions';
 import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
 import AgentIcon from '@/components/agent/AgentIcon';
+import LocalLLMConfig from '@/components/agent/LocalLLMConfig';
 import AddIcon from '@mui/icons-material/Add';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import SaveIcon from '@mui/icons-material/Save';
