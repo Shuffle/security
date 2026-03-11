@@ -181,26 +181,8 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
   const [toolsPopover, setToolsPopover] = useState<{ anchor: HTMLElement; tool: AgentTool } | null>(null);
   const [mcpSearchAnchor, setMcpSearchAnchor] = useState<HTMLElement | null>(null);
 
-  // Local model state
-  const [localModel, setLocalModel] = useState<AgentLocalModel>(() => {
-    try {
-      const stored = localStorage.getItem(AGENT_LOCAL_MODEL_KEY);
-      return stored ? JSON.parse(stored) : { url: '', apikey: '', model: '' };
-    } catch { return { url: '', apikey: '', model: '' }; }
-  });
-  const [localModelSaved, setLocalModelSaved] = useState(false);
+  // OpenAI auth status for Local LLM tab indicator
   const [hasOpenAIAuth, setHasOpenAIAuth] = useState(false);
-
-  const handleLocalModelChange = (field: keyof AgentLocalModel, value: string) => {
-    setLocalModel(prev => ({ ...prev, [field]: value }));
-    setLocalModelSaved(false);
-  };
-
-  const saveLocalModel = () => {
-    localStorage.setItem(AGENT_LOCAL_MODEL_KEY, JSON.stringify(localModel));
-    setLocalModelSaved(true);
-    setTimeout(() => setLocalModelSaved(false), 2000);
-  };
 
   // Fetch authenticated apps for tools list
   const fetchAgentTools = useCallback(async () => {
