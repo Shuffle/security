@@ -1,0 +1,333 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  InputBase,
+  CircularProgress,
+  Collapse,
+  Alert,
+} from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
+import { ShieldCheck, Wifi, WifiOff, Zap } from 'lucide-react';
+
+const AGENT_LOCAL_MODEL_KEY = 'agent_local_model';
+
+export interface AgentLocalModel {
+  url: string;
+  apikey: string;
+  model: string;
+}
+
+export interface LocalLLMTestResult {
+  success: boolean;
+  message: string;
+  models?: string[];
+  latencyMs?: number;
+}
+
+interface LocalLLMConfigProps {
+  /** Compact mode hides the description box */
+  compact?: boolean;
+  /** Called whenever the config is saved */
+  onSave?: (model: AgentLocalModel) => void;
+  /** Called when a test completes */
+  onTestResult?: (result: LocalLLMTestResult) => void;
+}
+
+/** Load saved local model config from localStorage */
+export const getLocalModel = (): AgentLocalModel => {
+  try {
+    const stored = localStorage.getItem(AGENT_LOCAL_MODEL_KEY);
+    return stored ? JSON.parse(stored) : { url: '', apikey: '', model: '' };
+  } catch {
+    return { url: '', apikey: '', model: '' };
+  }
+};
+
+/** Save local model config to localStorage */
+export const saveLocalModelConfig = (model: AgentLocalModel) => {
+  localStorage.setItem(AGENT_LOCAL_MODEL_KEY, JSON.stringify(model));
+};
+
+/** Test connectivity to an OpenAI-compatible endpoint */
+export const testLocalLLM = async (config: AgentLocalModel): Promise<LocalLLMTestResult> => {
+  const start = performance.now();
+  const baseUrl = config.url.replace(/\/+$/, '');
+
+  // Step 1: Try /v1/models or /models
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (config.apikey) headers['Authorization'] = `Bearer ${config.apikey}`;
+
+  // Try fetching models list first
+  try {
+    const modelsUrl = baseUrl.endsWith('/v1') ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+    const resp = await fetch(modelsUrl, { headers, signal: AbortSignal.timeout(10000) });
+    if (resp.ok) {
+      const data = await resp.json();
+      const models = Array.isArray(data?.data)
+        ? data.data.map((m: any) => m.id || m.name).filter(Boolean).slice(0, 10)
+        : [];
+      const latencyMs = Math.round(performance.now() - start);
+      return {
+        success: true,
+        message: models.length
+          ? `Connected — ${models.length} model${models.length > 1 ? 's' : ''} available (${latencyMs}ms)`
+          : `Connected (${latencyMs}ms)`,
+        models,
+        latencyMs,
+      };
+    }
+  } catch {
+    // Models endpoint not available, try a lightweight completion
+  }
+
+  // Step 2: Fallback — send a tiny completion request
+  try {
+    const chatUrl = baseUrl.endsWith('/v1')
+      ? `${baseUrl}/chat/completions`
+      : `${baseUrl}/v1/chat/completions`;
+    const resp = await fetch(chatUrl, {
+      method: 'POST',
+      headers,
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        model: config.model || 'test',
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+      }),
+    });
+    const latencyMs = Math.round(performance.now() - start);
+    if (resp.ok) {
+      return { success: true, message: `Connected — completions endpoint OK (${latencyMs}ms)`, latencyMs };
+    }
+    const errText = await resp.text().catch(() => '');
+    return {
+      success: false,
+      message: `Server responded ${resp.status}${errText ? `: ${errText.slice(0, 120)}` : ''}`,
+      latencyMs,
+    };
+  } catch (err) {
+    const latencyMs = Math.round(performance.now() - start);
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : 'Connection failed',
+      latencyMs,
+    };
+  }
+};
+
+const inputSx = {
+  fontSize: '0.82rem',
+  color: 'hsl(var(--foreground))',
+  px: 1.5,
+  py: 1,
+  borderRadius: 2,
+  border: '1px solid hsl(var(--border))',
+  bgcolor: 'hsl(var(--card))',
+  fontFamily: "'JetBrains Mono', monospace",
+  '& input::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.6 },
+  '&:focus-within': {
+    borderColor: 'hsla(var(--primary) / 0.5)',
+    boxShadow: '0 0 0 3px hsla(var(--primary) / 0.08)',
+  },
+};
+
+const labelSx = {
+  fontSize: '0.7rem',
+  fontWeight: 600,
+  color: 'hsl(var(--muted-foreground))',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.05em',
+  mb: 1,
+};
+
+const LocalLLMConfig = ({ compact, onSave, onTestResult }: LocalLLMConfigProps) => {
+  const [localModel, setLocalModel] = useState<AgentLocalModel>(getLocalModel);
+  const [saved, setSaved] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<LocalLLMTestResult | null>(null);
+
+  const handleChange = (field: keyof AgentLocalModel, value: string) => {
+    setLocalModel(prev => ({ ...prev, [field]: value }));
+    setSaved(false);
+    setTestResult(null);
+  };
+
+  const handleSave = () => {
+    saveLocalModelConfig(localModel);
+    setSaved(true);
+    onSave?.(localModel);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleTest = async () => {
+    if (!localModel.url.trim()) return;
+    setTesting(true);
+    setTestResult(null);
+    const result = await testLocalLLM(localModel);
+    setTestResult(result);
+    onTestResult?.(result);
+    setTesting(false);
+  };
+
+  const canTest = localModel.url.trim().length > 0;
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      {/* Description */}
+      {!compact && (
+        <Box sx={{
+          px: 2.5,
+          py: 2,
+          borderRadius: 2,
+          border: '1px solid hsl(var(--border))',
+          bgcolor: 'hsla(var(--muted) / 0.3)',
+        }}>
+          <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+            Configure a local or self-hosted OpenAI-compatible endpoint for agent operations.
+          </Typography>
+        </Box>
+      )}
+
+      {/* URL */}
+      <Box>
+        <Typography sx={labelSx}>URL</Typography>
+        <InputBase
+          value={localModel.url}
+          onChange={(e) => handleChange('url', e.target.value)}
+          placeholder="http://localhost:11434/v1"
+          fullWidth
+          sx={inputSx}
+        />
+      </Box>
+
+      {/* API Key */}
+      <Box>
+        <Typography sx={labelSx}>API Key</Typography>
+        <InputBase
+          value={localModel.apikey}
+          onChange={(e) => handleChange('apikey', e.target.value)}
+          placeholder="sk-... (optional for local models)"
+          type="password"
+          fullWidth
+          sx={inputSx}
+        />
+      </Box>
+
+      {/* Model */}
+      <Box>
+        <Typography sx={labelSx}>Model</Typography>
+        <InputBase
+          value={localModel.model}
+          onChange={(e) => handleChange('model', e.target.value)}
+          placeholder="llama3, mistral, gpt-4o..."
+          fullWidth
+          sx={inputSx}
+        />
+      </Box>
+
+      {/* Test result */}
+      <Collapse in={!!testResult}>
+        {testResult && (
+          <Alert
+            severity={testResult.success ? 'success' : 'error'}
+            icon={testResult.success ? <Wifi size={16} /> : <WifiOff size={16} />}
+            sx={{
+              bgcolor: testResult.success
+                ? 'hsla(var(--severity-low) / 0.1)'
+                : 'hsla(var(--destructive) / 0.1)',
+              color: 'hsl(var(--foreground))',
+              border: `1px solid ${testResult.success ? 'hsl(var(--severity-low))' : 'hsl(var(--destructive))'}`,
+              borderRadius: 2,
+              '& .MuiAlert-icon': {
+                color: testResult.success ? 'hsl(var(--severity-low))' : 'hsl(var(--destructive))',
+              },
+              fontSize: '0.8rem',
+            }}
+          >
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 500 }}>
+              {testResult.message}
+            </Typography>
+            {testResult.models && testResult.models.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                {testResult.models.map((m) => (
+                  <Box
+                    key={m}
+                    onClick={() => handleChange('model', m)}
+                    sx={{
+                      fontSize: '0.7rem',
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      bgcolor: localModel.model === m ? 'hsla(var(--primary) / 0.2)' : 'hsla(var(--muted) / 0.5)',
+                      color: localModel.model === m ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                      border: localModel.model === m ? '1px solid hsla(var(--primary) / 0.4)' : '1px solid transparent',
+                      cursor: 'pointer',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      '&:hover': { bgcolor: 'hsla(var(--primary) / 0.15)' },
+                    }}
+                  >
+                    {m}
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Alert>
+        )}
+      </Collapse>
+
+      {/* Buttons */}
+      <Box sx={{ display: 'flex', gap: 1.5 }}>
+        <Button
+          variant="contained"
+          startIcon={saved ? <ShieldCheck size={14} /> : <SaveIcon sx={{ fontSize: 14 }} />}
+          onClick={handleSave}
+          sx={{
+            bgcolor: saved ? 'hsl(var(--severity-low))' : 'hsl(var(--primary))',
+            color: saved ? '#fff' : 'hsl(var(--primary-foreground))',
+            textTransform: 'none',
+            fontSize: '0.82rem',
+            fontWeight: 600,
+            borderRadius: 2,
+            px: 3,
+            '&:hover': {
+              bgcolor: saved ? 'hsl(var(--severity-low))' : 'hsl(var(--primary))',
+              filter: 'brightness(1.1)',
+            },
+          }}
+        >
+          {saved ? 'Saved' : 'Save'}
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={testing ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Zap size={14} />}
+          onClick={handleTest}
+          disabled={!canTest || testing}
+          sx={{
+            textTransform: 'none',
+            fontSize: '0.82rem',
+            fontWeight: 600,
+            borderRadius: 2,
+            px: 3,
+            color: 'hsl(var(--foreground))',
+            borderColor: 'hsl(var(--border))',
+            '&:hover': {
+              borderColor: 'hsl(var(--primary))',
+              bgcolor: 'hsla(var(--primary) / 0.06)',
+            },
+            '&.Mui-disabled': {
+              color: 'hsl(var(--muted-foreground))',
+              borderColor: 'hsl(var(--border))',
+              opacity: 0.5,
+            },
+          }}
+        >
+          {testing ? 'Testing…' : 'Test Connection'}
+        </Button>
+      </Box>
+    </Box>
+  );
+};
+
+export default LocalLLMConfig;
