@@ -230,7 +230,7 @@ const LocalLLMConfig = ({ compact, onSave, onTestResult }: LocalLLMConfigProps) 
           variant="outlined"
           startIcon={testing ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Zap size={14} />}
           onClick={handleTest}
-          disabled={!canTest || testing}
+          disabled={testing}
           sx={{
             textTransform: 'none',
             fontSize: '0.82rem',
