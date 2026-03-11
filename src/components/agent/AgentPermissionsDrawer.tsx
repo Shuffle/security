@@ -55,7 +55,7 @@ import AgentIcon from '@/components/agent/AgentIcon';
 import LocalLLMConfig from '@/components/agent/LocalLLMConfig';
 import AddIcon from '@mui/icons-material/Add';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import SaveIcon from '@mui/icons-material/Save';
+
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
 import { deduplicateAuthApps, backfillAppImages } from '@/lib/utils';
 import { SingulJS } from '@/lib/singul-local';
