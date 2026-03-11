@@ -433,6 +433,7 @@ const DetectionOnboardingPage = () => {
 
   // Check if selected sensor is connected (uses already-fetched environment data)
   const checkSensors = async () => {
+    trackPredefinedEvent(GA_EVENTS.DETECTION_SENSOR_CHECK, selectedEnvId);
     setSensorStatus({ loading: true, checked: false, success: false });
     
     // Re-fetch to get latest checkin status and get fresh data directly
