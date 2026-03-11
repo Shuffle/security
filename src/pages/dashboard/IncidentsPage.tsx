@@ -43,6 +43,7 @@ import { WebhookIngestionButton, WebhookIngestionInfo } from '@/components/incid
 
 import { toast } from 'sonner';
 import { resyncState } from '@/lib/resyncState';
+import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 
 // Legacy categories for migration
 const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
