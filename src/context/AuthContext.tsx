@@ -89,40 +89,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Verify authentication on mount (runs once when app loads)
+  // Always calls getinfo — cookies (credentials: 'include') may authenticate
+  // even without a localStorage session token.
   useEffect(() => {
     const verifyAuth = async () => {
       console.log('AuthContext: verifyAuth running on mount');
       const token = localStorage.getItem('session_token');
       setSessionToken(token);
-      
-      // If we have an API key, use that for auth verification
-      if (API_CONFIG.apiKey) {
-        console.log('AuthContext: Using API key for authentication');
-        const success = await fetchUserInfo(token);
-        if (success) {
-          setIsAuthenticated(true);
-        }
-        setIsLoading(false);
-        return;
-      }
-      
-      // Otherwise, require a session token
-      if (!token) {
-        console.log('AuthContext: No token found, not authenticated');
-        setIsAuthenticated(false);
-        setUserInfo(null);
-        setIsLoading(false);
-        return;
-      }
 
-      console.log('AuthContext: Verifying session token');
+      // Always attempt getinfo — works with API key, session token, OR cookie
       const success = await fetchUserInfo(token);
       if (success) {
         setIsAuthenticated(true);
       } else {
-        // Token is invalid, clear it
-        localStorage.removeItem('session_token');
-        setSessionToken(null);
+        // Clear stale token if present
+        if (token) {
+          localStorage.removeItem('session_token');
+          setSessionToken(null);
+        }
         setIsAuthenticated(false);
         setUserInfo(null);
       }
