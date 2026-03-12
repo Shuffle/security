@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate, MatchDecorator } from '@codemirror/view';
+import { foldAll } from '@codemirror/language';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 
@@ -158,6 +159,10 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
             bracketMatching: true,
           }}
           editable
+          onCreateEditor={useCallback((view: EditorView) => {
+            // Fold all blocks after a short delay to let the language parser finish
+            setTimeout(() => foldAll(view), 100);
+          }, [])}
         />
       </Box>
 
