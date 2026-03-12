@@ -3593,6 +3593,34 @@ const IncidentDetailPage = () => {
         </Box>
       )}
 
+      {activeTab === 6 && unmappedOriginal && (
+        /* Original Data Tab */
+        <Box sx={{
+          bgcolor: 'rgba(255,255,255,0.02)',
+          borderRadius: 2,
+          border: '1px solid rgba(255,255,255,0.06)',
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1.5,
+        }}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <DescriptionIcon sx={{ fontSize: 18, color: '#ff6600' }} />
+              Original Data
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+              The raw unmapped data as originally ingested before any translation was applied.
+            </Typography>
+          </Box>
+          <HighlightedFileEditor
+            value={typeof unmappedOriginal === 'string' ? unmappedOriginal : JSON.stringify(unmappedOriginal, null, 2)}
+            onChange={() => {}}
+            validateJson={false}
+          />
+        </Box>
+      )}
+
       {activeTab === 5 && (
         /* File Editor Tab */
         <Box sx={{
