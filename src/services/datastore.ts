@@ -255,6 +255,7 @@ export const getDatastoreByCategory = async (
     data: Array.isArray(data) ? data : data.keys || data.data || [],
     categoryConfig: data.category_config,
     cursor: data.cursor,
+    totalAmount: data.total_amount,
   };
 };
 

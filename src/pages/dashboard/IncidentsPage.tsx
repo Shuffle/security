@@ -334,7 +334,7 @@ const IncidentsPage = () => {
   const [bulkResolveDialogOpen, setBulkResolveDialogOpen] = useState(false);
   const [isBulkResolving, setIsBulkResolving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 50;
 
   // Sorting
   const [sortBy, setSortBy] = useState<SortKey>('created');
