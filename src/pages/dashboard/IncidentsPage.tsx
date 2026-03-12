@@ -1472,6 +1472,7 @@ const IncidentsPage = () => {
 
             <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary' }}>
               {sortedIncidents.length} incident{sortedIncidents.length !== 1 ? 's' : ''}
+              {sortedIncidents.length > ITEMS_PER_PAGE && ` · Page ${currentPage} of ${Math.ceil(sortedIncidents.length / ITEMS_PER_PAGE)}`}
             </Typography>
           </Box>
         </CardContent>
