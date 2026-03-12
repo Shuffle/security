@@ -485,6 +485,47 @@ const IncidentDetailPage = () => {
      window.history.replaceState(null, '', `${window.location.pathname}${paramStr ? '?' + paramStr : ''}`);
    };
    const [rawJsonText, setRawJsonText] = useState('');
+  // File editor state
+  const [fileContent, setFileContent] = useState('');
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileSaving, setFileSaving] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [fileLoaded, setFileLoaded] = useState(false);
+
+  // Extract file_id from incident data (must match file_{uuid} format)
+  const incidentFileId = useMemo(() => {
+    const raw = incident?.rawOCSF;
+    if (!raw?.shuffle_translation_file) return null;
+    const fileId = String(raw.shuffle_translation_file);
+    return /^file_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileId) ? fileId : null;
+  }, [incident?.rawOCSF]);
+
+  // Load file content when File tab is activated
+  const loadFileContent = useCallback(async () => {
+    if (!incidentFileId) return;
+    setFileLoading(true);
+    setFileError(null);
+    try {
+      const resp = await fetch(getApiUrl(`/api/v1/files/${incidentFileId}/content`), {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      });
+      if (!resp.ok) throw new Error(`Failed to load file (${resp.status})`);
+      const text = await resp.text();
+      setFileContent(text);
+      setFileLoaded(true);
+    } catch (e: any) {
+      setFileError(e.message || 'Failed to load file');
+    } finally {
+      setFileLoading(false);
+    }
+  }, [incidentFileId]);
+
+  useEffect(() => {
+    if (activeTab === 6 && incidentFileId && !fileLoaded) {
+      loadFileContent();
+    }
+  }, [activeTab, incidentFileId, fileLoaded, loadFileContent]);
   const [forwardingApps, setForwardingApps] = useState<Array<{ id: string; name: string; large_image: string; categories: string[] }>>([]);
   const [forwardingAppsLoading, setForwardingAppsLoading] = useState(false);
   const [sourceAppImage, setSourceAppImage] = useState<string | null>(null);
