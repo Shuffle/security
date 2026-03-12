@@ -3625,6 +3625,7 @@ const IncidentDetailPage = () => {
             value={typeof unmappedOriginal === 'string' ? unmappedOriginal : JSON.stringify(unmappedOriginal, null, 2)}
             onChange={() => {}}
             validateJson={false}
+            editable={false}
           />
         </Box>
       )}

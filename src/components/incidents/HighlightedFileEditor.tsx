@@ -27,6 +27,7 @@ interface HighlightedFileEditorProps {
   onChange: (value: string) => void;
   validateJson?: boolean;
   onValidationChange?: (isValid: boolean) => void;
+  editable?: boolean;
 }
 
 const jsonHighlight = HighlightStyle.define([
@@ -118,7 +119,7 @@ const getJsonError = (value: string, validateJson: boolean): string | null => {
   }
 };
 
-const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidationChange }: HighlightedFileEditorProps) => {
+const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidationChange, editable = true }: HighlightedFileEditorProps) => {
   const editorViewRef = useRef<EditorView | null>(null);
   const hasAutoFoldedRef = useRef(false);
   const jsonError = useMemo(() => getJsonError(value, validateJson), [value, validateJson]);
@@ -209,7 +210,7 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
             highlightActiveLine: true,
             bracketMatching: true,
           }}
-          editable
+          editable={editable}
           onCreateEditor={useCallback((view: EditorView) => {
             editorViewRef.current = view;
             hasAutoFoldedRef.current = false;
