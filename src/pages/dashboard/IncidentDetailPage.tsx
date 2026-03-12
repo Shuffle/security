@@ -470,7 +470,7 @@ const IncidentDetailPage = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
-  const TAB_NAMES = ['tasks', 'details', 'observables', 'correlations', 'raw', 'automation'] as const;
+  const TAB_NAMES = ['tasks', 'details', 'observables', 'correlations', 'raw', 'automation', 'file'] as const;
   const initialTab = (() => {
     const t = searchParams.get('tab');
     if (t) { const idx = TAB_NAMES.indexOf(t as any); return idx >= 0 ? idx : 0; }
@@ -485,6 +485,47 @@ const IncidentDetailPage = () => {
      window.history.replaceState(null, '', `${window.location.pathname}${paramStr ? '?' + paramStr : ''}`);
    };
    const [rawJsonText, setRawJsonText] = useState('');
+  // File editor state
+  const [fileContent, setFileContent] = useState('');
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileSaving, setFileSaving] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [fileLoaded, setFileLoaded] = useState(false);
+
+  // Extract file_id from incident data (must match file_{uuid} format)
+  const incidentFileId = useMemo(() => {
+    const raw = incident?.rawOCSF;
+    if (!raw?.shuffle_translation_file) return null;
+    const fileId = String(raw.shuffle_translation_file);
+    return /^file_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileId) ? fileId : null;
+  }, [incident?.rawOCSF]);
+
+  // Load file content when File tab is activated
+  const loadFileContent = useCallback(async () => {
+    if (!incidentFileId) return;
+    setFileLoading(true);
+    setFileError(null);
+    try {
+      const resp = await fetch(getApiUrl(`/api/v1/files/${incidentFileId}/content`), {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      });
+      if (!resp.ok) throw new Error(`Failed to load file (${resp.status})`);
+      const text = await resp.text();
+      setFileContent(text);
+      setFileLoaded(true);
+    } catch (e: any) {
+      setFileError(e.message || 'Failed to load file');
+    } finally {
+      setFileLoading(false);
+    }
+  }, [incidentFileId]);
+
+  useEffect(() => {
+    if (activeTab === 6 && incidentFileId && !fileLoaded) {
+      loadFileContent();
+    }
+  }, [activeTab, incidentFileId, fileLoaded, loadFileContent]);
   const [forwardingApps, setForwardingApps] = useState<Array<{ id: string; name: string; large_image: string; categories: string[] }>>([]);
   const [forwardingAppsLoading, setForwardingAppsLoading] = useState(false);
   const [sourceAppImage, setSourceAppImage] = useState<string | null>(null);
@@ -2167,6 +2208,36 @@ const IncidentDetailPage = () => {
                 );
               })()}
 
+              {/* File tab */}
+              {(() => {
+                const hasFile = !!incidentFileId;
+                return (
+                  <Box
+                    onClick={() => hasFile && setActiveTab(6)}
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      borderRadius: 1.5,
+                      cursor: hasFile ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      transition: 'all 0.2s ease',
+                      opacity: hasFile ? 1 : 0.4,
+                      bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
+                      color: activeTab === 6 ? '#ff6600' : 'text.secondary',
+                      fontWeight: activeTab === 6 ? 600 : 400,
+                      fontSize: '0.875rem',
+                      '&:hover': hasFile ? {
+                        bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                      } : {},
+                    }}
+                  >
+                    File
+                  </Box>
+                );
+              })()}
+
               <Box
                 onClick={() => {
                   if (incident?.rawOCSF) {
@@ -3499,6 +3570,116 @@ const IncidentDetailPage = () => {
                 {incident.rawOCSF.shuffle_translation_file}
               </Typography>
             </Box>
+          )}
+        </Box>
+      )}
+
+      {activeTab === 6 && (
+        /* File Editor Tab */
+        <Box sx={{
+          bgcolor: 'rgba(255,255,255,0.02)',
+          borderRadius: 2,
+          border: '1px solid rgba(255,255,255,0.06)',
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1.5,
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DescriptionIcon sx={{ fontSize: 18, color: '#ff6600' }} />
+                Translation File
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                {incidentFileId}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => { setFileLoaded(false); loadFileContent(); }}
+                disabled={fileLoading}
+                sx={{
+                  borderColor: 'rgba(255,255,255,0.2)',
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
+                  height: 28,
+                  '&:hover': { borderColor: 'rgba(255,255,255,0.4)' },
+                }}
+              >
+                {fileLoading ? <CircularProgress size={14} /> : 'Reload'}
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={async () => {
+                  if (!incidentFileId) return;
+                  setFileSaving(true);
+                  try {
+                    const resp = await fetch(getApiUrl(`/api/v1/files/${incidentFileId}/edit`), {
+                      method: 'PUT',
+                      credentials: 'include',
+                      headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+                      body: fileContent,
+                    });
+                    if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
+                    toast.success('File saved');
+                  } catch (e: any) {
+                    toast.error(e.message || 'Failed to save file');
+                  } finally {
+                    setFileSaving(false);
+                  }
+                }}
+                disabled={fileSaving || fileLoading}
+                sx={{
+                  borderColor: 'rgba(255,255,255,0.2)',
+                  color: '#ff6600',
+                  fontSize: '0.75rem',
+                  height: 28,
+                  '&:hover': { borderColor: '#ff6600', bgcolor: 'rgba(255, 102, 0, 0.08)' },
+                }}
+              >
+                {fileSaving ? <CircularProgress size={14} /> : 'Save'}
+              </Button>
+            </Box>
+          </Box>
+          {fileError ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: 'error.main' }}>{fileError}</Typography>
+              <Button size="small" onClick={() => { setFileLoaded(false); loadFileContent(); }} sx={{ mt: 1, color: '#ff6600' }}>
+                Retry
+              </Button>
+            </Box>
+          ) : fileLoading ? (
+            <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress size={24} sx={{ color: '#ff6600' }} />
+            </Box>
+          ) : (
+            <TextField
+              multiline
+              fullWidth
+              minRows={20}
+              maxRows={50}
+              value={fileContent}
+              onChange={(e) => setFileContent(e.target.value)}
+              sx={{
+                '& .MuiInputBase-root': {
+                  fontFamily: 'monospace',
+                  fontSize: '0.75rem',
+                  lineHeight: 1.6,
+                  bgcolor: 'rgba(0,0,0,0.3)',
+                  borderRadius: 1.5,
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.08)',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.15)',
+                },
+              }}
+            />
           )}
         </Box>
       )}
