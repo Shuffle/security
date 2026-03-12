@@ -2216,29 +2216,31 @@ const IncidentDetailPage = () => {
               flexShrink: 0,
             }}>
               {/* Original tab - always visible, disabled when no data */}
-              <Box
-                onClick={() => unmappedOriginal && setActiveTab(6)}
-                sx={{
-                  px: 2,
-                  py: 1,
-                  borderRadius: 1.5,
-                  cursor: unmappedOriginal ? 'pointer' : 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  transition: 'all 0.2s ease',
-                  opacity: unmappedOriginal ? 1 : 0.4,
-                  bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
-                  color: activeTab === 6 ? '#ff6600' : 'text.secondary',
-                  fontWeight: activeTab === 6 ? 600 : 400,
-                  fontSize: '0.875rem',
-                  '&:hover': unmappedOriginal ? {
-                    bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
-                  } : {},
-                }}
-              >
-                Original
-              </Box>
+              <Tooltip title={unmappedOriginal ? 'The raw data before any translation' : 'No original data available for this incident'} arrow>
+                <Box
+                  onClick={() => unmappedOriginal && setActiveTab(6)}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1.5,
+                    cursor: unmappedOriginal ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    transition: 'all 0.2s ease',
+                    opacity: unmappedOriginal ? 1 : 0.4,
+                    bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
+                    color: activeTab === 6 ? '#ff6600' : 'text.secondary',
+                    fontWeight: activeTab === 6 ? 600 : 400,
+                    fontSize: '0.875rem',
+                    '&:hover': unmappedOriginal ? {
+                      bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                    } : {},
+                  }}
+                >
+                  Original
+                </Box>
+              </Tooltip>
 
               {/* Arrow: Original → Translation */}
               <ChevronRightIcon sx={{ fontSize: 16, color: 'text.disabled', mx: -0.25 }} />
@@ -2247,96 +2249,100 @@ const IncidentDetailPage = () => {
               {(() => {
                 const hasFile = !!incidentFileId;
                 return (
-                  <Box
-                    onClick={() => hasFile && setActiveTab(5)}
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      borderRadius: 1.5,
-                      cursor: hasFile ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      transition: 'all 0.2s ease',
-                      opacity: hasFile ? 1 : 0.4,
-                      bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
-                      color: activeTab === 5 ? '#ff6600' : 'text.secondary',
-                      fontWeight: activeTab === 5 ? 600 : 400,
-                      fontSize: '0.875rem',
-                      '&:hover': hasFile ? {
-                        bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
-                      } : {},
-                    }}
-                  >
-                    Translation
-                  </Box>
+                  <Tooltip title={hasFile ? 'The translation file that maps original data to OCSF' : 'No translation file linked to this incident'} arrow>
+                    <Box
+                      onClick={() => hasFile && setActiveTab(5)}
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        borderRadius: 1.5,
+                        cursor: hasFile ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        transition: 'all 0.2s ease',
+                        opacity: hasFile ? 1 : 0.4,
+                        bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
+                        color: activeTab === 5 ? '#ff6600' : 'text.secondary',
+                        fontWeight: activeTab === 5 ? 600 : 400,
+                        fontSize: '0.875rem',
+                        '&:hover': hasFile ? {
+                          bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                        } : {},
+                      }}
+                    >
+                      Translation
+                    </Box>
+                  </Tooltip>
                 );
               })()}
 
               {/* Arrow: Translation → OCSF */}
               <ChevronRightIcon sx={{ fontSize: 16, color: 'text.disabled', mx: -0.25 }} />
 
-              <Box
-                onClick={() => {
-                  if (incident?.rawOCSF) {
-                    const severityOption = severityOptions.find(s => s.value === editedSeverity);
-                    const statusLabel = editedStatus === 'new' ? 'New' : editedStatus === 'in_progress' ? 'In Progress' : editedStatus === 'on_hold' ? 'On Hold' : 'Resolved';
-                    const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
-                    const liveSnapshot = {
-                      ...incident.rawOCSF,
-                      desc: editedMessage || editedTitle,
-                      severity_id: severityOption?.id || 3,
-                      severity: severityOption?.label || 'Medium',
-                      status: statusLabel,
-                      assignee: editedAssignee.trim() || '',
-                      types: editedLabels,
-                      observables: editedObservables,
-                      tasks,
-                      activity,
-                      finding_info_list: [{
-                        ...existingFindingInfo,
-                        title: editedTitle,
-                        references: editedReferences,
-                        src_url: editedReferences[0] || '',
-                      }],
-                      metadata: {
-                        ...incident.rawOCSF.metadata,
-                        extensions: {
-                          ...incident.rawOCSF.metadata?.extensions,
-                          custom_attributes: {
-                            ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
-                            tlp: editedTlp,
-                            assignee: editedAssignee.trim() || '',
-                            customFields: editedCustomFields,
+              <Tooltip title="The normalized OCSF Incident Finding output" arrow>
+                <Box
+                  onClick={() => {
+                    if (incident?.rawOCSF) {
+                      const severityOption = severityOptions.find(s => s.value === editedSeverity);
+                      const statusLabel = editedStatus === 'new' ? 'New' : editedStatus === 'in_progress' ? 'In Progress' : editedStatus === 'on_hold' ? 'On Hold' : 'Resolved';
+                      const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
+                      const liveSnapshot = {
+                        ...incident.rawOCSF,
+                        desc: editedMessage || editedTitle,
+                        severity_id: severityOption?.id || 3,
+                        severity: severityOption?.label || 'Medium',
+                        status: statusLabel,
+                        assignee: editedAssignee.trim() || '',
+                        types: editedLabels,
+                        observables: editedObservables,
+                        tasks,
+                        activity,
+                        finding_info_list: [{
+                          ...existingFindingInfo,
+                          title: editedTitle,
+                          references: editedReferences,
+                          src_url: editedReferences[0] || '',
+                        }],
+                        metadata: {
+                          ...incident.rawOCSF.metadata,
+                          extensions: {
+                            ...incident.rawOCSF.metadata?.extensions,
+                            custom_attributes: {
+                              ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
+                              tlp: editedTlp,
+                              assignee: editedAssignee.trim() || '',
+                              customFields: editedCustomFields,
+                            },
                           },
                         },
-                      },
-                    };
-                    setRawJsonText(JSON.stringify(liveSnapshot, null, 2));
-                  }
-                  setActiveTab(4);
-                }}
-                sx={{
-                  px: 2,
-                  py: 1,
-                  borderRadius: 1.5,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  transition: 'all 0.2s ease',
-                  bgcolor: activeTab === 4 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
-                  color: activeTab === 4 ? '#ff6600' : 'text.secondary',
-                  fontWeight: activeTab === 4 ? 600 : 400,
-                  fontSize: '0.875rem',
-                  '&:hover': {
-                    bgcolor: activeTab === 4 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                      };
+                      setRawJsonText(JSON.stringify(liveSnapshot, null, 2));
+                    }
+                    setActiveTab(4);
+                  }}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1.5,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    transition: 'all 0.2s ease',
+                    bgcolor: activeTab === 4 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
                     color: activeTab === 4 ? '#ff6600' : 'text.secondary',
-                  },
-                }}
-              >
-                OCSF
-              </Box>
+                    fontWeight: activeTab === 4 ? 600 : 400,
+                    fontSize: '0.875rem',
+                    '&:hover': {
+                      bgcolor: activeTab === 4 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                      color: activeTab === 4 ? '#ff6600' : 'text.secondary',
+                    },
+                  }}
+                >
+                  OCSF
+                </Box>
+              </Tooltip>
             </Box>
           </Box>
 
