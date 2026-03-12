@@ -27,6 +27,7 @@ interface HighlightedFileEditorProps {
   onChange: (value: string) => void;
   validateJson?: boolean;
   onValidationChange?: (isValid: boolean) => void;
+  editable?: boolean;
 }
 
 const jsonHighlight = HighlightStyle.define([
