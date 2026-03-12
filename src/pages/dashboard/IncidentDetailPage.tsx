@@ -2214,6 +2214,32 @@ const IncidentDetailPage = () => {
               border: '1px solid rgba(255,255,255,0.06)',
               flexShrink: 0,
             }}>
+              {/* Original tab - only shown when unmapped_original exists */}
+              {unmappedOriginal && (
+                <Box
+                  onClick={() => setActiveTab(6)}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1.5,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    transition: 'all 0.2s ease',
+                    bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
+                    color: activeTab === 6 ? '#ff6600' : 'text.secondary',
+                    fontWeight: activeTab === 6 ? 600 : 400,
+                    fontSize: '0.875rem',
+                    '&:hover': {
+                      bgcolor: activeTab === 6 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                    },
+                  }}
+                >
+                  Original
+                </Box>
+              )}
+
               {/* File tab */}
               {(() => {
                 const hasFile = !!incidentFileId;
