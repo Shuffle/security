@@ -486,8 +486,10 @@ const IncidentDetailPage = () => {
      window.history.replaceState(null, '', `${window.location.pathname}${paramStr ? '?' + paramStr : ''}`);
    };
    const [rawJsonText, setRawJsonText] = useState('');
+   const [rawJsonValid, setRawJsonValid] = useState(true);
   // File editor state
   const [fileContent, setFileContent] = useState('');
+  const [fileJsonValid, setFileJsonValid] = useState(true);
   const [fileLoading, setFileLoading] = useState(false);
   const [fileSaving, setFileSaving] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -3441,6 +3443,10 @@ const IncidentDetailPage = () => {
               variant="outlined"
               onClick={async () => {
                 if (!incident?.id) return;
+                if (!rawJsonValid) {
+                  toast.error('Cannot save: JSON is invalid');
+                  return;
+                }
                 try {
                   const parsed = JSON.parse(rawJsonText);
                   setIsSaving(true);
@@ -3457,7 +3463,7 @@ const IncidentDetailPage = () => {
                   setIsSaving(false);
                 }
               }}
-              disabled={isSaving}
+              disabled={isSaving || !rawJsonValid}
               sx={{
                 borderColor: 'rgba(255,255,255,0.2)',
                 color: '#ff6600',
@@ -3469,28 +3475,11 @@ const IncidentDetailPage = () => {
               Save
             </Button>
           </Box>
-          <TextField
-            multiline
-            fullWidth
-            minRows={16}
-            maxRows={40}
+          <HighlightedFileEditor
             value={rawJsonText}
-            onChange={(e) => setRawJsonText(e.target.value)}
-            sx={{
-              '& .MuiInputBase-root': {
-                fontFamily: 'monospace',
-                fontSize: '0.75rem',
-                lineHeight: 1.6,
-                bgcolor: 'rgba(0,0,0,0.3)',
-                borderRadius: 1.5,
-              },
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255,255,255,0.08)',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255,255,255,0.15)',
-              },
-            }}
+            onChange={setRawJsonText}
+            validateJson={true}
+            onValidationChange={setRawJsonValid}
           />
         </Box>
       )}
@@ -3537,6 +3526,10 @@ const IncidentDetailPage = () => {
                 variant="outlined"
                 onClick={async () => {
                   if (!incidentFileId) return;
+                  if (!fileJsonValid) {
+                    toast.error('Cannot save: JSON is invalid');
+                    return;
+                  }
                   setFileSaving(true);
                   try {
                     const resp = await fetch(getApiUrl(`/api/v1/files/${incidentFileId}/edit`), {
@@ -3553,7 +3546,7 @@ const IncidentDetailPage = () => {
                     setFileSaving(false);
                   }
                 }}
-                disabled={fileSaving || fileLoading}
+                disabled={fileSaving || fileLoading || !fileJsonValid}
                 sx={{
                   borderColor: 'rgba(255,255,255,0.2)',
                   color: '#ff6600',
@@ -3581,7 +3574,7 @@ const IncidentDetailPage = () => {
               <CircularProgress size={24} sx={{ color: '#ff6600' }} />
             </Box>
           ) : (
-            <HighlightedFileEditor value={fileContent} onChange={setFileContent} />
+            <HighlightedFileEditor value={fileContent} onChange={setFileContent} validateJson={true} onValidationChange={setFileJsonValid} />
           )}
         </Box>
       )}
