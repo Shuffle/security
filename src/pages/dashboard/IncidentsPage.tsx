@@ -15,6 +15,8 @@ import {
   Tooltip,
   Checkbox,
 } from '@mui/material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { motion } from 'framer-motion';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
@@ -331,6 +333,8 @@ const IncidentsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkResolveDialogOpen, setBulkResolveDialogOpen] = useState(false);
   const [isBulkResolving, setIsBulkResolving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Sorting
   const [sortBy, setSortBy] = useState<SortKey>('created');
@@ -783,6 +787,11 @@ const IncidentsPage = () => {
 
     return result;
   }, [filteredByAssignee, filters, searchQuery]);
+
+  // Reset to page 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchQuery, showIrrelevant]);
 
   // Sort incidents
   const sortedIncidents = useMemo(() => {
@@ -1468,6 +1477,7 @@ const IncidentsPage = () => {
 
             <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary' }}>
               {sortedIncidents.length} incident{sortedIncidents.length !== 1 ? 's' : ''}
+              {sortedIncidents.length > ITEMS_PER_PAGE && ` · Page ${currentPage} of ${Math.ceil(sortedIncidents.length / ITEMS_PER_PAGE)}`}
             </Typography>
           </Box>
         </CardContent>
@@ -1485,7 +1495,7 @@ const IncidentsPage = () => {
         {/* Card list */}
         <Box sx={{ maxWidth: '100%', overflowX: 'hidden' }}>
           <IncidentCardView
-            incidents={sortedIncidents}
+            incidents={sortedIncidents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)}
             getIncidentUrl={getIncidentUrl}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
@@ -1501,20 +1511,92 @@ const IncidentsPage = () => {
             }}
           />
           
-          {/* Load More button for pagination */}
-          {hasMore && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          {/* Pagination controls */}
+          {sortedIncidents.length > ITEMS_PER_PAGE && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1, mt: 3 }}>
+              <IconButton
+                size="small"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+                sx={{
+                  width: 36, height: 36,
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 1,
+                  color: 'hsl(var(--muted-foreground))',
+                  '&:hover': { borderColor: 'hsl(var(--primary))', color: 'hsl(var(--primary))' },
+                  '&.Mui-disabled': { opacity: 0.3 },
+                }}
+              >
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+
+              {Array.from({ length: Math.ceil(sortedIncidents.length / ITEMS_PER_PAGE) }, (_, i) => i + 1)
+                .filter(page => {
+                  const totalPages = Math.ceil(sortedIncidents.length / ITEMS_PER_PAGE);
+                  if (totalPages <= 7) return true;
+                  if (page === 1 || page === totalPages) return true;
+                  if (Math.abs(page - currentPage) <= 1) return true;
+                  return false;
+                })
+                .reduce<(number | 'ellipsis')[]>((acc, page, idx, arr) => {
+                  if (idx > 0 && page - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((item, idx) =>
+                  item === 'ellipsis' ? (
+                    <Typography key={`e-${idx}`} sx={{ px: 0.5, color: 'hsl(var(--muted-foreground))' }}>…</Typography>
+                  ) : (
+                    <Button
+                      key={item}
+                      size="small"
+                      onClick={() => setCurrentPage(item as number)}
+                      sx={{
+                        minWidth: 36, height: 36, px: 0,
+                        borderRadius: 1,
+                        fontWeight: currentPage === item ? 700 : 400,
+                        color: currentPage === item ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                        bgcolor: currentPage === item ? 'hsl(var(--primary))' : 'transparent',
+                        border: currentPage === item ? 'none' : '1px solid hsl(var(--border))',
+                        '&:hover': {
+                          bgcolor: currentPage === item ? 'hsl(var(--primary))' : 'hsl(var(--muted) / 0.5)',
+                        },
+                      }}
+                    >
+                      {item}
+                    </Button>
+                  )
+                )}
+
+              <IconButton
+                size="small"
+                disabled={currentPage >= Math.ceil(sortedIncidents.length / ITEMS_PER_PAGE)}
+                onClick={() => setCurrentPage(p => p + 1)}
+                sx={{
+                  width: 36, height: 36,
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 1,
+                  color: 'hsl(var(--muted-foreground))',
+                  '&:hover': { borderColor: 'hsl(var(--primary))', color: 'hsl(var(--primary))' },
+                  '&.Mui-disabled': { opacity: 0.3 },
+                }}
+              >
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          )}
+
+          {/* Load more from server when on last page */}
+          {hasMore && currentPage >= Math.ceil(sortedIncidents.length / ITEMS_PER_PAGE) && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
               <Button
                 variant="outlined"
                 onClick={fetchNextPage}
                 disabled={isLoading}
                 sx={{ 
-                  height: 36,
-                  minWidth: 140,
-                  borderColor: 'rgba(255,255,255,0.1)',
-                  '&:hover': {
-                    borderColor: 'rgba(255,255,255,0.2)',
-                  },
+                  height: 36, minWidth: 140,
+                  borderColor: 'hsl(var(--border))',
+                  '&:hover': { borderColor: 'hsl(var(--primary))' },
                 }}
               >
                 {isLoading ? <CircularProgress size={20} /> : 'Load More'}
