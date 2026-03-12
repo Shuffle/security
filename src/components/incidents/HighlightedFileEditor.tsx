@@ -125,7 +125,7 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
     onValidationChange?.(isValid);
   }, [isValid, onValidationChange]);
 
-  const extensions = useMemo(() => [json(), syntaxHighlighting(jsonHighlight), EditorView.lineWrapping], []);
+  const extensions = useMemo(() => [json(), syntaxHighlighting(jsonHighlight), variableHighlighter, EditorView.lineWrapping], []);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
