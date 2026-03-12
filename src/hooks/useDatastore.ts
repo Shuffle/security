@@ -46,6 +46,7 @@ export const useDatastore = ({ category }: UseDatastoreOptions): UseDatastoreRet
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [categoryConfig, setCategoryConfig] = useState<CategoryConfig | null>(null);
+  const [totalAmount, setTotalAmount] = useState<number | null>(null);
 
   const fetchItems = useCallback(async (cursorParam?: string) => {
     // Only show full loading spinner on initial fetch to avoid UI flicker
