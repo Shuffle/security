@@ -2193,7 +2193,7 @@ const IncidentDetailPage = () => {
                 const hasFile = !!incidentFileId;
                 return (
                   <Box
-                    onClick={() => hasFile && setActiveTab(6)}
+                    onClick={() => hasFile && setActiveTab(5)}
                     sx={{
                       px: 2,
                       py: 1,
