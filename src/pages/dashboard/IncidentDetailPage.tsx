@@ -3577,29 +3577,7 @@ const IncidentDetailPage = () => {
               <CircularProgress size={24} sx={{ color: '#ff6600' }} />
             </Box>
           ) : (
-            <TextField
-              multiline
-              fullWidth
-              minRows={20}
-              maxRows={50}
-              value={fileContent}
-              onChange={(e) => setFileContent(e.target.value)}
-              sx={{
-                '& .MuiInputBase-root': {
-                  fontFamily: 'monospace',
-                  fontSize: '0.75rem',
-                  lineHeight: 1.6,
-                  bgcolor: 'rgba(0,0,0,0.3)',
-                  borderRadius: 1.5,
-                },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'rgba(255,255,255,0.08)',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'rgba(255,255,255,0.15)',
-                },
-              }}
-            />
+            <HighlightedFileEditor value={fileContent} onChange={setFileContent} />
           )}
         </Box>
       )}
