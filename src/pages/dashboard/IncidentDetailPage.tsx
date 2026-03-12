@@ -2249,29 +2249,31 @@ const IncidentDetailPage = () => {
               {(() => {
                 const hasFile = !!incidentFileId;
                 return (
-                  <Box
-                    onClick={() => hasFile && setActiveTab(5)}
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      borderRadius: 1.5,
-                      cursor: hasFile ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      transition: 'all 0.2s ease',
-                      opacity: hasFile ? 1 : 0.4,
-                      bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
-                      color: activeTab === 5 ? '#ff6600' : 'text.secondary',
-                      fontWeight: activeTab === 5 ? 600 : 400,
-                      fontSize: '0.875rem',
-                      '&:hover': hasFile ? {
-                        bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
-                      } : {},
-                    }}
-                  >
-                    Translation
-                  </Box>
+                  <Tooltip title={hasFile ? 'The translation file that maps original data to OCSF' : 'No translation file linked to this incident'} arrow>
+                    <Box
+                      onClick={() => hasFile && setActiveTab(5)}
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        borderRadius: 1.5,
+                        cursor: hasFile ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        transition: 'all 0.2s ease',
+                        opacity: hasFile ? 1 : 0.4,
+                        bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
+                        color: activeTab === 5 ? '#ff6600' : 'text.secondary',
+                        fontWeight: activeTab === 5 ? 600 : 400,
+                        fontSize: '0.875rem',
+                        '&:hover': hasFile ? {
+                          bgcolor: activeTab === 5 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                        } : {},
+                      }}
+                    >
+                      Translation
+                    </Box>
+                  </Tooltip>
                 );
               })()}
 
