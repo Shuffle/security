@@ -3516,10 +3516,6 @@ const IncidentDetailPage = () => {
                 {incidentFileId}
               </Typography>
             </Box>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem', mt: 0.5, maxWidth: 600, lineHeight: 1.5 }}>
-              This file maps fields from the <strong>original ingested data</strong> into the <strong>normalized incident format {'{ }'}</strong>. Variables like <code style={{ color: '#93c5fd', fontFamily: 'monospace', fontSize: '0.75rem' }}>$field.subfield</code> reference the source data and are resolved when the translation runs.
-            </Typography>
-          </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 size="small"
