@@ -210,7 +210,7 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
             highlightActiveLine: true,
             bracketMatching: true,
           }}
-          editable
+          editable={editable}
           onCreateEditor={useCallback((view: EditorView) => {
             editorViewRef.current = view;
             hasAutoFoldedRef.current = false;
