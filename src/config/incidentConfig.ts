@@ -125,13 +125,16 @@ export const severityOrder: Record<string, number> = {
   informational: 1,
 };
 
-// Helper to get status display info
+// Helper to get status display info (handles unknown statuses with warning styling)
 export const getStatusDisplay = (status: string) => {
   const config = statusConfig[status];
-  return config || { 
-    icon: Clock, 
-    color: '#94a3b8', 
-    bg: 'rgba(148, 163, 184, 0.1)',
-    label: status.replace('_', ' '),
+  if (config) return { ...config, unknown: false };
+  return { 
+    icon: AlertTriangle, 
+    color: '#f59e0b', 
+    bg: 'rgba(245, 158, 11, 0.15)',
+    label: status.replace(/_/g, ' '),
+    id: 0,
+    unknown: true,
   };
 };
