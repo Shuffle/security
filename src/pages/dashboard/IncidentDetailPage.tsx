@@ -262,7 +262,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulString(ocsf.title),
+        title: meaningfulString(ocsf.title) || meaningfulString(ocsf.supporting_data) || meaningfulString(ocsf.desc),
         source: meaningfulString(ocsf.product?.name) || meaningfulString(ocsf.types?.[0]),
         severity: mapOCSFSeverity(ocsf.severity_id || 3),
         status: mapOCSFStatus(ocsf.status_id || 1),
@@ -295,7 +295,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulString(findingInfo?.title) || meaningfulString(legacyData.message),
+        title: meaningfulString(findingInfo?.title) || meaningfulString(legacyData.supporting_data) || meaningfulString(legacyData.desc) || meaningfulString(legacyData.message),
         source: meaningfulString(legacyData.metadata?.product?.name) || meaningfulString(findingInfo?.types?.[0]),
         severity: mapOCSFSeverity(legacyData.severity_id),
         status: mapOCSFStatus(legacyData.status_id),
@@ -320,7 +320,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
     // Non-OCSF format
     return {
       id: item.key, // Always use datastore key as the canonical ID
-      title: meaningfulString(data.title),
+      title: meaningfulString(data.title) || meaningfulString(data.supporting_data) || meaningfulString(data.desc) || meaningfulString(data.message),
       source: meaningfulString(data.source),
       severity: data.severity || 'medium',
       status: data.status || 'new',
