@@ -320,7 +320,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
     // Non-OCSF format
     return {
       id: item.key, // Always use datastore key as the canonical ID
-      title: meaningfulString(data.title),
+      title: meaningfulString(data.title) || meaningfulString(data.supporting_data) || meaningfulString(data.desc) || meaningfulString(data.message),
       source: meaningfulString(data.source),
       severity: data.severity || 'medium',
       status: data.status || 'new',

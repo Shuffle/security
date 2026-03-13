@@ -274,7 +274,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       const tasks = data.tasks || [];
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulString(data.title),
+        title: meaningfulString(data.title) || meaningfulString(data.supporting_data) || meaningfulString(data.desc) || meaningfulString(data.message),
         source: meaningfulString(data.source),
         severity: (data.severity || 'medium').toLowerCase(),
         status: (data.status || 'new').toLowerCase().replace('_', ''),
