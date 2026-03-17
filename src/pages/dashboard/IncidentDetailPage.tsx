@@ -593,6 +593,7 @@ const IncidentDetailPage = () => {
   const { templates: caseTemplates, trackUsage: trackTemplateUsage } = useCaseTemplates();
   const { addItem, getItem } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
+    orgId: crossOrgId || undefined,
   });
 
   // Fetch agent runs for this incident — deferred until incident loaded
