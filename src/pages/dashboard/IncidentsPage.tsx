@@ -645,7 +645,7 @@ const IncidentsPage = () => {
             updated = { ...updated, assignee: null };
           }
         }
-        return { ...updated, orgId: currentOrgId || '', orgName: currentOrgName };
+        return { ...updated, orgId: currentOrgId || '', orgName: currentOrgName, orgImage: userInfo?.active_org?.image };
       });
 
     // Parse sub-org incidents and tag with org info
