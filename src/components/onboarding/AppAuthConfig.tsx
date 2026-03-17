@@ -1802,35 +1802,24 @@ export const AppAuthCard = ({
                                 <LockIcon sx={{ fontSize: 18 }} />
                               )
                             }
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              setSaving(true);
-                              const success = await onSaveAuth(app.objectID, localCredentials);
-                              setSaving(false);
-                              if (success) {
-                                setSaveSuccess(true);
-                                setUserHasSelected(false);
-                                setLocalCredentials({});
-                                setFieldErrors({});
-
-                                // Build direct OAuth2 URL if authorization_url is available
-                                const directUrl = buildOAuth2Url();
-                                const popupUrl = directUrl || `https://shuffler.io/appauth?app_id=${app.objectID}&source=shuffle`;
-                                const popup = window.open(popupUrl, '_blank', 'width=600,height=700');
-                                if (popup && onRefreshAuth) {
-                                  const authPollTimer = setInterval(() => {
+                              // Open OAuth2 popup directly — no save step needed
+                              // The OAuth redirect callback handles credential storage
+                              const directUrl = buildOAuth2Url();
+                              const popupUrl = directUrl || `https://shuffler.io/appauth?app_id=${app.objectID}&source=shuffle`;
+                              const popup = window.open(popupUrl, '_blank', 'width=600,height=700');
+                              if (popup && onRefreshAuth) {
+                                const authPollTimer = setInterval(() => {
+                                  onRefreshAuth();
+                                }, 3000);
+                                const closePollTimer = setInterval(() => {
+                                  if (popup.closed) {
+                                    clearInterval(closePollTimer);
+                                    clearInterval(authPollTimer);
                                     onRefreshAuth();
-                                  }, 3000);
-                                  const closePollTimer = setInterval(() => {
-                                    if (popup.closed) {
-                                      clearInterval(closePollTimer);
-                                      clearInterval(authPollTimer);
-                                      onRefreshAuth();
-                                    }
-                                  }, 500);
-                                }
-                              } else {
-                                setSaveSuccess(false);
+                                  }
+                                }, 500);
                               }
                             }}
                             disabled={saving || !allFilled}
