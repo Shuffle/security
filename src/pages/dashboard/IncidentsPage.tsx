@@ -14,6 +14,7 @@ import {
   CircularProgress,
   Tooltip,
   Checkbox,
+  Autocomplete,
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -309,7 +310,7 @@ interface Filters {
   assignee: string | null;
   source: string | null;
   tag: string | null;
-  org: string | null;
+  org: string[] | null;
 }
 
 const IncidentsPage = () => {
@@ -856,8 +857,8 @@ const IncidentsPage = () => {
     if (filters.tag) {
       result = result.filter(i => i.labels?.some(l => l.toLowerCase() === filters.tag!.toLowerCase()));
     }
-    if (filters.org) {
-      result = result.filter(i => (i.orgId || '') === filters.org);
+    if (filters.org && filters.org.length > 0) {
+      result = result.filter(i => filters.org!.includes(i.orgId || ''));
     }
 
     if (searchQuery.trim()) {
@@ -1038,7 +1039,7 @@ const IncidentsPage = () => {
     !filters.tlp && 
     !filters.source &&
     !filters.tag &&
-    !filters.org &&
+    (!filters.org || filters.org.length === 0) &&
     filters.assignee === null && 
     !searchQuery.trim() &&
     Array.isArray(filters.status) && 
@@ -1371,73 +1372,6 @@ const IncidentsPage = () => {
         </Box>
       )}
 
-      {/* Multi-tenant org quick-filter bar */}
-      {isParentOrg && (
-        <Box sx={{
-          mb: 2,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          flexWrap: 'wrap',
-        }}>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', mr: 0.5 }}>
-            Organizations
-          </Typography>
-          <Chip
-            label={currentOrgName}
-            size="small"
-            variant={filters.org === null ? 'filled' : 'outlined'}
-            onClick={() => setFilters(prev => ({ ...prev, org: null }))}
-            sx={{
-              backgroundColor: filters.org === null ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
-              color: filters.org === null ? '#a78bfa' : 'hsl(var(--muted-foreground))',
-              fontWeight: 500,
-              fontSize: '0.75rem',
-              height: 26,
-              cursor: 'pointer',
-              border: '1px solid',
-              borderColor: filters.org === null ? 'rgba(139, 92, 246, 0.3)' : 'hsl(var(--border))',
-              '&:hover': { backgroundColor: 'rgba(139, 92, 246, 0.1)' },
-            }}
-          />
-          {subOrgs.filter(org => org.id !== currentOrgId).map(org => {
-            const orgIncidentCount = subOrgItems.get(org.id)?.items.length || 0;
-            const isActive = filters.org === org.id;
-            const isOrgLoading = subOrgLoading.has(org.id);
-            return (
-              <Chip
-                key={org.id}
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {isOrgLoading ? (
-                      <CircularProgress size={10} sx={{ color: 'inherit' }} />
-                    ) : (
-                      <Typography component="span" sx={{ fontSize: '0.65rem', opacity: 0.7 }}>
-                        {orgIncidentCount}
-                      </Typography>
-                    )}
-                    <span>{org.name}</span>
-                  </Box>
-                }
-                size="small"
-                variant={isActive ? 'filled' : 'outlined'}
-                onClick={() => setFilters(prev => ({ ...prev, org: prev.org === org.id ? null : org.id }))}
-                sx={{
-                  backgroundColor: isActive ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
-                  color: isActive ? '#a78bfa' : 'hsl(var(--muted-foreground))',
-                  fontWeight: 500,
-                  fontSize: '0.75rem',
-                  height: 26,
-                  cursor: 'pointer',
-                  border: '1px solid',
-                  borderColor: isActive ? 'rgba(139, 92, 246, 0.3)' : 'hsl(var(--border))',
-                  '&:hover': { backgroundColor: 'rgba(139, 92, 246, 0.1)' },
-                }}
-              />
-            );
-          })}
-        </Box>
-      )}
 
       {/* Floating Filter Bar - sticky */}
       <Card sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'hsl(var(--card))' }}>
@@ -1480,6 +1414,98 @@ const IncidentsPage = () => {
               }}
               sx={{ width: { xs: 160, sm: 280 }, minWidth: 0, flexShrink: 1 }}
             />
+
+            {/* Organization multi-select dropdown */}
+            {isParentOrg && (
+              <Autocomplete
+                multiple
+                size="small"
+                options={[
+                  { id: currentOrgId || '', name: currentOrgName },
+                  ...subOrgs.filter(org => org.id !== currentOrgId),
+                ]}
+                getOptionLabel={(option) => option.name}
+                value={
+                  (filters.org || []).map(id => {
+                    if (id === currentOrgId) return { id: currentOrgId || '', name: currentOrgName };
+                    const found = subOrgs.find(o => o.id === id);
+                    return found || { id, name: id };
+                  })
+                }
+                onChange={(_, newValue) => {
+                  setFilters(prev => ({
+                    ...prev,
+                    org: newValue.length > 0 ? newValue.map(v => v.id) : null,
+                  }));
+                }}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                renderOption={(props, option) => {
+                  const count = option.id === currentOrgId
+                    ? incidents.length
+                    : subOrgItems.get(option.id)?.items.length || 0;
+                  const isOrgLoading = subOrgLoading.has(option.id);
+                  return (
+                    <li {...props} key={option.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <Typography sx={{ fontSize: '0.82rem' }}>{option.name}</Typography>
+                        {isOrgLoading ? (
+                          <CircularProgress size={12} sx={{ color: '#a78bfa', ml: 1 }} />
+                        ) : (
+                          <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 1 }}>
+                            {count}
+                          </Typography>
+                        )}
+                      </Box>
+                    </li>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder={filters.org && filters.org.length > 0 ? '' : 'Organizations'}
+                    sx={{ minWidth: 160 }}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={option.id}
+                      label={option.name}
+                      size="small"
+                      sx={{
+                        backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                        color: '#a78bfa',
+                        fontWeight: 500,
+                        fontSize: '0.7rem',
+                        height: 22,
+                        '& .MuiChip-deleteIcon': { color: '#a78bfa', fontSize: '0.85rem' },
+                      }}
+                    />
+                  ))
+                }
+                sx={{
+                  minWidth: 160,
+                  maxWidth: 320,
+                  '& .MuiOutlinedInput-root': {
+                    minHeight: 36,
+                    py: '2px',
+                  },
+                }}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      bgcolor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      '& .MuiAutocomplete-option': {
+                        fontSize: '0.82rem',
+                        py: 0.75,
+                      },
+                    },
+                  },
+                }}
+              />
+            )}
 
             {/* Selection count and bulk actions */}
             {selectedIds.size > 0 && (
@@ -1622,9 +1648,12 @@ const IncidentsPage = () => {
                 />
               )}
 
-              {filters.org && (
+              {filters.org && filters.org.length > 0 && (
                 <Chip
-                  label={`Org: ${subOrgs.find(o => o.id === filters.org)?.name || filters.org}`}
+                  label={`Org: ${filters.org.map(id => {
+                    if (id === currentOrgId) return currentOrgName;
+                    return subOrgs.find(o => o.id === id)?.name || id;
+                  }).join(', ')}`}
                   size="small"
                   onDelete={() => setFilters(prev => ({ ...prev, org: null }))}
                   sx={{ 
