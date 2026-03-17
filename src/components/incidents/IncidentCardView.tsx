@@ -36,6 +36,8 @@ interface DisplayIncident {
   taskCount?: number;
   correlationCount?: number;
   labels?: string[];
+  orgId?: string;
+  orgName?: string;
 }
 
 interface IngestionApp {
