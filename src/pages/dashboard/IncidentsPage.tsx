@@ -1685,7 +1685,7 @@ const IncidentsPage = () => {
                   const isOrgLoading = subOrgLoading.has(option.id);
                   const isSubOrg = option.id !== currentOrgId && (!parentOrg || option.id !== parentOrg.id);
                   return (
-                    <li {...props} key={option.id} style={{ paddingLeft: isSubOrg ? 32 : undefined }}>
+                    <li {...props} key={option.id} style={{ paddingLeft: isSubOrg ? 48 : 16 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {option.image ? (
@@ -1709,7 +1709,10 @@ const IncidentsPage = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder="Orgs"
+                    placeholder={(() => {
+                      const orgFilter = Array.isArray(filters.org) ? filters.org : filters.org ? [filters.org] : [];
+                      return orgFilter.length > 0 ? `${orgFilter.length} Org${orgFilter.length > 1 ? 's' : ''}` : 'Orgs';
+                    })()}
                     sx={{ minWidth: 150, width: 150 }}
                     InputProps={{
                       ...params.InputProps,
