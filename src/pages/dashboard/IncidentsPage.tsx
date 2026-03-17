@@ -365,8 +365,9 @@ const IncidentsPage = () => {
 
     const results = await Promise.allSettled(
       subOrgs.map(async (org) => {
-        // Use region-specific URL if the sub-org is in a different region (cloud only)
-        const baseUrl = org.region_url ? org.region_url.replace(/\/+$/, '') : '';
+        // Use region-specific URL only for cloud domains (not dev/self-hosted)
+        const useRegionUrl = org.region_url && !isDevEnvironment() && isCloudDomain();
+        const baseUrl = useRegionUrl ? org.region_url!.replace(/\/+$/, '') : '';
         const url = baseUrl
           ? `${baseUrl}/api/v1/orgs/${org.id}/list_cache?category=${encodeURIComponent(DATASTORE_CATEGORIES.INCIDENTS)}&top=1000`
           : getApiUrl(`/api/v1/orgs/${org.id}/list_cache?category=${encodeURIComponent(DATASTORE_CATEGORIES.INCIDENTS)}&top=1000`);
