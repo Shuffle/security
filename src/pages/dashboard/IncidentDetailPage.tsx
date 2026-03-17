@@ -434,6 +434,12 @@ const IncidentDetailPage = () => {
   }, [rawId]);
   const isCrossOrg = !!crossOrgId && crossOrgId !== userInfo?.active_org?.id;
 
+  // Headers to include on every API call when viewing a cross-org incident
+  const crossOrgHeaders = useMemo<Record<string, string>>(() => {
+    if (!crossOrgId) return {};
+    return { 'Org-Id': crossOrgId };
+  }, [crossOrgId]);
+
   // Public sharing params
   const publicAuth = searchParams.get('authorization');
   const publicOrg = searchParams.get('org');
