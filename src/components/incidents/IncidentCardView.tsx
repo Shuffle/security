@@ -48,7 +48,7 @@ interface IngestionApp {
 interface IncidentCardViewProps {
   incidents: DisplayIncident[];
   onIncidentClick?: (incident: DisplayIncident) => void;
-  onFilterChange?: (type: 'severity' | 'status' | 'assignee' | 'source' | 'tag', value: string) => void;
+  onFilterChange?: (type: 'severity' | 'status' | 'assignee' | 'source' | 'tag' | 'org', value: string) => void;
   getIncidentUrl?: (incident: DisplayIncident) => string;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
