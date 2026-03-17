@@ -108,7 +108,7 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
   const addItem = useCallback(async (key: string, value: string | object, skipRefresh = true): Promise<boolean> => {
     setError(null);
     try {
-      const response = await setDatastoreItem(key, value, category);
+      const response = await setDatastoreItem(key, value, category, overrideOrgId);
       if (response.success) {
         // Only refresh if explicitly requested (default: skip for performance)
         if (!skipRefresh) {
