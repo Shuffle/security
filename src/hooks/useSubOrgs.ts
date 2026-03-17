@@ -10,6 +10,7 @@ export interface SubOrg {
   name: string;
   image?: string;
   creator_org?: string;
+  region_url?: string;
 }
 
 interface UseSubOrgsReturn {
