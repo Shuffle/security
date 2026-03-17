@@ -336,7 +336,15 @@ const IncidentsPage = () => {
   const pendingTogglesRef = useRef<Map<string, boolean>>(new Map());
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
-  
+
+  // Default org filter to current org when in a child org
+  const orgFilterInitRef = useRef(false);
+  useEffect(() => {
+    if (!orgFilterInitRef.current && parentOrg && currentOrgId) {
+      orgFilterInitRef.current = true;
+      setFilters(prev => prev.org === null ? { ...prev, org: [currentOrgId] } : prev);
+    }
+  }, [parentOrg, currentOrgId]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -937,7 +945,7 @@ const IncidentsPage = () => {
   };
 
   const resetToDefaults = () => {
-    setFilters({ severity: null, status: ['new', 'in_progress'], tlp: null, assignee: null, source: null, tag: null, org: null });
+    setFilters({ severity: null, status: ['new', 'in_progress'], tlp: null, assignee: null, source: null, tag: null, org: parentOrg && currentOrgId ? [currentOrgId] : null });
     setSearchQuery('');
     setSelectedIds(new Set());
   };
@@ -1047,7 +1055,9 @@ const IncidentsPage = () => {
     !filters.tlp && 
     !filters.source &&
     !filters.tag &&
-    (!filters.org || filters.org.length === 0) &&
+    (parentOrg
+      ? (filters.org?.length === 1 && filters.org[0] === currentOrgId)
+      : (!filters.org || filters.org.length === 0)) &&
     filters.assignee === null && 
     !searchQuery.trim() &&
     Array.isArray(filters.status) && 
