@@ -36,6 +36,8 @@ interface DisplayIncident {
   taskCount?: number;
   correlationCount?: number;
   labels?: string[];
+  orgId?: string;
+  orgName?: string;
 }
 
 interface IngestionApp {
@@ -46,7 +48,7 @@ interface IngestionApp {
 interface IncidentCardViewProps {
   incidents: DisplayIncident[];
   onIncidentClick?: (incident: DisplayIncident) => void;
-  onFilterChange?: (type: 'severity' | 'status' | 'assignee' | 'source' | 'tag', value: string) => void;
+  onFilterChange?: (type: 'severity' | 'status' | 'assignee' | 'source' | 'tag' | 'org', value: string) => void;
   getIncidentUrl?: (incident: DisplayIncident) => string;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
@@ -507,6 +509,33 @@ export const IncidentCardView = ({
                           height: 22,
                           cursor: 'pointer',
                           '&:hover': { backgroundColor: 'rgba(251, 146, 60, 0.22)' },
+                        }}
+                      />
+                    </>
+                  )}
+                  {incident.orgName && (
+                    <>
+                      <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                        •
+                      </Typography>
+                      <Chip
+                        icon={<Globe size={10} />}
+                        label={incident.orgName}
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          onFilterChange?.('org', incident.orgId || incident.orgName || '');
+                        }}
+                        sx={{
+                          backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                          color: '#a78bfa',
+                          fontWeight: 500,
+                          fontSize: '0.65rem',
+                          height: 22,
+                          cursor: 'pointer',
+                          '& .MuiChip-icon': { color: '#a78bfa', ml: 0.5 },
+                          '&:hover': { backgroundColor: 'rgba(139, 92, 246, 0.22)' },
                         }}
                       />
                     </>

@@ -28,6 +28,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
+import { useSubOrgs } from '@/hooks/useSubOrgs';
 import { useUsers } from '@/hooks/useUsers';
 import { DATASTORE_CATEGORIES, getDatastoreByCategory, getDatastoreItem, setDatastoreItems, CategoryAutomation, deleteDatastoreItems } from '@/services/datastore';
 import { CreateIncidentDialog, ActivityItem } from '@/components/incidents/CreateIncidentDialog';
@@ -113,6 +114,8 @@ interface DisplayIncident {
   taskCount?: number;
   tasks?: TaskItem[];
   labels?: string[];
+  orgId?: string;
+  orgName?: string;
 }
 
 type SortDirection = 'asc' | 'desc';
@@ -306,15 +309,19 @@ interface Filters {
   assignee: string | null;
   source: string | null;
   tag: string | null;
+  org: string | null;
 }
 
 const IncidentsPage = () => {
   const { userInfo } = useAuth();
   const currentUsername = userInfo?.username || '';
   const { users, loading: usersLoading } = useUsers();
+  const currentOrgId = userInfo?.active_org?.id;
+  const currentOrgName = userInfo?.active_org?.name || 'Current';
+  const { subOrgs, isParentOrg } = useSubOrgs(currentOrgId);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState<Filters>({ severity: null, status: null, tlp: null, assignee: null, source: null, tag: null });
+  const [filters, setFilters] = useState<Filters>({ severity: null, status: null, tlp: null, assignee: null, source: null, tag: null, org: null });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
   const [categoryAutomations, setCategoryAutomations] = useState<CategoryAutomation[] | null>(null);
@@ -344,6 +351,57 @@ const IncidentsPage = () => {
   const { items: datastoreItems, isLoading, isRefreshing, hasFetched, error, fetchItems, addItem, hasMore, fetchNextPage, categoryConfig, totalAmount } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
   });
+
+  // Sub-org incident fetching for multi-tenant view
+  const [subOrgItems, setSubOrgItems] = useState<Map<string, { orgName: string; items: typeof datastoreItems }>>(new Map());
+  const [subOrgLoading, setSubOrgLoading] = useState<Set<string>>(new Set());
+
+  // Fetch incidents from all sub-orgs in parallel
+  const fetchSubOrgIncidents = useCallback(async () => {
+    if (subOrgs.length === 0) return;
+
+    const loadingIds = new Set(subOrgs.map(o => o.id));
+    setSubOrgLoading(loadingIds);
+
+    const results = await Promise.allSettled(
+      subOrgs.map(async (org) => {
+        const url = getApiUrl(`/api/v1/orgs/${org.id}/list_cache?category=${encodeURIComponent(DATASTORE_CATEGORIES.INCIDENTS)}&top=1000`);
+        const response = await fetch(url, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeader(),
+            'Org-Id': org.id,
+          },
+        });
+
+        if (!response.ok) return { orgId: org.id, orgName: org.name, items: [] };
+
+        const data = await response.json();
+        const items = Array.isArray(data) ? data : (data.keys || data.data || []);
+        return { orgId: org.id, orgName: org.name, items };
+      })
+    );
+
+    const newMap = new Map<string, { orgName: string; items: typeof datastoreItems }>();
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value) {
+        const { orgId, orgName, items } = result.value;
+        newMap.set(orgId, { orgName, items });
+      }
+    });
+
+    setSubOrgItems(newMap);
+    setSubOrgLoading(new Set());
+  }, [subOrgs]);
+
+  // Fetch sub-org incidents when sub-orgs are discovered
+  useEffect(() => {
+    if (subOrgs.length > 0) {
+      fetchSubOrgIncidents();
+    }
+  }, [subOrgs, fetchSubOrgIncidents]);
 
   // Get valid usernames for assignee validation
   const validUsernames = useMemo(() => {
@@ -551,12 +609,13 @@ const IncidentsPage = () => {
 
   // Derive incidents synchronously from datastoreItems to avoid flash of empty state
   // Also validate assignees - only show if they're a valid user or AI Agent
+  // Merge in sub-org incidents when available
   const incidents = useMemo(() => {
-    return datastoreItems
+    // Parse current org incidents
+    const currentOrgIncidents = datastoreItems
       .map((item) => parseIncidentFromDatastore(item))
       .filter((a): a is DisplayIncident => a !== null)
       .map((incident) => {
-        // Validate assignee
         if (incident.assignee) {
           if (isAIAssignee(incident.assignee)) {
             return { ...incident, assignee: 'AI Agent' };
@@ -566,7 +625,25 @@ const IncidentsPage = () => {
         }
         return incident;
       });
-  }, [datastoreItems, validUsernames]);
+
+    // Parse sub-org incidents and tag with org info
+    const subOrgIncidents: DisplayIncident[] = [];
+    subOrgItems.forEach(({ orgName, items }, orgId) => {
+      items.forEach((item: any) => {
+        const parsed = parseIncidentFromDatastore(item);
+        if (parsed) {
+          subOrgIncidents.push({
+            ...parsed,
+            id: `${orgId}::${parsed.id}`, // Namespace IDs to avoid collisions
+            orgId,
+            orgName,
+          });
+        }
+      });
+    });
+
+    return [...currentOrgIncidents, ...subOrgIncidents];
+  }, [datastoreItems, validUsernames, subOrgItems]);
 
   // Split into relevant and irrelevant
   const [relevantIncidents, irrelevantCount] = useMemo(() => {
@@ -774,6 +851,9 @@ const IncidentsPage = () => {
     if (filters.tag) {
       result = result.filter(i => i.labels?.some(l => l.toLowerCase() === filters.tag!.toLowerCase()));
     }
+    if (filters.org) {
+      result = result.filter(i => (i.orgId || '') === filters.org);
+    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -843,7 +923,7 @@ const IncidentsPage = () => {
   };
 
   const resetToDefaults = () => {
-    setFilters({ severity: null, status: ['new', 'in_progress'], tlp: null, assignee: null, source: null, tag: null });
+    setFilters({ severity: null, status: ['new', 'in_progress'], tlp: null, assignee: null, source: null, tag: null, org: null });
     setSearchQuery('');
     setSelectedIds(new Set());
   };
@@ -953,6 +1033,7 @@ const IncidentsPage = () => {
     !filters.tlp && 
     !filters.source &&
     !filters.tag &&
+    !filters.org &&
     filters.assignee === null && 
     !searchQuery.trim() &&
     Array.isArray(filters.status) && 
@@ -986,7 +1067,7 @@ const IncidentsPage = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Tooltip title="Refresh">
               <IconButton 
-                onClick={() => { sessionStorage.removeItem('shuffle_auto_resync_done'); autoResyncQueueRef.current.clear(); fetchItems(); }} 
+                onClick={() => { sessionStorage.removeItem('shuffle_auto_resync_done'); autoResyncQueueRef.current.clear(); fetchItems(); fetchSubOrgIncidents(); }} 
                 disabled={isLoading}
                 sx={{ 
                   width: 36, height: 36, color: 'text.secondary',
@@ -1220,7 +1301,7 @@ const IncidentsPage = () => {
           </Tooltip>
           <Tooltip title="Refresh">
             <IconButton 
-              onClick={() => { sessionStorage.removeItem('shuffle_auto_resync_done'); autoResyncQueueRef.current.clear(); fetchItems(); }} 
+              onClick={() => { sessionStorage.removeItem('shuffle_auto_resync_done'); autoResyncQueueRef.current.clear(); fetchItems(); fetchSubOrgIncidents(); }} 
               disabled={isLoading}
               sx={{ 
                 width: 36,
@@ -1281,6 +1362,74 @@ const IncidentsPage = () => {
           <Typography sx={{ fontSize: '0.82rem', color: 'hsl(var(--foreground))', flex: 1 }}>
             <strong>Automatic ingestion is paused</strong> — the "Ingest Tickets" workflow schedule has been stopped. Sources are shown as disabled until the schedule is re-enabled.
           </Typography>
+        </Box>
+      )}
+
+      {/* Multi-tenant org quick-filter bar */}
+      {isParentOrg && (
+        <Box sx={{
+          mb: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'wrap',
+        }}>
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', mr: 0.5 }}>
+            Organizations
+          </Typography>
+          <Chip
+            label={currentOrgName}
+            size="small"
+            variant={filters.org === null ? 'filled' : 'outlined'}
+            onClick={() => setFilters(prev => ({ ...prev, org: null }))}
+            sx={{
+              backgroundColor: filters.org === null ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+              color: filters.org === null ? '#a78bfa' : 'hsl(var(--muted-foreground))',
+              fontWeight: 500,
+              fontSize: '0.75rem',
+              height: 26,
+              cursor: 'pointer',
+              border: '1px solid',
+              borderColor: filters.org === null ? 'rgba(139, 92, 246, 0.3)' : 'hsl(var(--border))',
+              '&:hover': { backgroundColor: 'rgba(139, 92, 246, 0.1)' },
+            }}
+          />
+          {subOrgs.map(org => {
+            const orgIncidentCount = subOrgItems.get(org.id)?.items.length || 0;
+            const isActive = filters.org === org.id;
+            const isOrgLoading = subOrgLoading.has(org.id);
+            return (
+              <Chip
+                key={org.id}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {isOrgLoading ? (
+                      <CircularProgress size={10} sx={{ color: 'inherit' }} />
+                    ) : (
+                      <Typography component="span" sx={{ fontSize: '0.65rem', opacity: 0.7 }}>
+                        {orgIncidentCount}
+                      </Typography>
+                    )}
+                    <span>{org.name}</span>
+                  </Box>
+                }
+                size="small"
+                variant={isActive ? 'filled' : 'outlined'}
+                onClick={() => setFilters(prev => ({ ...prev, org: prev.org === org.id ? null : org.id }))}
+                sx={{
+                  backgroundColor: isActive ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                  color: isActive ? '#a78bfa' : 'hsl(var(--muted-foreground))',
+                  fontWeight: 500,
+                  fontSize: '0.75rem',
+                  height: 26,
+                  cursor: 'pointer',
+                  border: '1px solid',
+                  borderColor: isActive ? 'rgba(139, 92, 246, 0.3)' : 'hsl(var(--border))',
+                  '&:hover': { backgroundColor: 'rgba(139, 92, 246, 0.1)' },
+                }}
+              />
+            );
+          })}
         </Box>
       )}
 
@@ -1467,6 +1616,30 @@ const IncidentsPage = () => {
                 />
               )}
 
+              {filters.org && (
+                <Chip
+                  label={`Org: ${subOrgs.find(o => o.id === filters.org)?.name || filters.org}`}
+                  size="small"
+                  onDelete={() => setFilters(prev => ({ ...prev, org: null }))}
+                  sx={{ 
+                    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                    color: '#a78bfa',
+                    fontWeight: 500,
+                    '& .MuiChip-deleteIcon': { color: '#a78bfa' },
+                  }}
+                />
+              )}
+
+              {/* Sub-org loading indicator */}
+              {subOrgLoading.size > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <CircularProgress size={14} sx={{ color: '#a78bfa' }} />
+                  <Typography variant="caption" sx={{ color: '#a78bfa', fontSize: '0.7rem' }}>
+                    Loading {subOrgLoading.size} sub-org{subOrgLoading.size > 1 ? 's' : ''}…
+                  </Typography>
+                </Box>
+              )}
+
               {/* Tag quick-filter chips removed — use tag chips on incident cards instead */}
 
               {!isDefaultFilter && (
@@ -1479,8 +1652,10 @@ const IncidentsPage = () => {
             <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary' }}>
               {(() => {
                 const displayTotal = totalAmount && totalAmount > 1000 ? totalAmount : sortedIncidents.length;
+                const subOrgCount = Array.from(subOrgItems.values()).reduce((sum, { items }) => sum + items.length, 0);
                 const totalPages = Math.ceil(displayTotal / ITEMS_PER_PAGE);
-                return `${displayTotal} incident${displayTotal !== 1 ? 's' : ''}${totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ''}`;
+                const orgLabel = subOrgCount > 0 ? ` (${subOrgs.length + 1} orgs)` : '';
+                return `${displayTotal} incident${displayTotal !== 1 ? 's' : ''}${orgLabel}${totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ''}`;
               })()}
             </Typography>
           </Box>
