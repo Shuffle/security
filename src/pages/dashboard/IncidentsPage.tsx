@@ -696,7 +696,7 @@ const IncidentsPage = () => {
     
     for (const inc of allIncidents) {
       // Extract raw key (strip orgId:: prefix)
-      const rawKey = inc.id.includes('::') ? inc.id.split('::')[1] : inc.id;
+      const rawKey = toRawIncidentKey(inc.id);
       const existing = keyMap.get(rawKey);
       const incOrgInfo = { orgId: inc.orgId || '', orgName: inc.orgName || '', orgImage: inc.orgImage };
       
