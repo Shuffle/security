@@ -857,8 +857,8 @@ const IncidentsPage = () => {
     if (filters.tag) {
       result = result.filter(i => i.labels?.some(l => l.toLowerCase() === filters.tag!.toLowerCase()));
     }
-    if (filters.org) {
-      result = result.filter(i => (i.orgId || '') === filters.org);
+    if (filters.org && filters.org.length > 0) {
+      result = result.filter(i => filters.org!.includes(i.orgId || ''));
     }
 
     if (searchQuery.trim()) {
