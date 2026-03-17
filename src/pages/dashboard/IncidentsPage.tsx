@@ -873,8 +873,9 @@ const IncidentsPage = () => {
     if (filters.tag) {
       result = result.filter(i => i.labels?.some(l => l.toLowerCase() === filters.tag!.toLowerCase()));
     }
-    if (filters.org && filters.org.length > 0) {
-      result = result.filter(i => filters.org!.includes(i.orgId || ''));
+    const orgFilter = Array.isArray(filters.org) ? filters.org : filters.org ? [filters.org] : [];
+    if (orgFilter.length > 0) {
+      result = result.filter(i => orgFilter.includes(i.orgId || ''));
     }
 
     if (searchQuery.trim()) {
