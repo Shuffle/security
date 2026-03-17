@@ -494,7 +494,7 @@ const IncidentDetailPage = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
-  const TAB_NAMES = ['tasks', 'details', 'observables', 'correlations', 'raw', 'file'] as const;
+  const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file'] as const;
   const initialTab = (() => {
     const t = searchParams.get('tab');
     if (t) { const idx = TAB_NAMES.indexOf(t as any); return idx >= 0 ? idx : 0; }
@@ -825,10 +825,7 @@ const IncidentDetailPage = () => {
           labels: labelsStr,
         };
         console.log(`[Perf] State hydration: ${(performance.now() - stateStart).toFixed(1)}ms`);
-        // Auto-switch to Details tab if no tasks (only on initial load, and only if no tab param)
-        if (showLoading && loadedTasks.length === 0 && !searchParams.get('tab')) {
-          setActiveTab(1);
-        }
+        // Details is now tab 0 (default), no auto-switch needed
         // If arriving with ?tab=raw, populate rawJsonText now that data is loaded
         if (showLoading && searchParams.get('tab') === 'raw') {
           setRawJsonText(JSON.stringify(parsed.rawOCSF || {}, null, 2));
@@ -2255,8 +2252,8 @@ const IncidentDetailPage = () => {
               scrollbarWidth: 'none',
             }}>
               {[
-                { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null },
                 { label: 'Details', count: null },
+                { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null },
                 { label: 'Observables', count: editedObservables.filter(o => !o.archived).length > 0 ? editedObservables.filter(o => !o.archived).length : null },
                 { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading },
               ].map((tab, index) => (
@@ -2448,7 +2445,7 @@ const IncidentDetailPage = () => {
 
           {/* Tab Content */}
       <Box sx={isPublicView ? { pointerEvents: 'none', '& input, & textarea, & select, & button:not([data-public-ok])': { opacity: 0.7 } } : {}}>
-      {activeTab === 0 && (
+      {activeTab === 1 && (
         /* Tasks Tab */
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Tasks Section - inline, no collapsible wrapper */}
@@ -2898,7 +2895,7 @@ const IncidentDetailPage = () => {
         </Box>
       )}
 
-      {activeTab === 1 && (
+      {activeTab === 0 && (
         /* Details Tab */
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Metadata Section - now includes Description */}
