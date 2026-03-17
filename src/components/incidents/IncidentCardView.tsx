@@ -573,6 +573,27 @@ export const IncidentCardView = ({
                       />
                     </>
                   )}
+                  {incident.sharedOrgs && incident.sharedOrgs.length > 1 && (
+                    <>
+                      <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                        •
+                      </Typography>
+                      <Chip
+                        icon={<Globe size={10} />}
+                        label={`${incident.sharedOrgs.length} orgs`}
+                        size="small"
+                        sx={{
+                          backgroundColor: 'rgba(168, 85, 247, 0.12)',
+                          color: 'rgb(192, 132, 252)',
+                          fontWeight: 500,
+                          fontSize: '0.65rem',
+                          height: 22,
+                          border: '1px solid rgba(168, 85, 247, 0.25)',
+                          '& .MuiChip-icon': { color: 'rgb(192, 132, 252)', ml: 0.5 },
+                        }}
+                      />
+                    </>
+                  )}
                   {(incident.taskCount ?? 0) > 0 && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
