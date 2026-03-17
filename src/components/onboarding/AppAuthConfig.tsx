@@ -1122,6 +1122,31 @@ export const AppAuthCard = ({
                             }}>
                               {entryLabel}
                             </Typography>
+                            {/* Delete button for non-validated entries */}
+                            {!isValid && (
+                              <Tooltip title="Delete authentication" arrow placement="top">
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    setDeleteConfirmAuthId(entryId);
+                                  }}
+                                  sx={{
+                                    color: 'rgba(255, 255, 255, 0.3)',
+                                    p: 0.5,
+                                    ml: 0.5,
+                                    flexShrink: 0,
+                                    '&:hover': {
+                                      color: '#ef4444',
+                                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                    },
+                                  }}
+                                >
+                                  <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Box>
                         </MenuItem>
                       );
@@ -1132,6 +1157,69 @@ export const AppAuthCard = ({
                     </MenuItem>
                   </Select>
                 </FormControl>
+
+                {/* Delete confirmation dialog */}
+                <Dialog
+                  open={!!deleteConfirmAuthId}
+                  onClose={() => setDeleteConfirmAuthId(null)}
+                  PaperProps={{
+                    sx: {
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: 3,
+                      minWidth: 360,
+                    },
+                  }}
+                >
+                  <DialogTitle sx={{ color: 'white', fontWeight: 600, pb: 1 }}>
+                    Delete Authentication
+                  </DialogTitle>
+                  <DialogContent>
+                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 3 }}>
+                      Are you sure you want to delete this authentication? This action cannot be undone.
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setDeleteConfirmAuthId(null)}
+                        disabled={deleting}
+                        sx={{
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                          color: 'rgba(255, 255, 255, 0.7)',
+                          textTransform: 'none',
+                          '&:hover': {
+                            borderColor: 'rgba(255, 255, 255, 0.4)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => {
+                          if (deleteConfirmAuthId) handleDeleteAuth(deleteConfirmAuthId);
+                        }}
+                        disabled={deleting}
+                        sx={{
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          '&:hover': { backgroundColor: '#dc2626' },
+                          '&.Mui-disabled': {
+                            backgroundColor: 'rgba(239, 68, 68, 0.3)',
+                            color: 'rgba(255, 255, 255, 0.5)',
+                          },
+                        }}
+                      >
+                        {deleting ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    </Box>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Show selected auth info if not adding new */}
                 {!showAddNewForm && selectedAuth && (
