@@ -1816,10 +1816,18 @@ const IncidentsPage = () => {
             currentUsername={currentUsername}
             isLoading={isLoading || !hasFetched}
             onFilterChange={(type, value) => {
-              setFilters(prev => ({
-                ...prev,
-                [type]: prev[type] === value ? null : value,
-              }));
+              setFilters(prev => {
+                if (type === 'org') {
+                  const currentOrgs = Array.isArray(prev.org) ? prev.org : prev.org ? [prev.org] : [];
+                  const valStr = String(value);
+                  if (currentOrgs.includes(valStr)) {
+                    const next = currentOrgs.filter(o => o !== valStr);
+                    return { ...prev, org: next.length > 0 ? next : null };
+                  }
+                  return { ...prev, org: [...currentOrgs, valStr] };
+                }
+                return { ...prev, [type]: prev[type] === value ? null : value };
+              });
             }}
           />
           {/* Irrelevant incidents bar */}
