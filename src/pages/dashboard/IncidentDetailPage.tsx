@@ -483,6 +483,8 @@ const IncidentDetailPage = () => {
   
   // Description editing state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [showRawDescription, setShowRawDescription] = useState(false);
+  const [rawDescriptionHtml, setRawDescriptionHtml] = useState('');
   
   const [isSaving, setIsSaving] = useState(false);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
