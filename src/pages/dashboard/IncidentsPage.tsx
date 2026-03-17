@@ -1626,6 +1626,7 @@ const IncidentsPage = () => {
                 value={
                   (filters.org || []).map(id => {
                     if (id === currentOrgId) return { id: currentOrgId || '', name: currentOrgName };
+                    if (parentOrg && id === parentOrg.id) return { id: parentOrg.id, name: parentOrg.name };
                     const found = subOrgs.find(o => o.id === id);
                     return found || { id, name: id };
                   })
