@@ -2907,7 +2907,39 @@ const IncidentDetailPage = () => {
               {/* Description on the left */}
               <Box sx={{ flex: '1 1 50%', minWidth: 0 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>Description</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Description</Typography>
+                    {hasHtmlDescription && !isEditingDescription && (
+                      <Box sx={{ display: 'flex', gap: 0.25 }}>
+                        <Chip
+                          label="Rendered"
+                          size="small"
+                          onClick={() => setShowRawDescription(false)}
+                          sx={{
+                            height: 20,
+                            fontSize: '0.65rem',
+                            cursor: 'pointer',
+                            bgcolor: !showRawDescription ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                            color: !showRawDescription ? '#ff6600' : 'text.secondary',
+                            '&:hover': { bgcolor: !showRawDescription ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.1)' },
+                          }}
+                        />
+                        <Chip
+                          label="Raw"
+                          size="small"
+                          onClick={() => setShowRawDescription(true)}
+                          sx={{
+                            height: 20,
+                            fontSize: '0.65rem',
+                            cursor: 'pointer',
+                            bgcolor: showRawDescription ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                            color: showRawDescription ? '#ff6600' : 'text.secondary',
+                            '&:hover': { bgcolor: showRawDescription ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.1)' },
+                          }}
+                        />
+                      </Box>
+                    )}
+                  </Box>
                   <IconButton 
                     size="small" 
                     onClick={() => setIsEditingDescription(!isEditingDescription)}
@@ -2933,6 +2965,27 @@ const IncidentDetailPage = () => {
                       sx={inputSx}
                     />
                   </Box>
+                ) : hasHtmlDescription && !showRawDescription ? (
+                  <Box 
+                    sx={{ 
+                      p: 1.5, 
+                      bgcolor: 'rgba(255, 255, 255, 0.95)', 
+                      borderRadius: 1,
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      minHeight: 120,
+                      maxHeight: 450,
+                      overflow: 'auto',
+                      color: '#1a1a1a',
+                      '& img': { maxWidth: '100%', height: 'auto' },
+                      '& a': { color: '#1a73e8', textDecoration: 'underline' },
+                      '& table': { borderCollapse: 'collapse', maxWidth: '100%' },
+                      '& td, & th': { padding: '4px 8px' },
+                      '& *': { maxWidth: '100%', boxSizing: 'border-box' },
+                      fontSize: '0.875rem',
+                      lineHeight: 1.6,
+                    }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedDescriptionHtml }}
+                  />
                 ) : (
                   <Box 
                     sx={{ 
