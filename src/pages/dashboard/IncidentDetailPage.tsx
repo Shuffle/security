@@ -1640,7 +1640,30 @@ const IncidentDetailPage = () => {
           <Typography variant="body2">Back to Incidents</Typography>
         </Box>
 
-        {/* Main header card */}
+        {/* Cross-org banner */}
+        {isCrossOrg && (
+          <Box sx={{
+            mb: 2,
+            px: 2,
+            py: 1,
+            borderRadius: 1.5,
+            bgcolor: 'rgba(139, 92, 246, 0.08)',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}>
+            <Globe size={14} style={{ color: '#a78bfa', flexShrink: 0 }} />
+            <Typography sx={{ fontSize: '0.82rem', color: 'hsl(var(--foreground))' }}>
+              Viewing incident from another organization
+            </Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 'auto' }}>
+              {crossOrgId}
+            </Typography>
+          </Box>
+        )}
+
+
         <Box sx={{ 
           display: 'flex',
           alignItems: { xs: 'flex-start', sm: 'center' },
