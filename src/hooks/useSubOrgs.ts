@@ -25,6 +25,7 @@ interface UseSubOrgsReturn {
 
 export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn => {
   const [subOrgs, setSubOrgs] = useState<SubOrg[]>([]);
+  const [parentOrg, setParentOrg] = useState<SubOrg | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
