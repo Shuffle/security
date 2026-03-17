@@ -100,6 +100,7 @@ export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn =
     isLoading,
     error,
     refetch: fetchSubOrgs,
-    isParentOrg: subOrgs.length > 0 || parentOrg !== null,
+    // We are a "parent org" only if we have child orgs and no parent above us
+    isParentOrg: subOrgs.length > 0 && parentOrg === null,
   };
 };

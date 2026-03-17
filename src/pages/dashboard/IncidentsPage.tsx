@@ -359,18 +359,17 @@ const IncidentsPage = () => {
 
   // Fetch incidents from all sub-orgs in parallel
   const fetchSubOrgIncidents = useCallback(async () => {
-    // Combine sub-orgs and parent org (if available) for fetching
-    const allOrgs = [...subOrgs];
-    if (parentOrg && !allOrgs.some(o => o.id === parentOrg.id) && parentOrg.id !== currentOrgId) {
-      allOrgs.push(parentOrg);
-    }
-    if (allOrgs.length === 0) return;
+    // Only fetch cross-org incidents when we are the parent org
+    if (!isParentOrg || subOrgs.length === 0) return;
 
-    const loadingIds = new Set(allOrgs.map(o => o.id));
+    const orgsToFetch = subOrgs.filter(o => o.id !== currentOrgId);
+    if (orgsToFetch.length === 0) return;
+
+    const loadingIds = new Set(orgsToFetch.map(o => o.id));
     setSubOrgLoading(loadingIds);
 
     const results = await Promise.allSettled(
-      allOrgs.map(async (org) => {
+      orgsToFetch.map(async (org) => {
         // Use region-specific URL only for cloud domains (not dev/self-hosted)
         const useRegionUrl = org.region_url && !isDevEnvironment();
         const baseUrl = useRegionUrl ? org.region_url!.replace(/\/+$/, '') : '';
@@ -405,18 +404,14 @@ const IncidentsPage = () => {
 
     setSubOrgItems(newMap);
     setSubOrgLoading(new Set());
-  }, [subOrgs, parentOrg, currentOrgId]);
+  }, [subOrgs, isParentOrg, currentOrgId]);
 
-  // Fetch sub-org incidents when sub-orgs or parent org are discovered
+  // Fetch sub-org incidents when we are the parent org
   useEffect(() => {
-    const allOrgs = [...subOrgs];
-    if (parentOrg && !allOrgs.some(o => o.id === parentOrg.id) && parentOrg.id !== currentOrgId) {
-      allOrgs.push(parentOrg);
-    }
-    if (allOrgs.length > 0) {
+    if (isParentOrg && subOrgs.length > 0) {
       fetchSubOrgIncidents();
     }
-  }, [subOrgs, parentOrg, fetchSubOrgIncidents]);
+  }, [isParentOrg, subOrgs, fetchSubOrgIncidents]);
 
   // Get valid usernames for assignee validation
   const validUsernames = useMemo(() => {
@@ -1429,16 +1424,10 @@ const IncidentsPage = () => {
               <Autocomplete
                 multiple
                 size="small"
-                options={(() => {
-                  const opts = [
-                    { id: currentOrgId || '', name: currentOrgName },
-                    ...subOrgs.filter(org => org.id !== currentOrgId),
-                  ];
-                  if (parentOrg && parentOrg.id !== currentOrgId && !opts.some(o => o.id === parentOrg.id)) {
-                    opts.unshift({ id: parentOrg.id, name: parentOrg.name });
-                  }
-                  return opts;
-                })()}
+                options={[
+                  { id: currentOrgId || '', name: currentOrgName },
+                  ...subOrgs.filter(org => org.id !== currentOrgId),
+                ]}
                 getOptionLabel={(option) => option.name}
                 value={
                   (filters.org || []).map(id => {
