@@ -133,6 +133,7 @@ const App = () => {
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
