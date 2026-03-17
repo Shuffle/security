@@ -63,8 +63,24 @@ export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn =
           creator_org: org.creator_org,
           region_url: org.region_url || undefined,
         })));
+
+        // Extract parent org if available
+        const parent = data.parentOrg || data.parent_org;
+        if (parent && parent.id) {
+          setParentOrg({
+            id: parent.id,
+            name: parent.name || parent.id,
+            image: parent.image,
+            creator_org: parent.creator_org,
+            region_url: parent.region_url || undefined,
+            isParent: true,
+          });
+        } else {
+          setParentOrg(null);
+        }
       } else {
         setSubOrgs([]);
+        setParentOrg(null);
       }
     } catch (err) {
       console.warn('[SubOrgs] Failed to fetch sub-orgs:', err);
