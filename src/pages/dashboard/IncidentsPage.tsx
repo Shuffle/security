@@ -55,6 +55,12 @@ const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
 const LEGACY_SECURITY_ALERTS_CATEGORY = 'shuffle-security_alerts';
 const MIGRATION_KEY = 'shuffle_incidents_migrated_v1';
 
+const toRawIncidentKey = (key: string): string => {
+  if (!key?.includes('::')) return key;
+  const parts = key.split('::').filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : key;
+};
+
 const migrateToIncidents = async (): Promise<number> => {
   if (localStorage.getItem(MIGRATION_KEY)) return 0;
 
