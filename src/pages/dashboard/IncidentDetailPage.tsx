@@ -415,12 +415,23 @@ const Section = forwardRef<HTMLDivElement, {
 Section.displayName = 'Section';
 
 const IncidentDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { userInfo } = useAuth();
   const { openApp } = useAppDetail();
   const currentUsername = userInfo?.username || '';
+
+  // Parse namespaced org ID from sub-org incidents (format: "orgId::incidentId")
+  const crossOrgId = useMemo(() => {
+    if (!rawId || !rawId.includes('::')) return null;
+    return rawId.split('::')[0];
+  }, [rawId]);
+  const id = useMemo(() => {
+    if (!rawId) return rawId;
+    return rawId.includes('::') ? rawId.split('::')[1] : rawId;
+  }, [rawId]);
+  const isCrossOrg = !!crossOrgId && crossOrgId !== userInfo?.active_org?.id;
 
   // Public sharing params
   const publicAuth = searchParams.get('authorization');
