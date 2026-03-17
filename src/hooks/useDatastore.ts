@@ -145,7 +145,7 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
   const getItem = useCallback(async (key: string): Promise<DatastoreItem | null> => {
     setError(null);
     try {
-      const response = await getDatastoreItem(key, category);
+      const response = await getDatastoreItem(key, category, overrideOrgId);
       if (response.success && response.item) {
         return response.item;
       } else {
