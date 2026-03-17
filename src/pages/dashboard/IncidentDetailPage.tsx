@@ -682,8 +682,12 @@ const IncidentDetailPage = () => {
         // Use desc (new OCSF) first, fall back to message (legacy), convert HTML to readable text
         const rawDesc = parsed.rawOCSF?.desc || parsed.rawOCSF?.message || '';
         
-        // Try base64 on raw first; if unchanged, strip HTML then try base64 again
+        // Store the raw HTML for rendered view
         const rawDecoded = decodeIfBase64(rawDesc);
+        const htmlSource = rawDecoded !== rawDesc ? rawDecoded : rawDesc;
+        setRawDescriptionHtml(htmlSource);
+        
+        // Also create plain-text version for editing
         const processedDesc = rawDecoded !== rawDesc 
           ? rawDecoded 
           : decodeIfBase64(htmlToPlainText(rawDesc));
