@@ -1611,12 +1611,13 @@ const IncidentsPage = () => {
                 multiple
                 size="small"
                 options={(() => {
-                  const realOrgs = [
-                    { id: currentOrgId || '', name: currentOrgName },
-                    ...subOrgs.filter(org => org.id !== currentOrgId),
+                  const currentOrgImage = userInfo?.active_org?.image;
+                  const realOrgs: { id: string; name: string; image?: string }[] = [
+                    { id: currentOrgId || '', name: currentOrgName, image: currentOrgImage },
+                    ...subOrgs.filter(org => org.id !== currentOrgId).map(o => ({ id: o.id, name: o.name, image: o.image })),
                   ];
                   if (parentOrg && parentOrg.id !== currentOrgId && !realOrgs.some(o => o.id === parentOrg.id)) {
-                    realOrgs.unshift({ id: parentOrg.id, name: parentOrg.name });
+                    realOrgs.unshift({ id: parentOrg.id, name: parentOrg.name, image: parentOrg.image });
                   }
                   return [
                     { id: '__all__', name: 'All orgs' },
@@ -1683,7 +1684,14 @@ const IncidentsPage = () => {
                   return (
                     <li {...props} key={option.id}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <Typography sx={{ fontSize: '0.82rem' }}>{option.name}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {option.image ? (
+                            <img src={option.image} alt="" style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain', flexShrink: 0 }} />
+                          ) : (
+                            <Box sx={{ width: 20, height: 20, borderRadius: '4px', bgcolor: 'hsl(var(--muted) / 0.5)', flexShrink: 0 }} />
+                          )}
+                          <Typography sx={{ fontSize: '0.82rem' }}>{option.name}</Typography>
+                        </Box>
                         {isOrgLoading ? (
                           <CircularProgress size={12} sx={{ color: '#a78bfa', ml: 1 }} />
                         ) : (
