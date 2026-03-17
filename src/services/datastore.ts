@@ -64,6 +64,12 @@ const getOrgId = (): string | null => {
   return null;
 };
 
+const normalizeDatastoreKey = (key: string): string => {
+  if (!key?.includes('::')) return key;
+  const parts = key.split('::').filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : key;
+};
+
 /**
  * Set a single item in the datastore
  */
