@@ -313,9 +313,9 @@ interface Filters {
 }
 
 const IncidentsPage = () => {
-  const { userInfo } = useAuth();
-  const currentUsername = userInfo?.username || '';
-  const { users, loading: usersLoading } = useUsers();
+  const currentOrgId = userInfo?.active_org?.id;
+  const currentOrgName = userInfo?.active_org?.name || 'Current';
+  const { subOrgs, isParentOrg } = useSubOrgs(currentOrgId);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<Filters>({ severity: null, status: null, tlp: null, assignee: null, source: null, tag: null, org: null });
