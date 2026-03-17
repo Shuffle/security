@@ -327,32 +327,15 @@ const IncidentsPage = () => {
   const { users, loading: usersLoading } = useUsers();
   const currentOrgId = userInfo?.active_org?.id;
   const currentOrgName = userInfo?.active_org?.name || 'Current';
+  const isChildOrg = !!userInfo?.active_org?.creator_org;
   const { subOrgs, parentOrg, isParentOrg } = useSubOrgs(currentOrgId);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState<Filters>({ severity: null, status: null, tlp: null, assignee: null, source: null, tag: null, org: null });
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
-  const [categoryAutomations, setCategoryAutomations] = useState<CategoryAutomation[] | null>(null);
-  const [ingestionApps, setIngestionApps] = useState<ValidatedIngestionApp[]>([]);
-  const [ingestWorkflowId, setIngestWorkflowId] = useState<string | null>(null);
-  const [ingestScheduleStopped, setIngestScheduleStopped] = useState(false);
-  const [webhookIngestion, setWebhookIngestion] = useState<WebhookIngestionInfo>({ url: null, exists: false, enabled: false, workflowId: null });
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isUpdatingApps, setIsUpdatingApps] = useState(false);
-  const [ingestionLoading, setIngestionLoading] = useState(true);
-  const pendingTogglesRef = useRef<Map<string, boolean>>(new Map());
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [appSearchOpen, setAppSearchOpen] = useState(false);
-
-  // Default org filter to current org when in a child org
-  const orgFilterInitRef = useRef(false);
-  useEffect(() => {
-    if (!orgFilterInitRef.current && parentOrg && currentOrgId) {
-      orgFilterInitRef.current = true;
-      setFilters(prev => prev.org === null ? { ...prev, org: [currentOrgId] } : prev);
-    }
-  }, [parentOrg, currentOrgId]);
+  // Default child orgs to showing only their own incidents immediately
+  const [filters, setFilters] = useState<Filters>(() => ({
+    severity: null, status: null, tlp: null, assignee: null, source: null, tag: null,
+    org: isChildOrg && currentOrgId ? [currentOrgId] : null,
+  }));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
