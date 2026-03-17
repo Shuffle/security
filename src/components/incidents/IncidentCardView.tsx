@@ -513,6 +513,33 @@ export const IncidentCardView = ({
                       />
                     </>
                   )}
+                  {incident.orgName && (
+                    <>
+                      <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                        •
+                      </Typography>
+                      <Chip
+                        icon={<Globe size={10} />}
+                        label={incident.orgName}
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          onFilterChange?.('org', incident.orgId || incident.orgName || '');
+                        }}
+                        sx={{
+                          backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                          color: '#a78bfa',
+                          fontWeight: 500,
+                          fontSize: '0.65rem',
+                          height: 22,
+                          cursor: 'pointer',
+                          '& .MuiChip-icon': { color: '#a78bfa', ml: 0.5 },
+                          '&:hover': { backgroundColor: 'rgba(139, 92, 246, 0.22)' },
+                        }}
+                      />
+                    </>
+                  )
                   {(incident.taskCount ?? 0) > 0 && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
