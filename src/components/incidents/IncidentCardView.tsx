@@ -752,11 +752,36 @@ export const IncidentCardView = ({
             borderRadius: 2,
             backgroundColor: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1.5,
           }}
         >
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
             No incidents found
           </Typography>
+          {orgFilterNames && orgFilterNames.length > 0 && totalOrgCount && totalOrgCount > orgFilterNames.length && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                Filtering by {orgFilterNames.length} of {totalOrgCount} org{totalOrgCount > 1 ? 's' : ''}: {orgFilterNames.join(', ')}
+              </Typography>
+              {onResetOrgFilter && (
+                <Typography
+                  variant="caption"
+                  onClick={onResetOrgFilter}
+                  sx={{
+                    color: '#FF6600',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  Show all orgs
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
       )}
     </Box>
