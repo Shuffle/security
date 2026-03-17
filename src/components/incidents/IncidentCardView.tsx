@@ -214,6 +214,9 @@ export const IncidentCardView = ({
   ingestionApps = [],
   resyncingIds = new Set(),
   resyncingSource = '',
+  orgFilterNames,
+  totalOrgCount,
+  onResetOrgFilter,
 }: IncidentCardViewProps) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hasRendered, setHasRendered] = useState(false);
