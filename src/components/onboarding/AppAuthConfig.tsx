@@ -1849,6 +1849,7 @@ export const AppAuthConfig = ({
                 onSaveAuth={onSaveAuth}
                 apiAuthEntries={apiAuthEntries}
                 onSelectAuth={onSelectAuth}
+                onRefreshAuth={onRefreshAuth}
               />
             );
           })}
