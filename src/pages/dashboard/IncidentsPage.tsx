@@ -313,6 +313,9 @@ interface Filters {
 }
 
 const IncidentsPage = () => {
+  const { userInfo } = useAuth();
+  const currentUsername = userInfo?.username || '';
+  const { users, loading: usersLoading } = useUsers();
   const currentOrgId = userInfo?.active_org?.id;
   const currentOrgName = userInfo?.active_org?.name || 'Current';
   const { subOrgs, isParentOrg } = useSubOrgs(currentOrgId);
