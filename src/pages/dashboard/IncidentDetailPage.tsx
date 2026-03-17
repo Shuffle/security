@@ -658,9 +658,13 @@ const IncidentDetailPage = () => {
       // Current org (or crossOrg) always has it
       if (crossOrgId) {
         // The "primary" org is the cross-org; also check current org
-        const currentOrgResult = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS);
-        if (currentOrgResult.success && currentOrgResult.item?.value) {
-          found.push({ id: userInfo.active_org!.id, name: userInfo.active_org!.name || '', image: userInfo.active_org!.image });
+        try {
+          const currentOrgResult = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS);
+          if (currentOrgResult.success && currentOrgResult.item?.value && currentOrgResult.item.value.length > 2) {
+            found.push({ id: userInfo.active_org!.id, name: userInfo.active_org!.name || '', image: userInfo.active_org!.image });
+          }
+        } catch {
+          // Ignore probe failures
         }
       }
       
@@ -669,9 +673,13 @@ const IncidentDetailPage = () => {
           // Skip the org we're already viewing from
           const viewingOrgId = crossOrgId || userInfo.active_org?.id;
           if (org.id === viewingOrgId) return null;
-          const result = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, org.id);
-          if (result.success && result.item?.value) {
-            return { id: org.id, name: org.name, image: org.image };
+          try {
+            const result = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, org.id);
+            if (result.success && result.item?.value && result.item.value.length > 2) {
+              return { id: org.id, name: org.name, image: org.image };
+            }
+          } catch {
+            // Ignore probe failures
           }
           return null;
         })
@@ -682,6 +690,7 @@ const IncidentDetailPage = () => {
           found.push(r.value);
         }
       }
+      console.log(`[CrossOrg] Probed ${allOrgs.length} orgs for key "${id}", found in ${found.length} additional orgs:`, found.map(o => o.name));
       setSharedOrgs(found);
     };
     probeOrgs();
