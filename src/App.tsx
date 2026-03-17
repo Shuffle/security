@@ -54,8 +54,9 @@ const ConditionalDashboardLayout = () => {
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => {
+  useEffect(() => { trackReferralParams(); }, []);
+  return (
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
       <Toaster 
