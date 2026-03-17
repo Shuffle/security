@@ -1015,8 +1015,9 @@ const IncidentsPage = () => {
     const selectedIncidents = incidents.filter(i => selectedIds.has(i.id));
     for (const inc of selectedIncidents) {
       if (inc.sharedOrgs && inc.sharedOrgs.length > 0) {
+        const rawKey = inc.id.includes('::') ? inc.id.split('::')[1] : inc.id;
         for (const org of inc.sharedOrgs) {
-          crossOrgDeletes.push(deleteDatastoreItem(inc.id, DATASTORE_CATEGORIES.INCIDENTS, org.orgId));
+          crossOrgDeletes.push(deleteDatastoreItem(rawKey, DATASTORE_CATEGORIES.INCIDENTS, org.orgId));
         }
       }
     }
