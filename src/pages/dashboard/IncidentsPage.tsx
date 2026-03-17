@@ -609,12 +609,13 @@ const IncidentsPage = () => {
 
   // Derive incidents synchronously from datastoreItems to avoid flash of empty state
   // Also validate assignees - only show if they're a valid user or AI Agent
+  // Merge in sub-org incidents when available
   const incidents = useMemo(() => {
-    return datastoreItems
+    // Parse current org incidents
+    const currentOrgIncidents = datastoreItems
       .map((item) => parseIncidentFromDatastore(item))
       .filter((a): a is DisplayIncident => a !== null)
       .map((incident) => {
-        // Validate assignee
         if (incident.assignee) {
           if (isAIAssignee(incident.assignee)) {
             return { ...incident, assignee: 'AI Agent' };
@@ -624,7 +625,25 @@ const IncidentsPage = () => {
         }
         return incident;
       });
-  }, [datastoreItems, validUsernames]);
+
+    // Parse sub-org incidents and tag with org info
+    const subOrgIncidents: DisplayIncident[] = [];
+    subOrgItems.forEach(({ orgName, items }, orgId) => {
+      items.forEach((item: any) => {
+        const parsed = parseIncidentFromDatastore(item);
+        if (parsed) {
+          subOrgIncidents.push({
+            ...parsed,
+            id: `${orgId}::${parsed.id}`, // Namespace IDs to avoid collisions
+            orgId,
+            orgName,
+          });
+        }
+      });
+    });
+
+    return [...currentOrgIncidents, ...subOrgIncidents];
+  }, [datastoreItems, validUsernames, subOrgItems]);
 
   // Split into relevant and irrelevant
   const [relevantIncidents, irrelevantCount] = useMemo(() => {
