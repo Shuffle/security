@@ -1625,7 +1625,7 @@ const IncidentsPage = () => {
                   }
                   return [
                     { id: '__all__', name: 'All orgs' },
-                    { id: '__none__', name: 'None' },
+                    { id: '__none__', name: 'Current Org' },
                     ...realOrgs,
                   ];
                 })()}
