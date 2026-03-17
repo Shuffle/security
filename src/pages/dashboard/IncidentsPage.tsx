@@ -359,13 +359,18 @@ const IncidentsPage = () => {
 
   // Fetch incidents from all sub-orgs in parallel
   const fetchSubOrgIncidents = useCallback(async () => {
-    if (subOrgs.length === 0) return;
+    // Combine sub-orgs and parent org (if available) for fetching
+    const allOrgs = [...subOrgs];
+    if (parentOrg && !allOrgs.some(o => o.id === parentOrg.id) && parentOrg.id !== currentOrgId) {
+      allOrgs.push(parentOrg);
+    }
+    if (allOrgs.length === 0) return;
 
-    const loadingIds = new Set(subOrgs.map(o => o.id));
+    const loadingIds = new Set(allOrgs.map(o => o.id));
     setSubOrgLoading(loadingIds);
 
     const results = await Promise.allSettled(
-      subOrgs.map(async (org) => {
+      allOrgs.map(async (org) => {
         // Use region-specific URL only for cloud domains (not dev/self-hosted)
         const useRegionUrl = org.region_url && !isDevEnvironment();
         const baseUrl = useRegionUrl ? org.region_url!.replace(/\/+$/, '') : '';
@@ -400,14 +405,18 @@ const IncidentsPage = () => {
 
     setSubOrgItems(newMap);
     setSubOrgLoading(new Set());
-  }, [subOrgs]);
+  }, [subOrgs, parentOrg, currentOrgId]);
 
-  // Fetch sub-org incidents when sub-orgs are discovered
+  // Fetch sub-org incidents when sub-orgs or parent org are discovered
   useEffect(() => {
-    if (subOrgs.length > 0) {
+    const allOrgs = [...subOrgs];
+    if (parentOrg && !allOrgs.some(o => o.id === parentOrg.id) && parentOrg.id !== currentOrgId) {
+      allOrgs.push(parentOrg);
+    }
+    if (allOrgs.length > 0) {
       fetchSubOrgIncidents();
     }
-  }, [subOrgs, fetchSubOrgIncidents]);
+  }, [subOrgs, parentOrg, fetchSubOrgIncidents]);
 
   // Get valid usernames for assignee validation
   const validUsernames = useMemo(() => {
