@@ -840,7 +840,7 @@ const IncidentDetailPage = () => {
         let pollCount = 0;
         const pollInterval = setInterval(async () => {
           pollCount++;
-          const postResult = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS);
+          const postResult = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
           const newEdited = postResult.item?.edited || 0;
           if (newEdited && newEdited !== previousEdited) {
             clearInterval(pollInterval);
