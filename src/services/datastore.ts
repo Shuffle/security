@@ -70,9 +70,10 @@ const getOrgId = (): string | null => {
 export const setDatastoreItem = async (
   key: string,
   value: string | object,
-  category: string
+  category: string,
+  overrideOrgId?: string
 ): Promise<DatastoreResponse> => {
-  const orgId = getOrgId();
+  const orgId = overrideOrgId || getOrgId();
   if (!orgId) {
     return { success: false, error: 'No organization ID found' };
   }
