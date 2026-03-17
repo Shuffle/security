@@ -1566,7 +1566,7 @@ const IncidentsPage = () => {
 
               {filters.tag && (
                 <Chip
-                  label={`Tag: ${filters.tag}`}
+                  label={filters.tag}
                   size="small"
                   onDelete={() => setFilters(prev => ({ ...prev, tag: null }))}
                   sx={{ 
