@@ -397,11 +397,11 @@ const IncidentsPage = () => {
           },
         });
 
-        if (!response.ok) return { orgId: org.id, orgName: org.name, items: [] };
+        if (!response.ok) return { orgId: org.id, orgName: org.name, orgImage: org.image, items: [] };
 
         const data = await response.json();
         const items = Array.isArray(data) ? data : (data.keys || data.data || []);
-        return { orgId: org.id, orgName: org.name, items };
+        return { orgId: org.id, orgName: org.name, orgImage: org.image, items };
       })
     );
 
