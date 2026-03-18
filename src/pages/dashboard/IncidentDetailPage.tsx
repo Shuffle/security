@@ -634,11 +634,12 @@ const IncidentDetailPage = () => {
     }
   }, [activeTab, incidentFileId, fileLoaded, loadFileContent]);
 
+  // Auto-load revisions when incident finishes loading
   useEffect(() => {
-    if (activeTab === 7 && !revisionsLoaded) {
+    if (!loading && id && !revisionsLoaded) {
       loadRevisions();
     }
-  }, [activeTab, revisionsLoaded, loadRevisions]);
+  }, [loading, id, revisionsLoaded, loadRevisions]);
 
   const [forwardingApps, setForwardingApps] = useState<Array<{ id: string; name: string; large_image: string; categories: string[] }>>([]);
   const [forwardingAppsLoading, setForwardingAppsLoading] = useState(false);
