@@ -37,7 +37,7 @@ import { OCSFIncidentFinding, Observable, TLP_LABELS, convertLegacyTlp, mapOCSFS
 import { deduplicateTasks, decodeHtmlEntities } from '@/lib/utils';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
 import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
-import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, extractWorkflowAppNames, normalizeAppName, isWorkflowScheduleStopped } from '@/lib/ingestionDetection';
+import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, findForwardTicketsWorkflow, extractWorkflowAppNames, normalizeAppName, isWorkflowScheduleStopped } from '@/lib/ingestionDetection';
 import { getApiUrl, getAuthHeader, isDevEnvironment } from '@/config/api';
 import DownloadIcon from '@mui/icons-material/Download';
 import { IncidentCardView } from '@/components/incidents/IncidentCardView';
@@ -349,15 +349,21 @@ const IncidentsPage = () => {
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
   const [categoryAutomations, setCategoryAutomations] = useState<CategoryAutomation[]>([]);
   const [ingestionApps, setIngestionApps] = useState<ValidatedIngestionApp[]>([]);
+  const [forwardApps, setForwardApps] = useState<ValidatedIngestionApp[]>([]);
   const [ingestWorkflowId, setIngestWorkflowId] = useState<string | null>(null);
+  const [forwardWorkflowId, setForwardWorkflowId] = useState<string | null>(null);
   const [ingestScheduleStopped, setIngestScheduleStopped] = useState(false);
   const [webhookIngestion, setWebhookIngestion] = useState<WebhookIngestionInfo>({ url: null, exists: false, enabled: false, workflowId: null });
   const [isSyncing, setIsSyncing] = useState(false);
   const [isUpdatingApps, setIsUpdatingApps] = useState(false);
+  const [isUpdatingForwardApps, setIsUpdatingForwardApps] = useState(false);
   const [ingestionLoading, setIngestionLoading] = useState(true);
   const pendingTogglesRef = useRef<Map<string, boolean>>(new Map());
+  const pendingForwardTogglesRef = useRef<Map<string, boolean>>(new Map());
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const forwardDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
+  const [forwardAppSearchOpen, setForwardAppSearchOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -495,6 +501,7 @@ const IncidentsPage = () => {
 
         // Derive enabled apps from the Ingest Tickets workflow actions
         let workflowAppNames: Set<string> | undefined;
+        let forwardAppNames: Set<string> | undefined;
         if (workflowsResponse.ok) {
           const workflows = await workflowsResponse.json();
           const workflowList = Array.isArray(workflows) ? workflows : (workflows.workflows || []);
@@ -509,6 +516,15 @@ const IncidentsPage = () => {
             setIngestWorkflowId(ingestWorkflow.id);
           } else {
             setIngestScheduleStopped(false);
+          }
+
+          // Detect "Forward Tickets" workflow
+          const forwardWorkflow = findForwardTicketsWorkflow(workflowList);
+          if (forwardWorkflow) {
+            forwardAppNames = extractWorkflowAppNames(forwardWorkflow);
+            setForwardWorkflowId(forwardWorkflow.id);
+          } else {
+            setForwardWorkflowId(null);
           }
 
           // Detect "Ingestion Webhook" workflow and extract webhook URL + status
@@ -549,6 +565,13 @@ const IncidentsPage = () => {
           if (!app.image) app.image = imgMap.get(normalizeAppName(app.name)) || '';
         });
         setIngestionApps(ingestionResults);
+
+        // Extract forward apps using same auth data but Forward Tickets workflow
+        const forwardResults = extractValidatedIngestionApps(authApps, forwardAppNames);
+        forwardResults.forEach(app => {
+          if (!app.image) app.image = imgMap.get(normalizeAppName(app.name)) || '';
+        });
+        setForwardApps(forwardResults);
       }
     } catch (error) {
       console.error('Failed to fetch ingestion apps:', error);
@@ -598,7 +621,40 @@ const IncidentsPage = () => {
     }, 3000);
   }, [ingestionApps, fetchIngestionApps]);
 
-  // Reusable sync trigger — executes the ingest workflow and polls for results
+  // Debounced handler for forward app toggles
+  const handleToggleForwardApp = useCallback((appName: string, enabled: boolean) => {
+    pendingForwardTogglesRef.current.set(appName, enabled);
+    setIsUpdatingForwardApps(true);
+    if (forwardDebounceTimerRef.current) clearTimeout(forwardDebounceTimerRef.current);
+    forwardDebounceTimerRef.current = setTimeout(async () => {
+      const toggles = new Map(pendingForwardTogglesRef.current);
+      pendingForwardTogglesRef.current.clear();
+      const activeNames = forwardApps
+        .filter(a => toggles.has(a.name) ? toggles.get(a.name) : a.enabled)
+        .map(a => a.name);
+      try {
+        await fetch(getApiUrl('/api/v2/workflows/generate'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            label: 'Forward Tickets',
+            app_name: activeNames.join(','),
+            category: 'cases',
+          }),
+        });
+        toast.success('Forward destinations updated');
+        await fetchIngestionApps();
+      } catch (error) {
+        console.error('Failed to update forward destinations:', error);
+        toast.error('Failed to update forward destinations');
+        fetchIngestionApps();
+      } finally {
+        setIsUpdatingForwardApps(false);
+      }
+    }, 3000);
+  }, [forwardApps, fetchIngestionApps]);
+
   const triggerSync = useCallback(async () => {
     if (!ingestWorkflowId || isSyncing) return;
     setIsSyncing(true);
@@ -1461,7 +1517,7 @@ const IncidentsPage = () => {
                 whiteSpace: 'nowrap',
               }}>
                 <Tooltip title="Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in incidents." placement="top" arrow>
-                  <span style={{ cursor: 'help' }}>Automation</span>
+                  <span style={{ cursor: 'help' }}>Ingest</span>
                 </Tooltip>
               </Typography>
               <WebhookIngestionButton webhook={webhookIngestion} onToggled={fetchIngestionApps} />
@@ -1610,8 +1666,91 @@ const IncidentsPage = () => {
             <strong>Automatic ingestion is paused</strong> — the "Ingest Tickets" workflow schedule has been stopped. Sources are shown as disabled until the schedule is re-enabled.
           </Typography>
         </Box>
-      )}
+          )}
 
+          {/* Forward Destinations */}
+          {(forwardApps.length > 0 || forwardWorkflowId) && (
+            <Box sx={{ 
+              position: 'relative',
+              display: { xs: 'none', md: 'flex' }, 
+              alignItems: 'center', 
+              gap: 0.5,
+              bgcolor: 'hsl(var(--muted) / 0.4)',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1.5,
+              px: 0.75,
+              py: 0.5,
+            }}>
+              <Typography sx={{
+                position: 'absolute',
+                top: -10,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '0.55rem',
+                fontWeight: 600,
+                color: 'hsl(var(--muted-foreground))',
+                bgcolor: 'hsl(var(--muted))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 10,
+                px: 1,
+                py: 0.15,
+                lineHeight: 1.3,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}>
+                <Tooltip title="Apps configured to receive forwarded incidents. Toggle to control which tools incidents are sent to." placement="top" arrow>
+                  <span style={{ cursor: 'help' }}>Forward</span>
+                </Tooltip>
+              </Typography>
+              {forwardApps.map(app => (
+                <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleForwardApp} incidentCount={incidentCountsBySource.get(normalizeAppName(app.name)) || 0} />
+              ))}
+              <Tooltip title="Add forward destination">
+                <IconButton
+                  onClick={() => setForwardAppSearchOpen(true)}
+                  size="small"
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    color: 'hsl(var(--muted-foreground))',
+                    border: '1px dashed hsl(var(--border))',
+                    borderRadius: 1,
+                    '&:hover': {
+                      bgcolor: 'hsl(var(--muted))',
+                      borderStyle: 'solid',
+                      color: 'hsl(var(--primary))',
+                    },
+                  }}
+                >
+                  <AddIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+              {forwardWorkflowId && (
+                <Tooltip title={isUpdatingForwardApps ? "Updating destinations…" : "Open workflow"}>
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => window.open(`https://shuffler.io/workflows/${forwardWorkflowId}`, '_blank')}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        color: 'hsl(var(--muted-foreground))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: 1,
+                        '&:hover': {
+                          bgcolor: 'hsl(var(--muted))',
+                          color: 'hsl(var(--primary))',
+                        },
+                      }}
+                    >
+                      {isUpdatingForwardApps ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon sx={{ fontSize: 16 }} />}
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
+            </Box>
+          )}
 
       {/* Floating Filter Bar - sticky */}
       <Card sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'hsl(var(--card))' }}>
@@ -1653,8 +1792,17 @@ const IncidentsPage = () => {
                 sx: { height: 36 },
               }}
               sx={{ width: { xs: 100, sm: 140 }, minWidth: 0, flexShrink: 1 }}
-            />
+      />
 
+      <AppSearchDrawer
+        open={forwardAppSearchOpen}
+        onClose={() => {
+          setForwardAppSearchOpen(false);
+          fetchIngestionApps();
+        }}
+        title="Add Forward Destination"
+        subtitle="Search and authenticate a tool to forward incidents to"
+      />
 
             {/* Selection count and bulk actions */}
             {selectedIds.size > 0 && (
