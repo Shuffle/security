@@ -1497,6 +1497,8 @@ const IncidentsPage = () => {
               borderRadius: 1.5,
               px: 0.75,
               py: 0.5,
+              '&:hover .automation-overflow': { display: 'flex' },
+              '&:hover .automation-overflow-count': { display: 'none' },
             }}>
               <Typography sx={{
                 position: 'absolute',
