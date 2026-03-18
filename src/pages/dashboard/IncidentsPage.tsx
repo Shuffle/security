@@ -890,9 +890,9 @@ const IncidentsPage = () => {
     );
 
     // Find incidents without a title that have a source and haven't been resynced this session
-    const needsSync = (t?: string) => !t || t === 'Untitled Incident' || t === 'Requires sync' || t === 'undefined';
+    const needsSync = (t?: string, id?: string) => !t || t === 'Untitled Incident' || t === 'Requires sync' || t === 'undefined' || (id && t === id);
     const untitled = incidents.filter(inc => {
-      const sync = needsSync(inc.title);
+      const sync = needsSync(inc.title, inc.id);
       console.log(`[AutoResync] Checking ${inc.id}: title="${inc.title}" needsSync=${sync} source="${inc.source}" alreadyResynced=${alreadyResynced.has(inc.id)} inQueue=${autoResyncQueueRef.current.has(inc.id)}`);
       if (!sync) return false;
       if (!inc.source) return false;
@@ -949,7 +949,7 @@ const IncidentsPage = () => {
               } catch { /* ignore */ }
 
               const title = parsed?.finding_info?.title || parsed?.title || '';
-              if (title && title !== 'Untitled Incident' && title !== 'Requires sync') {
+              if (title && title !== 'Untitled Incident' && title !== 'Requires sync' && title !== target.id) {
                 console.log(`[AutoResync] Got content for ${target.id} after ${pollCount} polls`);
                 alreadyResynced.add(target.id);
                 sessionStorage.setItem(SESSION_KEY, JSON.stringify([...alreadyResynced]));
@@ -1201,7 +1201,7 @@ const IncidentsPage = () => {
   }, [selectedIds, selectedIncidentsList, currentUsername, fetchItems]);
 
   const getIncidentUrl = (incident: DisplayIncident) => {
-    const isInvalidData = (!incident.title || incident.title === 'Untitled Incident' || incident.title === 'Requires sync') && !incident.source;
+    const isInvalidData = (!incident.title || incident.title === 'Untitled Incident' || incident.title === 'Requires sync' || incident.title === incident.id) && !incident.source;
     const params = new URLSearchParams();
     if (isInvalidData) params.set('tab', 'raw');
     if (incident.sharedOrgs && incident.sharedOrgs.length > 1) {
