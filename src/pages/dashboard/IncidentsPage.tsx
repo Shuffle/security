@@ -1522,20 +1522,31 @@ const IncidentsPage = () => {
                 clipPath: 'inset(-20px 0px -20px 0px)',
                 position: 'relative',
               },
+              '& .automation-section-title': {
+                transition: 'opacity 0.25s ease',
+              },
               '& .automation-arrow': {
                 transition: 'max-width 0.4s cubic-bezier(0.4,0,0.2,1) 0.15s, opacity 0.3s ease 0.15s',
                 overflow: 'hidden',
               },
-              // Hovering either section: boost z-index and make bg opaque
+              // Hovering either section: boost z-index and make bg opaque, hide other title
               '&:has(.automation-section-ingest:hover) .automation-section-ingest': {
                 zIndex: 10,
                 bgcolor: 'hsl(var(--muted))',
                 clipPath: 'inset(-20px -500px -20px 0px)',
               },
+              '&:has(.automation-section-ingest:hover) .automation-section-forward .automation-section-title': {
+                opacity: 0,
+                transition: 'opacity 0.2s ease',
+              },
               '&:has(.automation-section-forward:hover) .automation-section-forward': {
                 zIndex: 10,
                 bgcolor: 'hsl(var(--muted))',
                 clipPath: 'inset(-20px 0px -20px -500px)',
+              },
+              '&:has(.automation-section-forward:hover) .automation-section-ingest .automation-section-title': {
+                opacity: 0,
+                transition: 'opacity 0.2s ease',
               },
             }}
           >
@@ -1584,7 +1595,7 @@ const IncidentsPage = () => {
                 opacity: 0,
               },
             }}>
-              <Typography sx={{
+              <Typography className="automation-section-title" sx={{
                 position: 'absolute',
                 top: -10,
                 left: '50%',
@@ -1722,7 +1733,7 @@ const IncidentsPage = () => {
                 opacity: 0,
               },
             }}>
-              <Typography sx={{
+              <Typography className="automation-section-title" sx={{
                 position: 'absolute',
                 top: -10,
                 left: '50%',
