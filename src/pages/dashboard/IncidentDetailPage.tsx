@@ -4584,7 +4584,48 @@ const IncidentDetailPage = () => {
       </Box>
 
 
-      <ResolveIncidentDialog
+      {/* Revision Data Dialog */}
+      <Dialog
+        open={revisionDialogData !== null}
+        onClose={() => setRevisionDialogData(null)}
+        maxWidth="md"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: 'hsl(var(--background))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 2,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: 'hsl(var(--foreground))', fontSize: '0.9rem', fontWeight: 600, pb: 0.5 }}>
+          Revision Data
+        </DialogTitle>
+        <DialogContent>
+          <Box
+            component="pre"
+            sx={{
+              bgcolor: 'hsl(var(--muted) / 0.3)',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1.5,
+              p: 2,
+              overflow: 'auto',
+              maxHeight: '60vh',
+              fontSize: '0.75rem',
+              fontFamily: 'JetBrains Mono, monospace',
+              color: 'hsl(var(--foreground))',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              m: 0,
+            }}
+          >
+            {revisionDialogData}
+          </Box>
+        </DialogContent>
+      </Dialog>
+
         open={showResolveDialog}
         onClose={() => setShowResolveDialog(false)}
         onResolve={handleResolve}
