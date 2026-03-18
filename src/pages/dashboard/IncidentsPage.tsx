@@ -995,7 +995,7 @@ const IncidentsPage = () => {
   // Reset to page 1 when filters or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, negatedFilters, searchQuery, showIrrelevant]);
+  }, [filters, negatedFilters, searchQuery, showIrrelevant, dateFrom, dateTo]);
 
   // Sort incidents
   const sortedIncidents = useMemo(() => {
