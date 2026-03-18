@@ -1502,11 +1502,48 @@ const IncidentsPage = () => {
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          {/* Ingestion + Forward pipeline container */}
+          <Box
+            className="automation-pipeline"
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'center',
+              gap: 0,
+              '& .automation-section-ingest, & .automation-section-forward, & .automation-arrow': {
+                transition: 'max-width 0.3s ease, opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease, border-color 0.3s ease',
+              },
+              '&:has(.automation-section-ingest:hover) .automation-section-forward': {
+                maxWidth: '0px !important',
+                opacity: '0 !important',
+                overflow: 'hidden',
+                px: '0 !important',
+                borderColor: 'transparent !important',
+              },
+              '&:has(.automation-section-ingest:hover) .automation-arrow': {
+                maxWidth: '0px !important',
+                opacity: '0 !important',
+                overflow: 'hidden',
+              },
+              '&:has(.automation-section-forward:hover) .automation-section-ingest': {
+                maxWidth: '0px !important',
+                opacity: '0 !important',
+                overflow: 'hidden',
+                px: '0 !important',
+                borderColor: 'transparent !important',
+              },
+              '&:has(.automation-section-forward:hover) .automation-arrow': {
+                maxWidth: '0px !important',
+                opacity: '0 !important',
+                overflow: 'hidden',
+              },
+            }}
+          >
           {/* Ingestion Sources - grouped in a subtle container with add button */}
           {(ingestionApps.length > 0 || webhookIngestion.exists || webhookIngestion.enabled) && (
-            <Box sx={{ 
+            <Box className="automation-section-ingest" sx={{ 
               position: 'relative',
-              display: { xs: 'none', md: 'flex' }, 
+              display: 'flex', 
+              maxWidth: 600,
               alignItems: 'center', 
               gap: 0.5,
               bgcolor: 'hsl(var(--muted) / 0.4)',
@@ -1605,16 +1642,17 @@ const IncidentsPage = () => {
 
           {/* Arrow between Ingest and Forward - hidden until workflows loaded */}
           {!ingestionLoading && (
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', color: 'hsl(var(--muted-foreground))', mx: -0.25 }}>
+          <Box className="automation-arrow" sx={{ display: 'flex', alignItems: 'center', color: 'hsl(var(--muted-foreground))', mx: -0.25, maxWidth: 30, opacity: 1 }}>
             <ChevronRightIcon sx={{ fontSize: 18 }} />
           </Box>
           )}
 
           {/* Forward Destinations - visible after workflows loaded */}
           {!ingestionLoading && (
-            <Box sx={{ 
+            <Box className="automation-section-forward" sx={{ 
               position: 'relative',
-              display: { xs: 'none', md: 'flex' }, 
+              display: 'flex', 
+              maxWidth: 600,
               alignItems: 'center', 
               gap: 0.5,
               bgcolor: 'hsl(var(--muted) / 0.4)',
@@ -1707,6 +1745,8 @@ const IncidentsPage = () => {
               )}
             </Box>
           )}
+          </Box>
+
 
           <Tooltip title={(() => {
             const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
