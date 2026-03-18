@@ -4469,7 +4469,13 @@ const IncidentDetailPage = () => {
                               onClick={() => {
                                 try {
                                   const parsed = typeof rev.value === 'string' ? JSON.parse(rev.value) : rev.value;
-                                  setRevisionDialogData(JSON.stringify(parsed, null, 2));
+                                  const changedKeys = new Set<string>();
+                                  if (diff) {
+                                    diff.added.forEach(k => changedKeys.add(k));
+                                    diff.removed.forEach(k => changedKeys.add(k));
+                                    diff.changed.forEach(c => changedKeys.add(c.field));
+                                  }
+                                  setRevisionDialogData({ json: JSON.stringify(parsed, null, 2), changedKeys });
                                 } catch {
                                   toast.error('Could not parse revision data');
                                 }
