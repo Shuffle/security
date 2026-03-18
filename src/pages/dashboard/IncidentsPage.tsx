@@ -2512,8 +2512,8 @@ const IncidentsPage = () => {
             }}
           />
           {/* Incident trend charts */}
-          <IncidentTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} />
-          <ToolTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} />
+          <IncidentTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
+          <SourceTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
           {/* Org trend chart - only when multiple orgs selected */}
           {Array.isArray(filters.org) && filters.org.length > 1 && (
             <OrgTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} />
