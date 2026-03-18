@@ -496,7 +496,7 @@ const IncidentDetailPage = () => {
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
   const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual'>('all');
-  const [revisionDialogData, setRevisionDialogData] = useState<string | null>(null);
+  const [revisionDialogData, setRevisionDialogData] = useState<{ json: string; changedKeys: Set<string> } | null>(null);
   const initialTab = (() => {
     const t = searchParams.get('tab');
     if (t) { const idx = TAB_NAMES.indexOf(t as any); return idx >= 0 ? idx : 0; }
@@ -4469,7 +4469,13 @@ const IncidentDetailPage = () => {
                               onClick={() => {
                                 try {
                                   const parsed = typeof rev.value === 'string' ? JSON.parse(rev.value) : rev.value;
-                                  setRevisionDialogData(JSON.stringify(parsed, null, 2));
+                                  const changedKeys = new Set<string>();
+                                  if (diff) {
+                                    diff.added.forEach(k => changedKeys.add(k));
+                                    diff.removed.forEach(k => changedKeys.add(k));
+                                    diff.changed.forEach(c => changedKeys.add(c.field));
+                                  }
+                                  setRevisionDialogData({ json: JSON.stringify(parsed, null, 2), changedKeys });
                                 } catch {
                                   toast.error('Could not parse revision data');
                                 }
@@ -4646,23 +4652,43 @@ const IncidentDetailPage = () => {
         </DialogTitle>
         <DialogContent>
           <Box
-            component="pre"
             sx={{
               bgcolor: 'hsl(var(--muted) / 0.3)',
               border: '1px solid hsl(var(--border))',
               borderRadius: 1.5,
-              p: 2,
               overflow: 'auto',
               maxHeight: '60vh',
-              fontSize: '0.75rem',
-              fontFamily: 'JetBrains Mono, monospace',
-              color: 'hsl(var(--foreground))',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
               m: 0,
             }}
           >
-            {revisionDialogData}
+            {revisionDialogData && revisionDialogData.json.split('\n').map((line, i) => {
+              // Check if this line contains a changed key (top-level "key": pattern)
+              const keyMatch = line.match(/^\s{2}"([^"]+)":/);
+              const isChanged = keyMatch && revisionDialogData.changedKeys.has(keyMatch[1]);
+              return (
+                <Box
+                  key={i}
+                  component="pre"
+                  sx={{
+                    m: 0,
+                    px: 2,
+                    py: 0,
+                    fontSize: '0.75rem',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    color: isChanged ? '#ff6600' : 'hsl(var(--foreground))',
+                    bgcolor: isChanged ? 'rgba(255, 102, 0, 0.08)' : 'transparent',
+                    borderLeft: isChanged ? '3px solid #ff6600' : '3px solid transparent',
+                    whiteSpace: 'pre',
+                    lineHeight: 1.6,
+                    '&:hover': {
+                      bgcolor: isChanged ? 'rgba(255, 102, 0, 0.12)' : 'hsl(var(--muted) / 0.3)',
+                    },
+                  }}
+                >
+                  {line}
+                </Box>
+              );
+            })}
           </Box>
         </DialogContent>
       </Dialog>
