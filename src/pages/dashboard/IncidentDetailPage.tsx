@@ -636,14 +636,60 @@ const IncidentDetailPage = () => {
   const hasHtmlDescription = sanitizedDescriptionHtml.length > 0;
 
 
-  const incidentFileId = useMemo(() => {
+  const incidentFileRef = useMemo(() => {
     const raw = incident?.rawOCSF;
     if (!raw?.shuffle_translation_file) return null;
     const fileId = String(raw.shuffle_translation_file).trim();
     if (!fileId) return null;
-    // Accept file_UUID format or any non-empty identifier (e.g. action_name-hash)
     return fileId;
   }, [incident?.rawOCSF]);
+
+  const isFileUUID = (id: string) => /^file_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  // Resolve non-UUID file references by looking up the namespace listing
+  const [resolvedFileId, setResolvedFileId] = useState<string | null>(null);
+  const [fileIdResolved, setFileIdResolved] = useState(false);
+
+  useEffect(() => {
+    if (!incidentFileRef) {
+      setResolvedFileId(null);
+      setFileIdResolved(true);
+      return;
+    }
+    if (isFileUUID(incidentFileRef)) {
+      setResolvedFileId(incidentFileRef);
+      setFileIdResolved(true);
+      return;
+    }
+    // Need to resolve via namespace listing
+    setFileIdResolved(false);
+    const resolve = async () => {
+      try {
+        const resp = await fetch(getApiUrl('/api/v1/files/namespaces/translation_output?ids=true'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader(), ...crossOrgHeaders },
+        });
+        if (!resp.ok) {
+          setResolvedFileId(null);
+          setFileIdResolved(true);
+          return;
+        }
+        const data = await resp.json();
+        const list: Array<{ id?: string; name?: string }> = data?.list || data || [];
+        // Match by name (with or without .json extension)
+        const match = list.find((f: any) => {
+          const name = f.name || '';
+          return name === incidentFileRef || name === `${incidentFileRef}.json` || name.replace(/\.json$/, '') === incidentFileRef;
+        });
+        setResolvedFileId(match?.id || null);
+      } catch {
+        setResolvedFileId(null);
+      } finally {
+        setFileIdResolved(true);
+      }
+    };
+    resolve();
+  }, [incidentFileRef]);
 
   // Check if unmapped_original exists in the raw OCSF data
   const unmappedOriginal = useMemo(() => {
@@ -654,11 +700,11 @@ const IncidentDetailPage = () => {
 
   // Load file content when File tab is activated
   const loadFileContent = useCallback(async () => {
-    if (!incidentFileId) return;
+    if (!resolvedFileId) return;
     setFileLoading(true);
     setFileError(null);
     try {
-      const resp = await fetch(getApiUrl(`/api/v1/files/${incidentFileId}/content`), {
+      const resp = await fetch(getApiUrl(`/api/v1/files/${resolvedFileId}/content`), {
         credentials: 'include',
         headers: { ...getAuthHeader(), ...crossOrgHeaders },
       });
@@ -687,13 +733,13 @@ const IncidentDetailPage = () => {
     } finally {
       setFileLoading(false);
     }
-  }, [incidentFileId]);
+  }, [resolvedFileId]);
 
   useEffect(() => {
-    if (activeTab === 5 && incidentFileId && !fileLoaded) {
+    if (activeTab === 5 && resolvedFileId && !fileLoaded) {
       loadFileContent();
     }
-  }, [activeTab, incidentFileId, fileLoaded, loadFileContent]);
+  }, [activeTab, resolvedFileId, fileLoaded, loadFileContent]);
 
   // Auto-load revisions when incident finishes loading, then poll every 60s
   useEffect(() => {
@@ -2654,7 +2700,7 @@ const IncidentDetailPage = () => {
 
               {/* File tab */}
               {(() => {
-                const hasFile = !!incidentFileId;
+                const hasFile = !!incidentFileRef;
                 return (
                   <Tooltip title={hasFile ? 'The translation file that maps original data to OCSF' : 'No translation file linked to this incident'} arrow>
                     <Box
@@ -4111,7 +4157,7 @@ const IncidentDetailPage = () => {
                 Translation File
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.7rem' }}>
-                {incidentFileId}
+                {incidentFileRef}{!fileIdResolved ? ' (resolving…)' : resolvedFileId && resolvedFileId !== incidentFileRef ? ` → ${resolvedFileId}` : ''}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -4134,14 +4180,14 @@ const IncidentDetailPage = () => {
                 size="small"
                 variant="outlined"
                 onClick={async () => {
-                  if (!incidentFileId) return;
+                  if (!resolvedFileId) return;
                   if (!fileJsonValid) {
                     toast.error('Cannot save: JSON is invalid');
                     return;
                   }
                   setFileSaving(true);
                   try {
-                    const resp = await fetch(getApiUrl(`/api/v1/files/${incidentFileId}/edit`), {
+                    const resp = await fetch(getApiUrl(`/api/v1/files/${resolvedFileId}/edit`), {
                       method: 'PUT',
                       credentials: 'include',
                       headers: { ...getAuthHeader(), ...crossOrgHeaders, 'Content-Type': 'application/json' },
