@@ -1720,7 +1720,7 @@ const IncidentsPage = () => {
                   <IconButton
                     size="small"
                     disabled={isSyncing || isUpdatingApps}
-                    onClick={triggerSync}
+                    onClick={() => triggerSync()}
                     sx={{
                       width: 28,
                       height: 28,
