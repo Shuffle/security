@@ -4626,6 +4626,7 @@ const IncidentDetailPage = () => {
         </DialogContent>
       </Dialog>
 
+      <ResolveIncidentDialog
         open={showResolveDialog}
         onClose={() => setShowResolveDialog(false)}
         onResolve={handleResolve}
