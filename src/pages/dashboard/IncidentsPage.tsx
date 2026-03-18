@@ -730,7 +730,7 @@ const IncidentsPage = () => {
     if (!wfId || isSyncing) return;
     setIsSyncing(true);
     try {
-      const resp = await fetch(getApiUrl(`/api/v1/workflows/${ingestWorkflowId}/execute`), {
+      const resp = await fetch(getApiUrl(`/api/v1/workflows/${wfId}/execute`), {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
