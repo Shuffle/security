@@ -1591,12 +1591,15 @@ const IncidentsPage = () => {
             </Box>
           )}
 
-          {/* Arrow between Ingest and Forward */}
+          {/* Arrow between Ingest and Forward - hidden until workflows loaded */}
+          {!ingestionLoading && (
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', color: 'hsl(var(--muted-foreground))', mx: -0.25 }}>
             <ChevronRightIcon sx={{ fontSize: 18 }} />
           </Box>
+          )}
 
-          {/* Forward Destinations - always visible */}
+          {/* Forward Destinations - visible after workflows loaded */}
+          {!ingestionLoading && (
             <Box sx={{ 
               position: 'relative',
               display: { xs: 'none', md: 'flex' }, 
@@ -1691,6 +1694,7 @@ const IncidentsPage = () => {
                 </Tooltip>
               )}
             </Box>
+          )}
 
           <Tooltip title={(() => {
             const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
