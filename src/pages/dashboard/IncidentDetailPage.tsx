@@ -518,6 +518,36 @@ const IncidentDetailPage = () => {
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileLoaded, setFileLoaded] = useState(false);
 
+  // Revisions (Changes tab)
+  const [revisions, setRevisions] = useState<any[]>([]);
+  const [revisionsLoading, setRevisionsLoading] = useState(false);
+  const [revisionsLoaded, setRevisionsLoaded] = useState(false);
+
+  const loadRevisions = useCallback(async () => {
+    if (!id) return;
+    setRevisionsLoading(true);
+    try {
+      const categoryKey = DATASTORE_CATEGORIES.INCIDENTS;
+      const response = await fetch(getApiUrl(`/api/v2/datastore/category/${encodeURIComponent(categoryKey)}/${encodeURIComponent(id)}/revisions`), {
+        credentials: 'include',
+        headers: { ...getAuthHeader(), ...(crossOrgId ? { 'Org-Id': crossOrgId } : {}) },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setRevisions(Array.isArray(result) ? result : (result.data || result.revisions || []));
+      } else {
+        console.error('[Changes] Failed to load revisions:', response.status);
+        setRevisions([]);
+      }
+    } catch (err) {
+      console.error('[Changes] Error loading revisions:', err);
+      setRevisions([]);
+    } finally {
+      setRevisionsLoading(false);
+      setRevisionsLoaded(true);
+    }
+  }, [id, crossOrgId]);
+
   // Sanitized HTML for safe rendering of ingested HTML descriptions (email-client style)
   const sanitizedDescriptionHtml = useMemo(() => {
     if (!rawDescriptionHtml) return '';
