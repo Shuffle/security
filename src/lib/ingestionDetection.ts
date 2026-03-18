@@ -164,10 +164,11 @@ export function extractValidatedIngestionApps(
     });
   }
 
-  // Sort: enabled first, then alphabetically
+  // Sort: Enabled+Validated > Enabled+Unvalidated > Disabled+Validated > Disabled+Unvalidated, then alphabetically
   apps.sort((a, b) => {
-    if (a.enabled && !b.enabled) return -1;
-    if (!a.enabled && b.enabled) return 1;
+    const aScore = (a.enabled ? 2 : 0) + (a.validated ? 1 : 0);
+    const bScore = (b.enabled ? 2 : 0) + (b.validated ? 1 : 0);
+    if (aScore !== bScore) return bScore - aScore;
     return a.name.localeCompare(b.name);
   });
 
