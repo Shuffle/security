@@ -564,7 +564,7 @@ export default function AppDetailDrawer({
                     onToggle={() => setAuthExpanded(prev => !prev)}
                     onAuthChange={handleAuthChange}
                     onTestConnection={(appId, authId) => handleTestConnection(appName || appId, authId)}
-                    onSaveAuth={(appId, creds) => handleSaveAuth(appId, creds)}
+                    onSaveAuth={(appId, creds) => handleSaveAuth(appId, creds, appName || undefined)}
                     apiAuthEntries={matchingEntries}
                     onRefreshAuth={refreshAuth}
                   />
