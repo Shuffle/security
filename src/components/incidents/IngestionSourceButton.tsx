@@ -10,6 +10,7 @@ import { useAppDetail } from '@/context/AppDetailContext';
 interface IngestionSourceButtonProps {
   app: ValidatedIngestionApp;
   onToggle: (appName: string, enabled: boolean) => void;
+  incidentCount?: number;
 }
 
 export const IngestionSourceButton = ({ app, onToggle }: IngestionSourceButtonProps) => {
