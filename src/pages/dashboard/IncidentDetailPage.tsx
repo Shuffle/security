@@ -494,7 +494,8 @@ const IncidentDetailPage = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
-  const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original', 'changes'] as const;
+  const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
+  const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual'>('all');
   const initialTab = (() => {
     const t = searchParams.get('tab');
     if (t) { const idx = TAB_NAMES.indexOf(t as any); return idx >= 0 ? idx : 0; }
