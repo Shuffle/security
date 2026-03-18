@@ -1759,17 +1759,18 @@ const IncidentsPage = () => {
                 overflow: 'hidden',
                 transition: 'max-width 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
               },
-              ...(forwardHovered && {
+              '&:hover .automation-overflow, &.is-hovered .automation-overflow': {
+                opacity: 1,
+                pointerEvents: 'auto',
+                transitionDelay: '0.25s',
+              },
+              '&:hover, &.is-hovered': {
                 borderRadius: '0 6px 6px 0',
-                '& .automation-overflow': {
-                  opacity: 1,
-                  pointerEvents: 'auto',
-                },
-                '& .automation-overflow-count': {
-                  maxWidth: 0,
-                  opacity: 0,
-                },
-              }),
+              },
+              '&:hover .automation-overflow-count, &.is-hovered .automation-overflow-count': {
+                maxWidth: 0,
+                opacity: 0,
+              },
             }}>
               <Typography className="automation-section-title" sx={{
                 position: 'absolute',
