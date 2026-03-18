@@ -4419,8 +4419,8 @@ const IncidentDetailPage = () => {
                   const diff = item.parsedPrevious ? computeDiff(item.parsedCurrent, item.parsedPrevious) : null;
                   const totalChanges = diff ? diff.added.length + diff.removed.length + diff.changed.length : 0;
 
-                  // In "All" view, hide revisions where all changes were noise fields
-                  if (activityFilter === 'all' && !isFirst && diff && totalChanges === 0) return null;
+                  // Hide noise-only revisions unless viewing "Changes" filter specifically
+                  if (activityFilter !== 'revisions' && !isFirst && diff && totalChanges === 0) return null;
 
                   return (
                     <Box
