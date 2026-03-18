@@ -4187,7 +4187,7 @@ const IncidentDetailPage = () => {
                   }
                   setFileSaving(true);
                   try {
-                    const resp = await fetch(getApiUrl(`/api/v1/files/${incidentFileId}/edit`), {
+                    const resp = await fetch(getApiUrl(`/api/v1/files/${resolvedFileId}/edit`), {
                       method: 'PUT',
                       credentials: 'include',
                       headers: { ...getAuthHeader(), ...crossOrgHeaders, 'Content-Type': 'application/json' },
