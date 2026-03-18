@@ -1058,10 +1058,19 @@ const IncidentsPage = () => {
     }
     if (filters.status) {
       const neg = negatedFilters.has('status');
+      const knownStatuses = Object.keys(statusConfig);
       if (Array.isArray(filters.status)) {
-        result = result.filter(i => neg ? !filters.status!.includes(i.status) : filters.status!.includes(i.status));
+        result = result.filter(i => {
+          const isKnown = knownStatuses.includes(i.status);
+          const matches = filters.status!.includes(i.status) || !isKnown;
+          return neg ? !matches : matches;
+        });
       } else {
-        result = result.filter(i => neg ? i.status !== filters.status : i.status === filters.status);
+        result = result.filter(i => {
+          const isKnown = knownStatuses.includes(i.status);
+          const matches = i.status === filters.status || !isKnown;
+          return neg ? !matches : matches;
+        });
       }
     }
     if (filters.tlp) {
