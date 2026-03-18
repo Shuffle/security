@@ -362,10 +362,31 @@ const IncidentsPage = () => {
   const ingestionLoadedOnceRef = useRef(false);
   const pendingTogglesRef = useRef<Map<string, boolean>>(new Map());
   const pendingForwardTogglesRef = useRef<Map<string, boolean>>(new Map());
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const forwardDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [appSearchOpen, setAppSearchOpen] = useState(false);
-  const [forwardAppSearchOpen, setForwardAppSearchOpen] = useState(false);
+   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const forwardDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const [appSearchOpen, setAppSearchOpen] = useState(false);
+   const [forwardAppSearchOpen, setForwardAppSearchOpen] = useState(false);
+
+   // Hover state for automation sections (state-based to survive popover portals)
+   const [ingestHovered, setIngestHovered] = useState(false);
+   const [forwardHovered, setForwardHovered] = useState(false);
+   const ingestHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const forwardHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+   const handleIngestEnter = useCallback(() => {
+     if (ingestHoverTimer.current) clearTimeout(ingestHoverTimer.current);
+     setIngestHovered(true);
+   }, []);
+   const handleIngestLeave = useCallback(() => {
+     ingestHoverTimer.current = setTimeout(() => setIngestHovered(false), 300);
+   }, []);
+   const handleForwardEnter = useCallback(() => {
+     if (forwardHoverTimer.current) clearTimeout(forwardHoverTimer.current);
+     setForwardHovered(true);
+   }, []);
+   const handleForwardLeave = useCallback(() => {
+     forwardHoverTimer.current = setTimeout(() => setForwardHovered(false), 300);
+   }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
