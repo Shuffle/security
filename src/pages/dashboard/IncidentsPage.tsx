@@ -362,10 +362,31 @@ const IncidentsPage = () => {
   const ingestionLoadedOnceRef = useRef(false);
   const pendingTogglesRef = useRef<Map<string, boolean>>(new Map());
   const pendingForwardTogglesRef = useRef<Map<string, boolean>>(new Map());
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const forwardDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [appSearchOpen, setAppSearchOpen] = useState(false);
-  const [forwardAppSearchOpen, setForwardAppSearchOpen] = useState(false);
+   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const forwardDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const [appSearchOpen, setAppSearchOpen] = useState(false);
+   const [forwardAppSearchOpen, setForwardAppSearchOpen] = useState(false);
+
+   // Hover state for automation sections (state-based to survive popover portals)
+   const [ingestHovered, setIngestHovered] = useState(false);
+   const [forwardHovered, setForwardHovered] = useState(false);
+   const ingestHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const forwardHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+   const handleIngestEnter = useCallback(() => {
+     if (ingestHoverTimer.current) clearTimeout(ingestHoverTimer.current);
+     setIngestHovered(true);
+   }, []);
+   const handleIngestLeave = useCallback(() => {
+     ingestHoverTimer.current = setTimeout(() => setIngestHovered(false), 300);
+   }, []);
+   const handleForwardEnter = useCallback(() => {
+     if (forwardHoverTimer.current) clearTimeout(forwardHoverTimer.current);
+     setForwardHovered(true);
+   }, []);
+   const handleForwardLeave = useCallback(() => {
+     forwardHoverTimer.current = setTimeout(() => setForwardHovered(false), 300);
+   }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -1530,21 +1551,21 @@ const IncidentsPage = () => {
                 overflow: 'hidden',
               },
               // Hovering either section: boost z-index and make bg opaque, hide other title
-              '&:has(.automation-section-ingest:hover) .automation-section-ingest': {
+              '&:has(.automation-section-ingest.is-hovered) .automation-section-ingest': {
                 zIndex: 10,
                 bgcolor: 'hsl(var(--muted))',
                 clipPath: 'inset(-20px -500px -20px 0px)',
               },
-              '&:has(.automation-section-ingest:hover) .automation-section-forward .automation-section-title': {
+              '&:has(.automation-section-ingest.is-hovered) .automation-section-forward .automation-section-title': {
                 opacity: 0,
                 transition: 'opacity 0.2s ease',
               },
-              '&:has(.automation-section-forward:hover) .automation-section-forward': {
+              '&:has(.automation-section-forward.is-hovered) .automation-section-forward': {
                 zIndex: 10,
                 bgcolor: 'hsl(var(--muted))',
                 clipPath: 'inset(-20px 0px -20px -500px)',
               },
-              '&:has(.automation-section-forward:hover) .automation-section-ingest .automation-section-title': {
+              '&:has(.automation-section-forward.is-hovered) .automation-section-ingest .automation-section-title': {
                 opacity: 0,
                 transition: 'opacity 0.2s ease',
               },
@@ -1552,7 +1573,10 @@ const IncidentsPage = () => {
           >
           {/* Ingestion Sources - grouped in a subtle container with add button */}
           {(ingestionApps.length > 0 || webhookIngestion.exists || webhookIngestion.enabled) && (
-            <Box className="automation-section-ingest" sx={{ 
+            <Box className={`automation-section-ingest${ingestHovered ? ' is-hovered' : ''}`}
+              onMouseEnter={handleIngestEnter}
+              onMouseLeave={handleIngestLeave}
+              sx={{ 
               position: 'relative',
               display: 'flex', 
               alignItems: 'center', 
@@ -1586,18 +1610,17 @@ const IncidentsPage = () => {
                 overflow: 'hidden',
                 transition: 'max-width 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
               },
-              '&:hover .automation-overflow': {
-                opacity: 1,
-                pointerEvents: 'auto',
-                transitionDelay: '0.25s',
-              },
-              '&:hover': {
+              ...(ingestHovered && {
                 borderRadius: '6px 0 0 6px',
-              },
-              '&:hover .automation-overflow-count': {
-                maxWidth: 0,
-                opacity: 0,
-              },
+                '& .automation-overflow': {
+                  opacity: 1,
+                  pointerEvents: 'auto',
+                },
+                '& .automation-overflow-count': {
+                  maxWidth: 0,
+                  opacity: 0,
+                },
+              }),
             }}>
               <Typography className="automation-section-title" sx={{
                 position: 'absolute',
@@ -1694,7 +1717,10 @@ const IncidentsPage = () => {
 
           {/* Forward Destinations - visible after workflows loaded */}
           {!ingestionLoading && (
-            <Box className="automation-section-forward" sx={{ 
+            <Box className={`automation-section-forward${forwardHovered ? ' is-hovered' : ''}`}
+              onMouseEnter={handleForwardEnter}
+              onMouseLeave={handleForwardLeave}
+              sx={{ 
               position: 'relative',
               display: 'flex', 
               alignItems: 'center', 
@@ -1728,18 +1754,17 @@ const IncidentsPage = () => {
                 overflow: 'hidden',
                 transition: 'max-width 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
               },
-              '&:hover .automation-overflow': {
-                opacity: 1,
-                pointerEvents: 'auto',
-                transitionDelay: '0.25s',
-              },
-              '&:hover': {
+              ...(forwardHovered && {
                 borderRadius: '0 6px 6px 0',
-              },
-              '&:hover .automation-overflow-count': {
-                maxWidth: 0,
-                opacity: 0,
-              },
+                '& .automation-overflow': {
+                  opacity: 1,
+                  pointerEvents: 'auto',
+                },
+                '& .automation-overflow-count': {
+                  maxWidth: 0,
+                  opacity: 0,
+                },
+              }),
             }}>
               <Typography className="automation-section-title" sx={{
                 position: 'absolute',
