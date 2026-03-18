@@ -565,6 +565,13 @@ const IncidentsPage = () => {
           if (!app.image) app.image = imgMap.get(normalizeAppName(app.name)) || '';
         });
         setIngestionApps(ingestionResults);
+
+        // Extract forward apps using same auth data but Forward Tickets workflow
+        const forwardResults = extractValidatedIngestionApps(authApps, forwardAppNames);
+        forwardResults.forEach(app => {
+          if (!app.image) app.image = imgMap.get(normalizeAppName(app.name)) || '';
+        });
+        setForwardApps(forwardResults);
       }
     } catch (error) {
       console.error('Failed to fetch ingestion apps:', error);
