@@ -1591,6 +1591,10 @@ const IncidentsPage = () => {
                 pointerEvents: 'auto',
                 transitionDelay: '0.25s',
               },
+              '&:hover': {
+                borderRadius: '6px 0 0 6px',
+              },
+              },
               '&:hover .automation-overflow-count': {
                 maxWidth: 0,
                 opacity: 0,
