@@ -14,7 +14,7 @@ interface IngestionSourceButtonProps {
   variant?: 'ingest' | 'forward';
 }
 
-export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0 }: IngestionSourceButtonProps) => {
+export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, variant = 'ingest' }: IngestionSourceButtonProps) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const popoverOpen = Boolean(anchorEl);
