@@ -590,6 +590,7 @@ const IncidentsPage = () => {
       console.error('Failed to fetch ingestion apps:', error);
     } finally {
       setIngestionLoading(false);
+      ingestionLoadedOnceRef.current = true;
     }
   }, [categoryAutomations]);
 
