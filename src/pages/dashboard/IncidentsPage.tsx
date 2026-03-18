@@ -1513,49 +1513,29 @@ const IncidentsPage = () => {
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
               gap: 0,
-              // Default restore transition (when hover ends)
+              position: 'relative',
+              // Default state
               '& .automation-section-ingest, & .automation-section-forward': {
-                transition: 'max-width 0.55s cubic-bezier(0.4,0,0.2,1) 0.2s, opacity 0.4s ease 0.25s, padding 0.55s cubic-bezier(0.4,0,0.2,1) 0.2s, border-color 0.4s ease 0.25s',
+                transition: 'max-width 0.45s cubic-bezier(0.4,0,0.2,1), padding 0.45s cubic-bezier(0.4,0,0.2,1), border-color 0.3s ease',
                 overflow: 'visible',
                 clipPath: 'inset(-20px 0px -20px 0px)',
+                position: 'relative',
               },
               '& .automation-arrow': {
                 transition: 'max-width 0.4s cubic-bezier(0.4,0,0.2,1) 0.15s, opacity 0.3s ease 0.15s',
                 overflow: 'hidden',
               },
-              // Hovering Ingest: grow Ingest immediately while collapsing Forward
+              // Hovering Ingest: grow over Forward using z-index
               '&:has(.automation-section-ingest:hover) .automation-section-ingest': {
                 maxWidth: '800px !important',
-                transition: 'max-width 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease, padding 0.55s cubic-bezier(0.4,0,0.2,1), border-color 0.4s ease',
+                zIndex: 10,
+                transition: 'max-width 0.45s cubic-bezier(0.4,0,0.2,1), padding 0.45s cubic-bezier(0.4,0,0.2,1), border-color 0.3s ease',
               },
-              '&:has(.automation-section-ingest:hover) .automation-section-forward': {
-                maxWidth: '0px !important',
-                opacity: '0 !important',
-                px: '0 !important',
-                borderColor: 'transparent !important',
-                transition: 'max-width 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, padding 0.45s cubic-bezier(0.4,0,0.2,1), border-color 0.25s ease',
-              },
-              '&:has(.automation-section-ingest:hover) .automation-arrow': {
-                maxWidth: '0px !important',
-                opacity: '0 !important',
-                transition: 'max-width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-              },
-              // Hovering Forward: grow Forward immediately while collapsing Ingest
+              // Hovering Forward: grow over Ingest using z-index
               '&:has(.automation-section-forward:hover) .automation-section-forward': {
                 maxWidth: '800px !important',
-                transition: 'max-width 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease, padding 0.55s cubic-bezier(0.4,0,0.2,1), border-color 0.4s ease',
-              },
-              '&:has(.automation-section-forward:hover) .automation-section-ingest': {
-                maxWidth: '0px !important',
-                opacity: '0 !important',
-                px: '0 !important',
-                borderColor: 'transparent !important',
-                transition: 'max-width 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, padding 0.45s cubic-bezier(0.4,0,0.2,1), border-color 0.25s ease',
-              },
-              '&:has(.automation-section-forward:hover) .automation-arrow': {
-                maxWidth: '0px !important',
-                opacity: '0 !important',
-                transition: 'max-width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+                zIndex: 10,
+                transition: 'max-width 0.45s cubic-bezier(0.4,0,0.2,1), padding 0.45s cubic-bezier(0.4,0,0.2,1), border-color 0.3s ease',
               },
             }}
           >
