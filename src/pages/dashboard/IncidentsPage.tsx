@@ -520,7 +520,6 @@ const IncidentsPage = () => {
 
           // Detect "Forward Tickets" workflow
           const forwardWorkflow = findForwardTicketsWorkflow(workflowList);
-          let forwardAppNames: Set<string> | undefined;
           if (forwardWorkflow) {
             forwardAppNames = extractWorkflowAppNames(forwardWorkflow);
             setForwardWorkflowId(forwardWorkflow.id);
