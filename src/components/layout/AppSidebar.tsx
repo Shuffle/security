@@ -217,6 +217,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
 
   const handleOrgChange = async (org: { id: string; name: string } | null) => {
     if (org) {
+      setChangingOrg(true);
       await setActiveOrg(org.id);
     }
   };
