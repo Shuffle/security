@@ -4005,7 +4005,7 @@ const IncidentDetailPage = () => {
           flexDirection: 'column',
           gap: 1.5,
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, bgcolor: 'hsl(var(--card))', mx: -2, px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <DescriptionIcon sx={{ fontSize: 18, color: '#ff6600' }} />
