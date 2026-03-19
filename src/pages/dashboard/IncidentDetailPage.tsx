@@ -4686,6 +4686,7 @@ const IncidentDetailPage = () => {
             })()}
           </Box>
         </Box>
+        )}
       </Box>
 
 
