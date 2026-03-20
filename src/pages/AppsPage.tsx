@@ -241,7 +241,7 @@ export default function AppsPage() {
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: 'rgba(255, 255, 255, 0.4)', display: 'block', fontSize: '0.7rem' }}
+                      sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}
                     >
                       {category.description}
                     </Typography>
