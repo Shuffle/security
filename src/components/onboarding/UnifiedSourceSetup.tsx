@@ -188,24 +188,24 @@ const CategorySection = ({
             justifyContent: 'center',
             flexShrink: 0,
             backgroundColor: isOpen
-              ? 'rgba(255, 102, 0, 0.15)'
+              ? 'hsl(var(--primary) / 0.15)'
               : hasSelections
-                ? 'rgba(34, 197, 94, 0.15)'
-                : 'rgba(255, 255, 255, 0.06)',
+                ? 'hsl(var(--severity-low) / 0.15)'
+                : 'hsl(var(--muted))',
             border: '2px solid',
             borderColor: isOpen
-              ? 'rgba(255, 102, 0, 0.5)'
+              ? 'hsl(var(--primary) / 0.5)'
               : hasSelections
-                ? 'rgba(34, 197, 94, 0.4)'
-                : 'rgba(255, 255, 255, 0.12)',
+                ? 'hsl(var(--severity-low) / 0.4)'
+                : 'hsl(var(--border))',
             transition: 'all 0.3s ease',
             zIndex: 1,
           }}
         >
           {hasSelections && !isOpen ? (
-            <CheckCircle2 size={18} color="#22c55e" />
+            <CheckCircle2 size={18} color="hsl(var(--severity-low))" />
           ) : (
-            <Icon size={18} color={isOpen ? '#FF6600' : 'rgba(255, 255, 255, 0.45)'} />
+            <Icon size={18} color={isOpen ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} />
           )}
         </Box>
         {/* Connector line */}
@@ -216,8 +216,8 @@ const CategorySection = ({
               flex: 1,
               minHeight: 16,
               backgroundColor: hasSelections
-                ? 'rgba(34, 197, 94, 0.3)'
-                : 'rgba(255, 255, 255, 0.08)',
+                ? 'hsl(var(--severity-low) / 0.3)'
+                : 'hsl(var(--border))',
               transition: 'background-color 0.3s ease',
             }}
           />
@@ -243,14 +243,14 @@ const CategorySection = ({
             borderRadius: 2,
             transition: 'background-color 0.2s ease',
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              backgroundColor: 'hsl(var(--muted))',
             },
           }}
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               sx={{
-                color: isOpen ? '#FF6600' : hasSelections ? '#22c55e' : 'white',
+                color: isOpen ? 'hsl(var(--primary))' : hasSelections ? 'hsl(var(--severity-low))' : 'hsl(var(--foreground))',
                 fontWeight: 600,
                 fontSize: '0.95rem',
                 lineHeight: 1.3,
@@ -261,7 +261,7 @@ const CategorySection = ({
             </Typography>
             <Typography
               sx={{
-                color: 'rgba(255, 255, 255, 0.4)',
+                color: 'hsl(var(--muted-foreground))',
                 fontSize: '0.75rem',
                 lineHeight: 1.3,
               }}
@@ -279,11 +279,11 @@ const CategorySection = ({
                 size="small"
                 sx={{
                   height: 24,
-                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                  color: '#22c55e',
+                  backgroundColor: 'hsl(var(--severity-low) / 0.15)',
+                  color: 'hsl(var(--severity-low))',
                   fontWeight: 600,
                   fontSize: '0.72rem',
-                  '& .MuiChip-icon': { color: '#22c55e' },
+                  '& .MuiChip-icon': { color: 'hsl(var(--severity-low))' },
                 }}
               />
             )}
@@ -301,8 +301,8 @@ const CategorySection = ({
                       height: 24,
                       borderRadius: '50%',
                       objectFit: 'contain',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: '2px solid rgba(33, 33, 33, 0.9)',
+                      backgroundColor: 'hsl(var(--muted))',
+                      border: '2px solid hsl(var(--card))',
                       ml: idx > 0 ? -0.75 : 0,
                       p: 0.25,
                     }}
@@ -314,15 +314,15 @@ const CategorySection = ({
                       width: 24,
                       height: 24,
                       borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      border: '2px solid rgba(33, 33, 33, 0.9)',
+                      backgroundColor: 'hsl(var(--muted))',
+                      border: '2px solid hsl(var(--card))',
                       ml: -0.75,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.6)' }}>
+                    <Typography sx={{ fontSize: '0.55rem', color: 'hsl(var(--muted-foreground))' }}>
                       +{selectedApps.length - 3}
                     </Typography>
                   </Box>
@@ -334,7 +334,7 @@ const CategorySection = ({
               animate={{ rotate: isOpen ? 180 : 0 }}
               transition={{ duration: 0.2 }}
             >
-              <ChevronDown size={18} color="rgba(255, 255, 255, 0.35)" />
+              <ChevronDown size={18} color="hsl(var(--muted-foreground))" />
             </motion.div>
           </Box>
         </Box>
@@ -347,8 +347,8 @@ const CategorySection = ({
               mt: 1.5,
               p: 2.5,
               borderRadius: 3,
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid hsl(var(--border))',
+              backgroundColor: 'hsl(var(--card))',
               transition: 'border-color 0.3s ease',
             }}
           >

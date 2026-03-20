@@ -122,7 +122,7 @@ export const WelcomeStep = ({ onSelect, selectedChallenge }: WelcomeStepProps) =
         <Typography
           variant="body1"
           sx={{
-            color: 'rgba(255, 255, 255, 0.5)',
+            color: 'hsl(var(--muted-foreground))',
             mb: 5,
             maxWidth: 480,
             mx: 'auto',
@@ -163,20 +163,20 @@ export const WelcomeStep = ({ onSelect, selectedChallenge }: WelcomeStepProps) =
                   borderRadius: 4,
                   cursor: 'pointer',
                   backgroundColor: isSelected 
-                    ? 'rgba(255, 102, 0, 0.12)' 
-                    : 'rgba(255, 255, 255, 0.03)',
+                    ? 'hsl(var(--primary) / 0.12)' 
+                    : 'hsl(var(--card))',
                   border: '2px solid',
                   borderColor: isSelected 
-                    ? '#FF6600' 
+                    ? 'hsl(var(--primary))' 
                     : isHovered 
-                      ? 'rgba(255, 102, 0, 0.4)' 
-                      : 'rgba(255, 255, 255, 0.08)',
+                      ? 'hsl(var(--primary) / 0.4)' 
+                      : 'hsl(var(--border))',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   transform: isHovered || isSelected ? 'translateY(-4px)' : 'none',
                   boxShadow: isSelected 
-                    ? '0 20px 40px -12px rgba(255, 102, 0, 0.25)' 
+                    ? '0 20px 40px -12px hsl(var(--primary) / 0.25)' 
                     : isHovered 
-                      ? '0 10px 30px -10px rgba(0, 0, 0, 0.3)' 
+                      ? 'var(--shadow-lg)' 
                       : 'none',
                   position: 'relative',
                   overflow: 'hidden',
@@ -197,14 +197,14 @@ export const WelcomeStep = ({ onSelect, selectedChallenge }: WelcomeStepProps) =
                     height: 56,
                     borderRadius: '50%',
                     backgroundColor: isSelected 
-                      ? 'rgba(255, 102, 0, 0.2)' 
-                      : 'rgba(255, 255, 255, 0.08)',
+                      ? 'hsl(var(--primary) / 0.2)' 
+                      : 'hsl(var(--muted))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     mx: 'auto',
                     mb: 3,
-                    color: isSelected ? '#FF6600' : 'rgba(255, 255, 255, 0.6)',
+                    color: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                     transition: 'all 0.3s ease',
                   }}
                 >
@@ -214,7 +214,7 @@ export const WelcomeStep = ({ onSelect, selectedChallenge }: WelcomeStepProps) =
                 <Typography
                   variant="h6"
                   sx={{
-                    color: 'white',
+                    color: 'hsl(var(--foreground))',
                     fontWeight: 700,
                     mb: 1,
                   }}
@@ -225,7 +225,7 @@ export const WelcomeStep = ({ onSelect, selectedChallenge }: WelcomeStepProps) =
                 <Typography
                   variant="body2"
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.5)',
+                    color: 'hsl(var(--muted-foreground))',
                     lineHeight: 1.6,
                   }}
                 >

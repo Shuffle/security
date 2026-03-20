@@ -123,13 +123,13 @@ export const ToolAuthentication = ({
   const getStatusConfig = (status: AuthStatus) => {
     switch (status) {
       case 'connected':
-        return { color: '#22c55e', label: 'Connected', icon: <CheckCircleIcon fontSize="small" /> };
+        return { color: 'hsl(var(--severity-low))', label: 'Connected', icon: <CheckCircleIcon fontSize="small" /> };
       case 'error':
-        return { color: '#ef4444', label: 'Error', icon: <ErrorIcon fontSize="small" /> };
+        return { color: 'hsl(var(--destructive))', label: 'Error', icon: <ErrorIcon fontSize="small" /> };
       case 'testing':
-        return { color: '#FF6600', label: 'Testing...', icon: <CircularProgress size={16} sx={{ color: '#FF6600' }} /> };
+        return { color: 'hsl(var(--primary))', label: 'Testing...', icon: <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))' }} /> };
       default:
-        return { color: 'rgba(255, 255, 255, 0.4)', label: 'Not Configured', icon: null };
+        return { color: 'hsl(var(--muted-foreground))', label: 'Not Configured', icon: null };
     }
   };
 
@@ -138,7 +138,7 @@ export const ToolAuthentication = ({
       <Typography
         variant="h5"
         sx={{
-          color: 'white',
+          color: 'hsl(var(--foreground))',
           fontWeight: 700,
           mb: 1,
         }}
@@ -147,7 +147,7 @@ export const ToolAuthentication = ({
       </Typography>
       <Typography
         variant="body1"
-        sx={{ mb: 4, color: 'rgba(255, 255, 255, 0.5)' }}
+        sx={{ mb: 4, color: 'hsl(var(--muted-foreground))' }}
       >
         Enter the credentials for each selected integration. We'll test the connections for you.
       </Typography>
@@ -164,14 +164,14 @@ export const ToolAuthentication = ({
               <motion.div key={app.objectID} variants={itemVariants}>
                 <Card
                   sx={{
-                    background: 'rgba(33, 33, 33, 0.6)',
+                    backgroundColor: 'hsl(var(--card))',
                     border: '1px solid',
                     borderColor:
                       authState.status === 'connected'
-                        ? 'rgba(34, 197, 94, 0.3)'
+                        ? 'hsl(var(--severity-low) / 0.3)'
                         : authState.status === 'error'
-                        ? 'rgba(239, 68, 68, 0.3)'
-                        : 'rgba(255, 255, 255, 0.08)',
+                        ? 'hsl(var(--destructive) / 0.3)'
+                        : 'hsl(var(--border))',
                     borderRadius: 3,
                     backdropFilter: 'blur(10px)',
                     overflow: 'hidden',
@@ -186,7 +186,7 @@ export const ToolAuthentication = ({
                       cursor: 'pointer',
                       p: 3,
                       '&:last-child': { pb: 3 },
-                      '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.02)' },
+                      '&:hover': { backgroundColor: 'hsl(var(--muted))' },
                     }}
                   >
                     {app.image_url ? (
@@ -199,7 +199,7 @@ export const ToolAuthentication = ({
                           height: 48,
                           borderRadius: 2,
                           objectFit: 'contain',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          backgroundColor: 'hsl(var(--muted))',
                           p: 1,
                         }}
                       />
@@ -211,7 +211,7 @@ export const ToolAuthentication = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          background: 'rgba(255, 255, 255, 0.05)',
+                          background: 'hsl(var(--muted))',
                           borderRadius: 2,
                           fontSize: '1.5rem',
                         }}
@@ -220,11 +220,11 @@ export const ToolAuthentication = ({
                       </Box>
                     )}
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography sx={{ color: 'white', fontWeight: 600 }}>
+                      <Typography sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>
                         {app.name.replace(/_/g, ' ')}
                       </Typography>
                       {app.description && (
-                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)' }}>
+                        <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                           {app.description}
                         </Typography>
                       )}
@@ -245,7 +245,7 @@ export const ToolAuthentication = ({
                       <IconButton
                         size="small"
                         sx={{
-                          color: 'rgba(255, 255, 255, 0.4)',
+                          color: 'hsl(var(--muted-foreground))',
                           transform: isExpanded ? 'rotate(180deg)' : 'none',
                           transition: 'transform 0.3s ease',
                         }}
@@ -261,7 +261,7 @@ export const ToolAuthentication = ({
                         px: 3,
                         pb: 3,
                         pt: 1,
-                        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderTop: '1px solid hsl(var(--border))',
                       }}
                     >
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -282,14 +282,14 @@ export const ToolAuthentication = ({
                             size="small"
                             sx={{
                               '& .MuiOutlinedInput-root': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                backgroundColor: 'hsl(var(--background-elevated))',
                                 borderRadius: 2,
-                                '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                                '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                                '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+                                '& fieldset': { borderColor: 'hsl(var(--border))' },
+                                '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground))' },
+                                '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
                               },
-                              '& .MuiInputBase-input': { color: 'white' },
-                              '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
+                              '& .MuiInputBase-input': { color: 'hsl(var(--foreground))' },
+                              '& .MuiInputLabel-root': { color: 'hsl(var(--muted-foreground))' },
                             }}
                           />
                         ))}
@@ -298,9 +298,9 @@ export const ToolAuthentication = ({
                           <Alert
                             severity="error"
                             sx={{
-                              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                              color: '#ef4444',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              backgroundColor: 'hsl(var(--destructive) / 0.1)',
+                              color: 'hsl(var(--destructive))',
+                              border: '1px solid hsl(var(--destructive) / 0.3)',
                               borderRadius: 2,
                             }}
                           >
@@ -324,8 +324,8 @@ export const ToolAuthentication = ({
                               background: 'linear-gradient(135deg, #FF8533 0%, #FF9955 100%)',
                             },
                             '&.Mui-disabled': {
-                              background: 'rgba(255, 255, 255, 0.1)',
-                              color: 'rgba(255, 255, 255, 0.3)',
+                              background: 'hsl(var(--muted))',
+                              color: 'hsl(var(--muted-foreground))',
                             },
                           }}
                         >
