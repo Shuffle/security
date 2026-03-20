@@ -1316,11 +1316,10 @@ const IncidentDetailPage = () => {
     pendingSaveRef.current = false;
     
     const severityOption = severityOptions.find(s => s.value === editedSeverity);
-    const statusId = statusConfig[editedStatus]?.id || 1;
+    const { label: statusLabel, id: statusId } = getOCSFStatus(editedStatus);
     
     // Get existing finding info from list (new) or direct (legacy)
     const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
-    const statusLabel = editedStatus === 'new' ? 'New' : editedStatus === 'in_progress' ? 'In Progress' : editedStatus === 'on_hold' ? 'On Hold' : 'Resolved';
     
     // CRITICAL: Never use undefined - always use empty values to prevent field deletion
     const updatedData = incident.rawOCSF ? {
