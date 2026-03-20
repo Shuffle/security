@@ -57,7 +57,7 @@ export const TicketingSystemSearch = ({
       </Typography>
       <Typography
         variant="body1"
-        sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 4 }}
+        sx={{ color: 'hsl(var(--muted-foreground))', mb: 4 }}
       >
         Search and connect integrations from any of these ingest areas.
       </Typography>
@@ -78,16 +78,16 @@ export const TicketingSystemSearch = ({
               key={category.id}
               sx={{
                 p: 3,
-                backgroundColor: isActive ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                backgroundColor: isActive ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--card))',
                 border: '1px solid',
-                borderColor: isActive ? '#FF6600' : 'rgba(255, 255, 255, 0.08)',
+                borderColor: isActive ? 'hsl(var(--primary))' : 'hsl(var(--border))',
                 borderRadius: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 textAlign: 'center',
                 '&:hover': {
-                  borderColor: 'rgba(255, 102, 0, 0.5)',
-                  backgroundColor: isActive ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  borderColor: 'hsl(var(--primary) / 0.5)',
+                  backgroundColor: isActive ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--muted))',
                 },
               }}
               onClick={() => {
@@ -103,9 +103,9 @@ export const TicketingSystemSearch = ({
                   width: 48,
                   height: 48,
                   borderRadius: '50%',
-                  backgroundColor: isActive ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                  backgroundColor: isActive ? 'hsl(var(--primary) / 0.2)' : 'hsl(var(--muted))',
                   border: '2px solid',
-                  borderColor: isActive ? '#FF6600' : 'rgba(255, 255, 255, 0.15)',
+                  borderColor: isActive ? 'hsl(var(--primary))' : 'hsl(var(--border))',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -114,17 +114,17 @@ export const TicketingSystemSearch = ({
                   transition: 'all 0.3s ease',
                 }}
               >
-                <category.icon size={22} color={isActive ? '#FF6600' : 'rgba(255, 255, 255, 0.6)'} />
+                <category.icon size={22} color={isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} />
               </Box>
               <Typography
                 variant="subtitle1"
-                sx={{ color: 'white', fontWeight: 600, mb: 0.5 }}
+                sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, mb: 0.5 }}
               >
                 {category.label}
               </Typography>
               <Typography
                 variant="caption"
-                sx={{ color: 'rgba(255, 255, 255, 0.4)', display: 'block' }}
+                sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}
               >
                 {category.description}
               </Typography>
@@ -137,9 +137,9 @@ export const TicketingSystemSearch = ({
       <Box
         sx={{
           p: 2,
-          backgroundColor: activeCategory === catchAllCategory.id ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+          backgroundColor: activeCategory === catchAllCategory.id ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--card))',
           border: '1px solid',
-          borderColor: activeCategory === catchAllCategory.id ? '#FF6600' : 'rgba(255, 255, 255, 0.06)',
+          borderColor: activeCategory === catchAllCategory.id ? 'hsl(var(--primary))' : 'hsl(var(--border))',
           borderRadius: 2,
           cursor: 'pointer',
           transition: 'all 0.3s ease',
@@ -149,8 +149,8 @@ export const TicketingSystemSearch = ({
           gap: 1.5,
           mb: 4,
           '&:hover': {
-            borderColor: 'rgba(255, 102, 0, 0.4)',
-            backgroundColor: activeCategory === catchAllCategory.id ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+            borderColor: 'hsl(var(--primary) / 0.4)',
+            backgroundColor: activeCategory === catchAllCategory.id ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--muted))',
           },
         }}
         onClick={() => {
@@ -160,11 +160,11 @@ export const TicketingSystemSearch = ({
           }
         }}
       >
-        <catchAllCategory.icon size={18} color={activeCategory === catchAllCategory.id ? '#FF6600' : 'rgba(255, 255, 255, 0.5)'} />
+        <catchAllCategory.icon size={18} color={activeCategory === catchAllCategory.id ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} />
         <Typography
           variant="body2"
           sx={{ 
-            color: activeCategory === catchAllCategory.id ? '#FF6600' : 'rgba(255, 255, 255, 0.5)', 
+            color: activeCategory === catchAllCategory.id ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', 
             fontWeight: 500,
           }}
         >

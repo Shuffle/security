@@ -133,7 +133,7 @@ export const PrimaryToolStep = ({
           sx={{
             fontWeight: 700,
             mb: 1,
-            color: 'white',
+            color: 'hsl(var(--foreground))',
             textAlign: 'center',
           }}
         >
@@ -142,7 +142,7 @@ export const PrimaryToolStep = ({
         <Typography
           variant="body1"
           sx={{
-            color: 'rgba(255, 255, 255, 0.5)',
+            color: 'hsl(var(--muted-foreground))',
             mb: 5,
             textAlign: 'center',
           }}
@@ -179,19 +179,19 @@ export const PrimaryToolStep = ({
                   borderRadius: 3,
                   cursor: 'pointer',
                   backgroundColor: isSelected 
-                    ? 'rgba(255, 102, 0, 0.12)' 
-                    : 'rgba(255, 255, 255, 0.03)',
+                    ? 'hsl(var(--primary) / 0.12)' 
+                    : 'hsl(var(--card))',
                   border: '1px solid',
                   borderColor: isSelected 
-                    ? '#FF6600' 
-                    : 'rgba(255, 255, 255, 0.08)',
+                    ? 'hsl(var(--primary))' 
+                    : 'hsl(var(--border))',
                   transition: 'all 0.2s ease',
                   position: 'relative',
                   '&:hover': {
-                    borderColor: isSelected ? '#FF6600' : 'rgba(255, 102, 0, 0.4)',
+                    borderColor: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.4)',
                     backgroundColor: isSelected 
-                      ? 'rgba(255, 102, 0, 0.15)' 
-                      : 'rgba(255, 255, 255, 0.05)',
+                      ? 'hsl(var(--primary) / 0.15)' 
+                      : 'hsl(var(--muted))',
                     transform: 'translateY(-2px)',
                   },
                 }}
@@ -202,7 +202,7 @@ export const PrimaryToolStep = ({
                       position: 'absolute',
                       top: 8,
                       right: 8,
-                      color: '#22c55e',
+                      color: 'hsl(var(--severity-low))',
                     }}
                   >
                     <CheckCircle2 size={18} />
@@ -218,7 +218,7 @@ export const PrimaryToolStep = ({
                     height: 48,
                     borderRadius: 2,
                     objectFit: 'contain',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    backgroundColor: 'hsl(var(--muted))',
                     p: 1,
                     mx: 'auto',
                     display: 'block',
@@ -229,7 +229,7 @@ export const PrimaryToolStep = ({
                 <Typography
                   variant="subtitle2"
                   sx={{
-                    color: 'white',
+                    color: 'hsl(var(--foreground))',
                     fontWeight: 600,
                     textAlign: 'center',
                     mb: 0.5,
@@ -241,7 +241,7 @@ export const PrimaryToolStep = ({
                 <Typography
                   variant="caption"
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.4)',
+                    color: 'hsl(var(--muted-foreground))',
                     textAlign: 'center',
                     display: 'block',
                   }}
@@ -265,12 +265,12 @@ export const PrimaryToolStep = ({
             px: 3,
             py: 1.5,
             cursor: 'pointer',
-            color: 'rgba(255, 255, 255, 0.6)',
+            color: 'hsl(var(--muted-foreground))',
             borderRadius: 2,
             transition: 'all 0.2s ease',
             '&:hover': {
-              color: '#FF6600',
-              backgroundColor: 'rgba(255, 102, 0, 0.08)',
+              color: 'hsl(var(--primary))',
+              backgroundColor: 'hsl(var(--primary) / 0.08)',
             },
           }}
         >
@@ -301,8 +301,8 @@ export const PrimaryToolStep = ({
                 maxWidth: 800,
                 mx: 'auto',
                 p: 3,
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
                 borderRadius: 3,
               }}
             >
@@ -328,50 +328,50 @@ export const PrimaryToolStep = ({
                 customStyles={{
                   container: { width: '100%' },
                   inputWrapper: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                    backgroundColor: 'hsl(var(--background-elevated))',
                     borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    border: '1px solid hsl(var(--border))',
                   },
                   input: {
                     backgroundColor: 'transparent',
-                    color: 'white',
+                    color: 'hsl(var(--foreground))',
                     border: 'none',
                     borderRadius: '12px',
                     padding: '12px 16px',
                     fontSize: '14px',
                   },
-                  searchIcon: { color: 'rgba(255, 255, 255, 0.4)' },
+                  searchIcon: { color: 'hsl(var(--muted-foreground))' },
                   spinner: {
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    borderTopColor: '#FF6600',
+                    borderColor: 'hsl(var(--border))',
+                    borderTopColor: 'hsl(var(--primary))',
                   },
                   resultsContainer: { marginTop: '16px', gap: '12px' },
                   dropdownItem: {
-                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
                     borderRadius: '12px',
                     padding: '16px',
-                    color: 'white',
+                    color: 'hsl(var(--foreground))',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                   },
                   dropdownItemHover: {
-                    borderColor: 'rgba(255, 102, 0, 0.5)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'hsl(var(--primary) / 0.5)',
+                    backgroundColor: 'hsl(var(--muted))',
                   },
                   selectedItem: {
-                    backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                    borderColor: '#FF6600',
+                    backgroundColor: 'hsl(var(--primary) / 0.1)',
+                    borderColor: 'hsl(var(--primary))',
                   },
                   appIcon: {
                     width: '40px',
                     height: '40px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    backgroundColor: 'hsl(var(--muted))',
                     objectFit: 'contain' as const,
                     padding: '4px',
                   },
-                  appName: { fontSize: '14px', fontWeight: 600, color: 'white' },
+                  appName: { fontSize: '14px', fontWeight: 600, color: 'hsl(var(--foreground))' },
                   appCategory: {
                     marginTop: '8px',
                     padding: '2px 8px',
@@ -413,15 +413,15 @@ export const PrimaryToolStep = ({
               mt: 4, 
               p: 3, 
               backgroundColor: 'rgba(34, 197, 94, 0.08)',
-              border: '1px solid rgba(34, 197, 94, 0.2)',
+              border: '1px solid hsl(var(--severity-low) / 0.2)',
               borderRadius: 3,
               maxWidth: 600,
               mx: 'auto',
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-              <Sparkles size={18} color="#22c55e" />
-              <Typography variant="body2" sx={{ color: '#22c55e', fontWeight: 600 }}>
+              <Sparkles size={18} color="hsl(var(--severity-low))" />
+              <Typography variant="body2" sx={{ color: 'hsl(var(--severity-low))', fontWeight: 600 }}>
                 {selectedApps.length === 1 ? 'Great choice!' : `${selectedApps.length} tools selected`}
               </Typography>
             </Box>
@@ -441,7 +441,7 @@ export const PrimaryToolStep = ({
                           height: 24,
                           borderRadius: '50%',
                           objectFit: 'contain',
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          backgroundColor: 'hsl(var(--muted))',
                         }}
                       />
                     ) : undefined
@@ -450,14 +450,14 @@ export const PrimaryToolStep = ({
                     onAppsChange(selectedApps.filter(a => a.objectID !== app.objectID));
                   }}
                   sx={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: 'rgba(255, 255, 255, 0.9)',
+                    backgroundColor: 'hsl(var(--muted))',
+                    border: '1px solid hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
                     fontWeight: 500,
                     '& .MuiChip-avatar': { marginLeft: '4px' },
                     '& .MuiChip-deleteIcon': {
-                      color: 'rgba(255, 255, 255, 0.5)',
-                      '&:hover': { color: 'white' },
+                      color: 'hsl(var(--muted-foreground))',
+                      '&:hover': { color: 'hsl(var(--foreground))' },
                     },
                   }}
                 />
