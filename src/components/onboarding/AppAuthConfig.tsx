@@ -1221,8 +1221,9 @@ export const AppAuthCard = ({
                   onClose={() => setDeleteConfirmAuthId(null)}
                   PaperProps={{
                     sx: {
-                      backgroundColor: '#1a1a1a',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backgroundColor: 'background.paper',
+                      border: '1px solid',
+                      borderColor: 'divider',
                       borderRadius: 3,
                       minWidth: 360,
                     },
