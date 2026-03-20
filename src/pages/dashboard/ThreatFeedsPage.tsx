@@ -312,10 +312,10 @@ const ThreatFeedsPage = () => {
                         size="small"
                         sx={{
                           '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: '#22c55e',
+                            color: 'success.main',
                           },
                           '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: '#22c55e',
+                            backgroundColor: 'success.main',
                           },
                         }}
                       />

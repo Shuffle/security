@@ -170,7 +170,7 @@ export const AddAppModal = ({ open, onClose, initialQuery, categoryLabel }: AddA
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            borderBottom: '1px solid hsl(var(--border))',
             flexShrink: 0,
           }}
         >

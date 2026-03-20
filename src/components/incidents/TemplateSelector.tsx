@@ -113,7 +113,7 @@ export const TemplateSelector = ({ onApplyTemplate, currentUsername = '' }: Temp
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 gap: 0.5,
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+                '&:hover': { bgcolor: 'action.hover' },
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>

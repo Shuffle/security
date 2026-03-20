@@ -616,10 +616,10 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                           }
                         }}
                         sx={{
-                          bgcolor: 'rgba(255,102,0,0.2)',
-                          color: '#FF6600',
+                          bgcolor: (t) => `${t.palette.primary.main}33`,
+                          color: 'primary.main',
                           textTransform: 'none',
-                          '&:hover': { bgcolor: 'rgba(255,102,0,0.3)' },
+                          '&:hover': { bgcolor: (t) => `${t.palette.primary.main}4D` },
                         }}
                       >
                         {loading ? <CircularProgress size={18} color="inherit" /> : 'Save API Key & Login'}

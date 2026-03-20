@@ -3324,7 +3324,7 @@ const IncidentDetailPage = () => {
                   minHeight: 120,
                   maxHeight: 450,
                   overflow: 'auto',
-                  color: '#1a1a1a',
+                  color: 'text.primary',
                   '& img': { maxWidth: '100%', height: 'auto' },
                   '& a': { color: '#1a73e8', textDecoration: 'underline' },
                   '& table': { borderCollapse: 'collapse', maxWidth: '100%' },
