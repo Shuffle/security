@@ -549,13 +549,13 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                         sx={{
                           mb: 1.5,
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: '#2a2a2a',
+                            bgcolor: 'background.paper',
                             fontSize: '0.875rem',
-                            '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                            '&:hover fieldset': { borderColor: '#FF6600' },
-                            '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+                            '& fieldset': { borderColor: 'divider' },
+                            '&:hover fieldset': { borderColor: 'primary.main' },
+                            '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                           },
-                          '& .MuiInputBase-input': { color: '#fff' },
+                          '& .MuiInputBase-input': { color: 'text.primary' },
                         }}
                       />
                       <Button
