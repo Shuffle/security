@@ -1075,8 +1075,8 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    '&:hover': { color: 'white', backgroundColor: 'rgba(255, 255, 255, 0.05)' },
+                    color: 'text.secondary',
+                    '&:hover': { color: 'text.primary', backgroundColor: 'action.hover' },
                   }}
                 >
                   Back
