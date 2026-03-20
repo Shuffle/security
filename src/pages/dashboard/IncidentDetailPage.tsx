@@ -483,7 +483,7 @@ const IncidentDetailPage = () => {
   
   // Description editing state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [descriptionView, setDescriptionView] = useState<'rendered' | 'readable' | 'raw'>('raw');
+  const [descriptionView, setDescriptionView] = useState<'rendered' | 'readable' | 'raw'>('readable');
   const [rawDescriptionHtml, setRawDescriptionHtml] = useState('');
   
   const [isSaving, setIsSaving] = useState(false);
