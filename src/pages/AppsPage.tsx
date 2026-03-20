@@ -235,7 +235,7 @@ export default function AppsPage() {
                     </Box>
                     <Typography
                       variant="subtitle2"
-                      sx={{ color: 'white', fontWeight: 600, mb: 0.25 }}
+                      sx={{ color: 'text.primary', fontWeight: 600, mb: 0.25 }}
                     >
                       {category.label}
                     </Typography>
