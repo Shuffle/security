@@ -522,16 +522,16 @@ const AuthPage = ({ mode }: AuthPageProps) => {
 
               {/* Developer API Key Section - only in Lovable preview */}
               {isLogin && window.location.hostname.includes('lovable.app') && (
-                <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
                   <Typography
                     variant="body2"
                     onClick={() => setShowApiKeyInput(!showApiKeyInput)}
                     sx={{
                       textAlign: 'center',
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'text.disabled',
                       cursor: 'pointer',
                       fontSize: '0.75rem',
-                      '&:hover': { color: 'rgba(255,255,255,0.6)' },
+                      '&:hover': { color: 'text.secondary' },
                     }}
                   >
                     {showApiKeyInput ? '▼ Hide API Key Login' : '▶ Developer: Use API Key'}
