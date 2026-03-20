@@ -641,7 +641,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                             }}
                             sx={{
                               '& .MuiOutlinedInput-root': {
-                                bgcolor: 'rgba(0,0,0,0.2)',
+                                bgcolor: 'hsl(var(--background))',
                                 fontSize: '0.85rem',
                               },
                             }}
@@ -653,7 +653,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                                 setAiAgentPrompts(aiAgentPrompts.filter((_, i) => i !== idx));
                                 setHasChanges(true);
                               }}
-                              sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444' } }}
+                              sx={{ color: 'text.secondary', '&:hover': { color: 'hsl(var(--destructive))' } }}
                             >
                               <CloseIcon sx={{ fontSize: 16 }} />
                             </IconButton>
@@ -666,7 +666,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                           setAiAgentPrompts([...aiAgentPrompts, '']);
                           setHasChanges(true);
                         }}
-                        sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: '0.8rem', color: '#10b981' }}
+                        sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: '0.8rem', color: 'hsl(var(--severity-low))' }}
                       >
                         + Add prompt
                       </Button>
@@ -687,7 +687,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                         }}
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: 'rgba(0,0,0,0.2)',
+                            bgcolor: 'hsl(var(--background))',
                           },
                         }}
                       />
@@ -711,7 +711,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                         }}
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: 'rgba(0,0,0,0.2)',
+                            bgcolor: 'hsl(var(--background))',
                             fontSize: '0.85rem',
                           },
                         }}
@@ -724,7 +724,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           </Box>
         </Box>
 
-        <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Divider sx={{ my: 3, borderColor: 'hsl(var(--border))' }} />
 
         {/* Cleanup Section */}
         <Box>
@@ -748,14 +748,14 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
               gap: 2,
               py: 1.5, 
               px: 2, 
-              bgcolor: 'rgba(255,255,255,0.03)', 
+              bgcolor: 'hsl(var(--muted) / 0.35)', 
               borderRadius: 1.5,
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid hsl(var(--border))',
             }}
           >
-            <DeleteSweepIcon sx={{ color: cleanupTimeout > 0 ? '#f59e0b' : 'rgba(255,255,255,0.4)', fontSize: 22 }} />
+            <DeleteSweepIcon sx={{ color: cleanupTimeout > 0 ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))', fontSize: 22 }} />
             <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.95rem', color: cleanupTimeout > 0 ? 'text.primary' : 'rgba(255,255,255,0.6)' }}>
+              <Typography sx={{ fontSize: '0.95rem', color: cleanupTimeout > 0 ? 'text.primary' : 'hsl(var(--muted-foreground))' }}>
                 Auto-delete incidents after
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>
@@ -771,7 +771,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                 }}
                 displayEmpty
                 sx={{
-                  bgcolor: 'rgba(0,0,0,0.2)',
+                  bgcolor: 'hsl(var(--background))',
                   fontSize: '0.85rem',
                   '& .MuiSelect-select': { py: 0.75 },
                 }}
@@ -792,7 +792,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         </Box>
       </DialogContent>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
 
       <DialogActions sx={{ px: 4, py: 2.5, justifyContent: 'space-between' }}>
         <Button
