@@ -483,7 +483,7 @@ const IncidentDetailPage = () => {
   
   // Description editing state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [showRawDescription, setShowRawDescription] = useState(true);
+  const [descriptionView, setDescriptionView] = useState<'rendered' | 'readable' | 'raw'>('raw');
   const [rawDescriptionHtml, setRawDescriptionHtml] = useState('');
   
   const [isSaving, setIsSaving] = useState(false);
@@ -3273,32 +3273,22 @@ const IncidentDetailPage = () => {
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>Description</Typography>
                     {hasHtmlDescription && !isEditingDescription && (
                       <Box sx={{ display: 'flex', gap: 0.25 }}>
-                        <Chip
-                          label="Rendered"
-                          size="small"
-                          onClick={() => setShowRawDescription(false)}
-                          sx={{
-                            height: 20,
-                            fontSize: '0.65rem',
-                            cursor: 'pointer',
-                            bgcolor: !showRawDescription ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
-                            color: !showRawDescription ? '#ff6600' : 'text.secondary',
-                            '&:hover': { bgcolor: !showRawDescription ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.1)' },
-                          }}
-                        />
-                        <Chip
-                          label="Raw"
-                          size="small"
-                          onClick={() => setShowRawDescription(true)}
-                          sx={{
-                            height: 20,
-                            fontSize: '0.65rem',
-                            cursor: 'pointer',
-                            bgcolor: showRawDescription ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
-                            color: showRawDescription ? '#ff6600' : 'text.secondary',
-                            '&:hover': { bgcolor: showRawDescription ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.1)' },
-                          }}
-                        />
+                        {(['rendered', 'readable', 'raw'] as const).map((view) => (
+                          <Chip
+                            key={view}
+                            label={view === 'readable' ? 'Clean' : view.charAt(0).toUpperCase() + view.slice(1)}
+                            size="small"
+                            onClick={() => setDescriptionView(view)}
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              cursor: 'pointer',
+                              bgcolor: descriptionView === view ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                              color: descriptionView === view ? '#ff6600' : 'text.secondary',
+                              '&:hover': { bgcolor: descriptionView === view ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.1)' },
+                            }}
+                          />
+                        ))}
                       </Box>
                     )}
                   </Box>
@@ -3327,7 +3317,7 @@ const IncidentDetailPage = () => {
                       sx={inputSx}
                     />
                   </Box>
-                ) : hasHtmlDescription && !showRawDescription ? (
+                ) : hasHtmlDescription && descriptionView === 'rendered' ? (
                   <Box 
                     sx={{ 
                       p: 1.5, 
@@ -3348,6 +3338,41 @@ const IncidentDetailPage = () => {
                     }}
                     dangerouslySetInnerHTML={{ __html: sanitizedDescriptionHtml }}
                   />
+                ) : hasHtmlDescription && descriptionView === 'readable' ? (
+                  <Box 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'rgba(0, 0, 0, 0.2)', 
+                      borderRadius: 1,
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      minHeight: 120,
+                      maxHeight: 450,
+                      overflow: 'auto',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ 
+                      color: 'text.primary', 
+                      whiteSpace: 'pre-wrap',
+                      fontSize: '0.85rem',
+                      lineHeight: 1.75,
+                      letterSpacing: '0.01em',
+                      '& + &': { mt: 1 },
+                    }}>
+                      {(() => {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = sanitizedDescriptionHtml;
+                        // Replace block elements with newlines for structure
+                        tmp.querySelectorAll('br').forEach(el => el.replaceWith('\n'));
+                        tmp.querySelectorAll('p, div, tr, li, h1, h2, h3, h4, h5, h6').forEach(el => {
+                          el.prepend(document.createTextNode('\n'));
+                          el.append(document.createTextNode('\n'));
+                        });
+                        // Extract text and clean up excessive whitespace
+                        const text = (tmp.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+                        return text || 'No description.';
+                      })()}
+                    </Typography>
+                  </Box>
                 ) : (
                   <Box 
                     sx={{ 
