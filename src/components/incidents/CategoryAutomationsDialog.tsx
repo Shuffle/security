@@ -423,8 +423,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       fullWidth
       PaperProps={{
         sx: {
-          background: 'linear-gradient(180deg, #262626 0%, #1f1f1f 100%)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'hsl(var(--card))',
+          border: '1px solid hsl(var(--border))',
           borderRadius: 2,
         },
       }}
@@ -469,9 +469,9 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             sx={{ 
               py: 1.5, 
               px: 2, 
-              bgcolor: 'rgba(255,255,255,0.03)', 
+              bgcolor: 'hsl(var(--muted) / 0.4)', 
               borderRadius: 1,
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid hsl(var(--border))',
             }}
           >
             <Typography sx={{ fontSize: '0.95rem' }}>
@@ -480,7 +480,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           </Box>
         </Box>
 
-        <Divider sx={{ mb: 3, borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Divider sx={{ mb: 3, borderColor: 'hsl(var(--border))' }} />
 
         {/* Actions Section */}
         <Box>
@@ -510,9 +510,9 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   sx={{
                     borderRadius: 1.5,
                     transition: 'all 0.15s',
-                    bgcolor: automation.enabled ? 'rgba(255,255,255,0.03)' : 'transparent',
+                    bgcolor: automation.enabled ? 'hsl(var(--muted) / 0.35)' : 'transparent',
                     border: '1px solid',
-                    borderColor: automation.enabled ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    borderColor: automation.enabled ? 'hsl(var(--border))' : 'transparent',
                   }}
                 >
                   <Box
@@ -524,7 +524,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                       px: 1.5,
                       cursor: 'pointer',
                       '&:hover': {
-                        bgcolor: 'rgba(255,255,255,0.02)',
+                        bgcolor: 'hsl(var(--muted) / 0.45)',
                       },
                     }}
                     onClick={() => handleToggleAutomation(automation.type!)}
@@ -535,7 +535,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                       onClick={(e) => e.stopPropagation()}
                       size="small"
                       sx={{
-                        color: 'rgba(255,255,255,0.3)',
+                        color: 'hsl(var(--muted-foreground))',
                         p: 0.5,
                         '&.Mui-checked': {
                           color: config.color,
@@ -544,7 +544,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                     />
                     <TypeIcon 
                       sx={{ 
-                        color: automation.enabled ? config.color : 'rgba(255,255,255,0.4)',
+                        color: automation.enabled ? config.color : 'hsl(var(--muted-foreground))',
                         fontSize: 22,
                         transition: 'color 0.15s',
                       }} 
@@ -553,7 +553,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                       sx={{ 
                         flex: 1,
                         fontSize: '0.95rem',
-                        color: automation.enabled ? 'text.primary' : 'rgba(255,255,255,0.6)',
+                        color: automation.enabled ? 'text.primary' : 'hsl(var(--muted-foreground))',
                         fontWeight: automation.enabled ? 500 : 400,
                         transition: 'all 0.15s',
                       }}
@@ -583,7 +583,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                             placeholder="Select workflows to run"
                             sx={{
                               '& .MuiOutlinedInput-root': {
-                                bgcolor: 'rgba(0,0,0,0.2)',
+                                bgcolor: 'hsl(var(--background))',
                               },
                             }}
                           />
@@ -596,11 +596,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                               label={option.name}
                               size="small"
                               sx={{
-                                bgcolor: 'rgba(59, 130, 246, 0.2)',
-                                color: '#3b82f6',
+                                bgcolor: 'hsl(var(--severity-info) / 0.2)',
+                                color: 'hsl(var(--severity-info))',
                                 '& .MuiChip-deleteIcon': {
-                                  color: 'rgba(59, 130, 246, 0.6)',
-                                  '&:hover': { color: '#3b82f6' },
+                                  color: 'hsl(var(--severity-info) / 0.6)',
+                                  '&:hover': { color: 'hsl(var(--severity-info))' },
                                 },
                               }}
                             />
