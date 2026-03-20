@@ -231,7 +231,7 @@ export default function AppsPage() {
                         transition: 'all 0.3s ease',
                       }}
                     >
-                      <category.icon size={18} color={isActive ? '#FF6600' : 'rgba(255, 255, 255, 0.6)'} />
+                      <category.icon size={18} color={isActive ? '#FF6600' : undefined} />
                     </Box>
                     <Typography
                       variant="subtitle2"
