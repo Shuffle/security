@@ -125,7 +125,7 @@ interface DisplayIncident {
 }
 
 // Status and severity colors now imported from shared config
-import { statusConfig, severityColors } from '@/config/incidentConfig';
+import { statusConfig, severityColors, getOCSFStatus } from '@/config/incidentConfig';
 
 /**
  * Normalize any timestamp (Unix seconds, ms, µs, ns, ISO string, numeric string) to ms epoch.
