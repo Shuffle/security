@@ -460,13 +460,13 @@ export const UnifiedSourceSetup = ({
       <Box sx={{ mb: 3 }}>
         <Typography
           variant="h5"
-          sx={{ color: 'white', fontWeight: 700, mb: 1 }}
+          sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, mb: 1 }}
         >
           Select Your Sources
         </Typography>
         <Typography
           variant="body1"
-          sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 0 }}
+          sx={{ color: 'hsl(var(--muted-foreground))', mb: 0 }}
         >
           Choose the tools you use in each category. You'll configure credentials in the next step.
         </Typography>

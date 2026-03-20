@@ -18,22 +18,22 @@ import { IntegrationStatus } from '@/components/layout/IntegrationStatus';
 const singulStyles = {
   container: { width: '100%' },
   inputWrapper: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'hsl(var(--background-elevated))',
     borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid hsl(var(--border))',
   },
   input: {
     backgroundColor: 'transparent',
-    color: 'white',
+    color: 'hsl(var(--foreground))',
     border: 'none',
     borderRadius: '12px',
     padding: '12px 16px',
     fontSize: '14px',
   },
-  searchIcon: { color: 'rgba(255, 255, 255, 0.4)' },
+  searchIcon: { color: 'hsl(var(--muted-foreground))' },
   spinner: {
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderTopColor: '#FF6600',
+    borderColor: 'hsl(var(--border))',
+    borderTopColor: 'hsl(var(--primary))',
   },
   resultsContainer: { marginTop: '12px', gap: '10px' },
   dropdownItem: {
@@ -46,11 +46,11 @@ const singulStyles = {
     transition: 'all 0.2s ease',
   },
   dropdownItemHover: {
-    borderColor: 'rgba(255, 102, 0, 0.5)',
+    borderColor: 'hsl(var(--primary) / 0.5)',
     backgroundColor: 'hsl(var(--accent) / 0.08)',
   },
   selectedItem: {
-    backgroundColor: 'rgba(255, 102, 0, 0.1)',
+    backgroundColor: 'hsl(var(--primary) / 0.1)',
     borderColor: 'hsl(var(--primary))',
   },
   appIcon: {
