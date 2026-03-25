@@ -172,9 +172,31 @@ const AuthPage = ({ mode }: AuthPageProps) => {
           });
           
           if (!verifyResponse.ok) {
-            throw new Error('Token verification failed');
+            // Login API returned a token but the session cookie wasn't set
+            const backendOrigin = new URL(getApiUrl('')).origin;
+            const isCrossOrigin = backendOrigin !== window.location.origin;
+            if (isCrossOrigin) {
+              throw new Error(
+                `Login succeeded but the session cookie was not set. ` +
+                `This usually means the backend at ${backendOrigin} is not configured to set cookies for ${window.location.origin}. ` +
+                `Check the backend's cookie domain and SameSite settings.`
+              );
+            }
+            throw new Error('Login succeeded but session verification failed. Please try again.');
           }
         } catch (verifyError) {
+          if (verifyError instanceof Error && verifyError.message.includes('cookie')) {
+            throw verifyError; // Re-throw our specific cookie error
+          }
+          // getinfo fetch itself failed (network/CORS)
+          const backendOrigin = new URL(getApiUrl('')).origin;
+          const isCrossOrigin = backendOrigin !== window.location.origin;
+          if (isCrossOrigin) {
+            throw new Error(
+              `Login succeeded but session verification failed due to a cross-origin issue. ` +
+              `The backend at ${backendOrigin} must allow credentials from ${window.location.origin}.`
+            );
+          }
           throw new Error('Login succeeded but failed to verify session. Please try again.');
         }
         
