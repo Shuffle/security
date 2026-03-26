@@ -206,7 +206,7 @@ export default function AppSearchDrawer({
           {/* Your Apps — reuse IntegrationStatus */}
           {API_CONFIG.apiKey && (
             <Box sx={{ mb: 2.5 }}>
-              <IntegrationStatus collapsed={false} showAll hideAddButton />
+              <IntegrationStatus collapsed={false} showAll hideAddButton priorityCategory={priorityCategory} />
             </Box>
           )}
 
