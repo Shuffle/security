@@ -124,10 +124,11 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
     // Run initial search after client is ready
     if (!hasInitialized.current) {
       hasInitialized.current = true;
+      const searchTerm = initialQuery || initialFilterQuery || '';
       setTimeout(() => {
         if (searchClient.current) {
-          performSearch(initialQuery);
-          onSearchChange?.(initialQuery);
+          performSearch(searchTerm);
+          onSearchChange?.(initialQuery); // Only report the visible query
         }
       }, 100);
     }
