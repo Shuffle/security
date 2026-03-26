@@ -111,6 +111,8 @@ interface AppSearchDrawerProps {
   onDetailClose?: (appName: string) => void;
   /** When set, replaces Activate with "+ Add" in the detail drawer */
   onAddToCanvas?: (appInfo: { name: string; icon: string; algoliaId: string | null }) => void;
+  /** When set, apps matching this category are sorted to the top in user's apps */
+  priorityCategory?: string;
 }
 
 export default function AppSearchDrawer({
