@@ -139,7 +139,7 @@ export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, varian
               justifyContent: 'flex-start',
               textTransform: 'none',
               fontSize: '0.75rem',
-              color: isEnabled ? 'hsl(var(--destructive))' : (app.validated ? '#22c55e' : '#f59e0b'),
+              color: isEnabled ? 'hsl(var(--destructive))' : (app.validated ? 'hsl(var(--severity-low))' : 'hsl(var(--severity-medium))'),
               px: 1,
               py: 0.5,
               borderRadius: 1,
