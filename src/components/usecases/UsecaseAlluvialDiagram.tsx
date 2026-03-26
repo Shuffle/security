@@ -1440,7 +1440,7 @@ export default function UsecaseAlluvialDiagram({
           const apps = searchOpen === 'left' ? sourceApps : targetApps;
           return apps
             .filter(a => a.id !== 'webhook-ingestion' && a.name !== 'Webhook')
-            .map(a => ({ name: a.name, icon: a.icon, hasValidAuth: a.hasValidAuth }));
+            .map(a => ({ name: a.name, icon: a.icon, hasValidAuth: a.hasValidAuth, isActiveOnly: a.isActiveOnly }));
         })()}
         onAddToCanvas={isLoggedIn ? ({ name: addedAppName, icon: addedIcon, algoliaId }) => {
           const side = searchOpen || 'right';

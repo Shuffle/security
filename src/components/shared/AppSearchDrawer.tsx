@@ -271,8 +271,8 @@ export default function AppSearchDrawer({
                       <Typography sx={{ color: 'hsl(var(--foreground))', fontSize: '0.8rem', fontWeight: 600 }}>
                         {app.name.replace(/_/g, ' ')}
                       </Typography>
-                      <Typography sx={{ color: app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--severity-medium))', fontSize: '0.65rem' }}>
-                        {app.hasValidAuth ? 'Authenticated' : 'Not authenticated'}
+                      <Typography sx={{ color: app.hasValidAuth ? 'hsl(var(--severity-low))' : app.isActiveOnly ? 'hsl(var(--destructive))' : 'hsl(var(--severity-medium))', fontSize: '0.65rem' }}>
+                        {app.hasValidAuth ? 'Authenticated' : app.isActiveOnly ? 'Not authenticated' : 'Not validated'}
                       </Typography>
                     </Box>
                   </Box>
