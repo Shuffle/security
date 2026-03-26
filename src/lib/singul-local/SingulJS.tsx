@@ -30,6 +30,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
   preventDefault = false,
   inline = false,
   initialQuery = '',
+  initialFilterQuery,
   hitsPerPage = 15,
   apiKey,
   apiBaseUrl = 'https://shuffler.io',
