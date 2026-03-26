@@ -965,19 +965,20 @@ export default function UsecaseAlluvialDiagram({
       );
     }
     if (highlightCategory && ingestAppNames) {
-      const relevantApps = allApps.filter(a =>
-        !isShuffleInternalApp(a.name)
+      // Only show apps that match the usecase's source category from the user's apps
+      const categoryApps = allApps.filter(a =>
+        !isShuffleInternalApp(a.name) && matchesCategory(a.name, highlightCategory)
       );
 
-      const enabledNodes = relevantApps
+      const enabledNodes = categoryApps
         .filter(a => ingestAppNames.has(normalizeAppName(a.name)))
         .map(a => ({
           ...a,
-          isHighlighted: matchesCategory(a.name, highlightCategory),
+          isHighlighted: true,
           isEnabled: true,
         }));
 
-      const disabledNodes = relevantApps
+      const disabledNodes = categoryApps
         .filter(a => !ingestAppNames.has(normalizeAppName(a.name)))
         .map(a => ({
           ...a,
@@ -985,9 +986,14 @@ export default function UsecaseAlluvialDiagram({
           isEnabled: false,
         }));
 
-      return prependWebhook(
-        [...enabledNodes, ...disabledNodes].filter(a => !hiddenApps.has(a.name.toLowerCase()))
-      );
+      // If user has no apps matching this category, fall back to samples
+      const filtered = [...enabledNodes, ...disabledNodes].filter(a => !hiddenApps.has(a.name.toLowerCase()));
+      if (filtered.length === 0) {
+        const samples = getSampleApps(highlightCategory);
+        return prependWebhook(samples.map(a => ({ ...a, isHighlighted: true, isEnabled: true })));
+      }
+
+      return prependWebhook(filtered);
     }
     return prependWebhook(
       allApps.filter(a => matchesCategory(a.name, sourceCategory) && !hiddenApps.has(a.name.toLowerCase())).map(a => ({ ...a, isEnabled: true }))
@@ -1011,11 +1017,17 @@ export default function UsecaseAlluvialDiagram({
       return [...samples, ...guestNodes].filter(a => !hiddenApps.has(a.name.toLowerCase()));
     }
     if (highlightCategory) {
-      // Show validated case_management apps, mark forwarding-enabled ones
-      // Include apps that match category OR were manually added to destination
+      // Show only user's apps that match the target category (+ manually added ones)
       const caseMgmtApps = allApps.filter(a =>
         !isShuffleInternalApp(a.name) && (matchesCategory(a.name, targetCategory) || manualDestApps.has(normalizeAppName(a.name))) && !hiddenApps.has(a.name.toLowerCase())
       );
+
+      // If user has no matching apps, fall back to samples
+      if (caseMgmtApps.length === 0) {
+        const samples = getSampleApps(targetCategory);
+        return samples.filter(a => !hiddenApps.has(a.name.toLowerCase()));
+      }
+
       if (forwardAppNames && forwardAppNames.size > 0) {
         const enabledApps = caseMgmtApps
           .filter(a => forwardAppNames.has(normalizeAppName(a.name)))
