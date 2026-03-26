@@ -48,10 +48,10 @@ export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, varian
             height: 30,
             border: '1px solid',
             borderColor: isEnabled
-              ? (app.validated ? 'rgba(34, 197, 94, 0.20)' : 'rgba(245, 158, 11, 0.25)')
+              ? (app.validated ? 'hsl(var(--severity-low) / 0.20)' : 'hsl(var(--severity-medium) / 0.25)')
               : 'transparent',
             bgcolor: isEnabled
-              ? (app.validated ? 'rgba(34, 197, 94, 0.10)' : 'rgba(245, 158, 11, 0.12)')
+              ? (app.validated ? 'hsl(var(--severity-low) / 0.10)' : 'hsl(var(--severity-medium) / 0.12)')
               : 'transparent',
             borderRadius: 1,
             opacity: isEnabled ? 1 : 0.35,
