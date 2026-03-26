@@ -124,8 +124,10 @@ function getSampleApps(categoryId: string): AppNode[] {
 // ── Status dot color ───────────────────────────────────────────────────────────
 
 function getStatusColor(app: AppNode): string {
+  if (app.hasValidAuth) return 'hsl(var(--severity-low))';
   if (app.isActiveOnly) return 'hsl(var(--destructive))';
-  return app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))';
+  // Has auth but not validated → yellow; truly inactive → gray
+  return app.hasValidAuth === false && !app.isActiveOnly ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))';
 }
 
 // ── App bubble component ───────────────────────────────────────────────────────
