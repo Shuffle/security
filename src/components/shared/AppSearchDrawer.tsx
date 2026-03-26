@@ -236,13 +236,13 @@ export default function AppSearchDrawer({
                       gap: 1.5,
                       p: 1.5,
                       borderRadius: '10px',
-                      border: '1px solid hsl(var(--primary) / 0.3)',
-                      backgroundColor: 'hsl(var(--primary) / 0.06)',
+                      border: '1px solid hsl(var(--border))',
+                      backgroundColor: 'hsl(var(--input))',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                       '&:hover': {
-                        borderColor: 'hsl(var(--primary) / 0.6)',
-                        backgroundColor: 'hsl(var(--primary) / 0.12)',
+                        borderColor: 'hsl(var(--primary) / 0.5)',
+                        backgroundColor: 'hsl(var(--accent) / 0.08)',
                       },
                     }}
                   >
@@ -261,7 +261,7 @@ export default function AppSearchDrawer({
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          backgroundColor: app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))',
+                          backgroundColor: app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--severity-medium))',
                           border: '1.5px solid hsl(var(--card))',
                         }}
                       />
@@ -270,7 +270,7 @@ export default function AppSearchDrawer({
                       <Typography sx={{ color: 'hsl(var(--foreground))', fontSize: '0.8rem', fontWeight: 600 }}>
                         {app.name.replace(/_/g, ' ')}
                       </Typography>
-                      <Typography sx={{ color: app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))', fontSize: '0.65rem' }}>
+                      <Typography sx={{ color: app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--severity-medium))', fontSize: '0.65rem' }}>
                         {app.hasValidAuth ? 'Authenticated' : 'Not authenticated'}
                       </Typography>
                     </Box>
