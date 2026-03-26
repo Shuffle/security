@@ -218,6 +218,48 @@ export default function AppSearchDrawer({
             </Box>
           )}
 
+          {/* Connection path apps — shown first */}
+          {connectionPathApps && connectionPathApps.length > 0 && (
+            <Box sx={{ mb: 2.5 }}>
+              <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
+                In this usecase
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+                {connectionPathApps.map((app) => (
+                  <Box
+                    key={app.name}
+                    onClick={() => handleAppSelected({ app: { name: app.name, image_url: app.icon, categories: [] } } as any)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: '10px',
+                      border: '1px solid hsl(var(--primary) / 0.3)',
+                      backgroundColor: 'hsl(var(--primary) / 0.06)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary) / 0.6)',
+                        backgroundColor: 'hsl(var(--primary) / 0.12)',
+                      },
+                    }}
+                  >
+                    <Avatar
+                      src={app.icon}
+                      alt={app.name}
+                      sx={{ width: 28, height: 28, borderRadius: '6px', backgroundColor: 'hsl(var(--muted))' }}
+                      variant="rounded"
+                    />
+                    <Typography sx={{ color: 'hsl(var(--foreground))', fontSize: '0.8rem', fontWeight: 600 }}>
+                      {app.name.replace(/_/g, ' ')}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+
           <AnimatePresence mode="wait">
             <motion.div
               key="search"
