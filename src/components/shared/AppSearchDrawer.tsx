@@ -128,6 +128,7 @@ export default function AppSearchDrawer({
   onSelectOverride,
   onDetailClose,
   onAddToCanvas,
+  priorityCategory,
 }: AppSearchDrawerProps) {
   const [detailAppName, setDetailAppName] = useState<string | null>(null);
 
