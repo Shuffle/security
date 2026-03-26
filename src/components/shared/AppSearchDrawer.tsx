@@ -96,6 +96,7 @@ const singulStyles = {
 interface ConnectionPathApp {
   name: string;
   icon: string;
+  hasValidAuth?: boolean;
 }
 
 interface AppSearchDrawerProps {
