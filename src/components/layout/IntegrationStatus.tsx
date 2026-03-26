@@ -63,7 +63,7 @@ export const refreshAllIntegrationStatus = () => {
   window.dispatchEvent(new CustomEvent('integrations-changed'));
 };
 
-export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps, showAll, hideAddButton }: IntegrationStatusProps) => {
+export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps, showAll, hideAddButton, priorityCategory }: IntegrationStatusProps) => {
   const [allIntegrations, setAllIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
