@@ -1027,7 +1027,7 @@ export default function UsecaseAlluvialDiagram({
       }
       return caseMgmtApps;
     }
-    return allApps.filter(a => a.hasValidAuth && (matchesCategory(a.name, targetCategory) || manualDestApps.has(normalizeAppName(a.name))) && !hiddenApps.has(a.name.toLowerCase()));
+    return allApps.filter(a => (matchesCategory(a.name, targetCategory) || manualDestApps.has(normalizeAppName(a.name))) && !hiddenApps.has(a.name.toLowerCase()));
   }, [allApps, targetCategory, highlightCategory, forwardAppNames, isLoggedIn, guestDestNames, guestAppIcons, hiddenApps, manualDestApps]);
 
   const sourceMeta = TOOL_CATEGORIES.find(c => c.id === sourceCategory);
