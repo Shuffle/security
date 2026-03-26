@@ -965,19 +965,20 @@ export default function UsecaseAlluvialDiagram({
       );
     }
     if (highlightCategory && ingestAppNames) {
-      const relevantApps = allApps.filter(a =>
-        !isShuffleInternalApp(a.name)
+      // Only show apps that match the usecase's source category from the user's apps
+      const categoryApps = allApps.filter(a =>
+        !isShuffleInternalApp(a.name) && matchesCategory(a.name, highlightCategory)
       );
 
-      const enabledNodes = relevantApps
+      const enabledNodes = categoryApps
         .filter(a => ingestAppNames.has(normalizeAppName(a.name)))
         .map(a => ({
           ...a,
-          isHighlighted: matchesCategory(a.name, highlightCategory),
+          isHighlighted: true,
           isEnabled: true,
         }));
 
-      const disabledNodes = relevantApps
+      const disabledNodes = categoryApps
         .filter(a => !ingestAppNames.has(normalizeAppName(a.name)))
         .map(a => ({
           ...a,
@@ -985,9 +986,14 @@ export default function UsecaseAlluvialDiagram({
           isEnabled: false,
         }));
 
-      return prependWebhook(
-        [...enabledNodes, ...disabledNodes].filter(a => !hiddenApps.has(a.name.toLowerCase()))
-      );
+      // If user has no apps matching this category, fall back to samples
+      const filtered = [...enabledNodes, ...disabledNodes].filter(a => !hiddenApps.has(a.name.toLowerCase()));
+      if (filtered.length === 0) {
+        const samples = getSampleApps(highlightCategory);
+        return prependWebhook(samples.map(a => ({ ...a, isHighlighted: true, isEnabled: true })));
+      }
+
+      return prependWebhook(filtered);
     }
     return prependWebhook(
       allApps.filter(a => matchesCategory(a.name, sourceCategory) && !hiddenApps.has(a.name.toLowerCase())).map(a => ({ ...a, isEnabled: true }))
