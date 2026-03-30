@@ -159,7 +159,9 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const location = useLocation();
   const { userInfo, setActiveOrg, logout } = useAuth();
   const { theme: currentTheme, setTheme } = useTheme();
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Incidents']);
+  const { plural: entityPlural, basePath: entityBasePath } = useEntityPreference();
+  const navItems = useMemo(() => buildNavItems(entityPlural, entityBasePath), [entityPlural, entityBasePath]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([entityPlural]);
   const [changingOrg, setChangingOrg] = useState(false);
   const [agentDrawerOpen, setAgentDrawerOpen] = useState(false);
   const [toolMenuAnchor, setToolMenuAnchor] = useState<null | HTMLElement>(null);
