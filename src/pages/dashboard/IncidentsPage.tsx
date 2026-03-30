@@ -1242,7 +1242,7 @@ const IncidentsPage = () => {
       ? `${incident.orgId}::${rawKey}`
       : rawKey;
     const paramStr = params.toString();
-    return `/incidents/${routeId}${paramStr ? '?' + paramStr : ''}`;
+    return `${entityBasePath}/${routeId}${paramStr ? '?' + paramStr : ''}`;
   };
 
   const handleCreateIncident = async (ocsf: OCSFIncidentFinding) => {
