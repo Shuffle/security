@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'r
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEntityLabel } from '@/hooks/useEntityLabel';
 import {
   Box,
   Typography,
