@@ -1533,6 +1533,7 @@ const IncidentDetailPage = () => {
     if (cfJsonRef.current !== init.customFields) changedFields.push('customFields');
     if (tasksJsonRef.current !== init.tasks) changedFields.push('tasks');
     if (labelsJsonRef.current !== init.labels) changedFields.push('labels');
+    if (stakeholdersJsonRef.current !== init.stakeholders) changedFields.push('stakeholders');
     const hasChanges = changedFields.length > 0;
     
     if (hasChanges) {
