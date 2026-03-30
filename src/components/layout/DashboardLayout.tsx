@@ -1,10 +1,11 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { Box } from '@mui/material';
+import { Box, Alert, Button } from '@mui/material';
 import { AppSidebar } from './AppSidebar';
 import { MobileBottomNav } from './MobileBottomNav';
 import { AppDetailProvider, useAppDetail } from '@/context/AppDetailContext';
 import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
+import { useAuth } from '@/context/AuthContext';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -28,6 +29,7 @@ const GlobalAppDetailDrawer = () => {
 
 export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutProps) => {
   const location = useLocation();
+  const { orgMismatchWarning, dismissOrgMismatch } = useAuth();
   const isOnboarding = location.pathname === '/onboarding';
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -79,6 +81,24 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
           }}
         >
           <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, width: '100%', maxWidth: '100%' }}>
+            {orgMismatchWarning && (
+              <Alert
+                severity="warning"
+                sx={{ mb: 2 }}
+                action={
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button color="inherit" size="small" onClick={dismissOrgMismatch}>
+                      Dismiss
+                    </Button>
+                    <Button color="warning" size="small" variant="outlined" onClick={() => window.location.reload()}>
+                      Refresh
+                    </Button>
+                  </Box>
+                }
+              >
+                Your active organization has changed in another tab. Refresh to sync.
+              </Alert>
+            )}
             {children || <Outlet />}
           </Box>
         </Box>
