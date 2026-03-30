@@ -39,6 +39,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SecurityIcon from '@mui/icons-material/Security';
 import LinkIcon from '@mui/icons-material/Link';
+import PeopleIcon from '@mui/icons-material/People';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
@@ -101,6 +102,17 @@ import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor'
 
 // TaskTemplate interface is now imported from useCaseTemplates
 
+export interface Stakeholder {
+  id: string;
+  name: string;
+  email?: string;
+  type: 'technical' | 'business';
+  role?: string;
+  location?: string;
+  phone?: string;
+}
+
+
 interface DisplayIncident {
   id: string;
   title?: string;
@@ -115,6 +127,7 @@ interface DisplayIncident {
   tlp?: string;
   pap?: string;
   references?: string[];
+  stakeholders?: Stakeholder[];
   observables?: Observable[];
   customFields?: Record<string, string | number | boolean>;
   relatedFindings?: string[];
@@ -276,6 +289,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         editedTs: item.edited ? parseTimestamp(item.edited) : undefined,
         tlp: tlpLabel,
         references: ocsf.references,
+        stakeholders: (customAttrs as any)?.stakeholders || (data as any).stakeholders || [],
         observables: customAttrs?.observables || (data as any).observables,
         // Support both customFields and custom_fields naming
         customFields: customAttrs?.customFields || (customAttrs as any)?.custom_fields || (data as any).customFields || (data as any).custom_fields,
@@ -335,6 +349,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       tlp: data.tlp,
       pap: data.pap,
       references: data.references || [],
+      stakeholders: data.stakeholders || [],
       observables: data.observables || [],
       customFields: data.customFields || {},
       relatedFindings: data.relatedFindings || [],
@@ -458,6 +473,9 @@ const IncidentDetailPage = () => {
   const [editedTlp, setEditedTlp] = useState('TLP:AMBER');
   const [editedReferences, setEditedReferences] = useState<string[]>([]);
   const [newReference, setNewReference] = useState('');
+  const [editedStakeholders, setEditedStakeholders] = useState<Stakeholder[]>([]);
+  const [showAddStakeholder, setShowAddStakeholder] = useState(false);
+  const [newStakeholder, setNewStakeholder] = useState<Omit<Stakeholder, 'id'>>({ name: '', type: 'technical' });
   const [editedObservables, setEditedObservables] = useState<Observable[]>([]);
   const [newObservableType, setNewObservableType] = useState('ip');
   const [newObservableValue, setNewObservableValue] = useState('');
@@ -776,6 +794,7 @@ const IncidentDetailPage = () => {
     observables: string;
     customFields: string;
     tasks: string;
+    stakeholders: string;
     labels: string;
   } | null>(null);
   
@@ -959,6 +978,7 @@ const IncidentDetailPage = () => {
           []
         );
         setEditedObservables(parsed.observables || []);
+        setEditedStakeholders(parsed.stakeholders || []);
         const customAttrs = parsed.rawOCSF?.metadata?.extensions?.custom_attributes;
         // Support both customFields and custom_fields naming at various levels
         let loadedCustomFields: any = 
@@ -1030,6 +1050,7 @@ const IncidentDetailPage = () => {
         // Pre-stringify here (once) so auto-save comparisons are cheap
         const refsStr = JSON.stringify(parsed.references || []);
         const obsStr = JSON.stringify(parsed.observables || []);
+        const stakeholdersStr = JSON.stringify(parsed.stakeholders || []);
         const tasksStr = JSON.stringify(normalizedTasks);
         const labelsStr = JSON.stringify(parsed.labels || []);
         initialValuesRef.current = {
@@ -1042,6 +1063,7 @@ const IncidentDetailPage = () => {
           references: refsStr,
           observables: obsStr,
           customFields: cfStr,
+          stakeholders: stakeholdersStr,
           tasks: tasksStr,
           labels: labelsStr,
         };
@@ -1117,6 +1139,7 @@ const IncidentDetailPage = () => {
         setEditedTlp(reParsed.tlp || 'TLP:AMBER');
         setEditedReferences(Array.isArray(reParsed.references) ? reParsed.references : []);
         setEditedObservables(reParsed.observables || []);
+        setEditedStakeholders(reParsed.stakeholders || []);
         setEditedLabels(reParsed.labels || []);
         setActivity(reParsed.activity || []);
         const loadedTasks = reParsed.tasks || [];
@@ -1136,6 +1159,7 @@ const IncidentDetailPage = () => {
           references: JSON.stringify(reParsed.references || []),
           observables: JSON.stringify(reParsed.observables || []),
           customFields: JSON.stringify(reParsed.customFields || {}),
+          stakeholders: JSON.stringify(reParsed.stakeholders || []),
           tasks: JSON.stringify(normalizedTasks),
           labels: JSON.stringify(reParsed.labels || []),
         };
@@ -1331,7 +1355,8 @@ const IncidentDetailPage = () => {
       status: statusLabel,
       assignee: editedAssignee.trim() || '',
       types: editedLabels, // OCSF types[] field for labels
-      observables: editedObservables, // Always include, even if empty array
+      observables: editedObservables,
+      stakeholders: editedStakeholders,
       // Store tasks and activity at top level (primary location)
       tasks: tasks, // Always include, even if empty array
       activity: activity, // Always include, even if empty array
@@ -1349,7 +1374,8 @@ const IncidentDetailPage = () => {
             ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
             tlp: editedTlp,
             assignee: editedAssignee.trim() || '', // Sync metadata assignee with top-level
-            customFields: editedCustomFields, // Always include, even if empty object
+            customFields: editedCustomFields,
+            stakeholders: editedStakeholders,
           },
         },
       },
@@ -1362,6 +1388,7 @@ const IncidentDetailPage = () => {
       assignee: editedAssignee.trim() || '',
       tlp: editedTlp,
       references: editedReferences,
+      stakeholders: editedStakeholders,
       observables: editedObservables,
       customFields: editedCustomFields,
       activity: activity,
@@ -1406,6 +1433,7 @@ const IncidentDetailPage = () => {
         observables: obsJsonRef.current,
         customFields: cfJsonRef.current,
         tasks: tasksJsonRef.current,
+        stakeholders: stakeholdersJsonRef.current,
         labels: labelsJsonRef.current,
       };
 
@@ -1460,7 +1488,7 @@ const IncidentDetailPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, activity, tasks, addItem, getItem, sharedOrgs, loadRevisions]);
+  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, editedStakeholders, activity, tasks, addItem, getItem, sharedOrgs, loadRevisions]);
 
   // Cache stringified complex values to avoid re-serializing on every render
   const tasksJsonRef = useRef('');
@@ -1468,10 +1496,12 @@ const IncidentDetailPage = () => {
   const obsJsonRef = useRef('');
   const cfJsonRef = useRef('');
   const labelsJsonRef = useRef('');
+  const stakeholdersJsonRef = useRef('');
   useEffect(() => { tasksJsonRef.current = JSON.stringify(tasks); }, [tasks]);
   useEffect(() => { refsJsonRef.current = JSON.stringify(editedReferences); }, [editedReferences]);
   useEffect(() => { obsJsonRef.current = JSON.stringify(editedObservables); }, [editedObservables]);
   useEffect(() => { labelsJsonRef.current = JSON.stringify(editedLabels); }, [editedLabels]);
+  useEffect(() => { stakeholdersJsonRef.current = JSON.stringify(editedStakeholders); }, [editedStakeholders]);
   useEffect(() => {
     const start = performance.now();
     cfJsonRef.current = JSON.stringify(editedCustomFields);
@@ -1504,6 +1534,7 @@ const IncidentDetailPage = () => {
     if (cfJsonRef.current !== init.customFields) changedFields.push('customFields');
     if (tasksJsonRef.current !== init.tasks) changedFields.push('tasks');
     if (labelsJsonRef.current !== init.labels) changedFields.push('labels');
+    if (stakeholdersJsonRef.current !== init.stakeholders) changedFields.push('stakeholders');
     const hasChanges = changedFields.length > 0;
     
     if (hasChanges) {
@@ -1519,7 +1550,7 @@ const IncidentDetailPage = () => {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, tasks, saveToDatastore]);
+  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, editedStakeholders, tasks, saveToDatastore]);
 
   // Metrics calculation with MTTD and MTTR
   const metrics = useMemo(() => {
@@ -3658,14 +3689,18 @@ const IncidentDetailPage = () => {
             ) : null;
           })()}
 
-          {/* References */}
+          {/* References & Stakeholders */}
           <Section 
-            title="References" 
-            icon={LinkIcon} 
-            defaultOpen={editedReferences.length > 0}
-            badge={editedReferences.length > 0 ? editedReferences.length : undefined}
+            title="References & Stakeholders" 
+            icon={PeopleIcon} 
+            defaultOpen={editedReferences.length > 0 || editedStakeholders.length > 0}
+            badge={(editedReferences.length + editedStakeholders.length) > 0 ? editedReferences.length + editedStakeholders.length : undefined}
           >
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            {/* Reference Links */}
+            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1, display: 'block' }}>
+              Reference Links
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
               <TextField
                 size="small"
                 value={newReference}
@@ -3675,17 +3710,18 @@ const IncidentDetailPage = () => {
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddReference())}
                 sx={inputSx}
               />
-              <IconButton onClick={handleAddReference} disabled={!newReference.trim()} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }}>
+              <IconButton onClick={handleAddReference} disabled={!newReference.trim()} sx={{ bgcolor: 'hsl(var(--muted))' }}>
                 <AddIcon />
               </IconButton>
             </Box>
             {editedReferences.length > 0 ? (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2.5 }}>
                 {editedReferences.map((ref, idx) => (
                   <Chip
                     key={idx}
                     label={ref.length > 50 ? ref.substring(0, 50) + '...' : ref}
                     size="small"
+                    icon={<LinkIcon sx={{ fontSize: 14 }} />}
                     onDelete={() => handleRemoveReference(idx)}
                     onClick={() => window.open(ref, '_blank')}
                     sx={{ cursor: 'pointer' }}
@@ -3693,10 +3729,196 @@ const IncidentDetailPage = () => {
                 ))}
               </Box>
             ) : (
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', mb: 2.5 }}>
                 No references added
               </Typography>
             )}
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Stakeholders */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Stakeholders
+              </Typography>
+              {!isPublicView && (
+                <IconButton size="small" onClick={() => setShowAddStakeholder(!showAddStakeholder)} sx={{ bgcolor: 'hsl(var(--muted))' }}>
+                  <AddIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
+            </Box>
+
+            {/* Add stakeholder form */}
+            <Collapse in={showAddStakeholder}>
+              <Box sx={{ 
+                p: 2, mb: 2, borderRadius: 1.5, 
+                bgcolor: 'hsl(var(--muted))', 
+                border: '1px solid hsl(var(--border))',
+                display: 'flex', flexDirection: 'column', gap: 1.5,
+              }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    label="Name"
+                    value={newStakeholder.name}
+                    onChange={(e) => setNewStakeholder(s => ({ ...s, name: e.target.value }))}
+                    fullWidth
+                    sx={inputSx}
+                  />
+                  <FormControl size="small" sx={{ minWidth: 130 }}>
+                    <InputLabel>Type</InputLabel>
+                    <Select
+                      value={newStakeholder.type}
+                      label="Type"
+                      onChange={(e) => setNewStakeholder(s => ({ ...s, type: e.target.value as 'technical' | 'business' }))}
+                    >
+                      <MenuItem value="technical">Technical</MenuItem>
+                      <MenuItem value="business">Business</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    label="Email"
+                    value={newStakeholder.email || ''}
+                    onChange={(e) => setNewStakeholder(s => ({ ...s, email: e.target.value }))}
+                    fullWidth
+                    sx={inputSx}
+                  />
+                  <TextField
+                    size="small"
+                    label="Role"
+                    value={newStakeholder.role || ''}
+                    onChange={(e) => setNewStakeholder(s => ({ ...s, role: e.target.value }))}
+                    fullWidth
+                    sx={inputSx}
+                    placeholder="e.g. CISO, Dev Lead"
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    label="Location"
+                    value={newStakeholder.location || ''}
+                    onChange={(e) => setNewStakeholder(s => ({ ...s, location: e.target.value }))}
+                    fullWidth
+                    sx={inputSx}
+                  />
+                  <TextField
+                    size="small"
+                    label="Phone"
+                    value={newStakeholder.phone || ''}
+                    onChange={(e) => setNewStakeholder(s => ({ ...s, phone: e.target.value }))}
+                    fullWidth
+                    sx={inputSx}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Button size="small" onClick={() => { setShowAddStakeholder(false); setNewStakeholder({ name: '', type: 'technical' }); }}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    size="small" 
+                    variant="contained"
+                    disabled={!newStakeholder.name.trim()}
+                    onClick={() => {
+                      const stakeholder: Stakeholder = {
+                        ...newStakeholder,
+                        id: `sh-${Date.now()}`,
+                        email: newStakeholder.email || undefined,
+                        role: newStakeholder.role || undefined,
+                        location: newStakeholder.location || undefined,
+                        phone: newStakeholder.phone || undefined,
+                      };
+                      setEditedStakeholders([...editedStakeholders, stakeholder]);
+                      setNewStakeholder({ name: '', type: 'technical' });
+                      setShowAddStakeholder(false);
+                      autoProgressStatus();
+                    }}
+                  >
+                    Add
+                  </Button>
+                </Box>
+              </Box>
+            </Collapse>
+
+            {/* Technical Contacts */}
+            {(() => {
+              const technical = editedStakeholders.filter(s => s.type === 'technical');
+              const business = editedStakeholders.filter(s => s.type === 'business');
+              return (
+                <>
+                  {technical.length > 0 && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                        Technical Contacts
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {technical.map((s) => (
+                          <Box key={s.id} sx={{ 
+                            display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, 
+                            borderRadius: 1, bgcolor: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))',
+                          }}>
+                            <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', bgcolor: 'hsl(var(--severity-info))' }}>
+                              {s.name.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{s.name}</Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {[s.role, s.email, s.location].filter(Boolean).join(' · ')}
+                              </Typography>
+                            </Box>
+                            {!isPublicView && (
+                              <IconButton size="small" onClick={() => setEditedStakeholders(editedStakeholders.filter(x => x.id !== s.id))}>
+                                <DeleteIcon sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            )}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {business.length > 0 && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                        Business Contacts
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {business.map((s) => (
+                          <Box key={s.id} sx={{ 
+                            display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, 
+                            borderRadius: 1, bgcolor: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))',
+                          }}>
+                            <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', bgcolor: 'hsl(var(--severity-medium))' }}>
+                              {s.name.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{s.name}</Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {[s.role, s.email, s.location].filter(Boolean).join(' · ')}
+                              </Typography>
+                            </Box>
+                            {!isPublicView && (
+                              <IconButton size="small" onClick={() => setEditedStakeholders(editedStakeholders.filter(x => x.id !== s.id))}>
+                                <DeleteIcon sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            )}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {editedStakeholders.length === 0 && (
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                      No stakeholders added
+                    </Typography>
+                  )}
+                </>
+              );
+            })()}
           </Section>
         </Box>
       )}
