@@ -2671,9 +2671,9 @@ const IncidentDetailPage = () => {
               alignItems: 'center', 
               gap: 0.5, 
               p: 0.5,
-              bgcolor: 'rgba(255,255,255,0.03)',
+              bgcolor: 'hsl(var(--card))',
               borderRadius: 2,
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid hsl(var(--border))',
               flexShrink: 0,
             }}>
               {/* Original tab - always visible, disabled when no data */}
