@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'r
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEntityLabel } from '@/hooks/useEntityLabel';
 import {
   Box,
   Typography,
@@ -437,6 +438,7 @@ const IncidentDetailPage = () => {
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { plural: entityPlural, singular: entitySingular, basePath: entityBasePath } = useEntityLabel();
   const { userInfo } = useAuth();
   const { openApp } = useAppDetail();
   const currentUsername = userInfo?.username || '';
@@ -2084,11 +2086,11 @@ const IncidentDetailPage = () => {
         </Typography>
         <Button 
           component={Link} 
-          to="/incidents" 
+          to={entityBasePath} 
           variant="outlined" 
           startIcon={<ArrowBackIcon />}
         >
-          Back to Incidents
+          Back to {entityPlural}
         </Button>
       </Box>
     );
@@ -2125,7 +2127,7 @@ const IncidentDetailPage = () => {
         {/* Back link */}
         <Box 
           component={Link}
-          to="/incidents"
+          to={entityBasePath}
           sx={{ 
             display: 'inline-flex', 
             alignItems: 'center', 
@@ -2137,7 +2139,7 @@ const IncidentDetailPage = () => {
           }}
         >
           <ArrowBackIcon sx={{ fontSize: 18 }} />
-          <Typography variant="body2">Back to Incidents</Typography>
+          <Typography variant="body2">Back to {entityPlural}</Typography>
         </Box>
 
         {/* Multi-org / Cross-org banner */}

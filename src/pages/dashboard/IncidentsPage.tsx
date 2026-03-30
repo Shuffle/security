@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useEntityLabel } from '@/hooks/useEntityLabel';
 import AppSearchDrawer from '@/components/shared/AppSearchDrawer';
 import {
   Box,
@@ -329,6 +330,7 @@ interface Filters {
 }
 
 const IncidentsPage = () => {
+  const { plural: entityPlural, singular: entitySingular, basePath: entityBasePath } = useEntityLabel();
   const { userInfo } = useAuth();
   const currentUsername = userInfo?.username || '';
   const { users, loading: usersLoading } = useUsers();
@@ -1240,7 +1242,7 @@ const IncidentsPage = () => {
       ? `${incident.orgId}::${rawKey}`
       : rawKey;
     const paramStr = params.toString();
-    return `/incidents/${routeId}${paramStr ? '?' + paramStr : ''}`;
+    return `${entityBasePath}/${routeId}${paramStr ? '?' + paramStr : ''}`;
   };
 
   const handleCreateIncident = async (ocsf: OCSFIncidentFinding) => {
@@ -1445,8 +1447,8 @@ const IncidentsPage = () => {
       >
         {/* Header */}
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            Incidents
+           <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            {entityPlural}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Tooltip title="Refresh">
@@ -1462,7 +1464,7 @@ const IncidentsPage = () => {
                 <RefreshIcon fontSize="small" sx={isRefreshing ? { animation: 'spin 1s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } } : undefined} />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Create Incident">
+            <Tooltip title={`Create ${entitySingular}`}>
               <IconButton 
                 onClick={() => setCreateDialogOpen(true)}
                 sx={{ 
@@ -1558,7 +1560,7 @@ const IncidentsPage = () => {
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h5" sx={{ fontWeight: 600, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-            Incidents
+            {entityPlural}
           </Typography>
           {(isLoading || subOrgLoading.size > 0) && <CircularProgress size={20} />}
           {error && (
@@ -1945,7 +1947,7 @@ const IncidentsPage = () => {
               <RefreshIcon fontSize="small" sx={isRefreshing ? { animation: 'spin 1s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } } : undefined} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Create Incident">
+          <Tooltip title={`Create ${entitySingular}`}>
             <IconButton 
               onClick={() => setCreateDialogOpen(true)}
               sx={{ 
