@@ -607,6 +607,9 @@ const UsersPage = () => {
           </Box>
           <TerminologySelector />
         </Paper>
+
+        {/* Automation Visibility */}
+        <AutomationToggle />
       </Box>
 
       {error && (
