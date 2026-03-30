@@ -3527,6 +3527,37 @@ const IncidentDetailPage = () => {
             )}
           </Section>
 
+          {/* Email Thread Panel — shown below Description when email content is detected */}
+          {incident && isEmailContent(editedMessage || '', rawDescriptionHtml || '', incident.rawOCSF) && (
+            <EmailThreadPanel
+              descriptionHtml={rawDescriptionHtml || ''}
+              descriptionText={editedMessage || ''}
+              rawOCSF={incident.rawOCSF}
+              onReply={(to, subject, body) => {
+                // Use the existing forward/send mechanism via Singul
+                const sendPayload = {
+                  action: 'send_message',
+                  category: 'cases',
+                  key: incident.id,
+                  body: {
+                    ...(incident.rawOCSF || {}),
+                    reply_to: to,
+                    reply_subject: subject,
+                    reply_body: body,
+                  },
+                  fields: {
+                    to,
+                    subject,
+                    body,
+                  },
+                };
+                // Open forward dialog to pick which email tool to send via
+                setShowForwardDialog(true);
+              }}
+              onForward={() => setShowForwardDialog(true)}
+            />
+          )}
+
           {/* Metadata Section */}
           <Section title="Metadata" icon={DescriptionIcon} defaultOpen={true}>
             <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
