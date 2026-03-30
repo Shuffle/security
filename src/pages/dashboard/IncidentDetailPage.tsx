@@ -1158,6 +1158,7 @@ const IncidentDetailPage = () => {
           references: JSON.stringify(reParsed.references || []),
           observables: JSON.stringify(reParsed.observables || []),
           customFields: JSON.stringify(reParsed.customFields || {}),
+          stakeholders: JSON.stringify(reParsed.stakeholders || []),
           tasks: JSON.stringify(normalizedTasks),
           labels: JSON.stringify(reParsed.labels || []),
         };
