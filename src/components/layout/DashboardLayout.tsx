@@ -29,6 +29,7 @@ const GlobalAppDetailDrawer = () => {
 
 export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutProps) => {
   const location = useLocation();
+  const { orgMismatchWarning, dismissOrgMismatch } = useAuth();
   const isOnboarding = location.pathname === '/onboarding';
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
