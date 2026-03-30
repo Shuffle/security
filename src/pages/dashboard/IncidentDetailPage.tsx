@@ -2086,11 +2086,11 @@ const IncidentDetailPage = () => {
         </Typography>
         <Button 
           component={Link} 
-          to="/incidents" 
+          to={entityBasePath} 
           variant="outlined" 
           startIcon={<ArrowBackIcon />}
         >
-          Back to Incidents
+          Back to {entityPlural}
         </Button>
       </Box>
     );
