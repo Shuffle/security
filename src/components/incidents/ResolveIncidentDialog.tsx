@@ -14,8 +14,10 @@ import {
   Typography,
   Switch,
   FormControlLabel,
+  Fade,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { useCustomFields, CustomField } from '@/hooks/useCustomFields';
 
 export interface ResolutionData {
@@ -41,7 +43,6 @@ interface ResolveIncidentDialogProps {
   onResolve: (data: ResolutionData) => void;
   incidentTitle: string;
   isLoading?: boolean;
-  /** Current incident's custom field values — fields that already have a value are hidden */
   incidentCustomFields?: Record<string, string>;
 }
 
@@ -56,25 +57,25 @@ export const ResolveIncidentDialog = React.forwardRef<HTMLDivElement, ResolveInc
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const [resolved, setResolved] = useState(false);
   const { fields: allCustomFields } = useCustomFields();
 
-  // Filter to only required fields that don't already have a value on the incident
   const missingRequiredFields = allCustomFields.filter(
     (f) => f.required && !incidentCustomFields?.[f.key]?.trim()
   );
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setReason('');
       setNotes('');
       setCustomValues({});
+      setResolved(false);
     }
   }, [open]);
 
   const allRequiredFilled = missingRequiredFields.every((f) => {
     const val = customValues[f.key];
-    if (f.type === 'boolean') return true; // booleans always have a value
+    if (f.type === 'boolean') return true;
     return val && val.trim().length > 0;
   });
 
@@ -87,12 +88,14 @@ export const ResolveIncidentDialog = React.forwardRef<HTMLDivElement, ResolveInc
       notes: notes.trim(),
       customFieldValues: missingRequiredFields.length > 0 ? customValues : undefined,
     });
+    setResolved(true);
   };
 
   const handleClose = () => {
     setReason('');
     setNotes('');
     setCustomValues({});
+    setResolved(false);
     onClose();
   };
 
@@ -102,17 +105,12 @@ export const ResolveIncidentDialog = React.forwardRef<HTMLDivElement, ResolveInc
 
   const renderCustomField = (field: CustomField) => {
     const value = customValues[field.key] || '';
-
     switch (field.type) {
       case 'select':
         return (
           <FormControl fullWidth sx={{ mb: 2, ...inputSx }} key={field.key}>
             <InputLabel>{field.name} *</InputLabel>
-            <Select
-              value={value}
-              onChange={(e) => updateCustomValue(field.key, e.target.value)}
-              label={`${field.name} *`}
-            >
+            <Select value={value} onChange={(e) => updateCustomValue(field.key, e.target.value)} label={`${field.name} *`}>
               {(field.options || []).map((opt) => (
                 <MenuItem key={opt} value={opt}>{opt}</MenuItem>
               ))}
@@ -124,51 +122,21 @@ export const ResolveIncidentDialog = React.forwardRef<HTMLDivElement, ResolveInc
           <FormControlLabel
             key={field.key}
             sx={{ mb: 2, ml: 0 }}
-            control={
-              <Switch
-                checked={value === 'true'}
-                onChange={(e) => updateCustomValue(field.key, String(e.target.checked))}
-              />
-            }
+            control={<Switch checked={value === 'true'} onChange={(e) => updateCustomValue(field.key, String(e.target.checked))} />}
             label={field.name}
           />
         );
       case 'number':
         return (
-          <TextField
-            key={field.key}
-            fullWidth
-            type="number"
-            label={`${field.name} *`}
-            value={value}
-            onChange={(e) => updateCustomValue(field.key, e.target.value)}
-            sx={{ mb: 2, ...inputSx }}
-          />
+          <TextField key={field.key} fullWidth type="number" label={`${field.name} *`} value={value} onChange={(e) => updateCustomValue(field.key, e.target.value)} sx={{ mb: 2, ...inputSx }} />
         );
       case 'date':
         return (
-          <TextField
-            key={field.key}
-            fullWidth
-            type="date"
-            label={`${field.name} *`}
-            value={value}
-            onChange={(e) => updateCustomValue(field.key, e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ mb: 2, ...inputSx }}
-          />
+          <TextField key={field.key} fullWidth type="date" label={`${field.name} *`} value={value} onChange={(e) => updateCustomValue(field.key, e.target.value)} InputLabelProps={{ shrink: true }} sx={{ mb: 2, ...inputSx }} />
         );
       default:
         return (
-          <TextField
-            key={field.key}
-            fullWidth
-            label={`${field.name} *`}
-            placeholder={field.description || ''}
-            value={value}
-            onChange={(e) => updateCustomValue(field.key, e.target.value)}
-            sx={{ mb: 2, ...inputSx }}
-          />
+          <TextField key={field.key} fullWidth label={`${field.name} *`} placeholder={field.description || ''} value={value} onChange={(e) => updateCustomValue(field.key, e.target.value)} sx={{ mb: 2, ...inputSx }} />
         );
     }
   };
@@ -179,6 +147,8 @@ export const ResolveIncidentDialog = React.forwardRef<HTMLDivElement, ResolveInc
       '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
     },
   };
+
+  const resolvedReasonLabel = RESOLUTION_REASONS.find(r => r.value === reason)?.label || reason;
 
   return (
     <Dialog
@@ -194,72 +164,106 @@ export const ResolveIncidentDialog = React.forwardRef<HTMLDivElement, ResolveInc
         },
       }}
     >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <CheckCircleIcon sx={{ color: 'hsl(var(--severity-low))' }} />
-          <Typography variant="h6">Resolve Incident</Typography>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Resolving: <strong>{incidentTitle}</strong>
-        </Typography>
-
-        <FormControl fullWidth sx={{ mb: 3, ...inputSx }}>
-          <InputLabel>Resolution Reason *</InputLabel>
-          <Select
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            label="Resolution Reason *"
-          >
-            {RESOLUTION_REASONS.map((r) => (
-              <MenuItem key={r.value} value={r.value}>
-                {r.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {missingRequiredFields.length > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Required fields must be filled before resolving
+      {resolved ? (
+        <Fade in timeout={400}>
+          <Box sx={{ textAlign: 'center', py: 5, px: 3 }}>
+            <CheckCircleIcon sx={{ fontSize: 56, color: 'hsl(var(--severity-low))', mb: 2 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+              Incident Resolved
             </Typography>
-            {missingRequiredFields.map(renderCustomField)}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              <strong>{incidentTitle}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Reason: {resolvedReasonLabel}
+            </Typography>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              mb: 3,
+              p: 1.5,
+              borderRadius: 1.5,
+              bgcolor: 'hsl(var(--muted))',
+              border: '1px solid hsl(var(--border))',
+            }}>
+              <FilterListIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+              <Typography variant="caption" color="text.secondary">
+                You can find this incident under the <strong>Resolved</strong> status filter
+              </Typography>
+            </Box>
+            <Button variant="contained" onClick={handleClose} sx={{
+              bgcolor: 'hsl(var(--severity-low))',
+              color: 'hsl(var(--primary-foreground))',
+              '&:hover': { bgcolor: 'hsl(var(--severity-low) / 0.9)' },
+            }}>
+              Done
+            </Button>
           </Box>
-        )}
+        </Fade>
+      ) : (
+        <>
+          <DialogTitle sx={{ pb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <CheckCircleIcon sx={{ color: 'hsl(var(--severity-low))' }} />
+              <Typography variant="h6">Resolve Incident</Typography>
+            </Box>
+          </DialogTitle>
 
-        <TextField
-          fullWidth
-          multiline
-          rows={3}
-          label="Resolution Notes (optional)"
-          placeholder="Add any additional context about how this incident was resolved..."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          sx={inputSx}
-        />
-      </DialogContent>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Resolving: <strong>{incidentTitle}</strong>
+            </Typography>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleResolve}
-          disabled={!canResolve || isLoading}
-          startIcon={<CheckCircleIcon />}
-          sx={{
-            bgcolor: 'hsl(var(--severity-low))',
-            color: 'hsl(var(--primary-foreground))',
-            '&:hover': { bgcolor: 'hsl(var(--severity-low) / 0.9)' },
-          }}
-        >
-          {isLoading ? 'Resolving...' : 'Resolve Incident'}
-        </Button>
-      </DialogActions>
+            <FormControl fullWidth sx={{ mb: 3, ...inputSx }}>
+              <InputLabel>Resolution Reason *</InputLabel>
+              <Select value={reason} onChange={(e) => setReason(e.target.value)} label="Resolution Reason *">
+                {RESOLUTION_REASONS.map((r) => (
+                  <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {missingRequiredFields.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                  Required fields must be filled before resolving
+                </Typography>
+                {missingRequiredFields.map(renderCustomField)}
+              </Box>
+            )}
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Resolution Notes (optional)"
+              placeholder="Add any additional context about how this incident was resolved..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              sx={inputSx}
+            />
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button onClick={handleClose} disabled={isLoading}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleResolve}
+              disabled={!canResolve || isLoading}
+              startIcon={<CheckCircleIcon />}
+              sx={{
+                bgcolor: 'hsl(var(--severity-low))',
+                color: 'hsl(var(--primary-foreground))',
+                '&:hover': { bgcolor: 'hsl(var(--severity-low) / 0.9)' },
+              }}
+            >
+              {isLoading ? 'Resolving...' : 'Resolve Incident'}
+            </Button>
+          </DialogActions>
+        </>
+      )}
     </Dialog>
   );
 });
