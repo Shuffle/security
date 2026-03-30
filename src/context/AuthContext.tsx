@@ -39,6 +39,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [orgMismatchWarning, setOrgMismatchWarning] = useState(false);
+
+  const dismissOrgMismatch = useCallback(() => {
+    setOrgMismatchWarning(false);
+  }, []);
 
   const fetchUserInfo = useCallback(async (token?: string | null) => {
     try {
