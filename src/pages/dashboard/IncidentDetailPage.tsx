@@ -1373,7 +1373,8 @@ const IncidentDetailPage = () => {
             ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
             tlp: editedTlp,
             assignee: editedAssignee.trim() || '', // Sync metadata assignee with top-level
-            customFields: editedCustomFields, // Always include, even if empty object
+            customFields: editedCustomFields,
+            stakeholders: editedStakeholders,
           },
         },
       },
