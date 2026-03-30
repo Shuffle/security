@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo, useEffect, useCallback, useSyncExternalStore } from 'react';
+import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@/services/datastore';
 
 export const ENTITY_OPTIONS = [
   { value: 'incidents', singular: 'Incident', plural: 'Incidents', path: '/incidents' },
@@ -10,30 +11,71 @@ export const ENTITY_OPTIONS = [
 
 export type EntityValue = (typeof ENTITY_OPTIONS)[number]['value'];
 
-const STORAGE_KEY = 'shuffle-entity-label';
+const LOCAL_CACHE_KEY = 'shuffle-entity-label';
+const DATASTORE_KEY = 'org_settings';
 const DEFAULT: EntityValue = 'incidents';
 
-// Shared external store so all consumers react to changes
+// Shared external store so all consumers react to changes instantly
 const listeners = new Set<() => void>();
 function subscribe(cb: () => void) { listeners.add(cb); return () => { listeners.delete(cb); }; }
 function getSnapshot(): EntityValue {
-  return (localStorage.getItem(STORAGE_KEY) as EntityValue) || DEFAULT;
+  return (localStorage.getItem(LOCAL_CACHE_KEY) as EntityValue) || DEFAULT;
 }
 
-export function setEntityPreference(value: EntityValue) {
-  localStorage.setItem(STORAGE_KEY, value);
+let _fetchedFromServer = false;
+
+/** Load org setting from datastore and sync to local cache */
+export async function loadEntityPreference() {
+  try {
+    const result = await getDatastoreItem(DATASTORE_KEY, DATASTORE_CATEGORIES.CONFIGURATION);
+    if (result.success && result.item?.value) {
+      const data = typeof result.item.value === 'string' ? JSON.parse(result.item.value) : result.item.value;
+      const val = data?.entity_label;
+      if (val && ENTITY_OPTIONS.some(o => o.value === val)) {
+        localStorage.setItem(LOCAL_CACHE_KEY, val);
+        listeners.forEach(cb => cb());
+      }
+    }
+    _fetchedFromServer = true;
+  } catch {
+    // keep local cache
+  }
+}
+
+/** Save preference to both local cache and org datastore */
+export async function setEntityPreference(value: EntityValue) {
+  localStorage.setItem(LOCAL_CACHE_KEY, value);
   listeners.forEach(cb => cb());
+
+  try {
+    // Read existing org_settings, merge, and save
+    let existing: Record<string, unknown> = {};
+    try {
+      const result = await getDatastoreItem(DATASTORE_KEY, DATASTORE_CATEGORIES.CONFIGURATION);
+      if (result.success && result.item?.value) {
+        existing = typeof result.item.value === 'string' ? JSON.parse(result.item.value) : result.item.value;
+      }
+    } catch { /* empty */ }
+    await setDatastoreItem(DATASTORE_KEY, { ...existing, entity_label: value }, DATASTORE_CATEGORIES.CONFIGURATION);
+  } catch {
+    // local cache is already set, datastore save failed silently
+  }
 }
 
 export function getEntityPreference(): EntityValue {
   return getSnapshot();
 }
 
-/** Returns the preferred entity labels and base path. 
+/** Returns the preferred entity labels and base path.
  *  If currently on an alias route (/alerts, /tickets, /jobs), uses that route's labels instead. */
 export function useEntityLabel() {
   const { pathname } = useLocation();
   const preference = useSyncExternalStore(subscribe, getSnapshot);
+
+  // Load from server on first mount
+  useEffect(() => {
+    if (!_fetchedFromServer) loadEntityPreference();
+  }, []);
 
   return useMemo(() => {
     // If the current route matches an alias, use that alias's labels
@@ -50,6 +92,11 @@ export function useEntityLabel() {
 /** Returns just the stored preference (for sidebar/nav, not route-dependent) */
 export function useEntityPreference() {
   const preference = useSyncExternalStore(subscribe, getSnapshot);
+
+  useEffect(() => {
+    if (!_fetchedFromServer) loadEntityPreference();
+  }, []);
+
   return useMemo(() => {
     const pref = ENTITY_OPTIONS.find(o => o.value === preference) || ENTITY_OPTIONS[0];
     return { singular: pref.singular, plural: pref.plural, basePath: pref.path, value: pref.value };
