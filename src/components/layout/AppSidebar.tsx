@@ -64,11 +64,11 @@ interface NavItem {
   children?: NavChild[];
 }
 
-const navItems: NavItem[] = [
+const buildNavItems = (entityLabel: string, entityPath: string): NavItem[] => [
   { 
-    label: 'Incidents', 
+    label: entityLabel, 
     icon: <WarningAmberIcon />,
-    path: '/incidents',
+    path: entityPath,
     children: [
       { label: 'Threat Feeds', path: '/incidents/threat-feeds', icon: <RssFeedIcon fontSize="small" /> },
       { label: 'IOC Types', path: '/incidents/ioc-types', icon: <FingerprintIcon fontSize="small" /> },
