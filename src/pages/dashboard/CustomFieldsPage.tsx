@@ -107,10 +107,14 @@ const CustomFieldsPage = () => {
     setDialogOpen(false);
     setFormData({ name: '', key: '', type: 'text', required: false, description: '' });
     setOptionsInput('');
+    // Small delay to allow backend propagation before re-fetching
+    setTimeout(() => fetchItems(), 500);
   };
 
   const handleDelete = async (key: string) => {
     await removeItem(key);
+    // Small delay to allow backend propagation before re-fetching
+    setTimeout(() => fetchItems(), 500);
   };
 
   const generateKey = (name: string) => {
