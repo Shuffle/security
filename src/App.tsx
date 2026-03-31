@@ -26,6 +26,7 @@ import CustomFieldsPage from '@/pages/dashboard/CustomFieldsPage';
 import UsersPage from '@/pages/dashboard/UsersPage';
 import OrganizationsPage from '@/pages/dashboard/OrganizationsPage';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
+import OrgPreferencesPage from '@/pages/dashboard/OrgPreferencesPage';
 import AgentActivityPage from '@/pages/dashboard/AgentActivityPage';
 import InfrastructurePage from '@/pages/dashboard/InfrastructurePage';
 import DataFlowDetailPage from '@/pages/dashboard/DataFlowDetailPage';
