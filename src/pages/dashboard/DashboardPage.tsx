@@ -238,19 +238,17 @@ const RunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePath: string
           }}>
             {incidentTitle || getRunTitle(run)}
           </Typography>
-          {severity.level !== 'unknown' && (
-            <Chip
-              label={severity.label}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                backgroundColor: `hsl(var(${severity.colorToken}) / 0.12)`,
-                color: `hsl(var(${severity.colorToken}))`,
-              }}
-            />
-          )}
+          <Chip
+            label={severity.label}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              backgroundColor: `hsl(var(${severity.colorToken}) / 0.12)`,
+              color: `hsl(var(${severity.colorToken}))`,
+            }}
+          />
           <Box sx={{ color: statusCfg.color, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             {statusCfg.icon}
           </Box>
@@ -306,7 +304,11 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
   const status = run.status?.toUpperCase() || '';
   const runFailed = status === 'FAILED' || status === 'ABORTED';
   const isUnsure = hasOutputWarning(run);
-  const severity = getIncidentSeverityFromRun(run);
+  const rawSeverity = getIncidentSeverityFromRun(run);
+  // Default attention items to High when severity can't be determined
+  const severity = rawSeverity.level === 'unknown'
+    ? { level: 'high' as const, label: 'High', colorToken: '--severity-high' }
+    : rawSeverity;
 
   return (
     <Box
@@ -336,19 +338,17 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
           }}>
             {incidentTitle || getRunTitle(run)}
           </Typography>
-          {severity.level !== 'unknown' && (
-            <Chip
-              label={severity.label}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                backgroundColor: `hsl(var(${severity.colorToken}) / 0.12)`,
-                color: `hsl(var(${severity.colorToken}))`,
-              }}
-            />
-          )}
+          <Chip
+            label={severity.label}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              backgroundColor: `hsl(var(${severity.colorToken}) / 0.12)`,
+              color: `hsl(var(${severity.colorToken}))`,
+            }}
+          />
           {runFailed && (
             <Chip
               label={status === 'ABORTED' ? 'Aborted' : 'Failed'}
