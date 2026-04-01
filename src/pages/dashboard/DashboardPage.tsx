@@ -639,7 +639,7 @@ const DashboardPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <AttentionRunRow run={run} entityBasePath={entityBasePath} />
+                <AttentionRunRow run={run} entityBasePath={entityBasePath} onViewDetails={setSummaryRun} />
               </motion.div>
             ))}
           </Box>
