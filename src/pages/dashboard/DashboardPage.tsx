@@ -66,14 +66,32 @@ const getIncidentKey = (run: AgentRun): string | null => {
 };
 
 /** Get a human-readable description of what the AI did or needs */
-const getAIDescription = (run: AgentRun): string => {
+const getAIDescription = (run: AgentRun, context: 'attention' | 'general' = 'general'): string => {
   const status = run.status?.toUpperCase() || '';
   const output = getAgentRunOutput(run);
   const failureInfo = (status === 'FAILED' || status === 'ABORTED') ? getFailureInfo(run) : null;
 
+  // For attention items, be explicit about what the user must do
+  if (context === 'attention') {
+    if (status === 'WAITING') {
+      const reason = output ? output.replace(/[#*`]/g, '').trim() : '';
+      if (reason) return `Approval needed: ${reason.length > 140 ? reason.slice(0, 140) + '…' : reason}`;
+      return 'The AI agent requires your approval before it can continue processing this incident. Review the proposed action and approve or reject it.';
+    }
+    if (isFailed(status)) {
+      const reason = failureInfo?.reason || output?.replace(/[#*`]/g, '').trim() || '';
+      if (reason) return `Failed: ${reason.length > 140 ? reason.slice(0, 140) + '…' : reason}`;
+      return 'The AI agent encountered an error and could not complete this task. Manual investigation is required.';
+    }
+    if (hasOutputWarning(run)) {
+      const detail = output ? output.replace(/[#*`]/g, '').trim() : '';
+      if (detail) return `Needs review: ${detail.length > 140 ? detail.slice(0, 140) + '…' : detail}`;
+      return 'The AI agent flagged uncertainty in its analysis. Please review the output and confirm or correct its findings.';
+    }
+  }
+
   if (failureInfo?.reason) return failureInfo.reason;
   if (output) {
-    // Truncate long outputs
     const clean = output.replace(/[#*`]/g, '').trim();
     return clean.length > 150 ? clean.slice(0, 150) + '…' : clean;
   }
@@ -82,12 +100,26 @@ const getAIDescription = (run: AgentRun): string => {
   return getRunSubtitle(run);
 };
 
-/** Get the CTA label for attention items */
-const getAttentionCTA = (run: AgentRun): { label: string; icon: React.ReactNode } => {
+const isFailed = (status: string) => status === 'FAILED' || status === 'ABORTED';
+
+/** Get the CTA label for attention items — be specific about what the user should do */
+const getAttentionCTA = (run: AgentRun): { label: string; icon: React.ReactNode; secondary?: string } => {
   const status = run.status?.toUpperCase() || '';
-  if (status === 'FAILED' || status === 'ABORTED') return { label: 'Investigate', icon: <Search size={14} /> };
-  if (status === 'WAITING') return { label: 'Review & Approve', icon: <Eye size={14} /> };
-  if (hasOutputWarning(run)) return { label: 'Review Output', icon: <Eye size={14} /> };
+  if (status === 'WAITING') return {
+    label: 'Approve & Continue',
+    icon: <CheckCircle size={14} />,
+    secondary: 'Review what the agent wants to do and give approval',
+  };
+  if (isFailed(status)) return {
+    label: 'Investigate Failure',
+    icon: <Search size={14} />,
+    secondary: 'Check the error details and decide on next steps',
+  };
+  if (hasOutputWarning(run)) return {
+    label: 'Review & Confirm',
+    icon: <Eye size={14} />,
+    secondary: 'The agent is unsure — verify its findings',
+  };
   return { label: 'Review', icon: <Eye size={14} /> };
 };
 
@@ -255,11 +287,11 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
   const iconColor = getRunIconColor(run);
   const incidentKey = getIncidentKey(run);
   const incidentTitle = getIncidentTitleFromRun(run);
-  const description = getAIDescription(run);
+  const description = getAIDescription(run, 'attention');
   const duration = formatDuration(run);
   const cta = getAttentionCTA(run);
   const status = run.status?.toUpperCase() || '';
-  const isFailed = status === 'FAILED' || status === 'ABORTED';
+  const runFailed = status === 'FAILED' || status === 'ABORTED';
   const isUnsure = hasOutputWarning(run);
 
   return (
@@ -305,7 +337,7 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
             }}>
               {incidentTitle || getRunTitle(run)}
             </Typography>
-            {isFailed && (
+            {runFailed && (
               <Chip
                 label={status === 'ABORTED' ? 'Aborted' : 'Failed'}
                 size="small"
@@ -353,7 +385,7 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
           {/* Description of what AI needs / did */}
           <Typography sx={{
             fontSize: '0.78rem',
-            color: isFailed ? 'hsl(var(--severity-critical) / 0.85)' : 'hsl(var(--muted-foreground))',
+            color: runFailed ? 'hsl(var(--severity-critical) / 0.85)' : 'hsl(var(--muted-foreground))',
             mt: 0.5,
             lineHeight: 1.5,
             display: '-webkit-box',
@@ -380,43 +412,31 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
       </Box>
 
       {/* CTAs */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 6.5 }}>
-        <Button
-          component={Link}
-          to={`/agent?search=${run.execution_id}`}
-          size="small"
-          variant="outlined"
-          startIcon={cta.icon}
-          sx={{
-            fontSize: '0.75rem',
-            textTransform: 'none',
-            fontWeight: 500,
-            borderColor: 'hsl(var(--border))',
-            color: 'hsl(var(--foreground))',
-            px: 1.5,
-            py: 0.5,
-            '&:hover': {
-              borderColor: 'hsl(var(--primary) / 0.5)',
-              backgroundColor: 'hsl(var(--primary) / 0.08)',
-            },
-          }}
-        >
-          {cta.label}
-        </Button>
-        {incidentKey && (
+      <Box sx={{ ml: 6.5 }}>
+        {cta.secondary && (
+          <Typography sx={{
+            fontSize: '0.73rem',
+            color: 'hsl(var(--muted-foreground))',
+            mb: 1,
+            fontStyle: 'italic',
+          }}>
+            {cta.secondary}
+          </Typography>
+        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button
             component={Link}
-            to={`${entityBasePath}/${incidentKey}`}
+            to={incidentKey ? `${entityBasePath}/${incidentKey}` : `/agent?search=${run.execution_id}`}
             size="small"
             variant="contained"
-            endIcon={<ArrowRight size={14} />}
+            startIcon={cta.icon}
             sx={{
               fontSize: '0.75rem',
               textTransform: 'none',
-              fontWeight: 500,
+              fontWeight: 600,
               backgroundColor: 'hsl(var(--primary))',
               color: 'hsl(var(--primary-foreground))',
-              px: 1.5,
+              px: 2,
               py: 0.5,
               boxShadow: 'none',
               '&:hover': {
@@ -425,9 +445,33 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
               },
             }}
           >
-            View Incident
+            {cta.label}
           </Button>
-        )}
+          {incidentKey && (
+            <Button
+              component={Link}
+              to={`${entityBasePath}/${incidentKey}`}
+              size="small"
+              variant="outlined"
+              endIcon={<ArrowRight size={14} />}
+              sx={{
+                fontSize: '0.75rem',
+                textTransform: 'none',
+                fontWeight: 500,
+                borderColor: 'hsl(var(--border))',
+                color: 'hsl(var(--foreground))',
+                px: 1.5,
+                py: 0.5,
+                '&:hover': {
+                  borderColor: 'hsl(var(--primary) / 0.5)',
+                  backgroundColor: 'hsl(var(--primary) / 0.08)',
+                },
+              }}
+            >
+              Open Incident
+            </Button>
+          )}
+        </Box>
       </Box>
     </Box>
   );
