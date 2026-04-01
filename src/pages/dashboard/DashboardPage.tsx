@@ -30,7 +30,7 @@ import {
 import { Link } from 'react-router-dom';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useAgentActivity } from '@/hooks/useAgentActivity';
-import { parseDatastoreReference, isIncidentReference, getAgentRunOutput, getIncidentTitleFromRun } from '@/lib/agentParsers';
+import { parseDatastoreReference, isIncidentReference, getAgentRunOutput, getIncidentTitleFromRun, getIncidentSeverityFromRun } from '@/lib/agentParsers';
 import { hasOutputWarning, parseRunResult, getFailureInfo } from '@/components/agent/AgentRunResultViewer';
 import {
   getRunTitle,
