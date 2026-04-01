@@ -516,6 +516,7 @@ const DashboardPage = () => {
   }, [runs]);
 
   return (
+    <>
     <Box sx={{ maxWidth: 1400, mx: 'auto', p: 4 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
