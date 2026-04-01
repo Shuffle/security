@@ -291,7 +291,7 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
   const duration = formatDuration(run);
   const cta = getAttentionCTA(run);
   const status = run.status?.toUpperCase() || '';
-  const isFailed = status === 'FAILED' || status === 'ABORTED';
+  const runFailed = status === 'FAILED' || status === 'ABORTED';
   const isUnsure = hasOutputWarning(run);
 
   return (
