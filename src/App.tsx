@@ -34,6 +34,7 @@ import UsecasesPage from '@/pages/dashboard/UsecasesPage';
 import AppDetailPage from '@/pages/dashboard/AppDetailPage';
 import DocsPage from '@/pages/docs/DocsPage';
 import PipelinesPage from '@/pages/dashboard/PipelinesPage';
+import DashboardPage from '@/pages/dashboard/DashboardPage';
 
 import AppsPage from '@/pages/AppsPage';
 import NotFound from './pages/NotFound';
@@ -107,6 +108,7 @@ const ThemedApp = () => {
                 </ProtectedRoute>
               }
             >
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
               <Route path="/incidents/:id" element={<IncidentDetailPage />} />
               <Route path="/alerts" element={<IncidentsPage />} />
