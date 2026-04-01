@@ -293,6 +293,7 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
   const status = run.status?.toUpperCase() || '';
   const runFailed = status === 'FAILED' || status === 'ABORTED';
   const isUnsure = hasOutputWarning(run);
+  const severity = getIncidentSeverityFromRun(run);
 
   return (
     <Box
