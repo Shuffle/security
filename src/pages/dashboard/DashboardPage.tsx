@@ -425,8 +425,7 @@ const AttentionRunRow = ({ run, entityBasePath, onViewDetails }: { run: AgentRun
       {/* CTAs on the right */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
         <Button
-          component={Link}
-          to={incidentKey ? `${entityBasePath}/${incidentKey}` : `/agent?search=${run.execution_id}`}
+          onClick={() => onViewDetails(run)}
           size="small"
           variant="contained"
           startIcon={cta.icon}
@@ -451,7 +450,7 @@ const AttentionRunRow = ({ run, entityBasePath, onViewDetails }: { run: AgentRun
         {incidentKey && (
           <Button
             component={Link}
-            to={`${entityBasePath}/${incidentKey}`}
+            to={`${entityBasePath}/${incidentKey}?agent_action=${run.execution_id}`}
             size="small"
             variant="outlined"
             endIcon={<ArrowRight size={14} />}
