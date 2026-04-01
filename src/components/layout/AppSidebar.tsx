@@ -34,7 +34,7 @@ import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import TuneIcon from '@mui/icons-material/Tune';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
 import RadarIcon from '@mui/icons-material/Radar';
-import { Braces, Waypoints, Network, Activity, BookOpen, Sun, Moon, Monitor } from 'lucide-react';
+import { Braces, Waypoints, Network, Activity, BookOpen, Sun, Moon, Monitor, LayoutDashboard } from 'lucide-react';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
