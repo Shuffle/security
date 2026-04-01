@@ -28,6 +28,7 @@ import {
   Search,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AgentActionSummaryDialog from '@/components/agent/AgentActionSummaryDialog';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useAgentActivity } from '@/hooks/useAgentActivity';
 import { parseDatastoreReference, isIncidentReference, getAgentRunOutput, getIncidentTitleFromRun, getIncidentSeverityFromRun } from '@/lib/agentParsers';
@@ -295,7 +296,7 @@ const RunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePath: string
 
 // ── Attention row (enhanced with CTAs) ─────────────────────────────────────────
 
-const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePath: string }) => {
+const AttentionRunRow = ({ run, entityBasePath, onViewDetails }: { run: AgentRun; entityBasePath: string; onViewDetails: (run: AgentRun) => void }) => {
   const incidentKey = getIncidentKey(run);
   const incidentTitle = getIncidentTitleFromRun(run);
   const description = getAIDescription(run, 'attention');
@@ -425,8 +426,7 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
       {/* CTAs on the right */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
         <Button
-          component={Link}
-          to={incidentKey ? `${entityBasePath}/${incidentKey}` : `/agent?search=${run.execution_id}`}
+          onClick={() => onViewDetails(run)}
           size="small"
           variant="contained"
           startIcon={cta.icon}
@@ -451,7 +451,7 @@ const AttentionRunRow = ({ run, entityBasePath }: { run: AgentRun; entityBasePat
         {incidentKey && (
           <Button
             component={Link}
-            to={`${entityBasePath}/${incidentKey}`}
+            to={`${entityBasePath}/${incidentKey}?agent_action=${run.execution_id}`}
             size="small"
             variant="outlined"
             endIcon={<ArrowRight size={14} />}
@@ -484,6 +484,7 @@ const DashboardPage = () => {
   const { runs, isLoading, stats, refresh } = useAgentActivity();
   const { singular: entitySingular, basePath: entityBasePath } = useEntityPreference();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [summaryRun, setSummaryRun] = useState<AgentRun | null>(null);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -515,6 +516,7 @@ const DashboardPage = () => {
   }, [runs]);
 
   return (
+    <>
     <Box sx={{ maxWidth: 1400, mx: 'auto', p: 4 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -639,7 +641,7 @@ const DashboardPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <AttentionRunRow run={run} entityBasePath={entityBasePath} />
+                <AttentionRunRow run={run} entityBasePath={entityBasePath} onViewDetails={setSummaryRun} />
               </motion.div>
             ))}
           </Box>
@@ -703,6 +705,14 @@ const DashboardPage = () => {
         )}
       </Box>
     </Box>
+
+    <AgentActionSummaryDialog
+      open={!!summaryRun}
+      onClose={() => setSummaryRun(null)}
+      run={summaryRun}
+      entityBasePath={entityBasePath}
+    />
+    </>
   );
 };
 
