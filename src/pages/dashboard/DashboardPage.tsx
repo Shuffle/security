@@ -670,25 +670,24 @@ const AttentionRunRow = ({ run, entityBasePath, onViewDetails }: { run: AgentRun
         <Button
           onClick={() => onViewDetails(run)}
           size="small"
-          variant="contained"
+          variant="outlined"
           startIcon={<Eye size={14} />}
           sx={{
             fontSize: '0.75rem',
             textTransform: 'none',
-            fontWeight: 600,
-            backgroundColor: 'hsl(var(--primary))',
-            color: 'hsl(var(--primary-foreground))',
-            px: 2,
+            fontWeight: 500,
+            borderColor: 'hsl(var(--border))',
+            color: 'hsl(var(--foreground))',
+            px: 1.5,
             py: 0.5,
-            boxShadow: 'none',
             whiteSpace: 'nowrap',
             '&:hover': {
-              backgroundColor: 'hsl(var(--primary) / 0.9)',
-              boxShadow: 'none',
+              borderColor: 'hsl(var(--primary) / 0.5)',
+              backgroundColor: 'hsl(var(--primary) / 0.08)',
             },
           }}
         >
-          Review
+          Quick View
         </Button>
         {incidentKey && (
           <Tooltip title="Open incident">
