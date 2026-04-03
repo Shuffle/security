@@ -868,7 +868,33 @@ const DashboardPage = () => {
           )}
         </Box>
 
-        {(isLoading && notificationsLoading) && totalAttentionCount === 0 ? (
+        {/* Filter chips */}
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          {([
+            { key: 'all' as const, label: 'All', count: totalAttentionCount },
+            { key: 'failed' as const, label: 'Failed / Unsure', count: attentionCounts.failed },
+            { key: 'approval' as const, label: 'Needs Approval', count: attentionCounts.approval },
+            { key: 'question' as const, label: 'Pending Question', count: attentionCounts.question },
+          ]).map(f => (
+            <Chip
+              key={f.key}
+              label={`${f.label}${f.count > 0 ? ` (${f.count})` : ''}`}
+              size="small"
+              variant={attentionFilter === f.key ? 'filled' : 'outlined'}
+              onClick={() => { setAttentionFilter(f.key); setAttentionPage(0); }}
+              sx={{
+                fontSize: '0.75rem',
+                height: 28,
+                borderColor: attentionFilter === f.key ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                bgcolor: attentionFilter === f.key ? 'hsl(var(--primary) / 0.15)' : 'transparent',
+                color: attentionFilter === f.key ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                '&:hover': { bgcolor: 'hsl(var(--muted))' },
+              }}
+            />
+          ))}
+        </Box>
+
+        {(isLoading && notificationsLoading) && filteredAttentionCount === 0 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {[0, 1, 2].map(i => (
               <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: 2, bgcolor: 'hsl(var(--muted) / 0.3)' }} />
