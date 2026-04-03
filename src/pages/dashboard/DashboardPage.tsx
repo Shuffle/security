@@ -119,6 +119,7 @@ interface StatCardProps {
   label: string;
   delay: number;
   isLoading?: boolean;
+  onClick?: () => void;
 }
 
 const StatCard = ({ icon, iconColor, iconBg, value, label, delay, isLoading }: StatCardProps) => (
