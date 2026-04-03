@@ -986,6 +986,7 @@ const DashboardPage = () => {
           />
         </Box>
       </Box>
+      )}
 
       {/* Needs Attention Section */}
       <Box id="section-attention" sx={{ mb: 4 }}>
