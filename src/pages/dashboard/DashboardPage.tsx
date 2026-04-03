@@ -119,15 +119,17 @@ interface StatCardProps {
   label: string;
   delay: number;
   isLoading?: boolean;
+  onClick?: () => void;
 }
 
-const StatCard = ({ icon, iconColor, iconBg, value, label, delay, isLoading }: StatCardProps) => (
+const StatCard = ({ icon, iconColor, iconBg, value, label, delay, isLoading, onClick }: StatCardProps) => (
   <motion.div
     initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.25, delay }}
   >
     <Box
+      onClick={onClick}
       sx={{
         px: 2.5,
         py: 2,
@@ -137,6 +139,9 @@ const StatCard = ({ icon, iconColor, iconBg, value, label, delay, isLoading }: S
         display: 'flex',
         alignItems: 'center',
         gap: 2,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'border-color 0.2s ease',
+        '&:hover': onClick ? { borderColor: iconColor } : {},
       }}
     >
       <Box
@@ -868,6 +873,7 @@ const DashboardPage = () => {
           label="Needs Your Input"
           delay={0}
           isLoading={isLoading && notificationsLoading}
+          onClick={() => document.getElementById('section-attention')?.scrollIntoView({ behavior: 'smooth' })}
         />
         <StatCard
           icon={<Loader2 size={18} />}
@@ -877,6 +883,7 @@ const DashboardPage = () => {
           label="Currently Running"
           delay={0.05}
           isLoading={isLoading}
+          onClick={() => document.getElementById('section-running')?.scrollIntoView({ behavior: 'smooth' })}
         />
         <StatCard
           icon={<CheckCircle size={18} />}
@@ -886,6 +893,7 @@ const DashboardPage = () => {
           label="Completed"
           delay={0.1}
           isLoading={isLoading}
+          onClick={() => document.getElementById('section-completed')?.scrollIntoView({ behavior: 'smooth' })}
         />
         <StatCard
           icon={<Clock size={18} />}
@@ -899,7 +907,7 @@ const DashboardPage = () => {
       </Box>
 
       {/* Needs Attention Section */}
-      <Box sx={{ mb: 4 }}>
+      <Box id="section-attention" sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <AlertTriangle size={18} style={{ color: 'hsl(var(--severity-high))' }} />
           <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
@@ -1040,7 +1048,7 @@ const DashboardPage = () => {
 
       {/* Currently Running */}
       {activeRuns.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box id="section-running" sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <Loader2 size={18} style={{ color: 'hsl(var(--severity-medium))', animation: 'spin 2s linear infinite' }} />
             <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
@@ -1056,7 +1064,7 @@ const DashboardPage = () => {
       )}
 
       {/* Recent Activity */}
-      <Box>
+      <Box id="section-completed">
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
             Recent Completed
