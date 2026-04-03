@@ -297,7 +297,7 @@ interface NotificationRowProps {
   onAnswer: (n: AgentNotification) => void;
 }
 
-const NotificationRow = ({ notification, entityBasePath, onApprove, onConfigure, onAnswer }: NotificationRowProps) => {
+const NotificationRow = ({ notification, entityBasePath, onApprove, onQuickView, onAnswer }: NotificationRowProps) => {
   const isApproval = isApprovalNotification(notification);
   const timeAgo = notification.created_at
     ? getTimeAgo(new Date(notification.created_at * 1000).toISOString())
