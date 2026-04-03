@@ -907,7 +907,7 @@ const DashboardPage = () => {
       </Box>
 
       {/* Needs Attention Section */}
-      <Box sx={{ mb: 4 }}>
+      <Box id="section-attention" sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <AlertTriangle size={18} style={{ color: 'hsl(var(--severity-high))' }} />
           <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
