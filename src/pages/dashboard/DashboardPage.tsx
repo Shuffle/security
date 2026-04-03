@@ -26,13 +26,14 @@ import {
   Eye,
   RotateCcw,
   Search,
-  Settings,
+  
   MessageSquare,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AgentActionSummaryDialog from '@/components/agent/AgentActionSummaryDialog';
 import AgentQuestionDialog from '@/components/agent/AgentQuestionDialog';
 import AgentConfigureDialog from '@/components/agent/AgentConfigureDialog';
+import AgentQuickViewDrawer from '@/components/agent/AgentQuickViewDrawer';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useAgentActivity } from '@/hooks/useAgentActivity';
 import { useAgentNotifications } from '@/hooks/useNotifications';
@@ -292,11 +293,11 @@ interface NotificationRowProps {
   notification: AgentNotification;
   entityBasePath: string;
   onApprove: (n: AgentNotification) => void;
-  onConfigure: (n: AgentNotification) => void;
+  onQuickView: (n: AgentNotification) => void;
   onAnswer: (n: AgentNotification) => void;
 }
 
-const NotificationRow = ({ notification, entityBasePath, onApprove, onConfigure, onAnswer }: NotificationRowProps) => {
+const NotificationRow = ({ notification, entityBasePath, onApprove, onQuickView, onAnswer }: NotificationRowProps) => {
   const isApproval = isApprovalNotification(notification);
   const timeAgo = notification.created_at
     ? getTimeAgo(new Date(notification.created_at * 1000).toISOString())
@@ -372,15 +373,7 @@ const NotificationRow = ({ notification, entityBasePath, onApprove, onConfigure,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
         }}>
-          {isApproval
-            ? <>
-                <Typography component="span" sx={{ fontWeight: 600, fontSize: 'inherit', color: 'hsl(var(--foreground))' }}>
-                  Agent wants to:
-                </Typography>{' '}
-                {notification.action || notification.description}
-              </>
-            : notification.description
-          }
+          {notification.action || notification.description}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
@@ -418,10 +411,10 @@ const NotificationRow = ({ notification, entityBasePath, onApprove, onConfigure,
               Approve
             </Button>
             <Button
-              onClick={() => onConfigure(notification)}
+              onClick={() => onQuickView(notification)}
               size="small"
               variant="outlined"
-              startIcon={<Settings size={14} />}
+              startIcon={<Eye size={14} />}
               sx={{
                 fontSize: '0.75rem',
                 textTransform: 'none',
@@ -437,7 +430,7 @@ const NotificationRow = ({ notification, entityBasePath, onApprove, onConfigure,
                 },
               }}
             >
-              Configure
+              Quick View
             </Button>
           </>
         ) : (
@@ -711,6 +704,7 @@ const DashboardPage = () => {
   const [summaryRun, setSummaryRun] = useState<AgentRun | null>(null);
   const [questionNotification, setQuestionNotification] = useState<AgentNotification | null>(null);
   const [configureNotification, setConfigureNotification] = useState<AgentNotification | null>(null);
+  const [quickViewNotification, setQuickViewNotification] = useState<AgentNotification | null>(null);
   const [attentionPage, setAttentionPage] = useState(0);
   const [completedPage, setCompletedPage] = useState(0);
 
@@ -920,7 +914,7 @@ const DashboardPage = () => {
                     notification={item.notification}
                     entityBasePath={entityBasePath}
                     onApprove={handleApprove}
-                    onConfigure={setConfigureNotification}
+                    onQuickView={setQuickViewNotification}
                     onAnswer={setQuestionNotification}
                   />
                 </motion.div>
@@ -1089,6 +1083,15 @@ const DashboardPage = () => {
       onClose={() => setConfigureNotification(null)}
       notification={configureNotification}
       onApprove={handleConfigureApprove}
+    />
+
+    <AgentQuickViewDrawer
+      open={!!quickViewNotification}
+      onClose={() => setQuickViewNotification(null)}
+      notification={quickViewNotification}
+      entityBasePath={entityBasePath}
+      onApprove={handleApprove}
+      onConfigureApprove={handleConfigureApprove}
     />
     </>
   );
