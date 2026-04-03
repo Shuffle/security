@@ -636,29 +636,20 @@ const AttentionRunRow = ({ run, entityBasePath, onViewDetails }: { run: AgentRun
           Review
         </Button>
         {incidentKey && (
-          <Button
-            component={Link}
-            to={`${entityBasePath}/${incidentKey}?agent_action=${run.execution_id}`}
-            size="small"
-            variant="outlined"
-            endIcon={<ArrowRight size={14} />}
-            sx={{
-              fontSize: '0.75rem',
-              textTransform: 'none',
-              fontWeight: 500,
-              borderColor: 'hsl(var(--border))',
-              color: 'hsl(var(--foreground))',
-              px: 1.5,
-              py: 0.5,
-              whiteSpace: 'nowrap',
-              '&:hover': {
-                borderColor: 'hsl(var(--primary) / 0.5)',
-                backgroundColor: 'hsl(var(--primary) / 0.08)',
-              },
-            }}
-          >
-            Open Incident
-          </Button>
+          <Tooltip title="Open incident">
+            <IconButton
+              component={Link}
+              to={`${entityBasePath}/${incidentKey}?agent_action=${run.execution_id}`}
+              size="small"
+              sx={{
+                color: 'hsl(var(--muted-foreground))',
+                flexShrink: 0,
+                '&:hover': { color: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.08)' },
+              }}
+            >
+              <OpenInNewIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
         )}
       </Box>
     </Box>
