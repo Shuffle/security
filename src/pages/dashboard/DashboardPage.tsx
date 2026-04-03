@@ -900,7 +900,7 @@ const DashboardPage = () => {
               <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: 2, bgcolor: 'hsl(var(--muted) / 0.3)' }} />
             ))}
           </Box>
-        ) : totalAttentionCount === 0 ? (
+        ) : filteredAttentionCount === 0 ? (
           <Box
             sx={{
               px: 3,
