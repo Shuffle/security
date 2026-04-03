@@ -704,6 +704,7 @@ const DashboardPage = () => {
   const [summaryRun, setSummaryRun] = useState<AgentRun | null>(null);
   const [questionNotification, setQuestionNotification] = useState<AgentNotification | null>(null);
   const [configureNotification, setConfigureNotification] = useState<AgentNotification | null>(null);
+  const [quickViewNotification, setQuickViewNotification] = useState<AgentNotification | null>(null);
   const [attentionPage, setAttentionPage] = useState(0);
   const [completedPage, setCompletedPage] = useState(0);
 
