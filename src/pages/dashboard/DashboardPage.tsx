@@ -882,8 +882,8 @@ const DashboardPage = () => {
         AI Agent overview — see what's happening and what needs your attention.
       </Typography>
 
-      {/* Stat cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 4 }}>
+      {/* Stat cards - original position (used as scroll sentinel) */}
+      <Box ref={statCardsRef} sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 4 }}>
         <StatCard
           icon={<AlertTriangle size={18} />}
           iconColor="hsl(var(--severity-high))"
@@ -923,6 +923,71 @@ const DashboardPage = () => {
           delay={0.15}
           isLoading={isLoading}
         />
+      </Box>
+
+      {/* Sticky compact stat bar */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1100,
+          transform: isSticky ? 'translateY(0)' : 'translateY(-100%)',
+          opacity: isSticky ? 1 : 0,
+          transition: 'transform 0.25s ease, opacity 0.25s ease',
+          backgroundColor: 'hsl(var(--background) / 0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid hsl(var(--border))',
+          px: 3,
+          py: 1,
+        }}
+      >
+        <Box sx={{ maxWidth: 1400, mx: 'auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5 }}>
+          <StatCard
+            icon={<AlertTriangle size={18} />}
+            iconColor="hsl(var(--severity-high))"
+            iconBg="hsl(var(--severity-high) / 0.12)"
+            value={totalAttentionCount}
+            label="Needs Your Input"
+            delay={0}
+            isLoading={isLoading && notificationsLoading}
+            onClick={() => document.getElementById('section-attention')?.scrollIntoView({ behavior: 'smooth' })}
+            compact
+          />
+          <StatCard
+            icon={<Loader2 size={18} />}
+            iconColor="hsl(var(--severity-medium))"
+            iconBg="hsl(var(--severity-medium) / 0.12)"
+            value={activeRuns.length}
+            label="Currently Running"
+            delay={0}
+            isLoading={isLoading}
+            onClick={() => document.getElementById('section-running')?.scrollIntoView({ behavior: 'smooth' })}
+            compact
+          />
+          <StatCard
+            icon={<CheckCircle size={18} />}
+            iconColor="hsl(var(--severity-low))"
+            iconBg="hsl(var(--severity-low) / 0.12)"
+            value={stats.successCount}
+            label="Completed"
+            delay={0}
+            isLoading={isLoading}
+            onClick={() => document.getElementById('section-completed')?.scrollIntoView({ behavior: 'smooth' })}
+            compact
+          />
+          <StatCard
+            icon={<Clock size={18} />}
+            iconColor="hsl(var(--primary))"
+            iconBg="hsl(var(--primary) / 0.12)"
+            value={stats.avgDuration > 0 ? `${stats.avgDuration.toFixed(0)}s` : '—'}
+            label="Avg Duration"
+            delay={0}
+            isLoading={isLoading}
+            compact
+          />
+        </Box>
       </Box>
 
       {/* Needs Attention Section */}
