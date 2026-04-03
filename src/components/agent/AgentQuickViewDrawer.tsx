@@ -66,6 +66,8 @@ interface UnifiedData {
   pendingAction: string | null;
   incidentLink: string | null;
   isApproval: boolean;
+  isQuestion: boolean;
+  questions: string[];
   notification: AgentNotification | null;
 }
 
