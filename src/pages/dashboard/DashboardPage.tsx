@@ -13,6 +13,7 @@ import {
   Tooltip,
   Button,
 } from '@mui/material';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { motion } from 'framer-motion';
 import {
