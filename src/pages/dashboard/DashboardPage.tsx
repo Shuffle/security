@@ -1090,7 +1090,7 @@ const DashboardPage = () => {
           <>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {paginatedCompleted.map((run) => (
-              <RunRow key={run.execution_id} run={run} entityBasePath={entityBasePath} />
+              <RunRow key={run.execution_id} run={run} entityBasePath={entityBasePath} onQuickView={(r) => setQuickViewItem({ type: 'run', run: r })} />
             ))}
           </Box>
           {completedTotalPages > 1 && (
