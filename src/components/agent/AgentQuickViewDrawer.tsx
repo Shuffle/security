@@ -195,8 +195,9 @@ const buildFromRun = (run: AgentRun, entityBasePath: string): UnifiedData => {
     // Fallback: generate a contextual remediation based on failure info
     if (!pendingAction) {
       const workflowName = run.workflow?.name || 'the workflow';
-      if (failureInfo?.node) {
-        pendingAction = `Re-run node '${failureInfo.node}' in ${workflowName} with corrected parameters, or disable the failing node and route to a fallback path.`;
+      const nodeMatch = failureInfo?.reason?.match(/node[:\s]*'([^']+)'/i) || failureInfo?.reason?.match(/node[:\s]*"([^"]+)"/i);
+      if (nodeMatch) {
+        pendingAction = `Re-run node '${nodeMatch[1]}' in ${workflowName} with corrected parameters, or disable the failing node and route to a fallback path.`;
       } else if (runFailed) {
         pendingAction = `Investigate and re-execute ${workflowName} after reviewing the error logs and correcting the root cause.`;
       } else {
