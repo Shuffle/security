@@ -174,6 +174,38 @@ const buildFromRun = (run: AgentRun, entityBasePath: string): UnifiedData => {
     }
   }
 
+  // Extract proposed next action from the agent's output for failed/unsure runs
+  let pendingAction: string | null = null;
+  if ((runFailed || isUnsure) && output) {
+    const cleanOutput = output.replace(/[#*`]/g, '').trim();
+    // Try to find a recommended/proposed action in the output
+    const actionPatterns = [
+      /(?:recommend|suggest|propos|next step|remediat|action|resolution|fix)[:\s]*(.+)/i,
+      /(?:should|need to|try|consider)[:\s]*(.+)/i,
+    ];
+    for (const pattern of actionPatterns) {
+      const match = cleanOutput.match(pattern);
+      if (match && match[1]?.trim().length > 10) {
+        pendingAction = match[1].trim();
+        if (pendingAction.length > 200) pendingAction = pendingAction.slice(0, 200) + '…';
+        break;
+      }
+    }
+    // Fallback: use the full output as the proposed action context
+    if (!pendingAction) {
+      pendingAction = cleanOutput.length > 200 ? cleanOutput.slice(0, 200) + '…' : cleanOutput;
+    }
+  }
+
+  // Add proposed next action as a pending timeline entry
+  if (pendingAction) {
+    timeline.push({
+      label: 'Proposed next action',
+      detail: pendingAction,
+      status: 'pending',
+    });
+  }
+
   return {
     title: incidentTitle || run.workflow?.name || getRunTitle(run),
     severity,
@@ -181,7 +213,7 @@ const buildFromRun = (run: AgentRun, entityBasePath: string): UnifiedData => {
     timestamp: run.started_at ? new Date(run.started_at).toLocaleString() : '—',
     errorExplanation,
     timeline,
-    pendingAction: null,
+    pendingAction,
     incidentLink: incidentKey ? `${entityBasePath}/${incidentKey}?agent_action=${run.execution_id}` : null,
     isApproval: false,
     notification: null,
