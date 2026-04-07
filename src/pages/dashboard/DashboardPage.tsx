@@ -400,8 +400,6 @@ const NotificationRow = ({ notification, entityBasePath, onApprove, onQuickView,
             py: 1,
             borderRadius: 1.5,
             background: 'var(--agent-gradient-subtle)',
-            border: '1px solid transparent',
-            borderImage: 'var(--agent-gradient-border) 1',
           }}>
             <Typography sx={{
               fontSize: '0.72rem',
