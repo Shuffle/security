@@ -354,16 +354,14 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
         {data.timeline.length > 0 && (
           <Box>
             <SectionLabel>Agent Decisions</SectionLabel>
-            <Box sx={{ position: 'relative', pl: 4 }}>
-              {/* Vertical line — runs between circles, not through them */}
+            <Box sx={{ position: 'relative', ml: 1.5 }}>
 
               {/* Expand button for hidden items */}
               {hasHiddenItems && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', mb: 2, position: 'relative' }}>
+                <Box sx={{ display: 'flex', gap: 1.5, mb: 2, position: 'relative' }}>
                   {/* Circle */}
                   <Box sx={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    position: 'absolute', left: -14 - 4, top: 0,
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     backgroundColor: 'hsl(var(--muted))',
                     zIndex: 1, cursor: 'pointer',
@@ -374,12 +372,12 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
                   </Box>
                   {/* Connector line below circle */}
                   <Box sx={{
-                    position: 'absolute', left: -4 - 1, top: 28, bottom: -16, width: 2,
+                    position: 'absolute', left: 13, top: 28, bottom: -16, width: 2,
                     backgroundColor: 'hsl(var(--border))',
                   }} />
                   <Box
                     onClick={() => setTimelineExpanded(true)}
-                    sx={{ cursor: 'pointer', pl: 2.5, pt: 0.25, '&:hover .expand-label': { color: 'hsl(var(--primary))' } }}
+                    sx={{ cursor: 'pointer', pt: 0.5, '&:hover .expand-label': { color: 'hsl(var(--primary))' } }}
                   >
                     <Typography className="expand-label" sx={{
                       fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))',
@@ -409,31 +407,32 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
                     : 'hsl(var(--severity-low) / 0.12)';
 
                 return (
-                  <Box key={i} sx={{ position: 'relative', mb: isLast ? 0 : 0, pb: isLast ? 0 : 2 }}>
-                    {/* Circle — centered on left edge */}
-                    <Box sx={{
-                      width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                      position: 'absolute', left: -14 - 4, top: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      backgroundColor: circleBg,
-                      zIndex: 1,
-                    }}>
-                      {isPending ? <Clock size={13} style={{ color: circleColor }} />
-                        : isFailed ? <XCircle size={13} style={{ color: circleColor }} />
-                        : <CheckCircle size={13} style={{ color: circleColor }} />}
-                    </Box>
-
-                    {/* Connector line below circle (between this and next) */}
-                    {!isLast && (
+                  <Box key={i} sx={{ display: 'flex', gap: 1.5, position: 'relative', pb: isLast ? 0 : 2 }}>
+                    {/* Circle + line column */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: 28 }}>
+                      {/* Circle */}
                       <Box sx={{
-                        position: 'absolute', left: -4 - 1, top: 28, bottom: 0, width: 2,
-                        backgroundColor: 'hsl(var(--border))',
-                      }} />
-                    )}
+                        width: 28, height: 28, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: circleBg,
+                        zIndex: 1, flexShrink: 0,
+                      }}>
+                        {isPending ? <Clock size={13} style={{ color: circleColor }} />
+                          : isFailed ? <XCircle size={13} style={{ color: circleColor }} />
+                          : <CheckCircle size={13} style={{ color: circleColor }} />}
+                      </Box>
+                      {/* Connector line below circle */}
+                      {!isLast && (
+                        <Box sx={{
+                          flex: 1, width: 2, minHeight: 8,
+                          backgroundColor: 'hsl(var(--border))',
+                        }} />
+                      )}
+                    </Box>
 
                     {/* Content */}
                     <Box sx={{
-                      minWidth: 0,
+                      flex: 1, minWidth: 0, pt: 0.25,
                       ...(isPending && {
                         px: 2, py: 1.5, borderRadius: 2,
                         backgroundColor: 'hsl(var(--severity-info) / 0.06)',
