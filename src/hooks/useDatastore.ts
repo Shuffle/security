@@ -65,7 +65,7 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
       let allItems: DatastoreItem[] = [];
       let currentCursor: string | undefined = cursorParam;
       let lastResponse: Awaited<ReturnType<typeof getDatastoreByCategory>> | null = null;
-      const MAX_PAGES = 20; // Safety limit to prevent infinite loops
+      const MAX_PAGES = 10; // Safety limit to prevent infinite loops
       let page = 0;
 
       do {
