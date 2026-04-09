@@ -66,10 +66,10 @@ const VulnerabilitiesPage = () => {
   }, [searchParams]);
 
   const { vulnerabilities, severityCounts, isLoading, isRefreshing, refresh } = useVulnerabilities({ tab: activeTab });
-  const { authApps } = useAppAuth();
+  const { authenticatedApps } = useAppAuth();
 
   // Filter connected vuln scanner apps
-  const connectedScanners = (authApps || []).filter(a => a.app?.name && isVulnScannerApp(a.app.name) && (a.active || a.validation?.valid));
+  const connectedScanners = (authenticatedApps || []).filter(a => a.app?.name && isVulnScannerApp(a.app.name) && (a.active || a.validation?.valid));
 
   // Filtered vulnerabilities
   const filtered = vulnerabilities.filter(v => {

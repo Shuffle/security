@@ -75,7 +75,7 @@ export const useVulnerabilities = ({ tab = 'assets' }: UseVulnerabilitiesOptions
   const allVulnerabilities = useMemo(() => {
     return items.map(item => {
       try {
-        const parsed = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+        const parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
         return parseVulnerability(parsed);
       } catch {
         return null;
