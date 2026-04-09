@@ -5,7 +5,7 @@ import { Shield, Plus, RefreshCw, Search, Monitor, Users } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 const VulnerabilitiesPage = () => {
-  usePageMeta({ title: 'Vulnerabilities' });
+  usePageMeta({ title: 'Vulnerabilities', description: 'Track and manage vulnerabilities across assets and users' });
   const [activeTab, setActiveTab] = useState('assets');
 
   return (
