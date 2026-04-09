@@ -61,6 +61,10 @@ export const ObservableTypeSelector = ({
       const orderA = categoryOrder.indexOf(catA as IOCCategory);
       const orderB = categoryOrder.indexOf(catB as IOCCategory);
       if (orderA !== orderB) return orderA - orderB;
+      // Enabled types first within each category
+      const enabledA = a.enabled !== false ? 1 : 0;
+      const enabledB = b.enabled !== false ? 1 : 0;
+      if (enabledA !== enabledB) return enabledB - enabledA;
       return a.name.localeCompare(b.name);
     });
     
