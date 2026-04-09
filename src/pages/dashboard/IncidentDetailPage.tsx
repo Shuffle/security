@@ -4173,45 +4173,6 @@ const IncidentDetailPage = () => {
             </Typography>
           </Box>
 
-          {/* Enrichments section */}
-          {enrichments.length > 0 && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--muted-foreground))', mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
-                Enrichments ({enrichments.length})
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                {enrichments.map((enr, idx) => (
-                  <Box
-                    key={idx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      p: 1.5,
-                      borderRadius: 1,
-                      bgcolor: 'rgba(139, 92, 246, 0.06)',
-                      border: '1px solid rgba(139, 92, 246, 0.18)',
-                    }}
-                  >
-                    <Chip
-                      label={enr.type}
-                      size="small"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
-                        bgcolor: 'rgba(139, 92, 246, 0.15)',
-                        color: '#8b5cf6',
-                      }}
-                    />
-                    <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                      {enr.value}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
-
           {/* Add Observable input */}
           <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
             <ObservableTypeSelector
@@ -4352,6 +4313,37 @@ const IncidentDetailPage = () => {
             <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 4 }}>
               No observables added. Add IOCs, IPs, domains, hashes, or other indicators.
             </Typography>
+          )}
+
+          {/* Enrichments section */}
+          {enrichments.length > 0 && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--muted-foreground))', mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
+                Enrichments ({enrichments.length})
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                {enrichments.map((enr, idx) => (
+                  <Chip
+                    key={idx}
+                    label={`${enr.type}: ${enr.value}`}
+                    size="small"
+                    sx={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      bgcolor: 'hsl(var(--muted))',
+                      color: 'hsl(var(--foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      maxWidth: '100%',
+                      '& .MuiChip-label': {
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-all',
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
           )}
         </Box>
       )}
