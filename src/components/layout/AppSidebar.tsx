@@ -34,7 +34,7 @@ import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import TuneIcon from '@mui/icons-material/Tune';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
 import RadarIcon from '@mui/icons-material/Radar';
-import { Braces, Waypoints, Network, Activity, BookOpen, Sun, Moon, Monitor, LayoutDashboard } from 'lucide-react';
+import { Braces, Waypoints, Network, Activity, BookOpen, Sun, Moon, Monitor, LayoutDashboard, Shield } from 'lucide-react';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -78,6 +78,15 @@ const buildNavItems = (entityLabel: string, entityPath: string, isSupport?: bool
       { label: 'Custom Fields', path: '/incidents/custom-fields', icon: <TuneIcon fontSize="small" /> },
     ],
   },
+  ...(isSupport ? [{ 
+    label: 'Vulnerabilities', 
+    icon: <Shield size={20} />,
+    path: '/vulnerabilities',
+    children: [
+      { label: 'Assets', path: '/vulnerabilities?tab=assets', icon: <Monitor size={16} /> },
+      { label: 'Users', path: '/vulnerabilities?tab=users', icon: <PeopleIcon fontSize="small" /> },
+    ],
+  }] : []),
   { 
     label: 'Detection', 
     icon: <RadarIcon />,
@@ -536,7 +545,31 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                       {!visuallyCollapsed && (
                         <>
                           <ListItemText
-                            primary={item.label}
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <span>{item.label}</span>
+                                {item.label === 'Vulnerabilities' && (
+                                  <Typography
+                                    component="span"
+                                    sx={{
+                                      fontSize: '0.6rem',
+                                      fontWeight: 700,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.04em',
+                                      px: 0.8,
+                                      py: 0.2,
+                                      borderRadius: '4px',
+                                      backgroundColor: 'hsla(var(--primary) / 0.12)',
+                                      color: 'hsl(var(--primary))',
+                                      lineHeight: 1.4,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    Support
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
                             primaryTypographyProps={{ 
                               fontSize: '0.875rem', 
                               fontWeight: isActive(item.path) ? 500 : 400,
