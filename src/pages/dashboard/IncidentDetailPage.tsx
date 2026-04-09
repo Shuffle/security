@@ -3045,6 +3045,7 @@ const IncidentDetailPage = () => {
                             },
                           },
                         },
+                      enrichments: enrichments,
                       };
                       setRawJsonText(JSON.stringify(liveSnapshot, null, 2));
                     }
