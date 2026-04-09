@@ -506,19 +506,25 @@ const IncidentsPage = () => {
           },
         });
 
-        if (!response.ok) return { orgId: org.id, orgName: org.name, orgImage: org.image, items: [] };
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
         const items = Array.isArray(data) ? data : (data.keys || data.data || []);
-        return { orgId: org.id, orgName: org.name, orgImage: org.image, items };
+        return { orgId: org.id, orgName: org.name, orgImage: org.image, items, failed: false };
       })
     );
 
     const newMap = new Map<string, { orgName: string; orgImage?: string; items: typeof datastoreItems }>();
-    results.forEach((result) => {
+    const failedIds = new Set<string>();
+    results.forEach((result, idx) => {
+      const org = orgsToFetch[idx];
       if (result.status === 'fulfilled' && result.value) {
         const { orgId, orgName, orgImage, items } = result.value;
         newMap.set(orgId, { orgName, orgImage, items });
+      } else {
+        // Mark as failed but still add with empty items so org appears in the list
+        failedIds.add(org.id);
+        newMap.set(org.id, { orgName: org.name, orgImage: org.image, items: [] });
       }
     });
 
