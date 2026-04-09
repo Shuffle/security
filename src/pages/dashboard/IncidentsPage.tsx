@@ -2445,7 +2445,9 @@ const IncidentsPage = () => {
                     : subOrgItems.get(option.id)?.items.length || 0;
                   const isOrgLoading = subOrgLoading.has(option.id);
                   const isOrgFailed = subOrgFailed.has(option.id);
-                  const isSubOrg = option.id !== currentOrgId && (!parentOrg || option.id !== parentOrg.id);
+                  // Indent orgs that are children of another org in the list
+                  const orgData = subOrgs.find(o => o.id === option.id);
+                  const isSubOrg = orgData?.creator_org && orgData.creator_org !== option.id;
                   return (
                     <li {...props} key={option.id} style={{ paddingLeft: isSubOrg ? 48 : 16 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
