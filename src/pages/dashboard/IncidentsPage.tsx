@@ -2444,6 +2444,7 @@ const IncidentsPage = () => {
                     ? datastoreItems.length
                     : subOrgItems.get(option.id)?.items.length || 0;
                   const isOrgLoading = subOrgLoading.has(option.id);
+                  const isOrgFailed = subOrgFailed.has(option.id);
                   const isSubOrg = option.id !== currentOrgId && (!parentOrg || option.id !== parentOrg.id);
                   return (
                     <li {...props} key={option.id} style={{ paddingLeft: isSubOrg ? 48 : 16 }}>
@@ -2455,12 +2456,17 @@ const IncidentsPage = () => {
                             <Box sx={{ width: 20, height: 20, borderRadius: '4px', bgcolor: 'hsl(var(--muted) / 0.5)', flexShrink: 0 }} />
                           )}
                           <Typography sx={{ fontSize: '0.82rem' }}>{option.name}</Typography>
+                          {isOrgFailed && (
+                            <Tooltip title="Failed to load incidents from this org" placement="right">
+                              <WarningAmberIcon sx={{ fontSize: 14, color: 'hsl(var(--severity-medium))' }} />
+                            </Tooltip>
+                          )}
                         </Box>
                         {isOrgLoading ? (
                           <CircularProgress size={12} sx={{ color: '#a78bfa', ml: 1 }} />
                         ) : (
-                          <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 1 }}>
-                            {count}
+                          <Typography sx={{ fontSize: '0.7rem', color: isOrgFailed ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))', ml: 1 }}>
+                            {isOrgFailed ? '!' : count}
                           </Typography>
                         )}
                       </Box>
