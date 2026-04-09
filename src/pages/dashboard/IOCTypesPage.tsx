@@ -25,6 +25,7 @@ import {
   Tooltip,
   ToggleButton,
   ToggleButtonGroup,
+  Switch,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
@@ -36,7 +37,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { useDatastore } from '@/hooks/useDatastore';
-import { DEFAULT_IOC_TYPES, IOCType, IOC_CATEGORIES, IOCCategory } from '@/hooks/useIOCTypes';
+import { DEFAULT_IOC_TYPES, IOCType, IOC_CATEGORIES, IOCCategory, DEFAULT_ENABLED_IOCS } from '@/hooks/useIOCTypes';
 import { DATASTORE_CATEGORIES } from '@/services/datastore';
 
 const CATEGORY = DATASTORE_CATEGORIES.IOCS;
@@ -77,7 +78,7 @@ const IOCTypesPage = () => {
         const { setDatastoreItems } = await import('@/services/datastore');
         const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
           key: ioc.name,
-          value: ioc,
+          value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
         }));
         await setDatastoreItems(bulkItems, CATEGORY);
         
@@ -118,7 +119,7 @@ const IOCTypesPage = () => {
     const { setDatastoreItems } = await import('@/services/datastore');
     const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
       key: ioc.name,
-      value: ioc,
+      value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
     }));
     await setDatastoreItems(bulkItems, CATEGORY);
     
@@ -158,6 +159,13 @@ const IOCTypesPage = () => {
   const handleDelete = async (name: string) => {
     await removeItem(name);
   };
+
+  const handleToggleEnabled = async (type: IOCType) => {
+    const updated = { ...type, enabled: !type.enabled };
+    await addItem(type.name, updated);
+  };
+
+  const enabledCount = useMemo(() => iocTypes.filter(t => t.enabled).length, [iocTypes]);
 
   // Test regex pattern
   const testRegex = (pattern: string, value: string): boolean | null => {
@@ -250,6 +258,7 @@ const IOCTypesPage = () => {
           <Typography variant="h5" sx={{ fontWeight: 600 }}>IOC Types</Typography>
           {isLoading && <CircularProgress size={20} />}
           <Chip label={`${iocTypes.length} types`} size="small" variant="outlined" />
+          <Chip label={`${enabledCount} enabled`} size="small" sx={{ bgcolor: 'hsl(var(--severity-low) / 0.12)', color: 'hsl(var(--severity-low))' }} />
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
           {/* TODO Filter Toggle */}
@@ -379,6 +388,7 @@ const IOCTypesPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell sx={{ width: 60 }}>Enabled</TableCell>
                   <TableCell>Name</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Regex Pattern</TableCell>
@@ -394,8 +404,8 @@ const IOCTypesPage = () => {
                   
                   return [
                     // Category header row
-                    <TableRow key={`header-${category.id}`} sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
-                      <TableCell colSpan={Object.keys(testResults).length > 0 ? 6 : 5} sx={{ py: 1 }}>
+                    <TableRow key={`header-${category.id}`} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }}>
+                      <TableCell colSpan={Object.keys(testResults).length > 0 ? 7 : 6} sx={{ py: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: category.color }} />
                           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: category.color }}>
@@ -407,7 +417,15 @@ const IOCTypesPage = () => {
                     </TableRow>,
                     // Types in category
                     ...typesInCategory.map((type) => (
-                      <TableRow key={type.name} hover>
+                      <TableRow key={type.name} hover sx={{ opacity: type.enabled ? 1 : 0.5 }}>
+                        <TableCell sx={{ py: 0.5 }}>
+                          <Switch
+                            size="small"
+                            checked={!!type.enabled}
+                            onChange={() => handleToggleEnabled(type)}
+                            color="success"
+                          />
+                        </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Chip label={type.name} size="small" sx={{ fontWeight: 500 }} />
@@ -471,7 +489,7 @@ const IOCTypesPage = () => {
                 })}
                 {filteredAndSortedTypes.length === 0 && !isLoading && !isInitializing && (
                   <TableRow>
-                    <TableCell colSpan={Object.keys(testResults).length > 0 ? 6 : 5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={Object.keys(testResults).length > 0 ? 7 : 6} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
                         {filterMode === 'todo' 
                           ? 'No IOC types need patterns. All done!' 

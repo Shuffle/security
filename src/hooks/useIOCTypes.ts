@@ -23,26 +23,33 @@ export const IOC_CATEGORIES = [
 
 export type IOCCategory = typeof IOC_CATEGORIES[number]['id'];
 
+// IOC types that are enabled by default (most commonly used in SOC operations)
+export const DEFAULT_ENABLED_IOCS = new Set([
+  'ip', 'domain', 'url', 'email', 'hash_md5', 'hash_sha256',
+  'file_name', 'hostname', 'username', 'cve',
+]);
+
 export interface IOCType {
   name: string;
   regex?: string;
   description?: string;
   category?: IOCCategory;
   needsPattern?: boolean;
+  enabled?: boolean;
 }
 
 // Default IOC types organized by Pyramid of Pain levels
 export const DEFAULT_IOC_TYPES: IOCType[] = [
   // === MOST COMMONLY USED ===
-  { name: 'ip', regex: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', description: 'IPv4 address', category: 'common' },
-  { name: 'domain', regex: '^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$', description: 'Domain name', category: 'common' },
-  { name: 'url', regex: '^https?:\\/\\/[^\\s]+$', description: 'Full URL', category: 'common' },
-  { name: 'email', regex: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$', description: 'Email address', category: 'common' },
-  { name: 'hash_md5', regex: '^[a-fA-F0-9]{32}$', description: 'MD5 hash (32 hex chars)', category: 'common' },
-  { name: 'hash_sha256', regex: '^[a-fA-F0-9]{64}$', description: 'SHA256 hash (64 hex chars)', category: 'common' },
-  { name: 'file_name', description: 'File name', category: 'common', needsPattern: true },
-  { name: 'hostname', description: 'Hostname', category: 'common', needsPattern: true },
-  { name: 'username', description: 'Username', category: 'common', needsPattern: true },
+  { name: 'ip', regex: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', description: 'IPv4 address', category: 'common', enabled: true },
+  { name: 'domain', regex: '^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$', description: 'Domain name', category: 'common', enabled: true },
+  { name: 'url', regex: '^https?:\\/\\/[^\\s]+$', description: 'Full URL', category: 'common', enabled: true },
+  { name: 'email', regex: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$', description: 'Email address', category: 'common', enabled: true },
+  { name: 'hash_md5', regex: '^[a-fA-F0-9]{32}$', description: 'MD5 hash (32 hex chars)', category: 'common', enabled: true },
+  { name: 'hash_sha256', regex: '^[a-fA-F0-9]{64}$', description: 'SHA256 hash (64 hex chars)', category: 'common', enabled: true },
+  { name: 'file_name', description: 'File name', category: 'common', needsPattern: true, enabled: true },
+  { name: 'hostname', description: 'Hostname', category: 'common', needsPattern: true, enabled: true },
+  { name: 'username', description: 'Username', category: 'common', needsPattern: true, enabled: true },
   // === HASH VALUES ===
   { name: 'hash_sha1', regex: '^[a-fA-F0-9]{40}$', description: 'SHA1 hash (40 hex chars)', category: 'hash' },
   { name: 'hash_sha512', regex: '^[a-fA-F0-9]{128}$', description: 'SHA512 hash (128 hex chars)', category: 'hash' },
@@ -96,7 +103,7 @@ export const DEFAULT_IOC_TYPES: IOCType[] = [
   { name: 'mitre_tactic', regex: '^TA\\d{4}$', description: 'MITRE ATT&CK Tactic ID', category: 'threat_intel' },
   { name: 'mitre_technique', regex: '^T\\d{4}(\\.\\d{3})?$', description: 'MITRE ATT&CK Technique ID', category: 'threat_intel' },
   { name: 'mitre_subtechnique', regex: '^T\\d{4}\\.\\d{3}$', description: 'MITRE ATT&CK Sub-technique', category: 'threat_intel' },
-  { name: 'cve', regex: '^CVE-\\d{4}-\\d{4,}$', description: 'CVE vulnerability ID', category: 'threat_intel' },
+  { name: 'cve', regex: '^CVE-\\d{4}-\\d{4,}$', description: 'CVE vulnerability ID', category: 'threat_intel', enabled: true },
   { name: 'cwe', regex: '^CWE-\\d+$', description: 'CWE weakness ID', category: 'threat_intel' },
   { name: 'capec', regex: '^CAPEC-\\d+$', description: 'CAPEC attack pattern ID', category: 'threat_intel' },
   { name: 'malware_family', description: 'Malware family name', category: 'threat_intel' },
@@ -168,7 +175,7 @@ export const useIOCTypes = () => {
     const { setDatastoreItems, DATASTORE_CATEGORIES } = await import('@/services/datastore');
     const dsItems = DEFAULT_IOC_TYPES.map(ioc => ({
       key: ioc.name,
-      value: ioc,
+      value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
     }));
     await setDatastoreItems(dsItems, DATASTORE_CATEGORIES.IOCS);
     invalidate();
