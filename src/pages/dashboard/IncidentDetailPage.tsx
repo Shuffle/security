@@ -132,7 +132,7 @@ interface DisplayIncident {
   references?: string[];
   stakeholders?: Stakeholder[];
   observables?: Observable[];
-  enrichments?: Array<{ type: string; value: string }>;
+  enrichments?: Array<{ type: string; value?: string; data?: string }>;
   customFields?: Record<string, string | number | boolean>;
   relatedFindings?: string[];
   activity?: ActivityItem[];
@@ -237,7 +237,24 @@ const resolveCreatedTs = (data: any, itemCreated?: number): number => {
   return normalizeToMs(itemCreated);
 };
 
-const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number; enrichments?: Array<{ type: string; value: string }> }): DisplayIncident | null => {
+/** Merge native (root-level) enrichments with OCSF-level enrichments, deduplicating by type+value */
+const deduplicateEnrichments = (
+  nativeEnrichments?: Array<{ type: string; value?: string; data?: string }>,
+  ocsfEnrichments?: Array<{ type: string; value?: string; data?: string }>
+): Array<{ type: string; value?: string; data?: string }> => {
+  const native = Array.isArray(nativeEnrichments) ? nativeEnrichments : [];
+  const ocsf = Array.isArray(ocsfEnrichments) ? ocsfEnrichments : [];
+  const all = [...native, ...ocsf];
+  const seen = new Set<string>();
+  return all.filter(e => {
+    const key = `${e.type}::${e.value || e.data || ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number; enrichments?: Array<{ type: string; value?: string; data?: string }> }): DisplayIncident | null => {
   const parseStart = performance.now();
   try {
     const jsonStart = performance.now();
@@ -295,7 +312,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         references: ocsf.references,
         stakeholders: (customAttrs as any)?.stakeholders || (data as any).stakeholders || [],
         observables: customAttrs?.observables || (data as any).observables,
-        enrichments: Array.isArray(item.enrichments) ? item.enrichments : [],
+        enrichments: deduplicateEnrichments(item.enrichments, (data as any).enrichments),
         // Support both customFields and custom_fields naming
         customFields: customAttrs?.customFields || (customAttrs as any)?.custom_fields || (data as any).customFields || (data as any).custom_fields,
         relatedFindings: ocsf.related_events,
@@ -330,7 +347,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
         pap,
         references: findingInfo?.references,
         observables: legacyData.observables,
-        enrichments: Array.isArray(item.enrichments) ? item.enrichments : [],
+        enrichments: deduplicateEnrichments(item.enrichments, legacyData.enrichments),
         customFields,
         relatedFindings: legacyData.related_findings,
         activity: activity || [],
@@ -357,7 +374,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       references: data.references || [],
       stakeholders: data.stakeholders || [],
       observables: data.observables || [],
-      enrichments: Array.isArray(item.enrichments) ? item.enrichments : [],
+      enrichments: deduplicateEnrichments(item.enrichments, data.enrichments),
       customFields: data.customFields || {},
       relatedFindings: data.relatedFindings || [],
       activity: data.activity || [],
@@ -488,7 +505,7 @@ const IncidentDetailPage = () => {
   const [showStakeholderSuggestions, setShowStakeholderSuggestions] = useState(false);
   const [knownStakeholders, setKnownStakeholders] = useState<Stakeholder[]>([]);
   const [editedObservables, setEditedObservables] = useState<Observable[]>([]);
-  const [enrichments, setEnrichments] = useState<Array<{ type: string; value: string }>>([]);
+  const [enrichments, setEnrichments] = useState<Array<{ type: string; value?: string; data?: string }>>([]);
   const [newObservableType, setNewObservableType] = useState('ip');
   const [newObservableValue, setNewObservableValue] = useState('');
   const [editedCustomFields, setEditedCustomFields] = useState<Record<string, string | number | boolean>>({});
@@ -2868,7 +2885,7 @@ const IncidentDetailPage = () => {
               {[
                 { label: 'Details', count: null },
                 { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null },
-                { label: 'Observables', count: editedObservables.filter(o => !o.archived).length > 0 ? editedObservables.filter(o => !o.archived).length : null },
+                { label: 'Observables', count: (editedObservables.filter(o => !o.archived).length + enrichments.length) > 0 ? (editedObservables.filter(o => !o.archived).length + enrichments.length) : null },
                 { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading },
               ].map((tab, index) => (
                 <Box
@@ -3028,6 +3045,7 @@ const IncidentDetailPage = () => {
                             },
                           },
                         },
+                      enrichments: enrichments,
                       };
                       setRawJsonText(JSON.stringify(liveSnapshot, null, 2));
                     }
@@ -4325,7 +4343,7 @@ const IncidentDetailPage = () => {
                 {enrichments.map((enr, idx) => (
                   <Chip
                     key={idx}
-                    label={`${enr.type}: ${enr.value}`}
+                    label={`${enr.type}: ${enr.value || enr.data || ''}`}
                     size="small"
                     sx={{
                       fontFamily: 'monospace',
