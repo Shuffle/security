@@ -547,12 +547,9 @@ const IncidentsPage = () => {
         currentOrgId || '',
         ...subOrgs.filter(o => o.id !== currentOrgId).map(o => o.id),
       ];
-      if (parentOrg && parentOrg.id !== currentOrgId && !allIds.includes(parentOrg.id)) {
-        allIds.unshift(parentOrg.id);
-      }
       setFilters(prev => ({ ...prev, org: allIds }));
     }
-  }, [isParentOrg, filters.org, currentOrgId, subOrgs, parentOrg]);
+  }, [isParentOrg, filters.org, currentOrgId, subOrgs]);
 
 
   const validUsernames = useMemo(() => {
