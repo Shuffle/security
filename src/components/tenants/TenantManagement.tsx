@@ -194,6 +194,7 @@ const TenantManagement = () => {
               <TableRow>
                 <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                 <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
+                <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
                 <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                 <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
               </TableRow>
@@ -227,7 +228,8 @@ const TenantManagement = () => {
                 <TableRow>
                   <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                   <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
-                  <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
+                  <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
+                <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                   <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
                 </TableRow>
               </TableHead>
@@ -279,7 +281,8 @@ const TenantManagement = () => {
                   <TableRow>
                     <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                     <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
-                    <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
+                    <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
+                <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                     <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
                   </TableRow>
                 </TableHead>
@@ -330,7 +333,8 @@ const TenantManagement = () => {
                   <TableRow>
                     <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                     <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
-                    <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
+                    <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
+                <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                     <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
                   </TableRow>
                 </TableHead>
