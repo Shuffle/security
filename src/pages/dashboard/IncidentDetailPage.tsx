@@ -4233,202 +4233,161 @@ const IncidentDetailPage = () => {
             })()}
           </Box>
           
-          {/* Observables list */}
-          {editedObservables.filter(o => !o.archived).length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {editedObservables.map((obs, idx) => {
-                if (obs.archived) return null;
-                const iocDef = iocTypes.find(t => t.name === obs.type);
-                const pattern = iocDef?.regex;
-                let mismatch = false;
-                if (pattern) {
-                  try { mismatch = !new RegExp(pattern).test(obs.value); } catch { /* skip */ }
-                }
-                // Find matching types (other types whose regex matches this value)
-                const suggestedTypes = mismatch
-                  ? iocTypes.filter(t => t.name !== obs.type && t.regex).filter(t => {
-                      try { return new RegExp(t.regex!).test(obs.value); } catch { return false; }
-                    }).slice(0, 3)
-                  : [];
-                return (
-                  <Box 
-                    key={idx} 
-                    sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      gap: (mismatch) ? 0.5 : 0,
-                      p: 1.5, 
-                      borderRadius: 1, 
-                      bgcolor: 'rgba(0,0,0,0.2)',
-                      border: mismatch ? '1px solid rgba(251, 146, 60, 0.3)' : '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Chip 
-                        label={obs.type} 
-                        size="small" 
-                        sx={{ 
-                          fontWeight: 600, 
-                          fontSize: '0.7rem',
-                          bgcolor: mismatch ? 'rgba(251, 146, 60, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                          color: mismatch ? '#fb923c' : '#3b82f6',
-                        }} 
-                      />
-                      <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                        {obs.value}
-                      </Typography>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleRemoveObservable(idx)}
-                        sx={{ 
-                          p: 0.5, 
-                          color: 'text.disabled',
-                          '&:hover': { color: '#ef4444' },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                    {mismatch && (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pl: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: '#fb923c', fontSize: '0.65rem' }}>
-                          ⚠ Doesn't match pattern for "{obs.type}"
-                        </Typography>
-                        {suggestedTypes.length > 0 && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                            <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.65rem' }}>
-                              Matches:
-                            </Typography>
-                            {suggestedTypes.map(st => (
-                              <Chip
-                                key={st.name}
-                                label={`Change to ${st.name}`}
-                                size="small"
-                                onClick={() => {
-                                  const updated = [...editedObservables];
-                                  updated[idx] = { ...updated[idx], type: st.name };
-                                  setEditedObservables(updated);
-                                }}
-                                sx={{
-                                  height: 20,
-                                  fontSize: '0.6rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  bgcolor: 'rgba(34, 197, 94, 0.12)',
-                                  color: '#22c55e',
-                                  '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.25)' },
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
-            </Box>
-          ) : (
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 4 }}>
-              No observables added. Add IOCs, IPs, domains, hashes, or other indicators.
-            </Typography>
-          )}
+          {/* Unified observables list (manual + enrichments) */}
+          {(() => {
+            const manualObs = editedObservables
+              .map((obs, idx) => ({ ...obs, _idx: idx, _source: 'manual' as const }))
+              .filter(o => !o.archived);
+            const enrichObs = enrichments.map((enr, idx) => ({
+              type: enr.type || 'unknown',
+              value: enr.value || enr.data || '',
+              _idx: idx,
+              _source: 'enrichment' as const,
+            }));
+            const allObs = [...manualObs, ...enrichObs];
 
-          {/* Enrichments section */}
-          {enrichments.length > 0 && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--muted-foreground))', mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
-                Enrichments ({enrichments.length})
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {enrichments.map((enr, idx) => {
-                  const enrichValue = enr.value || enr.data || '';
-                  const enrichType = enr.type || 'unknown';
-                  const actionName = `search_ioc_${enrichType.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+            if (allObs.length === 0) {
+              return (
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 4 }}>
+                  No observables added. Add IOCs, IPs, domains, hashes, or other indicators.
+                </Typography>
+              );
+            }
+
+            return (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {allObs.map((obs) => {
+                  const iocDef = iocTypes.find(t => t.name === obs.type);
+                  const pattern = iocDef?.regex;
+                  let mismatch = false;
+                  if (pattern && obs._source === 'manual') {
+                    try { mismatch = !new RegExp(pattern).test(obs.value); } catch { /* skip */ }
+                  }
+                  const suggestedTypes = mismatch
+                    ? iocTypes.filter(t => t.name !== obs.type && t.regex).filter(t => {
+                        try { return new RegExp(t.regex!).test(obs.value); } catch { return false; }
+                      }).slice(0, 3)
+                    : [];
+                  const actionName = `search_ioc_${obs.type.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
                   return (
                     <Box
-                      key={idx}
+                      key={`${obs._source}-${obs._idx}`}
                       sx={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.5,
-                        px: 1.5,
-                        py: 1,
+                        flexDirection: 'column',
+                        gap: mismatch ? 0.5 : 0,
+                        p: 1.5,
                         borderRadius: 1,
-                        bgcolor: 'hsl(var(--background-elevated))',
-                        border: '1px solid hsl(var(--border))',
-                        '&:hover': { borderColor: 'hsl(var(--border-subtle))' },
+                        bgcolor: 'rgba(0,0,0,0.2)',
+                        border: mismatch ? '1px solid rgba(251, 146, 60, 0.3)' : '1px solid rgba(255,255,255,0.06)',
                       }}
                     >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '0.7rem',
-                          color: 'hsl(var(--primary))',
-                          textTransform: 'uppercase',
-                          minWidth: 70,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {enrichType}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          flex: 1,
-                          fontFamily: 'monospace',
-                          fontSize: '0.8rem',
-                          color: 'hsl(var(--foreground))',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          minWidth: 0,
-                        }}
-                      >
-                        {enrichValue}
-                      </Typography>
-                      <Tooltip title={`Run ${actionName} via threat intel apps`} arrow>
-                        <IconButton
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Chip
+                          label={obs.type}
                           size="small"
-                          onClick={async () => {
-                            try {
-                              const resp = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
-                                method: 'POST',
-                                credentials: 'include',
-                                headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-                                body: JSON.stringify({
-                                  category: 'threat_intel',
-                                  action: actionName,
-                                  fields: [{ key: 'ioc', value: enrichValue }],
-                                }),
-                              });
-                              if (resp.ok) {
-                                const result = await resp.json();
-                                console.log(`[Enrichment] ${actionName} result:`, result);
-                                toast.success(`Search completed for ${enrichType}: ${enrichValue}`);
-                              } else {
-                                toast.error(`Search failed: ${resp.statusText}`);
-                              }
-                            } catch (err) {
-                              console.error('[Enrichment] search error:', err);
-                              toast.error('Failed to run enrichment search');
-                            }
-                          }}
                           sx={{
-                            color: 'hsl(var(--muted-foreground))',
-                            '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--accent))' },
+                            fontWeight: 600,
+                            fontSize: '0.7rem',
+                            textTransform: 'uppercase',
+                            bgcolor: mismatch ? 'rgba(251, 146, 60, 0.15)' : 'hsl(var(--primary) / 0.15)',
+                            color: mismatch ? '#fb923c' : 'hsl(var(--primary))',
                           }}
-                        >
-                          <SearchIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
+                        />
+                        <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                          {obs.value}
+                        </Typography>
+                        <Tooltip title={`Run ${actionName} via threat intel apps`} arrow>
+                          <IconButton
+                            size="small"
+                            onClick={async () => {
+                              try {
+                                const resp = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
+                                  method: 'POST',
+                                  credentials: 'include',
+                                  headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+                                  body: JSON.stringify({
+                                    category: 'threat_intel',
+                                    action: actionName,
+                                    fields: [{ key: 'ioc', value: obs.value }],
+                                  }),
+                                });
+                                if (resp.ok) {
+                                  const result = await resp.json();
+                                  console.log(`[Observable] ${actionName} result:`, result);
+                                  toast.success(`Search completed for ${obs.type}: ${obs.value}`);
+                                } else {
+                                  toast.error(`Search failed: ${resp.statusText}`);
+                                }
+                              } catch (err) {
+                                console.error('[Observable] search error:', err);
+                                toast.error('Failed to run enrichment search');
+                              }
+                            }}
+                            sx={{
+                              p: 0.5,
+                              color: 'hsl(var(--muted-foreground))',
+                              '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--accent))' },
+                            }}
+                          >
+                            <SearchIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                        {obs._source === 'manual' && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveObservable(obs._idx)}
+                            sx={{
+                              p: 0.5,
+                              color: 'text.disabled',
+                              '&:hover': { color: '#ef4444' },
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Box>
+                      {mismatch && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pl: 0.5 }}>
+                          <Typography variant="caption" sx={{ color: '#fb923c', fontSize: '0.65rem' }}>
+                            ⚠ Doesn't match pattern for "{obs.type}"
+                          </Typography>
+                          {suggestedTypes.length > 0 && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.65rem' }}>
+                                Matches:
+                              </Typography>
+                              {suggestedTypes.map(st => (
+                                <Chip
+                                  key={st.name}
+                                  label={`Change to ${st.name}`}
+                                  size="small"
+                                  onClick={() => {
+                                    const updated = [...editedObservables];
+                                    updated[obs._idx] = { ...updated[obs._idx], type: st.name };
+                                    setEditedObservables(updated);
+                                  }}
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.6rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    bgcolor: 'rgba(34, 197, 94, 0.12)',
+                                    color: '#22c55e',
+                                    '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.25)' },
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </Box>
+                      )}
                     </Box>
                   );
                 })}
               </Box>
-            </Box>
-          )}
+            );
+          })()}
         </Box>
       )}
 
