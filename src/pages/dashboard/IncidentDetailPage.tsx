@@ -58,6 +58,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LanguageIcon from '@mui/icons-material/Language';
+import SearchIcon from '@mui/icons-material/Search';
 import Menu from '@mui/material/Menu';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
@@ -4339,27 +4340,92 @@ const IncidentDetailPage = () => {
               <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--muted-foreground))', mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
                 Enrichments ({enrichments.length})
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                {enrichments.map((enr, idx) => (
-                  <Chip
-                    key={idx}
-                    label={`${enr.type}: ${enr.value || enr.data || ''}`}
-                    size="small"
-                    sx={{
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      bgcolor: 'hsl(var(--muted))',
-                      color: 'hsl(var(--foreground))',
-                      border: '1px solid hsl(var(--border))',
-                      maxWidth: '100%',
-                      '& .MuiChip-label': {
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-all',
-                      },
-                    }}
-                  />
-                ))}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {enrichments.map((enr, idx) => {
+                  const enrichValue = enr.value || enr.data || '';
+                  const enrichType = enr.type || 'unknown';
+                  const actionName = `search_ioc_${enrichType.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+                  return (
+                    <Box
+                      key={idx}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        px: 1.5,
+                        py: 1,
+                        borderRadius: 1,
+                        bgcolor: 'hsl(var(--background-elevated))',
+                        border: '1px solid hsl(var(--border))',
+                        '&:hover': { borderColor: 'hsl(var(--border-subtle))' },
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          color: 'hsl(var(--primary))',
+                          textTransform: 'uppercase',
+                          minWidth: 70,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {enrichType}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          flex: 1,
+                          fontFamily: 'monospace',
+                          fontSize: '0.8rem',
+                          color: 'hsl(var(--foreground))',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          minWidth: 0,
+                        }}
+                      >
+                        {enrichValue}
+                      </Typography>
+                      <Tooltip title={`Run ${actionName} via threat intel apps`} arrow>
+                        <IconButton
+                          size="small"
+                          onClick={async () => {
+                            try {
+                              const resp = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+                                body: JSON.stringify({
+                                  category: 'threat_intel',
+                                  action: actionName,
+                                  fields: [{ key: 'ioc', value: enrichValue }],
+                                }),
+                              });
+                              if (resp.ok) {
+                                const result = await resp.json();
+                                console.log(`[Enrichment] ${actionName} result:`, result);
+                                toast.success(`Search completed for ${enrichType}: ${enrichValue}`);
+                              } else {
+                                toast.error(`Search failed: ${resp.statusText}`);
+                              }
+                            } catch (err) {
+                              console.error('[Enrichment] search error:', err);
+                              toast.error('Failed to run enrichment search');
+                            }
+                          }}
+                          sx={{
+                            color: 'hsl(var(--muted-foreground))',
+                            '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--accent))' },
+                          }}
+                        >
+                          <SearchIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  );
+                })}
               </Box>
             </Box>
           )}
