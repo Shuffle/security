@@ -51,6 +51,13 @@ function getAutomationSnapshot(): boolean {
   const val = localStorage.getItem(LOCAL_AUTOMATION_KEY);
   return val === null ? true : val === 'true';
 }
+function getSidebarTabsSnapshot(): Record<SidebarTabKey, boolean> {
+  try {
+    const val = localStorage.getItem(LOCAL_SIDEBAR_TABS_KEY);
+    if (val) return { ...DEFAULT_SIDEBAR_TABS, ...JSON.parse(val) };
+  } catch { /* empty */ }
+  return DEFAULT_SIDEBAR_TABS;
+}
 
 let _fetchedFromServer = false;
 
@@ -66,6 +73,9 @@ export async function loadEntityPreference() {
       }
       if (data?.show_automation !== undefined) {
         localStorage.setItem(LOCAL_AUTOMATION_KEY, String(data.show_automation));
+      }
+      if (data?.sidebar_tabs !== undefined) {
+        localStorage.setItem(LOCAL_SIDEBAR_TABS_KEY, JSON.stringify(data.sidebar_tabs));
       }
       listeners.forEach(cb => cb());
     }
@@ -162,4 +172,32 @@ export function useEntityPreference() {
     const pref = ENTITY_OPTIONS.find(o => o.value === preference) || ENTITY_OPTIONS[0];
     return { singular: pref.singular, plural: pref.plural, basePath: pref.path, value: pref.value };
   }, [preference]);
+}
+
+/** Save sidebar tab visibility */
+export async function setSidebarTabVisibility(tabs: Record<SidebarTabKey, boolean>) {
+  localStorage.setItem(LOCAL_SIDEBAR_TABS_KEY, JSON.stringify(tabs));
+  listeners.forEach(cb => cb());
+
+  try {
+    let existing: Record<string, unknown> = {};
+    try {
+      const result = await getDatastoreItem(DATASTORE_KEY, DATASTORE_CATEGORIES.CONFIGURATION);
+      if (result.success && result.item?.value) {
+        existing = typeof result.item.value === 'string' ? JSON.parse(result.item.value) : result.item.value;
+      }
+    } catch { /* empty */ }
+    await setDatastoreItem(DATASTORE_KEY, { ...existing, sidebar_tabs: tabs }, DATASTORE_CATEGORIES.CONFIGURATION);
+  } catch { /* local cache is already set */ }
+}
+
+/** Hook to read sidebar tab visibility */
+export function useSidebarTabs(): Record<SidebarTabKey, boolean> {
+  const value = useSyncExternalStore(subscribe, getSidebarTabsSnapshot);
+
+  useEffect(() => {
+    if (!_fetchedFromServer) loadEntityPreference();
+  }, []);
+
+  return value;
 }
