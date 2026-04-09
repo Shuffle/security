@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { useAuth } from '@/context/AuthContext';
 import { useSubOrgs, SubOrg } from '@/hooks/useSubOrgs';
+import { getRegionFlag } from '@/lib/regionFlag';
 
 const TenantManagement = () => {
   const { userInfo, setActiveOrg } = useAuth();
@@ -95,6 +96,7 @@ const TenantManagement = () => {
 
   const OrgRow = ({ org, showSwitch = true }: { org: { id: string; name: string; image?: string; creator_org?: string; region_url?: string }; showSwitch?: boolean }) => {
     const isCurrent = org.id === currentOrgId;
+    const region = getRegionFlag(org.region_url);
     return (
       <TableRow hover sx={{ opacity: switchingOrgId === org.id ? 0.5 : 1 }}>
         <TableCell>
@@ -113,6 +115,14 @@ const TenantManagement = () => {
             {isCurrent && (
               <Chip label="Current" size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))' }} />
             )}
+          </Box>
+        </TableCell>
+        <TableCell>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <span>{region.flag}</span>
+            <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem' }}>
+              {region.code}
+            </Typography>
           </Box>
         </TableCell>
         <TableCell>
@@ -184,6 +194,7 @@ const TenantManagement = () => {
               <TableRow>
                 <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                 <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
+                <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
                 <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                 <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
               </TableRow>
@@ -217,7 +228,8 @@ const TenantManagement = () => {
                 <TableRow>
                   <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                   <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
-                  <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
+                  <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
+                <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                   <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
                 </TableRow>
               </TableHead>
@@ -269,7 +281,8 @@ const TenantManagement = () => {
                   <TableRow>
                     <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                     <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
-                    <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
+                    <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
+                <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                     <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
                   </TableRow>
                 </TableHead>
@@ -320,7 +333,8 @@ const TenantManagement = () => {
                   <TableRow>
                     <TableCell sx={{ width: 60, color: 'hsl(var(--muted-foreground))' }}>Logo</TableCell>
                     <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>Name</TableCell>
-                    <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
+                    <TableCell sx={{ width: 80, color: 'hsl(var(--muted-foreground))' }}>Region</TableCell>
+                <TableCell sx={{ color: 'hsl(var(--muted-foreground))' }}>ID</TableCell>
                     <TableCell sx={{ width: 120, color: 'hsl(var(--muted-foreground))' }}>Action</TableCell>
                   </TableRow>
                 </TableHead>

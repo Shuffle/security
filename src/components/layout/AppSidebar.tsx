@@ -45,6 +45,7 @@ import { IntegrationStatus } from './IntegrationStatus';
 import { SidebarSearchDialog } from './SidebarSearchDialog';
 import AgentPermissionsDrawer from '@/components/agent/AgentPermissionsDrawer';
 import { useEntityPreference, useSidebarTabs, SidebarTabKey } from '@/hooks/useEntityLabel';
+import { getRegionFlag } from '@/lib/regionFlag';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -96,43 +97,6 @@ interface AppSidebarProps {
   onToggle: () => void;
 }
 
-// Region flag mapping based on region_url
-const getRegionFlag = (regionUrl?: string): { flag: string; code: string } => {
-  if (!regionUrl) return { flag: '🇬🇧', code: 'UK' };
-  
-  const url = regionUrl.toLowerCase();
-  
-  // Check US regions first (california, us.)
-  if (url.includes('california') || url.includes('us.') || url.includes('us-')) {
-    return { flag: '🇺🇸', code: 'US' };
-  }
-  // Frankfurt / Germany
-  if (url.includes('frankfurt') || url.includes('de.') || url.includes('de-')) {
-    return { flag: '🇩🇪', code: 'DE' };
-  }
-  // EU-2 region
-  if (url.includes('eu-2') || url.includes('eu2')) {
-    return { flag: '🇪🇺', code: 'EU-2' };
-  }
-  // Generic EU
-  if (url.includes('eu.') || url.includes('eu-')) {
-    return { flag: '🇪🇺', code: 'EU' };
-  }
-  // Canada
-  if (url.includes('ca.') || url.includes('canada')) {
-    return { flag: '🇨🇦', code: 'CA' };
-  }
-  // Australia
-  if (url.includes('au.') || url.includes('aus') || url.includes('australia')) {
-    return { flag: '🇦🇺', code: 'AUS' };
-  }
-  // UK
-  if (url.includes('uk.') || url.includes('uk-') || url.includes('london')) {
-    return { flag: '🇬🇧', code: 'UK' };
-  }
-  // Default to UK for base shuffler.io or any unrecognized region
-  return { flag: '🇬🇧', code: 'UK' };
-};
 
 // Sort orgs with parent-child hierarchy
 const sortOrgsWithHierarchy = (orgs: Array<{ id: string; name: string; creator_org?: string; region_url?: string }>) => {
