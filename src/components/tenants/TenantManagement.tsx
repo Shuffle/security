@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { useAuth } from '@/context/AuthContext';
 import { useSubOrgs, SubOrg } from '@/hooks/useSubOrgs';
+import { getRegionFlag } from '@/lib/regionFlag';
 
 const TenantManagement = () => {
   const { userInfo, setActiveOrg } = useAuth();
