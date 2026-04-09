@@ -182,6 +182,9 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
     ioc_types: '/incidents/ioc-types',
     templates: '/templates',
     custom_fields: '/incidents/custom-fields',
+    detection_rules: '/detection/sigma',
+    detection_pipelines: '/detection/pipelines',
+    detection_mitre: '/detection/mitre',
   };
   const tabKeyToNavLabel: Record<string, string> = {
     detection: 'Detection',
