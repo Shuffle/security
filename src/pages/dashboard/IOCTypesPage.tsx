@@ -78,7 +78,7 @@ const IOCTypesPage = () => {
         const { setDatastoreItems } = await import('@/services/datastore');
         const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
           key: ioc.name,
-          value: ioc,
+          value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
         }));
         await setDatastoreItems(bulkItems, CATEGORY);
         
@@ -119,7 +119,7 @@ const IOCTypesPage = () => {
     const { setDatastoreItems } = await import('@/services/datastore');
     const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
       key: ioc.name,
-      value: ioc,
+      value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
     }));
     await setDatastoreItems(bulkItems, CATEGORY);
     
