@@ -47,37 +47,122 @@ const SidebarTabsSelector = () => {
   const tabs = useSidebarTabs();
 
   const handleToggle = (key: SidebarTabKey) => {
-    setSidebarTabVisibility({ ...tabs, [key]: !tabs[key] });
+    const updated = { ...tabs, [key]: !tabs[key] };
+    // If disabling a parent, disable all its children too
+    if (!updated[key]) {
+      SIDEBAR_TAB_OPTIONS.forEach(opt => {
+        if (opt.parent === key) {
+          updated[opt.key] = false;
+        }
+      });
+    }
+    setSidebarTabVisibility(updated);
+  };
+
+  // Group items: top-level parents (null parent or 'incidents') with their children
+  const sections = [
+    {
+      title: 'Incidents',
+      alwaysVisible: true,
+      key: null as SidebarTabKey | null,
+      children: SIDEBAR_TAB_OPTIONS.filter(o => o.parent === 'incidents'),
+    },
+    {
+      title: 'Detection',
+      alwaysVisible: false,
+      key: 'detection' as SidebarTabKey,
+      children: SIDEBAR_TAB_OPTIONS.filter(o => o.parent === 'detection'),
+    },
+    {
+      title: 'Automation',
+      alwaysVisible: false,
+      key: 'automation' as SidebarTabKey,
+      children: [],
+    },
+    {
+      title: 'Documentation',
+      alwaysVisible: false,
+      key: 'documentation' as SidebarTabKey,
+      children: [],
+    },
+  ];
+
+  const switchSx = {
+    '& .MuiSwitch-switchBase.Mui-checked': {
+      color: 'hsl(var(--primary))',
+    },
+    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+      backgroundColor: 'hsl(var(--primary))',
+    },
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-      {SIDEBAR_TAB_OPTIONS.map((opt) => (
-        <FormControlLabel
-          key={opt.key}
-          control={
-            <Switch
-              checked={tabs[opt.key]}
-              onChange={() => handleToggle(opt.key)}
-              size="small"
-              sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': {
-                  color: 'hsl(var(--primary))',
-                },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                  backgroundColor: 'hsl(var(--primary))',
-                },
-              }}
-            />
-          }
-          label={
-            <Typography variant="body2" sx={{ color: 'hsl(var(--foreground))' }}>
-              {opt.label}
-            </Typography>
-          }
-          sx={{ ml: 0 }}
-        />
-      ))}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
+      {sections.map((section) => {
+        const parentDisabled = section.key ? !tabs[section.key] : false;
+
+        return (
+          <Box key={section.title}>
+            {/* Parent row */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: parentDisabled ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+                }}
+              >
+                {section.title}
+              </Typography>
+              {section.alwaysVisible ? (
+                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}>
+                  Always visible
+                </Typography>
+              ) : section.key ? (
+                <Switch
+                  checked={tabs[section.key]}
+                  onChange={() => handleToggle(section.key!)}
+                  size="small"
+                  sx={switchSx}
+                />
+              ) : null}
+            </Box>
+
+            {/* Children */}
+            {section.children.length > 0 && (
+              <Box sx={{ ml: 2.5, mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {section.children.map((child) => (
+                  <FormControlLabel
+                    key={child.key}
+                    disabled={parentDisabled}
+                    control={
+                      <Switch
+                        checked={!parentDisabled && tabs[child.key]}
+                        onChange={() => handleToggle(child.key)}
+                        size="small"
+                        disabled={parentDisabled}
+                        sx={switchSx}
+                      />
+                    }
+                    label={
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: parentDisabled ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+                          opacity: parentDisabled ? 0.5 : 1,
+                        }}
+                      >
+                        {child.label}
+                      </Typography>
+                    }
+                    sx={{ ml: 0 }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+        );
+      })}
     </Box>
   );
 };
