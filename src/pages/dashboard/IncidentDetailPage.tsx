@@ -4461,6 +4461,73 @@ const IncidentDetailPage = () => {
               </Box>
             );
           })()}
+
+          {/* Observable correlation popover */}
+          <Popover
+            open={!!obsCorrelationAnchor}
+            anchorEl={obsCorrelationAnchor?.el}
+            onClose={() => setObsCorrelationAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            slotProps={{ paper: { sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 2, maxWidth: 400, maxHeight: 320, overflow: 'auto' } } }}
+          >
+            {obsCorrelationAnchor && (() => {
+              const corr = obsCorrelations[obsCorrelationAnchor.obsKey];
+              const [type, ...valueParts] = obsCorrelationAnchor.obsKey.split('::');
+              const value = valueParts.join('::');
+              return (
+                <Box sx={{ p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
+                    Correlations for {type}: {value}
+                  </Typography>
+                  <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {corr?.data?.map((c, i) => (
+                      <Box key={i} sx={{ p: 1, borderRadius: 1, bgcolor: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', wordBreak: 'break-all' }}>
+                          {c.key}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.65rem' }}>
+                          Found in {c.amount} location{c.amount !== 1 ? 's' : ''}
+                        </Typography>
+                        {c.ref?.length > 0 && (
+                          <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {c.ref.slice(0, 5).map((ref, ri) => {
+                              // Check if ref looks like an incident ID (contains category prefix)
+                              const isIncident = ref.includes('incident') || ref.includes('security');
+                              const refId = ref.split('::').pop() || ref;
+                              return isIncident ? (
+                                <Chip
+                                  key={ri}
+                                  label={refId.slice(0, 12) + (refId.length > 12 ? '…' : '')}
+                                  size="small"
+                                  component={Link}
+                                  to={`/incidents/${refId}`}
+                                  clickable
+                                  sx={{ height: 20, fontSize: '0.6rem', bgcolor: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}
+                                />
+                              ) : (
+                                <Chip
+                                  key={ri}
+                                  label={ref.length > 30 ? ref.slice(0, 30) + '…' : ref}
+                                  size="small"
+                                  sx={{ height: 20, fontSize: '0.6rem', bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
+                                />
+                              );
+                            })}
+                            {c.ref.length > 5 && (
+                              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', alignSelf: 'center' }}>
+                                +{c.ref.length - 5} more
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              );
+            })()}
+          </Popover>
         </Box>
       )}
 
