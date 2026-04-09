@@ -269,10 +269,10 @@ const SourceChip = ({ label, apps, activeCount, totalCount, hasAnyActive, option
   
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.75, borderRadius: 2,
-      background: hasAnyActive ? 'rgba(34, 197, 94, 0.1)' : 'hsl(var(--muted))',
-      border: '1px solid', borderColor: hasAnyActive ? 'rgba(34, 197, 94, 0.3)' : 'hsl(var(--border))',
+      background: hasAnyActive ? 'hsl(var(--severity-low) / 0.1)' : 'hsl(var(--muted))',
+      border: '1px solid', borderColor: hasAnyActive ? 'hsl(var(--severity-low) / 0.3)' : 'hsl(var(--border))',
     }}>
-      <Typography variant="caption" sx={{ color: hasAnyActive ? '#22c55e' : 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+      <Typography variant="caption" sx={{ color: hasAnyActive ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
         {label}{hasAny && <Box component="span" sx={{ ml: 0.5, opacity: 0.8 }}>({activeCount}/{totalCount})</Box>}
       </Typography>
       {activeApps.length > 0 && (
@@ -280,11 +280,11 @@ const SourceChip = ({ label, apps, activeCount, totalCount, hasAnyActive, option
           {activeApps.slice(0, 2).map((app) => (
             <Tooltip key={app.id} title={<Box><Typography variant="caption" sx={{ fontWeight: 600 }}>{readableAppName(app.name)}</Typography><Typography variant="caption" sx={{ display: 'block', opacity: 0.8 }}>Active{app.isSelected ? ' • This setup' : ' • Pre-existing'}</Typography></Box>} arrow placement="top">
               <Box sx={{ position: 'relative' }}>
-                <Avatar src={app.image} alt={readableAppName(app.name)} sx={{ width: 16, height: 16, fontSize: '0.5rem', border: '1px solid', borderColor: 'rgba(34, 197, 94, 0.5)' }}>{app.name[0]}</Avatar>
+                <Avatar src={app.image} alt={readableAppName(app.name)} sx={{ width: 16, height: 16, fontSize: '0.5rem', border: '1px solid', borderColor: 'hsl(var(--severity-low) / 0.5)' }}>{app.name[0]}</Avatar>
               </Box>
             </Tooltip>
           ))}
-          {activeApps.length > 2 && <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.6rem', ml: 0.25 }}>+{activeApps.length - 2}</Typography>}
+          {activeApps.length > 2 && <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', ml: 0.25 }}>+{activeApps.length - 2}</Typography>}
         </Box>
       )}
     </Box>
@@ -801,30 +801,30 @@ export const AutomationConfig = ({
             borderRadius: 1.5,
             cursor: !app.isValidated && onAuthChange ? 'pointer' : 'default',
             background: enabled 
-              ? 'rgba(34, 197, 94, 0.06)' 
+              ? 'hsl(var(--severity-low) / 0.06)' 
               : isConfiguring
-                ? 'rgba(255, 102, 0, 0.06)'
+                ? 'hsl(var(--primary) / 0.06)'
                 : !app.isValidated
-                  ? 'rgba(255, 152, 0, 0.04)'
+                  ? 'hsl(var(--severity-medium) / 0.04)'
                   : 'hsl(var(--muted))',
             border: '1px solid',
             borderColor: enabled 
-              ? 'rgba(34, 197, 94, 0.4)' 
+              ? 'hsl(var(--severity-low) / 0.4)' 
               : isConfiguring
-                ? 'rgba(255, 102, 0, 0.4)'
+                ? 'hsl(var(--primary) / 0.4)'
                 : !app.isValidated
-                  ? 'rgba(255, 152, 0, 0.2)'
+                  ? 'hsl(var(--severity-medium) / 0.2)'
                   : 'transparent',
             opacity: enabled ? 1 : app.isValidated ? 0.7 : 0.85,
             transition: 'all 0.2s ease',
             '&:hover': {
               background: enabled 
-                ? 'rgba(34, 197, 94, 0.1)' 
+                ? 'hsl(var(--severity-low) / 0.1)' 
                 : !app.isValidated
-                  ? 'rgba(255, 152, 0, 0.1)'
+                  ? 'hsl(var(--severity-medium) / 0.1)'
                   : 'hsl(var(--background))',
               borderColor: !app.isValidated && !enabled
-                ? 'rgba(255, 152, 0, 0.4)'
+                ? 'hsl(var(--severity-medium) / 0.4)'
                 : undefined,
             },
           }}
@@ -840,10 +840,10 @@ export const AutomationConfig = ({
                   fontSize: '0.7rem',
                   border: '2px solid',
                   borderColor: app.isValidated 
-                    ? 'rgba(34, 197, 94, 0.6)' 
+                    ? 'hsl(var(--severity-low) / 0.6)' 
                     : app.hasAuthConfig
-                      ? 'rgba(255, 152, 0, 0.6)'
-                      : 'rgba(239, 68, 68, 0.6)',
+                      ? 'hsl(var(--severity-medium) / 0.6)'
+                      : 'hsl(var(--destructive) / 0.6)',
                   opacity: app.isValidated ? 1 : 0.8,
                 }}
               >
@@ -858,11 +858,11 @@ export const AutomationConfig = ({
                   height: 10,
                   borderRadius: '50%',
                   backgroundColor: app.isValidated 
-                    ? '#22c55e' 
+                    ? 'hsl(var(--severity-low))' 
                     : app.hasAuthConfig
-                      ? '#ff9800'
-                      : '#ef4444',
-                  border: '2px solid rgba(33, 33, 33, 0.9)',
+                      ? 'hsl(var(--severity-medium))'
+                      : 'hsl(var(--destructive))',
+                  border: '2px solid hsl(var(--card))',
                 }}
               />
             </Box>
@@ -879,9 +879,9 @@ export const AutomationConfig = ({
                       height: 16,
                       fontSize: '0.55rem',
                       fontWeight: 600,
-                      background: 'rgba(59, 130, 246, 0.2)',
-                      color: '#60a5fa',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      background: 'hsl(var(--primary) / 0.15)',
+                      color: 'hsl(var(--primary))',
+                      border: '1px solid hsl(var(--primary) / 0.3)',
                       '& .MuiChip-label': { px: 0.75 },
                     }}
                   />
@@ -891,10 +891,10 @@ export const AutomationConfig = ({
                 variant="caption" 
                 sx={{ 
                   color: app.isValidated 
-                    ? '#22c55e' 
+                    ? 'hsl(var(--severity-low))' 
                     : app.hasAuthConfig 
-                      ? '#ff9800' 
-                      : '#ef4444',
+                      ? 'hsl(var(--severity-medium))' 
+                      : 'hsl(var(--destructive))',
                   fontSize: '0.65rem',
                 }}
               >
@@ -904,7 +904,7 @@ export const AutomationConfig = ({
                     ? 'Pending validation' 
                     : 'Pending auth'}
                 {!app.isSelected && (
-                  <Box component="span" sx={{ color: 'rgba(255,255,255,0.4)', ml: 0.5 }}>
+                  <Box component="span" sx={{ color: 'hsl(var(--muted-foreground))', ml: 0.5 }}>
                     • Pre-existing
                   </Box>
                 )}
@@ -920,10 +920,10 @@ export const AutomationConfig = ({
                   height: 20,
                   fontSize: '0.6rem',
                   fontWeight: 600,
-                  background: isConfiguring ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255, 152, 0, 0.12)',
-                  color: isConfiguring ? 'hsl(var(--primary))' : '#ff9800',
+                  background: isConfiguring ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--severity-medium) / 0.12)',
+                  color: isConfiguring ? 'hsl(var(--primary))' : 'hsl(var(--severity-medium))',
                   border: '1px solid',
-                  borderColor: isConfiguring ? 'rgba(255, 102, 0, 0.4)' : 'rgba(255, 152, 0, 0.3)',
+                  borderColor: isConfiguring ? 'hsl(var(--primary) / 0.4)' : 'hsl(var(--severity-medium) / 0.3)',
                   '& .MuiChip-label': { px: 0.75 },
                 }}
               />
@@ -977,7 +977,7 @@ export const AutomationConfig = ({
                     }
                   }}
                   sx={{
-                    background: 'rgba(33, 33, 33, 0.6)',
+                    background: 'hsl(var(--card))',
                     border: '1px solid',
                     borderColor: state.enabled && !isDisabled ? `${option.color}50` : 'hsl(var(--border))',
                     borderRadius: 3,
@@ -1028,7 +1028,7 @@ export const AutomationConfig = ({
                                     width: 20,
                                     height: 20,
                                     fontSize: '0.6rem',
-                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    border: '1px solid hsl(var(--border))',
                                   }}
                                 >
                                   {app.name[0]}
@@ -1041,11 +1041,11 @@ export const AutomationConfig = ({
                                   sx={{ height: 20, fontSize: '0.6rem' }}
                                 />
                               )}
-                              <CheckCircleIcon sx={{ fontSize: 14, color: '#22c55e', ml: 0.5 }} />
+                              <CheckCircleIcon sx={{ fontSize: 14, color: 'hsl(var(--severity-low))', ml: 0.5 }} />
                             </Box>
                           )}
                           {hasIngestionSources && (
-                            <CheckCircleIcon sx={{ fontSize: 14, color: '#22c55e' }} />
+                            <CheckCircleIcon sx={{ fontSize: 14, color: 'hsl(var(--severity-low))' }} />
                           )}
                         </Box>
                         <Typography
@@ -1144,7 +1144,7 @@ export const AutomationConfig = ({
                                           py: 0.75,
                                           px: 1,
                                           borderRadius: 1.5,
-                                          border: '1px dashed rgba(255, 255, 255, 0.12)',
+                                          border: '1px dashed hsl(var(--border))',
                                           background: 'hsl(var(--background-surface))',
                                           transition: 'all 0.2s ease',
                                           '&:hover': {
@@ -1178,9 +1178,9 @@ export const AutomationConfig = ({
                                                   fontSize: '0.5rem',
                                                   border: '2px solid',
                                                   borderColor: app.isValidated 
-                                                    ? 'rgba(34, 197, 94, 0.4)' 
-                                                    : 'rgba(255, 152, 0, 0.4)',
-                                                  backgroundColor: 'rgba(33, 33, 33, 0.9)',
+                                                    ? 'hsl(var(--severity-low) / 0.4)' 
+                                                    : 'hsl(var(--severity-medium) / 0.4)',
+                                                  backgroundColor: 'hsl(var(--card))',
                                                   ml: idx > 0 ? -0.5 : 0,
                                                 }}
                                               >
@@ -1191,7 +1191,7 @@ export const AutomationConfig = ({
                                           {source.apps.length > 6 && (
                                             <Typography
                                               variant="caption"
-                                              sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', ml: 0.5 }}
+                                              sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', ml: 0.5 }}
                                             >
                                               +{source.apps.length - 6}
                                             </Typography>
@@ -1259,7 +1259,7 @@ export const AutomationConfig = ({
                                         width: 24,
                                         height: 24,
                                         fontSize: '0.7rem',
-                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        border: '1px solid hsl(var(--border))',
                                       }}
                                     >
                                       {app.name[0]}
@@ -1337,11 +1337,11 @@ export const AutomationConfig = ({
                                   px: 1.5,
                                   borderRadius: 1.5,
                                   background: feed.enabled 
-                                    ? 'rgba(239, 68, 68, 0.08)' 
+                                    ? 'hsl(var(--destructive) / 0.08)' 
                                     : 'hsl(var(--muted))',
                                   border: '1px solid',
                                   borderColor: feed.enabled 
-                                    ? 'rgba(239, 68, 68, 0.25)' 
+                                    ? 'hsl(var(--destructive) / 0.25)' 
                                     : 'transparent',
                                   opacity: feed.enabled ? 1 : 0.6,
                                   transition: 'all 0.2s ease',
@@ -1356,7 +1356,7 @@ export const AutomationConfig = ({
                                       onChange={(e) => setEditingFeed({ ...editingFeed, name: e.target.value })}
                                       sx={{
                                         '& .MuiOutlinedInput-root': {
-                                          bgcolor: 'rgba(0,0,0,0.3)',
+                                          bgcolor: 'hsl(var(--muted))',
                                           fontSize: '0.85rem',
                                         },
                                       }}
@@ -1368,7 +1368,7 @@ export const AutomationConfig = ({
                                       onChange={(e) => setEditingFeed({ ...editingFeed, url: e.target.value })}
                                       sx={{
                                         '& .MuiOutlinedInput-root': {
-                                          bgcolor: 'rgba(0,0,0,0.3)',
+                                          bgcolor: 'hsl(var(--muted))',
                                           fontFamily: 'monospace',
                                           fontSize: '0.75rem',
                                         },
@@ -1422,7 +1422,7 @@ export const AutomationConfig = ({
                                         <IconButton
                                           size="small"
                                           onClick={() => setEditingFeed(feed)}
-                                          sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'hsl(var(--foreground))' } }}
+                                          sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--foreground))' } }}
                                         >
                                           <EditIcon sx={{ fontSize: 16 }} />
                                         </IconButton>
@@ -1431,7 +1431,7 @@ export const AutomationConfig = ({
                                         <IconButton
                                           size="small"
                                           onClick={() => deleteFeed(feed.id)}
-                                          sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef4444' } }}
+                                          sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: '#ef4444' } }}
                                         >
                                           <DeleteIcon sx={{ fontSize: 16 }} />
                                         </IconButton>
@@ -1461,7 +1461,7 @@ export const AutomationConfig = ({
                             sx={{ 
                               p: 1.5, 
                               borderRadius: 1.5, 
-                              border: '1px dashed rgba(255, 255, 255, 0.15)',
+                              border: '1px dashed hsl(var(--border))',
                               background: 'hsl(var(--muted))',
                             }}
                           >
@@ -1477,7 +1477,7 @@ export const AutomationConfig = ({
                                 sx={{
                                   minWidth: 150,
                                   '& .MuiOutlinedInput-root': {
-                                    bgcolor: 'rgba(0,0,0,0.3)',
+                                    bgcolor: 'hsl(var(--muted))',
                                     fontSize: '0.85rem',
                                   },
                                 }}
@@ -1491,7 +1491,7 @@ export const AutomationConfig = ({
                                   flex: 1,
                                   minWidth: 200,
                                   '& .MuiOutlinedInput-root': {
-                                    bgcolor: 'rgba(0,0,0,0.3)',
+                                    bgcolor: 'hsl(var(--muted))',
                                     fontFamily: 'monospace',
                                     fontSize: '0.75rem',
                                   },
