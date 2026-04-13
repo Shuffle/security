@@ -80,11 +80,112 @@ export const parseAgentResponse = (data: unknown): string => {
   return JSON.stringify(data, null, 2);
 };
 
+// ── Execution poller ───────────────────────────────────────────────────────────
+
+/**
+ * Poll /api/v1/streams/results for the real execution result.
+ * Retries up to `maxAttempts` with `intervalMs` between each.
+ */
+const pollExecutionResult = async (
+  executionId: string,
+  { maxAttempts = 15, intervalMs = 2000 }: { maxAttempts?: number; intervalMs?: number } = {}
+): Promise<AgentRunResponse> => {
+  const url = getApiUrl(`/api/v1/streams/results`);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify({
+          execution_id: executionId,
+          authorization: executionId,
+        }),
+      });
+
+      if (!resp.ok) {
+        // Non-retryable server error
+        if (resp.status >= 400 && resp.status < 500) {
+          return {
+            success: false,
+            content: '',
+            error: `Error ${resp.status}: Could not fetch execution result.`,
+            status: resp.status,
+          };
+        }
+        // Server error — keep polling
+        await delay(intervalMs);
+        continue;
+      }
+
+      const rawText = await resp.text();
+      if (!rawText || rawText === '{}' || rawText === 'null') {
+        // Not ready yet
+        await delay(intervalMs);
+        continue;
+      }
+
+      const contentType = resp.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        return { success: true, content: rawText, status: resp.status };
+      }
+
+      const data = JSON.parse(rawText);
+
+      // Check if execution is still running (no real result yet)
+      if (data?.status === 'EXECUTING' || data?.status === 'WAITING') {
+        await delay(intervalMs);
+        continue;
+      }
+
+      const content = parseAgentResponse(data);
+      return {
+        success: true,
+        content,
+        rawData: data,
+        status: resp.status,
+      };
+    } catch {
+      await delay(intervalMs);
+    }
+  }
+
+  return {
+    success: false,
+    content: '',
+    error: `Timed out waiting for execution ${executionId} to complete.`,
+    status: 0,
+  };
+};
+
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 // ── Main function ──────────────────────────────────────────────────────────────
+
+/**
+ * Check if the initial response is an execution stub
+ * (contains execution_id but no real result content).
+ */
+const isExecutionStub = (data: unknown): data is { execution_id: string } => {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    typeof obj.execution_id === 'string' &&
+    obj.execution_id.length > 0 &&
+    // It's a stub if there's no result/message — just metadata
+    obj.result === undefined &&
+    obj.message === undefined
+  );
+};
 
 /**
  * Run the agent with the given input and optional tool targets.
  * Handles the full lifecycle: build payload → fetch → parse response.
+ * If the response is an execution stub, polls for the real result.
  */
 export const runAgent = async (request: AgentRunRequest): Promise<AgentRunResponse> => {
   const params: Record<string, unknown> = {
@@ -156,8 +257,14 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
       };
     }
 
-    // JSON response — parse and extract content
+    // JSON response — parse and check for execution stub
     const data = JSON.parse(rawText);
+
+    if (isExecutionStub(data)) {
+      console.log(`[AgentRun] Got execution stub, polling for result: ${data.execution_id}`);
+      return pollExecutionResult(data.execution_id);
+    }
+
     const content = parseAgentResponse(data);
 
     return {
