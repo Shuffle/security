@@ -421,40 +421,7 @@ const VulnerabilitiesPage = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {addHostStep === 'config' ? (
-            <div className="space-y-5 mt-2">
-              {/* Host name */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Host Name</Label>
-                <Input
-                  placeholder="e.g. prod-web-01, johns-macbook"
-                  value={hostName}
-                  onChange={e => setHostName(e.target.value)}
-                />
-              </div>
-
-              {/* Platform */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Platform</Label>
-                <div className="flex gap-2">
-                  {([
-                    { value: 'linux' as const, label: 'Linux' },
-                    { value: 'macos' as const, label: 'macOS' },
-                    { value: 'windows' as const, label: 'Windows' },
-                  ]).map(p => (
-                    <Button
-                      key={p.value}
-                      variant={hostPlatform === p.value ? 'default' : 'outline'}
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setHostPlatform(p.value)}
-                    >
-                      {p.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
+          <div className="space-y-5 mt-2">
               {/* Checks */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Checks to Enable</Label>
@@ -479,18 +446,8 @@ const VulnerabilitiesPage = () => {
                   ))}
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-4 mt-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Laptop size={14} />
-                <span className="font-medium text-foreground">{hostName || 'my-host'}</span>
-                <span>·</span>
-                <span className="capitalize">{hostPlatform}</span>
-                <span>·</span>
-                <span>{Object.values(hostChecks).filter(Boolean).length} checks</span>
-              </div>
 
+              {/* Deploy command */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Run this on the target host</Label>
                 <div className="relative">
@@ -510,32 +467,15 @@ const VulnerabilitiesPage = () => {
 
               <div className="rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-2.5">
                 <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">What happens next:</span> The script installs a lightweight daemon that periodically runs the selected checks and reports results back to Shuffle. Results will appear in the Host Monitors table above.
+                  <span className="font-medium text-foreground">What happens next:</span> The monitor runs the selected checks and reports results back to Shuffle. Host metadata is collected automatically.
                 </p>
               </div>
             </div>
-          )}
 
           <DialogFooter className="mt-2">
-            {addHostStep === 'config' ? (
-              <Button
-                size="sm"
-                onClick={() => setAddHostStep('deploy')}
-                disabled={Object.values(hostChecks).every(v => !v)}
-              >
-                Next: Deploy
-                <ChevronRight size={14} className="ml-1" />
-              </Button>
-            ) : (
-              <div className="flex gap-2 w-full justify-between">
-                <Button variant="outline" size="sm" onClick={() => setAddHostStep('config')}>
-                  Back
-                </Button>
-                <Button size="sm" onClick={() => { setAddHostOpen(false); toast.success('Host monitor configured', { description: 'Deploy the command on your target host to start monitoring.' }); }}>
-                  Done
-                </Button>
-              </div>
-            )}
+            <Button size="sm" onClick={() => { setAddHostOpen(false); toast.success('Host monitor configured', { description: 'Deploy the command on your target host to start monitoring.' }); }}>
+              Done
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
