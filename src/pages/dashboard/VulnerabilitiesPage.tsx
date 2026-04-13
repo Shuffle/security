@@ -356,6 +356,44 @@ const VulnerabilitiesPage = () => {
         </div>
       )}
 
+      {/* Host Monitors section */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Laptop size={18} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Host Monitors</h3>
+              <p className="text-xs text-muted-foreground">Deploy lightweight monitors on endpoints to check compliance & posture</p>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={handleOpenAddHost}>
+            <Plus size={14} />
+            Add Host
+          </Button>
+        </div>
+
+        {/* Checks overview */}
+        <div className="grid grid-cols-4 gap-0 divide-x divide-border">
+          {HOST_CHECK_OPTIONS.map(check => (
+            <div key={check.id} className="px-4 py-4 flex flex-col items-center text-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                {check.icon}
+              </div>
+              <span className="text-xs font-medium text-foreground">{check.label}</span>
+              <span className="text-[0.65rem] text-muted-foreground leading-tight">{check.description}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty host list */}
+        <div className="border-t border-border px-5 py-6 text-center">
+          <Activity size={28} className="text-muted-foreground/25 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">No hosts monitored yet. Add a host to start checking compliance.</p>
+        </div>
+      </div>
+
       {/* AI Scan Dialog */}
       <Dialog open={aiScanOpen} onOpenChange={setAiScanOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
