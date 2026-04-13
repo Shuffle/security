@@ -527,6 +527,53 @@ export const AppAuthCard = ({
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsContent, setDocsContent] = useState<string>('');
   const [docsLoading, setDocsLoading] = useState(false);
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [editLabelValue, setEditLabelValue] = useState('');
+  const [savingLabel, setSavingLabel] = useState(false);
+
+  const handleRenameAuth = async () => {
+    if (!selectedAuth || !editLabelValue.trim()) return;
+    setSavingLabel(true);
+    try {
+      // Build the auth body with all fields but replaced label
+      // Fill any sensitive fields with placeholder
+      const placeholder = 'Secret. Replaced during app execution!';
+      const authBody: Record<string, any> = {
+        ...selectedAuth,
+        label: editLabelValue.trim(),
+      };
+      // Ensure fields array values are placeholders
+      if (authBody.fields) {
+        const newFields: Record<string, any> = {};
+        for (const [key, val] of Object.entries(authBody.fields)) {
+          newFields[key] = typeof val === 'string' ? placeholder : val;
+        }
+        authBody.fields = newFields;
+      }
+
+      const response = await fetch(getApiUrl('/api/v1/apps/authentication'), {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify(authBody),
+      });
+
+      if (response.ok) {
+        setEditingLabel(false);
+        if (onRefreshAuth) await onRefreshAuth();
+        toast({ title: 'Label updated', description: `Renamed to "${editLabelValue.trim()}"` });
+      } else {
+        toast({ title: 'Failed to rename', description: 'Could not update the authentication label', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to rename authentication', variant: 'destructive' });
+    } finally {
+      setSavingLabel(false);
+    }
+  };
 
   const fetchDocs = async () => {
     setDocsLoading(true);
