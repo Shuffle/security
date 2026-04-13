@@ -566,7 +566,7 @@ const VulnAssetsPage = () => {
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-border">
-                                {host.installed_software.map((sw, idx) => (
+                                {host.installed_software.filter((sw) => !sw.version || String(sw.version).length <= 100).map((sw, idx) => (
                                   <tr key={idx} className="hover:bg-muted/20">
                                     <td className="px-3 py-1.5 font-medium text-foreground">{sw.name || '—'}</td>
                                     <td className="px-3 py-1.5 font-mono text-muted-foreground">{(sw.version as string) || '—'}</td>
