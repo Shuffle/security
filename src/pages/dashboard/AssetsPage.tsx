@@ -12,11 +12,7 @@ import {
   Tooltip,
   CircularProgress,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ComputerIcon from '@mui/icons-material/Computer';
-import { Monitor, Server, Smartphone, Laptop, Tablet, Wifi, Shield, HardDrive } from 'lucide-react';
+import { Monitor, Server, Smartphone, Laptop, Tablet, Wifi, HardDrive, Search, Plus, RefreshCw, MonitorSmartphone } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useDatastore } from '@/hooks/useDatastore';
 import { DATASTORE_CATEGORIES, setDatastoreItem } from '@/services/datastore';
