@@ -136,6 +136,9 @@ const VulnAssetsPage = () => {
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
+  // Aggregate all hosts across all sensor groups
+  const allHosts = groups.flatMap(g => g.hosts.map(h => ({ ...h, groupName: g.name, groupId: g.id })));
+
   const loadGroups = useCallback(async () => {
     setGroupsLoading(true);
     const { groups: fetched, allEnvs: envs } = await fetchSensorGroups();
