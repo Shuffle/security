@@ -24,6 +24,7 @@ import MitreAttackPage from '@/pages/dashboard/MitreAttackPage';
 import DetectionOnboardingPage from '@/pages/dashboard/DetectionOnboardingPage';
 import ThreatFeedsPage from '@/pages/dashboard/ThreatFeedsPage';
 import CustomFieldsPage from '@/pages/dashboard/CustomFieldsPage';
+import ResponseActionsPage from '@/pages/dashboard/ResponseActionsPage';
 import UsersPage from '@/pages/dashboard/UsersPage';
 import OrganizationsPage from '@/pages/dashboard/OrganizationsPage';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
