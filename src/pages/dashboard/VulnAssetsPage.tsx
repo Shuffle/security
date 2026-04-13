@@ -455,7 +455,7 @@ const VulnAssetsPage = () => {
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <ChevronRight size={14} className={`text-muted-foreground shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                        <Laptop size={14} className="text-muted-foreground shrink-0" />
+                        <OsIcon os={host.os} size={14} className="text-muted-foreground shrink-0" />
                         <span className="text-sm font-medium text-foreground truncate">{host.hostname}</span>
                       </div>
                       {host.serial && (
