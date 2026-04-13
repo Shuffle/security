@@ -303,7 +303,7 @@ const VulnAssetsPage = () => {
                 ? 'bg-destructive'
                 : 'bg-muted-foreground/40';
           const statusLabel = status === 'healthy'
-            ? 'Syncing'
+            ? 'Healthy'
             : status === 'stale'
               ? 'Stale'
               : status === 'offline'
@@ -319,7 +319,10 @@ const VulnAssetsPage = () => {
 
           return (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Group Sync</span>
+              <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => loadGroups()}>
+                <RefreshCw size={14} />
+                Refresh
+              </Button>
               <Select value={syncGroupId} onValueChange={setSyncGroupId}>
                 <SelectTrigger className="w-auto min-w-[180px] h-9 gap-2">
                   <div className="flex items-center gap-2">
@@ -346,7 +349,7 @@ const VulnAssetsPage = () => {
                         : gStatus === 'offline'
                           ? 'bg-destructive'
                           : 'bg-muted-foreground/40';
-                    const gLabel = gStatus === 'healthy' ? 'Syncing' : gStatus === 'stale' ? 'Stale' : gStatus === 'offline' ? 'Offline' : 'No hosts';
+                    const gLabel = gStatus === 'healthy' ? 'Healthy' : gStatus === 'stale' ? 'Stale' : gStatus === 'offline' ? 'Offline' : 'No hosts';
                     const gTime = gLatest
                       ? gAge < 60 ? `${Math.round(gAge)}s` : gAge < 3600 ? `${Math.round(gAge / 60)}m` : `${Math.round(gAge / 3600)}h`
                       : '';
@@ -382,10 +385,6 @@ const VulnAssetsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => loadGroups()}>
-              <RefreshCw size={14} />
-              Refresh
-            </Button>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={handleOpenAddHost}>
               <Plus size={14} />
               Add Host
