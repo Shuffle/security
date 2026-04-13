@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Laptop, HardDrive, Lock, Package, Zap, Plus, Copy, Check, Activity, ChevronRight, Shield, FolderOpen, Loader2, CheckCircle2 } from 'lucide-react';
+import { Laptop, HardDrive, Lock, Package, Zap, Plus, Copy, Check, Activity, ChevronRight, Shield, FolderOpen, Loader2, CheckCircle2, Send } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader } from '@/config/api';
@@ -15,6 +15,7 @@ const HOST_CHECK_OPTIONS = [
   { id: 'screenlock' as const, label: 'Screenlock Enabled', description: 'Verify automatic screen lock is configured', icon: <Lock size={16} /> },
   { id: 'installed_software' as const, label: 'Installed Software', description: 'Inventory of installed applications and versions', icon: <Package size={16} /> },
   { id: 'response_actions' as const, label: 'Response Actions', description: 'Enable automated response actions on this host', icon: <Zap size={16} /> },
+  { id: 'log_forwarding' as const, label: 'Log Forwarding', description: 'Forward host logs to a remote endpoint for centralized collection', icon: <Send size={16} /> },
 ];
 
 interface OrbEnvironment {
@@ -102,7 +103,9 @@ const VulnAssetsPage = () => {
     screenlock: true,
     installed_software: true,
     response_actions: false,
+    log_forwarding: false,
   });
+  const [logForwardingEndpoint, setLogForwardingEndpoint] = useState('');
   const [copied, setCopied] = useState(false);
   const [sensorDetected, setSensorDetected] = useState(false);
   const [sensorPolling, setSensorPolling] = useState(false);
@@ -150,6 +153,7 @@ const VulnAssetsPage = () => {
     if (hostChecks.hd_encrypted) flags.push('--hd_encrypted_check=true');
     if (hostChecks.screenlock) flags.push('--screenlock_check=true');
     if (hostChecks.response_actions) flags.push('--response_actions_enabled=true');
+    if (hostChecks.log_forwarding && logForwardingEndpoint.trim()) flags.push(`--log_forwarding=${logForwardingEndpoint.trim()}`);
     return `go run orborus.go ${flags.join(' ')}`;
   };
 
@@ -206,7 +210,8 @@ const VulnAssetsPage = () => {
   const handleOpenAddHost = () => {
     setAddHostStep('checks');
     setHostPlatform('linux');
-    setHostChecks({ hd_encrypted: true, screenlock: true, installed_software: true, response_actions: false });
+    setHostChecks({ hd_encrypted: true, screenlock: true, installed_software: true, response_actions: false, log_forwarding: false });
+    setLogForwardingEndpoint('');
     setCopied(false);
     setSensorDetected(false);
     setIsCreatingGroup(false);
@@ -372,22 +377,33 @@ const VulnAssetsPage = () => {
                 <Label className="text-xs font-medium">Checks to Enable</Label>
                 <div className="space-y-2">
                   {HOST_CHECK_OPTIONS.map(check => (
-                    <label
-                      key={check.id}
-                      className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
-                    >
-                      <Checkbox
-                        checked={hostChecks[check.id]}
-                        onCheckedChange={(v) => setHostChecks(prev => ({ ...prev, [check.id]: !!v }))}
-                      />
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-muted-foreground shrink-0">{check.icon}</span>
-                        <div className="min-w-0">
-                          <span className="text-sm font-medium text-foreground block">{check.label}</span>
-                          <span className="text-xs text-muted-foreground">{check.description}</span>
+                    <div key={check.id}>
+                      <label
+                        className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                      >
+                        <Checkbox
+                          checked={hostChecks[check.id]}
+                          onCheckedChange={(v) => setHostChecks(prev => ({ ...prev, [check.id]: !!v }))}
+                        />
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-muted-foreground shrink-0">{check.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium text-foreground block">{check.label}</span>
+                            <span className="text-xs text-muted-foreground">{check.description}</span>
+                          </div>
                         </div>
-                      </div>
-                    </label>
+                      </label>
+                      {check.id === 'log_forwarding' && hostChecks.log_forwarding && (
+                        <div className="ml-9 mt-1.5 mb-1">
+                          <Input
+                            value={logForwardingEndpoint}
+                            onChange={e => setLogForwardingEndpoint(e.target.value)}
+                            placeholder="e.g. https://siem.example.com:514"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
