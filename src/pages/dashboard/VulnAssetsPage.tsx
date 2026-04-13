@@ -264,6 +264,63 @@ const VulnAssetsPage = () => {
             <p className="text-sm text-muted-foreground">Monitor host compliance and security posture across your endpoints</p>
           </div>
         </div>
+
+        {/* Monitoring Group Validator */}
+        {groups.length > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Group Sync</span>
+            {groups.map(g => {
+              const latestCheckin = g.hosts.length > 0
+                ? Math.max(...g.hosts.map(h => h.checkin || 0))
+                : 0;
+              const checkinAge = latestCheckin ? (Date.now() / 1000) - latestCheckin : Infinity;
+              // Green: <5min, Yellow: <30min, Red: >30min or no hosts
+              const status = g.hosts.length === 0
+                ? 'none'
+                : checkinAge < 300
+                  ? 'healthy'
+                  : checkinAge < 1800
+                    ? 'stale'
+                    : 'offline';
+              const dotColor = status === 'healthy'
+                ? 'bg-green-500'
+                : status === 'stale'
+                  ? 'bg-yellow-500'
+                  : status === 'offline'
+                    ? 'bg-destructive'
+                    : 'bg-muted-foreground/40';
+              const statusLabel = status === 'healthy'
+                ? 'Syncing'
+                : status === 'stale'
+                  ? 'Stale'
+                  : status === 'offline'
+                    ? 'Offline'
+                    : 'No hosts';
+              const timeAgo = latestCheckin
+                ? checkinAge < 60
+                  ? `${Math.round(checkinAge)}s ago`
+                  : checkinAge < 3600
+                    ? `${Math.round(checkinAge / 60)}m ago`
+                    : `${Math.round(checkinAge / 3600)}h ago`
+                : '';
+              return (
+                <div
+                  key={g.id}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2"
+                  title={`${g.name}: ${statusLabel}${timeAgo ? ` (last: ${timeAgo})` : ''} — ${g.hosts.length} host(s)`}
+                >
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-medium text-foreground truncate max-w-[120px]">{g.name}</span>
+                    <span className="text-[0.6rem] text-muted-foreground leading-tight">
+                      {statusLabel}{timeAgo ? ` · ${timeAgo}` : ''}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Host Monitors section */}
