@@ -1842,7 +1842,20 @@ const IncidentDetailPage = () => {
   const handleAddObservable = () => {
     if (newObservableValue.trim()) {
       autoProgressStatus();
-      setEditedObservables([...editedObservables, { type: newObservableType, value: newObservableValue.trim() }]);
+      const trimmed = newObservableValue.trim();
+      const existingIdx = editedObservables.findIndex(
+        o => !o.archived && o.type === newObservableType && o.value.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (existingIdx >= 0) {
+        // Merge: update last_seen on existing observable
+        const updated = [...editedObservables];
+        updated[existingIdx] = { ...updated[existingIdx], last_seen: Date.now() };
+        setEditedObservables(updated);
+        toast.info(`Observable already exists — updated last seen`);
+      } else {
+        const now = Date.now();
+        setEditedObservables([...editedObservables, { type: newObservableType, value: trimmed, first_seen: now, last_seen: now }]);
+      }
       setNewObservableValue('');
     }
   };
