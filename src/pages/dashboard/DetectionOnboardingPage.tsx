@@ -321,8 +321,8 @@ const DetectionOnboardingPage = () => {
           if (!userToggledStep) setExpandedStep(2);
         }
       } else if (sensorRunning) {
-        // Sensor running but not detection-ready, stay on step 1 or expand step 2
-        if (!userToggledStep) setExpandedStep(2);
+        // Sensor running but detection not ready — stay on step 1
+        if (!userToggledStep) setExpandedStep(1);
       }
     };
 
@@ -493,8 +493,8 @@ const DetectionOnboardingPage = () => {
         message,
       });
       
-      // Auto-expand next step if successful
-      if (isRunning) {
+      // Auto-expand next step only if detection is fully ready
+      if (isRunning && pipelineReady) {
         setExpandedStep(2);
       }
     } catch (error) {
