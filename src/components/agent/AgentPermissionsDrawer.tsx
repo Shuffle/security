@@ -179,7 +179,7 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
   });
   const [toolsLoading, setToolsLoading] = useState(false);
   const [toolsPopover, setToolsPopover] = useState<{ anchor: HTMLElement; tool: AgentTool } | null>(null);
-  const [mcpSearchAnchor, setMcpSearchAnchor] = useState<HTMLElement | null>(null);
+  
 
   // OpenAI auth status for Local LLM tab indicator
   const [hasOpenAIAuth, setHasOpenAIAuth] = useState(false);
