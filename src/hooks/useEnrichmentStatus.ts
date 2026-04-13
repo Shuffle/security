@@ -10,7 +10,7 @@ export interface EnrichmentStatusCheck {
 }
 
 export interface EnrichmentStatus {
-  /** Overall: all three conditions are met */
+  /** Overall: all three conditions are met (includes optimistic override) */
   active: boolean;
   /** Individual check results */
   checks: EnrichmentStatusCheck[];
@@ -18,7 +18,9 @@ export interface EnrichmentStatus {
   isLoading: boolean;
   /** Enable all enrichment components */
   enable: () => Promise<void>;
-  /** Whether the enable action is in progress */
+  /** Disable enrichment */
+  disable: () => Promise<void>;
+  /** Whether an enable/disable action is in progress */
   isEnabling: boolean;
 }
 
@@ -72,22 +74,30 @@ export const useEnrichmentStatus = (
   const { data: workflows, isLoading: wfLoading, refetch: refetchWorkflows } = useWorkflows();
   const queryClient = useQueryClient();
   const [isEnabling, setIsEnabling] = useState(false);
+  const [optimistic, setOptimistic] = useState<boolean | null>(null);
 
   const { data: fetchedConfig, isLoading: cfgLoading } = useQuery<CategoryConfig | null>({
     queryKey: ['enrichment-category-config'],
     queryFn: fetchIncidentsCategoryConfig,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    enabled: categoryConfigOverride === undefined, // skip if override provided
+    enabled: categoryConfigOverride === undefined,
   });
 
   const categoryConfig = categoryConfigOverride !== undefined ? categoryConfigOverride : fetchedConfig;
   const isLoading = wfLoading || (categoryConfigOverride === undefined && cfgLoading);
 
+  const refetchAll = useCallback(async () => {
+    await Promise.allSettled([
+      refetchWorkflows(),
+      queryClient.invalidateQueries({ queryKey: ['enrichment-category-config'] }),
+    ]);
+  }, [refetchWorkflows, queryClient]);
+
   const enable = useCallback(async () => {
+    setOptimistic(true);
     setIsEnabling(true);
     try {
-      // Fire both generate requests in parallel
       await Promise.allSettled([
         fetch(getApiUrl('/api/v2/workflows/generate'), {
           method: 'POST',
@@ -102,16 +112,39 @@ export const useEnrichmentStatus = (
           body: JSON.stringify({ label: 'Enable Threat feeds_webhook' }),
         }),
       ]);
-      // Wait 3 seconds for backend to propagate changes, then re-validate
       await new Promise((resolve) => setTimeout(resolve, 3000));
-      await Promise.allSettled([
-        refetchWorkflows(),
-        queryClient.invalidateQueries({ queryKey: ['enrichment-category-config'] }),
-      ]);
+      await refetchAll();
     } finally {
       setIsEnabling(false);
+      setOptimistic(null);
     }
-  }, [refetchWorkflows, queryClient]);
+  }, [refetchAll]);
+
+  const disable = useCallback(async () => {
+    setOptimistic(false);
+    setIsEnabling(true);
+    try {
+      await Promise.allSettled([
+        fetch(getApiUrl('/api/v2/workflows/generate'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: 'Enable Threat feeds', action_name: 'disable' }),
+        }),
+        fetch(getApiUrl('/api/v2/workflows/generate'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: 'Enable Threat feeds_webhook', action_name: 'disable' }),
+        }),
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await refetchAll();
+    } finally {
+      setIsEnabling(false);
+      setOptimistic(null);
+    }
+  }, [refetchAll]);
 
   const result = useMemo(() => {
     const hasThreatFeeds = !!workflows?.some(
@@ -134,14 +167,15 @@ export const useEnrichmentStatus = (
       { label: 'Enrich automation', active: hasEnrichEnabled },
     ];
 
+    const serverActive = hasThreatFeeds && hasIOCExtraction && hasEnrichEnabled;
     return {
-      active: hasThreatFeeds && hasIOCExtraction && hasEnrichEnabled,
+      active: optimistic !== null ? optimistic : serverActive,
       checks,
       isLoading,
     };
-  }, [workflows, categoryConfig, isLoading]);
+  }, [workflows, categoryConfig, isLoading, optimistic]);
 
-  return { ...result, enable, isEnabling };
+  return { ...result, enable, disable, isEnabling };
 };
 
 /**
