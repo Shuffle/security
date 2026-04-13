@@ -653,9 +653,23 @@ const DashboardPage = () => {
     return steps;
   }, [authenticatedApps, workflows, hasRunningSensor]);
 
-  const completedCount = setupSteps.filter(s => s.status === 'complete').length;
-  const totalSteps = setupSteps.length;
-  const progressPercent = Math.round((completedCount / totalSteps) * 100);
+  const handleIgnoreStep = (id: string) => {
+    const next = [...ignoredSteps, id];
+    setIgnoredSteps(next);
+    localStorage.setItem(IGNORED_STEPS_KEY, JSON.stringify(next));
+  };
+
+  const handleRestoreStep = (id: string) => {
+    const next = ignoredSteps.filter(s => s !== id);
+    setIgnoredSteps(next);
+    localStorage.setItem(IGNORED_STEPS_KEY, JSON.stringify(next));
+  };
+
+  const visibleSteps = setupSteps.filter(s => !ignoredSteps.includes(s.id));
+  const ignoredStepsList = setupSteps.filter(s => ignoredSteps.includes(s.id));
+  const completedCount = visibleSteps.filter(s => s.status === 'complete').length;
+  const totalSteps = visibleSteps.length;
+  const progressPercent = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 100;
   const allComplete = completedCount === totalSteps;
   const setupLoading = authLoading || workflowsLoading;
 
