@@ -126,16 +126,25 @@ const baseEnrichmentOptions: (Omit<EnrichmentOption, 'connectedApps'> & { isDyna
   {
     id: 'automatic_ingestion',
     name: 'Automatic Ingestion',
-    description: 'Automatically ingest and normalize data from connected tools',
+    description: 'Pull alerts and tickets from SIEMs, EDRs, and case tools into a single normalized queue automatically.',
     icon: <DownloadIcon />,
     color: '#22c55e',
     category: 'enrichment',
     isDynamic: true,
   },
   {
+    id: 'threat_intel',
+    name: 'Automatic Enrichment',
+    description: 'Enrich every new incident with IOC lookups, threat feed matches, and contextual intelligence — no manual steps.',
+    icon: <SecurityIcon />,
+    color: '#ef4444',
+    category: 'enrichment',
+    isDynamic: true,
+  },
+  {
     id: 'forward_updates',
     name: 'Forward Incidents',
-    description: 'Forward incident updates to external ticketing systems',
+    description: 'Push incident updates and status changes to external ticketing systems like Jira, ServiceNow, or TheHive.',
     icon: <SyncAltIcon />,
     color: '#f59e0b',
     category: 'enrichment',
@@ -144,7 +153,7 @@ const baseEnrichmentOptions: (Omit<EnrichmentOption, 'connectedApps'> & { isDyna
   {
     id: 'assign_escalate',
     name: 'Assign & Escalate',
-    description: 'Auto-assign incidents based on schedules and escalate unacknowledged alerts',
+    description: 'Route incidents to the right analyst based on on-call schedules and escalate if unacknowledged.',
     icon: <AssignmentIndIcon />,
     color: '#6366f1',
     category: 'response',
@@ -153,20 +162,11 @@ const baseEnrichmentOptions: (Omit<EnrichmentOption, 'connectedApps'> & { isDyna
   {
     id: 'integration_search',
     name: 'Integration Search',
-    description: 'Search across all connected tools simultaneously for IOCs and context (coming soon)',
+    description: 'Search across all connected tools simultaneously for IOCs and context (coming soon).',
     icon: <TravelExploreIcon />,
     color: '#3b82f6',
     category: 'enrichment',
     disabled: true,
-  },
-  {
-    id: 'threat_intel',
-    name: 'Threat Intel',
-    description: 'Compare indicators against known threat intelligence lists and feeds',
-    icon: <SecurityIcon />,
-    color: '#ef4444',
-    category: 'enrichment',
-    isDynamic: true,
   },
 ];
 
