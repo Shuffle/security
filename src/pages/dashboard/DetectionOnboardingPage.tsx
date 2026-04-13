@@ -1479,11 +1479,15 @@ const DetectionOnboardingPage = () => {
                       size="small"
                       label={running ? 'Running' : 'Not Running'}
                       sx={{
-                        backgroundColor: running
+                        backgroundColor: running && pipelineReady
                           ? 'hsl(var(--severity-low) / 0.15)'
+                          : running
+                          ? 'hsl(var(--primary) / 0.15)'
                           : 'hsl(var(--severity-medium) / 0.15)',
-                        color: running
+                        color: running && pipelineReady
                           ? 'hsl(var(--severity-low))'
+                          : running
+                          ? 'hsl(var(--primary))'
                           : 'hsl(var(--severity-medium))',
                         fontWeight: 500,
                         fontSize: '0.75rem',
@@ -1589,8 +1593,10 @@ const DetectionOnboardingPage = () => {
                                     width: 8,
                                     height: 8,
                                     borderRadius: '50%',
-                                    backgroundColor: running 
-                                      ? 'hsl(var(--severity-low))' 
+                                    backgroundColor: running && pipelineReady
+                                      ? 'hsl(var(--severity-low))'
+                                      : running 
+                                      ? 'hsl(var(--primary))' 
                                       : 'hsl(var(--severity-medium))',
                                     flexShrink: 0,
                                   }}
