@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkflows } from './useWorkflows';
 import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/services/datastore';
 import { getApiUrl, getAuthHeader } from '@/config/api';
@@ -16,6 +16,10 @@ export interface EnrichmentStatus {
   checks: EnrichmentStatusCheck[];
   /** Whether data is still loading */
   isLoading: boolean;
+  /** Enable all enrichment components */
+  enable: () => Promise<void>;
+  /** Whether the enable action is in progress */
+  isEnabling: boolean;
 }
 
 const THREAT_FEEDS_WORKFLOW = 'Enable Threat feeds';
@@ -65,7 +69,9 @@ const fetchIncidentsCategoryConfig = async (): Promise<CategoryConfig | null> =>
 export const useEnrichmentStatus = (
   categoryConfigOverride?: CategoryConfig | null,
 ): EnrichmentStatus => {
-  const { data: workflows, isLoading: wfLoading } = useWorkflows();
+  const { data: workflows, isLoading: wfLoading, refetch: refetchWorkflows } = useWorkflows();
+  const queryClient = useQueryClient();
+  const [isEnabling, setIsEnabling] = useState(false);
 
   const { data: fetchedConfig, isLoading: cfgLoading } = useQuery<CategoryConfig | null>({
     queryKey: ['enrichment-category-config'],
@@ -78,7 +84,35 @@ export const useEnrichmentStatus = (
   const categoryConfig = categoryConfigOverride !== undefined ? categoryConfigOverride : fetchedConfig;
   const isLoading = wfLoading || (categoryConfigOverride === undefined && cfgLoading);
 
-  return useMemo(() => {
+  const enable = useCallback(async () => {
+    setIsEnabling(true);
+    try {
+      // Fire both generate requests in parallel
+      await Promise.allSettled([
+        fetch(getApiUrl('/api/v2/workflows/generate'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: 'Enable Threat feeds' }),
+        }),
+        fetch(getApiUrl('/api/v2/workflows/generate'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: 'Enable Threat feeds_webhook' }),
+        }),
+      ]);
+      // Refetch both queries to pick up updated state
+      await Promise.allSettled([
+        refetchWorkflows(),
+        queryClient.invalidateQueries({ queryKey: ['enrichment-category-config'] }),
+      ]);
+    } finally {
+      setIsEnabling(false);
+    }
+  }, [refetchWorkflows, queryClient]);
+
+  const result = useMemo(() => {
     const hasThreatFeeds = !!workflows?.some(
       (w) => w.name === THREAT_FEEDS_WORKFLOW && w.background_processing === true,
     );
@@ -105,6 +139,8 @@ export const useEnrichmentStatus = (
       isLoading,
     };
   }, [workflows, categoryConfig, isLoading]);
+
+  return { ...result, enable, isEnabling };
 };
 
 /**
