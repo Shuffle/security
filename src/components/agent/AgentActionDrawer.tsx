@@ -24,12 +24,12 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { Activity, CheckCircle2, Circle, AlertCircle, Clock, Wrench, MessageCircleQuestion, Flag, Play, Brain } from 'lucide-react';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { runAgent } from '@/services/agentRun';
-import { SingulJS } from '@/lib/singul-local';
-import type { AlgoliaSearchApp, SingulJSHandle } from '@/lib/singul-local';
+import AppSearchDrawer from '@/components/shared/AppSearchDrawer';
 import type { AgentRun, AgentDecision } from '@/services/agentActivity';
 import AgentRunResultViewer, { parseRunResult } from '@/components/agent/AgentRunResultViewer';
 import AgentRunHeader from '@/components/agent/AgentRunHeader';
