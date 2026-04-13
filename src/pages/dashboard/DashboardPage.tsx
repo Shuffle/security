@@ -771,9 +771,19 @@ const DashboardPage = () => {
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {setupSteps.map((step, i) => (
-              <SetupStepCard key={step.id} step={step} index={i} />
+            {visibleSteps.map((step, i) => (
+              <SetupStepCard key={step.id} step={step} index={i} onIgnore={handleIgnoreStep} onRestore={handleRestoreStep} />
             ))}
+            {ignoredStepsList.length > 0 && (
+              <>
+                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 1, opacity: 0.7 }}>
+                  Ignored ({ignoredStepsList.length})
+                </Typography>
+                {ignoredStepsList.map((step, i) => (
+                  <SetupStepCard key={step.id} step={step} index={visibleSteps.length + i} ignored onRestore={handleRestoreStep} />
+                ))}
+              </>
+            )}
           </Box>
         )}
       </Box>
