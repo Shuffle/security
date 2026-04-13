@@ -24,6 +24,7 @@ import MitreAttackPage from '@/pages/dashboard/MitreAttackPage';
 import DetectionOnboardingPage from '@/pages/dashboard/DetectionOnboardingPage';
 import ThreatFeedsPage from '@/pages/dashboard/ThreatFeedsPage';
 import CustomFieldsPage from '@/pages/dashboard/CustomFieldsPage';
+import ResponseActionsPage from '@/pages/dashboard/ResponseActionsPage';
 import UsersPage from '@/pages/dashboard/UsersPage';
 import OrganizationsPage from '@/pages/dashboard/OrganizationsPage';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
@@ -134,6 +135,7 @@ const ThemedApp = () => {
               <Route path="/incidents/ioc-types" element={<IOCTypesPage />} />
               <Route path="/incidents/threat-feeds" element={<ThreatFeedsPage />} />
               <Route path="/incidents/custom-fields" element={<CustomFieldsPage />} />
+              <Route path="/incidents/response-actions" element={<ResponseActionsPage />} />
               <Route path="/agent" element={<AgentActivityPage />} />
               <Route path="/infrastructure" element={<InfrastructurePage />} />
               <Route path="/infrastructure/flows/:flowId" element={<DataFlowDetailPage />} />
