@@ -507,7 +507,8 @@ const IncidentDetailPage = () => {
   const [showStakeholderSuggestions, setShowStakeholderSuggestions] = useState(false);
   const [knownStakeholders, setKnownStakeholders] = useState<Stakeholder[]>([]);
   const [editedObservables, setEditedObservables] = useState<Observable[]>([]);
-  const [enrichments, setEnrichments] = useState<Array<{ type: string; value?: string; data?: string }>>([]);
+  const [enrichments, setEnrichments] = useState<Array<{ type: string; value?: string; data?: string; first_seen?: string | number; last_seen?: string | number }>>([]);
+  const [expandedObsKey, setExpandedObsKey] = useState<string | null>(null);
   const [refreshingObservables, setRefreshingObservables] = useState(false);
   const obsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newObservableType, setNewObservableType] = useState('ip');
