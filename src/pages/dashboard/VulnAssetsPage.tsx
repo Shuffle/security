@@ -18,11 +18,24 @@ const HOST_CHECK_OPTIONS = [
   { id: 'log_forwarding' as const, label: 'Log Forwarding', description: 'Forward host logs to a remote endpoint for centralized collection', icon: <Send size={16} />, disabled: true },
 ];
 
+interface SensorHost {
+  arch: string;
+  automatic_screen_lock_enabled: boolean;
+  checkin: number;
+  elevated_access: boolean;
+  hostname: string;
+  os: string;
+  sensor_mode: boolean;
+  uuid: string;
+}
+
 interface OrbEnvironment {
   Name: string;
   Type: string;
   id: string;
   sensor_group?: boolean;
+  sensor_hosts?: SensorHost[];
+  archived?: boolean;
   [key: string]: unknown;
 }
 
@@ -32,6 +45,7 @@ interface MonitoringGroup {
   queue: string;
   auth: string;
   org_id: string;
+  hosts: SensorHost[];
 }
 
 /** Fetch environments from the API and filter for sensor_group: true */
