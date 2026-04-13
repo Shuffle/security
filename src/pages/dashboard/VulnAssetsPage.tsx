@@ -558,10 +558,34 @@ const VulnAssetsPage = () => {
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Globe size={12} />
-                            <span className="text-[0.65rem] font-semibold uppercase tracking-wide">UUID</span>
+                            <Send size={12} />
+                            <span className="text-[0.65rem] font-semibold uppercase tracking-wide">Log Forwarding</span>
                           </div>
-                          <p className="text-xs font-mono text-foreground truncate" title={host.uuid}>{host.uuid}</p>
+                          {(() => {
+                            const lf = host.log_forwarding || '';
+                            if (!lf) return <p className="text-xs text-muted-foreground">Not enabled</p>;
+                            return (
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="text-xs text-foreground cursor-help truncate">Enabled</p>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" align="start" className="max-w-sm">
+                                    <pre className="text-[0.65rem] font-mono whitespace-pre-wrap">{lf}</pre>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })()}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Zap size={12} />
+                            <span className="text-[0.65rem] font-semibold uppercase tracking-wide">Response Actions</span>
+                          </div>
+                          <p className="text-xs text-foreground">
+                            {(host as any).response_actions_enabled ? 'Enabled' : 'Not enabled'}
+                          </p>
                         </div>
                       </div>
 
