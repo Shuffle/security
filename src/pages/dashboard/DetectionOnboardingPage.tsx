@@ -1593,8 +1593,10 @@ const DetectionOnboardingPage = () => {
                                     width: 8,
                                     height: 8,
                                     borderRadius: '50%',
-                                    backgroundColor: running 
-                                      ? 'hsl(var(--severity-low))' 
+                                    backgroundColor: running && pipelineReady
+                                      ? 'hsl(var(--severity-low))'
+                                      : running 
+                                      ? 'hsl(var(--primary))' 
                                       : 'hsl(var(--severity-medium))',
                                     flexShrink: 0,
                                   }}
