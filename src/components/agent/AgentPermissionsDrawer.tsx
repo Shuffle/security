@@ -62,6 +62,7 @@ import { deduplicateAuthApps, backfillAppImages } from '@/lib/utils';
 import AppSearchDrawer from '@/components/shared/AppSearchDrawer';
 import { InputBase, Avatar } from '@mui/material';
 import type { AgentRun } from '@/services/agentActivity';
+import AgentRunResultViewer from '@/components/agent/AgentRunResultViewer';
 
 // Per-permission icons for a more modern look
 const PERMISSION_ICONS: Record<string, React.ReactNode> = {
