@@ -493,8 +493,8 @@ const DetectionOnboardingPage = () => {
         message,
       });
       
-      // Auto-expand next step if successful
-      if (isRunning) {
+      // Auto-expand next step only if detection is fully ready
+      if (isRunning && pipelineReady) {
         setExpandedStep(2);
       }
     } catch (error) {
