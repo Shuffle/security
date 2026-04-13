@@ -314,6 +314,7 @@ export const AutomationConfig = ({
   
   // Threat feeds management
   const { threatFeeds, saveFeed, deleteFeed, toggleFeed, initializeDefaults: initThreatFeeds } = useThreatFeeds();
+  const enrichmentStatus = useEnrichmentStatus();
   const [editingFeed, setEditingFeed] = useState<ThreatFeed | null>(null);
   const [newFeedUrl, setNewFeedUrl] = useState('');
   const [newFeedName, setNewFeedName] = useState('');
