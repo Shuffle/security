@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 
 const OPENAI_APP_NAME = 'OpenAI';
+const OPENAI_APP_ID = '5d19dd82517870c68d40cacad9b5ca91';
 
 export interface AgentLocalModel {
   url: string;
