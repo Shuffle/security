@@ -1464,7 +1464,7 @@ const DetectionOnboardingPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <SensorsIcon sx={{ color: 'hsl(var(--primary))', fontSize: 20 }} />
               <Typography sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                Install a Sensor
+                Install a Pipeline Sensor
               </Typography>
               {/* Status chips for selected environment */}
               {selectedEnvironment && (() => {
@@ -1540,14 +1540,14 @@ const DetectionOnboardingPage = () => {
           <Box sx={{ px: 3, pb: 3, pt: 1 }}>
             {/* Sensor Selection */}
             <Typography sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, fontSize: '0.9rem', mb: 2 }}>
-              1. Select or Create a Sensor
+              1. Select or Create a Pipeline Sensor
             </Typography>
             
             {loadingEnvs ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                 <CircularProgress size={20} sx={{ color: 'hsl(var(--primary))' }} />
                 <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.875rem' }}>
-                  Loading sensors...
+                  Loading pipeline sensors...
                 </Typography>
               </Box>
             ) : (
@@ -1561,12 +1561,12 @@ const DetectionOnboardingPage = () => {
                           '&.Mui-focused': { color: 'hsl(var(--primary))' },
                         }}
                       >
-                        Select Sensor
+                         Select Pipeline Sensor
                       </InputLabel>
                       <Select
                         value={selectedEnvId}
                         onChange={(e) => setSelectedEnvId(e.target.value)}
-                        label="Select Sensor"
+                        label="Select Pipeline Sensor"
                         sx={{
                           backgroundColor: 'hsl(var(--muted))',
                           '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
@@ -1631,7 +1631,7 @@ const DetectionOnboardingPage = () => {
                     <TextField
                       value={newEnvName}
                       onChange={(e) => setNewEnvName(e.target.value)}
-                      placeholder="Enter sensor name..."
+                      placeholder="Enter pipeline sensor name..."
                       size="small"
                       autoFocus
                       sx={{
@@ -2778,7 +2778,7 @@ const DetectionOnboardingPage = () => {
             fullWidth
             value={createDialogName}
             onChange={(e) => setCreateDialogName(e.target.value)}
-            placeholder="e.g. Production Sensor"
+            placeholder="e.g. Production Pipeline Sensor"
             onKeyDown={(e) => e.key === 'Enter' && createDialogName.trim() && handleCreateEnvironment()}
             size="small"
             sx={{
