@@ -191,7 +191,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   }, [entityPlural, entityBasePath, isSupport, sidebarTabs]);
   const [expandedItems, setExpandedItems] = useState<string[]>([entityPlural]);
   const [changingOrg, setChangingOrg] = useState(false);
-  const [agentDrawerOpen, setAgentDrawerOpen] = useState(false);
+  
   const [toolMenuAnchor, setToolMenuAnchor] = useState<null | HTMLElement>(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   const [hoverExpanded, setHoverExpanded] = useState(false);
@@ -726,9 +726,6 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         <IntegrationStatus collapsed={visuallyCollapsed} />
         
       </Box>
-
-      {/* Agent Permissions Drawer */}
-      <AgentPermissionsDrawer open={agentDrawerOpen} onClose={() => setAgentDrawerOpen(false)} />
 
       {/* Bottom Section */}
       <Box sx={{ mt: 'auto' }}>
