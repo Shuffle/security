@@ -380,8 +380,8 @@ const AgentActionDrawer = ({ open, onClose, run, initialApp }: AgentActionDrawer
   const [isRunning, setIsRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
-  const [selectedApp, setSelectedApp] = useState<AlgoliaSearchApp | null>(initialApp ?? null);
-  const singulRef = useRef<SingulJSHandle>(null);
+  const [selectedApps, setSelectedApps] = useState<SelectedApp[]>(initialApp ? [initialApp] : []);
+  const [appSearchOpen, setAppSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isViewMode = !!run;
