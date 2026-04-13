@@ -56,6 +56,7 @@ interface NavChild {
   path: string;
   icon: React.ReactNode;
   disabled?: boolean;
+  supportOnly?: boolean;
 }
 
 interface NavItem {
