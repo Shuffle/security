@@ -159,11 +159,56 @@ const VulnAssetsPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Poll for sensor checkin when on deploy step
+  const startSensorPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    setSensorDetected(false);
+    setSensorPolling(true);
+    const checkSensor = async () => {
+      try {
+        const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (!res.ok) return;
+        const envs: OrbEnvironment[] = await res.json();
+        const env = envs.find(e => (e.id === selectedGroupId || e.Name === selectedGroup?.name) && e.sensor_group === true);
+        if (env && env.checkin) {
+          const now = Math.floor(Date.now() / 1000);
+          const checkin = typeof env.checkin === 'number' ? env.checkin : 0;
+          if (checkin > 0 && (now - checkin) < 300) {
+            setSensorDetected(true);
+            setSensorPolling(false);
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          }
+        }
+      } catch { /* continue polling */ }
+    };
+    checkSensor();
+    pollRef.current = setInterval(checkSensor, 5000);
+  }, [selectedGroupId, selectedGroup?.name]);
+
+  const stopSensorPolling = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    setSensorPolling(false);
+  }, []);
+
+  // Start/stop polling based on step
+  useEffect(() => {
+    if (addHostStep === 'deploy' && addHostOpen) {
+      startSensorPolling();
+    } else {
+      stopSensorPolling();
+    }
+    return () => stopSensorPolling();
+  }, [addHostStep, addHostOpen, startSensorPolling, stopSensorPolling]);
+
   const handleOpenAddHost = () => {
     setAddHostStep('checks');
     setHostPlatform('linux');
     setHostChecks({ hd_encrypted: true, screenlock: true, installed_software: true, response_actions: false });
     setCopied(false);
+    setSensorDetected(false);
     setIsCreatingGroup(false);
     setNewGroupName('');
     setAddHostOpen(true);
