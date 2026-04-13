@@ -439,30 +439,32 @@ const VulnAssetsPage = () => {
                 <p className="text-xs text-muted-foreground">Each monitoring group uses a Runtime Location as the sensor group.</p>
                 {!isCreatingGroup ? (
                   <div className="flex gap-2">
-                    <Select value={selectedGroupId} onValueChange={setSelectedGroupId} disabled={groupsLoading}>
-                      <SelectTrigger className="flex-1">
-                        {groupsLoading ? (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 size={13} className="animate-spin" />
-                            <span className="text-sm">Loading…</span>
-                          </div>
-                        ) : groups.length === 0 ? (
-                          <span className="text-sm text-muted-foreground">No groups — create one</span>
-                        ) : (
+                    {groupsLoading ? (
+                      <div className="flex-1 flex items-center gap-2 h-9 px-3 rounded-md border border-input bg-background text-muted-foreground">
+                        <Loader2 size={13} className="animate-spin" />
+                        <span className="text-sm">Loading…</span>
+                      </div>
+                    ) : groups.length === 0 ? (
+                      <div className="flex-1 flex items-center h-9 px-3 rounded-md border border-input bg-background text-sm text-muted-foreground">
+                        No groups — create one →
+                      </div>
+                    ) : (
+                      <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                        <SelectTrigger className="flex-1">
                           <SelectValue placeholder="Select a group" />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        {groups.map(g => (
-                          <SelectItem key={g.id} value={g.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{g.name}</span>
-                              <span className="text-muted-foreground text-xs">({g.queue})</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groups.map(g => (
+                            <SelectItem key={g.id} value={g.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{g.name}</span>
+                                <span className="text-muted-foreground text-xs">({g.queue})</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     <Button variant="outline" size="sm" onClick={() => setIsCreatingGroup(true)} className="shrink-0 gap-1.5">
                       <Plus size={13} />
                       New
