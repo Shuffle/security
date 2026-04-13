@@ -105,6 +105,7 @@ const VulnAssetsPage = () => {
 
   // Monitoring groups (from API)
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
+  const [allEnvs, setAllEnvs] = useState<OrbEnvironment[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
@@ -115,9 +116,9 @@ const VulnAssetsPage = () => {
 
   const loadGroups = useCallback(async () => {
     setGroupsLoading(true);
-    const fetched = await fetchSensorGroups();
+    const { groups: fetched, allEnvs: envs } = await fetchSensorGroups();
     setGroups(fetched);
-    // Auto-select first if nothing selected
+    setAllEnvs(envs);
     if (fetched.length > 0) {
       setSelectedGroupId(prev => {
         if (prev && fetched.some(g => g.id === prev)) return prev;
@@ -156,16 +157,15 @@ const VulnAssetsPage = () => {
     setIsCreatingGroup(false);
     setNewGroupName('');
     setAddHostOpen(true);
-    // Refresh groups when opening
     loadGroups();
   };
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
     setCreatingGroupLoading(true);
-    const created = await createSensorGroupEnv(newGroupName.trim());
+    const created = await createSensorGroupEnv(newGroupName.trim(), allEnvs);
     if (created) {
-      setGroups(prev => [...prev, created]);
+      await loadGroups(); // Re-fetch all to stay in sync
       setSelectedGroupId(created.id);
       setIsCreatingGroup(false);
       setNewGroupName('');
