@@ -15,27 +15,58 @@ import { AgentRun } from '@/services/agentActivity';
 import { parseDatastoreReference, DatastoreReference } from '@/lib/agentParsers';
 export type { DatastoreReference };
 
+/**
+ * Recursively parse string values that look like JSON into actual objects.
+ * This handles cases where the API returns nested JSON-as-string fields (e.g. "input", "messages").
+ */
+const deepParseJsonStrings = (obj: any, depth = 0): any => {
+  if (depth > 5) return obj;
+  if (typeof obj === 'string') {
+    const trimmed = obj.trim();
+    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+      try {
+        return deepParseJsonStrings(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return obj;
+      }
+    }
+    return obj;
+  }
+  if (Array.isArray(obj)) return obj.map(item => deepParseJsonStrings(item, depth + 1));
+  if (obj && typeof obj === 'object') {
+    const result: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = deepParseJsonStrings(value, depth + 1);
+    }
+    return result;
+  }
+  return obj;
+};
+
 /** Try to parse the result JSON from results[0].result, unwrapping AGENT-type executions */
 export const parseRunResult = (run: AgentRun): { raw: string | null; parsed: any | null } => {
   const firstResult = run.results?.[0]?.result;
   if (!firstResult) return { raw: null, parsed: null };
 
   try {
-    const parsed = JSON.parse(firstResult);
+    let parsed = JSON.parse(firstResult);
 
     // If the result is an AGENT-type execution wrapper, unwrap to the inner result
     if (parsed && typeof parsed === 'object' && parsed.type === 'AGENT' && Array.isArray(parsed.results) && parsed.results.length > 0) {
       const innerResult = parsed.results[0]?.result;
       if (innerResult) {
         try {
-          return { raw: innerResult, parsed: JSON.parse(innerResult) };
+          parsed = JSON.parse(innerResult);
         } catch {
           return { raw: innerResult, parsed: null };
         }
       }
     }
 
-    return { raw: firstResult, parsed };
+    // Deep-parse any JSON strings nested inside the result
+    const deepParsed = deepParseJsonStrings(parsed);
+
+    return { raw: firstResult, parsed: deepParsed };
   } catch {
     return { raw: firstResult, parsed: null };
   }
