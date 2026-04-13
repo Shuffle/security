@@ -498,16 +498,10 @@ const DashboardPage = () => {
 
     const workflowList = Array.isArray(workflows) ? workflows : [];
     const ingestWorkflow = findIngestTicketsWorkflow(workflowList);
-    const forwardWorkflow = findForwardTicketsWorkflow(workflowList);
     const hasIngest = !!ingestWorkflow;
-    const hasForward = !!forwardWorkflow;
 
-    // Detection: check for Tenzir-related workflows or pipelines
-    const hasDetection = workflowList.some(w =>
-      (w.tags || []).some((t: string) => t.toLowerCase().includes('tenzir') || t.toLowerCase().includes('detection')) ||
-      w.name?.toLowerCase().includes('sigma') ||
-      w.name?.toLowerCase().includes('detection')
-    );
+    // Detection: check for a running sensor (fetched via useEffect)
+    const hasDetection = hasRunningSensor === true;
 
     // Vulnerability: check for vuln-scanner related workflows
     const hasVulnSetup = workflowList.some(w =>
@@ -557,28 +551,16 @@ const DashboardPage = () => {
         priority: 3,
       },
       {
-        id: 'enable-forward',
-        title: 'Enable incident forwarding',
-        description: hasForward
-          ? 'Forwarding workflow is configured — incidents are sent to external tools.'
-          : 'Forward enriched incidents to ticketing systems, SIEMs, or communication tools.',
-        icon: <Send size={20} />,
-        status: hasForward ? 'complete' : hasIngest ? 'action-needed' : 'not-started',
-        ctaLabel: 'Configure',
-        ctaPath: '/incidents',
-        priority: 4,
-      },
-      {
         id: 'setup-detection',
         title: 'Set up detection sensors',
         description: hasDetection
-          ? 'Detection pipelines are configured and monitoring your environment.'
-          : 'Deploy detection pipelines to monitor logs, network traffic, and endpoints.',
+          ? 'A detection sensor is running and monitoring your environment.'
+          : 'Deploy detection sensors to monitor logs, network traffic, and endpoints.',
         icon: <Radar size={20} />,
         status: hasDetection ? 'complete' : 'not-started',
         ctaLabel: 'Set Up',
         ctaPath: '/detection',
-        priority: 5,
+        priority: 4,
       },
       {
         id: 'setup-vulns',
@@ -590,7 +572,7 @@ const DashboardPage = () => {
         status: hasVulnSetup ? 'complete' : 'not-started',
         ctaLabel: 'Set Up',
         ctaPath: '/vulnerabilities',
-        priority: 6,
+        priority: 5,
       },
     ];
 
@@ -603,7 +585,7 @@ const DashboardPage = () => {
     });
 
     return steps;
-  }, [authenticatedApps, workflows]);
+  }, [authenticatedApps, workflows, hasRunningSensor]);
 
   const completedCount = setupSteps.filter(s => s.status === 'complete').length;
   const totalSteps = setupSteps.length;
