@@ -31,6 +31,7 @@ import {
   ArrowDownToLine,
   Send,
   Radar,
+  Monitor,
   Shield,
   Sparkles,
   Check,
