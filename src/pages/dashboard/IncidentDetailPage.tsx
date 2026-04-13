@@ -108,6 +108,7 @@ import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
 import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor';
 import EmailThreadPanel, { isEmailContent } from '@/components/incidents/EmailThreadPanel';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
+import AppSearchDrawer from '@/components/shared/AppSearchDrawer';
 
 // TaskTemplate interface is now imported from useCaseTemplates
 
@@ -515,6 +516,7 @@ const IncidentDetailPage = () => {
   const [expandedObsKey, setExpandedObsKey] = useState<string | null>(null);
   const [refreshingObservables, setRefreshingObservables] = useState(false);
   const obsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showThreatIntelDrawer, setShowThreatIntelDrawer] = useState(false);
   const [newObservableType, setNewObservableType] = useState('ip');
   const [newObservableValue, setNewObservableValue] = useState('');
   const [obsFilterTypes, setObsFilterTypes] = useState<string[]>([]);
@@ -4693,7 +4695,7 @@ const IncidentDetailPage = () => {
                             onClick={async (e) => {
                               e.stopPropagation();
                               try {
-                                const resp = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
+                              const resp = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
                                   method: 'POST',
                                   credentials: 'include',
                                   headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
@@ -4705,8 +4707,18 @@ const IncidentDetailPage = () => {
                                 });
                                 if (resp.ok) {
                                   const result = await resp.json();
+                                  // Check if no apps were found/executed
+                                  if (result?.success === false || (Array.isArray(result) && result.length === 0) || result?.reason?.toLowerCase()?.includes('no app')) {
+                                    toast.info('No threat intel apps configured. Add one to run enrichments.');
+                                    setShowThreatIntelDrawer(true);
+                                    return;
+                                  }
                                   console.log(`[Observable] ${actionName} result:`, result);
                                   toast.success(`Search completed for ${obs.type}: ${obs.value}`);
+                                } else if (resp.status === 404 || resp.status === 400) {
+                                  // No matching apps available
+                                  toast.info('No threat intel apps configured. Add one to run enrichments.');
+                                  setShowThreatIntelDrawer(true);
                                 } else {
                                   toast.error(`Search failed: ${resp.statusText}`);
                                 }
@@ -6040,6 +6052,16 @@ const IncidentDetailPage = () => {
         onMergeComplete={() => {
           loadIncident(false);
         }}
+      />
+
+      {/* Threat Intel App Search Drawer */}
+      <AppSearchDrawer
+        open={showThreatIntelDrawer}
+        onClose={() => setShowThreatIntelDrawer(false)}
+        initialQuery="threat intel"
+        title="Threat Intel Apps"
+        subtitle="Enable and authenticate an app to run IOC lookups"
+        priorityCategory="Threat Intel"
       />
     </motion.div>
   );
