@@ -138,6 +138,7 @@ const VulnAssetsPage = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [creatingGroupLoading, setCreatingGroupLoading] = useState(false);
   const [syncGroupId, setSyncGroupId] = useState<string>('');
+  const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   // Aggregate all hosts across all sensor groups
