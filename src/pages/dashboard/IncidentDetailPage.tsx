@@ -1568,7 +1568,47 @@ const IncidentDetailPage = () => {
       setTimeout(() => {
         loadRevisions();
       }, 3000);
-    } catch (error) {
+
+      // Schedule observable/enrichment refresh ~7s after save
+      // Backend may update enrichments asynchronously after the save
+      if (obsRefreshTimerRef.current) clearTimeout(obsRefreshTimerRef.current);
+      setRefreshingObservables(true);
+      obsRefreshTimerRef.current = setTimeout(async () => {
+        try {
+          const refreshResult = isPublicView
+            ? await getDatastoreItemPublic(incident.id, publicOrg!, publicAuth!)
+            : await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
+          if (refreshResult.success && refreshResult.item) {
+            const refreshData = {
+              key: refreshResult.item.key || incident.id,
+              value: refreshResult.item.value,
+              created: refreshResult.item.created,
+              edited: refreshResult.item.edited,
+              enrichments: refreshResult.item.enrichments,
+            };
+            const reParsed = parseIncidentFromDatastore(refreshData);
+            if (reParsed) {
+              const prevCount = editedObservables.filter(o => !o.archived).length + enrichments.length;
+              const newEnrichments = reParsed.enrichments || [];
+              const newObservables = reParsed.observables || [];
+              const newCount = newObservables.filter((o: any) => !o.archived).length + newEnrichments.length;
+              setEnrichments(newEnrichments);
+              // Only update manual observables if server added new ones (don't overwrite user edits)
+              if (newObservables.length > editedObservables.length) {
+                setEditedObservables(newObservables);
+              }
+              if (newCount > prevCount) {
+                toast.info(`${newCount - prevCount} new observable${newCount - prevCount > 1 ? 's' : ''} detected`, { duration: 4000 });
+              }
+              console.log(`[ObsRefresh] Refreshed observables: ${prevCount} → ${newCount}`);
+            }
+          }
+        } catch (err) {
+          console.warn('[ObsRefresh] Failed to refresh observables:', err);
+        } finally {
+          setRefreshingObservables(false);
+        }
+      }, 7000);
       toast.error('Failed to save changes');
     } finally {
       setIsSaving(false);
