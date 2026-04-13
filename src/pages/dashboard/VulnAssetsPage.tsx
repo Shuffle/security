@@ -440,10 +440,8 @@ const VulnAssetsPage = () => {
         ) : (
           <div className="border-t border-border">
             {/* Table header */}
-            <div className="grid grid-cols-[1.5fr_0.6fr_0.6fr_0.5fr_0.5fr_0.5fr_0.7fr_0.8fr] gap-2 px-5 py-2 border-b border-border bg-muted/30">
+            <div className="grid grid-cols-[1.5fr_0.5fr_0.5fr_0.5fr_0.7fr_0.8fr] gap-2 px-5 py-2 border-b border-border bg-muted/30">
               <span className="text-xs font-semibold text-muted-foreground">Hostname</span>
-              <span className="text-xs font-semibold text-muted-foreground">OS</span>
-              <span className="text-xs font-semibold text-muted-foreground">Arch</span>
               <span className="text-xs font-semibold text-muted-foreground">Disk Enc.</span>
               <span className="text-xs font-semibold text-muted-foreground">Screenlock</span>
               <span className="text-xs font-semibold text-muted-foreground">Software</span>
@@ -469,7 +467,7 @@ const VulnAssetsPage = () => {
               return (
                 <div key={host.uuid}>
                   <div
-                    className="grid grid-cols-[1.5fr_0.6fr_0.6fr_0.5fr_0.5fr_0.5fr_0.7fr_0.8fr] gap-2 px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors items-center cursor-pointer"
+                    className="grid grid-cols-[1.5fr_0.5fr_0.5fr_0.5fr_0.7fr_0.8fr] gap-2 px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors items-center cursor-pointer"
                     onClick={toggleExpanded}
                   >
                     <div className="flex flex-col min-w-0">
@@ -492,8 +490,6 @@ const VulnAssetsPage = () => {
                         );
                       })()}
                     </div>
-                    <span className="text-xs text-muted-foreground capitalize">{host.os || '—'}</span>
-                    <span className="text-xs text-muted-foreground">{host.arch || '—'}</span>
                     <span className={`text-xs font-medium flex items-center gap-1 ${hdEncrypted ? 'text-green-500' : 'text-orange-500'}`}>
                       {hdEncrypted ? <ShieldCheck size={12} /> : <ShieldX size={12} />}
                       {hdEncrypted ? 'Yes' : 'No'}
