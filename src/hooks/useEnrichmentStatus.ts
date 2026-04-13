@@ -167,14 +167,15 @@ export const useEnrichmentStatus = (
       { label: 'Enrich automation', active: hasEnrichEnabled },
     ];
 
+    const serverActive = hasThreatFeeds && hasIOCExtraction && hasEnrichEnabled;
     return {
-      active: hasThreatFeeds && hasIOCExtraction && hasEnrichEnabled,
+      active: optimistic !== null ? optimistic : serverActive,
       checks,
       isLoading,
     };
-  }, [workflows, categoryConfig, isLoading]);
+  }, [workflows, categoryConfig, isLoading, optimistic]);
 
-  return { ...result, enable, isEnabling };
+  return { ...result, enable, disable, isEnabling };
 };
 
 /**
