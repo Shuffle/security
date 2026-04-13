@@ -696,6 +696,8 @@ const IncidentDetailPage = () => {
   }, [rawDescriptionHtml]);
   const hasHtmlDescription = sanitizedDescriptionHtml.length > 0;
 
+  const enrichmentStatus = useEnrichmentStatus();
+
 
   const incidentFileRef = useMemo(() => {
     const raw = incident?.rawOCSF;
