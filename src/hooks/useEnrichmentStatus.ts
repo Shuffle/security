@@ -33,16 +33,16 @@ const fetchIncidentsCategoryConfig = async (): Promise<CategoryConfig | null> =>
         return info ? JSON.parse(info)?.active_org?.id : null;
       } catch { return null; }
     })();
+    if (!orgId) return null;
 
-    const params = new URLSearchParams({ category: DATASTORE_CATEGORIES.INCIDENTS });
-    if (orgId) params.set('org_id', orgId);
-    // Limit to 1 item — we only need the category_config metadata
-    params.set('limit', '1');
-
-    const res = await fetch(
-      getApiUrl(`/api/v1/apps/categories/list?${params.toString()}`),
-      { credentials: 'include', headers: { ...getAuthHeader() } },
+    // Use the same list_cache endpoint as useDatastore, limit=1 to just get category_config
+    const url = getApiUrl(
+      `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(DATASTORE_CATEGORIES.INCIDENTS)}&top=1`,
     );
+    const res = await fetch(url, {
+      credentials: 'include',
+      headers: { ...getAuthHeader() },
+    });
     if (!res.ok) return null;
     const data = await res.json();
     return data.category_config || null;
