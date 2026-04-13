@@ -164,7 +164,7 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
   // Action form state (inline)
   const [agentInput, setAgentInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [runResult, setRunResult] = useState<string | null>(null);
+  const [actionRun, setActionRun] = useState<AgentRun | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [selectedApps, setSelectedApps] = useState<{ name: string; icon: string; categories: string[] }[]>([]);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
