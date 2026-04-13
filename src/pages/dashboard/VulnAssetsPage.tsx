@@ -477,11 +477,19 @@ const VulnAssetsPage = () => {
                         <OsIcon os={host.os} size={14} className="text-muted-foreground shrink-0" />
                         <span className="text-sm font-medium text-foreground truncate">{host.hostname}</span>
                       </div>
-                      {host.serial && (
-                        <span className="text-[0.65rem] text-muted-foreground/70 font-mono truncate ml-[30px]" title={host.serial}>
-                          SN: {host.serial.split('\n')[0].trim().substring(0, 24)}
-                        </span>
-                      )}
+                      {host.serial && (() => {
+                        const raw = host.serial.trim();
+                        const snMatch = raw.match(/Serial\s*Number\s*\(?\w*\)?\s*:\s*(\S+)/i);
+                        const display = snMatch ? snMatch[1] : raw.split('\n')[0].trim().substring(0, 24);
+                        return (
+                          <span
+                            className="text-[0.65rem] text-muted-foreground/70 font-mono truncate ml-[30px] cursor-help"
+                            title={raw}
+                          >
+                            SN: {display}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <span className="text-xs text-muted-foreground capitalize">{host.os || '—'}</span>
                     <span className="text-xs text-muted-foreground">{host.arch || '—'}</span>
