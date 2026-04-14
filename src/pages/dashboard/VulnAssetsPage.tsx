@@ -208,6 +208,7 @@ const VulnAssetsPage = () => {
 
   const getDeployCommand = () => {
     const flags = ['--sensor_mode=true'];
+    flags.push(`--base_url=${API_CONFIG.baseUrl}`);
     if (selectedGroup) {
       flags.push(`--queue=${selectedGroup.queue}`);
       if (selectedGroup.auth) flags.push(`--auth=${selectedGroup.auth}`);
