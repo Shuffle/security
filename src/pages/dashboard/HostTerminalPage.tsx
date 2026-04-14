@@ -8,7 +8,10 @@ import { getApiUrl, getAuthHeader } from '@/config/api';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
+let entryIdCounter = 0;
+
 type ActionDebugEntry = {
+  entryId: number;
   hostUuid: string;
   actionName: string;
   hostname: string;
