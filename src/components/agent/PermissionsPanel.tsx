@@ -149,6 +149,8 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
   const [hostsLoaded, setHostsLoaded] = useState(false);
   const [hostPopover, setHostPopover] = useState<{ anchor: HTMLElement; perm: AgentPermission } | null>(null);
   const [selectedHosts, setSelectedHosts] = useState<Set<string>>(new Set());
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executeResult, setExecuteResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Fetch monitored hosts from environments API
   const fetchHosts = useCallback(async () => {
@@ -187,8 +189,50 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
     e.stopPropagation();
     fetchHosts();
     setSelectedHosts(new Set());
+    setExecuteResult(null);
     setHostPopover({ anchor: e.currentTarget as HTMLElement, perm });
   };
+
+  const executeOnHosts = useCallback(async () => {
+    if (!hostPopover || selectedHosts.size === 0) return;
+    setIsExecuting(true);
+    setExecuteResult(null);
+    try {
+      const hostnames = monitoredHosts
+        .filter(h => selectedHosts.has(h.uuid))
+        .map(h => h.hostname);
+
+      const resp = await fetch(getApiUrl('/api/v1/apps/sensors/run'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify({
+          app_id: 'sensors',
+          app_name: 'sensors',
+          name: 'respond',
+          parameters: [
+            { name: 'action', value: hostPopover.perm.id },
+            { name: 'hosts', value: hostnames.join(',') },
+          ],
+        }),
+      });
+
+      if (resp.ok) {
+        setExecuteResult({ success: true, message: `Action sent to ${hostnames.length} host${hostnames.length > 1 ? 's' : ''}` });
+        setTimeout(() => setHostPopover(null), 1500);
+      } else {
+        const text = await resp.text().catch(() => '');
+        setExecuteResult({ success: false, message: text || `Request failed (${resp.status})` });
+      }
+    } catch (err) {
+      setExecuteResult({ success: false, message: err instanceof Error ? err.message : 'Request failed' });
+    } finally {
+      setIsExecuting(false);
+    }
+  }, [hostPopover, selectedHosts, monitoredHosts]);
 
   const toggleHostSelection = (uuid: string) => {
     setSelectedHosts(prev => {
@@ -362,32 +406,39 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                 })}
               </Box>
 
-              <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
-                  {selectedHosts.size} selected
-                </Typography>
-                <Button
-                  size="small"
-                  variant="contained"
-                  disabled={selectedHosts.size === 0}
-                  startIcon={<Play size={12} />}
-                  onClick={() => {
-                    // TODO: Execute action on selected hosts
-                    setHostPopover(null);
-                  }}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.75rem',
-                    bgcolor: 'hsl(var(--primary))',
-                    color: 'hsl(var(--primary-foreground))',
-                    borderRadius: 1.5,
-                    px: 2,
-                    '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)' },
-                    '&.Mui-disabled': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
-                  }}
-                >
-                  Run
-                </Button>
+              <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid hsl(var(--border))' }}>
+                {executeResult && (
+                  <Alert
+                    severity={executeResult.success ? 'success' : 'error'}
+                    sx={{ mb: 1.5, fontSize: '0.75rem', py: 0.25 }}
+                  >
+                    {executeResult.message}
+                  </Alert>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
+                    {selectedHosts.size} selected
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    disabled={selectedHosts.size === 0 || isExecuting}
+                    startIcon={isExecuting ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : <Play size={12} />}
+                    onClick={executeOnHosts}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                      bgcolor: 'hsl(var(--primary))',
+                      color: 'hsl(var(--primary-foreground))',
+                      borderRadius: 1.5,
+                      px: 2,
+                      '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)' },
+                      '&.Mui-disabled': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
+                    }}
+                  >
+                    {isExecuting ? 'Running…' : 'Run'}
+                  </Button>
+                </Box>
               </Box>
             </>
           )}
