@@ -864,7 +864,7 @@ const VulnAssetsPage = () => {
                     {/* Actions popover */}
                     <div className="flex items-center justify-end" onClick={e => e.stopPropagation()}>
                       {responseActionsOn ? (
-                      <Popover>
+                      <Popover onOpenChange={(open) => { if (open) hydrateHost(host.uuid); }}>
                         <PopoverTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary">
                             {actionExecuting.has(host.uuid) ? (
