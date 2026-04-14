@@ -172,7 +172,15 @@ const VulnAssetsPage = () => {
   const [creatingGroupLoading, setCreatingGroupLoading] = useState(false);
   const [syncGroupId, setSyncGroupId] = useState<string>('');
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
-  const [osSortAsc, setOsSortAsc] = useState<boolean | null>(null);
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
+  const toggleSort = (col: string) => {
+    if (sortCol === col) {
+      if (sortAsc) setSortAsc(false);
+      else { setSortCol(null); setSortAsc(true); }
+    } else { setSortCol(col); setSortAsc(true); }
+  };
+  const sortArrow = (col: string) => sortCol === col ? (sortAsc ? ' ↑' : ' ↓') : '';
   const [actionExecuting, setActionExecuting] = useState<Set<string>>(new Set()); // host uuids being acted on
   const [customAction, setCustomAction] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
