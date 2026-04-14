@@ -177,33 +177,35 @@ const VulnAssetsPage = () => {
   const [customAction, setCustomAction] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  // Hydrate actionHistoryMap from localStorage when a host popover is about to render
-  const hydrateHostHistory = (hostUuid: string) => {
-    if (hydrationDoneRef.current.has(hostUuid)) return;
-    hydrationDoneRef.current.add(hostUuid);
-    try {
-      const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
-      if (Array.isArray(stored) && stored.length > 0) {
-        setActionHistoryMap(prev => {
-          if ((prev.get(hostUuid) || []).length > 0) return prev; // already has entries
-          const next = new Map(prev);
-          next.set(hostUuid, stored.map((e: any) => ({
-            actionName: e.actionName || '',
-            status: e.status || 'error',
-            startedAt: e.startedAt || 0,
-            finishedAt: e.finishedAt,
-            executionId: e.executionId,
-            actionOutput: e.actionOutput,
-            error: e.error,
-            hostUuid,
-            hostname: '',
-            requestBody: {},
-          } as ActionDebugEntry)));
-          return next;
-        });
+  // Hydrate actionHistoryMap from localStorage for all known hosts
+  const hydrateAllHosts = useCallback((hostUuids: string[]) => {
+    setActionHistoryMap(prev => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const hostUuid of hostUuids) {
+        if ((next.get(hostUuid) || []).length > 0) continue;
+        try {
+          const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
+          if (Array.isArray(stored) && stored.length > 0) {
+            next.set(hostUuid, stored.map((e: any) => ({
+              actionName: e.actionName || '',
+              status: e.status || 'error',
+              startedAt: e.startedAt || 0,
+              finishedAt: e.finishedAt,
+              executionId: e.executionId,
+              actionOutput: e.actionOutput,
+              error: e.error,
+              hostUuid,
+              hostname: '',
+              requestBody: {},
+            } as ActionDebugEntry)));
+            changed = true;
+          }
+        } catch { /* ignore */ }
       }
-    } catch { /* ignore */ }
-  };
+      return changed ? next : prev;
+    });
+  }, []);
 
   const getCommandHistory = (hostUuid: string): string[] => {
     try {
