@@ -220,6 +220,7 @@ const VulnAssetsPage = () => {
     actionSuccess?: boolean;
   };
   const [actionHistoryMap, setActionHistoryMap] = useState<Map<string, ActionDebugEntry[]>>(new Map());
+  const hydrationDoneRef = useRef<Set<string>>(new Set());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const pollingActiveRef = useRef<Map<string, boolean>>(new Map());
 
