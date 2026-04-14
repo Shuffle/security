@@ -161,7 +161,9 @@ const VulnAssetsPage = () => {
   const [copied, setCopied] = useState(false);
   const [sensorDetected, setSensorDetected] = useState(false);
   const [sensorPolling, setSensorPolling] = useState(false);
+  const [pollingActivated, setPollingActivated] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Monitoring groups (from API)
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
@@ -594,6 +596,7 @@ const VulnAssetsPage = () => {
   const handleCopyCommand = () => {
     navigator.clipboard.writeText(getDeployCommand());
     setCopied(true);
+    activatePolling();
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -648,15 +651,35 @@ const VulnAssetsPage = () => {
     setSensorPolling(false);
   }, []);
 
-  // Start/stop polling based on step
+  // Activate polling after user interaction or 30s timeout
+  const activatePolling = useCallback(() => {
+    if (!pollingActivated) setPollingActivated(true);
+  }, [pollingActivated]);
+
+  // Start 30s auto-activation timer when deploy step opens
   useEffect(() => {
     if (addHostStep === 'deploy' && addHostOpen) {
-      startSensorPolling();
+      activationTimerRef.current = setTimeout(() => {
+        setPollingActivated(true);
+      }, 30000);
     } else {
+      if (activationTimerRef.current) { clearTimeout(activationTimerRef.current); activationTimerRef.current = null; }
+      setPollingActivated(false);
+    }
+    return () => {
+      if (activationTimerRef.current) { clearTimeout(activationTimerRef.current); activationTimerRef.current = null; }
+    };
+  }, [addHostStep, addHostOpen]);
+
+  // Start/stop polling based on activation
+  useEffect(() => {
+    if (pollingActivated && addHostStep === 'deploy' && addHostOpen) {
+      startSensorPolling();
+    } else if (!pollingActivated) {
       stopSensorPolling();
     }
     return () => stopSensorPolling();
-  }, [addHostStep, addHostOpen, startSensorPolling, stopSensorPolling]);
+  }, [pollingActivated, addHostStep, addHostOpen, startSensorPolling, stopSensorPolling]);
 
   const detectPlatform = (): 'linux' | 'macos' | 'windows' => {
     const ua = navigator.userAgent.toLowerCase();
@@ -672,6 +695,7 @@ const VulnAssetsPage = () => {
     setLogForwardingEndpoint('');
     setCopied(false);
     setSensorDetected(false);
+    setPollingActivated(false);
     setIsCreatingGroup(false);
     setNewGroupName('');
     setAddHostOpen(true);
@@ -1566,6 +1590,7 @@ const VulnAssetsPage = () => {
                           const bin = hostPlatform === 'windows' ? '.\\orborus.exe' : './orborus';
                           navigator.clipboard.writeText(`${bin} ${flags.join(' ')}`);
                           setCopied(true);
+                          activatePolling();
                           setTimeout(() => setCopied(false), 2000);
                         }}
                       >
@@ -1597,25 +1622,27 @@ const VulnAssetsPage = () => {
               )}
 
               {/* Sensor detection status */}
-              <div className={`rounded-lg border px-3 py-3 flex items-center gap-3 ${sensorDetected ? 'border-[hsl(var(--severity-low))]/30 bg-[hsl(var(--severity-low))]/[0.06]' : 'border-border bg-muted/30'}`}>
-                {sensorDetected ? (
-                  <>
-                    <CheckCircle2 size={18} className="text-[hsl(var(--severity-low))] shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Sensor detected!</p>
-                      <p className="text-xs text-muted-foreground">A host has checked in and is reporting results to this monitoring group.</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Loader2 size={18} className="animate-spin text-muted-foreground shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Waiting for sensor…</p>
-                      <p className="text-xs text-muted-foreground">Run the command on your target host. Once connected, it will run the selected checks and report results back automatically.</p>
-                    </div>
-                  </>
-                )}
-              </div>
+              {(pollingActivated || sensorDetected) && (
+                <div className={`rounded-lg border px-3 py-3 flex items-center gap-3 ${sensorDetected ? 'border-[hsl(var(--severity-low))]/30 bg-[hsl(var(--severity-low))]/[0.06]' : 'border-border bg-muted/30'}`}>
+                  {sensorDetected ? (
+                    <>
+                      <CheckCircle2 size={18} className="text-[hsl(var(--severity-low))] shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Sensor detected!</p>
+                        <p className="text-xs text-muted-foreground">A host has checked in and is reporting results to this monitoring group.</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 size={18} className="animate-spin text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Waiting for sensor…</p>
+                        <p className="text-xs text-muted-foreground">Run the command on your target host. Once connected, it will run the selected checks and report results back automatically.</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
