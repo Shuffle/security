@@ -120,6 +120,7 @@ interface MonitoredHost {
   os: string;
   uuid: string;
   checkin: number;
+  groupName: string;
 }
 
 interface PermissionsPanelProps {
@@ -172,6 +173,7 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                   os: h.os || '',
                   uuid: h.uuid || h.hostname,
                   checkin: h.checkin || 0,
+                  groupName: env.Name || '',
                 });
               }
             });
@@ -198,9 +200,10 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
     setIsExecuting(true);
     setExecuteResult(null);
     try {
-      const hostnames = monitoredHosts
-        .filter(h => selectedHosts.has(h.uuid))
-        .map(h => h.hostname);
+      const selectedHostObjects = monitoredHosts.filter(h => selectedHosts.has(h.uuid));
+      const hostnames = selectedHostObjects.map(h => h.hostname);
+      // Use the group of the first selected host (hosts within one popover share a group context)
+      const sensorGroup = selectedHostObjects[0]?.groupName || '';
 
       const resp = await fetch(getApiUrl('/api/v1/apps/sensors/run'), {
         method: 'POST',
@@ -213,6 +216,7 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
           app_id: 'sensors',
           app_name: 'sensors',
           name: 'respond',
+          sensor_group: sensorGroup,
           parameters: [
             { name: 'action', value: hostPopover.perm.id },
             { name: 'hosts', value: hostnames.join(',') },
