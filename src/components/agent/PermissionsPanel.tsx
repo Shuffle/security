@@ -121,6 +121,7 @@ interface MonitoredHost {
   uuid: string;
   checkin: number;
   groupName: string;
+  responseActions: string | boolean;
 }
 
 interface PermissionsPanelProps {
@@ -184,6 +185,7 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                   uuid: h.uuid || h.hostname,
                   checkin: h.checkin || 0,
                   groupName: env.Name || '',
+                  responseActions: h.response_actions || false,
                 });
               }
             });
@@ -439,21 +441,25 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                     return (
                       <Box
                         key={host.uuid}
-                        onClick={() => toggleHostSelection(host.uuid)}
+                        onClick={() => {
+                          if (host.responseActions) toggleHostSelection(host.uuid);
+                        }}
                         sx={{
                           px: 2.5,
                           py: 1.25,
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1.5,
-                          cursor: 'pointer',
+                          cursor: host.responseActions ? 'pointer' : 'not-allowed',
+                          opacity: host.responseActions ? 1 : 0.45,
                           borderBottom: '1px solid hsl(var(--border) / 0.3)',
-                          '&:hover': { bgcolor: 'hsl(var(--muted) / 0.3)' },
+                          '&:hover': host.responseActions ? { bgcolor: 'hsl(var(--muted) / 0.3)' } : {},
                         }}
                       >
                         <Checkbox
                           size="small"
                           checked={selectedHosts.has(host.uuid)}
+                          disabled={!host.responseActions}
                           sx={{
                             p: 0,
                             color: 'hsl(var(--muted-foreground))',
@@ -474,8 +480,13 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                           }}>
                             {host.hostname}
                           </Typography>
+                          {!host.responseActions && (
+                            <Typography sx={{ fontSize: '0.6rem', color: 'hsl(var(--muted-foreground))' }}>
+                              Response Actions not enabled
+                            </Typography>
+                          )}
                         </Box>
-                        <Tooltip title={status.label} placement="left">
+                        <Tooltip title={host.responseActions ? status.label : 'Response Actions not enabled'} placement="left">
                           <Box sx={{
                             width: 7,
                             height: 7,
