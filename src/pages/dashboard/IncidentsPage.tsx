@@ -559,6 +559,8 @@ const IncidentsPage = () => {
 
   useEffect(() => {
     const init = async () => {
+      // Ensure default Threat Feeds & IOC Types exist for this org
+      ensureDefaultsInitialized();
       const migratedCount = await migrateToIncidents();
       if (migratedCount > 0) {
         await new Promise(resolve => setTimeout(resolve, 1500));
