@@ -175,7 +175,7 @@ const VulnAssetsPage = () => {
     hostUuid: string;
     actionName: string;
     hostname: string;
-    status: 'sending' | 'success' | 'error';
+    status: 'sending' | 'polling' | 'success' | 'error';
     requestBody: object;
     responseStatus?: number;
     responseBody?: string;
