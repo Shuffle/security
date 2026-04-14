@@ -346,9 +346,7 @@ const VulnAssetsPage = () => {
               actionSuccess: parsed.success,
               error: parsed.success ? undefined : (parsed.error || parsed.output || 'Action reported failure'),
             });
-            if (parsed.success) {
-              toast.success('Action completed', { description: parsed.output || `"${actionName}" → ${hostname}` });
-            } else {
+            if (!parsed.success) {
               toast.error('Action failed', { description: parsed.error || parsed.output || `"${actionName}" → ${hostname}` });
             }
             return;
@@ -365,7 +363,6 @@ const VulnAssetsPage = () => {
       } else {
         // Immediate result (no execution_id)
         updateHostDebug(hostUuid, { status: 'success', responseStatus: resp.status, responseBody: text, finishedAt: Date.now() });
-        toast.success('Action sent', { description: `"${actionName}" → ${hostname}` });
       }
     } catch (err) {
       if (!pollingActiveRef.current.get(hostUuid)) return;
