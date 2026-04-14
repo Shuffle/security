@@ -605,75 +605,128 @@ const VulnAssetsPage = () => {
                     </div>
                     {/* Actions popover */}
                     <div className="flex items-center justify-end" onClick={e => e.stopPropagation()}>
-                      {actionExecuting === host.uuid ? (
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="h-7 w-7 flex items-center justify-center">
-                                <Loader2 size={14} className="animate-spin text-primary" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>Action in progress…</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" disabled={!!actionExecuting}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary">
+                            {actionExecuting === host.uuid ? (
+                              <Loader2 size={14} className="animate-spin text-primary" />
+                            ) : (
                               <Play size={14} />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-64 p-0" onClick={e => e.stopPropagation()}>
-                            <div className="px-3 py-2 border-b border-border">
-                              <p className="text-xs font-semibold text-foreground">Run Action</p>
-                              <p className="text-[0.65rem] text-muted-foreground truncate">{host.hostname}</p>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-72 p-0" onClick={e => e.stopPropagation()}>
+                          {/* Debug info if action running/completed for this host */}
+                          {actionDebug && actionDebug.hostUuid === host.uuid ? (
+                            <div>
+                              <div className="px-3 py-2 border-b border-border flex items-center gap-2">
+                                {actionDebug.status === 'sending' && <Loader2 size={12} className="animate-spin text-primary" />}
+                                {actionDebug.status === 'success' && <CheckCircle2 size={12} className="text-green-500" />}
+                                {actionDebug.status === 'error' && <ShieldX size={12} className="text-destructive" />}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-foreground truncate">{actionDebug.actionName}</p>
+                                  <p className="text-[0.6rem] text-muted-foreground truncate">{actionDebug.hostname}</p>
+                                </div>
+                                {actionDebug.finishedAt && (
+                                  <span className="text-[0.6rem] text-muted-foreground font-mono shrink-0">
+                                    {actionDebug.finishedAt - actionDebug.startedAt}ms
+                                  </span>
+                                )}
+                              </div>
+                              <div className="px-3 py-2 space-y-2 max-h-64 overflow-y-auto">
+                                <div>
+                                  <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Status</span>
+                                  <p className={`text-xs font-medium ${
+                                    actionDebug.status === 'sending' ? 'text-primary' :
+                                    actionDebug.status === 'success' ? 'text-green-500' : 'text-destructive'
+                                  }`}>
+                                    {actionDebug.status === 'sending' ? 'Sending request…' :
+                                     actionDebug.status === 'success' ? `Success (${actionDebug.responseStatus})` :
+                                     `Error${actionDebug.responseStatus ? ` (${actionDebug.responseStatus})` : ''}`}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Request</span>
+                                  <pre className="text-[0.6rem] font-mono text-foreground bg-muted/40 rounded p-1.5 mt-0.5 overflow-x-auto max-h-24 whitespace-pre-wrap">
+                                    {JSON.stringify(actionDebug.requestBody, null, 2)}
+                                  </pre>
+                                </div>
+                                {actionDebug.responseBody !== undefined && (
+                                  <div>
+                                    <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Response</span>
+                                    <pre className="text-[0.6rem] font-mono text-foreground bg-muted/40 rounded p-1.5 mt-0.5 overflow-x-auto max-h-24 whitespace-pre-wrap">
+                                      {actionDebug.responseBody || '(empty)'}
+                                    </pre>
+                                  </div>
+                                )}
+                                {actionDebug.error && (
+                                  <div className="rounded border border-destructive/30 bg-destructive/5 px-2 py-1.5">
+                                    <span className="text-[0.65rem] text-destructive font-medium">{actionDebug.error}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {actionDebug.status !== 'sending' && (
+                                <div className="px-3 py-2 border-t border-border">
+                                  <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => setActionDebug(null)}>
+                                    Run another action
+                                  </Button>
+                                </div>
+                              )}
                             </div>
-                            <div className="py-1">
-                              {hostActionablePerms.map(perm => (
-                                <button
-                                  key={perm.id}
-                                  className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors flex items-center gap-2 disabled:opacity-50"
-                                  disabled={!!actionExecuting}
-                                  onClick={() => executeHostAction(perm.id, perm.name, host.hostname, host.groupName, host.uuid)}
-                                >
-                                  <Zap size={12} className="text-muted-foreground shrink-0" />
-                                  <span className="text-foreground font-medium">{perm.name}</span>
-                                </button>
-                              ))}
-                            </div>
-                            <div className="px-3 py-2 border-t border-border">
-                              <div className="flex gap-1.5">
-                                <Input
-                                  placeholder="Custom action…"
-                                  value={customAction}
-                                  onChange={e => setCustomAction(e.target.value)}
-                                  className="h-7 text-xs flex-1"
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter' && customAction.trim()) {
-                                      executeHostAction(customAction.trim(), customAction.trim(), host.hostname, host.groupName, host.uuid);
-                                      setCustomAction('');
-                                    }
-                                  }}
-                                />
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 shrink-0"
-                                  disabled={!customAction.trim() || !!actionExecuting}
-                                  onClick={() => {
-                                    if (customAction.trim()) {
-                                      executeHostAction(customAction.trim(), customAction.trim(), host.hostname, host.groupName, host.uuid);
-                                      setCustomAction('');
-                                    }
-                                  }}
-                                >
-                                  <Terminal size={12} />
-                                </Button>
+                          ) : (
+                            <div>
+                              <div className="px-3 py-2 border-b border-border">
+                                <p className="text-xs font-semibold text-foreground">Run Action</p>
+                                <p className="text-[0.65rem] text-muted-foreground truncate">{host.hostname}</p>
+                              </div>
+                              <div className="py-1">
+                                {hostActionablePerms.map(perm => (
+                                  <button
+                                    key={perm.id}
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                    disabled={actionExecuting === host.uuid}
+                                    onClick={() => executeHostAction(perm.id, perm.name, host.hostname, host.groupName, host.uuid)}
+                                  >
+                                    <Zap size={12} className="text-muted-foreground shrink-0" />
+                                    <span className="text-foreground font-medium">{perm.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="px-3 py-2 border-t border-border">
+                                <div className="flex gap-1.5">
+                                  <Input
+                                    placeholder="Custom action…"
+                                    value={customAction}
+                                    onChange={e => setCustomAction(e.target.value)}
+                                    className="h-7 text-xs flex-1"
+                                    disabled={actionExecuting === host.uuid}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter' && customAction.trim()) {
+                                        executeHostAction(customAction.trim(), customAction.trim(), host.hostname, host.groupName, host.uuid);
+                                        setCustomAction('');
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 shrink-0"
+                                    disabled={!customAction.trim() || actionExecuting === host.uuid}
+                                    onClick={() => {
+                                      if (customAction.trim()) {
+                                        executeHostAction(customAction.trim(), customAction.trim(), host.hostname, host.groupName, host.uuid);
+                                        setCustomAction('');
+                                      }
+                                    }}
+                                  >
+                                    <Terminal size={12} />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                          </PopoverContent>
-                        </Popover>
-                      )}
+                          )}
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
@@ -817,70 +870,6 @@ const VulnAssetsPage = () => {
           </div>
         )}
       </div>
-
-      {/* Action Debug Panel */}
-      {actionDebug && (
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/30">
-            <div className="flex items-center gap-2">
-              {actionDebug.status === 'sending' && <Loader2 size={14} className="animate-spin text-primary" />}
-              {actionDebug.status === 'success' && <CheckCircle2 size={14} className="text-green-500" />}
-              {actionDebug.status === 'error' && <ShieldX size={14} className="text-destructive" />}
-              <span className="text-xs font-semibold text-foreground">
-                Action: {actionDebug.actionName}
-              </span>
-              <span className="text-[0.65rem] text-muted-foreground">→ {actionDebug.hostname}</span>
-              {actionDebug.finishedAt && (
-                <span className="text-[0.6rem] text-muted-foreground font-mono">
-                  ({actionDebug.finishedAt - actionDebug.startedAt}ms)
-                </span>
-              )}
-            </div>
-            <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setActionDebug(null)}>
-              Dismiss
-            </Button>
-          </div>
-          <div className="px-5 py-3 space-y-3">
-            {/* Status */}
-            <div className="flex items-center gap-2">
-              <span className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wide w-16 shrink-0">Status</span>
-              <span className={`text-xs font-medium ${
-                actionDebug.status === 'sending' ? 'text-primary' :
-                actionDebug.status === 'success' ? 'text-green-500' : 'text-destructive'
-              }`}>
-                {actionDebug.status === 'sending' ? 'Sending request…' :
-                 actionDebug.status === 'success' ? `Success (${actionDebug.responseStatus})` :
-                 `Error${actionDebug.responseStatus ? ` (${actionDebug.responseStatus})` : ''}`}
-              </span>
-            </div>
-
-            {/* Request */}
-            <div>
-              <span className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wide">Request Body</span>
-              <pre className="text-[0.65rem] font-mono text-foreground bg-muted/40 rounded-md p-2 mt-1 overflow-x-auto max-h-32 whitespace-pre-wrap">
-                {JSON.stringify(actionDebug.requestBody, null, 2)}
-              </pre>
-            </div>
-
-            {/* Response */}
-            {actionDebug.responseBody !== undefined && (
-              <div>
-                <span className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wide">Response</span>
-                <pre className="text-[0.65rem] font-mono text-foreground bg-muted/40 rounded-md p-2 mt-1 overflow-x-auto max-h-32 whitespace-pre-wrap">
-                  {actionDebug.responseBody || '(empty)'}
-                </pre>
-              </div>
-            )}
-
-            {/* Error */}
-            {actionDebug.error && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
-                <span className="text-xs text-destructive font-medium">{actionDebug.error}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Add Host Monitor Dialog */}
       <Dialog open={addHostOpen} onOpenChange={setAddHostOpen}>
