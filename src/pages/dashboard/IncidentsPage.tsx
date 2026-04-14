@@ -59,6 +59,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { toast } from 'sonner';
 import { resyncState } from '@/lib/resyncState';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
+import { ensureDefaultsInitialized } from '@/lib/initDefaults';
 
 // Legacy categories for migration
 const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
