@@ -488,7 +488,7 @@ const VulnAssetsPage = () => {
         ) : (
           <div className="border-t border-border">
             {/* Table header */}
-            <div className="grid grid-cols-[2rem_1.5fr_2rem_2rem_2rem_2rem_2rem_0.7fr_0.8fr] gap-2 px-5 py-2 border-b border-border bg-muted/30 items-center">
+            <div className="grid grid-cols-[2rem_1.5fr_2rem_2rem_2rem_2rem_2rem_0.7fr_0.8fr_auto] gap-2 px-5 py-2 border-b border-border bg-muted/30 items-center">
               <TooltipProvider delayDuration={200}>
                 <Tooltip><TooltipTrigger asChild>
                   <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none flex items-center gap-1" onClick={() => setOsSortAsc(prev => prev === null ? true : prev ? false : null)} title="Sort by OS">
@@ -504,6 +504,7 @@ const VulnAssetsPage = () => {
               <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center"><Send size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Log Forwarding</p><p className="text-[0.65rem] text-muted-foreground">Forward host logs to a remote endpoint for centralized collection</p></TooltipContent></Tooltip></TooltipProvider>
               <span className="text-xs font-semibold text-muted-foreground">Group</span>
               <span className="text-xs font-semibold text-muted-foreground">Last Check-in</span>
+              <span className="text-xs font-semibold text-muted-foreground">Actions</span>
             </div>
             {/* Host rows */}
             {allHosts.map(host => {
