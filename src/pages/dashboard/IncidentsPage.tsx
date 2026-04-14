@@ -59,6 +59,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { toast } from 'sonner';
 import { resyncState } from '@/lib/resyncState';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
+import { ensureDefaultsInitialized } from '@/lib/initDefaults';
 
 // Legacy categories for migration
 const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
@@ -558,6 +559,8 @@ const IncidentsPage = () => {
 
   useEffect(() => {
     const init = async () => {
+      // Ensure default Threat Feeds & IOC Types exist for this org
+      ensureDefaultsInitialized();
       const migratedCount = await migrateToIncidents();
       if (migratedCount > 0) {
         await new Promise(resolve => setTimeout(resolve, 1500));
