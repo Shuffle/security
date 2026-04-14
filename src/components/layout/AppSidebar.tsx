@@ -94,6 +94,7 @@ const buildNavItems = (entityLabel: string, entityPath: string, isSupport?: bool
       { label: 'Assets', path: '/assets', icon: <HardDrive size={16} />, supportOnly: true },
     ],
   },
+  { label: 'Users', icon: <PersonIcon fontSize="medium" />, path: '/users', supportOnly: true },
   { label: '__divider__', icon: <></> },
   { label: 'Agent', icon: <AgentIcon size={20} />, path: '/agent' },
   { label: 'Automation', icon: <Activity size={20} />, path: '/usecases' },
