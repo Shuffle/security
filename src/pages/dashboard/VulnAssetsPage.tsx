@@ -384,7 +384,7 @@ const VulnAssetsPage = () => {
       });
       const text = await resp.text().catch(() => '');
       if (!resp.ok) {
-        updateHostDebug(hostUuid, { status: 'error', responseStatus: resp.status, responseBody: text, finishedAt: Date.now(), error: text || `HTTP ${resp.status}` });
+        updateHostDebug(hostUuid, entryId, { status: 'error', responseStatus: resp.status, responseBody: text, finishedAt: Date.now(), error: text || `HTTP ${resp.status}` });
         toast.error('Action failed', { description: text || `HTTP ${resp.status}` });
         return;
       }
