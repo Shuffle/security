@@ -306,11 +306,11 @@ const VulnAssetsPage = () => {
         try {
           const key = `terminal_session_${hostUuid}`;
           const stored = JSON.parse(localStorage.getItem(key) || '[]');
-          const idx = stored.findIndex((e: any) => e.startedAt === latest.startedAt && e.actionName === latest.actionName);
+          const idx = stored.findIndex((e: any) => e.entryId === latest.entryId);
           if (idx >= 0) {
             stored[idx] = { ...stored[idx], status: latest.status, finishedAt: latest.finishedAt, executionId: latest.executionId, authorization: latest.authorization };
           } else {
-            stored.push({ actionName: latest.actionName, status: latest.status, startedAt: latest.startedAt, finishedAt: latest.finishedAt, executionId: latest.executionId, authorization: latest.authorization });
+            stored.push({ entryId: latest.entryId, actionName: latest.actionName, status: latest.status, startedAt: latest.startedAt, finishedAt: latest.finishedAt, executionId: latest.executionId, authorization: latest.authorization });
             if (stored.length > 200) stored.splice(0, stored.length - 200);
           }
           localStorage.setItem(key, JSON.stringify(stored));
