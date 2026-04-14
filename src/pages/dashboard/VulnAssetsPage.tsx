@@ -724,7 +724,7 @@ const VulnAssetsPage = () => {
                                   </div>
                                 )}
                               </div>
-                              {actionDebug.status !== 'sending' && (
+                              {actionDebug.status !== 'sending' && actionDebug.status !== 'polling' && (
                                 <div className="px-3 py-2 border-t border-border">
                                   <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => setActionDebug(null)}>
                                     Run another action
