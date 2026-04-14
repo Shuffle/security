@@ -211,6 +211,26 @@ const VulnAssetsPage = () => {
       return next;
     });
   };
+
+  /** Parse action result from poll data: results[0].result → JSON → output/success/error */
+  const parseActionResult = (data: unknown): { success: boolean; output: string | null; error: string | null } => {
+    try {
+      if (!data || typeof data !== 'object') return { success: true, output: null, error: null };
+      const obj = data as Record<string, unknown>;
+      const results = obj.results as Array<{ result?: string }> | undefined;
+      const firstResult = results?.[0]?.result;
+      if (!firstResult || typeof firstResult !== 'string') return { success: true, output: null, error: null };
+      const parsed = JSON.parse(firstResult);
+      return {
+        success: parsed.success !== false,
+        output: typeof parsed.output === 'string' ? parsed.output : null,
+        error: typeof parsed.error === 'string' ? parsed.error : null,
+      };
+    } catch {
+      return { success: true, output: null, error: null };
+    }
+  };
+
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   // Get host-actionable permissions from defaults
