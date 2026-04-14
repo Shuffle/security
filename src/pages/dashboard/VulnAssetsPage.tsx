@@ -539,7 +539,7 @@ const VulnAssetsPage = () => {
               return (
                 <div key={host.uuid}>
                   <div
-                    className="grid grid-cols-[2rem_1.5fr_2rem_2rem_2rem_2rem_2rem_0.7fr_0.8fr] gap-2 px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors items-center cursor-pointer"
+                    className="grid grid-cols-[2rem_1.5fr_2rem_2rem_2rem_2rem_2rem_0.7fr_0.8fr_auto] gap-2 px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors items-center cursor-pointer"
                     onClick={toggleExpanded}
                   >
                     <div className="flex items-center justify-center">
@@ -575,6 +575,68 @@ const VulnAssetsPage = () => {
                       <span className="text-xs text-muted-foreground">
                         {checkinDate ? checkinDate.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                       </span>
+                    </div>
+                    {/* Actions popover */}
+                    <div className="flex items-center justify-end" onClick={e => e.stopPropagation()}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary">
+                            <Play size={14} />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-64 p-0" onClick={e => e.stopPropagation()}>
+                          <div className="px-3 py-2 border-b border-border">
+                            <p className="text-xs font-semibold text-foreground">Run Action</p>
+                            <p className="text-[0.65rem] text-muted-foreground truncate">{host.hostname}</p>
+                          </div>
+                          <div className="py-1">
+                            {hostActionablePerms.map(perm => (
+                              <button
+                                key={perm.id}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                disabled={actionExecuting === `${host.uuid}-${perm.id}`}
+                                onClick={() => executeHostAction(perm.id, perm.name, host.hostname, host.groupName)}
+                              >
+                                <Zap size={12} className="text-muted-foreground shrink-0" />
+                                <span className="text-foreground font-medium">{perm.name}</span>
+                                {actionExecuting === `${host.uuid}-${perm.id}` && (
+                                  <Loader2 size={12} className="animate-spin ml-auto text-primary" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="px-3 py-2 border-t border-border">
+                            <div className="flex gap-1.5">
+                              <Input
+                                placeholder="Custom action…"
+                                value={customAction}
+                                onChange={e => setCustomAction(e.target.value)}
+                                className="h-7 text-xs flex-1"
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && customAction.trim()) {
+                                    executeHostAction(customAction.trim(), customAction.trim(), host.hostname, host.groupName);
+                                    setCustomAction('');
+                                  }
+                                }}
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 shrink-0"
+                                disabled={!customAction.trim() || !!actionExecuting}
+                                onClick={() => {
+                                  if (customAction.trim()) {
+                                    executeHostAction(customAction.trim(), customAction.trim(), host.hostname, host.groupName);
+                                    setCustomAction('');
+                                  }
+                                }}
+                              >
+                                <Terminal size={12} />
+                              </Button>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
