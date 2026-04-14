@@ -803,7 +803,7 @@ const VulnAssetsPage = () => {
                               </div>
                               {(actionDebug.status === 'success' || actionDebug.status === 'error') && (
                                 <div className="px-3 py-2 border-t border-border">
-                                  <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => setHostDebug(host.uuid, null)}>
+                                  <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => { setHostDebug(host.uuid, null); setActionExecuting(prev => { const next = new Set(prev); next.delete(host.uuid); return next; }); }}>
                                     Run another action
                                   </Button>
                                 </div>
