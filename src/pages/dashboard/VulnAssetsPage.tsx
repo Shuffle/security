@@ -1425,8 +1425,7 @@ const VulnAssetsPage = () => {
                 <Label className="text-xs font-medium">Platform</Label>
                 <div className="flex gap-2">
                   {([
-                    { value: 'linux' as const, label: 'Linux' },
-                    { value: 'macos' as const, label: 'macOS' },
+                    { value: 'unix' as const, label: 'Linux / macOS' },
                     { value: 'windows' as const, label: 'Windows' },
                   ]).map(p => (
                     <Button
