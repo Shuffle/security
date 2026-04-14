@@ -149,11 +149,11 @@ const VulnAssetsPage = () => {
     hd_encrypted: true,
     screenlock: true,
     installed_software: true,
-    response_actions: false,
+    response_actions: true,
     log_forwarding: false,
   });
   const [logForwardingEndpoint, setLogForwardingEndpoint] = useState('');
-  const [responseActionMode, setResponseActionMode] = useState<'controlled' | 'full'>('controlled');
+  const [responseActionMode, setResponseActionMode] = useState<'controlled' | 'full'>('full');
   const [copied, setCopied] = useState(false);
   const [sensorDetected, setSensorDetected] = useState(false);
   const [sensorPolling, setSensorPolling] = useState(false);
