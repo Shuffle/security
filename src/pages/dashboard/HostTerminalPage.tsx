@@ -2,11 +2,20 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle2, Loader2, Play, ShieldX, Terminal } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ArrowLeft, CheckCircle2, ChevronDown, Loader2, Play, Search, ShieldX, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { usePageMeta } from '@/hooks/usePageMeta';
+
+interface HostOption {
+  uuid: string;
+  hostname: string;
+  groupName: string;
+  mode: string;
+  os: string;
+}
 
 let entryIdCounter = 0;
 
@@ -77,9 +86,43 @@ const HostTerminalPage = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Host switcher state
+  const [allHosts, setAllHosts] = useState<HostOption[]>([]);
+  const [hostSearchQuery, setHostSearchQuery] = useState('');
+  const [hostSwitcherOpen, setHostSwitcherOpen] = useState(false);
+
   const hostActionablePerms = DEFAULT_AGENT_PERMISSIONS
     .flatMap(c => c.permissions)
     .filter(p => p.hostActionable && !p.disabled);
+
+  // Fetch all hosts for the switcher
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const envs = Array.isArray(data) ? data.filter((e: any) => !e.archived && e.sensor_group === true) : [];
+        const hosts: HostOption[] = envs.flatMap((env: any) => {
+          const groupHosts = Array.isArray(env.sensor_hosts) ? env.sensor_hosts : [];
+          const checks = Array.isArray(env.sensor_checks) ? env.sensor_checks : [];
+          const hasResponseActions = checks.some((c: any) => c === 'response_actions');
+          const modeStr = hasResponseActions ? 'full' : 'controlled';
+          return groupHosts.map((h: any) => ({
+            uuid: h.uuid,
+            hostname: h.hostname,
+            groupName: env.Name,
+            mode: modeStr,
+            os: h.os || '',
+          }));
+        });
+        setAllHosts(hosts);
+      } catch { /* ignore */ }
+    })();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -240,6 +283,13 @@ const HostTerminalPage = () => {
   const finishedHistory = actionHistory.filter(e => e.status === 'success' || e.status === 'error');
   const runningEntries = actionHistory.filter(e => e.status === 'sending' || e.status === 'polling');
 
+  const filteredHosts = allHosts.filter(h =>
+    h.uuid !== hostUuid && (
+      h.hostname.toLowerCase().includes(hostSearchQuery.toLowerCase()) ||
+      h.groupName.toLowerCase().includes(hostSearchQuery.toLowerCase())
+    )
+  );
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
@@ -248,10 +298,59 @@ const HostTerminalPage = () => {
           <ArrowLeft size={16} />
         </Button>
         <Terminal size={18} className="text-primary" />
-        <div className="flex-1 min-w-0">
-          <h1 className="text-base font-semibold text-foreground truncate">{hostname}</h1>
-          <p className="text-xs text-muted-foreground">{isFull ? 'Full control (RCE)' : 'Controlled'} · {groupName}</p>
-        </div>
+        <Popover open={hostSwitcherOpen} onOpenChange={setHostSwitcherOpen}>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-2 min-w-0 text-left hover:bg-muted/50 rounded-md px-2 py-1 transition-colors">
+              <div className="min-w-0">
+                <h1 className="text-base font-semibold text-foreground truncate">{hostname}</h1>
+                <p className="text-xs text-muted-foreground">{isFull ? 'Full control (RCE)' : 'Controlled'} · {groupName}</p>
+              </div>
+              <ChevronDown size={14} className="text-muted-foreground shrink-0" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 p-0">
+            <div className="p-2 border-b border-border">
+              <div className="relative">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search monitors…"
+                  value={hostSearchQuery}
+                  onChange={e => setHostSearchQuery(e.target.value)}
+                  className="h-8 text-sm pl-8"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="max-h-64 overflow-y-auto">
+              {filteredHosts.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No other monitors found</p>
+              ) : (
+                filteredHosts.map(h => (
+                  <button
+                    key={h.uuid}
+                    className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex items-center gap-2"
+                    onClick={() => {
+                      setHostSwitcherOpen(false);
+                      setHostSearchQuery('');
+                      setActionHistory([]);
+                      navigate(`/monitors/${h.uuid}/terminal`, {
+                        state: { hostname: h.hostname, groupName: h.groupName, mode: h.mode },
+                        replace: true,
+                      });
+                    }}
+                  >
+                    <Terminal size={12} className="text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{h.hostname}</p>
+                      <p className="text-[0.65rem] text-muted-foreground truncate">{h.groupName} · {h.os}</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <div className="flex-1" />
         {runningEntries.length > 0 && (
           <div className="flex items-center gap-2">
             <Loader2 size={14} className="animate-spin text-primary" />
