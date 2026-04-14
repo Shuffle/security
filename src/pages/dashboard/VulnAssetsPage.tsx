@@ -147,7 +147,7 @@ const VulnAssetsPage = () => {
 
   const [addHostOpen, setAddHostOpen] = useState(false);
   const [addHostStep, setAddHostStep] = useState<'checks' | 'deploy'>('checks');
-  const [hostPlatform, setHostPlatform] = useState<'linux' | 'macos' | 'windows'>('linux');
+  const [hostPlatform, setHostPlatform] = useState<'unix' | 'windows'>('unix');
   const [hostChecks, setHostChecks] = useState({
     hd_encrypted: true,
     screenlock: true,
@@ -645,11 +645,10 @@ const VulnAssetsPage = () => {
     return () => stopSensorPolling();
   }, [addHostStep, addHostOpen, startSensorPolling, stopSensorPolling]);
 
-  const detectPlatform = (): 'linux' | 'macos' | 'windows' => {
+  const detectPlatform = (): 'unix' | 'windows' => {
     const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes('mac')) return 'macos';
     if (ua.includes('win')) return 'windows';
-    return 'linux';
+    return 'unix';
   };
 
   const handleOpenAddHost = () => {
@@ -1426,8 +1425,7 @@ const VulnAssetsPage = () => {
                 <Label className="text-xs font-medium">Platform</Label>
                 <div className="flex gap-2">
                   {([
-                    { value: 'linux' as const, label: 'Linux' },
-                    { value: 'macos' as const, label: 'macOS' },
+                    { value: 'unix' as const, label: 'Linux / macOS' },
                     { value: 'windows' as const, label: 'Windows' },
                   ]).map(p => (
                     <Button
