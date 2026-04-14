@@ -192,7 +192,8 @@ const VulnAssetsPage = () => {
               status: e.status || 'error',
               startedAt: e.startedAt || 0,
               finishedAt: e.finishedAt,
-              executionId: e.executionId,
+            executionId: e.executionId,
+            authorization: e.authorization,
               actionOutput: e.actionOutput,
               error: e.error,
               hostUuid,
@@ -243,6 +244,7 @@ const VulnAssetsPage = () => {
     finishedAt?: number;
     error?: string;
     executionId?: string;
+    authorization?: string;
     /** Parsed output from results[0].result.output */
     actionOutput?: string;
     /** Whether the action result reported success */
@@ -285,6 +287,7 @@ const VulnAssetsPage = () => {
             startedAt: latest.startedAt,
             finishedAt: latest.finishedAt,
             executionId: latest.executionId,
+            authorization: latest.authorization,
           };
           const alreadyStored = existing.some((e: any) => e.startedAt === entry.startedAt && e.actionName === entry.actionName);
           if (!alreadyStored) {
@@ -375,7 +378,7 @@ const VulnAssetsPage = () => {
         (parsed as Record<string, unknown>).execution_id
       ) {
         const execId = (parsed as Record<string, unknown>).execution_id as string;
-        updateHostDebug(hostUuid, { status: 'polling', responseStatus: resp.status, responseBody: text, executionId: execId });
+        updateHostDebug(hostUuid, { status: 'polling', responseStatus: resp.status, responseBody: text, executionId: execId, authorization: ((parsed as any).authorization as string) || execId });
 
         // Poll streams/results for the real output (30 min timeout)
         const maxAttempts = 900; // 900 * 2s = 30 minutes
