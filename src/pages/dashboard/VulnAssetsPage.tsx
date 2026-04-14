@@ -184,6 +184,7 @@ const VulnAssetsPage = () => {
     startedAt: number;
     finishedAt?: number;
     error?: string;
+    executionId?: string;
   };
   const [actionDebugMap, setActionDebugMap] = useState<Map<string, ActionDebugEntry>>(new Map());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
