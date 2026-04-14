@@ -131,6 +131,8 @@ const HostTerminalPage = () => {
   const [customAction, setCustomAction] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [actionHistory, setActionHistory] = useState<ActionDebugEntry[]>([]);
+  const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set());
+  const [loadingEntries, setLoadingEntries] = useState<Set<number>>(new Set());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const pollingActiveRef = useRef<Map<string, boolean>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
