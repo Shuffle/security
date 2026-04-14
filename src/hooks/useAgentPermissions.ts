@@ -123,6 +123,15 @@ export const DEFAULT_AGENT_PERMISSIONS: AgentPermissionCategory[] = [
         enabled: false,
         category: 'incident_response',
       },
+      {
+        id: 'monitor_network_traffic',
+        name: 'Monitor Network Traffic',
+        description: 'Capture and analyze network traffic patterns for anomalies',
+        risk: 'medium',
+        enabled: false,
+        category: 'incident_response',
+        disabled: true,
+      },
     ],
   },
   {
