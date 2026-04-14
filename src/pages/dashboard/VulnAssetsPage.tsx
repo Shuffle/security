@@ -399,7 +399,7 @@ const VulnAssetsPage = () => {
         (parsed as Record<string, unknown>).execution_id
       ) {
         const execId = (parsed as Record<string, unknown>).execution_id as string;
-        updateHostDebug(hostUuid, { status: 'polling', responseStatus: resp.status, responseBody: text, executionId: execId, authorization: ((parsed as any).authorization as string) || execId });
+        updateHostDebug(hostUuid, entryId, { status: 'polling', responseStatus: resp.status, responseBody: text, executionId: execId, authorization: ((parsed as any).authorization as string) || execId });
 
         // Poll streams/results for the real output (30 min timeout)
         const maxAttempts = 900; // 900 * 2s = 30 minutes
