@@ -596,6 +596,7 @@ const VulnAssetsPage = () => {
   const handleCopyCommand = () => {
     navigator.clipboard.writeText(getDeployCommand());
     setCopied(true);
+    activatePolling();
     setTimeout(() => setCopied(false), 2000);
   };
 
