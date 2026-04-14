@@ -185,6 +185,10 @@ const VulnAssetsPage = () => {
     finishedAt?: number;
     error?: string;
     executionId?: string;
+    /** Parsed output from results[0].result.output */
+    actionOutput?: string;
+    /** Whether the action result reported success */
+    actionSuccess?: boolean;
   };
   const [actionDebugMap, setActionDebugMap] = useState<Map<string, ActionDebugEntry>>(new Map());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
@@ -207,6 +211,26 @@ const VulnAssetsPage = () => {
       return next;
     });
   };
+
+  /** Parse action result from poll data: results[0].result → JSON → output/success/error */
+  const parseActionResult = (data: unknown): { success: boolean; output: string | null; error: string | null } => {
+    try {
+      if (!data || typeof data !== 'object') return { success: true, output: null, error: null };
+      const obj = data as Record<string, unknown>;
+      const results = obj.results as Array<{ result?: string }> | undefined;
+      const firstResult = results?.[0]?.result;
+      if (!firstResult || typeof firstResult !== 'string') return { success: true, output: null, error: null };
+      const parsed = JSON.parse(firstResult);
+      return {
+        success: parsed.success !== false,
+        output: typeof parsed.output === 'string' ? parsed.output : null,
+        error: typeof parsed.error === 'string' ? parsed.error : null,
+      };
+    } catch {
+      return { success: true, output: null, error: null };
+    }
+  };
+
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   // Get host-actionable permissions from defaults
@@ -304,9 +328,21 @@ const VulnAssetsPage = () => {
               if (st === 'EXECUTING' || st === 'WAITING') continue;
             }
 
-            // Got a real result
-            updateHostDebug(hostUuid, { status: 'success', responseBody: pollText, finishedAt: Date.now() });
-            toast.success('Action completed', { description: `"${actionName}" → ${hostname}` });
+            // Got a real result — parse results[0].result for output/success/error
+            const parsed = parseActionResult(pollData);
+            updateHostDebug(hostUuid, {
+              status: parsed.success ? 'success' : 'error',
+              responseBody: pollText,
+              finishedAt: Date.now(),
+              actionOutput: parsed.output || undefined,
+              actionSuccess: parsed.success,
+              error: parsed.success ? undefined : (parsed.error || parsed.output || 'Action reported failure'),
+            });
+            if (parsed.success) {
+              toast.success('Action completed', { description: parsed.output || `"${actionName}" → ${hostname}` });
+            } else {
+              toast.error('Action failed', { description: parsed.error || parsed.output || `"${actionName}" → ${hostname}` });
+            }
             return;
           } catch {
             if (!pollingActiveRef.current.get(hostUuid)) return;
@@ -775,6 +811,12 @@ const VulnAssetsPage = () => {
                                    actionDebug.status === 'success' ? 'Completed successfully' :
                                    'Failed'}
                                 </p>
+                                {/* Show parsed action output on success */}
+                                {actionDebug.status === 'success' && actionDebug.actionOutput && (
+                                  <div className="rounded border border-border bg-muted/40 px-2 py-1.5">
+                                    <pre className="text-[0.65rem] font-mono text-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto">{actionDebug.actionOutput}</pre>
+                                  </div>
+                                )}
                                 {/* Stop button while in progress */}
                                 {(actionDebug.status === 'sending' || actionDebug.status === 'polling') && (
                                   <Button
