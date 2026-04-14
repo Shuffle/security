@@ -161,7 +161,9 @@ const VulnAssetsPage = () => {
   const [copied, setCopied] = useState(false);
   const [sensorDetected, setSensorDetected] = useState(false);
   const [sensorPolling, setSensorPolling] = useState(false);
+  const [pollingActivated, setPollingActivated] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Monitoring groups (from API)
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
