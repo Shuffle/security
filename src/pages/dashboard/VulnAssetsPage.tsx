@@ -500,9 +500,20 @@ const VulnAssetsPage = () => {
 
   // Aggregate all hosts across all sensor groups
   const allHostsRaw = groups.flatMap(g => g.hosts.map(h => ({ ...h, groupName: g.name, groupId: g.id })));
-  const allHosts = osSortAsc === null ? allHostsRaw : [...allHostsRaw].sort((a, b) => {
-    const cmp = (a.os || '').localeCompare(b.os || '');
-    return osSortAsc ? cmp : -cmp;
+  const allHosts = !sortCol ? allHostsRaw : [...allHostsRaw].sort((a, b) => {
+    let cmp = 0;
+    switch (sortCol) {
+      case 'os': cmp = (a.os || '').localeCompare(b.os || ''); break;
+      case 'hostname': cmp = (a.hostname || '').localeCompare(b.hostname || ''); break;
+      case 'hd': cmp = Number(a.hd_encrypted === true || a.hd_encrypted === 'true') - Number(b.hd_encrypted === true || b.hd_encrypted === 'true'); break;
+      case 'screenlock': cmp = Number(a.automatic_screen_lock_enabled === true || a.automatic_screen_lock_enabled === 'true') - Number(b.automatic_screen_lock_enabled === true || b.automatic_screen_lock_enabled === 'true'); break;
+      case 'software': cmp = (Array.isArray(a.installed_software) ? a.installed_software.length : 0) - (Array.isArray(b.installed_software) ? b.installed_software.length : 0); break;
+      case 'response': cmp = Number(!!(a as any).response_actions) - Number(!!(b as any).response_actions); break;
+      case 'logfwd': cmp = Number(!!a.log_forwarding) - Number(!!b.log_forwarding); break;
+      case 'group': cmp = ((a as any).groupName || '').localeCompare((b as any).groupName || ''); break;
+      case 'checkin': cmp = (a.checkin || 0) - (b.checkin || 0); break;
+    }
+    return sortAsc ? cmp : -cmp;
   });
 
 
