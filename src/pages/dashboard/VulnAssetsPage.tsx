@@ -695,6 +695,7 @@ const VulnAssetsPage = () => {
     setLogForwardingEndpoint('');
     setCopied(false);
     setSensorDetected(false);
+    setPollingActivated(false);
     setIsCreatingGroup(false);
     setNewGroupName('');
     setAddHostOpen(true);
