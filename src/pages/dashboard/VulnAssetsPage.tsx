@@ -362,7 +362,9 @@ const VulnAssetsPage = () => {
         { name: 'sensor_group', value: groupName },
       ],
     };
+    const entryId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     pushHostDebug(hostUuid, {
+      entryId,
       hostUuid,
       actionName,
       hostname,
