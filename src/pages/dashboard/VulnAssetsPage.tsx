@@ -194,7 +194,8 @@ const VulnAssetsPage = () => {
         const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
         if (Array.isArray(stored) && stored.length > 0) {
           const next = new Map(prev);
-          next.set(hostUuid, stored.map((e: any) => ({
+          next.set(hostUuid, stored.map((e: any, i: number) => ({
+            entryId: e.entryId || `${e.startedAt || i}-${Math.random().toString(36).slice(2, 8)}`,
             actionName: e.actionName || '',
             status: e.status || 'error',
             startedAt: e.startedAt || 0,
