@@ -238,6 +238,30 @@ const VulnAssetsPage = () => {
       const next = new Map(prev);
       const latest = { ...history[history.length - 1], ...update };
       next.set(hostUuid, [...history.slice(0, -1), latest]);
+
+      // Persist finished entries to terminal_session_ localStorage
+      if (latest.status === 'success' || latest.status === 'error') {
+        try {
+          const key = `terminal_session_${hostUuid}`;
+          const existing = JSON.parse(localStorage.getItem(key) || '[]');
+          const entry = {
+            actionName: latest.actionName,
+            status: latest.status,
+            startedAt: latest.startedAt,
+            finishedAt: latest.finishedAt,
+            executionId: latest.executionId,
+            actionOutput: latest.actionOutput,
+            error: latest.error,
+          };
+          const alreadyStored = existing.some((e: any) => e.startedAt === entry.startedAt && e.actionName === entry.actionName);
+          if (!alreadyStored) {
+            existing.push(entry);
+            if (existing.length > 200) existing.splice(0, existing.length - 200);
+            localStorage.setItem(key, JSON.stringify(existing));
+          }
+        } catch { /* ignore */ }
+      }
+
       return next;
     });
   };
