@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, Search, ShieldX, Terminal } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, Search, ShieldX, Terminal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
@@ -214,6 +214,14 @@ const HostTerminalPage = () => {
     inputRef.current?.focus();
   }, []);
 
+  const removeHistoryEntry = useCallback((entryId: number) => {
+    setActionHistory(prev => {
+      const updated = prev.filter(e => e.entryId !== entryId);
+      if (hostUuid) saveSession(hostUuid, updated);
+      return updated;
+    });
+    setExpandedEntries(prev => { const next = new Set(prev); next.delete(entryId); return next; });
+  }, [hostUuid]);
 
   const executeHostAction = useCallback(async (actionId: string, actionName: string, isPredefined = false) => {
     if (!hostUuid) return;
@@ -572,7 +580,7 @@ const HostTerminalPage = () => {
                     {Math.round((entry.finishedAt - entry.startedAt) / 1000)}s
                   </span>
                 )}
-                {isRunning && (
+                {isRunning ? (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -594,6 +602,15 @@ const HostTerminalPage = () => {
                   >
                     Stop
                   </Button>
+                ) : (
+                  <button
+                    type="button"
+                    className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors p-0.5"
+                    onClick={(e) => { e.stopPropagation(); removeHistoryEntry(entry.entryId); }}
+                    title="Remove from history"
+                  >
+                    <X size={12} />
+                  </button>
                 )}
               </button>
               {isRunning && (
