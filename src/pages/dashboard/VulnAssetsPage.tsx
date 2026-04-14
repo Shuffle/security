@@ -180,13 +180,20 @@ const VulnAssetsPage = () => {
 
   const getCommandHistory = (hostUuid: string): string[] => {
     try {
-      return JSON.parse(localStorage.getItem(`cmd_history_${hostUuid}`) || '[]');
+      const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
+      const seen = new Set<string>();
+      const cmds: string[] = [];
+      for (let i = stored.length - 1; i >= 0; i--) {
+        if (stored[i]?.actionName && !seen.has(stored[i].actionName)) {
+          seen.add(stored[i].actionName);
+          cmds.push(stored[i].actionName);
+        }
+      }
+      return cmds;
     } catch { return []; }
   };
-  const pushCommandHistory = (hostUuid: string, cmd: string) => {
-    const prev = getCommandHistory(hostUuid);
-    const next = [cmd, ...prev.filter(c => c !== cmd)].slice(0, 100);
-    localStorage.setItem(`cmd_history_${hostUuid}`, JSON.stringify(next));
+  const pushCommandHistory = (_hostUuid: string, _cmd: string) => {
+    // No-op: terminal_session_ is saved by HostTerminalPage and VulnAssetsPage action history
   };
 
   type ActionDebugEntry = {
