@@ -922,7 +922,7 @@ const VulnAssetsPage = () => {
                             )}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="end" className="w-[34rem] p-0" onClick={e => e.stopPropagation()}>
+                        <PopoverContent align="end" side="left" collisionPadding={16} className="w-[34rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-auto p-0" onClick={e => e.stopPropagation()}>
                           {(() => {
                             const hostHistory = actionHistoryMap.get(host.uuid) || [];
                             const actionDebug = hostHistory[hostHistory.length - 1];
