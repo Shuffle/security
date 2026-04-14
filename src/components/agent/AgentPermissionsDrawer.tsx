@@ -209,13 +209,6 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
     prevTabRef.current = activeTab;
   }, [activeTab, agentTools, enabledTools, open]);
 
-  const toggleExpand = (categoryId: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
 
 
   const handleRunAgent = async () => {
