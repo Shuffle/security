@@ -299,6 +299,7 @@ const VulnAssetsPage = () => {
       const latest = { ...history[idx], ...update };
       const updated = [...history];
       updated[idx] = latest;
+      next.set(hostUuid, updated);
 
       // Update the persisted entry in localStorage (was already added on push)
       if (latest.status === 'success' || latest.status === 'error') {
