@@ -86,9 +86,43 @@ const HostTerminalPage = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Host switcher state
+  const [allHosts, setAllHosts] = useState<HostOption[]>([]);
+  const [hostSearchQuery, setHostSearchQuery] = useState('');
+  const [hostSwitcherOpen, setHostSwitcherOpen] = useState(false);
+
   const hostActionablePerms = DEFAULT_AGENT_PERMISSIONS
     .flatMap(c => c.permissions)
     .filter(p => p.hostActionable && !p.disabled);
+
+  // Fetch all hosts for the switcher
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const envs = Array.isArray(data) ? data.filter((e: any) => !e.archived && e.sensor_group === true) : [];
+        const hosts: HostOption[] = envs.flatMap((env: any) => {
+          const groupHosts = Array.isArray(env.sensor_hosts) ? env.sensor_hosts : [];
+          const checks = Array.isArray(env.sensor_checks) ? env.sensor_checks : [];
+          const hasResponseActions = checks.some((c: any) => c === 'response_actions');
+          const modeStr = hasResponseActions ? 'full' : 'controlled';
+          return groupHosts.map((h: any) => ({
+            uuid: h.uuid,
+            hostname: h.hostname,
+            groupName: env.Name,
+            mode: modeStr,
+            os: h.os || '',
+          }));
+        });
+        setAllHosts(hosts);
+      } catch { /* ignore */ }
+    })();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
