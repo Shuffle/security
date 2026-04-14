@@ -403,7 +403,10 @@ const HostTerminalPage = () => {
               {filteredHosts.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-4">No other monitors found</p>
               ) : (
-                filteredHosts.map(h => (
+                filteredHosts.map(h => {
+                  const checkinDate = h.checkin ? new Date(h.checkin * 1000) : null;
+                  const isRecent = checkinDate ? (Date.now() - checkinDate.getTime()) < 5 * 60 * 1000 : false;
+                  return (
                   <button
                     key={h.uuid}
                     className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex items-center gap-2"
@@ -419,13 +422,20 @@ const HostTerminalPage = () => {
                       });
                     }}
                   >
-                    <Terminal size={12} className="text-muted-foreground shrink-0" />
+                    <div className="relative shrink-0">
+                      <Terminal size={12} className="text-muted-foreground" />
+                      <div className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${isRecent ? 'bg-[hsl(var(--severity-low))]' : 'bg-muted-foreground/40'}`} />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{h.hostname}</p>
-                      <p className="text-[0.65rem] text-muted-foreground truncate">{h.groupName} · {h.os}</p>
+                      <p className="text-[0.65rem] text-muted-foreground truncate">
+                        {h.groupName} · {h.os}
+                        {checkinDate && <> · {checkinDate.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>}
+                      </p>
                     </div>
                   </button>
-                ))
+                  );
+                })
               )}
             </div>
           </PopoverContent>
