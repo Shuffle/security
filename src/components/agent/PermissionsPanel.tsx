@@ -121,6 +121,7 @@ interface MonitoredHost {
   uuid: string;
   checkin: number;
   groupName: string;
+  responseActions: string | boolean;
 }
 
 interface PermissionsPanelProps {
