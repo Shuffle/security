@@ -152,6 +152,16 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
   const [selectedHosts, setSelectedHosts] = useState<Set<string>>(new Set());
   const [isExecuting, setIsExecuting] = useState(false);
   const [executeResult, setExecuteResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [hostFilter, setHostFilter] = useState('');
+
+  /** Status dot color based on last check-in time, matching Monitors page logic */
+  const getCheckinStatus = (checkin: number): { color: string; label: string } => {
+    if (!checkin || checkin === 0) return { color: 'hsl(var(--muted-foreground) / 0.4)', label: 'Unknown' };
+    const diffSec = Date.now() / 1000 - checkin;
+    if (diffSec < 300) return { color: 'hsl(var(--severity-low))', label: 'Active (< 5m ago)' };
+    if (diffSec < 1800) return { color: 'hsl(var(--severity-medium))', label: 'Stale (< 30m ago)' };
+    return { color: 'hsl(var(--severity-high))', label: 'Offline (> 30m ago)' };
+  };
 
   // Fetch monitored hosts from environments API
   const fetchHosts = useCallback(async () => {
