@@ -1056,6 +1056,29 @@ const VulnAssetsPage = () => {
                           </div>
                         </div>
                       </label>
+                      {check.id === 'response_actions' && hostChecks.response_actions && (
+                        <div className="ml-9 mt-1.5 mb-1 space-y-1.5">
+                          <span className="text-xs text-muted-foreground">Control level</span>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className={`flex-1 rounded-md border px-3 py-2 text-left transition-colors ${responseActionMode === 'controlled' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}`}
+                              onClick={() => setResponseActionMode('controlled')}
+                            >
+                              <span className="text-sm font-medium text-foreground block">Controlled</span>
+                              <span className="text-[0.65rem] text-muted-foreground">Predefined files are downloaded and executed</span>
+                            </button>
+                            <button
+                              type="button"
+                              className={`flex-1 rounded-md border px-3 py-2 text-left transition-colors ${responseActionMode === 'full' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}`}
+                              onClick={() => setResponseActionMode('full')}
+                            >
+                              <span className="text-sm font-medium text-foreground block">Full Control</span>
+                              <span className="text-[0.65rem] text-muted-foreground">Full remote command execution (RCE)</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {check.id === 'log_forwarding' && hostChecks.log_forwarding && (
                         <div className="ml-9 mt-1.5 mb-1">
                           <Input
