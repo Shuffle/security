@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, Search, ShieldX, Terminal, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, Search, ShieldX, Terminal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
@@ -662,18 +662,14 @@ const HostTerminalPage = () => {
             className="h-9 text-sm flex-1 font-mono"
             ref={inputRef}
             onKeyDown={e => {
-              // Merge in-memory actions (including running ones) with localStorage history
-              const storedHistory = getCommandHistory(hostUuid || '');
+              // Build full ordered history (every entry, no dedup), most recent first
               const inMemoryNames = actionHistory.map(e => e.actionName).filter(Boolean);
-              const seen = new Set<string>();
-              const history: string[] = [];
-              // Most recent in-memory first, then stored
-              for (let i = inMemoryNames.length - 1; i >= 0; i--) {
-                if (!seen.has(inMemoryNames[i])) { seen.add(inMemoryNames[i]); history.push(inMemoryNames[i]); }
-              }
-              for (const cmd of storedHistory) {
-                if (!seen.has(cmd)) { seen.add(cmd); history.push(cmd); }
-              }
+              const storedNames = getStoredSession(hostUuid || '').map(e => e.actionName).filter(Boolean);
+              // Combine: stored (older) + in-memory (newer), then reverse so index 0 = most recent
+              const allNames = [...storedNames, ...inMemoryNames];
+              // Remove in-memory duplicates of stored entries by index (keep in-memory ones)
+              // Actually just use all entries in order, reversed
+              const history = [...allNames].reverse();
               if (e.key === 'Enter' && customAction.trim()) {
                 setHistoryIndex(-1);
                 executeHostAction(customAction.trim(), customAction.trim());
