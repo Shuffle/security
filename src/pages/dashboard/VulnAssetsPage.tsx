@@ -422,7 +422,7 @@ const VulnAssetsPage = () => {
             });
             if (!pollResp.ok) {
               if (pollResp.status >= 400 && pollResp.status < 500) {
-                updateHostDebug(hostUuid, { status: 'error', responseBody: `Poll error ${pollResp.status}`, finishedAt: Date.now(), error: `HTTP ${pollResp.status}` });
+                updateHostDebug(hostUuid, entryId, { status: 'error', responseBody: `Poll error ${pollResp.status}`, finishedAt: Date.now(), error: `HTTP ${pollResp.status}` });
                 toast.error('Action failed', { description: `Poll error ${pollResp.status}` });
                 return;
               }
