@@ -230,7 +230,7 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
 
   // Shared host action button renderer
   const renderHostActionButton = (perm: AgentPermission, isDisabled: boolean) => {
-    if (!perm.hostActionable || !perm.enabled) return null;
+    if (!perm.hostActionable) return null;
     return (
       <Tooltip title="Run on monitored hosts">
         <IconButton
