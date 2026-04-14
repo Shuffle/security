@@ -59,11 +59,10 @@ const getStoredSession = (hostUuid: string): StoredEntry[] => {
 };
 
 const saveSession = (hostUuid: string, entries: ActionDebugEntry[]) => {
-  const finished = entries
-    .filter(e => e.status === 'success' || e.status === 'error')
+  const toStore = entries
     .map(e => ({
       actionName: e.actionName,
-      status: e.status as 'success' | 'error',
+      status: e.status as string,
       startedAt: e.startedAt,
       finishedAt: e.finishedAt,
       executionId: e.executionId,
@@ -72,7 +71,7 @@ const saveSession = (hostUuid: string, entries: ActionDebugEntry[]) => {
   // Merge with existing (avoid duplicates by startedAt)
   const existing = getStoredSession(hostUuid);
   const existingTimes = new Set(existing.map(e => e.startedAt));
-  const merged = [...existing, ...finished.filter(e => !existingTimes.has(e.startedAt))].slice(-MAX_STORED);
+  const merged = [...existing, ...toStore.filter(e => !existingTimes.has(e.startedAt))].slice(-MAX_STORED);
   localStorage.setItem(HISTORY_KEY(hostUuid), JSON.stringify(merged));
 };
 
