@@ -833,9 +833,11 @@ const VulnAssetsPage = () => {
                                 )}
 
                                 {/* Session history entries */}
-                                {finishedHistory.map((entry, i) => (
-                                  <div key={i} className="border-b border-border/50 last:border-b-0">
-                                    <div className="px-3 py-1.5 flex items-center gap-2 bg-muted/20">
+                                {finishedHistory.map((entry, i) => {
+                                  const isLatest = i === finishedHistory.length - 1;
+                                  return (
+                                  <div key={i} className={`border-b border-border/50 last:border-b-0 ${isLatest ? 'bg-primary/5 ring-1 ring-inset ring-primary/20' : ''}`}>
+                                    <div className={`px-3 py-1.5 flex items-center gap-2 ${isLatest ? 'bg-primary/10' : 'bg-muted/20'}`}>
                                       <span className="text-[0.6rem] font-mono text-primary">$</span>
                                       <span className="text-[0.65rem] font-mono font-medium text-foreground flex-1 truncate">{entry.actionName}</span>
                                       {entry.status === 'success' ? (
@@ -858,7 +860,8 @@ const VulnAssetsPage = () => {
                                       </div>
                                     )}
                                   </div>
-                                ))}
+                                  );
+                                })}
 
                                 {/* Currently running entry */}
                                 {isRunning && actionDebug && (
