@@ -172,7 +172,15 @@ const VulnAssetsPage = () => {
   const [creatingGroupLoading, setCreatingGroupLoading] = useState(false);
   const [syncGroupId, setSyncGroupId] = useState<string>('');
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
-  const [osSortAsc, setOsSortAsc] = useState<boolean | null>(null);
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
+  const toggleSort = (col: string) => {
+    if (sortCol === col) {
+      if (sortAsc) setSortAsc(false);
+      else { setSortCol(null); setSortAsc(true); }
+    } else { setSortCol(col); setSortAsc(true); }
+  };
+  const sortArrow = (col: string) => sortCol === col ? (sortAsc ? ' ↑' : ' ↓') : '';
   const [actionExecuting, setActionExecuting] = useState<Set<string>>(new Set()); // host uuids being acted on
   const [customAction, setCustomAction] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -492,9 +500,20 @@ const VulnAssetsPage = () => {
 
   // Aggregate all hosts across all sensor groups
   const allHostsRaw = groups.flatMap(g => g.hosts.map(h => ({ ...h, groupName: g.name, groupId: g.id })));
-  const allHosts = osSortAsc === null ? allHostsRaw : [...allHostsRaw].sort((a, b) => {
-    const cmp = (a.os || '').localeCompare(b.os || '');
-    return osSortAsc ? cmp : -cmp;
+  const allHosts = !sortCol ? allHostsRaw : [...allHostsRaw].sort((a, b) => {
+    let cmp = 0;
+    switch (sortCol) {
+      case 'os': cmp = (a.os || '').localeCompare(b.os || ''); break;
+      case 'hostname': cmp = (a.hostname || '').localeCompare(b.hostname || ''); break;
+      case 'hd': cmp = Number(a.hd_encrypted === true || a.hd_encrypted === 'true') - Number(b.hd_encrypted === true || b.hd_encrypted === 'true'); break;
+      case 'screenlock': cmp = Number(a.automatic_screen_lock_enabled === true || a.automatic_screen_lock_enabled === 'true') - Number(b.automatic_screen_lock_enabled === true || b.automatic_screen_lock_enabled === 'true'); break;
+      case 'software': cmp = (Array.isArray(a.installed_software) ? a.installed_software.length : 0) - (Array.isArray(b.installed_software) ? b.installed_software.length : 0); break;
+      case 'response': cmp = Number(!!(a as any).response_actions) - Number(!!(b as any).response_actions); break;
+      case 'logfwd': cmp = Number(!!a.log_forwarding) - Number(!!b.log_forwarding); break;
+      case 'group': cmp = ((a as any).groupName || '').localeCompare((b as any).groupName || ''); break;
+      case 'checkin': cmp = (a.checkin || 0) - (b.checkin || 0); break;
+    }
+    return sortAsc ? cmp : -cmp;
   });
 
 
@@ -781,19 +800,19 @@ const VulnAssetsPage = () => {
             <div className="grid grid-cols-[2rem_1.5fr_2rem_2rem_2rem_2rem_2rem_0.7fr_0.8fr_auto] gap-2 px-5 py-2 border-b border-border bg-muted/30 items-center">
               <TooltipProvider delayDuration={200}>
                 <Tooltip><TooltipTrigger asChild>
-                  <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none flex items-center gap-1" onClick={() => setOsSortAsc(prev => prev === null ? true : prev ? false : null)} title="Sort by OS">
-                    OS {osSortAsc === true ? '↑' : osSortAsc === false ? '↓' : ''}
+                  <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none flex items-center gap-1" onClick={() => toggleSort('os')}>
+                    OS{sortArrow('os')}
                   </span>
-                </TooltipTrigger><TooltipContent>Operating System</TooltipContent></Tooltip>
+                </TooltipTrigger><TooltipContent>Sort by Operating System</TooltipContent></Tooltip>
               </TooltipProvider>
-              <span className="text-xs font-semibold text-muted-foreground">Hostname</span>
-              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center"><HardDrive size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">HD Encrypted</p><p className="text-[0.65rem] text-muted-foreground">Check if disk encryption is enabled (FileVault, BitLocker, LUKS)</p></TooltipContent></Tooltip></TooltipProvider>
-              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center"><Lock size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Screenlock Enabled</p><p className="text-[0.65rem] text-muted-foreground">Verify automatic screen lock is configured with max 15 min idle time</p></TooltipContent></Tooltip></TooltipProvider>
-              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center"><Package size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Installed Software</p><p className="text-[0.65rem] text-muted-foreground">Inventory of installed applications and versions</p></TooltipContent></Tooltip></TooltipProvider>
-              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center"><Zap size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Response Actions</p><p className="text-[0.65rem] text-muted-foreground">Enable automated response actions on this host</p></TooltipContent></Tooltip></TooltipProvider>
-              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center"><Send size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Log Forwarding</p><p className="text-[0.65rem] text-muted-foreground">Forward host logs to a remote endpoint for centralized collection</p></TooltipContent></Tooltip></TooltipProvider>
-              <span className="text-xs font-semibold text-muted-foreground">Group</span>
-              <span className="text-xs font-semibold text-muted-foreground">Last Check-in</span>
+              <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('hostname')}>Hostname{sortArrow('hostname')}</span>
+              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('hd')}><HardDrive size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">HD Encrypted{sortArrow('hd')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort</p></TooltipContent></Tooltip></TooltipProvider>
+              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('screenlock')}><Lock size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Screenlock{sortArrow('screenlock')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort</p></TooltipContent></Tooltip></TooltipProvider>
+              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('software')}><Package size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Software{sortArrow('software')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort by count</p></TooltipContent></Tooltip></TooltipProvider>
+              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('response')}><Zap size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Response Actions{sortArrow('response')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort</p></TooltipContent></Tooltip></TooltipProvider>
+              <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('logfwd')}><Send size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Log Forwarding{sortArrow('logfwd')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort</p></TooltipContent></Tooltip></TooltipProvider>
+              <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('group')}>Group{sortArrow('group')}</span>
+              <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('checkin')}>Last Check-in{sortArrow('checkin')}</span>
               <span className="text-xs font-semibold text-muted-foreground">Actions</span>
             </div>
             {/* Host rows */}
