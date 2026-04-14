@@ -40,6 +40,7 @@ import DashboardPage from '@/pages/dashboard/DashboardPage';
 import VulnerabilitiesPage from '@/pages/dashboard/VulnerabilitiesPage';
 import VulnAssetsPage from '@/pages/dashboard/VulnAssetsPage';
 import AssetsPage from '@/pages/dashboard/AssetsPage';
+import HostTerminalPage from '@/pages/dashboard/HostTerminalPage';
 
 import AppsPage from '@/pages/AppsPage';
 import NotFound from './pages/NotFound';
@@ -147,6 +148,7 @@ const ThemedApp = () => {
               <Route path="/preferences" element={<OrgPreferencesPage />} />
               <Route path="/vulnerabilities" element={<SupportOnly><VulnerabilitiesPage /></SupportOnly>} />
               <Route path="/monitors" element={<SupportOnly><VulnAssetsPage /></SupportOnly>} />
+              <Route path="/monitors/:hostUuid/terminal" element={<SupportOnly><HostTerminalPage /></SupportOnly>} />
               <Route path="/assets" element={<AssetsPage />} />
             </Route>
 
