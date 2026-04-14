@@ -737,7 +737,7 @@ const VulnAssetsPage = () => {
                             <div>
                               <div className="px-3 py-2 border-b border-border flex items-center gap-2">
                                 {(actionDebug.status === 'sending' || actionDebug.status === 'polling') && <Loader2 size={12} className="animate-spin text-primary" />}
-                                {actionDebug.status === 'success' && <CheckCircle2 size={12} className="text-green-500" />}
+                                {actionDebug.status === 'success' && <CheckCircle2 size={12} className="text-[hsl(var(--severity-low))]" />}
                                 {actionDebug.status === 'error' && <ShieldX size={12} className="text-destructive" />}
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs font-semibold text-foreground truncate">{actionDebug.actionName}</p>
@@ -745,44 +745,58 @@ const VulnAssetsPage = () => {
                                 </div>
                                 {actionDebug.finishedAt && (
                                   <span className="text-[0.6rem] text-muted-foreground font-mono shrink-0">
-                                    {actionDebug.finishedAt - actionDebug.startedAt}ms
+                                    {Math.round((actionDebug.finishedAt - actionDebug.startedAt) / 1000)}s
                                   </span>
                                 )}
                               </div>
-                              <div className="px-3 py-2 space-y-2 max-h-64 overflow-y-auto">
-                                <div>
-                                  <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Status</span>
-                                  <p className={`text-xs font-medium ${
-                                    (actionDebug.status === 'sending' || actionDebug.status === 'polling') ? 'text-primary' :
-                                    actionDebug.status === 'success' ? 'text-green-500' : 'text-destructive'
-                                  }`}>
-                                    {actionDebug.status === 'sending' ? 'Sending request…' :
-                                     actionDebug.status === 'polling' ? 'Polling for result…' :
-                                     actionDebug.status === 'success' ? `Success${actionDebug.responseStatus ? ` (${actionDebug.responseStatus})` : ''}` :
-                                     `Error${actionDebug.responseStatus ? ` (${actionDebug.responseStatus})` : ''}`}
-                                  </p>
-                                </div>
-                                <div>
-                                  <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Request</span>
-                                  <pre className="text-[0.6rem] font-mono text-foreground bg-muted/40 rounded p-1.5 mt-0.5 overflow-x-auto max-h-24 whitespace-pre-wrap">
-                                    {JSON.stringify(actionDebug.requestBody, null, 2)}
-                                  </pre>
-                                </div>
-                                {actionDebug.responseBody !== undefined && (
-                                  <div>
-                                    <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Response</span>
-                                    <pre className="text-[0.6rem] font-mono text-foreground bg-muted/40 rounded p-1.5 mt-0.5 overflow-x-auto max-h-24 whitespace-pre-wrap">
-                                      {actionDebug.responseBody || '(empty)'}
-                                    </pre>
-                                  </div>
+                              <div className="px-3 py-2 space-y-2">
+                                <p className={`text-xs font-medium ${
+                                  (actionDebug.status === 'sending' || actionDebug.status === 'polling') ? 'text-primary' :
+                                  actionDebug.status === 'success' ? 'text-[hsl(var(--severity-low))]' : 'text-destructive'
+                                }`}>
+                                  {actionDebug.status === 'sending' ? 'Sending request…' :
+                                   actionDebug.status === 'polling' ? 'Polling for result…' :
+                                   actionDebug.status === 'success' ? 'Completed successfully' :
+                                   'Failed'}
+                                </p>
+                                {/* Stop button while in progress */}
+                                {(actionDebug.status === 'sending' || actionDebug.status === 'polling') && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full h-7 text-xs gap-1.5 text-destructive hover:text-destructive"
+                                    onClick={() => abortHostAction(host.uuid)}
+                                  >
+                                    <Square size={10} className="fill-current" />
+                                    Stop
+                                  </Button>
                                 )}
-                                {actionDebug.error && (
-                                  <div className="rounded border border-destructive/30 bg-destructive/5 px-2 py-1.5">
-                                    <span className="text-[0.65rem] text-destructive font-medium">{actionDebug.error}</span>
-                                  </div>
+                                {/* Show debug details only on error */}
+                                {actionDebug.status === 'error' && (
+                                  <>
+                                    {actionDebug.error && (
+                                      <div className="rounded border border-destructive/30 bg-destructive/5 px-2 py-1.5">
+                                        <span className="text-[0.65rem] text-destructive font-medium">{actionDebug.error}</span>
+                                      </div>
+                                    )}
+                                    <div>
+                                      <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Request</span>
+                                      <pre className="text-[0.6rem] font-mono text-foreground bg-muted/40 rounded p-1.5 mt-0.5 overflow-x-auto max-h-24 whitespace-pre-wrap">
+                                        {JSON.stringify(actionDebug.requestBody, null, 2)}
+                                      </pre>
+                                    </div>
+                                    {actionDebug.responseBody !== undefined && (
+                                      <div>
+                                        <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wide">Response</span>
+                                        <pre className="text-[0.6rem] font-mono text-foreground bg-muted/40 rounded p-1.5 mt-0.5 overflow-x-auto max-h-24 whitespace-pre-wrap">
+                                          {actionDebug.responseBody || '(empty)'}
+                                        </pre>
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
-                              {actionDebug.status !== 'sending' && actionDebug.status !== 'polling' && (
+                              {(actionDebug.status === 'success' || actionDebug.status === 'error') && (
                                 <div className="px-3 py-2 border-t border-border">
                                   <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => setHostDebug(host.uuid, null)}>
                                     Run another action
