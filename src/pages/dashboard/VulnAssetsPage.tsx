@@ -265,6 +265,22 @@ const VulnAssetsPage = () => {
       next.set(hostUuid, [...existing, entry]);
       return next;
     });
+    // Persist immediately so running commands survive refresh
+    try {
+      const key = `terminal_session_${hostUuid}`;
+      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const persistEntry = {
+        actionName: entry.actionName,
+        status: entry.status,
+        startedAt: entry.startedAt,
+        finishedAt: entry.finishedAt,
+        executionId: entry.executionId,
+        authorization: entry.authorization,
+      };
+      stored.push(persistEntry);
+      if (stored.length > 200) stored.splice(0, stored.length - 200);
+      localStorage.setItem(key, JSON.stringify(stored));
+    } catch { /* ignore */ }
   };
   const updateHostDebug = (hostUuid: string, update: Partial<ActionDebugEntry>) => {
     setActionHistoryMap(prev => {
