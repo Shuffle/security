@@ -580,7 +580,7 @@ const HostTerminalPage = () => {
                     {Math.round((entry.finishedAt - entry.startedAt) / 1000)}s
                   </span>
                 )}
-                {isRunning && (
+                {isRunning ? (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -602,6 +602,15 @@ const HostTerminalPage = () => {
                   >
                     Stop
                   </Button>
+                ) : (
+                  <button
+                    type="button"
+                    className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors p-0.5"
+                    onClick={(e) => { e.stopPropagation(); removeHistoryEntry(entry.entryId); }}
+                    title="Remove from history"
+                  >
+                    <X size={12} />
+                  </button>
                 )}
               </button>
               {isRunning && (
