@@ -120,6 +120,7 @@ interface MonitoredHost {
   os: string;
   uuid: string;
   checkin: number;
+  groupName: string;
 }
 
 interface PermissionsPanelProps {
@@ -172,6 +173,7 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                   os: h.os || '',
                   uuid: h.uuid || h.hostname,
                   checkin: h.checkin || 0,
+                  groupName: env.Name || '',
                 });
               }
             });
