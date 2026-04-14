@@ -373,12 +373,30 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
           ) : monitoredHosts.length === 0 ? (
             <Box sx={{ px: 2.5, py: 3, textAlign: 'center' }}>
               <Laptop size={24} className="mx-auto mb-2 text-muted-foreground/40" />
-              <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
+              <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
                 No monitored hosts found
               </Typography>
               <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', mt: 0.5, opacity: 0.7 }}>
                 Deploy a sensor to start monitoring hosts
               </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setHostPopover(null);
+                  window.location.href = '/vulnerabilities/assets';
+                }}
+                sx={{
+                  mt: 1.5,
+                  fontSize: '0.7rem',
+                  textTransform: 'none',
+                  borderColor: 'hsl(var(--border))',
+                  color: 'hsl(var(--primary))',
+                  '&:hover': { bgcolor: 'hsl(var(--primary) / 0.08)', borderColor: 'hsl(var(--primary) / 0.4)' },
+                }}
+              >
+                Set up Monitors
+              </Button>
             </Box>
           ) : (
             <>
