@@ -36,15 +36,56 @@ type ActionDebugEntry = {
   actionSuccess?: boolean;
 };
 
-const getCommandHistory = (hostUuid: string): string[] => {
+type StoredEntry = {
+  actionName: string;
+  status: 'success' | 'error';
+  startedAt: number;
+  finishedAt?: number;
+  executionId?: string;
+  actionOutput?: string;
+  error?: string;
+};
+
+const HISTORY_KEY = (hostUuid: string) => `terminal_session_${hostUuid}`;
+const MAX_STORED = 200;
+
+const getStoredSession = (hostUuid: string): StoredEntry[] => {
   try {
-    return JSON.parse(localStorage.getItem(`cmd_history_${hostUuid}`) || '[]');
+    return JSON.parse(localStorage.getItem(HISTORY_KEY(hostUuid)) || '[]');
   } catch { return []; }
 };
-const pushCommandHistory = (hostUuid: string, cmd: string) => {
-  const prev = getCommandHistory(hostUuid);
-  const next = [cmd, ...prev.filter(c => c !== cmd)].slice(0, 100);
-  localStorage.setItem(`cmd_history_${hostUuid}`, JSON.stringify(next));
+
+const saveSession = (hostUuid: string, entries: ActionDebugEntry[]) => {
+  const finished = entries
+    .filter(e => e.status === 'success' || e.status === 'error')
+    .map(e => ({
+      actionName: e.actionName,
+      status: e.status as 'success' | 'error',
+      startedAt: e.startedAt,
+      finishedAt: e.finishedAt,
+      executionId: e.executionId,
+      actionOutput: e.actionOutput,
+      error: e.error,
+    }));
+  // Merge with existing (avoid duplicates by startedAt)
+  const existing = getStoredSession(hostUuid);
+  const existingTimes = new Set(existing.map(e => e.startedAt));
+  const merged = [...existing, ...finished.filter(e => !existingTimes.has(e.startedAt))].slice(-MAX_STORED);
+  localStorage.setItem(HISTORY_KEY(hostUuid), JSON.stringify(merged));
+};
+
+const getCommandHistory = (hostUuid: string): string[] => {
+  const stored = getStoredSession(hostUuid);
+  // Unique command names, most recent first
+  const seen = new Set<string>();
+  const cmds: string[] = [];
+  for (let i = stored.length - 1; i >= 0; i--) {
+    if (!seen.has(stored[i].actionName)) {
+      seen.add(stored[i].actionName);
+      cmds.push(stored[i].actionName);
+    }
+  }
+  return cmds;
 };
 
 const parseActionResult = (data: unknown): { success: boolean; output: string | null; error: string | null } => {
@@ -124,6 +165,34 @@ const HostTerminalPage = () => {
     })();
   }, []);
 
+  // Load stored session on mount / host change
+  useEffect(() => {
+    if (!hostUuid) return;
+    const stored = getStoredSession(hostUuid);
+    if (stored.length > 0) {
+      setActionHistory(stored.map((e, i) => ({
+        entryId: ++entryIdCounter,
+        hostUuid,
+        actionName: e.actionName,
+        hostname,
+        status: e.status,
+        requestBody: {},
+        startedAt: e.startedAt,
+        finishedAt: e.finishedAt,
+        executionId: e.executionId,
+        actionOutput: e.actionOutput,
+        error: e.error,
+      })));
+    }
+  }, [hostUuid]);
+
+  // Save to localStorage when entries finish
+  useEffect(() => {
+    if (!hostUuid) return;
+    const hasFinished = actionHistory.some(e => e.status === 'success' || e.status === 'error');
+    if (hasFinished) saveSession(hostUuid, actionHistory);
+  }, [actionHistory, hostUuid]);
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [actionHistory]);
@@ -131,8 +200,6 @@ const HostTerminalPage = () => {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-
 
 
   const executeHostAction = useCallback(async (actionId: string, actionName: string, isPredefined = false) => {
@@ -465,7 +532,6 @@ const HostTerminalPage = () => {
             onKeyDown={e => {
               const history = getCommandHistory(hostUuid || '');
               if (e.key === 'Enter' && customAction.trim()) {
-                pushCommandHistory(hostUuid || '', customAction.trim());
                 setHistoryIndex(-1);
                 executeHostAction(customAction.trim(), customAction.trim());
                 setCustomAction('');
@@ -494,7 +560,7 @@ const HostTerminalPage = () => {
             disabled={!customAction.trim()}
             onClick={() => {
               if (customAction.trim()) {
-                pushCommandHistory(hostUuid || '', customAction.trim());
+                
                 executeHostAction(customAction.trim(), customAction.trim());
                 setCustomAction('');
               }
