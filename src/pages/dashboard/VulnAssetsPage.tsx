@@ -224,6 +224,7 @@ const VulnAssetsPage = () => {
         if (Array.isArray(old) && old.length > 0) return old;
         return [];
       }
+      // Return unique command names (most recent first) for autocomplete
       const seen = new Set<string>();
       const cmds: string[] = [];
       for (let i = stored.length - 1; i >= 0; i--) {
