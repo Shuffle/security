@@ -68,15 +68,26 @@ interface WorkflowResult {
 type SearchResult = NavResult | AppResult | CorrelationResult | WorkflowResult;
 
 const navItems: NavResult[] = [
+  { type: 'nav', label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={16} /> },
   { type: 'nav', label: 'Incidents', path: '/incidents', icon: <WarningAmberIcon sx={{ fontSize: 18 }} /> },
-  { type: 'nav', label: 'Templates', path: '/templates', icon: <DescriptionIcon sx={{ fontSize: 18 }} />, indent: true },
-  { type: 'nav', label: 'IOC Types', path: '/incidents/ioc-types', icon: <WarningAmberIcon sx={{ fontSize: 18 }} />, indent: true },
-  { type: 'nav', label: 'Threat Feeds', path: '/incidents/threat-feeds', icon: <WarningAmberIcon sx={{ fontSize: 18 }} />, indent: true },
-  { type: 'nav', label: 'Custom Fields', path: '/incidents/custom-fields', icon: <WarningAmberIcon sx={{ fontSize: 18 }} />, indent: true },
+  { type: 'nav', label: 'Templates', path: '/templates', icon: <DescriptionIcon sx={{ fontSize: 16 }} />, indent: true },
+  { type: 'nav', label: 'Custom Fields', path: '/incidents/custom-fields', icon: <TuneIcon sx={{ fontSize: 16 }} />, indent: true },
+  { type: 'nav', label: 'Monitors', path: '/monitors', icon: <Radar size={16} /> },
   { type: 'nav', label: 'Detection', path: '/detection', icon: <RadarIcon sx={{ fontSize: 18 }} /> },
-  { type: 'nav', label: 'Sigma Rules', path: '/detection/sigma', icon: <Braces size={16} />, indent: true },
-  { type: 'nav', label: 'MITRE ATT&CK', path: '/detection/mitre', icon: <Waypoints size={16} />, indent: true },
-  { type: 'nav', label: 'Infrastructure', path: '/infrastructure', icon: <Network size={16} /> },
+  { type: 'nav', label: 'Rules', path: '/detection/sigma', icon: <Braces size={16} />, indent: true },
+  { type: 'nav', label: 'Pipelines', path: '/detection/pipelines', icon: <Network size={16} />, indent: true },
+  { type: 'nav', label: 'ATT&CK', path: '/detection/mitre', icon: <Waypoints size={16} />, indent: true },
+  { type: 'nav', label: 'Threat Feeds', path: '/incidents/threat-feeds', icon: <RssFeedIcon sx={{ fontSize: 16 }} />, indent: true },
+  { type: 'nav', label: 'IOC Types', path: '/incidents/ioc-types', icon: <FingerprintIcon sx={{ fontSize: 16 }} />, indent: true },
+  { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Shield size={16} />, indent: true },
+  { type: 'nav', label: 'Assets', path: '/assets', icon: <HardDrive size={16} />, indent: true },
+  { type: 'nav', label: 'Response Actions', path: '/incidents/response-actions', icon: <Shield size={16} />, indent: true },
+  { type: 'nav', label: 'Users', path: '/users', icon: <Users size={16} />, indent: true },
+  { type: 'nav', label: 'Agent', path: '/agent', icon: <AgentIcon size={16} /> },
+  { type: 'nav', label: 'Automation', path: '/usecases', icon: <Activity size={16} /> },
+  { type: 'nav', label: 'Documentation', path: '/docs', icon: <BookOpen size={16} /> },
+  { type: 'nav', label: 'Settings', path: '/settings', icon: <SettingsIcon sx={{ fontSize: 16 }} /> },
+  { type: 'nav', label: 'Organizations', path: '/organizations', icon: <LayoutDashboard size={16} /> },
 ];
 
 const NOISE_KEYS = new Set([
