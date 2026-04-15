@@ -442,6 +442,15 @@ const HostTerminalPage = () => {
     )
   );
 
+  if (needsLoading) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-4rem)] items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 size={24} className="animate-spin" />
+        <span className="text-sm">Loading host info…</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
