@@ -123,15 +123,17 @@ const HostTerminalPage = () => {
 
   // Host switcher state
   const [allHosts, setAllHosts] = useState<HostOption[]>([]);
+  const [hostsLoaded, setHostsLoaded] = useState(false);
   const [hostSearchQuery, setHostSearchQuery] = useState('');
   const [hostSwitcherOpen, setHostSwitcherOpen] = useState(false);
 
   // Resolve host info from location.state first, then fall back to allHosts lookup
   const resolvedHost = allHosts.find(h => h.uuid === hostUuid);
-  const hostname = hostState?.hostname || resolvedHost?.hostname || 'Unknown Host';
+  const hostname = hostState?.hostname || resolvedHost?.hostname || (hostsLoaded ? 'Unknown Host' : '');
   const groupName = hostState?.groupName || resolvedHost?.groupName || '';
   const mode = hostState?.mode || resolvedHost?.mode || 'full';
   const isFull = mode === 'full';
+  const needsLoading = !hostState?.hostname && !hostsLoaded;
 
   usePageMeta({ title: `Terminal · ${hostname}`, description: `Terminal session for ${hostname}` });
 
