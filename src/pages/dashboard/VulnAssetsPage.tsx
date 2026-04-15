@@ -841,7 +841,18 @@ const VulnAssetsPage = () => {
           </div>
         </div>
 
-        {/* Checks overview - only show when no hosts monitored */}
+        {/* Error banner */}
+        {loadError && !groupsLoading && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-destructive/30 bg-destructive/5 text-destructive">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span className="text-sm flex-1">{loadError}</span>
+            <Button size="sm" variant="outline" className="gap-1.5 shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => loadGroups()}>
+              <RefreshCw size={13} />
+              Retry
+            </Button>
+          </div>
+        )}
+
         {allHosts.length === 0 && (
           <div className="grid grid-cols-5 gap-0 divide-x divide-border">
             {HOST_CHECK_OPTIONS.map(check => (
