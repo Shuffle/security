@@ -583,14 +583,15 @@ const VulnAssetsPage = () => {
     if (hostChecks.log_forwarding && logForwardingEndpoint.trim()) parts.push(`log_forwarding=${logForwardingEndpoint.trim()}`);
 
     const authHeader = selectedGroup?.auth ? `-H 'Auth: ${selectedGroup.auth}'` : '';
+    const downloadUrl = 'https://shuffler.io/api/v1/orborus';
 
     if (hostPlatform === 'windows') {
       parts.push('os=windows');
       const headers = selectedGroup?.auth ? `-Headers @{Auth="${selectedGroup.auth}"}` : '';
-      return `Invoke-WebRequest -Uri '${baseUrl}/api/v1/orborus?${parts.join('&')}' ${headers} -UseBasicParsing | Invoke-Expression`.replace(/  +/g, ' ');
+      return `Invoke-WebRequest -Uri '${downloadUrl}?${parts.join('&')}' ${headers} -UseBasicParsing | Invoke-Expression`.replace(/  +/g, ' ');
     }
 
-    return `curl ${authHeader} '${baseUrl}/api/v1/orborus?${parts.join('&')}' | sh`.replace(/  +/g, ' ');
+    return `curl '${downloadUrl}?${parts.join('&')}' ${authHeader} | sh`.replace(/  +/g, ' ');
   };
 
   const handleCopyCommand = () => {
