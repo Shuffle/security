@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Laptop, HardDrive, Lock, Package, Zap, Plus, Copy, Check, Activity, ChevronRight, ChevronDown, Radar, FolderOpen, Loader2, CheckCircle2, Send, RefreshCw, ShieldCheck, ShieldX, Cpu, Hash, Clock, Globe, Play, Terminal, Square, Maximize2 } from 'lucide-react';
+import { Laptop, HardDrive, Lock, Package, Zap, Plus, Copy, Check, Activity, ChevronRight, ChevronDown, Radar, FolderOpen, Loader2, CheckCircle2, Send, RefreshCw, ShieldCheck, ShieldX, Cpu, Hash, Clock, Globe, Play, Terminal, Square, Maximize2, AlertTriangle } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { toast } from 'sonner';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/config/api';
@@ -84,21 +84,21 @@ interface MonitoringGroup {
 }
 
 /** Fetch environments from the API and filter for sensor_group: true */
-const fetchSensorGroups = async (): Promise<{ groups: MonitoringGroup[]; allEnvs: OrbEnvironment[] }> => {
+const fetchSensorGroups = async (): Promise<{ groups: MonitoringGroup[]; allEnvs: OrbEnvironment[]; error?: string }> => {
   try {
     const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
       credentials: 'include',
       headers: { ...getAuthHeader() },
     });
-    if (!res.ok) return { groups: [], allEnvs: [] };
+    if (!res.ok) return { groups: [], allEnvs: [], error: `Failed to load monitors (HTTP ${res.status})` };
     const data = await res.json();
     const envs: OrbEnvironment[] = Array.isArray(data) ? data.filter((e: OrbEnvironment) => !e.archived) : [];
     const groups = envs
       .filter(e => e.sensor_group === true)
       .map(e => ({ id: e.id || e.Name, name: e.Name, queue: e.Name.replace(/ +/g, '-'), auth: String(e.auth || ''), org_id: String(e.org_id || ''), hosts: Array.isArray(e.sensor_hosts) ? e.sensor_hosts : [] }));
     return { groups, allEnvs: envs };
-  } catch {
-    return { groups: [], allEnvs: [] };
+  } catch (err) {
+    return { groups: [], allEnvs: [], error: `Failed to load monitors — could not reach the API` };
   }
 };
 
@@ -169,6 +169,7 @@ const VulnAssetsPage = () => {
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
   const [allEnvs, setAllEnvs] = useState<OrbEnvironment[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -539,7 +540,11 @@ const VulnAssetsPage = () => {
 
   const loadGroups = useCallback(async () => {
     setGroupsLoading(true);
-    const { groups: fetched, allEnvs: envs } = await fetchSensorGroups();
+    setLoadError(null);
+    const { groups: fetched, allEnvs: envs, error } = await fetchSensorGroups();
+    if (error) {
+      setLoadError(error);
+    }
     setGroups(fetched);
     setAllEnvs(envs);
     if (fetched.length > 0) {
@@ -836,7 +841,18 @@ const VulnAssetsPage = () => {
           </div>
         </div>
 
-        {/* Checks overview - only show when no hosts monitored */}
+        {/* Error banner */}
+        {loadError && !groupsLoading && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-destructive/30 bg-destructive/5 text-destructive">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span className="text-sm flex-1">{loadError}</span>
+            <Button size="sm" variant="outline" className="gap-1.5 shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => loadGroups()}>
+              <RefreshCw size={13} />
+              Retry
+            </Button>
+          </div>
+        )}
+
         {allHosts.length === 0 && (
           <div className="grid grid-cols-5 gap-0 divide-x divide-border">
             {HOST_CHECK_OPTIONS.map(check => (
