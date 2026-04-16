@@ -938,6 +938,8 @@ const VulnAssetsPage = () => {
                   return next;
                 });
                 setSoftwareFilter('');
+                setCodeScanFilter('');
+                setExpandedCodePaths(new Set());
               };
               const CheckDot = ({ on, tip, color, state }: { on: boolean; tip: string; color?: string; state?: 'on' | 'off' | 'empty' }) => {
                 const dotColor = state === 'off' ? 'bg-[hsl(var(--severity-critical))]' : on ? (color || 'bg-green-500') : 'bg-muted-foreground/30';
