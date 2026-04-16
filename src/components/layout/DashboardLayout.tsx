@@ -29,7 +29,7 @@ const GlobalAppDetailDrawer = () => {
 
 export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutProps) => {
   const location = useLocation();
-  const { orgMismatchWarning, dismissOrgMismatch } = useAuth();
+  const { orgMismatchWarning, dismissOrgMismatch, setActiveOrg, userInfo } = useAuth();
   const isOnboarding = location.pathname === '/onboarding';
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -87,6 +87,11 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
                 sx={{ mb: 2 }}
                 action={
                   <Box sx={{ display: 'flex', gap: 1 }}>
+                    {userInfo?.active_org?.id && (
+                      <Button color="inherit" size="small" variant="outlined" onClick={() => setActiveOrg(userInfo.active_org!.id)}>
+                        Change back
+                      </Button>
+                    )}
                     <Button color="inherit" size="small" onClick={dismissOrgMismatch}>
                       Dismiss
                     </Button>
