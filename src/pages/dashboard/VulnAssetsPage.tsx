@@ -46,6 +46,7 @@ const HOST_CHECK_OPTIONS = [
   { id: 'hd_encrypted' as const, label: 'HD Encrypted', description: 'Check if disk encryption is enabled (FileVault, BitLocker, LUKS)', icon: <HardDrive size={16} />, disabled: false },
   { id: 'screenlock' as const, label: 'Screenlock Enabled', description: 'Verify automatic screen lock is configured with max 15 min idle time', icon: <Lock size={16} />, disabled: false },
   { id: 'installed_software' as const, label: 'Installed Software', description: 'Inventory of installed applications and versions', icon: <Package size={16} />, disabled: false },
+  { id: 'code_scanner_enabled' as const, label: 'Code Package Scanner', description: 'Scan project directories for language packages and dependencies', icon: <FileCode size={16} />, disabled: false },
   { id: 'log_forwarding' as const, label: 'Active Monitoring', description: 'Active monitoring of host activity (not generally available yet)', icon: <Send size={16} />, disabled: true },
   { id: 'response_actions' as const, label: 'Response Actions', description: 'Enable automated response actions on this host', icon: <Zap size={16} />, disabled: false },
 ];
@@ -165,6 +166,7 @@ const VulnAssetsPage = () => {
     hd_encrypted: true,
     screenlock: true,
     installed_software: true,
+    code_scanner_enabled: true,
     response_actions: true,
     log_forwarding: false,
   });
@@ -713,7 +715,7 @@ const VulnAssetsPage = () => {
   const handleOpenAddHost = () => {
     setAddHostStep('checks');
     setHostPlatform(detectPlatform());
-    setHostChecks({ hd_encrypted: true, screenlock: true, installed_software: true, response_actions: false, log_forwarding: false });
+    setHostChecks({ hd_encrypted: true, screenlock: true, installed_software: true, code_scanner_enabled: true, response_actions: false, log_forwarding: false });
     setLogForwardingEndpoint('');
     setCopied(false);
     setSensorDetected(false);
