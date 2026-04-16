@@ -471,6 +471,8 @@ const UsersPage = ({ embedded }: { embedded?: boolean }) => {
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
       {/* Org Admin Header */}
+    {!embedded && (
+      <>
       <Typography 
         variant="h4" 
         sx={{ 
@@ -505,8 +507,10 @@ const UsersPage = ({ embedded }: { embedded?: boolean }) => {
         <Tab label="User Management" />
         <Tab label="Tenant Management" />
       </Tabs>
+      </>
+    )}
 
-      {activeTab === 1 ? (
+      {!embedded && activeTab === 1 ? (
         <TenantManagement />
       ) : (
       <>
