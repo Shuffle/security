@@ -46,6 +46,7 @@ const HOST_CHECK_OPTIONS = [
   { id: 'hd_encrypted' as const, label: 'HD Encrypted', description: 'Check if disk encryption is enabled (FileVault, BitLocker, LUKS)', icon: <HardDrive size={16} />, disabled: false },
   { id: 'screenlock' as const, label: 'Screenlock Enabled', description: 'Verify automatic screen lock is configured with max 15 min idle time', icon: <Lock size={16} />, disabled: false },
   { id: 'installed_software' as const, label: 'Installed Software', description: 'Inventory of installed applications and versions', icon: <Package size={16} />, disabled: false },
+  { id: 'code_scanner_enabled' as const, label: 'Code Package Scanner', description: 'Scan project directories for language packages and dependencies', icon: <FileCode size={16} />, disabled: false },
   { id: 'log_forwarding' as const, label: 'Active Monitoring', description: 'Active monitoring of host activity (not generally available yet)', icon: <Send size={16} />, disabled: true },
   { id: 'response_actions' as const, label: 'Response Actions', description: 'Enable automated response actions on this host', icon: <Zap size={16} />, disabled: false },
 ];
@@ -165,6 +166,7 @@ const VulnAssetsPage = () => {
     hd_encrypted: true,
     screenlock: true,
     installed_software: true,
+    code_scanner_enabled: true,
     response_actions: true,
     log_forwarding: false,
   });
@@ -595,9 +597,10 @@ const VulnAssetsPage = () => {
       parts.push(`queue=${selectedGroup.queue}`);
       if (selectedGroup.org_id) parts.push(`org_id=${selectedGroup.org_id}`);
     }
-    if (hostChecks.installed_software) parts.push('software_list_enabled=true');
-    if (hostChecks.hd_encrypted) parts.push('hd_encrypted_check=true');
-    if (hostChecks.screenlock) parts.push('screenlock_check=true');
+    parts.push(`software_list_enabled=${hostChecks.installed_software}`);
+    parts.push(`hd_encrypted_check=${hostChecks.hd_encrypted}`);
+    parts.push(`screenlock_check=${hostChecks.screenlock}`);
+    parts.push(`code_scanner_enabled=${hostChecks.code_scanner_enabled}`);
     if (hostChecks.response_actions) parts.push(`response_actions=${responseActionMode}`);
     if (hostChecks.log_forwarding && logForwardingEndpoint.trim()) parts.push(`log_forwarding=${logForwardingEndpoint.trim()}`);
 
@@ -713,7 +716,7 @@ const VulnAssetsPage = () => {
   const handleOpenAddHost = () => {
     setAddHostStep('checks');
     setHostPlatform(detectPlatform());
-    setHostChecks({ hd_encrypted: true, screenlock: true, installed_software: true, response_actions: false, log_forwarding: false });
+    setHostChecks({ hd_encrypted: true, screenlock: true, installed_software: true, code_scanner_enabled: true, response_actions: false, log_forwarding: false });
     setLogForwardingEndpoint('');
     setCopied(false);
     setSensorDetected(false);
@@ -1379,13 +1382,13 @@ const VulnAssetsPage = () => {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <FileCode size={14} className="text-muted-foreground" />
-                          <span className="text-xs font-semibold text-foreground">Code Scanning</span>
+                          <span className="text-xs font-semibold text-foreground">Code Package Scanner</span>
                           {Array.isArray(host.code_scanner) && host.code_scanner.length > 0 && (
                             <span className="text-[0.65rem] text-muted-foreground">({host.code_scanner.length} projects)</span>
                           )}
                         </div>
                         {!Array.isArray(host.code_scanner) || host.code_scanner.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic">No code scanning data collected for this host.</p>
+                          <p className="text-xs text-muted-foreground italic">No code package scanning data collected for this host.</p>
                         ) : (
                           <>
                             <Input
@@ -1736,9 +1739,10 @@ const VulnAssetsPage = () => {
     if (selectedGroup.org_id) flags.push(`--org_id=${selectedGroup.org_id}`);
     if (selectedGroup.auth) flags.push(`--auth=${selectedGroup.auth}`);
   }
-  if (hostChecks.installed_software) flags.push('--software_list_enabled=true');
-  if (hostChecks.hd_encrypted) flags.push('--hd_encrypted_check=true');
-  if (hostChecks.screenlock) flags.push('--screenlock_check=true');
+  flags.push(`--software_list_enabled=${hostChecks.installed_software}`);
+  flags.push(`--hd_encrypted_check=${hostChecks.hd_encrypted}`);
+  flags.push(`--screenlock_check=${hostChecks.screenlock}`);
+  flags.push(`--code_scanner_enabled=${hostChecks.code_scanner_enabled}`);
   if (hostChecks.response_actions) flags.push(`--response_actions=${responseActionMode}`);
   if (hostChecks.log_forwarding && logForwardingEndpoint.trim()) flags.push(`--log_forwarding=${logForwardingEndpoint.trim()}`);
   const bin = hostPlatform === 'windows' ? '.\\orborus.exe' : './orborus';
@@ -1758,9 +1762,10 @@ const VulnAssetsPage = () => {
                             if (selectedGroup.org_id) flags.push(`--org_id=${selectedGroup.org_id}`);
                             if (selectedGroup.auth) flags.push(`--auth=${selectedGroup.auth}`);
                           }
-                          if (hostChecks.installed_software) flags.push('--software_list_enabled=true');
-                          if (hostChecks.hd_encrypted) flags.push('--hd_encrypted_check=true');
-                          if (hostChecks.screenlock) flags.push('--screenlock_check=true');
+                          flags.push(`--software_list_enabled=${hostChecks.installed_software}`);
+                          flags.push(`--hd_encrypted_check=${hostChecks.hd_encrypted}`);
+                          flags.push(`--screenlock_check=${hostChecks.screenlock}`);
+                          flags.push(`--code_scanner_enabled=${hostChecks.code_scanner_enabled}`);
                           if (hostChecks.response_actions) flags.push(`--response_actions=${responseActionMode}`);
                           if (hostChecks.log_forwarding && logForwardingEndpoint.trim()) flags.push(`--log_forwarding=${logForwardingEndpoint.trim()}`);
                           const bin = hostPlatform === 'windows' ? '.\\orborus.exe' : './orborus';
