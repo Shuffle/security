@@ -87,6 +87,11 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
                 sx={{ mb: 2 }}
                 action={
                   <Box sx={{ display: 'flex', gap: 1 }}>
+                    {userInfo?.active_org?.id && (
+                      <Button color="inherit" size="small" variant="outlined" onClick={() => setActiveOrg(userInfo.active_org!.id)}>
+                        Change back
+                      </Button>
+                    )}
                     <Button color="inherit" size="small" onClick={dismissOrgMismatch}>
                       Dismiss
                     </Button>
