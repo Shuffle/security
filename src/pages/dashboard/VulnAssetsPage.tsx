@@ -1762,9 +1762,10 @@ const VulnAssetsPage = () => {
                             if (selectedGroup.org_id) flags.push(`--org_id=${selectedGroup.org_id}`);
                             if (selectedGroup.auth) flags.push(`--auth=${selectedGroup.auth}`);
                           }
-                          if (hostChecks.installed_software) flags.push('--software_list_enabled=true');
-                          if (hostChecks.hd_encrypted) flags.push('--hd_encrypted_check=true');
-                          if (hostChecks.screenlock) flags.push('--screenlock_check=true');
+                          flags.push(`--software_list_enabled=${hostChecks.installed_software}`);
+                          flags.push(`--hd_encrypted_check=${hostChecks.hd_encrypted}`);
+                          flags.push(`--screenlock_check=${hostChecks.screenlock}`);
+                          flags.push(`--code_scanner_enabled=${hostChecks.code_scanner_enabled}`);
                           if (hostChecks.response_actions) flags.push(`--response_actions=${responseActionMode}`);
                           if (hostChecks.log_forwarding && logForwardingEndpoint.trim()) flags.push(`--log_forwarding=${logForwardingEndpoint.trim()}`);
                           const bin = hostPlatform === 'windows' ? '.\\orborus.exe' : './orborus';
