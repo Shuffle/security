@@ -1254,6 +1254,7 @@ const VulnAssetsPage = () => {
                           <Lock size={13} />
                           Screen Lock: {screenlockState === 'on' ? 'Enabled' : screenlockState === 'off' ? 'Disabled' : 'Not checked'}
                         </div>
+                        <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
                           <Zap size={13} />
                           Elevated Access: {host.elevated_access ? 'Yes' : 'No'}
                         </div>
