@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Laptop, HardDrive, Lock, Package, Zap, Plus, Copy, Check, Activity, ChevronRight, ChevronDown, Radar, FolderOpen, Loader2, CheckCircle2, Send, RefreshCw, ShieldCheck, ShieldX, Cpu, Hash, Clock, Globe, Play, Terminal, Square, Maximize2, AlertTriangle } from 'lucide-react';
@@ -151,6 +152,7 @@ const VulnAssetsPage = () => {
   const [addHostOpen, setAddHostOpen] = useState(false);
   const [addHostStep, setAddHostStep] = useState<'checks' | 'deploy'>('checks');
   const [hostPlatform, setHostPlatform] = useState<'linux' | 'macos' | 'windows'>('linux');
+  const [winRunAsAdmin, setWinRunAsAdmin] = useState(true);
   const [installMode, setInstallMode] = useState<'easy' | 'custom'>('easy');
   const [hostChecks, setHostChecks] = useState({
     hd_encrypted: true,
@@ -595,6 +597,7 @@ const VulnAssetsPage = () => {
 
     if (hostPlatform === 'windows') {
       parts.push('os=windows');
+      if (!winRunAsAdmin) parts.push('admin=false');
       const headers = selectedGroup?.auth ? `-H "Auth: ${selectedGroup.auth}"` : '';
       const authHeader = selectedGroup?.auth ? ` -Headers @{'Auth'='${selectedGroup.auth}'}` : '';
       return `powershell -ExecutionPolicy Bypass -Command "& {iex (irm '${downloadUrl}?${parts.join('&')}'${authHeader ? ` -Headers @{'Auth'='${selectedGroup.auth}'}` : ''})}"`.replace(/  +/g, ' ');
@@ -1536,7 +1539,15 @@ const VulnAssetsPage = () => {
                       {p.label}
                     </Button>
                   ))}
+              </div>
+
+              {/* Run as Admin toggle – Windows only */}
+              {hostPlatform === 'windows' && (
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Run as Administrator</Label>
+                  <Switch checked={winRunAsAdmin} onCheckedChange={setWinRunAsAdmin} />
                 </div>
+              )}
               </div>
 
               {installMode === 'easy' ? (
