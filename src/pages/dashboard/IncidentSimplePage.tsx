@@ -131,6 +131,10 @@ const IncidentSimplePage = () => {
   // Manual refresh — distinct from initial load so we don't show the skeleton.
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [incident, setIncident] = useState<IncidentSnapshot | null>(null);
+  // Public sharing token lives on the datastore item envelope (sibling to
+  // `value`), NOT inside the OCSF payload — capture it separately so the
+  // Share dialog can build a working public link.
+  const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   // Org-configured kanban lanes. Memoised lane keys keep the getLane call cheap.
   const taskStatuses = useTaskStatuses();
   const laneKeys = useMemo(() => taskStatuses.map((s) => s.key), [taskStatuses]);
