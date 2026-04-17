@@ -68,7 +68,8 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const softwareCount = Array.isArray(host.installed_software) ? host.installed_software.length : 0;
   const codeScanCount = Array.isArray(host.code_scanner) ? host.code_scanner.length : 0;
   const responseActionsRaw = host.response_actions;
-  const responseActionsOn = !!responseActionsRaw;
+  const raLower = String(responseActionsRaw ?? '').toLowerCase().trim();
+  const responseActionsOn = !!responseActionsRaw && raLower !== 'false' && raLower !== '0' && raLower !== 'no' && raLower !== 'off';
   const logForwardingOn = !!host.log_forwarding;
 
   const wrapperClass = variant === 'page'
@@ -136,17 +137,26 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <p className="text-xs text-foreground cursor-help">
-                    {(responseActionsRaw || '').toLowerCase().includes('full') ? 'Full control (RCE)' : 'Controlled'}
+                  <p className={`text-xs cursor-help ${raLower.includes('full') ? 'text-red-600 dark:text-red-400 font-medium' : 'text-foreground'}`}>
+                    {raLower.includes('full') ? 'Full control (RCE)' : 'Controlled'}
                   </p>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
-                  <p className="text-[0.65rem] font-mono">response_actions = {String(responseActionsRaw)}</p>
+                  <p className="text-[0.65rem] font-mono">response_actions = {fmtRaw(responseActionsRaw)}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           ) : (
-            <p className="text-xs text-muted-foreground">Not enabled</p>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-xs text-muted-foreground cursor-help">Not enabled</p>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
+                  <p className="text-[0.65rem] font-mono">response_actions = {fmtRaw(responseActionsRaw)}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
