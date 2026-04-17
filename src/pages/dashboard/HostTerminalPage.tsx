@@ -248,8 +248,14 @@ const HostTerminalPage = () => {
     setExpandedEntries(prev => { const next = new Set(prev); next.delete(entryId); return next; });
   }, [hostUuid]);
 
-  const executeHostAction = useCallback(async (actionId: string, actionName: string, isPredefined = false) => {
+  const executeHostAction = useCallback(async (actionId: string, actionName: string, isPredefined = false, skipConfirm = false) => {
     if (!hostUuid) return;
+    // Confirm gate for the irreversible disable_rce script
+    const normalized = (isPredefined ? `script:${actionId}` : actionId).trim().toLowerCase();
+    if (!skipConfirm && normalized === 'script:disable_rce') {
+      setPendingDisableRce({ actionId, actionName, isPredefined });
+      return;
+    }
     const myId = ++entryIdCounter;
     const controller = new AbortController();
     const abortKey = `entry_${myId}`;
