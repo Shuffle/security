@@ -26,6 +26,7 @@ import { TaskAssigneeChip } from './TaskAssigneeChip';
 import { TaskDateTimePicker } from './TaskDateTimePicker';
 import { FileAttachments } from './FileAttachments';
 import { MentionInput } from './MentionInput';
+import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
 
 interface TaskEditDialogProps {
@@ -84,6 +85,9 @@ export const TaskEditDialog = ({
   siblings,
   onNavigate,
 }: TaskEditDialogProps) => {
+  const { userInfo } = useAuth();
+  const currentUsername = userInfo?.username || '';
+
   // Local title state — buffered so users can edit without each keystroke
   // re-rendering the kanban card behind. We commit on blur + on dialog close.
   const [titleDraft, setTitleDraft] = useState(task?.title || '');
@@ -94,7 +98,13 @@ export const TaskEditDialog = ({
   const commitTitle = () => {
     if (!task) return;
     if (titleDraft !== task.title) {
-      onTaskChange({ ...task, title: titleDraft });
+      // Route through update() so the title edit also triggers auto-assign
+      // when the current user is the first to touch an unassigned task.
+      onTaskChange({
+        ...task,
+        title: titleDraft,
+        ...(!task.assignee && currentUsername ? { assignee: currentUsername } : {}),
+      });
     }
   };
 
@@ -147,7 +157,21 @@ export const TaskEditDialog = ({
   const categoryInfo = taskCategories.find((c) => c.value === task.category);
   const showNav = !!siblings && siblings.length > 1 && !!onNavigate;
 
-  const update = (patch: Partial<IncidentTask>) => onTaskChange({ ...task, ...patch });
+  // Auto-assign the current user the moment they touch an unassigned task.
+  // Skip when the patch already sets the assignee (avoids overriding an
+  // explicit choice) or when the user just toggles completion.
+  const update = (patch: Partial<IncidentTask>) => {
+    const shouldAutoAssign =
+      !task.assignee &&
+      currentUsername &&
+      patch.assignee === undefined &&
+      !('completed' in patch);
+    onTaskChange({
+      ...task,
+      ...patch,
+      ...(shouldAutoAssign ? { assignee: currentUsername } : {}),
+    });
+  };
 
   const toggleComplete = () => {
     update({
@@ -496,6 +520,10 @@ export const TaskEditDialog = ({
             multiline
             minRows={5}
             fullWidth
+            // Auto-focus Notes when the dialog opens so users can start
+            // typing immediately. Re-runs per-task via the `key` prop below.
+            key={`notes-${task.id}`}
+            autoFocus
             placeholder="Add findings, links, or follow-up steps. Use @ to mention a teammate."
             sx={{
               '& .MuiOutlinedInput-root': {
