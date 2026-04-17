@@ -832,12 +832,17 @@ const IncidentSimplePage = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+              gridTemplateColumns: {
+                xs: '1fr',
+                // Auto-fit columns so 2/4/5/6+ configured lanes lay out cleanly
+                // without hardcoding `repeat(3, 1fr)`.
+                md: `repeat(${Math.max(taskStatuses.length, 1)}, minmax(0, 1fr))`,
+              },
               gap: 2,
             }}
           >
-            {LANES.map((lane) => {
-              const items = tasksByLane[lane.key];
+            {taskStatuses.map((lane) => {
+              const items = tasksByLane[lane.key] || [];
               const isHover = hoverLane === lane.key;
               return (
                 <Box
