@@ -92,6 +92,22 @@ const IncidentSimplePage = () => {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextSaveRef = useRef(true);
 
+  // Persist left-panel collapsed state per-user across sessions.
+  const [leftCollapsed, setLeftCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('incidents-simple:leftCollapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('incidents-simple:leftCollapsed', leftCollapsed ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }, [leftCollapsed]);
+
   // ==========================================================================
   // Load incident from datastore
   // ==========================================================================
