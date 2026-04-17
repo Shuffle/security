@@ -34,6 +34,7 @@ interface SensorHost {
   serial: string;
   uuid: string;
   response_actions?: string;
+  [key: string]: unknown;
 }
 
 const MonitorDetailPage = () => {
