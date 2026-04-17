@@ -45,6 +45,17 @@ import {
   ResolutionData,
   RESOLUTION_REASONS,
 } from '@/components/incidents/ResolveIncidentDialog';
+import { TaskEditDialog } from '@/components/incidents/TaskEditDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // ============================================================================
 // Kanban column definition — tasks are grouped into 3 lanes
