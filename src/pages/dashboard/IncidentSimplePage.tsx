@@ -20,6 +20,7 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import PersonIcon from '@mui/icons-material/Person';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { toast } from 'sonner';
 import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@/services/datastore';
 import { useAuth } from '@/context/AuthContext';
@@ -122,6 +123,8 @@ const IncidentSimplePage = () => {
   const currentUser = userInfo?.username || 'You';
 
   const [loading, setLoading] = useState(true);
+  // Manual refresh — distinct from initial load so we don't show the skeleton.
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [incident, setIncident] = useState<IncidentSnapshot | null>(null);
   const [tasks, setTasks] = useState<IncidentTask[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -162,14 +165,14 @@ const IncidentSimplePage = () => {
   // ==========================================================================
   // Load incident from datastore
   // ==========================================================================
-  const loadIncident = useCallback(async () => {
+  const loadIncident = useCallback(async (showLoading = true) => {
     if (!id) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const result = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS);
       if (!result.success || !result.item?.value) {
         toast.error('Incident not found');
-        setLoading(false);
+        if (showLoading) setLoading(false);
         return;
       }
       const data = JSON.parse(result.item.value);
@@ -210,7 +213,7 @@ const IncidentSimplePage = () => {
       console.error('[IncidentSimple] Load failed:', err);
       toast.error('Failed to load incident');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [id]);
 
@@ -497,6 +500,37 @@ const IncidentSimplePage = () => {
           >
             Full view
           </Button>
+        </Tooltip>
+        {/* Refresh — same UI/behaviour as the Refresh button on /incidents/<id> */}
+        <Tooltip title="Refresh">
+          <span>
+            <IconButton
+              size="small"
+              onClick={async () => {
+                setIsRefreshing(true);
+                await loadIncident(false);
+                setIsRefreshing(false);
+              }}
+              disabled={loading || isRefreshing}
+              sx={{
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 1,
+                width: 36,
+                height: 36,
+              }}
+            >
+              <RefreshIcon
+                fontSize="small"
+                sx={{
+                  animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                  },
+                }}
+              />
+            </IconButton>
+          </span>
         </Tooltip>
         <IncidentActionsMenu
           incident={{
