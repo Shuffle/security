@@ -1423,9 +1423,9 @@ const VulnAssetsPage = () => {
                               const q = codeScanFilter.toLowerCase();
                               const filtered = host.code_scanner.filter((proj) => {
                                 if (!q) return true;
-                                if (proj.path.toLowerCase().includes(q)) return true;
-                                if (proj.type.toLowerCase().includes(q)) return true;
-                                return proj.packages?.some(p => p.name.toLowerCase().includes(q) || p.version.toLowerCase().includes(q));
+                                if ((proj.path || '').toLowerCase().includes(q)) return true;
+                                if ((proj.type || '').toLowerCase().includes(q)) return true;
+                                return proj.packages?.some(p => (p.name || '').toLowerCase().includes(q) || (p.version || '').toLowerCase().includes(q));
                               });
                               return (
                                 <div className="rounded-md border border-border overflow-hidden max-h-[340px] overflow-y-auto">
