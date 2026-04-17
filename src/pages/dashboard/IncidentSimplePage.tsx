@@ -1134,15 +1134,25 @@ const IncidentSimplePage = () => {
         isLoading={isSavingMeta}
       />
 
-      {/* Single-task editor — reuses the exact TaskEditor component as /incidents */}
-      <TaskEditDialog
-        open={!!editingTaskId}
-        onClose={() => setEditingTaskId(null)}
-        task={tasks.find((t) => t.id === editingTaskId) || null}
-        onTaskChange={handleTaskUpdate}
-        incidentId={incident.id}
-      />
-
+      {/* Single-task editor — reuses the exact TaskEditor component as /incidents.
+          Prev/Next walks through the same lane the user opened the task from
+          so triaging "all open To Do items" is one keystroke per task. */}
+      {(() => {
+        const editingTask = tasks.find((t) => t.id === editingTaskId) || null;
+        const lane = editingTask ? getLane(editingTask, laneKeys) : null;
+        const siblings = lane ? tasksByLane[lane] || [] : [];
+        return (
+          <TaskEditDialog
+            open={!!editingTaskId}
+            onClose={() => setEditingTaskId(null)}
+            task={editingTask}
+            onTaskChange={handleTaskUpdate}
+            incidentId={incident.id}
+            siblings={siblings}
+            onNavigate={(nextId) => setEditingTaskId(nextId)}
+          />
+        );
+      })()}
       {/* Delete confirmation — required so a stray click doesn't drop tasks */}
       <AlertDialog open={!!pendingDeleteId} onOpenChange={(o) => !o && setPendingDeleteId(null)}>
         <AlertDialogContent>
