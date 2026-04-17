@@ -137,17 +137,26 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <p className="text-xs text-foreground cursor-help">
-                    {(responseActionsRaw || '').toLowerCase().includes('full') ? 'Full control (RCE)' : 'Controlled'}
+                  <p className={`text-xs cursor-help ${raLower.includes('full') ? 'text-red-600 dark:text-red-400 font-medium' : 'text-foreground'}`}>
+                    {raLower.includes('full') ? 'Full control (RCE)' : 'Controlled'}
                   </p>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
-                  <p className="text-[0.65rem] font-mono">response_actions = {String(responseActionsRaw)}</p>
+                  <p className="text-[0.65rem] font-mono">response_actions = {fmtRaw(responseActionsRaw)}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           ) : (
-            <p className="text-xs text-muted-foreground">Not enabled</p>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-xs text-muted-foreground cursor-help">Not enabled</p>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
+                  <p className="text-[0.65rem] font-mono">response_actions = {fmtRaw(responseActionsRaw)}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
