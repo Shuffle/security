@@ -466,7 +466,7 @@ const IncidentSimplePage = () => {
       <Box sx={{ p: 4, display: 'flex', gap: 3 }}>
         <Skeleton variant="rounded" width={420} height={520} />
         <Box sx={{ flex: 1, display: 'flex', gap: 2 }}>
-          {LANES.map((l) => (
+          {taskStatuses.map((l) => (
             <Skeleton key={l.key} variant="rounded" sx={{ flex: 1, height: 520 }} />
           ))}
         </Box>
