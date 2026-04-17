@@ -213,7 +213,7 @@ const IncidentSimplePage = () => {
       console.error('[IncidentSimple] Load failed:', err);
       toast.error('Failed to load incident');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [id]);
 
