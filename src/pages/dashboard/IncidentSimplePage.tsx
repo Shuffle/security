@@ -309,6 +309,19 @@ const IncidentSimplePage = () => {
             Full view
           </Button>
         </Tooltip>
+        <IncidentActionsMenu
+          incident={{
+            id: incident.id,
+            title: incident.title,
+            source: incident.source,
+            status: incident.status,
+            rawOCSF: incident.rawOCSF,
+          }}
+          showSimpleViewEntry={false}
+          showFullViewEntry
+          publicAuthorization={incident.rawOCSF?.public_authorization || ''}
+          onAfterChange={() => loadIncident()}
+        />
       </Box>
 
       <Box
