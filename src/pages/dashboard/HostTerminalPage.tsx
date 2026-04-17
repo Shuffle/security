@@ -766,6 +766,31 @@ const HostTerminalPage = () => {
         </div>
         <p className="text-[0.65rem] text-muted-foreground/60 mt-2.5 text-center">No session is created — each command is standalone. History is stored locally in your browser.</p>
       </div>
+
+      <AlertDialog open={!!pendingDisableRce} onOpenChange={(o) => { if (!o) setPendingDisableRce(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disable Remote Code Execution?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you 100% sure? This will disable RCE on <span className="font-mono text-foreground">{hostname}</span>.
+              You will <strong>not</strong> be able to turn it back on without restarting the agent on the host.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                const p = pendingDisableRce;
+                setPendingDisableRce(null);
+                if (p) executeHostAction(p.actionId, p.actionName, p.isPredefined, true);
+              }}
+            >
+              Yes, disable RCE
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
