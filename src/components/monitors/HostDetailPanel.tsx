@@ -173,7 +173,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
-              <p className="text-[0.65rem] font-mono">automatic_screen_lock_enabled = {String(host.automatic_screen_lock_enabled)}</p>
+              <p className="text-[0.65rem] font-mono">automatic_screen_lock_enabled = {fmtRaw(host.automatic_screen_lock_enabled)}</p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>
@@ -184,7 +184,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
-              <p className="text-[0.65rem] font-mono">elevated_access = {String(host.elevated_access)}</p>
+              <p className="text-[0.65rem] font-mono">elevated_access = {fmtRaw(host.elevated_access)}</p>
             </TooltipContent>
           </Tooltip>
           {logForwardingOn && (
