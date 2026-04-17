@@ -575,7 +575,19 @@ const IncidentSimplePage = () => {
   const statusInfo = statusConfig[incident.status] || statusConfig.new;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, minHeight: 'calc(100vh - 64px)', bgcolor: 'hsl(var(--background))' }}>
+    <Box
+      sx={{
+        // Tighter horizontal padding on narrow screens — every pixel counts
+        // when the kanban has 3+ lanes. Centered with a generous max-width on
+        // very large monitors so the layout doesn't sprawl edge-to-edge.
+        px: { xs: 1.5, sm: 2, md: 3, xl: 4 },
+        py: { xs: 2, md: 3 },
+        maxWidth: 1800,
+        mx: 'auto',
+        minHeight: 'calc(100vh - 64px)',
+        bgcolor: 'hsl(var(--background))',
+      }}
+    >
       {/* Top bar */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <IconButton onClick={() => navigate('/incidents')} size="small">
@@ -648,9 +660,15 @@ const IncidentSimplePage = () => {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            md: leftCollapsed ? '64px 1fr' : '380px 1fr',
+            // Narrower left column on mid-size screens so the kanban gets the
+            // breathing room it needs (3+ lanes get crushed otherwise).
+            md: leftCollapsed ? '56px 1fr' : '300px 1fr',
+            lg: leftCollapsed ? '64px 1fr' : '360px 1fr',
+            xl: leftCollapsed ? '64px 1fr' : '380px 1fr',
           },
-          gap: 3,
+          // Smaller gap on tighter viewports — 24px between the rail and the
+          // first lane was eating real estate on ~840px screens.
+          gap: { xs: 1.5, md: 2, lg: 3 },
           alignItems: 'start',
           transition: 'grid-template-columns 200ms ease',
         }}
