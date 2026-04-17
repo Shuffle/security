@@ -48,6 +48,14 @@ const stateOf = (v: boolean | string | undefined): 'on' | 'off' => {
   return 'off';
 };
 
+/** Format a raw API value for display in tooltips. Missing fields show "(field not set)". */
+const fmtRaw = (v: unknown): string => {
+  if (v === undefined) return '(field not set)';
+  if (v === null) return 'null';
+  if (v === '') return '"" (empty string)';
+  return String(v);
+};
+
 export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false }: HostDetailPanelProps) => {
   const [softwareFilter, setSoftwareFilter] = useState('');
   const [codeScanFilter, setCodeScanFilter] = useState('');
