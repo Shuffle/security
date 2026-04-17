@@ -520,6 +520,10 @@ export const TaskEditDialog = ({
             multiline
             minRows={5}
             fullWidth
+            // Auto-focus Notes when the dialog opens so users can start
+            // typing immediately. Re-runs per-task via the `key` prop below.
+            key={`notes-${task.id}`}
+            autoFocus
             placeholder="Add findings, links, or follow-up steps. Use @ to mention a teammate."
             sx={{
               '& .MuiOutlinedInput-root': {
