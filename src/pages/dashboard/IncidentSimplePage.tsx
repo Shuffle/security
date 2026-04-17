@@ -531,14 +531,19 @@ const IncidentSimplePage = () => {
         <Paper
           elevation={6}
           sx={{
+            // Top padding leaves room for the absolutely-positioned source app
+            // avatar, which sits half-overlapping the top edge of the paper
+            // (and visually overlaps the page top bar above it).
             p: leftCollapsed ? 1 : 3,
+            pt: leftCollapsed ? 1 : 5,
             borderRadius: 2,
-            position: { md: 'sticky' },
+            position: { xs: 'relative', md: 'sticky' },
             top: { md: 96 },
             bgcolor: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
             transition: 'padding 200ms ease',
-            overflow: 'hidden',
+            // overflow visible so the floating avatar can extend above the paper
+            overflow: 'visible',
           }}
         >
           {/* Collapse toggle */}
