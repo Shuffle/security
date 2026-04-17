@@ -974,11 +974,17 @@ const VulnAssetsPage = () => {
             {allHosts.map(host => {
               const checkinDate = host.checkin ? new Date(host.checkin * 1000) : null;
               const isRecent = checkinDate ? (Date.now() - checkinDate.getTime()) < 5 * 60 * 1000 : false;
-              const hdState: 'on' | 'off' | 'empty' = (host.hd_encrypted === true || host.hd_encrypted === 'true') ? 'on' : (host.hd_encrypted === false || host.hd_encrypted === 'false' || host.hd_encrypted === 'FALSE') ? 'off' : 'empty';
+              const triState = (v: unknown): 'on' | 'off' | 'empty' => {
+                if (v === true || v === 'true' || v === 'TRUE') return 'on';
+                if (v === false || v === 'false' || v === 'FALSE' || v === '0' || v === 0 || v === 'no' || v === 'off') return 'off';
+                return 'empty'; // undefined, null, '' → grey
+              };
+              const hdState = triState(host.hd_encrypted);
               const hdEncrypted = hdState === 'on';
-              const screenlockState: 'on' | 'off' | 'empty' = (host.automatic_screen_lock_enabled === true || host.automatic_screen_lock_enabled === 'true') ? 'on' : (host.automatic_screen_lock_enabled === false || host.automatic_screen_lock_enabled === 'false' || host.automatic_screen_lock_enabled === 'FALSE') ? 'off' : 'empty';
+              const screenlockState = triState(host.automatic_screen_lock_enabled);
               const screenlockOn = screenlockState === 'on';
               const softwareCount = Array.isArray(host.installed_software) ? host.installed_software.length : 0;
+              const codeScanCount = Array.isArray(host.code_scanner) ? host.code_scanner.length : 0;
               const responseActionsRaw = (host as any).response_actions as string | boolean | undefined;
               const responseActionsState = parseResponseActionsState(responseActionsRaw);
               const responseActionsOn = responseActionsState.enabled;
@@ -1045,11 +1051,18 @@ const VulnAssetsPage = () => {
                     </div>
                     <CheckDot on={hdEncrypted} state={hdState} tip={`hd_encrypted = ${fmtRaw(host.hd_encrypted)}`} />
                     <CheckDot on={screenlockOn} state={screenlockState} tip={`automatic_screen_lock_enabled = ${fmtRaw(host.automatic_screen_lock_enabled)}`} />
-                    <CheckDot on={softwareCount > 0} tip={`installed_software = ${fmtRaw(host.installed_software)}`} />
-                    {(() => {
-                      const codeScanCount = Array.isArray(host.code_scanner) ? host.code_scanner.length : 0;
-                      return <CheckDot on={codeScanCount > 0} tip={`code_scanner = ${fmtRaw(host.code_scanner)}`} />;
-                    })()}
+                    <CheckDot
+                      on={softwareCount > 0}
+                      tip={Array.isArray(host.installed_software)
+                        ? `installed_software: ${softwareCount} ${softwareCount === 1 ? 'item' : 'items'}`
+                        : `installed_software = ${fmtRaw(host.installed_software)}`}
+                    />
+                    <CheckDot
+                      on={codeScanCount > 0}
+                      tip={Array.isArray(host.code_scanner)
+                        ? `code_scanner: ${codeScanCount} ${codeScanCount === 1 ? 'project' : 'projects'}`
+                        : `code_scanner = ${fmtRaw(host.code_scanner)}`}
+                    />
                     <CheckDot
                       on={responseActionsOn}
                       tip={`response_actions = ${fmtRaw(responseActionsRaw)}`}
