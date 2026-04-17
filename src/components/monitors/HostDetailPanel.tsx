@@ -196,7 +196,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
-                <p className="text-[0.65rem] font-mono whitespace-pre-wrap">log_forwarding = {String(host.log_forwarding)}</p>
+                <p className="text-[0.65rem] font-mono whitespace-pre-wrap">log_forwarding = {fmtRaw(host.log_forwarding)}</p>
               </TooltipContent>
             </Tooltip>
           )}
