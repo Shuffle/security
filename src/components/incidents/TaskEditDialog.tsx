@@ -85,6 +85,9 @@ export const TaskEditDialog = ({
   siblings,
   onNavigate,
 }: TaskEditDialogProps) => {
+  const { userInfo } = useAuth();
+  const currentUsername = userInfo?.username || '';
+
   // Local title state — buffered so users can edit without each keystroke
   // re-rendering the kanban card behind. We commit on blur + on dialog close.
   const [titleDraft, setTitleDraft] = useState(task?.title || '');
@@ -95,7 +98,13 @@ export const TaskEditDialog = ({
   const commitTitle = () => {
     if (!task) return;
     if (titleDraft !== task.title) {
-      onTaskChange({ ...task, title: titleDraft });
+      // Route through update() so the title edit also triggers auto-assign
+      // when the current user is the first to touch an unassigned task.
+      onTaskChange({
+        ...task,
+        title: titleDraft,
+        ...(!task.assignee && currentUsername ? { assignee: currentUsername } : {}),
+      });
     }
   };
 
