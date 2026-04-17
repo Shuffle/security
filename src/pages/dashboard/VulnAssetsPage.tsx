@@ -61,6 +61,17 @@ const HOST_CHECK_OPTIONS = [
   { id: 'log_forwarding' as const, label: 'Active Monitoring', description: 'Active monitoring of host activity (not generally available yet)', icon: <Send size={16} />, disabled: true },
 ];
 
+// Tiles shown on the default (no hosts yet) overview. HD Encrypted + Screenlock are
+// collapsed into a single generic "Compliance Checks" tile so the UI stays extendible
+// as more posture checks are added.
+const HOST_OVERVIEW_TILES = [
+  { id: 'compliance_checks', label: 'Compliance Checks', description: 'Verify disk encryption, screen lock policies, and other posture controls', icon: <ShieldCheck size={16} /> },
+  { id: 'installed_software', label: 'Installed Software', description: 'Inventory of installed applications and versions', icon: <Package size={16} /> },
+  { id: 'code_scanner_enabled', label: 'Code Package Scanner', description: 'Scan project directories for language packages and dependencies', icon: <FileCode size={16} /> },
+  { id: 'response_actions', label: 'Response Actions', description: 'Enable automated response actions on this host', icon: <Zap size={16} /> },
+  { id: 'log_forwarding', label: 'Active Monitoring', description: 'Active monitoring of host activity (not generally available yet)', icon: <Send size={16} /> },
+];
+
 /** Single source of truth for active monitoring (formerly log forwarding) status */
 const isActiveMonitoringEnabled = (host: { log_forwarding?: string }): boolean => !!host.log_forwarding;
 
