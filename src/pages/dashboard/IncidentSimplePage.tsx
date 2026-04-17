@@ -48,6 +48,7 @@ import {
   RESOLUTION_REASONS,
 } from '@/components/incidents/ResolveIncidentDialog';
 import { TaskEditDialog } from '@/components/incidents/TaskEditDialog';
+import { TaskAssigneeChip } from '@/components/incidents/TaskAssigneeChip';
 import {
   AlertDialog,
   AlertDialogAction,
