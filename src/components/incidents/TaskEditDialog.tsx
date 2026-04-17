@@ -553,7 +553,7 @@ export const TaskEditDialog = ({
         </Box>
 
         {/* ---- FOOTER META (read-only crumbs) ---- */}
-        {(task.createdAt > 0 || task.createdBy || (task.completedAt && task.completedAt > 0)) && (
+        {(task.createdAt > 0 || task.createdBy || (typeof task.completedAt === 'number' && task.completedAt > 0)) && (
           <>
             <Divider />
             <Box
@@ -572,11 +572,11 @@ export const TaskEditDialog = ({
                   {task.createdBy ? ` by ${task.createdBy}` : ''}
                 </Typography>
               )}
-              {task.completedAt && task.completedAt > 0 && (
+              {typeof task.completedAt === 'number' && task.completedAt > 0 ? (
                 <Typography variant="caption" sx={{ color: '#22c55e' }}>
                   Completed {new Date(task.completedAt).toLocaleString()}
                 </Typography>
-              )}
+              ) : null}
             </Box>
           </>
         )}
