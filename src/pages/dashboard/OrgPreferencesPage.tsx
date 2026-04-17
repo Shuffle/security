@@ -17,6 +17,7 @@ import {
   setSidebarTabVisibility,
   SidebarTabKey,
 } from '@/hooks/useEntityLabel';
+import { TaskStatusesEditor } from '@/components/settings/TaskStatusesEditor';
 
 const TerminologySelector = () => {
   const { value } = useEntityPreference();
