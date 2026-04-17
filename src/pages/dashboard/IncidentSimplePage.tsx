@@ -219,6 +219,7 @@ const IncidentSimplePage = () => {
         rawOCSF: data,
       });
       setTasks(normalized);
+      setPublicAuthorization(result.item.public_authorization || '');
       // Skip the immediately-following auto-save triggered by this state hydration.
       skipNextSaveRef.current = true;
     } catch (err) {
