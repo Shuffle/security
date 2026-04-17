@@ -927,6 +927,36 @@ const IncidentSimplePage = () => {
         incidentTitle={incident.title}
         isLoading={isSavingMeta}
       />
+
+      {/* Single-task editor — reuses the exact TaskEditor component as /incidents */}
+      <TaskEditDialog
+        open={!!editingTaskId}
+        onClose={() => setEditingTaskId(null)}
+        task={tasks.find((t) => t.id === editingTaskId) || null}
+        onTaskChange={handleTaskUpdate}
+        incidentId={incident.id}
+      />
+
+      {/* Delete confirmation — required so a stray click doesn't drop tasks */}
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(o) => !o && setPendingDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the task from this incident. You can't undo this from the simple view.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteTask}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Box>
   );
 };
