@@ -6,7 +6,6 @@ import {
   Typography,
   Chip,
   IconButton,
-  TextField,
   Button,
   Skeleton,
   Tooltip,
@@ -14,9 +13,6 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import PersonIcon from '@mui/icons-material/Person';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -47,68 +43,8 @@ import {
   ResolutionData,
   RESOLUTION_REASONS,
 } from '@/components/incidents/ResolveIncidentDialog';
-import { TaskEditDialog } from '@/components/incidents/TaskEditDialog';
-import { TaskAssigneeChip } from '@/components/incidents/TaskAssigneeChip';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { TaskKanbanBoard } from '@/components/incidents/TaskKanbanBoard';
 
-// ============================================================================
-// Kanban column definition — lanes are configured per-org via Org Preferences.
-// `done` is a reserved key that maps to `task.completed === true`. All other
-// lanes are stored on the task as a `_lane` marker. The first non-`done` lane
-// in the configured list is treated as the default for unmarked tasks.
-// ============================================================================
-type LaneKey = string;
-
-/**
- * Determine which kanban lane a task belongs to.
- *
- * Tasks don't have an explicit `status` field in OCSF, so we derive lane
- * membership from existing fields:
- *  - `completed: true` → `done`
- *  - explicit `_lane` marker that matches a configured key → that lane
- *  - has `aiWorking` / `assignee` → second-from-top lane (the conventional
- *    "in progress" slot) if present, else default
- *  - otherwise → first lane (the conventional "to do" slot)
- */
-const getLane = (
-  task: IncidentTask & { _lane?: LaneKey },
-  laneKeys: LaneKey[],
-): LaneKey => {
-  if (task.completed) return 'done';
-  if (task._lane && laneKeys.includes(task._lane)) return task._lane;
-  const openLanes = laneKeys.filter((k) => k !== 'done');
-  // Heuristic for legacy tasks created before the lane marker existed.
-  if ((task.aiWorking || task.assignee) && openLanes.length > 1) {
-    return openLanes[1];
-  }
-  return openLanes[0] || laneKeys[0];
-};
-
-/**
- * Apply lane semantics to a task when it's moved between columns.
- *
- * The explicit `_lane` marker keeps drag deterministic — without it, an
- * assigned task dragged back to "To Do" would immediately bounce because
- * `getLane` would re-derive it from the assignee.
- */
-const applyLane = (
-  task: IncidentTask & { _lane?: LaneKey },
-  lane: LaneKey,
-): IncidentTask & { _lane?: LaneKey } => {
-  if (lane === 'done') {
-    return { ...task, _lane: 'done', completed: true, completedAt: task.completedAt || Date.now() };
-  }
-  return { ...task, _lane: lane, completed: false, completedAt: 0, aiWorking: false };
-};
 
 interface IncidentSnapshot {
   id: string;
@@ -136,21 +72,7 @@ const IncidentSimplePage = () => {
   // `value`), NOT inside the OCSF payload — capture it separately so the
   // Share dialog can build a working public link.
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
-  // Org-configured kanban lanes. Memoised lane keys keep the getLane call cheap.
-  const taskStatuses = useTaskStatuses();
-  const laneKeys = useMemo(() => taskStatuses.map((s) => s.key), [taskStatuses]);
   const [tasks, setTasks] = useState<IncidentTask[]>([]);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [hoverLane, setHoverLane] = useState<LaneKey | null>(null);
-  // Insertion index within the hovered lane — `null` means "append at end".
-  // Used to render a drop indicator between cards and to compute the final
-  // ordering when the drop fires.
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
-  // Single-task edit modal
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  // Delete confirmation
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Debounces network writes for meta-patch (severity / status / assignee).
   // The local state still updates instantly, but the actual fetch is coalesced
@@ -441,106 +363,13 @@ const IncidentSimplePage = () => {
   );
 
   // ==========================================================================
-  // Task mutations
+  // Derived counts (kanban DnD / mutations now live in <TaskKanbanBoard />)
   // ==========================================================================
-  const handleAddTask = () => {
-    const title = newTaskTitle.trim();
-    if (!title) return;
-    const t: IncidentTask = {
-      id: `task-${Date.now()}`,
-      title,
-      completed: false,
-      createdAt: Date.now(),
-      createdBy: currentUser,
-    };
-    setTasks((prev) => [...prev, t]);
-    setNewTaskTitle('');
-  };
-
-  // Soft-delete: marks task as disabled and filters it out of the visible list.
-  // Always called via the AlertDialog confirmation flow.
-  const confirmDeleteTask = () => {
-    if (!pendingDeleteId) return;
-    const id = pendingDeleteId;
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, disabled: true } : t)).filter((t) => !t.disabled),
-    );
-    setPendingDeleteId(null);
-  };
-
-  // Update a single task in-place (used by TaskEditDialog).
-  const handleTaskUpdate = (updated: IncidentTask) => {
-    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-  };
-
-  /**
-   * Drop a dragged task into a lane at the optional insertion index.
-   *
-   * The previous implementation only mutated `_lane`, which meant cards always
-   * appended to the end of the column. We now rebuild the global `tasks` array
-   * so the dragged task lands at the requested position relative to the
-   * lane's existing items — enabling manual reordering inside a single lane
-   * (e.g. prioritising "To Do" items) as well as cross-lane moves.
-   */
-  const handleDropToLane = (lane: LaneKey, insertIndex: number | null = null) => {
-    if (!draggedTaskId) return;
-    setTasks((prev) => {
-      const dragged = prev.find((t) => t.id === draggedTaskId);
-      if (!dragged) return prev;
-      const updatedDragged = applyLane(dragged, lane);
-
-      // Tasks already in the target lane (excluding the dragged one) — drives
-      // the insertion-index math.
-      const laneItems = prev.filter(
-        (t) => t.id !== draggedTaskId && getLane(t, laneKeys) === lane,
-      );
-      const clampedIdx =
-        insertIndex === null
-          ? laneItems.length
-          : Math.max(0, Math.min(insertIndex, laneItems.length));
-      const targetAnchorId =
-        clampedIdx < laneItems.length ? laneItems[clampedIdx].id : null;
-
-      // Rebuild the global array, dropping the dragged task and re-inserting
-      // it at the right anchor. If we're appending, push it after the last
-      // item of the lane in the global order to keep neighbours predictable.
-      const without = prev.filter((t) => t.id !== draggedTaskId);
-      if (targetAnchorId) {
-        const out: IncidentTask[] = [];
-        for (const t of without) {
-          if (t.id === targetAnchorId) out.push(updatedDragged);
-          out.push(t);
-        }
-        return out;
-      }
-      // Append after the lane's last item (or at array end if the lane is empty).
-      if (laneItems.length === 0) return [...without, updatedDragged];
-      const lastLaneId = laneItems[laneItems.length - 1].id;
-      const out: IncidentTask[] = [];
-      for (const t of without) {
-        out.push(t);
-        if (t.id === lastLaneId) out.push(updatedDragged);
-      }
-      return out;
-    });
-    setDraggedTaskId(null);
-    setHoverLane(null);
-    setDropIndex(null);
-  };
-
-  const tasksByLane = useMemo(() => {
-    // Build an empty bucket per configured lane so missing lanes still render.
-    const groups: Record<string, IncidentTask[]> = Object.fromEntries(
-      laneKeys.map((k) => [k, [] as IncidentTask[]]),
-    );
-    for (const t of tasks) {
-      const laneKey = getLane(t, laneKeys);
-      // Defensive — if a stale `_lane` value points to a removed lane, the
-      // task lands in the first lane (or `done` if it was completed).
-      (groups[laneKey] || groups[laneKeys[0]] || []).push(t);
-    }
-    return groups;
-  }, [tasks, laneKeys]);
+  const taskStatuses = useTaskStatuses();
+  const doneCount = useMemo(
+    () => tasks.filter((t) => t.completed).length,
+    [tasks],
+  );
 
   // ==========================================================================
   // Render
@@ -800,10 +629,10 @@ const IncidentSimplePage = () => {
               <Tooltip title={incident.assignee || 'Unassigned'} placement="right">
                 <PersonIcon sx={{ fontSize: 18, color: 'hsl(var(--muted-foreground))' }} />
               </Tooltip>
-              <Tooltip title={`${(tasksByLane.done?.length || 0)}/${tasks.length} tasks done`} placement="right">
+              <Tooltip title={`${doneCount}/${tasks.length} tasks done`} placement="right">
                 <Chip
                   size="small"
-                  label={`${(tasksByLane.done?.length || 0)}/${tasks.length}`}
+                  label={`${doneCount}/${tasks.length}`}
                   sx={{ height: 22, fontSize: 11, fontWeight: 600 }}
                 />
               </Tooltip>
@@ -878,7 +707,7 @@ const IncidentSimplePage = () => {
                     Tasks
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {(tasksByLane.done?.length || 0)}/{tasks.length}
+                    {doneCount}/{tasks.length}
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'right' }}>
@@ -897,278 +726,15 @@ const IncidentSimplePage = () => {
         </Paper>
 
         {/* ====================================================================
-            RIGHT: Kanban board
+            RIGHT: Kanban board (shared component, also used on /incidents)
             ==================================================================== */}
         <Box>
-          {/* New task bar */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              mb: 2,
-              p: 1.5,
-              bgcolor: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 2,
-            }}
-          >
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Add a task… (drag between columns to update status)"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddTask();
-              }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleAddTask}
-              startIcon={<AddIcon />}
-              sx={{ height: 36, textTransform: 'none', whiteSpace: 'nowrap' }}
-            >
-              Add task
-            </Button>
-          </Box>
-
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                // Auto-fit columns so 2/4/5/6+ configured lanes lay out cleanly
-                // without hardcoding `repeat(3, 1fr)`.
-                md: `repeat(${Math.max(taskStatuses.length, 1)}, minmax(0, 1fr))`,
-              },
-              gap: 2,
-            }}
-          >
-            {taskStatuses.map((lane) => {
-              const items = tasksByLane[lane.key] || [];
-              const isHover = hoverLane === lane.key;
-              // Highlight the slot the user is hovering for clearer "this is
-              // where it'll land" feedback.
-              const activeDropIndex = isHover ? dropIndex : null;
-
-              // ----- Reusable drop slot --------------------------------------
-              // A 6px-tall hit area between cards. We render N+1 of them per
-              // lane (above each card and one trailing append-slot at the
-              // bottom). When hovered, it grows into a coloured indicator bar.
-              const renderDropSlot = (idx: number) => {
-                const active = activeDropIndex === idx && draggedTaskId !== null;
-                return (
-                  <Box
-                    key={`slot-${lane.key}-${idx}`}
-                    onDragOver={(e) => {
-                      if (!draggedTaskId) return;
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (hoverLane !== lane.key) setHoverLane(lane.key);
-                      if (dropIndex !== idx) setDropIndex(idx);
-                    }}
-                    onDrop={(e) => {
-                      e.stopPropagation();
-                      handleDropToLane(lane.key, idx);
-                    }}
-                    sx={{
-                      height: active ? 8 : 6,
-                      my: active ? 0.25 : 0,
-                      borderRadius: 999,
-                      bgcolor: active ? lane.color : 'transparent',
-                      transition: 'height 100ms, background-color 100ms',
-                    }}
-                  />
-                );
-              };
-
-              return (
-                <Box
-                  key={lane.key}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (hoverLane !== lane.key) setHoverLane(lane.key);
-                  }}
-                  onDragLeave={(e) => {
-                    // Only clear when the pointer truly leaves the lane —
-                    // dragging across child elements fires dragleave too.
-                    const related = e.relatedTarget as Node | null;
-                    if (related && e.currentTarget.contains(related)) return;
-                    setHoverLane((p) => (p === lane.key ? null : p));
-                    setDropIndex(null);
-                  }}
-                  onDrop={() => handleDropToLane(lane.key, dropIndex)}
-                  sx={{
-                    bgcolor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 2,
-                    p: 1.5,
-                    minHeight: 460,
-                    transition: 'background-color 120ms, border-color 120ms',
-                    ...(isHover && {
-                      bgcolor: `${lane.color}10`,
-                      borderColor: lane.color,
-                    }),
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      mb: 1.5,
-                      px: 0.5,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: lane.color,
-                      }}
-                    />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      {lane.label}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={items.length}
-                      sx={{ height: 20, fontSize: 11, ml: 'auto' }}
-                    />
-                  </Box>
-
-                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    {items.length === 0 && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'hsl(var(--muted-foreground))',
-                          textAlign: 'center',
-                          py: 4,
-                          opacity: 0.7,
-                        }}
-                      >
-                        Drop tasks here
-                      </Typography>
-                    )}
-                    {items.map((task, idx) => {
-                      const cat = taskCategories.find((c) => c.value === task.category);
-                      return (
-                        <Box key={task.id}>
-                          {renderDropSlot(idx)}
-                          <Box
-                            draggable
-                            onDragStart={() => setDraggedTaskId(task.id)}
-                            onDragEnd={() => {
-                              setDraggedTaskId(null);
-                              setHoverLane(null);
-                              setDropIndex(null);
-                            }}
-                            onClick={() => setEditingTaskId(task.id)}
-                            sx={{
-                              p: 1.25,
-                              bgcolor: 'hsl(var(--background))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: 1.5,
-                              cursor: 'pointer',
-                              opacity: draggedTaskId === task.id ? 0.4 : 1,
-                              transition: 'box-shadow 120ms, transform 120ms, border-color 120ms',
-                              // Reveal the drag handle only on hover so cards
-                              // stay visually clean when at rest.
-                              '& .task-drag-handle': { opacity: 0 },
-                              '&:hover': {
-                                boxShadow: 2,
-                                borderColor: 'hsl(var(--primary) / 0.4)',
-                                '& .task-drag-handle': { opacity: 1 },
-                              },
-                              '&:active': { cursor: 'grabbing' },
-                            }}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
-                              <DragIndicatorIcon
-                                className="task-drag-handle"
-                                sx={{
-                                  fontSize: 16,
-                                  color: 'hsl(var(--muted-foreground))',
-                                  mt: 0.25,
-                                  cursor: 'grab',
-                                  transition: 'opacity 120ms',
-                                }}
-                              />
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  flex: 1,
-                                  fontWeight: 500,
-                                  textDecoration: task.completed ? 'line-through' : 'none',
-                                  color: task.completed
-                                    ? 'hsl(var(--muted-foreground))'
-                                    : 'hsl(var(--foreground))',
-                                }}
-                              >
-                                {task.title}
-                              </Typography>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  // Stop propagation so the card's onClick doesn't
-                                  // also open the edit dialog underneath.
-                                  e.stopPropagation();
-                                  setPendingDeleteId(task.id);
-                                }}
-                                sx={{ p: 0.25 }}
-                              >
-                                <DeleteOutlineIcon sx={{ fontSize: 14 }} />
-                              </IconButton>
-                            </Box>
-                            {/* Meta row — category chip + inline assignee selector
-                                (same chip style as the incident header). The
-                                assignee select is editable in place; clicks
-                                don't bubble up to open the modal. */}
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.75,
-                                mt: 1,
-                                ml: 2.5,
-                                flexWrap: 'wrap',
-                              }}
-                            >
-                              {cat && (
-                                <Chip
-                                  size="small"
-                                  label={cat.label}
-                                  sx={{
-                                    height: 18,
-                                    fontSize: 10,
-                                    bgcolor: `${cat.color}22`,
-                                    color: cat.color,
-                                  }}
-                                />
-                              )}
-                              <Box sx={{ ml: 'auto', minWidth: 0 }}>
-                                <TaskAssigneeChip
-                                  value={task.assignee || ''}
-                                  onChange={(next) =>
-                                    handleTaskUpdate({ ...task, assignee: next })
-                                  }
-                                  maxWidth={130}
-                                />
-                              </Box>
-                            </Box>
-                          </Box>
-                        </Box>
-                      );
-                    })}
-                    {/* Trailing append-slot — drops past the last card go here */}
-                    {renderDropSlot(items.length)}
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
+          <TaskKanbanBoard
+            tasks={tasks}
+            onTasksChange={(next) => setTasks(next)}
+            incidentId={incident.id}
+            currentUser={currentUser}
+          />
         </Box>
       </Box>
 
@@ -1180,49 +746,6 @@ const IncidentSimplePage = () => {
         isLoading={isSavingMeta}
       />
 
-      {/* Single-task editor — reuses the exact TaskEditor component as /incidents.
-          Prev/Next walks through the same lane the user opened the task from
-          so triaging "all open To Do items" is one keystroke per task. */}
-      {(() => {
-        const editingTask = tasks.find((t) => t.id === editingTaskId) || null;
-        const lane = editingTask ? getLane(editingTask, laneKeys) : null;
-        const siblings = lane ? tasksByLane[lane] || [] : [];
-        return (
-          <TaskEditDialog
-            open={!!editingTaskId}
-            onClose={() => setEditingTaskId(null)}
-            task={editingTask}
-            onTaskChange={handleTaskUpdate}
-            // Route deletes through the existing confirmation flow so a
-            // stray click in the popup can't drop a task.
-            onTaskDelete={(tid) => setPendingDeleteId(tid)}
-            incidentId={incident.id}
-            siblings={siblings}
-            onNavigate={(nextId) => setEditingTaskId(nextId)}
-          />
-        );
-      })()}
-      {/* Delete confirmation — required so a stray click doesn't drop tasks */}
-      <AlertDialog open={!!pendingDeleteId} onOpenChange={(o) => !o && setPendingDeleteId(null)}>
-        {/* z-[1500] so the confirm sits above the MUI TaskEditDialog (z-index 1400) */}
-        <AlertDialogContent className="z-[1500]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this task?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the task from this incident. You can't undo this from the simple view.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteTask}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Box>
   );
 };
