@@ -294,3 +294,45 @@ export function useSidebarTabs(): Record<SidebarTabKey, boolean> {
 
   return value;
 }
+
+// ---------------------------------------------------------------------------
+// Task statuses — kanban lanes for /incidents-simple/<id>
+// ---------------------------------------------------------------------------
+
+/** Save the org's task status configuration. The `done` lane is forced to
+ *  remain present (renamed/recoloured but never removed). */
+export async function setTaskStatuses(statuses: TaskStatusOption[]) {
+  const normalized = normalizeTaskStatuses(statuses);
+  localStorage.setItem(LOCAL_TASK_STATUSES_KEY, JSON.stringify(normalized));
+  _cachedTaskStatusesRaw = null;
+  listeners.forEach((cb) => cb());
+
+  try {
+    let existing: Record<string, unknown> = {};
+    try {
+      const result = await getDatastoreItem(DATASTORE_KEY, DATASTORE_CATEGORIES.CONFIGURATION);
+      if (result.success && result.item?.value) {
+        existing = typeof result.item.value === 'string' ? JSON.parse(result.item.value) : result.item.value;
+      }
+    } catch { /* empty */ }
+    await setDatastoreItem(
+      DATASTORE_KEY,
+      { ...existing, task_statuses: normalized },
+      DATASTORE_CATEGORIES.CONFIGURATION,
+    );
+  } catch {
+    // local cache already set
+  }
+}
+
+/** Hook to read the org's configured task statuses. Defaults to the built-in
+ *  three-lane setup (To Do / In Progress / Done). */
+export function useTaskStatuses(): TaskStatusOption[] {
+  const value = useSyncExternalStore(subscribe, getTaskStatusesSnapshot);
+
+  useEffect(() => {
+    if (!_fetchedFromServer) loadEntityPreference();
+  }, []);
+
+  return value;
+}
