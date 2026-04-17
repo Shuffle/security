@@ -56,23 +56,40 @@ const LANES: { key: LaneKey; label: string; color: string }[] = [
   { key: 'done', label: 'Done', color: statusConfig.resolved.color },
 ];
 
-/** Determine which kanban lane a task belongs to. */
-const getLane = (task: IncidentTask): LaneKey => {
+/**
+ * Determine which kanban lane a task belongs to.
+ *
+ * Tasks don't have an explicit `status` field in the OCSF schema, so we derive
+ * lane membership from existing fields:
+ *  - `completed: true` → done
+ *  - explicit `_lane: 'in_progress'` marker (set when dragged) OR has assignee/aiWorking
+ *  - otherwise → todo
+ */
+const getLane = (task: IncidentTask & { _lane?: LaneKey }): LaneKey => {
   if (task.completed) return 'done';
+  if (task._lane === 'in_progress') return 'in_progress';
+  if (task._lane === 'todo') return 'todo';
   if (task.aiWorking || task.assignee) return 'in_progress';
   return 'todo';
 };
 
-/** Apply lane semantics to a task when it's moved between columns. */
-const applyLane = (task: IncidentTask, lane: LaneKey): IncidentTask => {
+/**
+ * Apply lane semantics to a task when it's moved between columns.
+ *
+ * We use an explicit `_lane` marker so dragging works deterministically even
+ * when the task has (or lacks) an assignee. Without this marker, an assigned
+ * task dragged back to "To Do" would immediately bounce to "In Progress"
+ * because `getLane` would re-derive it from the assignee.
+ */
+const applyLane = (task: IncidentTask & { _lane?: LaneKey }, lane: LaneKey): IncidentTask & { _lane?: LaneKey } => {
   if (lane === 'done') {
-    return { ...task, completed: true, completedAt: task.completedAt || Date.now() };
+    return { ...task, _lane: 'done', completed: true, completedAt: task.completedAt || Date.now() };
   }
   if (lane === 'in_progress') {
-    return { ...task, completed: false, completedAt: 0 };
+    return { ...task, _lane: 'in_progress', completed: false, completedAt: 0, aiWorking: false };
   }
-  // todo: clear assignee/aiWorking only if it was the reason it was in_progress
-  return { ...task, completed: false, completedAt: 0 };
+  // todo: explicitly clear the in-progress markers
+  return { ...task, _lane: 'todo', completed: false, completedAt: 0, aiWorking: false };
 };
 
 interface IncidentSnapshot {
