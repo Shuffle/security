@@ -26,6 +26,7 @@ import { TaskAssigneeChip } from './TaskAssigneeChip';
 import { TaskDateTimePicker } from './TaskDateTimePicker';
 import { FileAttachments } from './FileAttachments';
 import { MentionInput } from './MentionInput';
+import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
 
 interface TaskEditDialogProps {
