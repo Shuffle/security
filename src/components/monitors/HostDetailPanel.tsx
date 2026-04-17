@@ -68,7 +68,8 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const softwareCount = Array.isArray(host.installed_software) ? host.installed_software.length : 0;
   const codeScanCount = Array.isArray(host.code_scanner) ? host.code_scanner.length : 0;
   const responseActionsRaw = host.response_actions;
-  const responseActionsOn = !!responseActionsRaw;
+  const raLower = String(responseActionsRaw ?? '').toLowerCase().trim();
+  const responseActionsOn = !!responseActionsRaw && raLower !== 'false' && raLower !== '0' && raLower !== 'no' && raLower !== 'off';
   const logForwardingOn = !!host.log_forwarding;
 
   const wrapperClass = variant === 'page'
