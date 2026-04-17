@@ -445,14 +445,18 @@ const IncidentSimplePage = () => {
   };
 
   const tasksByLane = useMemo(() => {
-    const groups: Record<LaneKey, IncidentTask[]> = {
-      todo: [],
-      in_progress: [],
-      done: [],
-    };
-    for (const t of tasks) groups[getLane(t)].push(t);
+    // Build an empty bucket per configured lane so missing lanes still render.
+    const groups: Record<string, IncidentTask[]> = Object.fromEntries(
+      laneKeys.map((k) => [k, [] as IncidentTask[]]),
+    );
+    for (const t of tasks) {
+      const laneKey = getLane(t, laneKeys);
+      // Defensive — if a stale `_lane` value points to a removed lane, the
+      // task lands in the first lane (or `done` if it was completed).
+      (groups[laneKey] || groups[laneKeys[0]] || []).push(t);
+    }
     return groups;
-  }, [tasks]);
+  }, [tasks, laneKeys]);
 
   // ==========================================================================
   // Render
