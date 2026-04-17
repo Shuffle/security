@@ -148,13 +148,24 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
         <div className="flex flex-wrap gap-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium cursor-help ${hdState === 'on' ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400' : hdState === 'off' ? 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400' : 'border-border bg-muted/30 text-muted-foreground'}`}>
+              <div className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium cursor-help ${hdState === 'on' ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400' : 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'}`}>
                 {hdState === 'on' ? <ShieldCheck size={13} /> : <ShieldX size={13} />}
-                Disk Encryption: {hdState === 'on' ? 'Enabled' : hdState === 'off' ? 'Disabled' : 'Not checked'}
+                Disk Encryption: {hdState === 'on' ? 'Enabled' : 'Disabled'}
               </div>
             </TooltipTrigger>
-            <TooltipContent side="bottom" align="start" className="max-w-sm">
+            <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
               <p className="text-[0.65rem] font-mono">hd_encrypted = {String(host.hd_encrypted)}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium cursor-help ${screenlockState === 'on' ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400' : 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                <Lock size={13} />
+                Screen Lock: {screenlockState === 'on' ? 'Enabled' : 'Disabled'}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
+              <p className="text-[0.65rem] font-mono">automatic_screen_lock_enabled = {String(host.automatic_screen_lock_enabled)}</p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>
