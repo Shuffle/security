@@ -41,6 +41,7 @@ import { htmlToPlainText, decodeIfBase64, isAIAssignee } from '@/lib/utils';
 import { IncidentActionsMenu } from '@/components/incidents/IncidentActionsMenu';
 import { IncidentMetaChips } from '@/components/incidents/IncidentMetaChips';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
+import { useTaskStatuses } from '@/hooks/useEntityLabel';
 import {
   ResolveIncidentDialog,
   ResolutionData,
