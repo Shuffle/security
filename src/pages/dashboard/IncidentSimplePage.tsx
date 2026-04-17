@@ -660,9 +660,15 @@ const IncidentSimplePage = () => {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            md: leftCollapsed ? '64px 1fr' : '380px 1fr',
+            // Narrower left column on mid-size screens so the kanban gets the
+            // breathing room it needs (3+ lanes get crushed otherwise).
+            md: leftCollapsed ? '56px 1fr' : '300px 1fr',
+            lg: leftCollapsed ? '64px 1fr' : '360px 1fr',
+            xl: leftCollapsed ? '64px 1fr' : '380px 1fr',
           },
-          gap: 3,
+          // Smaller gap on tighter viewports — 24px between the rail and the
+          // first lane was eating real estate on ~840px screens.
+          gap: { xs: 1.5, md: 2, lg: 3 },
           alignItems: 'start',
           transition: 'grid-template-columns 200ms ease',
         }}
