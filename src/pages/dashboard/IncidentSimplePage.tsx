@@ -288,13 +288,17 @@ const IncidentSimplePage = () => {
   }, [tasks]);
 
   // ==========================================================================
-  // Persist a metadata patch (severity/status/assignee) immediately. Mirrors
-  // the save shape used by IncidentDetailPage so both views stay schema-aligned.
+  // Persist a metadata patch (severity/status/assignee).
+  //
+  // The local state updates IMMEDIATELY so chips reflect the user's choice
+  // without waiting for the network. The actual write is debounced (500ms)
+  // and coalesces rapid edits — picking severity → status in quick succession
+  // results in a single PUT that carries both changes. Mirrors the tasks-save
+  // pattern below.
   // ==========================================================================
   const saveMetaPatch = useCallback(
-    async (patch: { severity?: string; status?: string; assignee?: string }) => {
+    (patch: { severity?: string; status?: string; assignee?: string }) => {
       if (!incident) return;
-      setIsSavingMeta(true);
 
       const nextSeverity = patch.severity ?? incident.severity;
       const nextStatusKey = patch.status ?? incident.status;
@@ -330,6 +334,7 @@ const IncidentSimplePage = () => {
             assignee: nextAssignee || '',
           };
 
+      // Optimistic local update — chips re-render right away.
       setIncident({
         ...incident,
         severity: nextSeverity,
@@ -337,25 +342,42 @@ const IncidentSimplePage = () => {
         assignee: isAIAssignee(nextAssignee) ? 'AI Agent' : nextAssignee,
         rawOCSF: updated,
       });
-      // Suppress the next tasks-save effect — that hook re-fires on incident changes
+      // The tasks-save effect re-fires on incident changes — skip it so we
+      // don't double-write (this hook is the one writing).
       skipNextSaveRef.current = true;
 
-      try {
-        const res = await setDatastoreItem(
-          incident.id,
-          updated,
-          DATASTORE_CATEGORIES.INCIDENTS,
-        );
-        if (!res.success) toast.error('Failed to save changes');
-      } catch (err) {
-        console.error('[IncidentSimple] Meta save failed:', err);
-        toast.error('Failed to save changes');
-      } finally {
-        setIsSavingMeta(false);
-      }
+      // Debounce the actual network write. Subsequent calls within 500ms
+      // replace the pending payload (which is fine — `updated` already merges
+      // patch onto the latest local state via the closure).
+      if (metaSaveTimeoutRef.current) clearTimeout(metaSaveTimeoutRef.current);
+      setIsSavingMeta(true);
+      metaSaveTimeoutRef.current = setTimeout(async () => {
+        try {
+          const res = await setDatastoreItem(
+            incident.id,
+            updated,
+            DATASTORE_CATEGORIES.INCIDENTS,
+          );
+          if (!res.success) toast.error('Failed to save changes');
+        } catch (err) {
+          console.error('[IncidentSimple] Meta save failed:', err);
+          toast.error('Failed to save changes — check your connection');
+        } finally {
+          setIsSavingMeta(false);
+        }
+      }, 500);
     },
     [incident],
   );
+
+  // Cleanup pending meta-save timeout on unmount so a stale write doesn't fire
+  // after the user has navigated away.
+  useEffect(() => {
+    return () => {
+      if (metaSaveTimeoutRef.current) clearTimeout(metaSaveTimeoutRef.current);
+    };
+  }, []);
+
 
   // ==========================================================================
   // Resolve flow — uses the same dialog as the detail page.
