@@ -117,6 +117,7 @@ interface SensorHost {
   sensor_mode: boolean;
   serial: string;
   uuid: string;
+  [key: string]: unknown;
 }
 
 interface OrbEnvironment {
