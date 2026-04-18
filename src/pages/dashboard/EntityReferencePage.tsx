@@ -315,6 +315,31 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
     );
   }, [matches, filter]);
 
+  // Pre-compute normalized severity per vuln for both display and sorting.
+  const vulnsWithMeta = useMemo(() => vulns.map(v => {
+    const rawSev = v.database_specific?.severity || v.severity?.[0]?.score;
+    const sevToken = normalizeSeverity(rawSev);
+    return {
+      vuln: v,
+      sevToken,
+      sevColor: severityColors[sevToken] || severityColors.informational,
+      sevOrder: severityOrder[sevToken] ?? 0,
+      modifiedTs: v.modified ? new Date(v.modified).getTime() : 0,
+      publishedTs: v.published ? new Date(v.published).getTime() : 0,
+    };
+  }), [vulns]);
+
+  const sortedVulns = useMemo(() => {
+    const arr = [...vulnsWithMeta];
+    if (vulnsSort === 'severity') {
+      arr.sort((a, b) => b.sevOrder - a.sevOrder || (b.modifiedTs - a.modifiedTs) || a.vuln.id.localeCompare(b.vuln.id));
+    } else if (vulnsSort === 'date') {
+      arr.sort((a, b) => (b.modifiedTs || b.publishedTs) - (a.modifiedTs || a.publishedTs) || b.sevOrder - a.sevOrder);
+    } else {
+      arr.sort((a, b) => a.vuln.id.localeCompare(b.vuln.id));
+    }
+    return arr;
+  }, [vulnsWithMeta, vulnsSort]);
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
