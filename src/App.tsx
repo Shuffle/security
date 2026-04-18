@@ -169,6 +169,8 @@ const ThemedApp = () => {
               <Route path="/usecases" element={<UsecasesPage />} />
               <Route path="/apps/:appname" element={<AppDetailPage />} />
               <Route path="/usecases/:flowId" element={<DataFlowDetailPage />} />
+              <Route path="/vulnerabilities" element={<VulnerabilitiesPage />} />
+              <Route path="/vulnerabilities/*" element={<VulnerabilityDetailPage />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
