@@ -532,32 +532,86 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
             <table className="w-full text-xs">
               <thead className="bg-muted/30">
                 <tr className="text-left text-muted-foreground">
+                  {type === 'package' && vulnsQueried && (
+                    <th className="pl-3 pr-1 py-1.5 font-medium w-[1%] whitespace-nowrap">Risk</th>
+                  )}
                   <th className="px-3 py-1.5 font-medium">Hostname</th>
                   {type === 'package' && <th className="px-3 py-1.5 font-medium">Path</th>}
                   <th className="px-3 py-1.5 font-medium">Version</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredMatches.map((m, i) => (
-                  <tr
-                    key={`${m.hostname}-${m.path || ''}-${i}`}
-                    className="hover:bg-muted/20 cursor-pointer"
-                    onClick={() => navigate(`/monitors/${encodeURIComponent(m.hostname)}`)}
-                  >
-                    <td className="px-3 py-1.5 font-medium text-foreground">{m.hostname}</td>
-                    {type === 'package' && (
-                      <td className="px-3 py-1.5 text-muted-foreground">
-                        {m.path ? (
-                          <span className="inline-flex items-center gap-1 font-mono">
-                            <FolderOpen size={10} className="shrink-0" />
-                            {m.path}
-                          </span>
-                        ) : '—'}
-                      </td>
-                    )}
-                    <td className="px-3 py-1.5 text-muted-foreground font-mono">{m.version || '—'}</td>
-                  </tr>
-                ))}
+                <TooltipProvider delayDuration={150}>
+                  {filteredMatches.map(({ match: m, counts }, i) => {
+                    const showRisk = type === 'package' && vulnsQueried;
+                    const buckets: Array<{ key: 'critical' | 'high' | 'medium' | 'low'; letter: string; label: string }> = [
+                      { key: 'critical', letter: 'C', label: 'Critical' },
+                      { key: 'high', letter: 'H', label: 'High' },
+                      { key: 'medium', letter: 'M', label: 'Medium' },
+                      { key: 'low', letter: 'L', label: 'Low' },
+                    ];
+                    return (
+                      <tr
+                        key={`${m.hostname}-${m.path || ''}-${i}`}
+                        className="hover:bg-muted/20 cursor-pointer"
+                        onClick={() => navigate(`/monitors/${encodeURIComponent(m.hostname)}`)}
+                      >
+                        {showRisk && (
+                          <td className="pl-3 pr-1 py-1.5 align-middle whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            {counts.total === 0 ? (
+                              <span className="text-[0.6rem] text-muted-foreground">—</span>
+                            ) : (
+                              <div className="inline-flex items-center gap-0.5">
+                                {buckets.map(({ key, letter, label }) => {
+                                  const n = counts[key];
+                                  if (n === 0) return null;
+                                  const color = severityColors[key];
+                                  const ids = counts.vulnIds[key];
+                                  return (
+                                    <Tooltip key={key}>
+                                      <TooltipTrigger asChild>
+                                        <span
+                                          className="inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 text-[0.6rem] font-bold leading-none"
+                                          style={{
+                                            backgroundColor: `${color}26`,
+                                            color,
+                                            border: `1px solid ${color}55`,
+                                          }}
+                                        >
+                                          {letter}
+                                          <span className="font-semibold">{n}</span>
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="max-w-xs">
+                                        <div className="text-xs font-medium" style={{ color }}>{label} ({n})</div>
+                                        <div className="text-[0.65rem] font-mono mt-1 break-all">
+                                          {ids.slice(0, 6).join(', ')}
+                                          {ids.length > 6 && ` +${ids.length - 6} more`}
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-3 py-1.5 font-medium text-foreground">{m.hostname}</td>
+                        {type === 'package' && (
+                          <td className="px-3 py-1.5 text-muted-foreground">
+                            {m.path ? (
+                              <span className="inline-flex items-center gap-1 font-mono">
+                                <FolderOpen size={10} className="shrink-0" />
+                                {m.path}
+                              </span>
+                            ) : '—'}
+                          </td>
+                        )}
+                        <td className="px-3 py-1.5 text-muted-foreground font-mono">{m.version || '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </TooltipProvider>
               </tbody>
             </table>
           </div>
