@@ -1,10 +1,27 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   HardDrive, Lock, Package, Zap, ChevronRight, ChevronDown,
   Hash, Cpu, Send, ShieldCheck, ShieldX, FileCode,
 } from 'lucide-react';
+
+/**
+ * Click handler that mimics <a> behavior:
+ *  - plain click → in-app SPA navigation
+ *  - ctrl/cmd/middle-click → new tab (let the browser handle it)
+ */
+const handleEntityClick = (
+  e: React.MouseEvent,
+  url: string,
+  navigate: ReturnType<typeof useNavigate>,
+) => {
+  if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // browser opens new tab
+  e.preventDefault();
+  navigate(url);
+};
+
 
 /**
  * Shared "host detail" panel rendered on BOTH the /monitors expanded list row
