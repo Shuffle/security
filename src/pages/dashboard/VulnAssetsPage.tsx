@@ -164,7 +164,7 @@ const fetchSensorGroups = async (): Promise<{ groups: MonitoringGroup[]; allEnvs
         queue: e.Name.replace(/ +/g, '-'),
         auth: String(e.auth || ''),
         org_id: String(e.org_id || ''),
-        hosts: mergeHosts(Array.isArray(e.sensor_hosts) ? e.sensor_hosts : [], supplements) as SensorHost[],
+        hosts: mergeHosts<SensorHost>(Array.isArray(e.sensor_hosts) ? e.sensor_hosts : [], supplements),
       }));
     return { groups, allEnvs: envs };
   } catch (err) {
