@@ -449,7 +449,6 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
     persist().catch(err => console.warn('[EntityReferencePage] failed to persist vulns', err));
     return () => { cancelled = true; };
   }, [vulnsWithMeta, vulns.length, matches.length]);
-  }, [matches, vulnsWithMeta]);
 
   const filteredMatches = useMemo(() => {
     const q = filter.trim().toLowerCase();
