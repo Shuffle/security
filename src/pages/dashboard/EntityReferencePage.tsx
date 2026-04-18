@@ -432,9 +432,15 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
   // Always includes the lowest known version when available so the API can
   // narrow results to ranges actually affecting our fleet.
   useEffect(() => {
-    if (type !== 'package') return;
     const ecosystem = language?.osvEcosystem;
-    if (!ecosystem || !name) {
+    // Packages require a known ecosystem (OSV-style). Software is queried by
+    // name only (CVE-style), with version narrowing when we have one.
+    if (type === 'package' && !ecosystem) {
+      setVulns([]);
+      setVulnsQueried(false);
+      return;
+    }
+    if (!name) {
       setVulns([]);
       setVulnsQueried(false);
       return;
@@ -445,9 +451,10 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
       setVulnsError(null);
       setVulnsQueried(true);
       try {
-        const payload: Record<string, unknown> = {
-          package: { name, ecosystem },
-        };
+        const payload: Record<string, unknown> =
+          type === 'package'
+            ? { package: { name, ecosystem } }
+            : { package: { name } };
         if (lowestVersion) payload.version = lowestVersion;
         const res = await shuffleFetch(getApiUrl('/api/v1/vulnerabilities'), {
           method: 'POST',
