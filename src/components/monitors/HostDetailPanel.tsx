@@ -1,10 +1,27 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   HardDrive, Lock, Package, Zap, ChevronRight, ChevronDown,
   Hash, Cpu, Send, ShieldCheck, ShieldX, FileCode,
 } from 'lucide-react';
+
+/**
+ * Click handler that mimics <a> behavior:
+ *  - plain click → in-app SPA navigation
+ *  - ctrl/cmd/middle-click → new tab (let the browser handle it)
+ */
+const handleEntityClick = (
+  e: React.MouseEvent,
+  url: string,
+  navigate: ReturnType<typeof useNavigate>,
+) => {
+  if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // browser opens new tab
+  e.preventDefault();
+  navigate(url);
+};
+
 
 /**
  * Shared "host detail" panel rendered on BOTH the /monitors expanded list row
@@ -57,6 +74,7 @@ const fmtRaw = (v: unknown): string => {
 };
 
 export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false }: HostDetailPanelProps) => {
+  const navigate = useNavigate();
   const [softwareFilter, setSoftwareFilter] = useState('');
   const [codeScanFilter, setCodeScanFilter] = useState('');
   const [expandedCodePaths, setExpandedCodePaths] = useState<Set<string>>(new Set());
@@ -271,7 +289,8 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                           <tr
                             key={idx}
                             className="hover:bg-muted/20 cursor-pointer"
-                            onClick={() => sw.name && window.open(`/software/${encodeURIComponent(sw.name)}`, '_blank')}
+                            onClick={(e) => sw.name && handleEntityClick(e, `/software/${encodeURIComponent(sw.name)}`, navigate)}
+                            onAuxClick={(e) => sw.name && e.button === 1 && window.open(`/software/${encodeURIComponent(sw.name)}`, '_blank')}
                           >
                             <td className="px-3 py-1.5 font-medium text-foreground">{sw.name || '—'}</td>
                             <td className="px-3 py-1.5 font-mono text-muted-foreground">{(sw.version as string) || '—'}</td>
@@ -376,7 +395,8 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                                     <tr
                                       key={ki}
                                       className="hover:bg-muted/20 cursor-pointer"
-                                      onClick={() => pkg.name && window.open(`/packages/${encodeURIComponent(pkg.name)}`, '_blank')}
+                                      onClick={(e) => pkg.name && handleEntityClick(e, `/packages/${encodeURIComponent(pkg.name)}`, navigate)}
+                                      onAuxClick={(e) => pkg.name && e.button === 1 && window.open(`/packages/${encodeURIComponent(pkg.name)}`, '_blank')}
                                     >
                                       <td className="px-3 py-1.5 font-medium text-foreground">{pkg.name || '—'}</td>
                                       <td className="px-3 py-1.5 font-mono text-muted-foreground">{pkg.version || '—'}</td>
