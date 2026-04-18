@@ -534,21 +534,42 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
       {type === 'package' && vulnsQueried && (
         <div className="rounded-lg border border-border bg-card p-5 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-foreground">
+            <div className="flex items-center gap-2 text-foreground flex-wrap">
               <ShieldAlert size={14} className="text-orange-500" />
               <span className="text-sm font-medium">Known vulnerabilities</span>
               {!vulnsLoading && !vulnsError && (
-                <span className="text-[0.65rem] text-muted-foreground">({vulns.length})</span>
+                <>
+                  <span className="text-[0.65rem] text-muted-foreground">({vulns.length})</span>
+                  {(() => {
+                    const affectedCount = vulnsWithMeta.filter(m => m.affectedCount > 0).length;
+                    if (affectedCount === 0) return null;
+                    return (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide"
+                        style={{
+                          backgroundColor: `${severityColors.high}1f`,
+                          color: severityColors.high,
+                          border: `1px solid ${severityColors.high}55`,
+                        }}
+                        title="Vulnerabilities matching an installed version on at least one host"
+                      >
+                        <AlertTriangle size={9} />
+                        {affectedCount} affecting your hosts
+                      </span>
+                    );
+                  })()}
+                </>
               )}
             </div>
             <div className="flex items-center gap-2">
               {vulns.length > 1 && !vulnsLoading && !vulnsError && (
                 <select
                   value={vulnsSort}
-                  onChange={(e) => setVulnsSort(e.target.value as 'severity' | 'date' | 'id')}
+                  onChange={(e) => setVulnsSort(e.target.value as 'affected' | 'severity' | 'date' | 'id')}
                   className="h-7 rounded-md border border-border bg-background px-2 text-[0.65rem] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                   aria-label="Sort vulnerabilities"
                 >
+                  <option value="affected">Sort: Affected</option>
                   <option value="severity">Sort: Severity</option>
                   <option value="date">Sort: Newest</option>
                   <option value="id">Sort: ID</option>
