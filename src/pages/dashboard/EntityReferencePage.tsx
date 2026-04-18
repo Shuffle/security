@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { getDatastoreItem, setDatastoreItems } from '@/services/datastore';
 import { getApiUrl, shuffleFetch } from '@/config/api';
 import { severityColors, severityOrder } from '@/config/incidentConfig';
+import { detectEcosystemFromName } from '@/lib/packageEcosystem';
 
 /**
  * Normalize OSV severity strings to the canonical incident severity tokens
