@@ -75,6 +75,9 @@ function parseRecord(raw: any): Vulnerability[] {
       const lastSeen = data.modified || data.published || '';
       const source = ecosystem ? `osv:${ecosystem.toLowerCase()}` : 'osv';
       const hosts: Array<{ hostname: string; paths?: any[] }> = Array.isArray(data.hosts) ? data.hosts : [];
+      // Preserve manual resolution state stored on the OSV record (set via "Mark as resolved" on detail page).
+      const status: VulnStatus = (['open', 'in_progress', 'resolved', 'accepted'].includes(data.status) ? data.status : 'open') as VulnStatus;
+      const resolvedAt: string = data.resolved_at || '';
 
       if (hosts.length === 0) {
         return [{
@@ -83,7 +86,7 @@ function parseRecord(raw: any): Vulnerability[] {
           description,
           severity,
           category: 'code_dependency',
-          status: 'open',
+          status,
           source,
           asset_type: 'asset',
           asset_id: pkgName,
@@ -91,6 +94,7 @@ function parseRecord(raw: any): Vulnerability[] {
           cve_id: cveId,
           first_seen: firstSeen,
           last_seen: lastSeen,
+          resolved_at: resolvedAt,
         }];
       }
 
@@ -100,7 +104,7 @@ function parseRecord(raw: any): Vulnerability[] {
         description,
         severity,
         category: 'code_dependency',
-        status: 'open',
+        status,
         source,
         asset_type: 'asset',
         asset_id: h.hostname,
@@ -108,6 +112,7 @@ function parseRecord(raw: any): Vulnerability[] {
         cve_id: cveId,
         first_seen: firstSeen,
         last_seen: lastSeen,
+        resolved_at: resolvedAt,
       }));
     }
 
