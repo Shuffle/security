@@ -74,6 +74,7 @@ const fmtRaw = (v: unknown): string => {
 };
 
 export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false }: HostDetailPanelProps) => {
+  const navigate = useNavigate();
   const [softwareFilter, setSoftwareFilter] = useState('');
   const [codeScanFilter, setCodeScanFilter] = useState('');
   const [expandedCodePaths, setExpandedCodePaths] = useState<Set<string>>(new Set());
