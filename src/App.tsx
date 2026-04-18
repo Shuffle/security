@@ -45,6 +45,7 @@ import AssetsPage from '@/pages/dashboard/AssetsPage';
 import HostTerminalPage from '@/pages/dashboard/HostTerminalPage';
 import MonitorDetailPage from '@/pages/dashboard/MonitorDetailPage';
 import EntityReferencePage from '@/pages/dashboard/EntityReferencePage';
+import VulnerabilityDetailPage from '@/pages/dashboard/VulnerabilityDetailPage';
 
 import AppsPage from '@/pages/AppsPage';
 import NotFound from './pages/NotFound';
