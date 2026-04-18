@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowLeft, Package, FileCode, ExternalLink, ShieldAlert, Info, Clock, Server, Search, Loader2, FolderOpen, AlertTriangle } from 'lucide-react';
 import { getDatastoreItem } from '@/services/datastore';
 import { getApiUrl, shuffleFetch } from '@/config/api';
@@ -373,23 +374,12 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
     return [registryLink, ...base.filter(l => !seen.has(l.url) && (seen.add(l.url), true))];
   }, [config, name, language]);
 
-  const filteredMatches = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return matches;
-    return matches.filter(m =>
-      m.hostname.toLowerCase().includes(q) ||
-      (m.path || '').toLowerCase().includes(q) ||
-      (m.version || '').toLowerCase().includes(q),
-    );
-  }, [matches, filter]);
-
   // Pre-compute normalized severity per vuln + which of our hosts are affected
   // by checking each host's installed version against the OSV affected ranges.
   const vulnsWithMeta = useMemo(() => vulns.map(v => {
     const rawSev = v.database_specific?.severity || v.severity?.[0]?.score;
     const sevToken = normalizeSeverity(rawSev);
     const affectedHosts = matches.filter(m => isVersionAffected(m.version, v));
-    // Deduplicate by hostname (a host may appear with multiple paths)
     const affectedHostNames = Array.from(new Set(affectedHosts.map(h => h.hostname)));
     return {
       vuln: v,
@@ -404,10 +394,54 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
     };
   }), [vulns, matches]);
 
+  // Per-host vulnerability severity tallies. Each host gets a count for
+  // critical/high/medium/low so we can render an L M H C strip.
+  type HostSevCounts = { critical: number; high: number; medium: number; low: number; informational: number; total: number; vulnIds: Record<string, string[]> };
+  const matchesWithVulns = useMemo(() => {
+    return matches.map(m => {
+      const counts: HostSevCounts = { critical: 0, high: 0, medium: 0, low: 0, informational: 0, total: 0, vulnIds: { critical: [], high: [], medium: [], low: [], informational: [] } };
+      // Use a per-host set to avoid double-counting the same vuln across multiple paths
+      const seen = new Set<string>();
+      for (const meta of vulnsWithMeta) {
+        if (seen.has(meta.vuln.id)) continue;
+        if (!isVersionAffected(m.version, meta.vuln)) continue;
+        seen.add(meta.vuln.id);
+        const bucket = (meta.sevToken as keyof HostSevCounts);
+        if (bucket === 'critical' || bucket === 'high' || bucket === 'medium' || bucket === 'low' || bucket === 'informational') {
+          counts[bucket] += 1;
+          counts.vulnIds[bucket].push(meta.vuln.id);
+          counts.total += 1;
+        }
+      }
+      return { match: m, counts };
+    });
+  }, [matches, vulnsWithMeta]);
+
+  const filteredMatches = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    const list = q
+      ? matchesWithVulns.filter(({ match: m }) =>
+          m.hostname.toLowerCase().includes(q) ||
+          (m.path || '').toLowerCase().includes(q) ||
+          (m.version || '').toLowerCase().includes(q),
+        )
+      : matchesWithVulns;
+    // Sort: total affected desc, then severity-weighted (crit*1000+high*100+med*10+low),
+    // then hostname asc, then path asc.
+    return [...list].sort((a, b) => {
+      const ta = a.counts.total;
+      const tb = b.counts.total;
+      if (ta !== tb) return tb - ta;
+      const wa = a.counts.critical * 1000 + a.counts.high * 100 + a.counts.medium * 10 + a.counts.low;
+      const wb = b.counts.critical * 1000 + b.counts.high * 100 + b.counts.medium * 10 + b.counts.low;
+      if (wa !== wb) return wb - wa;
+      return a.match.hostname.localeCompare(b.match.hostname) || (a.match.path || '').localeCompare(b.match.path || '');
+    });
+  }, [matchesWithVulns, filter]);
+
   const sortedVulns = useMemo(() => {
     const arr = [...vulnsWithMeta];
     if (vulnsSort === 'affected') {
-      // Affected first (count desc), then severity desc, then newest
       arr.sort((a, b) =>
         b.affectedCount - a.affectedCount
         || b.sevOrder - a.sevOrder
@@ -498,32 +532,86 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
             <table className="w-full text-xs">
               <thead className="bg-muted/30">
                 <tr className="text-left text-muted-foreground">
+                  {type === 'package' && vulnsQueried && (
+                    <th className="pl-3 pr-1 py-1.5 font-medium w-[1%] whitespace-nowrap">Risk</th>
+                  )}
                   <th className="px-3 py-1.5 font-medium">Hostname</th>
                   {type === 'package' && <th className="px-3 py-1.5 font-medium">Path</th>}
                   <th className="px-3 py-1.5 font-medium">Version</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredMatches.map((m, i) => (
-                  <tr
-                    key={`${m.hostname}-${m.path || ''}-${i}`}
-                    className="hover:bg-muted/20 cursor-pointer"
-                    onClick={() => navigate(`/monitors/${encodeURIComponent(m.hostname)}`)}
-                  >
-                    <td className="px-3 py-1.5 font-medium text-foreground">{m.hostname}</td>
-                    {type === 'package' && (
-                      <td className="px-3 py-1.5 text-muted-foreground">
-                        {m.path ? (
-                          <span className="inline-flex items-center gap-1 font-mono">
-                            <FolderOpen size={10} className="shrink-0" />
-                            {m.path}
-                          </span>
-                        ) : '—'}
-                      </td>
-                    )}
-                    <td className="px-3 py-1.5 text-muted-foreground font-mono">{m.version || '—'}</td>
-                  </tr>
-                ))}
+                <TooltipProvider delayDuration={150}>
+                  {filteredMatches.map(({ match: m, counts }, i) => {
+                    const showRisk = type === 'package' && vulnsQueried;
+                    const buckets: Array<{ key: 'critical' | 'high' | 'medium' | 'low'; letter: string; label: string }> = [
+                      { key: 'critical', letter: 'C', label: 'Critical' },
+                      { key: 'high', letter: 'H', label: 'High' },
+                      { key: 'medium', letter: 'M', label: 'Medium' },
+                      { key: 'low', letter: 'L', label: 'Low' },
+                    ];
+                    return (
+                      <tr
+                        key={`${m.hostname}-${m.path || ''}-${i}`}
+                        className="hover:bg-muted/20 cursor-pointer"
+                        onClick={() => navigate(`/monitors/${encodeURIComponent(m.hostname)}`)}
+                      >
+                        {showRisk && (
+                          <td className="pl-3 pr-1 py-1.5 align-middle whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            {counts.total === 0 ? (
+                              <span className="text-[0.6rem] text-muted-foreground">—</span>
+                            ) : (
+                              <div className="inline-flex items-center gap-0.5">
+                                {buckets.map(({ key, letter, label }) => {
+                                  const n = counts[key];
+                                  if (n === 0) return null;
+                                  const color = severityColors[key];
+                                  const ids = counts.vulnIds[key];
+                                  return (
+                                    <Tooltip key={key}>
+                                      <TooltipTrigger asChild>
+                                        <span
+                                          className="inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 text-[0.6rem] font-bold leading-none"
+                                          style={{
+                                            backgroundColor: `${color}26`,
+                                            color,
+                                            border: `1px solid ${color}55`,
+                                          }}
+                                        >
+                                          {letter}
+                                          <span className="font-semibold">{n}</span>
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="max-w-xs">
+                                        <div className="text-xs font-medium" style={{ color }}>{label} ({n})</div>
+                                        <div className="text-[0.65rem] font-mono mt-1 break-all">
+                                          {ids.slice(0, 6).join(', ')}
+                                          {ids.length > 6 && ` +${ids.length - 6} more`}
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-3 py-1.5 font-medium text-foreground">{m.hostname}</td>
+                        {type === 'package' && (
+                          <td className="px-3 py-1.5 text-muted-foreground">
+                            {m.path ? (
+                              <span className="inline-flex items-center gap-1 font-mono">
+                                <FolderOpen size={10} className="shrink-0" />
+                                {m.path}
+                              </span>
+                            ) : '—'}
+                          </td>
+                        )}
+                        <td className="px-3 py-1.5 text-muted-foreground font-mono">{m.version || '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </TooltipProvider>
               </tbody>
             </table>
           </div>
