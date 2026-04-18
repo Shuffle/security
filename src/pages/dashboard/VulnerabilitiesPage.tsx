@@ -219,79 +219,67 @@ const VulnerabilitiesPage = () => {
         </div>
       </div>
 
-      {/* Tabs — only show when there's data */}
+      {/* Filters + table — only show when there's data */}
       {vulnerabilities.length > 0 || isLoading ? (
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'assets' | 'users')}>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <TabsList>
-              <TabsTrigger value="assets" className="gap-1.5">
-                <Monitor size={14} />
-                Assets
-              </TabsTrigger>
-              <TabsTrigger value="users" className="gap-1.5">
-                <Users size={14} />
-                Users
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Filters */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search vulns..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-8 h-8 w-[180px] text-sm"
-                />
-              </div>
-              <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="h-8 w-[120px] text-xs">
-                  <SelectValue placeholder="Severity" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Severity</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-8 w-[140px] text-xs">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="software_cve">Software / CVE</SelectItem>
-                  <SelectItem value="user_identity">User / Identity</SelectItem>
-                  <SelectItem value="cloud_misconfig">Cloud Misconfig</SelectItem>
-                  <SelectItem value="code_dependency">Code / Deps</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-8 w-[120px] text-xs">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search vulns..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 w-[180px] text-sm"
+              />
             </div>
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="h-8 w-[120px] text-xs">
+                <SelectValue placeholder="Severity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Severity</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="software_cve">Software / CVE</SelectItem>
+                <SelectItem value="user_identity">User / Identity</SelectItem>
+                <SelectItem value="cloud_misconfig">Cloud Misconfig</SelectItem>
+                <SelectItem value="code_dependency">Code / Deps</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 w-[120px] text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <TabsContent value="assets">
-            <VulnTable vulnerabilities={filtered} isLoading={isLoading} onRemediate={handleRemediate} emptyIcon={<Monitor size={48} className="text-muted-foreground/50 mx-auto mb-4" />} emptyTitle="No asset vulnerabilities found" emptyDescription="Connect a vulnerability scanner or run an AI scan to discover vulnerabilities across your infrastructure." />
-          </TabsContent>
-
-          <TabsContent value="users">
-            <VulnTable vulnerabilities={filtered} isLoading={isLoading} onRemediate={handleRemediate} emptyIcon={<Users size={48} className="text-muted-foreground/50 mx-auto mb-4" />} emptyTitle="No user vulnerabilities found" emptyDescription="Set up automation to check identity platforms for compromised credentials, excessive permissions, and other user-related vulnerabilities." />
-          </TabsContent>
-        </Tabs>
+          <VulnTable
+            vulnerabilities={filtered}
+            isLoading={isLoading}
+            onRemediate={handleRemediate}
+            emptyIcon={<Shield size={48} className="text-muted-foreground/50 mx-auto mb-4" />}
+            emptyTitle="No vulnerabilities found"
+            emptyDescription="Connect a vulnerability scanner or sync from a package page to populate this list."
+          />
+        </div>
       ) : (
         <div className="rounded-lg border border-border bg-card p-12 text-center">
           <Shield size={48} className="text-muted-foreground/30 mx-auto mb-4" />
