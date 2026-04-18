@@ -458,11 +458,25 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
                 <span className="text-[0.65rem] text-muted-foreground">({vulns.length})</span>
               )}
             </div>
-            {language?.osvEcosystem && (
-              <span className="text-[0.65rem] text-muted-foreground font-mono">
-                {language.osvEcosystem}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {vulns.length > 1 && !vulnsLoading && !vulnsError && (
+                <select
+                  value={vulnsSort}
+                  onChange={(e) => setVulnsSort(e.target.value as 'severity' | 'date' | 'id')}
+                  className="h-7 rounded-md border border-border bg-background px-2 text-[0.65rem] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  aria-label="Sort vulnerabilities"
+                >
+                  <option value="severity">Sort: Severity</option>
+                  <option value="date">Sort: Newest</option>
+                  <option value="id">Sort: ID</option>
+                </select>
+              )}
+              {language?.osvEcosystem && (
+                <span className="text-[0.65rem] text-muted-foreground font-mono">
+                  {language.osvEcosystem}
+                </span>
+              )}
+            </div>
           </div>
 
           {vulnsLoading ? (
@@ -478,8 +492,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
             </p>
           ) : (
             <div className="space-y-2">
-              {vulns.map((v) => {
-                const sev = (v.database_specific?.severity || v.severity?.[0]?.score || '').toString();
+              {sortedVulns.map(({ vuln: v, sevToken, sevColor }) => {
                 const fixedVersions = (v.affected || [])
                   .flatMap(a => (a.ranges || []).flatMap(r => (r.events || []).map(e => e.fixed).filter(Boolean) as string[]));
                 const advisoryUrl = v.references?.find(r => r.type === 'ADVISORY')?.url
@@ -497,12 +510,17 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono font-medium text-foreground">{v.id}</span>
-                          {sev && (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-border bg-orange-500/10 px-1.5 py-0.5 text-[0.6rem] font-medium text-orange-500">
-                              <AlertTriangle size={9} />
-                              {sev}
-                            </span>
-                          )}
+                          <span
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide"
+                            style={{
+                              backgroundColor: `${sevColor}1f`, // ~12% alpha
+                              color: sevColor,
+                              border: `1px solid ${sevColor}55`,
+                            }}
+                          >
+                            <AlertTriangle size={9} />
+                            {sevToken}
+                          </span>
                           {v.aliases?.slice(0, 2).map(a => (
                             <span key={a} className="text-[0.6rem] font-mono text-muted-foreground">{a}</span>
                           ))}
