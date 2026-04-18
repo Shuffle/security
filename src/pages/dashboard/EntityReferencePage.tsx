@@ -219,6 +219,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
   const [vulnsLoading, setVulnsLoading] = useState(false);
   const [vulnsError, setVulnsError] = useState<string | null>(null);
   const [vulnsQueried, setVulnsQueried] = useState(false);
+  const [vulnsSort, setVulnsSort] = useState<'severity' | 'date' | 'id'>('severity');
 
   useEffect(() => {
     let cancelled = false;
