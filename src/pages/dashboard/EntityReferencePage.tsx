@@ -596,19 +596,21 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
             </p>
           ) : (
             <div className="space-y-2">
-              {sortedVulns.map(({ vuln: v, sevToken, sevColor }) => {
+              {sortedVulns.map(({ vuln: v, sevToken, sevColor, affectedHostNames, affectedCount }) => {
                 const fixedVersions = (v.affected || [])
                   .flatMap(a => (a.ranges || []).flatMap(r => (r.events || []).map(e => e.fixed).filter(Boolean) as string[]));
                 const advisoryUrl = v.references?.find(r => r.type === 'ADVISORY')?.url
                   || v.references?.[0]?.url
                   || `https://osv.dev/vulnerability/${encodeURIComponent(v.id)}`;
+                const isAffected = affectedCount > 0;
                 return (
                   <a
                     key={v.id}
                     href={advisoryUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block rounded-md border border-border bg-muted/20 px-3 py-2.5 hover:bg-muted/40 transition-colors"
+                    className="block rounded-md border bg-muted/20 px-3 py-2.5 hover:bg-muted/40 transition-colors"
+                    style={isAffected ? { borderColor: `${sevColor}66` } : { borderColor: 'hsl(var(--border))' }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -617,7 +619,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
                           <span
                             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide"
                             style={{
-                              backgroundColor: `${sevColor}1f`, // ~12% alpha
+                              backgroundColor: `${sevColor}1f`,
                               color: sevColor,
                               border: `1px solid ${sevColor}55`,
                             }}
@@ -625,12 +627,35 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
                             <AlertTriangle size={9} />
                             {sevToken}
                           </span>
+                          {isAffected && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide"
+                              style={{
+                                backgroundColor: `${sevColor}2a`,
+                                color: sevColor,
+                                border: `1px solid ${sevColor}66`,
+                              }}
+                              title={`Affects ${affectedCount} host${affectedCount === 1 ? '' : 's'}: ${affectedHostNames.join(', ')}`}
+                            >
+                              <Server size={9} />
+                              {affectedCount} affected
+                            </span>
+                          )}
                           {v.aliases?.slice(0, 2).map(a => (
                             <span key={a} className="text-[0.6rem] font-mono text-muted-foreground">{a}</span>
                           ))}
                         </div>
                         {v.summary && (
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{v.summary}</p>
+                        )}
+                        {isAffected && (
+                          <p className="mt-1 text-[0.65rem]">
+                            <span className="text-muted-foreground">Hosts: </span>
+                            <span className="font-mono text-foreground">
+                              {affectedHostNames.slice(0, 3).join(', ')}
+                              {affectedHostNames.length > 3 && ` +${affectedHostNames.length - 3} more`}
+                            </span>
+                          </p>
                         )}
                         {fixedVersions.length > 0 && (
                           <p className="mt-1 text-[0.65rem] text-muted-foreground">
