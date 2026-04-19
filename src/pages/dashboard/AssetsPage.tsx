@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -24,7 +24,7 @@ import { OCSFDeviceInventory, DEVICE_TYPES, RISK_LEVELS } from '@/config/ocsfAss
 import { toast } from 'sonner';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-const ALL_TAB = 'all';
+const DEFAULT_TAB = 'mobile';
 
 const deviceIcon = (typeId: number, size = 18) => {
   switch (typeId) {
@@ -118,72 +118,50 @@ const parseItem = (item: DatastoreItem, category: AssetCategory): ParsedAsset | 
 const AssetsPage = () => {
   usePageMeta({ title: 'Assets', description: 'Unified inventory across endpoints, cloud, identity, and code' });
 
-  const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
+  const [activeTab, setActiveTab] = useState<string>(DEFAULT_TAB);
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
-  // Endpoints tab also reads the legacy key so existing assets keep showing up
-  const categoryKeys = useMemo(
-    () => Array.from(new Set([...ASSET_CATEGORIES.map(c => c.datastoreKey), LEGACY_ASSETS_KEY])),
-    [],
-  );
+  const { states, fetchKey, refetch } = useMultiDatastore();
 
-  const { states, isAnyLoading, refetch } = useMultiDatastore(categoryKeys);
+  // Lazily fetch only the active tab. The mobile tab also pulls the legacy
+  // `shuffle-security_assets` key so existing devices keep showing up.
+  useEffect(() => {
+    const cat = ASSET_CATEGORY_BY_ID[activeTab];
+    if (cat) fetchKey(cat.datastoreKey);
+    if (activeTab === 'mobile') fetchKey(LEGACY_ASSETS_KEY);
+  }, [activeTab, fetchKey]);
 
-  // Parse + bucket by category
-  const parsedByCategory = useMemo(() => {
-    const map: Record<string, ParsedAsset[]> = {};
-    ASSET_CATEGORIES.forEach(c => {
-      const state = states[c.datastoreKey];
-      const items = state?.items || [];
-      const parsed = items.map(it => parseItem(it, c)).filter(Boolean) as ParsedAsset[];
-      map[c.id] = parsed;
-    });
-    // Merge legacy key into endpoints
-    const legacy = states[LEGACY_ASSETS_KEY]?.items || [];
-    const endpointsCat = ASSET_CATEGORY_BY_ID.endpoints;
-    if (endpointsCat && legacy.length) {
-      const legacyParsed = legacy.map(it => parseItem(it, endpointsCat)).filter(Boolean) as ParsedAsset[];
-      const existing = new Set(map.endpoints.map(a => a.key));
-      map.endpoints = [...map.endpoints, ...legacyParsed.filter(a => !existing.has(a.key))];
-    }
-    Object.values(map).forEach(arr => arr.sort((a, b) => b.createdTs - a.createdTs));
-    return map;
-  }, [states]);
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { [ALL_TAB]: 0 };
-    let total = 0;
-    ASSET_CATEGORIES.forEach(cat => {
-      const n = parsedByCategory[cat.id]?.length || 0;
-      c[cat.id] = n;
-      total += n;
-    });
-    c[ALL_TAB] = total;
-    return c;
-  }, [parsedByCategory]);
-
+  // Parse only what's loaded for the active tab
   const visibleAssets = useMemo(() => {
-    const base = activeTab === ALL_TAB
-      ? ASSET_CATEGORIES.flatMap(cat => parsedByCategory[cat.id] || [])
-      : (parsedByCategory[activeTab] || []);
-    if (!search.trim()) return base;
+    const cat = ASSET_CATEGORY_BY_ID[activeTab];
+    if (!cat) return [];
+    const items: DatastoreItem[] = [...(states[cat.datastoreKey]?.items || [])];
+    if (activeTab === 'mobile') {
+      const legacy = states[LEGACY_ASSETS_KEY]?.items || [];
+      const seen = new Set(items.map(i => i.key));
+      legacy.forEach(i => { if (!seen.has(i.key)) items.push(i); });
+    }
+    const parsed = items.map(it => parseItem(it, cat)).filter(Boolean) as ParsedAsset[];
+    parsed.sort((a, b) => b.createdTs - a.createdTs);
+    if (!search.trim()) return parsed;
     const q = search.toLowerCase();
-    return base.filter(a =>
+    return parsed.filter(a =>
       a.name.toLowerCase().includes(q) ||
       a.identifier?.toLowerCase().includes(q) ||
       a.type?.toLowerCase().includes(q) ||
       a.owner?.toLowerCase().includes(q),
     );
-  }, [activeTab, parsedByCategory, search]);
+  }, [activeTab, states, search]);
+
+  const activeCount = visibleAssets.length;
 
   const handleCreateAsset = useCallback(async (asset: OCSFDeviceInventory) => {
     const key = asset.metadata?.uid || asset.uid || `asset-${Date.now()}`;
-    // Route by device type to the appropriate datastore key
+    // Route by device type. Endpoints + mobile share the mobile key now.
     const targetKey =
-      asset.type_id === 4 || asset.type_id === 5 ? ASSET_CATEGORY_BY_ID.mobile.datastoreKey
-      : asset.type_id === 1 ? ASSET_CATEGORY_BY_ID.compute.datastoreKey
-      : ASSET_CATEGORY_BY_ID.endpoints.datastoreKey;
+      asset.type_id === 1 ? ASSET_CATEGORY_BY_ID.compute.datastoreKey
+      : ASSET_CATEGORY_BY_ID.mobile.datastoreKey;
 
     const ok = await setDatastoreItem(targetKey, key, JSON.stringify(asset));
     if (ok) {
@@ -201,8 +179,16 @@ const AssetsPage = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
-  const activeCategory: AssetCategory | null = activeTab === ALL_TAB ? null : ASSET_CATEGORY_BY_ID[activeTab];
+  const activeCategory: AssetCategory | null = ASSET_CATEGORY_BY_ID[activeTab] || null;
   const ActiveIcon = activeCategory?.icon;
+  const activeState = activeCategory ? states[activeCategory.datastoreKey] : undefined;
+  const activeLoading = !!activeState?.isLoading || (activeTab === 'mobile' && !!states[LEGACY_ASSETS_KEY]?.isLoading);
+
+  const handleRefreshActive = useCallback(() => {
+    if (!activeCategory) return;
+    refetch(activeCategory.datastoreKey);
+    if (activeTab === 'mobile') refetch(LEGACY_ASSETS_KEY);
+  }, [activeCategory, activeTab, refetch]);
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
@@ -215,8 +201,8 @@ const AssetsPage = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Refresh all sources">
-            <IconButton size="small" onClick={() => refetch()} sx={{ height: 36, width: 36 }}>
+          <Tooltip title="Refresh">
+            <IconButton size="small" onClick={handleRefreshActive} sx={{ height: 36, width: 36 }}>
               <RefreshCw size={16} />
             </IconButton>
           </Tooltip>
@@ -235,19 +221,11 @@ const AssetsPage = () => {
           scrollButtons="auto"
           sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontSize: '0.8rem', py: 1, px: 1.5 } }}
         >
-          <Tab
-            value={ALL_TAB}
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <span>All</span>
-                <Chip label={counts[ALL_TAB]} size="small" sx={{ height: 18, fontSize: '0.65rem', '& .MuiChip-label': { px: 0.75 } }} />
-              </Box>
-            }
-          />
           {ASSET_CATEGORIES.map(cat => {
             const Icon = cat.icon;
             const state = states[cat.datastoreKey];
             const loading = state?.isLoading;
+            const count = state?.hasFetched ? state.items.length : null;
             return (
               <Tab
                 key={cat.id}
@@ -256,11 +234,13 @@ const AssetsPage = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     {loading ? <CircularProgress size={12} /> : <Icon size={14} />}
                     <span>{cat.short}</span>
-                    <Chip
-                      label={counts[cat.id]}
-                      size="small"
-                      sx={{ height: 18, fontSize: '0.65rem', '& .MuiChip-label': { px: 0.75 } }}
-                    />
+                    {count != null && (
+                      <Chip
+                        label={count}
+                        size="small"
+                        sx={{ height: 18, fontSize: '0.65rem', '& .MuiChip-label': { px: 0.75 } }}
+                      />
+                    )}
                   </Box>
                 }
               />
@@ -274,7 +254,7 @@ const AssetsPage = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, color: 'text.secondary' }}>
           {ActiveIcon && <ActiveIcon size={14} />}
           <Typography variant="caption">{activeCategory.description}</Typography>
-          {states[activeCategory.datastoreKey]?.error && (
+          {activeState?.error && (
             <Chip label="Source error" size="small" color="error" sx={{ height: 18, fontSize: '0.65rem' }} />
           )}
         </Box>
@@ -285,7 +265,7 @@ const AssetsPage = () => {
         <TextField
           size="small"
           fullWidth
-          placeholder={`Search ${activeTab === ALL_TAB ? 'all assets' : activeCategory?.label.toLowerCase()}…`}
+          placeholder={`Search ${activeCategory?.label.toLowerCase() || 'assets'}…`}
           value={search}
           onChange={e => setSearch(e.target.value)}
           InputProps={{
@@ -298,14 +278,14 @@ const AssetsPage = () => {
       </Box>
 
       {/* Loading initial */}
-      {isAnyLoading && counts[ALL_TAB] === 0 && (
+      {activeLoading && visibleAssets.length === 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
           <CircularProgress size={32} />
         </Box>
       )}
 
       {/* Empty */}
-      {!isAnyLoading && visibleAssets.length === 0 && (
+      {!activeLoading && visibleAssets.length === 0 && (
         <Card variant="outlined" sx={{ textAlign: 'center', py: 8 }}>
           <CardContent>
             {activeCategory ? (
@@ -357,7 +337,7 @@ const AssetsPage = () => {
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Name</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Identifier</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              {activeTab === ALL_TAB ? 'Category' : 'Type'}
+              Type
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Risk</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Owner</Typography>
@@ -367,7 +347,7 @@ const AssetsPage = () => {
           {visibleAssets.map(asset => {
             const cat = ASSET_CATEGORY_BY_ID[asset.categoryId];
             const CatIcon = cat?.icon || MonitorSmartphone;
-            const showCategory = activeTab === ALL_TAB;
+            const showCategory = false;
             return (
               <Card
                 key={`${asset.categoryId}:${asset.key}`}
