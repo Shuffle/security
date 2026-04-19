@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -24,7 +24,7 @@ import { OCSFDeviceInventory, DEVICE_TYPES, RISK_LEVELS } from '@/config/ocsfAss
 import { toast } from 'sonner';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-const ALL_TAB = 'all';
+const DEFAULT_TAB = 'mobile';
 
 const deviceIcon = (typeId: number, size = 18) => {
   switch (typeId) {
@@ -118,64 +118,43 @@ const parseItem = (item: DatastoreItem, category: AssetCategory): ParsedAsset | 
 const AssetsPage = () => {
   usePageMeta({ title: 'Assets', description: 'Unified inventory across endpoints, cloud, identity, and code' });
 
-  const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
+  const [activeTab, setActiveTab] = useState<string>(DEFAULT_TAB);
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
-  // Endpoints tab also reads the legacy key so existing assets keep showing up
-  const categoryKeys = useMemo(
-    () => Array.from(new Set([...ASSET_CATEGORIES.map(c => c.datastoreKey), LEGACY_ASSETS_KEY])),
-    [],
-  );
+  const { states, fetchKey, refetch } = useMultiDatastore();
 
-  const { states, isAnyLoading, refetch } = useMultiDatastore(categoryKeys);
+  // Lazily fetch only the active tab. The mobile tab also pulls the legacy
+  // `shuffle-security_assets` key so existing devices keep showing up.
+  useEffect(() => {
+    const cat = ASSET_CATEGORY_BY_ID[activeTab];
+    if (cat) fetchKey(cat.datastoreKey);
+    if (activeTab === 'mobile') fetchKey(LEGACY_ASSETS_KEY);
+  }, [activeTab, fetchKey]);
 
-  // Parse + bucket by category
-  const parsedByCategory = useMemo(() => {
-    const map: Record<string, ParsedAsset[]> = {};
-    ASSET_CATEGORIES.forEach(c => {
-      const state = states[c.datastoreKey];
-      const items = state?.items || [];
-      const parsed = items.map(it => parseItem(it, c)).filter(Boolean) as ParsedAsset[];
-      map[c.id] = parsed;
-    });
-    // Merge legacy key into endpoints
-    const legacy = states[LEGACY_ASSETS_KEY]?.items || [];
-    const endpointsCat = ASSET_CATEGORY_BY_ID.endpoints;
-    if (endpointsCat && legacy.length) {
-      const legacyParsed = legacy.map(it => parseItem(it, endpointsCat)).filter(Boolean) as ParsedAsset[];
-      const existing = new Set(map.endpoints.map(a => a.key));
-      map.endpoints = [...map.endpoints, ...legacyParsed.filter(a => !existing.has(a.key))];
-    }
-    Object.values(map).forEach(arr => arr.sort((a, b) => b.createdTs - a.createdTs));
-    return map;
-  }, [states]);
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { [ALL_TAB]: 0 };
-    let total = 0;
-    ASSET_CATEGORIES.forEach(cat => {
-      const n = parsedByCategory[cat.id]?.length || 0;
-      c[cat.id] = n;
-      total += n;
-    });
-    c[ALL_TAB] = total;
-    return c;
-  }, [parsedByCategory]);
-
+  // Parse only what's loaded for the active tab
   const visibleAssets = useMemo(() => {
-    const base = activeTab === ALL_TAB
-      ? ASSET_CATEGORIES.flatMap(cat => parsedByCategory[cat.id] || [])
-      : (parsedByCategory[activeTab] || []);
-    if (!search.trim()) return base;
+    const cat = ASSET_CATEGORY_BY_ID[activeTab];
+    if (!cat) return [];
+    const items: DatastoreItem[] = [...(states[cat.datastoreKey]?.items || [])];
+    if (activeTab === 'mobile') {
+      const legacy = states[LEGACY_ASSETS_KEY]?.items || [];
+      const seen = new Set(items.map(i => i.key));
+      legacy.forEach(i => { if (!seen.has(i.key)) items.push(i); });
+    }
+    const parsed = items.map(it => parseItem(it, cat)).filter(Boolean) as ParsedAsset[];
+    parsed.sort((a, b) => b.createdTs - a.createdTs);
+    if (!search.trim()) return parsed;
     const q = search.toLowerCase();
-    return base.filter(a =>
+    return parsed.filter(a =>
       a.name.toLowerCase().includes(q) ||
       a.identifier?.toLowerCase().includes(q) ||
       a.type?.toLowerCase().includes(q) ||
       a.owner?.toLowerCase().includes(q),
     );
-  }, [activeTab, parsedByCategory, search]);
+  }, [activeTab, states, search]);
+
+  const activeCount = visibleAssets.length;
 
   const handleCreateAsset = useCallback(async (asset: OCSFDeviceInventory) => {
     const key = asset.metadata?.uid || asset.uid || `asset-${Date.now()}`;
