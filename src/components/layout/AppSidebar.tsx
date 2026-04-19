@@ -79,6 +79,14 @@ const buildNavItems = (entityLabel: string, entityPath: string, isSupport?: bool
     ],
   },
   { label: 'Monitors', icon: <Radar size={20} />, path: '/monitors', supportOnly: true },
+  {
+    label: 'Vulnerabilities',
+    icon: <Shield size={20} />,
+    path: '/vulnerabilities',
+    children: [
+      { label: 'Assets', path: '/assets', icon: <HardDrive size={16} /> },
+    ],
+  },
   { 
     label: 'Detection', 
     icon: <RadarIcon />,
@@ -89,15 +97,11 @@ const buildNavItems = (entityLabel: string, entityPath: string, isSupport?: bool
       { label: 'ATT&CK', path: '/detection/mitre', icon: <Waypoints size={16} />, supportOnly: true },
       { label: 'Threat Feeds', path: '/incidents/threat-feeds', icon: <RssFeedIcon fontSize="small" /> },
       { label: 'IOC Types', path: '/incidents/ioc-types', icon: <FingerprintIcon fontSize="small" /> },
-      { label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Shield size={16} /> },
-      { label: 'Assets', path: '/assets', icon: <HardDrive size={16} /> },
       { label: 'Response Actions', path: '/incidents/response-actions', icon: <Shield size={16} /> },
-      { label: 'Users', path: '/users', icon: <Users size={16} /> },
     ],
   },
   { label: '__divider__', icon: <></> },
   { label: 'Agent', icon: <AgentIcon size={20} />, path: '/agent' },
-  { label: 'Automation', icon: <Activity size={20} />, path: '/usecases' },
   { label: 'Documentation', icon: <BookOpen size={20} />, path: '/docs' },
 ];
 
