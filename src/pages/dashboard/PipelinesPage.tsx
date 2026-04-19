@@ -839,7 +839,7 @@ Use case: ${aiPrompt}`,
         }}>
           <WarningAmberIcon sx={{ color: 'hsl(var(--primary))', fontSize: 20 }} />
           <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', flex: 1 }}>
-            No running sensor detected. Deploy a sensor first to create pipelines.
+            No Log Ingestion is running. Set one up first to create detection pipelines.
           </Typography>
           <Button
             component={Link}

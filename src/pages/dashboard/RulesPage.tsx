@@ -706,7 +706,7 @@ const RulesPage = () => {
         }}>
           <WarningAmberIcon sx={{ color: 'hsl(var(--primary))', fontSize: 20 }} />
           <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', flex: 1 }}>
-            No running sensor detected. Rules are uploaded but won't be active until a sensor is running.
+            No Log Ingestion is running. Rules are uploaded but won't be active until Log Ingestion is running.
           </Typography>
           <Button
             component={Link}
