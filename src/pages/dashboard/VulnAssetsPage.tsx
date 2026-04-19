@@ -938,7 +938,17 @@ const VulnAssetsPage = () => {
           </div>
         )}
 
-        {allHosts.length === 0 && (
+        {groupsLoading && allHosts.length === 0 && (
+          <div className="border-t border-border px-5 py-16 flex flex-col items-center text-center gap-3">
+            <Loader2 size={28} className="text-muted-foreground animate-spin" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Loading monitors…</p>
+              <p className="text-xs text-muted-foreground">Fetching monitoring groups, hosts, and supplements.</p>
+            </div>
+          </div>
+        )}
+
+        {!groupsLoading && allHosts.length === 0 && (
           <div className="grid grid-cols-5 gap-0 divide-x divide-border">
             {HOST_OVERVIEW_TILES.map(check => (
               <div key={check.id} className="px-4 py-4 flex flex-col items-center text-center gap-2">
@@ -952,7 +962,7 @@ const VulnAssetsPage = () => {
           </div>
         )}
 
-        {allHosts.length === 0 ? (
+        {allHosts.length === 0 && !groupsLoading ? (
           <div className="border-t border-border px-5 py-16 flex flex-col items-center text-center gap-4">
             <Activity size={36} className="text-muted-foreground/25" />
             <div className="space-y-1">
@@ -964,7 +974,7 @@ const VulnAssetsPage = () => {
               Add Host
             </Button>
           </div>
-        ) : (
+        ) : allHosts.length > 0 ? (
           <div className="border-t border-border">
             {/* Table header */}
             <div className="grid grid-cols-[2rem_1.5fr_2rem_2rem_2rem_2rem_2rem_2rem_0.7fr_0.8fr_2.5rem] gap-2 px-5 py-2 border-b border-border bg-muted/30 items-center">
@@ -1618,7 +1628,7 @@ const VulnAssetsPage = () => {
               );
             })}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Add Host Monitor Dialog */}
