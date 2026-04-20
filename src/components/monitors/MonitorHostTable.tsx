@@ -420,12 +420,17 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
           const responseActionsOn = responseActionsState.enabled;
           const responseActionsMode = responseActionsState.mode;
           const logForwardingOn = isActiveMonitoringEnabled(host);
-          const isExpanded = expandedHosts.has(host.uuid);
+          // Stable per-row key: uuid when present, otherwise groupId+hostname+idx.
+          // Avoids collapsing all uuid-less rows into a single expansion entry.
+          const rowKey = (host.uuid && String(host.uuid).trim())
+            ? `uuid:${host.uuid}`
+            : `gh:${(host as any).groupId || ''}::${(host.hostname || '').toLowerCase()}::${idx}`;
+          const isExpanded = expandedHosts.has(rowKey);
           const toggleExpanded = () => {
             setExpandedHosts(prev => {
               const next = new Set(prev);
-              if (next.has(host.uuid)) next.delete(host.uuid);
-              else next.add(host.uuid);
+              if (next.has(rowKey)) next.delete(rowKey);
+              else next.add(rowKey);
               return next;
             });
           };
