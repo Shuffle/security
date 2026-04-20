@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const DEFAULT_TAB = 'mobile';
+const SENSORS_KEY = 'shuffle-security_sensors';
 
 const deviceIcon = (typeId: number, size = 18) => {
   switch (typeId) {
