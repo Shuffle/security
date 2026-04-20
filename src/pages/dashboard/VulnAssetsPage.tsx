@@ -1034,9 +1034,6 @@ const VulnAssetsPage = () => {
                   else next.add(host.uuid);
                   return next;
                 });
-                setSoftwareFilter('');
-                setCodeScanFilter('');
-                setExpandedCodePaths(new Set());
               };
               const CheckDot = ({ on, tip, color, state }: { on: boolean; tip: string; color?: string; state?: 'on' | 'off' | 'empty' }) => {
                 const dotColor = state === 'off'
