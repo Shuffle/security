@@ -25,9 +25,11 @@ interface CreateAssetDialogProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (asset: OCSFDeviceInventory) => Promise<void>;
+  kind?: 'device' | 'user';
 }
 
-export const CreateAssetDialog = ({ open, onClose, onSubmit }: CreateAssetDialogProps) => {
+export const CreateAssetDialog = ({ open, onClose, onSubmit, kind = 'device' }: CreateAssetDialogProps) => {
+  const isUser = kind === 'user';
   const [hostname, setHostname] = useState('');
   const [ip, setIp] = useState('');
   const [mac, setMac] = useState('');
