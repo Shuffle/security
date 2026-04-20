@@ -511,6 +511,7 @@ const AssetsPage = () => {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreateAsset}
+        kind={activeTab === 'identity_users' ? 'user' : 'device'}
       />
     </Box>
   );
