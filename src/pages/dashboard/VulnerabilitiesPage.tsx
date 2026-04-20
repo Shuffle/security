@@ -148,7 +148,13 @@ const AuthenticatedVulnerabilitiesView = () => {
   const [aiScanLoading, setAiScanLoading] = useState(false);
   const [aiScanResult, setAiScanResult] = useState<string | null>(null);
   const [enablingAutomation, setEnablingAutomation] = useState(false);
-  const [automationEnabled, setAutomationEnabled] = useState(false);
+
+  const { data: workflows, refetch: refetchWorkflows } = useWorkflows();
+  const vulnComparisonWorkflow = (workflows || []).find(
+    w => (w.name || '').toLowerCase() === 'vulnerability comparison'
+  );
+  const automationEnabled = !!vulnComparisonWorkflow;
+  const navigate = useNavigate();
 
   const handleEnableAutomation = useCallback(async () => {
     setEnablingAutomation(true);
@@ -160,14 +166,14 @@ const AuthenticatedVulnerabilitiesView = () => {
         body: JSON.stringify({ label: 'vulnerability_comparison' }),
       });
       if (!res.ok) throw new Error('Failed');
-      setAutomationEnabled(true);
-      toast.success('Automated vulnerability remediation enabled');
+      await refetchWorkflows();
+      toast.success('Vulnerability Comparison workflow enabled');
     } catch {
-      toast.error('Failed to enable automated remediation');
+      toast.error('Failed to enable Vulnerability Comparison workflow');
     } finally {
       setEnablingAutomation(false);
     }
-  }, []);
+  }, [refetchWorkflows]);
 
   const { vulnerabilities, severityCounts, isLoading, isRefreshing, refresh } = useVulnerabilities();
   const { authenticatedApps } = useAppAuth();
