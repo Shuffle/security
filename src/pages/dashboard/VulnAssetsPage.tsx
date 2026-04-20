@@ -27,6 +27,7 @@ import { getApiUrl, getAuthHeader, API_CONFIG } from '@/config/api';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { fetchHostSupplements, mergeHosts } from '@/lib/mergeMonitorHosts';
 import { HostDetailPanel } from '@/components/monitors/HostDetailPanel';
+import { MonitorHostTable } from '@/components/monitors/MonitorHostTable';
 
 const OsIcon = ({ os, size = 14, className = '' }: { os: string; size?: number; className?: string }) => {
   const lower = (os || '').toLowerCase();
