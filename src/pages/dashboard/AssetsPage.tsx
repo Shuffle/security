@@ -316,7 +316,7 @@ const AssetsPage = () => {
         />
       </Box>
 
-      {/* Sensors (host monitors) — only on the Mobile/Endpoints tab. */}
+      {/* Sensors (host monitors) — only on the Mobile/Endpoints tab. Same list UI as /monitors. */}
       {activeTab === 'mobile' && sensorHosts.length > 0 && (() => {
         const q = search.trim().toLowerCase();
         const filtered = q
@@ -335,43 +335,11 @@ const AssetsPage = () => {
                 from <code>{SENSORS_KEY}</code>
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {filtered.map(({ key, host }) => {
-                const isOpen = expandedSensors.has(key);
-                const hostname = String(host.hostname || key);
-                const os = String(host.os || '—');
-                const arch = String(host.arch || '');
-                return (
-                  <Card key={key} variant="outlined">
-                    <Box
-                      onClick={() => toggleSensor(key)}
-                      sx={{
-                        display: 'flex', alignItems: 'center', gap: 1,
-                        px: 2, py: 1.25, cursor: 'pointer',
-                        '&:hover': { bgcolor: 'action.hover' },
-                      }}
-                    >
-                      {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      <Laptop size={16} className="text-muted-foreground" />
-                      <Typography variant="body2" sx={{ fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {hostname}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
-                        {os}{arch ? ` / ${arch}` : ''}
-                      </Typography>
-                    </Box>
-                    {isOpen && (
-                      <Box sx={{ px: 0, pb: 0 }}>
-                        <HostDetailPanel host={host as any} variant="inline" />
-                      </Box>
-                    )}
-                  </Card>
-                );
-              })}
-            </Box>
+            <MonitorHostList hosts={filtered.map(s => s.host as any)} />
           </Box>
         );
       })()}
+
 
       {activeLoading && visibleAssets.length === 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
