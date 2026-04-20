@@ -327,7 +327,7 @@ export const CreateAssetDialog = ({ open, onClose, onSubmit, kind = 'device' }: 
           disabled={!hostname.trim() || isSubmitting}
           startIcon={isSubmitting ? <CircularProgress size={16} /> : undefined}
         >
-          {isSubmitting ? 'Adding…' : 'Add Asset'}
+          {isSubmitting ? 'Adding…' : (isUser ? 'Add User' : 'Add Device')}
         </Button>
       </DialogActions>
     </Dialog>
