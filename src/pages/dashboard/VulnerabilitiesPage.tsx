@@ -175,6 +175,25 @@ const AuthenticatedVulnerabilitiesView = () => {
     }
   }, [refetchWorkflows]);
 
+  const handleDisableAutomation = useCallback(async () => {
+    setEnablingAutomation(true);
+    try {
+      const res = await fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: 'Vulnerability Comparison', action_name: 'remove' }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      await refetchWorkflows();
+      toast.success('Vulnerability Comparison workflow disabled');
+    } catch {
+      toast.error('Failed to disable Vulnerability Comparison workflow');
+    } finally {
+      setEnablingAutomation(false);
+    }
+  }, [refetchWorkflows]);
+
   const { vulnerabilities, severityCounts, isLoading, isRefreshing, refresh } = useVulnerabilities();
   const { authenticatedApps } = useAppAuth();
 
@@ -219,33 +238,49 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Automation Coming Soon banner */}
-      <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-primary/30 bg-primary/[0.06]">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/15 text-primary shrink-0">
+      {/* Vulnerability Automation banner */}
+      <div
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+          automationEnabled
+            ? 'border-green-500/30 bg-green-500/[0.08]'
+            : 'border-primary/30 bg-primary/[0.06]'
+        }`}
+      >
+        <div
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+            automationEnabled ? 'bg-green-500/15 text-green-500' : 'bg-primary/15 text-primary'
+          }`}
+        >
           <Zap size={16} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-sm font-semibold text-foreground">Automated remediation</span>
-            <span className="px-1.5 py-0.5 text-[0.55rem] font-bold tracking-wide uppercase rounded bg-primary/15 text-primary leading-none">Coming Soon</span>
+            <span className="text-sm font-semibold text-foreground">Vulnerability Automation</span>
+            {automationEnabled && (
+              <span className="px-1.5 py-0.5 text-[0.55rem] font-bold tracking-wide uppercase rounded bg-green-500/15 text-green-600 dark:text-green-400 leading-none">
+                Active
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground leading-snug">
-            Auto-remediate vulnerabilities by running fixes directly on affected hosts. Tracking and manual workflows are already available below.
+            Runs the <span className="font-medium text-foreground">Vulnerability Comparison</span> workflow in the background to compare scanner results across runs and surface new findings. Automated remediation comes later.
           </p>
         </div>
         <Button
           size="sm"
-          variant={automationEnabled ? 'secondary' : 'outline'}
+          variant="outline"
           className="gap-1.5 shrink-0"
-          disabled={enablingAutomation || automationEnabled}
-          onClick={handleEnableAutomation}
+          disabled={enablingAutomation}
+          onClick={automationEnabled ? handleDisableAutomation : handleEnableAutomation}
         >
           {enablingAutomation ? (
             <Loader2 size={14} className="animate-spin" />
           ) : (
             <Zap size={14} />
           )}
-          {automationEnabled ? 'Enabled' : enablingAutomation ? 'Enabling…' : 'Enable'}
+          {enablingAutomation
+            ? automationEnabled ? 'Disabling…' : 'Enabling…'
+            : automationEnabled ? 'Disable' : 'Enable'}
         </Button>
       </div>
 
