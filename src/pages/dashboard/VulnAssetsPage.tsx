@@ -794,6 +794,17 @@ const VulnAssetsPage = () => {
     loadGroups();
   };
 
+  // Auto-open Add Host dialog when ?add_host=true is present in the URL
+  useEffect(() => {
+    if (searchParams.get('add_host') === 'true' && !addHostOpen) {
+      handleOpenAddHost();
+      const next = new URLSearchParams(searchParams);
+      next.delete('add_host');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
     setCreatingGroupLoading(true);
