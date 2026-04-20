@@ -276,7 +276,7 @@ const AuthenticatedVulnerabilitiesView = () => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="sm" className="gap-1.5" onClick={() => navigate('/monitors')}>
+                <Button size="sm" className="gap-1.5" onClick={() => navigate('/monitors?add_host=true')}>
                   <Plus size={14} />
                   Add Source
                 </Button>
