@@ -175,6 +175,25 @@ const AuthenticatedVulnerabilitiesView = () => {
     }
   }, [refetchWorkflows]);
 
+  const handleDisableAutomation = useCallback(async () => {
+    setEnablingAutomation(true);
+    try {
+      const res = await fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: 'Vulnerability Comparison', action_name: 'remove' }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      await refetchWorkflows();
+      toast.success('Vulnerability Comparison workflow disabled');
+    } catch {
+      toast.error('Failed to disable Vulnerability Comparison workflow');
+    } finally {
+      setEnablingAutomation(false);
+    }
+  }, [refetchWorkflows]);
+
   const { vulnerabilities, severityCounts, isLoading, isRefreshing, refresh } = useVulnerabilities();
   const { authenticatedApps } = useAppAuth();
 
