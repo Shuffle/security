@@ -34,7 +34,7 @@ import { deleteFile, getFileDownloadUrl, formatFileSize, ShuffleFile, createAndU
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/config/api';
 import { Link } from 'react-router-dom';
-import WebhookStatusBanner, { WebhookActiveChip } from '@/components/detection/WebhookStatusBanner';
+import WebhookStatusBanner from '@/components/detection/WebhookStatusBanner';
 
 const SIGMA_NAMESPACE = 'sigma';
 
