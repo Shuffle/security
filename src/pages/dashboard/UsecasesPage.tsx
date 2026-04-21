@@ -28,6 +28,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { Search, ArrowRight, ArrowLeft, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink, Flame, PlayCircle, BookOpen, LayoutGrid, Server, Shield, MessageSquare, Mail, Crosshair, HardDrive, KeyRound, Cloud, Sparkles } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
 export type FlowPhase = 'ingest' | 'response' | 'correlation';
