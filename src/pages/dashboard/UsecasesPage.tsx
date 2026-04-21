@@ -475,7 +475,7 @@ export default function UsecasesPage() {
       </Box>
 
       {/* Selected apps — same format as the AppSearchDrawer's "Your Apps" row */}
-      {API_CONFIG.apiKey && (
+      {getStoredApiKey() && (
         <Box sx={{ mb: 3 }}>
           <Typography
             sx={{
