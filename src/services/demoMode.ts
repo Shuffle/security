@@ -368,6 +368,11 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
       const res = await getDatastoreByCategory(category);
       if (res.success && res.data) {
         const orphans = res.data.filter(item => {
+          // Primary signal: every demo key we write is prefixed with `demo-`
+          // (e.g. demo-inc-login-…, demo-asset-…, demo-user-…). This is
+          // reliable even when list_cache returns items without their full
+          // value payload, where the metadata-tag check below silently misses.
+          if (typeof item.key === 'string' && item.key.startsWith('demo-')) return true;
           try {
             const parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
             return parsed?.metadata?.extensions?.custom_attributes?.demo === true;
