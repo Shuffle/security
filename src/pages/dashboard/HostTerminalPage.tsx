@@ -136,6 +136,7 @@ const HostTerminalPage = () => {
   const [hostsLoaded, setHostsLoaded] = useState(false);
   const [hostSearchQuery, setHostSearchQuery] = useState('');
   const [hostSwitcherOpen, setHostSwitcherOpen] = useState(false);
+  const [singleEnvFallback, setSingleEnvFallback] = useState<string>('');
 
   // Resolve host info from location.state first, then fall back to allHosts lookup.
   // Match by UUID first, then by hostname (with tolerant domain-suffix stripping)
