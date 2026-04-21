@@ -562,7 +562,7 @@ function UsecaseCard({
           className="uc-toggle-btn"
           sx={{
             position: 'absolute',
-            top: 6,
+            bottom: 6,
             right: 6,
             opacity: 0,
             pointerEvents: 'none',
