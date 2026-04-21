@@ -457,6 +457,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       refreshStats();
       const present = await countDemoIncidents();
       setHasDemoIncidents(present > 0);
+      trackPredefinedEvent(GA_EVENTS.DEMO_FORCE_CREATE_INCIDENTS, present > 0 ? 'success' : 'failure', present, {
+        added,
+        present,
+      });
       if (added > 0) {
         toast.success(`Recreated ${added} demo incident${added === 1 ? '' : 's'}.`);
       } else if (present > 0) {
@@ -464,7 +468,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       } else {
         toast.error('Could not create demo incidents. Please try again.');
       }
-    } catch {
+    } catch (err) {
+      trackPredefinedEvent(GA_EVENTS.DEMO_FORCE_CREATE_INCIDENTS, 'error', 0, {
+        error: String((err as Error)?.message || 'unknown'),
+      });
       toast.error('Failed to recreate demo incidents.');
     } finally {
       setIsForceCreatingIncidents(false);
