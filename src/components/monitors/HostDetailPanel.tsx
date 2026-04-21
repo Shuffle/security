@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import {
   HardDrive, Lock, Package, Zap, ChevronRight, ChevronDown,
-  Hash, Cpu, Send, ShieldCheck, ShieldX, FileCode,
+  Hash, Cpu, Send, ShieldCheck, ShieldX, FileCode, ScanLine,
 } from 'lucide-react';
 
 /**
@@ -60,6 +61,11 @@ interface HostDetailPanelProps {
   variant?: 'inline' | 'page';
   /** When true, software + code scanner sections start collapsed (used on the standalone page) */
   collapsibleSections?: boolean;
+  /** Optional terminal context — enables the per-project "CBOM Scan" button when provided */
+  hostUuid?: string;
+  hostname?: string;
+  groupName?: string;
+  mode?: string;
 }
 
 const stateOf = (v: boolean | string | undefined): 'on' | 'off' => {
@@ -76,8 +82,22 @@ const fmtRaw = (v: unknown): string => {
   return String(v);
 };
 
-export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false }: HostDetailPanelProps) => {
+export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false, hostUuid, hostname, groupName, mode }: HostDetailPanelProps) => {
   const navigate = useNavigate();
+  const resolvedUuid = hostUuid || (host.uuid as string | undefined);
+  const resolvedHostname = hostname || (host.hostname as string | undefined);
+  const canRunCbom = !!resolvedUuid && !!resolvedHostname;
+  const runCbomScan = (path: string) => {
+    if (!resolvedUuid) return;
+    navigate(`/monitors/${resolvedUuid}/terminal`, {
+      state: {
+        hostname: resolvedHostname,
+        groupName: groupName || (host.groupName as string | undefined) || '',
+        mode: mode || 'controlled',
+        autoRunAction: `script:cbom ${path}`,
+      },
+    });
+  };
   const [softwareFilter, setSoftwareFilter] = useState('');
   const [codeScanFilter, setCodeScanFilter] = useState('');
   const [expandedCodePaths, setExpandedCodePaths] = useState<Set<string>>(new Set());
