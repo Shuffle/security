@@ -15,6 +15,7 @@ import {
   buildDemoIncidentsBatch1,
   buildDemoIncidentsBatch2,
   buildDemoFocusIncident,
+  buildDemoWazuhImplantIncident,
   buildDemoAssets,
   buildDemoUsers,
   buildDemoVulnerabilities,
