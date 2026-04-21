@@ -987,6 +987,18 @@ const SCOPED_CSS = `
   background: hsl(var(--background));
 }
 
+/* MUI Card / Paper border-radius fallback for hosts that don't provide our MUI theme.
+ * MUI's theme.shape.borderRadius drives outlined Cards; without our ThemeProvider
+ * the cards render with sharp corners. Force the radius here so it matches in
+ * standalone embedding too. */
+.${SCOPE_CLASS} .MuiCard-root,
+.${SCOPE_CLASS} .MuiPaper-rounded {
+  border-radius: 8px;
+}
+.${SCOPE_CLASS} .MuiButtonBase-root.MuiCardActionArea-root {
+  border-radius: inherit;
+}
+
 /* Dark theme rules.
  * Applies when the scope itself has .dark (forced via theme=dark), OR when an
  * ancestor has .dark AND the scope was not forced to .light. The :not(.light)
