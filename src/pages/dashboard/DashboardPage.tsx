@@ -66,6 +66,8 @@ interface SetupStep {
   ctaPath: string;
   priority: number; // lower = more important
   detail?: string;
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 const statusColors = {
