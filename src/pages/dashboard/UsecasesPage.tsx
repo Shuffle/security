@@ -1064,10 +1064,17 @@ function usePageTitle(title: string) {
 // ============================================================================
 // Inlined: auth state query
 // ============================================================================
+interface OrgInterest {
+  active?: boolean;
+  name?: string;
+  type?: string;
+  [key: string]: any;
+}
 interface UserInfoLite {
   id?: string;
   username?: string;
   support?: boolean;
+  interests?: OrgInterest[];
 }
 function useAuthLite() {
   const cfg = useUsecasesConfig();
@@ -1076,15 +1083,40 @@ function useAuthLite() {
     userInfo: null,
     isAuthenticated: false,
   });
+  const refetch = React.useCallback(async () => {
+    if (cfg.hasExternalAuth) return;
+    try {
+      const res = await fetch(apiUrl('/api/v1/getinfo'), {
+        credentials: 'include',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return;
+      const body = await res.json();
+      if (body?.success !== true) return;
+      setState({
+        userInfo: {
+          id: body.id,
+          username: body.username,
+          support: body.support === true,
+          interests: Array.isArray(body.interests) ? body.interests : [],
+        },
+        isAuthenticated: true,
+      });
+    } catch {
+      /* keep current */
+    }
+  }, [cfg.hasExternalAuth, apiUrl, authHeader]);
   useEffect(() => {
     // External host app provided auth — trust it, skip the getinfo probe.
     if (cfg.hasExternalAuth) {
+      const ext = cfg.externalUserInfo as (UsecasesUserData & { interests?: OrgInterest[] }) | null;
       setState({
-        userInfo: cfg.externalUserInfo
+        userInfo: ext
           ? {
-              id: cfg.externalUserInfo.id,
-              username: cfg.externalUserInfo.username,
-              support: cfg.externalUserInfo.support === true,
+              id: ext.id,
+              username: ext.username,
+              support: ext.support === true,
+              interests: Array.isArray(ext.interests) ? ext.interests : [],
             }
           : null,
         isAuthenticated: cfg.externalIsAuthenticated,
@@ -1102,7 +1134,12 @@ function useAuthLite() {
         const body = await res.json();
         if (body?.success !== true || cancelled) return;
         setState({
-          userInfo: { id: body.id, username: body.username, support: body.support === true },
+          userInfo: {
+            id: body.id,
+            username: body.username,
+            support: body.support === true,
+            interests: Array.isArray(body.interests) ? body.interests : [],
+          },
           isAuthenticated: true,
         });
       } catch {
@@ -1111,7 +1148,7 @@ function useAuthLite() {
     })();
     return () => { cancelled = true; };
   }, [cfg.hasExternalAuth, cfg.externalIsAuthenticated, cfg.externalUserInfo, apiUrl, authHeader]);
-  return state;
+  return { ...state, refetch };
 }
 
 // ============================================================================
