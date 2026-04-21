@@ -298,7 +298,7 @@ const phaseIcon = (phase: FlowPhase) => {
 };
 
 export default function UsecasesPage() {
-  usePageMeta({ title: 'Usecases', description: 'Overview of all security data flows grouped by implementation phase.' });
+  usePageTitle('Usecases');
 
   const [search, setSearch] = useState('');
   const [phaseFilter, setPhaseFilter] = useState<FlowPhase | 'all'>('all');
@@ -306,9 +306,9 @@ export default function UsecasesPage() {
   const [tagFilter, setTagFilter] = useState<string>('all');
 
   const navigate = useNavigate();
-  const { usecases, apiLoaded, getDrift } = useUsecases();
-  const { userInfo, isAuthenticated } = useAuth();
-  const { data: workflows = [], refetch: refetchWorkflows } = useWorkflows();
+  const { usecases, apiLoaded, getDrift } = useUsecasesLite();
+  const { userInfo, isAuthenticated } = useAuthLite();
+  const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
   const isSupport = userInfo?.support === true;
   const [showAllAsSupport, setShowAllAsSupport] = useState(true);
   const [drawerFlowId, setDrawerFlowId] = useState<string | null>(null);
