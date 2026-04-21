@@ -6,9 +6,12 @@
       "name": "vite_react_shadcn_ts",
       "dependencies": {
         "@codemirror/lang-json": "^6.0.2",
+        "@codemirror/language": "^6.12.3",
+        "@codemirror/view": "^6.41.1",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@hookform/resolvers": "^3.10.0",
+        "@lezer/highlight": "^1.2.3",
         "@mui/icons-material": "^7.3.6",
         "@mui/material": "^7.3.6",
         "@radix-ui/react-accordion": "^1.2.11",
