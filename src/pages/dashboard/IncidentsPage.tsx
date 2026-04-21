@@ -2847,23 +2847,25 @@ const IncidentsPage = () => {
           fetchIngestionApps();
         }}
         title="Add Ingestion Source"
-        subtitle={isAddOutlookStep ? 'Pick "Outlook Office365" — we\'ll pretend-authenticate it for the demo' : 'Search and authenticate a tool to ingest incidents from'}
-        initialQuery={isAddOutlookStep ? 'Outlook Office365' : undefined}
+        subtitle={isAddOutlookStep ? 'Add "Outlook Office365" and "Microsoft Defender 365" — we\'ll pretend-authenticate them for the demo' : 'Search and authenticate a tool to ingest incidents from'}
+        initialQuery={isAddOutlookStep ? (demoInjectedApps.some(a => /outlook|office365/i.test(a.name)) ? 'Microsoft Defender 365' : 'Outlook Office365') : undefined}
         onSelectOverride={isAddOutlookStep ? (app) => {
-          // Pretend-authenticate flow: only Outlook Office365 advances the
-          // tour. Anything else falls through to the normal detail drawer so
-          // the user isn't trapped if they explore.
+          // Pretend-authenticate flow: only Outlook Office365 or Microsoft
+          // Defender 365 advance the tour. Anything else falls through to the
+          // normal detail drawer so the user isn't trapped if they explore.
           const norm = app.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (norm.includes('outlook') || norm.includes('office365')) {
+          const isOutlook = norm.includes('outlook') || norm.includes('office365');
+          const isDefender = norm.includes('defender');
+          if (isOutlook || isDefender) {
             // Close the search drawer and run the fake auth experience.
             setAppSearchOpen(false);
             setFakeAuth({ name: app.name, image: app.icon || '' });
-            // After ~1.6s, finish "auth": inject the app into Ingest, mark
-            // the step done, and dismiss the dialog.
+            // After ~1.6s, finish "auth": inject the app into Ingest. Mark
+            // the step done only when BOTH apps have been added.
             setTimeout(() => {
               setDemoInjectedApps(prev => {
                 if (prev.some(a => a.name.toLowerCase() === app.name.toLowerCase())) return prev;
-                return [
+                const next: ValidatedIngestionApp[] = [
                   ...prev,
                   {
                     id: `demo-${app.name}`,
@@ -2874,11 +2876,20 @@ const IncidentsPage = () => {
                     category: 'email',
                   },
                 ];
+                const hasOutlook = next.some(a => /outlook|office365/i.test(a.name));
+                const hasDefender = next.some(a => /defender/i.test(a.name));
+                if (hasOutlook && hasDefender) {
+                  markStepCompleted('add-outlook');
+                }
+                return next;
               });
-              markStepCompleted('add-outlook');
               setFakeAuth(null);
-              toast.success('Outlook Office365 authenticated (demo)', {
-                description: 'In a real setup you\'d sign in with Microsoft. Moving on…',
+              const friendly = app.name.replace(/_/g, ' ');
+              const remainingPrompt = isOutlook
+                ? 'Now click "+" again and add Microsoft Defender 365.'
+                : 'Both sources connected. Moving on…';
+              toast.success(`${friendly} authenticated (demo)`, {
+                description: remainingPrompt,
                 duration: 2400,
               });
             }, 1600);
