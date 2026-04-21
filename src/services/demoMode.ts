@@ -13,7 +13,6 @@ import { setDatastoreItems, deleteDatastoreItem, DATASTORE_CATEGORIES, getDatast
 import {
   buildDemoIncidentsBatch1,
   buildDemoIncidentsBatch2,
-  buildDemoIncidentsBatch3,
   buildDemoAssets,
   buildDemoUsers,
   DEMO_FLAG_KEY,
