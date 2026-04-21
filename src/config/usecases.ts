@@ -320,6 +320,19 @@ export interface Usecase {
   blogpost?: string;
   /** Optional reference image URL (architecture diagram, screenshot). */
   referenceImage?: string;
+  /** Optional custom action — a one-click CTA that overrides the default "create workflow" flow.
+   *  Use for usecases best fulfilled by an in-app navigation (e.g. opening /monitors?add_host=true)
+   *  rather than generating a Shuffle workflow. */
+  customAction?: {
+    /** Button label shown on the usecase detail page (e.g. "Add Monitor"). */
+    label: string;
+    /** In-app route. Use this OR `url`. Internal routes use react-router navigation. */
+    href?: string;
+    /** External URL. Opens in a new tab. */
+    url?: string;
+    /** Optional helper text rendered next to the CTA. */
+    description?: string;
+  };
 }
 
 // ── API usecase types (from /api/v1/workflows/usecases) ────────────────────────
@@ -604,6 +617,11 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationLabel: 'Add Monitors',
     automationCategory: 'cases',
     automationArea: 'response',
+    customAction: {
+      label: 'Add Monitor',
+      href: '/monitors?add_host=true',
+      description: 'Open the monitor deployment dialog to register a new host.',
+    },
   },
   {
     id: 'cloud_asset_management_1', phase: 'correlation', source: 'cloud', target: 'asset_management',
@@ -726,6 +744,13 @@ export interface UsecaseJsonEntry {
   blogpost?: string;
   /** Optional reference image URL. */
   reference_image?: string;
+  /** Optional custom CTA — overrides the default workflow-generation flow. */
+  custom_action?: {
+    label: string;
+    href?: string;
+    url?: string;
+    description?: string;
+  };
 }
 
 export interface UsecaseCategoryJson {
@@ -791,6 +816,7 @@ export function getUsecasesJson(
         ...(uc.video ? { video: uc.video } : {}),
         ...(uc.blogpost ? { blogpost: uc.blogpost } : {}),
         ...(uc.referenceImage ? { reference_image: uc.referenceImage } : {}),
+        ...(uc.customAction ? { custom_action: uc.customAction } : {}),
       })),
   }));
 }
