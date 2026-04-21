@@ -1694,6 +1694,10 @@ const IncidentsPage = () => {
               Retry
             </Button>
           </Box>
+        ) : demoActive ? (
+          // Demo mode owns the page narrative — hide the generic empty state
+          // so the tour drawer is the only thing telling the user what to do.
+          null
         ) : (
           <IncidentsEmptyState 
             ingestionApps={ingestionApps} 
