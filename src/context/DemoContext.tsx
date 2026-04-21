@@ -421,6 +421,51 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [refreshStats, step]);
 
+  const forceCreateIncidents = useCallback(async () => {
+    setIsForceCreatingIncidents(true);
+    try {
+      const added = await forceRecreateDemoIncidents();
+      refreshStats();
+      const present = await countDemoIncidents();
+      setHasDemoIncidents(present > 0);
+      if (added > 0) {
+        toast.success(`Recreated ${added} demo incident${added === 1 ? '' : 's'}.`);
+      } else if (present > 0) {
+        toast.success(`Demo incidents are present (${present}).`);
+      } else {
+        toast.error('Could not create demo incidents. Please try again.');
+      }
+    } catch {
+      toast.error('Failed to recreate demo incidents.');
+    } finally {
+      setIsForceCreatingIncidents(false);
+    }
+  }, [refreshStats]);
+
+  // Poll the datastore for demo incidents whenever the demo is active so the
+  // incidents-list step gate flips automatically as soon as data lands. Also
+  // re-checks on the demo:refresh broadcast that the seeder fires.
+  useEffect(() => {
+    if (!active) {
+      setHasDemoIncidents(false);
+      return;
+    }
+    let cancelled = false;
+    const check = async () => {
+      const n = await countDemoIncidents();
+      if (!cancelled) setHasDemoIncidents(n > 0);
+    };
+    check();
+    const interval = window.setInterval(check, 4000);
+    const onRefresh = () => check();
+    window.addEventListener('demo:refresh', onRefresh as EventListener);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('demo:refresh', onRefresh as EventListener);
+    };
+  }, [active]);
+
   // Funnel signal: whenever the user lands on a new step (via start/next/prev/
   // goToStep/openTour), fire DEMO_STEP_VIEW exactly once per step per session.
   // Also fire DEMO_FINISH the first time the final "wrap" step is viewed.
@@ -454,12 +499,14 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     startDemo, openTour, closeTour, minimizeTour, restoreTour, toggleDock, setDock,
     nextStep, prevStep, goToStep, cleanup,
     markStepCompleted, setStepCompleted,
+    forceCreateIncidents, isForceCreatingIncidents, hasDemoIncidents,
   }), [
     active, isSeeding, isCleaning, drawerOpen, minimized, dock, step, stats,
     completedSteps, currentStepUnlocked,
     startDemo, openTour, closeTour, minimizeTour, restoreTour, toggleDock, setDock,
     nextStep, prevStep, goToStep, cleanup,
     markStepCompleted, setStepCompleted,
+    forceCreateIncidents, isForceCreatingIncidents, hasDemoIncidents,
   ]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
