@@ -409,6 +409,65 @@ export default function UsecasesPage() {
           No automations match your search.
         </Typography>
       )}
+
+      {/* Right-hand drawer rendering the EXACT same component as /usecases/:id */}
+      <Drawer
+        anchor="right"
+        open={drawerFlowId !== null}
+        onClose={() => setDrawerFlowId(null)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 720, md: 900 },
+            maxWidth: '100vw',
+            bgcolor: 'hsl(var(--background))',
+            backgroundImage: 'none',
+          },
+        }}
+      >
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 3, py: 2,
+          borderBottom: '1px solid hsl(var(--border))',
+          position: 'sticky', top: 0, zIndex: 2,
+          bgcolor: 'hsl(var(--background))',
+        }}>
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Automation
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {drawerFlowId && (
+              <Button
+                onClick={() => { const id = drawerFlowId; setDrawerFlowId(null); navigate(`/usecases/${id}`); }}
+                endIcon={<ExternalLink size={14} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsla(var(--primary) / 0.3)',
+                  bgcolor: 'hsla(var(--primary) / 0.06)',
+                  px: 1.5,
+                  '&:hover': { bgcolor: 'hsla(var(--primary) / 0.12)', borderColor: 'hsl(var(--primary))' },
+                }}
+              >
+                Open full page
+              </Button>
+            )}
+            <IconButton onClick={() => setDrawerFlowId(null)} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              <X size={18} />
+            </IconButton>
+          </Box>
+        </Box>
+        <Box sx={{ p: { xs: 2, md: 3 } }}>
+          <UsecaseDetailContent
+            flowId={drawerFlowId ?? undefined}
+            hideBackNav
+            onNavigateUsecase={(id) => setDrawerFlowId(id || null)}
+          />
+        </Box>
+      </Drawer>
     </Box>
   );
 }
