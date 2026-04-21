@@ -192,7 +192,7 @@ const ThemedApp = () => {
 };
 
 const App = () => {
-  useEffect(() => { trackReferralParams(); }, []);
+  useEffect(() => { initAnalytics(); trackReferralParams(); }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
