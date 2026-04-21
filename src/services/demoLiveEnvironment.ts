@@ -77,7 +77,7 @@ const generateOnboardingWorkflows = async (): Promise<void> => {
   const valid = authedApps.filter(a => a.active || a.validation?.valid);
 
   // Pull the deduplicated app names — mirrors what AutomationConfig sends.
-  const ingestionApps: ValidatedApp[] = extractValidatedIngestionApps(valid, undefined);
+  const ingestionApps: ValidatedIngestionApp[] = extractValidatedIngestionApps(valid, undefined);
   const ingestionAppNames = Array.from(new Set(ingestionApps.map(a => a.name)));
 
   const dedupAll = deduplicateAuthApps(valid).map(d => d.app.name);
