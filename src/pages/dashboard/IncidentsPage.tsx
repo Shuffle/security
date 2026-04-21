@@ -2859,11 +2859,22 @@ const IncidentsPage = () => {
           fetchIngestionApps();
         }}
         title="Add Ingestion Source"
-        subtitle={isAddOutlookStep ? 'Add "Outlook Office365" and "Microsoft Defender 365" — we will pretend-authenticate them for the demo' : 'Search and authenticate a tool to ingest incidents from'}
-        initialQuery={isAddOutlookStep ? (demoInjectedApps.some(a => /outlook|office365/i.test(a.name)) ? 'Microsoft Defender 365' : 'Outlook Office365') : undefined}
+        subtitle={isAddOutlookStep ? 'Add both "Outlook Office365" and "Microsoft 365 Defender" — we will pretend-authenticate them for the demo' : 'Search and authenticate a tool to ingest incidents from'}
+        connectionPathApps={isAddOutlookStep ? [
+          {
+            name: 'Outlook_Office365',
+            icon: 'https://storage.googleapis.com/shuffle_public/app_images/Outlook_Office365_accdaaf2eeba6a6ed43b2efc0112032d.png',
+            hasValidAuth: demoInjectedApps.some(a => /outlook|office365/i.test(a.name)),
+          },
+          {
+            name: 'Microsoft_365_Defender',
+            icon: 'https://storage.googleapis.com/shuffle_public/app_images/Microsoft_365_Defender_29c926c37334c191666f6470caa05e1c.png',
+            hasValidAuth: demoInjectedApps.some(a => /defender/i.test(a.name)),
+          },
+        ] : undefined}
         onSelectOverride={isAddOutlookStep ? (app) => {
           // Pretend-authenticate flow: only Outlook Office365 or Microsoft
-          // Defender 365 advance the tour. Anything else falls through to the
+          // 365 Defender advance the tour. Anything else falls through to the
           // normal detail drawer so the user isn't trapped if they explore.
           const norm = app.name.toLowerCase().replace(/[^a-z0-9]/g, '');
           const isOutlook = norm.includes('outlook') || norm.includes('office365');
@@ -2898,7 +2909,7 @@ const IncidentsPage = () => {
               setFakeAuth(null);
               const friendly = app.name.replace(/_/g, ' ');
               const remainingPrompt = isOutlook
-                ? 'Now click "+" again and add Microsoft Defender 365.'
+                ? 'Now click "+" again and add Microsoft 365 Defender.'
                 : 'Both sources connected. Moving on…';
               toast.success(`${friendly} authenticated (demo)`, {
                 description: remainingPrompt,
