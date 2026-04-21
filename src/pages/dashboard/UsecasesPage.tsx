@@ -34,6 +34,7 @@ import {
 } from '@/config/usecases';
 import { useUsecases, type UsecaseDrift } from '@/hooks/useUsecases';
 import UsecaseAlluvialDiagram from '@/components/usecases/UsecaseAlluvialDiagram';
+import { UsecaseDetailContent } from '@/pages/dashboard/DataFlowDetailPage';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import { getApiUrl, getAuthHeader } from '@/config/api';
