@@ -97,7 +97,7 @@ const fmtRaw = (v: unknown): string => {
   return String(v);
 };
 
-export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false, hostUuid, hostname, groupName, mode }: HostDetailPanelProps) => {
+export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false, hostUuid, hostname, groupName, mode, vulnerabilities }: HostDetailPanelProps) => {
   const navigate = useNavigate();
   const resolvedUuid = hostUuid || (host.uuid as string | undefined);
   const resolvedHostname = hostname || (host.hostname as string | undefined);
