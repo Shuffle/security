@@ -32,6 +32,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
+import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import { useSubOrgs } from '@/hooks/useSubOrgs';
 import { useUsers } from '@/hooks/useUsers';
 import { DATASTORE_CATEGORIES, getDatastoreByCategory, getDatastoreItem, setDatastoreItem, setDatastoreItems, CategoryAutomation, deleteDatastoreItem, deleteDatastoreItems } from '@/services/datastore';
@@ -400,6 +401,15 @@ const IncidentsPage = () => {
    const forwardDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
    const [appSearchOpen, setAppSearchOpen] = useState(false);
    const [forwardAppSearchOpen, setForwardAppSearchOpen] = useState(false);
+
+   // ─── Demo tour gating ─────────────────────────────────────────────────────
+   // While the demo tour is open and on the "add-outlook" step, we strip the
+   // automation row down to the bare minimum: webhook + the highlighted "+"
+   // button. Existing ingest icons, the arrow, and the entire Forward section
+   // are hidden so the user can't be distracted from the one click we want.
+   const { active: demoActive, drawerOpen: demoDrawerOpen, step: demoStep, markStepCompleted } = useDemo();
+   const demoStepId = TOUR_STEPS[demoStep]?.id;
+   const isAddOutlookStep = demoActive && demoDrawerOpen && demoStepId === 'add-outlook';
 
    // Hover state for automation sections (state-based to survive popover portals)
    const [ingestHovered, setIngestHovered] = useState(false);
@@ -1836,10 +1846,10 @@ const IncidentsPage = () => {
               </Typography>
               {/* Webhook counts as 1 of the 5 visible slots */}
               <WebhookIngestionButton webhook={webhookIngestion} onToggled={fetchIngestionApps} />
-              {ingestionApps.slice(0, 3).map(app => (
+              {!isAddOutlookStep && ingestionApps.slice(0, 3).map(app => (
                 <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleApp} incidentCount={incidentCountsBySource.get(normalizeAppName(app.name)) || 0} />
               ))}
-              {ingestionApps.length > 3 && (
+              {!isAddOutlookStep && ingestionApps.length > 3 && (
                 <>
                   <Typography className="automation-overflow-count" sx={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', fontWeight: 600, px: 0.25 }}>
                     +{ingestionApps.length - 3}
@@ -1853,6 +1863,7 @@ const IncidentsPage = () => {
               )}
               <Tooltip title="Add ingestion source">
                 <IconButton
+                  data-tour="add-ingestion-source-button"
                   onClick={() => setAppSearchOpen(true)}
                   size="small"
                   sx={{
@@ -1898,15 +1909,17 @@ const IncidentsPage = () => {
             </Box>
           )}
 
-          {/* Arrow between Ingest and Forward - hidden until workflows loaded */}
-          {!ingestionLoading && (
+          {/* Arrow between Ingest and Forward - hidden until workflows loaded.
+              Also hidden during the demo "add-outlook" step to remove distractions. */}
+          {!ingestionLoading && !isAddOutlookStep && (
           <Box className="automation-arrow" sx={{ display: 'flex', alignItems: 'center', color: 'hsl(var(--muted-foreground))', mx: -0.25, maxWidth: 30, opacity: 1 }}>
             <ChevronRightIcon sx={{ fontSize: 18 }} />
           </Box>
           )}
 
-          {/* Forward Destinations - visible after workflows loaded */}
-          {!ingestionLoading && (
+          {/* Forward Destinations - visible after workflows loaded.
+              Hidden entirely during the demo "add-outlook" step. */}
+          {!ingestionLoading && !isAddOutlookStep && (
             <Box className={`automation-section-forward${forwardHovered ? ' is-hovered' : ''}`}
               onMouseEnter={handleForwardEnter}
               onMouseLeave={handleForwardLeave}
@@ -2817,7 +2830,24 @@ const IncidentsPage = () => {
           fetchIngestionApps();
         }}
         title="Add Ingestion Source"
-        subtitle="Search and authenticate a tool to ingest incidents from"
+        subtitle={isAddOutlookStep ? 'Pick "Outlook Office365" — we\'ll pretend-authenticate it for the demo' : 'Search and authenticate a tool to ingest incidents from'}
+        initialQuery={isAddOutlookStep ? 'Outlook Office365' : undefined}
+        onSelectOverride={isAddOutlookStep ? (app) => {
+          // Pretend-authenticate flow: only Outlook Office365 advances the
+          // tour. Anything else falls through to the normal detail drawer so
+          // the user isn't trapped if they explore.
+          const norm = app.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (norm.includes('outlook') || norm.includes('office365')) {
+            markStepCompleted('add-outlook');
+            toast.success('Outlook Office365 authenticated (demo)', {
+              description: 'In a real setup you\'d sign in with Microsoft. Moving on…',
+              duration: 2400,
+            });
+            setAppSearchOpen(false);
+            return true; // prevent the detail drawer from opening
+          }
+          return false;
+        } : undefined}
       />
 
       {/* Fixed bottom pagination */}
