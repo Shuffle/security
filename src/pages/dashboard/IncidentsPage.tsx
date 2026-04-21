@@ -1846,10 +1846,10 @@ const IncidentsPage = () => {
               </Typography>
               {/* Webhook counts as 1 of the 5 visible slots */}
               <WebhookIngestionButton webhook={webhookIngestion} onToggled={fetchIngestionApps} />
-              {ingestionApps.slice(0, 3).map(app => (
+              {!isAddOutlookStep && ingestionApps.slice(0, 3).map(app => (
                 <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleApp} incidentCount={incidentCountsBySource.get(normalizeAppName(app.name)) || 0} />
               ))}
-              {ingestionApps.length > 3 && (
+              {!isAddOutlookStep && ingestionApps.length > 3 && (
                 <>
                   <Typography className="automation-overflow-count" sx={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', fontWeight: 600, px: 0.25 }}>
                     +{ingestionApps.length - 3}
@@ -1863,6 +1863,7 @@ const IncidentsPage = () => {
               )}
               <Tooltip title="Add ingestion source">
                 <IconButton
+                  data-tour="add-ingestion-source-button"
                   onClick={() => setAppSearchOpen(true)}
                   size="small"
                   sx={{
