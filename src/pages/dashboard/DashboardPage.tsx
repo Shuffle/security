@@ -66,6 +66,8 @@ interface SetupStep {
   ctaPath: string;
   priority: number; // lower = more important
   detail?: string;
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 const statusColors = {
@@ -88,6 +90,154 @@ const SetupStepCard = ({ step, index, ignored, onIgnore, onRestore }: {
     ? { dot: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted) / 0.15)', border: 'hsl(var(--border))' }
     : statusColors[step.status];
   const isComplete = step.status === 'complete';
+  const isDisabled = !!step.disabled && !isComplete && !ignored;
+  const isInteractive = !isComplete && !ignored && !isDisabled;
+
+  const cardContent = (
+    <Box
+      onClick={() => isInteractive && navigate(step.ctaPath)}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        px: 2.5,
+        py: 2,
+        borderRadius: 2,
+        border: `1px solid ${colors.border}`,
+        backgroundColor: colors.bg,
+        cursor: isInteractive ? 'pointer' : isDisabled ? 'not-allowed' : 'default',
+        transition: 'all 0.2s ease',
+        '&:hover': isInteractive ? {
+          borderColor: 'hsl(var(--primary) / 0.5)',
+          backgroundColor: 'hsl(var(--primary) / 0.06)',
+        } : {},
+        opacity: isComplete || ignored ? 0.5 : isDisabled ? 0.55 : 1,
+      }}
+    >
+      {/* Icon */}
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          borderRadius: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: ignored || isDisabled ? 'hsl(var(--muted) / 0.3)' : isComplete ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--primary) / 0.12)',
+          color: ignored || isDisabled ? 'hsl(var(--muted-foreground))' : isComplete ? 'hsl(var(--severity-low))' : 'hsl(var(--primary))',
+          flexShrink: 0,
+        }}
+      >
+        {ignored ? <EyeOff size={20} /> : isComplete ? <Check size={20} /> : step.icon}
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography sx={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: ignored || isDisabled ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+            textDecoration: isComplete || ignored ? 'line-through' : 'none',
+          }}>
+            {step.title}
+          </Typography>
+          {isComplete && !ignored && (
+            <Chip
+              label="Done"
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                backgroundColor: 'hsl(var(--severity-low) / 0.15)',
+                color: 'hsl(var(--severity-low))',
+              }}
+            />
+          )}
+          {ignored && (
+            <Chip
+              label="Ignored"
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                backgroundColor: 'hsl(var(--muted) / 0.3)',
+                color: 'hsl(var(--muted-foreground))',
+              }}
+            />
+          )}
+          {isDisabled && (
+            <Chip
+              label="Locked"
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                backgroundColor: 'hsl(var(--muted) / 0.3)',
+                color: 'hsl(var(--muted-foreground))',
+              }}
+            />
+          )}
+        </Box>
+        <Typography sx={{
+          fontSize: '0.78rem',
+          color: 'hsl(var(--muted-foreground))',
+          mt: 0.25,
+        }}>
+          {step.description}
+        </Typography>
+        {step.detail && !isComplete && !ignored && !isDisabled && (
+          <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--primary))', mt: 0.5, fontWeight: 500 }}>
+            {step.detail}
+          </Typography>
+        )}
+        {isDisabled && step.disabledReason && (
+          <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', mt: 0.5, fontWeight: 500 }}>
+            {step.disabledReason}
+          </Typography>
+        )}
+      </Box>
+
+      {/* Actions */}
+      {ignored ? (
+        <Tooltip title="Restore this step">
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); onRestore?.(step.id); }}
+            sx={{
+              color: 'hsl(var(--muted-foreground))',
+              '&:hover': { color: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.08)' },
+            }}
+          >
+            <Undo2 size={16} />
+          </IconButton>
+        </Tooltip>
+      ) : !isComplete && !isDisabled ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+          <Tooltip title="Ignore this step">
+            <IconButton
+              size="small"
+              onClick={(e) => { e.stopPropagation(); onIgnore?.(step.id); }}
+              sx={{
+                color: 'hsl(var(--muted-foreground))',
+                opacity: 0.5,
+                '&:hover': { opacity: 1, color: 'hsl(var(--muted-foreground))' },
+              }}
+            >
+              <EyeOff size={14} />
+            </IconButton>
+          </Tooltip>
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--primary))', whiteSpace: 'nowrap' }}>
+            {step.ctaLabel}
+          </Typography>
+          <ChevronRight size={16} style={{ color: 'hsl(var(--primary))' }} />
+        </Box>
+      ) : null}
+    </Box>
+  );
 
   return (
     <motion.div
@@ -95,131 +245,11 @@ const SetupStepCard = ({ step, index, ignored, onIgnore, onRestore }: {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: index * 0.05 }}
     >
-      <Box
-        onClick={() => !isComplete && !ignored && navigate(step.ctaPath)}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          px: 2.5,
-          py: 2,
-          borderRadius: 2,
-          border: `1px solid ${colors.border}`,
-          backgroundColor: colors.bg,
-          cursor: isComplete || ignored ? 'default' : 'pointer',
-          transition: 'all 0.2s ease',
-          '&:hover': isComplete || ignored ? {} : {
-            borderColor: 'hsl(var(--primary) / 0.5)',
-            backgroundColor: 'hsl(var(--primary) / 0.06)',
-          },
-          opacity: isComplete || ignored ? 0.5 : 1,
-        }}
-      >
-        {/* Icon */}
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: ignored ? 'hsl(var(--muted) / 0.3)' : isComplete ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--primary) / 0.12)',
-            color: ignored ? 'hsl(var(--muted-foreground))' : isComplete ? 'hsl(var(--severity-low))' : 'hsl(var(--primary))',
-            flexShrink: 0,
-          }}
-        >
-          {ignored ? <EyeOff size={20} /> : isComplete ? <Check size={20} /> : step.icon}
-        </Box>
-
-        {/* Content */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              color: ignored ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
-              textDecoration: isComplete || ignored ? 'line-through' : 'none',
-            }}>
-              {step.title}
-            </Typography>
-            {isComplete && !ignored && (
-              <Chip
-                label="Done"
-                size="small"
-                sx={{
-                  height: 20,
-                  fontSize: '0.65rem',
-                  fontWeight: 600,
-                  backgroundColor: 'hsl(var(--severity-low) / 0.15)',
-                  color: 'hsl(var(--severity-low))',
-                }}
-              />
-            )}
-            {ignored && (
-              <Chip
-                label="Ignored"
-                size="small"
-                sx={{
-                  height: 20,
-                  fontSize: '0.65rem',
-                  fontWeight: 600,
-                  backgroundColor: 'hsl(var(--muted) / 0.3)',
-                  color: 'hsl(var(--muted-foreground))',
-                }}
-              />
-            )}
-          </Box>
-          <Typography sx={{
-            fontSize: '0.78rem',
-            color: 'hsl(var(--muted-foreground))',
-            mt: 0.25,
-          }}>
-            {step.description}
-          </Typography>
-          {step.detail && !isComplete && !ignored && (
-            <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--primary))', mt: 0.5, fontWeight: 500 }}>
-              {step.detail}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Actions */}
-        {ignored ? (
-          <Tooltip title="Restore this step">
-            <IconButton
-              size="small"
-              onClick={(e) => { e.stopPropagation(); onRestore?.(step.id); }}
-              sx={{
-                color: 'hsl(var(--muted-foreground))',
-                '&:hover': { color: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.08)' },
-              }}
-            >
-              <Undo2 size={16} />
-            </IconButton>
-          </Tooltip>
-        ) : !isComplete ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-            <Tooltip title="Ignore this step">
-              <IconButton
-                size="small"
-                onClick={(e) => { e.stopPropagation(); onIgnore?.(step.id); }}
-                sx={{
-                  color: 'hsl(var(--muted-foreground))',
-                  opacity: 0.5,
-                  '&:hover': { opacity: 1, color: 'hsl(var(--muted-foreground))' },
-                }}
-              >
-                <EyeOff size={14} />
-              </IconButton>
-            </Tooltip>
-            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--primary))', whiteSpace: 'nowrap' }}>
-              {step.ctaLabel}
-            </Typography>
-            <ChevronRight size={16} style={{ color: 'hsl(var(--primary))' }} />
-          </Box>
-        ) : null}
-      </Box>
+      {isDisabled && step.disabledReason ? (
+        <Tooltip title={step.disabledReason} placement="top">
+          <Box>{cardContent}</Box>
+        </Tooltip>
+      ) : cardContent}
     </motion.div>
   );
 };
@@ -601,11 +631,13 @@ const DashboardPage = () => {
         icon: <KeyRound size={20} />,
         status: hasAuthenticatedApps ? 'complete' : hasActivatedApps ? 'action-needed' : 'not-started',
         ctaLabel: 'Set Up Auth',
-        ctaPath: '/apps',
+        ctaPath: '/onboarding/authenticate',
         priority: 3,
         detail: hasActivatedApps && !hasAuthenticatedApps
           ? `${activatedApps.length} activated — add credentials to connect.`
           : undefined,
+        disabled: activatedApps.length < 2,
+        disabledReason: activatedApps.length < 2 ? 'Activate at least 2 apps first' : undefined,
       },
       {
         id: 'enable-ingest',

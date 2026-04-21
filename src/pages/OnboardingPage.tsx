@@ -1001,17 +1001,53 @@ const OnboardingPage = () => {
                     />
                   )}
 
-                  {steps[activeStep]?.key === 'authenticate' && (
-                    <AppAuthConfig
-                      apps={selectedApps}
-                      authStates={authStates}
-                      authenticatedApps={authenticatedApps}
-                      onAuthChange={handleAuthChange}
-                      onTestConnection={handleTestConnection}
-                      onSaveAuth={handleSaveAuth}
-                      onRefreshAuth={fetchAuthenticatedApps}
-                    />
-                  )}
+                  {steps[activeStep]?.key === 'authenticate' && (() => {
+                    // If user landed here directly (e.g. from dashboard) without
+                    // going through Sources, derive the apps list from the
+                    // activated authenticated apps so they can configure auth
+                    // for the apps they've already enabled in /apps.
+                    const appsForAuth: AlgoliaSearchApp[] = selectedApps.length > 0
+                      ? selectedApps
+                      : authenticatedApps
+                          .filter(a => a.active)
+                          .reduce<AlgoliaSearchApp[]>((acc, entry) => {
+                            const id = entry.app?.id;
+                            const name = entry.app?.name;
+                            if (!id || !name) return acc;
+                            if (acc.some(a => a.objectID === id || a.name === name)) return acc;
+                            acc.push({
+                              name,
+                              description: '',
+                              objectID: id,
+                              creator: '',
+                              app_version: '',
+                              image_url: entry.app?.large_image || '',
+                              time_edited: 0,
+                              generated: false,
+                              invalid: false,
+                              priority: 0,
+                              actions: 0,
+                              tags: [],
+                              accessible_by: [],
+                              categories: [],
+                              action_labels: [],
+                              triggers: [],
+                              verified: false,
+                            });
+                            return acc;
+                          }, []);
+                    return (
+                      <AppAuthConfig
+                        apps={appsForAuth}
+                        authStates={authStates}
+                        authenticatedApps={authenticatedApps}
+                        onAuthChange={handleAuthChange}
+                        onTestConnection={handleTestConnection}
+                        onSaveAuth={handleSaveAuth}
+                        onRefreshAuth={fetchAuthenticatedApps}
+                      />
+                    );
+                  })()}
 
                   {steps[activeStep]?.key === 'automate' && (
                     <AutomationConfig
