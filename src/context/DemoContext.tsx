@@ -110,6 +110,10 @@ export const TOUR_STEPS: TourStep[] = [
       label: 'At least one demo incident must be present',
       targetSelector: '[data-tour="demo-force-create-incidents"]',
     },
+    subGoals: [
+      { id: 'incidents-list:present', label: 'At least one demo incident must be present' },
+      { id: 'incidents-list:open', label: 'Open the incident' },
+    ],
   },
   {
     id: 'incident-detail',
