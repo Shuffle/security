@@ -403,6 +403,13 @@ const IncidentsPage = () => {
    const forwardDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
    const [appSearchOpen, setAppSearchOpen] = useState(false);
    const [forwardAppSearchOpen, setForwardAppSearchOpen] = useState(false);
+   // Fake auth experience for the demo "add-outlook" step. Holds the app
+   // metadata while we show a brief "Connecting…" dialog before injecting
+   // the app into the Ingest row.
+   const [fakeAuth, setFakeAuth] = useState<{ name: string; image: string } | null>(null);
+   // Optimistically-injected ingestion apps from the demo flow (e.g. Outlook
+   // Office365 after fake auth). Merged with the real list for rendering.
+   const [demoInjectedApps, setDemoInjectedApps] = useState<ValidatedIngestionApp[]>([]);
 
    // ─── Demo tour gating ─────────────────────────────────────────────────────
    // While the demo tour is open and on the "add-outlook" step, we strip the
