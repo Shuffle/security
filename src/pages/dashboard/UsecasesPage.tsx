@@ -1990,6 +1990,7 @@ function UsecasesPageInner() {
   const [tagFilter, setTagFilter] = useState<string>('all');
 
   const navigate = useNavigate();
+  const { apiUrl, authHeader } = useApi();
   const { usecases, apiLoaded, getDrift } = useUsecasesLite();
   const { userInfo, isAuthenticated } = useAuthLite();
   const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
