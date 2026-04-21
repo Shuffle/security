@@ -129,7 +129,7 @@ const HostTerminalPage = () => {
   const { hostUuid } = useParams<{ hostUuid: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const hostState = location.state as { hostname?: string; groupName?: string; mode?: string } | null;
+  const hostState = location.state as { hostname?: string; groupName?: string; mode?: string; autoRunAction?: string } | null;
 
   // Host switcher state
   const [allHosts, setAllHosts] = useState<HostOption[]>([]);
