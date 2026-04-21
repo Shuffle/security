@@ -50,6 +50,8 @@ import VulnerabilityDetailPage from '@/pages/dashboard/VulnerabilityDetailPage';
 import AppsPage from '@/pages/AppsPage';
 import NotFound from './pages/NotFound';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { DemoProvider } from '@/context/DemoContext';
+import { DemoTourDrawer } from '@/components/demo/DemoTourDrawer';
 
 /** Layout that conditionally shows sidebar for authenticated users, navbar + content for guests */
 const ConditionalDashboardLayout = () => {
@@ -97,6 +99,8 @@ const ThemedApp = () => {
       <AuthProvider>
         <BrowserRouter>
           <ScrollToTop />
+          <DemoProvider>
+          <DemoTourDrawer />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/apps" element={<AppsPage />} />
