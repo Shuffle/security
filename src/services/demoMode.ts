@@ -22,6 +22,52 @@ import {
 } from '@/lib/demoSeedData';
 
 const VULNS_CATEGORY = 'shuffle-security_vulnerabilities';
+const SENSORS_CATEGORY = 'shuffle-security_sensors';
+
+import { getApiUrl, getAuthHeader } from '@/config/api';
+
+/**
+ * Strip the demo-injected sensor host stub(s) from /api/v1/getenvironments.
+ * Looks for hosts tagged demo:true (via metadata.extensions.custom_attributes.demo)
+ * or matching the well-known demo uuid/hostname, and PUTs the cleaned set.
+ */
+const removeDemoMonitorHostFromEnvs = async (): Promise<void> => {
+  try {
+    const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
+      credentials: 'include',
+      headers: { ...getAuthHeader() },
+    });
+    if (!res.ok) return;
+    const envs = await res.json();
+    if (!Array.isArray(envs)) return;
+
+    let mutated = false;
+    const cleaned = envs.map((env: Record<string, unknown>) => {
+      const hosts = Array.isArray(env.sensor_hosts) ? env.sensor_hosts as Array<Record<string, unknown>> : null;
+      if (!hosts) return env;
+      const next = hosts.filter(h => {
+        const isDemo = (h?.metadata as { extensions?: { custom_attributes?: { demo?: boolean } } } | undefined)
+          ?.extensions?.custom_attributes?.demo === true;
+        const matchesDemoUuid = String(h?.uuid || '') === 'demo-host-fin-laptop-04';
+        const matchesDemoHost = String(h?.hostname || '').toLowerCase() === 'fin-laptop-04';
+        return !isDemo && !matchesDemoUuid && !matchesDemoHost;
+      });
+      if (next.length !== hosts.length) {
+        mutated = true;
+        return { ...env, sensor_hosts: next };
+      }
+      return env;
+    });
+
+    if (!mutated) return;
+    await fetch(getApiUrl('/api/v1/setenvironments'), {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(cleaned),
+    });
+  } catch { /* best-effort */ }
+};
 
 interface SeededIndex {
   [category: string]: string[]; // category -> list of keys we wrote
