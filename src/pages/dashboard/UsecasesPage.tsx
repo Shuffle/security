@@ -2058,7 +2058,6 @@ function UsecasesPageInner() {
   //
   // URL slug convention: lowercase + underscores (e.g. /usecases/siem_alerts).
   // We still accept legacy URL-encoded labels ("SIEM%20alerts") for back-compat.
-  const slugify = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   const drawerLabel = routeParams.flowId ? decodeURIComponent(routeParams.flowId) : null;
   const [drawerFlowId, setDrawerFlowIdState] = useState<string | null>(null);
 
