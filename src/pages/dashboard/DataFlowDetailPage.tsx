@@ -791,7 +791,14 @@ const CategoryCard = ({ category, role }: { category: typeof TOOL_CATEGORIES[num
 
 const DataFlowDetailPage = () => {
   const { flowId } = useParams<{ flowId: string }>();
-  return <UsecaseDetailContent flowId={flowId} />;
+  const { usecases } = useUsecases();
+  // Param may be either an internal id OR a URL-encoded usecase label.
+  // Resolve to an id so downstream lookups (which key on `id`) work.
+  const decoded = flowId ? decodeURIComponent(flowId) : undefined;
+  const resolvedId = decoded
+    ? (usecases.find(u => u.id === decoded)?.id || usecases.find(u => u.label === decoded)?.id || decoded)
+    : undefined;
+  return <UsecaseDetailContent flowId={resolvedId} />;
 };
 
 export default DataFlowDetailPage;
