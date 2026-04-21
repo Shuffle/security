@@ -338,12 +338,13 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
 
   const isStepUnlocked = useCallback((s: TourStep | undefined): boolean => {
     if (!s) return true;
+    // Sub-goal gate takes precedence: if defined, the step's own
+    // `requirement` is purely cosmetic and only the sub-goals decide.
+    if (s.subGoals && s.subGoals.length > 0) {
+      return s.subGoals.every(g => !!completedSteps[g.id]);
+    }
     // Step-level requirement gate (legacy single-goal).
     if (s.requirement && !completedSteps[s.id]) return false;
-    // Sub-goal gate: every sub-goal id must be marked complete.
-    if (s.subGoals && s.subGoals.length > 0) {
-      if (!s.subGoals.every(g => !!completedSteps[g.id])) return false;
-    }
     return true;
   }, [completedSteps]);
 
