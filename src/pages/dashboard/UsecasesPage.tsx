@@ -2308,12 +2308,22 @@ function UsecasesPageInner() {
           </Box>
         </Box>
         <Box sx={{ p: { xs: 2, md: 3 } }}>
-          <UsecaseDetailContent
-            flowId={drawerFlowId ?? undefined}
-            hideBackNav
-            onNavigateUsecase={(id) => setDrawerFlowId(id || null)}
-            usecases={usecases}
-          />
+          {(() => {
+            const drawerFlow = drawerFlowId ? usecases.find(u => u.id === drawerFlowId) : null;
+            const drawerEnabled = !!drawerFlow?.automationLabel && enabledLabels.has(drawerFlow.automationLabel);
+            const drawerCanToggle = isAuthenticated && !!drawerFlow?.automationLabel;
+            return (
+              <UsecaseDetailContent
+                flowId={drawerFlowId ?? undefined}
+                hideBackNav
+                onNavigateUsecase={(id) => setDrawerFlowId(id || null)}
+                usecases={usecases}
+                isEnabled={drawerEnabled}
+                canToggle={drawerCanToggle}
+                onToggled={refetchWorkflows}
+              />
+            );
+          })()}
         </Box>
       </Drawer>
     </Box>
