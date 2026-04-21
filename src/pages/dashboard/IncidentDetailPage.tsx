@@ -3095,8 +3095,8 @@ const IncidentDetailPage = () => {
                     alignItems: 'center',
                     gap: 1,
                     transition: 'all 0.2s ease',
-                    bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.15)' : 'transparent',
-                    color: activeTab === index ? '#ff6600' : 'text.secondary',
+                    bgcolor: activeTab === index ? 'rgba(255, 102, 0, 0.85)' : 'transparent',
+                    color: activeTab === index ? '#fff' : 'text.secondary',
                     fontWeight: activeTab === index ? 600 : 400,
                     fontSize: '0.875rem',
                     '&:hover': {
