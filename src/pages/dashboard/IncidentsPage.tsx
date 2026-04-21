@@ -410,6 +410,9 @@ const IncidentsPage = () => {
    const { active: demoActive, drawerOpen: demoDrawerOpen, step: demoStep, markStepCompleted } = useDemo();
    const demoStepId = TOUR_STEPS[demoStep]?.id;
    const isAddOutlookStep = demoActive && demoDrawerOpen && demoStepId === 'add-outlook';
+   // Whenever the demo tour drawer is open, hide the arrow and the entire
+   // Forward section so users stay focused on the ingestion flow.
+   const isDemoTourActive = demoActive && demoDrawerOpen;
 
    // Hover state for automation sections (state-based to survive popover portals)
    const [ingestHovered, setIngestHovered] = useState(false);
