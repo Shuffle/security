@@ -143,9 +143,39 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [isSeeding, setIsSeeding] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [minimized, setMinimized] = useState<boolean>(() => {
+    try { return localStorage.getItem('shuffle_demo_minimized') === 'true'; } catch { return false; }
+  });
+  const [dock, setDockState] = useState<DemoDock>(() => {
+    try {
+      const v = localStorage.getItem('shuffle_demo_dock');
+      return v === 'bottom' ? 'bottom' : 'right';
+    } catch { return 'right'; }
+  });
   const [step, setStep] = useState(0);
   const [stats, setStats] = useState(() => getDemoStats());
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
+
+  const minimizeTour = useCallback(() => {
+    setMinimized(true);
+    try { localStorage.setItem('shuffle_demo_minimized', 'true'); } catch { /* ignore */ }
+  }, []);
+  const restoreTour = useCallback(() => {
+    setMinimized(false);
+    setDrawerOpen(true);
+    try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
+  }, []);
+  const setDock = useCallback((d: DemoDock) => {
+    setDockState(d);
+    try { localStorage.setItem('shuffle_demo_dock', d); } catch { /* ignore */ }
+  }, []);
+  const toggleDock = useCallback(() => {
+    setDockState(prev => {
+      const next: DemoDock = prev === 'right' ? 'bottom' : 'right';
+      try { localStorage.setItem('shuffle_demo_dock', next); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   const refreshStats = useCallback(() => setStats(getDemoStats()), []);
 
