@@ -349,7 +349,23 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
         </div>
       </TooltipProvider>
 
-      {/* Installed Software */}
+      {/* Host-level vulnerability summary */}
+      {vulnerabilities !== undefined && (
+        <div className={`rounded-md border p-3 ${totalOpenVulns > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-border bg-muted/20'}`}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={14} className={totalOpenVulns > 0 ? 'text-red-500' : 'text-muted-foreground'} />
+              <span className="text-xs font-semibold text-foreground">
+                {totalOpenVulns > 0
+                  ? `${totalOpenVulns} open vulnerabilit${totalOpenVulns === 1 ? 'y' : 'ies'} on this host`
+                  : 'No open vulnerabilities on this host'}
+              </span>
+            </div>
+            {totalOpenVulns > 0 && <SeverityBadgeRow counts={sevCounts} />}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         {collapsibleSections ? (
           <button onClick={() => setSoftwareOpen(!softwareOpen)} className="flex items-center gap-2 w-full text-left hover:bg-muted/20 rounded px-1 py-0.5 -mx-1 transition-colors">
