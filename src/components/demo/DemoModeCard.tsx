@@ -6,13 +6,58 @@
  *   - Active:   live counts + "Continue Tour" + "Clean up demo data"
  */
 
-import { Box, Typography, Button, Chip, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Chip, CircularProgress, Tooltip } from '@mui/material';
 import { Sparkles, Play, Trash2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useDemo } from '@/context/DemoContext';
+import { useWorkflows } from '@/hooks/useWorkflows';
+import { findIngestTicketsWorkflow, isWorkflowScheduleStopped } from '@/lib/ingestionDetection';
+import { getApiUrl, getAuthHeader } from '@/config/api';
+
+/** Returns true if any sensor_group environment has at least one host configured. */
+const useHasMonitors = () => {
+  return useQuery<boolean>({
+    queryKey: ['demo-card', 'has-monitors'],
+    queryFn: async () => {
+      try {
+        const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        const envs = Array.isArray(data) ? data : [];
+        return envs.some((e: any) =>
+          !e?.archived &&
+          e?.sensor_group === true &&
+          Array.isArray(e?.sensor_hosts) &&
+          e.sensor_hosts.length > 0
+        );
+      } catch {
+        return false;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
 
 export const DemoModeCard = () => {
   const { active, isSeeding, isCleaning, stats, startDemo, openTour, cleanup } = useDemo();
+  const { data: workflows } = useWorkflows();
+  const { data: hasMonitors } = useHasMonitors();
+
+  // Detect existing setup so we don't pollute real environments with sample data.
+  const ingestWorkflow = workflows ? findIngestTicketsWorkflow(workflows) : null;
+  const hasIngest = !!ingestWorkflow && !isWorkflowScheduleStopped(ingestWorkflow);
+  const setupExists = hasIngest || !!hasMonitors;
+  const disableStart = !active && setupExists;
+  const disableReason = hasIngest && hasMonitors
+    ? 'Ingest and Monitors are already set up — demo mode is for empty accounts.'
+    : hasIngest
+      ? 'Ingest is already set up — demo mode is for empty accounts.'
+      : 'Monitors are already set up — demo mode is for empty accounts.';
 
   return (
     <motion.div
@@ -73,7 +118,9 @@ export const DemoModeCard = () => {
           <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', mt: 0.5, lineHeight: 1.5 }}>
             {active
               ? `Sample data is loaded into your account: ${stats.incidents} incidents, ${stats.assets} assets, ${stats.users} users. Take the tour to see how everything works, then clean up when you're done.`
-              : "See how Shuffle handles incidents, assets, vulnerabilities, and AI agent activity — no setup required. We'll seed sample data into your account and walk you through it."}
+              : disableStart
+                ? `${disableReason} You're already past the demo — explore your real data instead.`
+                : "See how Shuffle handles incidents, assets, vulnerabilities, and AI agent activity — no setup required. We'll seed sample data into your account and walk you through it."}
           </Typography>
         </Box>
 
@@ -125,28 +172,36 @@ export const DemoModeCard = () => {
               </Button>
             </>
           ) : (
-            <Button
-              onClick={startDemo}
-              disabled={isSeeding}
-              variant="contained"
-              size="medium"
-              endIcon={isSeeding ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <ArrowRight size={16} />}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                backgroundColor: 'hsl(var(--primary))',
-                color: 'hsl(var(--primary-foreground))',
-                px: 2.5,
-                py: 1,
-                boxShadow: 'none',
-                whiteSpace: 'nowrap',
-                width: { xs: '100%', sm: 'auto' },
-                '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
-              }}
-            >
-              {isSeeding ? 'Seeding sample data…' : 'Start demo tour'}
-            </Button>
+            <Tooltip title={disableStart ? disableReason : ''} arrow disableHoverListener={!disableStart}>
+              <span>
+                <Button
+                  onClick={startDemo}
+                  disabled={isSeeding || disableStart}
+                  variant="contained"
+                  size="medium"
+                  endIcon={isSeeding ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <ArrowRight size={16} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    backgroundColor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    px: 2.5,
+                    py: 1,
+                    boxShadow: 'none',
+                    whiteSpace: 'nowrap',
+                    width: { xs: '100%', sm: 'auto' },
+                    '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
+                    '&.Mui-disabled': {
+                      backgroundColor: 'hsl(var(--muted))',
+                      color: 'hsl(var(--muted-foreground))',
+                    },
+                  }}
+                >
+                  {isSeeding ? 'Seeding sample data…' : 'Start demo tour'}
+                </Button>
+              </span>
+            </Tooltip>
           )}
         </Box>
       </Box>
