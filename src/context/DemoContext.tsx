@@ -103,11 +103,17 @@ export const TOUR_STEPS: TourStep[] = [
   },
 ];
 
+export type DemoDock = 'right' | 'bottom';
+
 interface DemoContextValue {
   active: boolean;
   isSeeding: boolean;
   isCleaning: boolean;
   drawerOpen: boolean;
+  /** When true, the drawer collapses into a small pill in the bottom-right. */
+  minimized: boolean;
+  /** Where the expanded drawer is docked. */
+  dock: DemoDock;
   step: number;
   stats: { incidents: number; assets: number; users: number };
   /** Map of step id → completed (only relevant for steps with a requirement). */
@@ -117,6 +123,10 @@ interface DemoContextValue {
   startDemo: () => Promise<void>;
   openTour: () => void;
   closeTour: () => void;
+  minimizeTour: () => void;
+  restoreTour: () => void;
+  toggleDock: () => void;
+  setDock: (d: DemoDock) => void;
   nextStep: () => void;
   prevStep: () => void;
   goToStep: (i: number) => void;
