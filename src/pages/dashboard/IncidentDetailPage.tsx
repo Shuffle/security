@@ -2499,9 +2499,10 @@ const IncidentDetailPage = () => {
                     return (
                       <Chip
                         size="small"
+                        variant="outlined"
                         avatar={viewingOrg.image ? <img src={viewingOrg.image} alt="" style={{ width: 16, height: 16, borderRadius: 3 }} /> : undefined}
                         label={viewingOrg.name}
-                        sx={{ height: 22, fontSize: '0.72rem', bgcolor: 'rgba(139, 92, 246, 0.2)', color: '#a78bfa', fontWeight: 600 }}
+                        sx={{ height: 22, fontSize: '0.72rem', bgcolor: 'transparent', borderColor: 'rgba(167, 139, 250, 0.4)', color: '#a78bfa', fontWeight: 600 }}
                       />
                     );
                   })()}
@@ -2509,9 +2510,10 @@ const IncidentDetailPage = () => {
                     <Chip
                       key={org.id}
                       size="small"
+                      variant="outlined"
                       avatar={org.image ? <img src={org.image} alt="" style={{ width: 16, height: 16, borderRadius: 3 }} /> : undefined}
                       label={org.name}
-                      sx={{ height: 22, fontSize: '0.72rem', bgcolor: 'rgba(255,255,255,0.06)', color: 'text.secondary' }}
+                      sx={{ height: 22, fontSize: '0.72rem', bgcolor: 'transparent', borderColor: 'rgba(255,255,255,0.12)', color: 'text.secondary' }}
                     />
                   ))}
                 </Box>
