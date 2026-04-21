@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Laptop, ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { useHostActions } from '@/hooks/useHostActions';
+import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { HostActionPopover } from '@/components/monitors/HostActionPopover';
 import { HostDetailPanel } from '@/components/monitors/HostDetailPanel';
 import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirmDialog';
