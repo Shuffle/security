@@ -3303,13 +3303,15 @@ const IncidentDetailPage = () => {
                         key={view}
                         label={view === 'readable' ? 'Clean' : view.charAt(0).toUpperCase() + view.slice(1)}
                         size="small"
+                        variant="outlined"
                         onClick={() => setDescriptionView(view)}
                         sx={{
                           height: 20,
                           fontSize: '0.65rem',
                           cursor: 'pointer',
-                          bgcolor: descriptionView === view ? '#ff6600' : 'rgba(255,255,255,0.05)',
-                          color: descriptionView === view ? '#ffffff' : 'text.secondary',
+                          bgcolor: 'transparent',
+                          borderColor: descriptionView === view ? 'rgba(255, 102, 0, 0.5)' : 'rgba(255,255,255,0.12)',
+                          color: descriptionView === view ? '#ff6600' : 'text.secondary',
                           '&:hover': { bgcolor: descriptionView === view ? '#ff6600' : 'rgba(255,255,255,0.1)' },
                         }}
                       />
