@@ -869,19 +869,68 @@ const resolveApiBaseUrl = () => {
   return 'https://shuffler.io';
 };
 
-const API_BASE_URL: string = resolveApiBaseUrl();
+const DEFAULT_API_BASE_URL: string = resolveApiBaseUrl();
 
 const getStoredApiKey = (): string | null => {
   try { return typeof window !== 'undefined' ? window.localStorage.getItem('shuffle_api_key') : null; }
   catch { return null; }
 };
 
-const apiUrl = (endpoint: string): string => `${API_BASE_URL}${endpoint}`;
+// ============================================================================
+// Runtime config context — lets host apps inject `globalUrl` / `userdata` /
+// `isLoggedIn` overrides via props on <UsecasesPage />. When no provider is
+// present (standalone usage), defaults reproduce the previous behavior:
+// API base resolved from env/host, auth via `shuffle_api_key` localStorage,
+// and authentication probed via `/api/v1/getinfo`.
+// ============================================================================
+export interface UsecasesUserData {
+  id?: string;
+  username?: string;
+  support?: boolean;
+  api_key?: string;
+  apikey?: string;
+  [key: string]: any;
+}
 
-const authHeader = (): Record<string, string> => {
-  const key = getStoredApiKey();
-  return key ? { Authorization: `Bearer ${key}` } : {};
+interface UsecasesPageConfig {
+  baseUrl: string;
+  /** Built from external `userdata.api_key` if provided, else from localStorage. */
+  authHeader: () => Record<string, string>;
+  /** When true, skip the internal getinfo probe and trust `externalUserInfo`. */
+  hasExternalAuth: boolean;
+  externalUserInfo: UsecasesUserData | null;
+  externalIsAuthenticated: boolean;
+  /** Mirrors the host app's `isLoaded` flag — currently informational. */
+  isLoaded: boolean;
+}
+
+const DEFAULT_CONFIG: UsecasesPageConfig = {
+  baseUrl: DEFAULT_API_BASE_URL,
+  authHeader: () => {
+    const key = getStoredApiKey();
+    return key ? { Authorization: `Bearer ${key}` } : {};
+  },
+  hasExternalAuth: false,
+  externalUserInfo: null,
+  externalIsAuthenticated: false,
+  isLoaded: true,
 };
+
+const UsecasesPageConfigContext = React.createContext<UsecasesPageConfig>(DEFAULT_CONFIG);
+
+const useUsecasesConfig = () => React.useContext(UsecasesPageConfigContext);
+
+/** Hook returning `apiUrl` and `authHeader` bound to the active config. */
+function useApi() {
+  const cfg = useUsecasesConfig();
+  return React.useMemo(
+    () => ({
+      apiUrl: (endpoint: string) => `${cfg.baseUrl}${endpoint}`,
+      authHeader: cfg.authHeader,
+    }),
+    [cfg.baseUrl, cfg.authHeader],
+  );
+}
 
 // ============================================================================
 // Inlined: minimal toast (was `sonner`)
