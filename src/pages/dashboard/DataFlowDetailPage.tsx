@@ -218,7 +218,11 @@ export const UsecaseDetailContent = ({
   const flow = usecases.find(f => f.id === flowId);
   const goToUsecase = (id: string) => {
     if (onNavigateUsecase) onNavigateUsecase(id);
-    else navigate(`/usecases/${id}`);
+    else {
+      const target = usecases.find(u => u.id === id);
+      const seg = target?.label || id;
+      navigate(`/usecases/${encodeURIComponent(seg)}/details`);
+    }
   };
 
   // Fetch apps from API and match to categories
