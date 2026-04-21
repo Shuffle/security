@@ -2062,7 +2062,9 @@ function UsecasesPageInner() {
       fetch(apiUrl(`/api/v1/workflows/usecases/${encodeURIComponent(name)}`), {
         credentials: 'include',
         headers: { ...authHeader() },
-      }).catch(() => { /* ignore */ });
+      })
+        .then(() => { refetchAuth(); })
+        .catch(() => { /* ignore */ });
     } catch { /* ignore */ }
     navigate({
       pathname: `/usecases/${encodeURIComponent(name)}`,
