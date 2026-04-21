@@ -1033,7 +1033,7 @@ function useWorkflowsLite() {
     } catch {
       /* keep current */
     }
-  }, []);
+  }, [apiUrl, authHeader]);
   useEffect(() => { fetchOnce(); }, [fetchOnce]);
   return { data, refetch: fetchOnce };
 }
@@ -1144,6 +1144,7 @@ function useUsecasesLite() {
     drifts: UsecaseDrift[];
   }>({ usecases: DEFAULT_USECASES, apiCategories: [], drifts: [] });
 
+  const { apiUrl, authHeader } = useApi();
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -1207,6 +1208,7 @@ interface IntegrationItem {
 }
 
 function IntegrationStatusLite({ filterApps, singleLine = false }: { filterApps?: string[]; singleLine?: boolean }) {
+  const { apiUrl, authHeader } = useApi();
   const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -1379,6 +1381,7 @@ function UsecaseDetailContent({
   usecases: Usecase[];
 }) {
   const navigate = useNavigate();
+  const { apiUrl, authHeader } = useApi();
   const flow = usecases.find((item) => item.id === flowId);
   const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
 
@@ -2095,6 +2098,7 @@ function UsecaseCard({
   const [toggling, setToggling] = useState(false);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const effectiveEnabled = optimisticEnabled !== null ? optimisticEnabled : isEnabled;
+  const { apiUrl, authHeader } = useApi();
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
