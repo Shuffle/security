@@ -336,20 +336,30 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     try { localStorage.removeItem('shuffle_demo_active'); } catch { /* ignore */ }
   }, []);
 
+  const isStepUnlocked = useCallback((s: TourStep | undefined): boolean => {
+    if (!s) return true;
+    // Step-level requirement gate (legacy single-goal).
+    if (s.requirement && !completedSteps[s.id]) return false;
+    // Sub-goal gate: every sub-goal id must be marked complete.
+    if (s.subGoals && s.subGoals.length > 0) {
+      if (!s.subGoals.every(g => !!completedSteps[g.id])) return false;
+    }
+    return true;
+  }, [completedSteps]);
+
   const currentStep = TOUR_STEPS[step];
-  const currentStepUnlocked = !currentStep?.requirement || !!completedSteps[currentStep.id];
+  const currentStepUnlocked = isStepUnlocked(currentStep);
 
   const nextStep = useCallback(() => {
     setStep(prev => {
       const cur = TOUR_STEPS[prev];
-      // Block forward navigation if requirement not met
-      if (cur?.requirement && !completedSteps[cur.id]) return prev;
+      if (!isStepUnlocked(cur)) return prev;
       const next = Math.min(prev + 1, TOUR_STEPS.length - 1);
       navigateForStep(next);
       runStepSeed(next);
       return next;
     });
-  }, [navigateForStep, runStepSeed, completedSteps]);
+  }, [navigateForStep, runStepSeed, isStepUnlocked]);
 
   const prevStep = useCallback(() => {
     setStep(prev => {
@@ -365,7 +375,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     // Allow free backward jumps; forward jumps respect the gate at current step.
     if (clamped > step) {
       const cur = TOUR_STEPS[step];
-      if (cur?.requirement && !completedSteps[cur.id]) return;
+      if (!isStepUnlocked(cur)) return;
     }
     setStep(clamped);
     navigateForStep(clamped);
