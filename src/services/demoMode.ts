@@ -184,6 +184,66 @@ export interface CleanupResult {
 }
 
 /**
+ * Count demo incidents currently present in the datastore.
+ * Looks at items tagged with `metadata.extensions.custom_attributes.demo === true`
+ * so this works even if the local seed index was wiped.
+ */
+export const countDemoIncidents = async (): Promise<number> => {
+  try {
+    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
+    if (!res.success || !res.data) return 0;
+    return res.data.filter(item => {
+      try {
+        const parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+        return parsed?.metadata?.extensions?.custom_attributes?.demo === true;
+      } catch { return false; }
+    }).length;
+  } catch { return 0; }
+};
+
+/**
+ * Force-recreate the demo incidents:
+ *  1. Delete any existing demo incidents (indexed + safety scan).
+ *  2. Clear the seeded marker for the incidents-list step.
+ *  3. Re-run the incidents-list seeder.
+ * Returns the number of incidents written.
+ */
+export const forceRecreateDemoIncidents = async (): Promise<number> => {
+  // 1. Delete indexed demo incident keys
+  const idx = readIndex();
+  const indexedKeys = idx[DATASTORE_CATEGORIES.INCIDENTS] || [];
+  if (indexedKeys.length > 0) {
+    await Promise.allSettled(indexedKeys.map(k => deleteDatastoreItem(k, DATASTORE_CATEGORIES.INCIDENTS)));
+  }
+
+  // 2. Safety scan: also delete any orphan demo-tagged incidents
+  try {
+    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
+    if (res.success && res.data) {
+      const orphans = res.data.filter(item => {
+        try {
+          const parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+          return parsed?.metadata?.extensions?.custom_attributes?.demo === true;
+        } catch { return false; }
+      });
+      if (orphans.length > 0) {
+        await Promise.allSettled(orphans.map(o => deleteDatastoreItem(o.key, DATASTORE_CATEGORIES.INCIDENTS)));
+      }
+    }
+  } catch { /* best-effort */ }
+
+  // 3. Clear the index entry + step marker so the seeder runs fresh
+  const newIdx = readIndex();
+  delete newIdx[DATASTORE_CATEGORIES.INCIDENTS];
+  writeIndex(newIdx);
+  writeSeededSteps(readSeededSteps().filter(s => s !== 'incidents-list'));
+  broadcastRefresh(DATASTORE_CATEGORIES.INCIDENTS);
+
+  // 4. Re-seed
+  return await seedForStep('incidents-list');
+};
+
+/**
  * Delete every seeded item.
  *  1. Indexed deletions (keys we wrote, per category).
  *  2. Safety net: scan each category for items with demo: true and remove orphans.

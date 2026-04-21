@@ -11,7 +11,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { seedForStep, cleanupDemoData, isDemoActive, getDemoStats } from '@/services/demoMode';
+import { seedForStep, cleanupDemoData, isDemoActive, getDemoStats, forceRecreateDemoIncidents, countDemoIncidents } from '@/services/demoMode';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 
 export interface TourStepRequirement {
@@ -105,6 +105,10 @@ export const TOUR_STEPS: TourStep[] = [
       'Filter, sort, bulk-resolve',
     ],
     route: '/incidents',
+    requirement: {
+      label: 'At least one demo incident must be present',
+      targetSelector: '[data-tour="demo-force-create-incidents"]',
+    },
   },
   {
     id: 'incident-detail',
@@ -195,6 +199,12 @@ interface DemoContextValue {
   /** Set a step's completion explicitly — supports reverting (e.g. webhook
    *  re-stopped after being started). */
   setStepCompleted: (stepId: string, done: boolean) => void;
+  /** Force delete + recreate the demo incidents (manual rescue button). */
+  forceCreateIncidents: () => Promise<void>;
+  /** True while a force-create is running. */
+  isForceCreatingIncidents: boolean;
+  /** True when at least one demo incident is present in the datastore. */
+  hasDemoIncidents: boolean;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -217,6 +227,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [step, setStep] = useState(0);
   const [stats, setStats] = useState(() => getDemoStats());
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
+  const [isForceCreatingIncidents, setIsForceCreatingIncidents] = useState(false);
+  const [hasDemoIncidents, setHasDemoIncidents] = useState(false);
 
   // GA dedupe: each step view fires at most once per session, each completion
   // fires at most once per step. Refs survive re-renders without retriggering.
@@ -338,6 +350,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
 
   const isStepUnlocked = useCallback((s: TourStep | undefined): boolean => {
     if (!s) return true;
+    // Special gate: incidents-list requires a real incident in the datastore.
+    if (s.id === 'incidents-list') return hasDemoIncidents;
     // Sub-goal gate takes precedence: if defined, the step's own
     // `requirement` is purely cosmetic and only the sub-goals decide.
     if (s.subGoals && s.subGoals.length > 0) {
@@ -346,7 +360,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     // Step-level requirement gate (legacy single-goal).
     if (s.requirement && !completedSteps[s.id]) return false;
     return true;
-  }, [completedSteps]);
+  }, [completedSteps, hasDemoIncidents]);
 
   const currentStep = TOUR_STEPS[step];
   const currentStepUnlocked = isStepUnlocked(currentStep);
@@ -407,6 +421,51 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [refreshStats, step]);
 
+  const forceCreateIncidents = useCallback(async () => {
+    setIsForceCreatingIncidents(true);
+    try {
+      const added = await forceRecreateDemoIncidents();
+      refreshStats();
+      const present = await countDemoIncidents();
+      setHasDemoIncidents(present > 0);
+      if (added > 0) {
+        toast.success(`Recreated ${added} demo incident${added === 1 ? '' : 's'}.`);
+      } else if (present > 0) {
+        toast.success(`Demo incidents are present (${present}).`);
+      } else {
+        toast.error('Could not create demo incidents. Please try again.');
+      }
+    } catch {
+      toast.error('Failed to recreate demo incidents.');
+    } finally {
+      setIsForceCreatingIncidents(false);
+    }
+  }, [refreshStats]);
+
+  // Poll the datastore for demo incidents whenever the demo is active so the
+  // incidents-list step gate flips automatically as soon as data lands. Also
+  // re-checks on the demo:refresh broadcast that the seeder fires.
+  useEffect(() => {
+    if (!active) {
+      setHasDemoIncidents(false);
+      return;
+    }
+    let cancelled = false;
+    const check = async () => {
+      const n = await countDemoIncidents();
+      if (!cancelled) setHasDemoIncidents(n > 0);
+    };
+    check();
+    const interval = window.setInterval(check, 4000);
+    const onRefresh = () => check();
+    window.addEventListener('demo:refresh', onRefresh as EventListener);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('demo:refresh', onRefresh as EventListener);
+    };
+  }, [active]);
+
   // Funnel signal: whenever the user lands on a new step (via start/next/prev/
   // goToStep/openTour), fire DEMO_STEP_VIEW exactly once per step per session.
   // Also fire DEMO_FINISH the first time the final "wrap" step is viewed.
@@ -440,12 +499,14 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     startDemo, openTour, closeTour, minimizeTour, restoreTour, toggleDock, setDock,
     nextStep, prevStep, goToStep, cleanup,
     markStepCompleted, setStepCompleted,
+    forceCreateIncidents, isForceCreatingIncidents, hasDemoIncidents,
   }), [
     active, isSeeding, isCleaning, drawerOpen, minimized, dock, step, stats,
     completedSteps, currentStepUnlocked,
     startDemo, openTour, closeTour, minimizeTour, restoreTour, toggleDock, setDock,
     nextStep, prevStep, goToStep, cleanup,
     markStepCompleted, setStepCompleted,
+    forceCreateIncidents, isForceCreatingIncidents, hasDemoIncidents,
   ]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
