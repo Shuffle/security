@@ -127,6 +127,45 @@ export const DemoTourDrawer = () => {
                     {current.body}
                   </Typography>
 
+                  {requirement && (
+                    <Box
+                      sx={{
+                        mt: 2.5,
+                        p: 1.75,
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: locked ? 'hsl(var(--primary) / 0.35)' : 'hsl(var(--severity-low) / 0.35)',
+                        backgroundColor: locked ? 'hsl(var(--primary) / 0.06)' : 'hsl(var(--severity-low) / 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.25,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 1,
+                          display: 'grid',
+                          placeItems: 'center',
+                          backgroundColor: locked ? 'hsl(var(--primary) / 0.18)' : 'hsl(var(--severity-low) / 0.2)',
+                          color: locked ? 'hsl(var(--primary))' : 'hsl(var(--severity-low))',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {locked ? <Lock size={13} /> : <Check size={14} />}
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: locked ? 'hsl(var(--primary))' : 'hsl(var(--severity-low))', mb: 0.25 }}>
+                          {locked ? 'Required to continue' : 'Done'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 500, color: 'hsl(var(--foreground))', lineHeight: 1.4 }}>
+                          {requirement.label}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+
                   {isLast && (
                     <Box
                       sx={{
