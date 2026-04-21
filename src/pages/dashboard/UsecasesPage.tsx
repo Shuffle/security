@@ -15,6 +15,7 @@ import {
   Typography,
   Card,
   CardActionArea,
+  Avatar,
   Chip,
   TextField,
   InputAdornment,
@@ -28,7 +29,7 @@ import {
   Drawer,
   IconButton,
 } from '@mui/material';
-import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink } from 'lucide-react';
+import { Search, ArrowRight, ArrowLeft, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink, Flame, PlayCircle, BookOpen } from 'lucide-react';
 import {
   FLOW_PHASES,
   TOOL_CATEGORIES,
@@ -41,8 +42,6 @@ import {
   type ApiUsecase,
   type ApiUsecaseCategory,
 } from '@/config/usecases';
-import { UsecaseDetailContent } from '@/pages/dashboard/DataFlowDetailPage';
-import { IntegrationStatus } from '@/components/layout/IntegrationStatus';
 
 // ============================================================================
 // Inlined: API config (was @/config/api)
