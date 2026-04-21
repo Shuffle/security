@@ -184,7 +184,7 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
     }
   }
 
-  const safetyCategories = [DATASTORE_CATEGORIES.INCIDENTS, DATASTORE_CATEGORIES.ASSETS, DATASTORE_CATEGORIES.USERS];
+  const safetyCategories = [DATASTORE_CATEGORIES.INCIDENTS, DATASTORE_CATEGORIES.ASSETS, DATASTORE_CATEGORIES.USERS, VULNS_CATEGORY];
   for (const category of safetyCategories) {
     try {
       const res = await getDatastoreByCategory(category);
