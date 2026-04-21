@@ -142,7 +142,11 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'wrap',
     title: 'You\'re all set',
-    body: 'That\'s the tour. When you\'re ready to use real data, click "Clean up demo data" on the dashboard — we\'ll remove every sample item we created.',
+    body: 'That\'s the tour.',
+    bullets: [
+      'Click "Clean up demo data" on the dashboard when done',
+      'Every sample item we added gets removed',
+    ],
     route: '/dashboard',
   },
 ];
