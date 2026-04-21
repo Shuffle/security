@@ -67,7 +67,21 @@ interface HostDetailPanelProps {
   hostname?: string;
   groupName?: string;
   mode?: string;
+  /** Open vulnerabilities scoped to this host. When provided, badges render at host, software, and package levels. */
+  vulnerabilities?: Vulnerability[];
 }
+
+const SEV_ORDER: VulnSeverity[] = ['critical', 'high', 'medium', 'low', 'info'];
+const SEV_CLASSES: Record<VulnSeverity, string> = {
+  critical: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30',
+  high: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30',
+  medium: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
+  low: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+  info: 'bg-muted text-muted-foreground border-border',
+};
+
+const normalize = (s: string) => s.toLowerCase().trim();
+const stripVersion = (s: string) => s.toLowerCase().trim().replace(/[@:]\d.*$/, '');
 
 const stateOf = (v: boolean | string | undefined): 'on' | 'off' => {
   if (v === true || v === 'true') return 'on';
