@@ -2277,6 +2277,7 @@ function UsecasesPageInner() {
                 apiLoaded={apiLoaded}
                 isEnabled={!!flow.automationLabel && enabledLabels.has(flow.automationLabel)}
                 canToggle={isAuthenticated && !!flow.automationLabel}
+                isAuthenticated={isAuthenticated}
                 onToggled={refetchWorkflows}
                 onClick={() => setDrawerFlowId(flow.id)}
               />
