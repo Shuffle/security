@@ -380,7 +380,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setStep(clamped);
     navigateForStep(clamped);
     runStepSeed(clamped);
-  }, [navigateForStep, runStepSeed, completedSteps, step]);
+  }, [navigateForStep, runStepSeed, isStepUnlocked, step]);
 
   const cleanup = useCallback(async () => {
     setIsCleaning(true);
