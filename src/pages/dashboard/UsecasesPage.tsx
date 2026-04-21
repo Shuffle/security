@@ -19,8 +19,10 @@ import {
   InputLabel,
   Button,
   CircularProgress,
+  Drawer,
+  IconButton,
 } from '@mui/material';
-import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson } from 'lucide-react';
+import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
