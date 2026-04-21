@@ -19,8 +19,10 @@ import {
   InputLabel,
   Button,
   CircularProgress,
+  Drawer,
+  IconButton,
 } from '@mui/material';
-import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson } from 'lucide-react';
+import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
@@ -32,6 +34,7 @@ import {
 } from '@/config/usecases';
 import { useUsecases, type UsecaseDrift } from '@/hooks/useUsecases';
 import UsecaseAlluvialDiagram from '@/components/usecases/UsecaseAlluvialDiagram';
+import { UsecaseDetailContent } from '@/pages/dashboard/DataFlowDetailPage';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import { getApiUrl, getAuthHeader } from '@/config/api';
@@ -59,6 +62,7 @@ export default function UsecasesPage() {
   const { data: workflows = [], refetch: refetchWorkflows } = useWorkflows();
   const isSupport = userInfo?.support === true;
   const [showAllAsSupport, setShowAllAsSupport] = useState(true);
+  const [drawerFlowId, setDrawerFlowId] = useState<string | null>(null);
 
   // Map: automationLabel -> whether at least one workflow exists for it.
   // Match by workflow name OR tag containing the label (case-insensitive).
@@ -393,7 +397,7 @@ export default function UsecasesPage() {
                 isEnabled={!!flow.automationLabel && enabledLabels.has(flow.automationLabel)}
                 canToggle={isAuthenticated && !!flow.automationLabel}
                 onToggled={refetchWorkflows}
-                onClick={() => navigate(`/usecases/${flow.id}`)}
+                onClick={() => setDrawerFlowId(flow.id)}
               />
             ))}
           </Box>
@@ -405,6 +409,65 @@ export default function UsecasesPage() {
           No automations match your search.
         </Typography>
       )}
+
+      {/* Right-hand drawer rendering the EXACT same component as /usecases/:id */}
+      <Drawer
+        anchor="right"
+        open={drawerFlowId !== null}
+        onClose={() => setDrawerFlowId(null)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 720, md: 900 },
+            maxWidth: '100vw',
+            bgcolor: 'hsl(var(--background))',
+            backgroundImage: 'none',
+          },
+        }}
+      >
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 3, py: 2,
+          borderBottom: '1px solid hsl(var(--border))',
+          position: 'sticky', top: 0, zIndex: 2,
+          bgcolor: 'hsl(var(--background))',
+        }}>
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Automation
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {drawerFlowId && (
+              <Button
+                onClick={() => { const id = drawerFlowId; setDrawerFlowId(null); navigate(`/usecases/${id}`); }}
+                endIcon={<ExternalLink size={14} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsla(var(--primary) / 0.3)',
+                  bgcolor: 'hsla(var(--primary) / 0.06)',
+                  px: 1.5,
+                  '&:hover': { bgcolor: 'hsla(var(--primary) / 0.12)', borderColor: 'hsl(var(--primary))' },
+                }}
+              >
+                Open full page
+              </Button>
+            )}
+            <IconButton onClick={() => setDrawerFlowId(null)} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              <X size={18} />
+            </IconButton>
+          </Box>
+        </Box>
+        <Box sx={{ p: { xs: 2, md: 3 } }}>
+          <UsecaseDetailContent
+            flowId={drawerFlowId ?? undefined}
+            hideBackNav
+            onNavigateUsecase={(id) => setDrawerFlowId(id || null)}
+          />
+        </Box>
+      </Drawer>
     </Box>
   );
 }

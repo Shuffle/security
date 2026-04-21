@@ -192,13 +192,34 @@ const ConnectionEndpoint = ({
   );
 };
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Reusable detail content ────────────────────────────────────────────────────
+// Exported so it can be embedded in a drawer (e.g. from /usecases) and reused
+// across platforms by copying this single file.
 
-const DataFlowDetailPage = () => {
-  const { flowId } = useParams<{ flowId: string }>();
+export interface UsecaseDetailContentProps {
+  /** Usecase / data flow ID to render */
+  flowId: string | undefined;
+  /** When true, suppresses the back-to-Automations nav (e.g. when shown in a drawer) */
+  hideBackNav?: boolean;
+  /** When true, suppresses prev/next pagination at the bottom */
+  hidePrevNext?: boolean;
+  /** Override navigation (e.g. close drawer + push) for prev/next + not-found */
+  onNavigateUsecase?: (flowId: string) => void;
+}
+
+export const UsecaseDetailContent = ({
+  flowId,
+  hideBackNav = false,
+  hidePrevNext = false,
+  onNavigateUsecase,
+}: UsecaseDetailContentProps) => {
   const navigate = useNavigate();
   const { usecases } = useUsecases();
   const flow = usecases.find(f => f.id === flowId);
+  const goToUsecase = (id: string) => {
+    if (onNavigateUsecase) onNavigateUsecase(id);
+    else navigate(`/usecases/${id}`);
+  };
 
   // Fetch apps from API and match to categories
   const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
@@ -267,7 +288,7 @@ const DataFlowDetailPage = () => {
         <Typography sx={{ fontSize: '1.2rem', color: 'hsl(var(--muted-foreground))', mb: 2 }}>
           Data flow not found
         </Typography>
-        <Button onClick={() => navigate('/usecases')} sx={{ color: 'hsl(var(--primary))', textTransform: 'none' }}>
+        <Button onClick={() => (onNavigateUsecase ? onNavigateUsecase('') : navigate('/usecases'))} sx={{ color: 'hsl(var(--primary))', textTransform: 'none' }}>
           ← Back to Automations
         </Button>
       </Box>
@@ -292,21 +313,23 @@ const DataFlowDetailPage = () => {
   return (
     <Box sx={{ maxWidth: 860, width: '100%', mx: 'auto', pb: 6 }}>
       {/* Back nav */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-        <Button
-          onClick={() => navigate('/usecases')}
-          startIcon={<ArrowLeft size={14} />}
-          sx={{
-            color: 'hsl(var(--muted-foreground))',
-            textTransform: 'none',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
-          }}
-        >
-          Automations
-        </Button>
-      </Box>
+      {!hideBackNav && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <Button
+            onClick={() => navigate('/usecases')}
+            startIcon={<ArrowLeft size={14} />}
+            sx={{
+              color: 'hsl(var(--muted-foreground))',
+              textTransform: 'none',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
+            }}
+          >
+            Automations
+          </Button>
+        </Box>
+      )}
 
       {/* Hero header */}
       <Box sx={{
@@ -623,38 +646,40 @@ const DataFlowDetailPage = () => {
 
 
       {/* Prev / Next navigation */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 2 }}>
-        {prevFlow ? (
-          <Button
-            onClick={() => navigate(`/usecases/${prevFlow.id}`)}
-            startIcon={<ArrowLeft size={14} />}
-            sx={{
-              color: 'hsl(var(--muted-foreground))',
-              textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
-            }}
-          >
-            {prevFlow.label}
-          </Button>
-        ) : <Box />}
-        {nextFlow ? (
-          <Button
-            onClick={() => navigate(`/usecases/${nextFlow.id}`)}
-            endIcon={<ArrowRight size={14} />}
-            sx={{
-              color: 'hsl(var(--muted-foreground))',
-              textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
-            }}
-          >
-            {nextFlow.label}
-          </Button>
-        ) : <Box />}
-      </Box>
+      {!hidePrevNext && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 2 }}>
+          {prevFlow ? (
+            <Button
+              onClick={() => goToUsecase(prevFlow.id)}
+              startIcon={<ArrowLeft size={14} />}
+              sx={{
+                color: 'hsl(var(--muted-foreground))',
+                textTransform: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
+              }}
+            >
+              {prevFlow.label}
+            </Button>
+          ) : <Box />}
+          {nextFlow ? (
+            <Button
+              onClick={() => goToUsecase(nextFlow.id)}
+              endIcon={<ArrowRight size={14} />}
+              sx={{
+                color: 'hsl(var(--muted-foreground))',
+                textTransform: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsla(var(--muted-foreground) / 0.08)' },
+              }}
+            >
+              {nextFlow.label}
+            </Button>
+          ) : <Box />}
+        </Box>
+      )}
 
       {/* App search drawer */}
       <AppSearchDrawer
@@ -760,6 +785,13 @@ const CategoryCard = ({ category, role }: { category: typeof TOOL_CATEGORIES[num
 
     </Box>
   );
+};
+
+// ── Page wrapper ───────────────────────────────────────────────────────────────
+
+const DataFlowDetailPage = () => {
+  const { flowId } = useParams<{ flowId: string }>();
+  return <UsecaseDetailContent flowId={flowId} />;
 };
 
 export default DataFlowDetailPage;
