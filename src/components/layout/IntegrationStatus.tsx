@@ -40,6 +40,8 @@ interface IntegrationStatusProps {
   showAll?: boolean;
   /** Hide the Add Integration button */
   hideAddButton?: boolean;
+  /** Hide the "Integrations" section header */
+  hideHeader?: boolean;
   /** When set, apps matching this category are sorted to the top */
   priorityCategory?: string;
 }
@@ -63,7 +65,7 @@ export const refreshAllIntegrationStatus = () => {
   window.dispatchEvent(new CustomEvent('integrations-changed'));
 };
 
-export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps, showAll, hideAddButton, priorityCategory }: IntegrationStatusProps) => {
+export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps, showAll, hideAddButton, hideHeader, priorityCategory }: IntegrationStatusProps) => {
   const [allIntegrations, setAllIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -200,7 +202,7 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
   return (
     <Box sx={{ px: collapsed ? 0 : 1, py: 1 }}>
       {/* Header - only show when expanded */}
-      {!collapsed && (
+      {!collapsed && !hideHeader && (
         <Typography 
           sx={{ 
             color: 'hsl(var(--muted-foreground))', 
