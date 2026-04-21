@@ -2441,7 +2441,7 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>
-      <div className={SCOPE_CLASS}>
+      <div className={themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS}>
         <UsecasesPageInner />
       </div>
     </UsecasesPageConfigContext.Provider>
