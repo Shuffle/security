@@ -1587,7 +1587,26 @@ function UsecaseDetailContent({
   );
 }
 
-export default function UsecasesPage() {
+/**
+ * Public props. All optional — when omitted, the page works standalone.
+ *
+ * Pass these to integrate with a host SPA that already manages auth/config:
+ *   <UsecasesPage userdata={userdata} globalUrl={globalUrl} isLoaded isLoggedIn />
+ */
+export interface UsecasesPageProps {
+  /** Override the API base URL (e.g. "https://shuffler.io"). */
+  globalUrl?: string;
+  /** Logged-in user info from the host app. If provided, the internal
+   *  `/api/v1/getinfo` probe is skipped. `userdata.api_key` is used as bearer
+   *  token when present (falls back to `localStorage.shuffle_api_key`). */
+  userdata?: UsecasesUserData | null;
+  /** Mirrors host app's loading state. Currently informational. */
+  isLoaded?: boolean;
+  /** Override authentication state. Defaults to `!!userdata`. */
+  isLoggedIn?: boolean;
+}
+
+function UsecasesPageInner() {
   usePageTitle('Usecases');
 
   const [search, setSearch] = useState('');
