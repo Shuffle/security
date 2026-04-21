@@ -207,7 +207,9 @@ async function fetchUsecases(): Promise<FetchResult> {
       const existing = enriched.get(local.id)!;
       enriched.set(local.id, {
         ...existing,
-        // Enrich with API data where available
+        // Enrich with API data where available — API is the source of truth
+        // for user-visible content (label, description, media, priority).
+        label: api.name || existing.label,
         description: api.description || existing.description,
         priority: typeof api.priority === 'number' ? api.priority : existing.priority,
         video: api.video || existing.video,
