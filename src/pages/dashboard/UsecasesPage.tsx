@@ -2319,30 +2319,53 @@ function UsecaseCard({
  * an internal `/api/v1/getinfo` probe).
  */
 export default function UsecasesPage(props: UsecasesPageProps = {}) {
-  const { globalUrl, userdata, isLoaded = true, isLoggedIn } = props;
+  const { globalUrl, userdata, isLoaded, isLoggedIn } = props;
+
+  // Detect whether the host app is driving auth/config. As soon as ANY of the
+  // four props is supplied, we treat the host as the source of truth and
+  // suppress the inlined getinfo probe — even while `isLoaded` is still false
+  // (host's getinfo is in flight).
+  const hostManaged =
+    globalUrl !== undefined ||
+    userdata !== undefined ||
+    isLoaded !== undefined ||
+    isLoggedIn !== undefined;
 
   const config = React.useMemo<UsecasesPageConfig>(() => {
     const baseUrl = (globalUrl && globalUrl.replace(/\/+$/, '')) || DEFAULT_API_BASE_URL;
     const externalUserInfo = userdata ?? null;
     const externalApiKey = userdata?.api_key || userdata?.apikey || null;
-    const hasExternalAuth = !!userdata || typeof isLoggedIn === 'boolean';
-    const externalIsAuthenticated =
+
+    // Auth state mirrors the host: only authenticated once getinfo finished
+    // (`isLoaded === true`) AND `isLoggedIn` is true (or, if `isLoggedIn` was
+    // omitted, `userdata` is present).
+    const loaded = isLoaded !== false; // default true when undefined
+    const loggedIn =
       typeof isLoggedIn === 'boolean' ? isLoggedIn : !!userdata;
+    const externalIsAuthenticated = hostManaged ? loaded && loggedIn : false;
 
     return {
       baseUrl,
       authHeader: () => {
-        // Prefer the external user's API key if provided, else fall back to
-        // the standalone localStorage key (legacy behavior).
+        // Prefer the host's API key (if surfaced via userdata.api_key); else
+        // fall back to the standalone localStorage key. Cookie auth still
+        // works either way via `credentials: 'include'`.
         const key = externalApiKey || getStoredApiKey();
         return key ? { Authorization: `Bearer ${key}` } : {};
       },
-      hasExternalAuth,
+      hasExternalAuth: hostManaged,
       externalUserInfo,
       externalIsAuthenticated,
-      isLoaded,
+      isLoaded: loaded,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged]);
+
+  return (
+    <UsecasesPageConfigContext.Provider value={config}>
+      <UsecasesPageInner />
+    </UsecasesPageConfigContext.Provider>
+  );
+}
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>
