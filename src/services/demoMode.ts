@@ -140,13 +140,32 @@ export const STEP_SEEDERS: Record<string, () => Promise<number>> = {
  */
 export const seedForStep = async (stepId: string): Promise<number> => {
   const seeded = readSeededSteps();
-  if (seeded.includes(stepId)) return 0;
+  // For data-bearing steps, treat the "already seeded" marker as stale if the
+  // index has no record of any keys for the relevant category. This recovers
+  // gracefully when demo data was wiped (manually, via cleanup, or a partial
+  // failure) but the step marker is still present.
+  const idx = readIndex();
+  const looksEmpty = (() => {
+    switch (stepId) {
+      case 'incidents-list':
+        return (idx[DATASTORE_CATEGORIES.INCIDENTS]?.length || 0) === 0;
+      case 'assets':
+        return (idx[DATASTORE_CATEGORIES.ASSETS]?.length || 0) === 0;
+      case 'vulnerabilities':
+        return (idx[VULNS_CATEGORY]?.length || 0) === 0;
+      case 'agent':
+        return (idx[DATASTORE_CATEGORIES.USERS]?.length || 0) === 0;
+      default:
+        return false;
+    }
+  })();
+  if (seeded.includes(stepId) && !looksEmpty) return 0;
 
   const seeder = STEP_SEEDERS[stepId];
   if (!seeder) return 0;
 
   // Mark as seeded BEFORE running so concurrent calls don't double-seed.
-  writeSeededSteps([...seeded, stepId]);
+  if (!seeded.includes(stepId)) writeSeededSteps([...seeded, stepId]);
   // Always set active so cleanup CTA appears even before any data lands
   localStorage.setItem(DEMO_ACTIVE_KEY, 'true');
 
