@@ -2029,7 +2029,7 @@ function UsecasesPageInner() {
       );
     }
     return list;
-  }, [search, phaseFilter, categoryFilter, tagFilter, usecases, isSupport, showAllAsSupport]);
+  }, [search, phaseFilter, categoryFilter, tagFilter, usecases, isAuthenticated, isSupport, showAllAsSupport]);
 
   // Group by phase in order
   const grouped = useMemo(() => {
