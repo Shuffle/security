@@ -584,7 +584,7 @@ const HostTerminalPage = () => {
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
       <div className="px-6 py-3 border-b border-border flex items-center gap-3 shrink-0 bg-background">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/monitors')}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(hostUuid ? `/monitors/${encodeURIComponent(hostUuid)}` : '/monitors')}>
           <ArrowLeft size={16} />
         </Button>
         <Terminal size={18} className="text-primary" />
