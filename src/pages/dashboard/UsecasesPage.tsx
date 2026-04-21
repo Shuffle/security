@@ -1710,9 +1710,51 @@ function UsecaseDetailContent({
             {sourceCat?.icon || <ArrowRight size={22} />}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: FG, mb: 1, lineHeight: 1.2 }}>
-              {flow.label}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
+              <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: FG, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
+                {flow.label}
+              </Typography>
+              {canToggle && flow.automationLabel && (
+                <Button
+                  size="small"
+                  variant="contained"
+                  disableElevation
+                  onClick={handleToggle}
+                  disabled={toggling}
+                  startIcon={
+                    toggling ? (
+                      <CircularProgress size={12} sx={{ color: 'inherit' }} />
+                    ) : effectiveEnabled ? (
+                      <PowerOff size={14} />
+                    ) : (
+                      <Power size={14} />
+                    )
+                  }
+                  sx={{
+                    flexShrink: 0,
+                    textTransform: 'none',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    minHeight: 0,
+                    py: 0.6,
+                    px: 1.25,
+                    bgcolor: effectiveEnabled
+                      ? 'hsl(var(--destructive, 0 84% 60%))'
+                      : 'hsl(var(--primary, 24 100% 50%))',
+                    color: effectiveEnabled
+                      ? 'hsl(var(--destructive-foreground, 0 0% 100%))'
+                      : 'hsl(var(--primary-foreground, 0 0% 100%))',
+                    '&:hover': {
+                      bgcolor: effectiveEnabled
+                        ? 'hsla(0, 84%, 60%, 0.9)'
+                        : 'hsla(24, 100%, 50%, 0.9)',
+                    },
+                  }}
+                >
+                  {effectiveEnabled ? 'Disable' : 'Enable'}
+                </Button>
+              )}
+            </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.25 }}>
               <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, px: 1, py: 0.35, borderRadius: 1, bgcolor: accentBg(phaseInfo.color, 0.12), color: accent(phaseInfo.color), border: `1px solid ${accentBg(phaseInfo.color, 0.25)}` }}>
                 Step {phaseInfo.step}: {phaseInfo.label}
