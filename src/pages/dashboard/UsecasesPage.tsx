@@ -2523,8 +2523,8 @@ function UsecaseCard({
         </Box>
       </CardActionArea>
 
-      {/* Hover-revealed Enable/Disable button */}
-      {canToggle && (
+      {/* Hover-revealed Enable/Disable button (or Sign-up CTA for guests) */}
+      {(canToggle || (!isAuthenticated && flow.automationLabel)) && (
         <Box
           className="uc-toggle-btn"
           sx={{
@@ -2536,37 +2536,62 @@ function UsecaseCard({
             transition: 'opacity 0.15s ease',
           }}
         >
-          <Button
-            size="small"
-            variant="contained"
-            disableElevation
-            onClick={handleToggle}
-            disabled={toggling}
-            startIcon={
-              toggling ? (
-                <CircularProgress size={12} sx={{ color: 'inherit' }} />
-              ) : effectiveEnabled ? (
-                <PowerOff size={12} />
-              ) : (
-                <Power size={12} />
-              )
-            }
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              minHeight: 0,
-              py: 0.4,
-              px: 1,
-              bgcolor: effectiveEnabled ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-              color: effectiveEnabled ? 'hsl(var(--destructive-foreground))' : 'hsl(var(--primary-foreground))',
-              '&:hover': {
-                bgcolor: effectiveEnabled ? 'hsl(var(--destructive) / 0.9)' : 'hsl(var(--primary) / 0.9)',
-              },
-            }}
-          >
-            {effectiveEnabled ? 'Disable' : 'Enable'}
-          </Button>
+          {canToggle ? (
+            <Button
+              size="small"
+              variant="contained"
+              disableElevation
+              onClick={handleToggle}
+              disabled={toggling}
+              startIcon={
+                toggling ? (
+                  <CircularProgress size={12} sx={{ color: 'inherit' }} />
+                ) : effectiveEnabled ? (
+                  <PowerOff size={12} />
+                ) : (
+                  <Power size={12} />
+                )
+              }
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                minHeight: 0,
+                py: 0.4,
+                px: 1,
+                bgcolor: effectiveEnabled ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                color: effectiveEnabled ? 'hsl(var(--destructive-foreground))' : 'hsl(var(--primary-foreground))',
+                '&:hover': {
+                  bgcolor: effectiveEnabled ? 'hsl(var(--destructive) / 0.9)' : 'hsl(var(--primary) / 0.9)',
+                },
+              }}
+            >
+              {effectiveEnabled ? 'Disable' : 'Enable'}
+            </Button>
+          ) : (
+            <Button
+              component={Link}
+              to={`/register?returnUrl=${encodeURIComponent(`/usecases?usecase=${flow.id}`)}`}
+              size="small"
+              variant="contained"
+              disableElevation
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              startIcon={<Power size={12} />}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                minHeight: 0,
+                py: 0.4,
+                px: 1,
+                bgcolor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+              }}
+            >
+              Enable
+            </Button>
+          )}
         </Box>
       )}
     </Card>
