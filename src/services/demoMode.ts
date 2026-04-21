@@ -308,7 +308,7 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
     }
   }
 
-  const safetyCategories = [DATASTORE_CATEGORIES.INCIDENTS, DATASTORE_CATEGORIES.ASSETS, DATASTORE_CATEGORIES.USERS, VULNS_CATEGORY];
+  const safetyCategories = [DATASTORE_CATEGORIES.INCIDENTS, DATASTORE_CATEGORIES.ASSETS, DATASTORE_CATEGORIES.USERS, VULNS_CATEGORY, SENSORS_CATEGORY];
   for (const category of safetyCategories) {
     try {
       const res = await getDatastoreByCategory(category);
@@ -329,6 +329,9 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
       }
     } catch { /* best-effort */ }
   }
+
+  // Strip the injected sensor host stub from the environments API.
+  await removeDemoMonitorHostFromEnvs();
 
   localStorage.removeItem(DEMO_FLAG_KEY);
   localStorage.removeItem(DEMO_ACTIVE_KEY);
