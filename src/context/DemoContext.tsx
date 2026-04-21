@@ -11,7 +11,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { seedForStep, cleanupDemoData, isDemoActive, getDemoStats, forceRecreateDemoIncidents, countDemoIncidents } from '@/services/demoMode';
+import { seedForStep, cleanupDemoData, isDemoActive, getDemoStats, forceRecreateDemoIncidents, forceCreateSingleDemoIncident, countDemoIncidents } from '@/services/demoMode';
 import { enableLiveDemoEnvironment } from '@/services/demoLiveEnvironment';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 
@@ -204,6 +204,11 @@ interface DemoContextValue {
   forceCreateIncidents: () => Promise<void>;
   /** True while a force-create is running. */
   isForceCreatingIncidents: boolean;
+  /** Force-generate a single "focus" demo incident (Wazuh / Sliver C2).
+   *  Other incidents arrive later for cross-correlation. */
+  forceGenerateSingleIncident: () => Promise<void>;
+  /** True while the single-incident force-generate is running. */
+  isForceGeneratingSingle: boolean;
   /** True when at least one demo incident is present in the datastore. */
   hasDemoIncidents: boolean;
 }
@@ -229,6 +234,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [stats, setStats] = useState(() => getDemoStats());
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
   const [isForceCreatingIncidents, setIsForceCreatingIncidents] = useState(false);
+  const [isForceGeneratingSingle, setIsForceGeneratingSingle] = useState(false);
   const [hasDemoIncidents, setHasDemoIncidents] = useState(false);
 
   // GA dedupe: each step view fires at most once per session, each completion
@@ -478,7 +484,33 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [refreshStats]);
 
-  // Poll the datastore for demo incidents whenever the demo is active so the
+  const forceGenerateSingleIncident = useCallback(async () => {
+    setIsForceGeneratingSingle(true);
+    try {
+      const added = await forceCreateSingleDemoIncident();
+      refreshStats();
+      const present = await countDemoIncidents();
+      setHasDemoIncidents(present > 0);
+      trackPredefinedEvent(GA_EVENTS.DEMO_FORCE_CREATE_INCIDENTS, added > 0 ? 'success-single' : 'failure-single', present, {
+        added,
+        present,
+        mode: 'single',
+      });
+      if (added > 0) {
+        toast.success('Generated focus incident — others will follow.');
+      } else {
+        toast.error('Could not generate the focus incident. Please try again.');
+      }
+    } catch (err) {
+      trackPredefinedEvent(GA_EVENTS.DEMO_FORCE_CREATE_INCIDENTS, 'error-single', 0, {
+        error: String((err as Error)?.message || 'unknown'),
+        mode: 'single',
+      });
+      toast.error('Failed to generate the focus incident.');
+    } finally {
+      setIsForceGeneratingSingle(false);
+    }
+  }, [refreshStats]);
   // incidents-list step gate flips automatically as soon as data lands. Also
   // re-checks on the demo:refresh broadcast that the seeder fires.
   useEffect(() => {
@@ -535,14 +567,18 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     startDemo, openTour, closeTour, minimizeTour, restoreTour, toggleDock, setDock,
     nextStep, prevStep, goToStep, cleanup,
     markStepCompleted, setStepCompleted,
-    forceCreateIncidents, isForceCreatingIncidents, hasDemoIncidents,
+    forceCreateIncidents, isForceCreatingIncidents,
+    forceGenerateSingleIncident, isForceGeneratingSingle,
+    hasDemoIncidents,
   }), [
     active, isSeeding, isCleaning, drawerOpen, minimized, dock, step, stats,
     completedSteps, currentStepUnlocked,
     startDemo, openTour, closeTour, minimizeTour, restoreTour, toggleDock, setDock,
     nextStep, prevStep, goToStep, cleanup,
     markStepCompleted, setStepCompleted,
-    forceCreateIncidents, isForceCreatingIncidents, hasDemoIncidents,
+    forceCreateIncidents, isForceCreatingIncidents,
+    forceGenerateSingleIncident, isForceGeneratingSingle,
+    hasDemoIncidents,
   ]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
