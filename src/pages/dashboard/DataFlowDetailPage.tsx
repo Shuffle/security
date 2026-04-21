@@ -192,13 +192,34 @@ const ConnectionEndpoint = ({
   );
 };
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Reusable detail content ────────────────────────────────────────────────────
+// Exported so it can be embedded in a drawer (e.g. from /usecases) and reused
+// across platforms by copying this single file.
 
-const DataFlowDetailPage = () => {
-  const { flowId } = useParams<{ flowId: string }>();
+export interface UsecaseDetailContentProps {
+  /** Usecase / data flow ID to render */
+  flowId: string | undefined;
+  /** When true, suppresses the back-to-Automations nav (e.g. when shown in a drawer) */
+  hideBackNav?: boolean;
+  /** When true, suppresses prev/next pagination at the bottom */
+  hidePrevNext?: boolean;
+  /** Override navigation (e.g. close drawer + push) for prev/next + not-found */
+  onNavigateUsecase?: (flowId: string) => void;
+}
+
+export const UsecaseDetailContent = ({
+  flowId,
+  hideBackNav = false,
+  hidePrevNext = false,
+  onNavigateUsecase,
+}: UsecaseDetailContentProps) => {
   const navigate = useNavigate();
   const { usecases } = useUsecases();
   const flow = usecases.find(f => f.id === flowId);
+  const goToUsecase = (id: string) => {
+    if (onNavigateUsecase) onNavigateUsecase(id);
+    else navigate(`/usecases/${id}`);
+  };
 
   // Fetch apps from API and match to categories
   const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
