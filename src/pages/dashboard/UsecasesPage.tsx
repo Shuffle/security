@@ -1753,7 +1753,7 @@ function UsecaseDetailContent({
           <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
             <Button
               component={Link}
-              to={`/register?returnUrl=${encodeURIComponent(`/usecases?usecase=${flow.id}`)}`}
+              to={`/register?returnUrl=${encodeURIComponent(`/usecases/${encodeURIComponent(flow.label)}`)}`}
               variant="contained"
               disableElevation
               endIcon={<ArrowRight size={16} />}
@@ -1773,7 +1773,7 @@ function UsecaseDetailContent({
             </Button>
             <Button
               component={Link}
-              to={`/login?returnUrl=${encodeURIComponent(`/usecases?usecase=${flow.id}`)}`}
+              to={`/login?returnUrl=${encodeURIComponent(`/usecases/${encodeURIComponent(flow.label)}`)}`}
               variant="text"
               sx={{
                 textTransform: 'none',
@@ -2686,7 +2686,7 @@ function UsecaseCard({
           ) : (
             <Button
               component={Link}
-              to={`/register?returnUrl=${encodeURIComponent(`/usecases?usecase=${flow.id}`)}`}
+              to={`/register?returnUrl=${encodeURIComponent(`/usecases/${encodeURIComponent(flow.label)}`)}`}
               size="small"
               variant="contained"
               disableElevation
