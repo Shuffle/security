@@ -444,9 +444,9 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
               ...(layout === 'grid' ? { display: 'grid' } : {}),
             }}
           >
-            {results.length > 0 ? (
+            {displayResults.length > 0 ? (
               <>
-                {results.map((app, index) => renderAppItem(app, index))}
+                {displayResults.map((app, index) => renderAppItem(app, index))}
                 <div className="singul-end-of-results" style={{
                   padding: '10px 16px',
                   color: 'rgba(255, 255, 255, 0.3)',
@@ -483,8 +483,8 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
               ...(layout === 'grid' ? { display: 'grid' } : {}),
             }}
           >
-            {results.length > 0 ? (
-              results.map((app, index) => renderAppItem(app, index))
+            {displayResults.length > 0 ? (
+              displayResults.map((app, index) => renderAppItem(app, index))
             ) : (
               <div className="singul-empty-state" style={customStyles.emptyState}>
                 {renderEmptyState ? (
