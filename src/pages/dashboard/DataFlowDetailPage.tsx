@@ -400,8 +400,8 @@ const DataFlowDetailPage = () => {
             </Box>
           )}
         </Box>
-        {/* Coming soon badge — top right of hero */}
-        {!['siem_case_management_1', 'edr_case_management_1', 'email_case_management_1'].includes(flow.id) && (
+        {/* Coming soon badge — top right of hero. Hidden for fully-routed flows and custom actions. */}
+        {!flow.customAction && !['siem_case_management_1', 'edr_case_management_1', 'email_case_management_1'].includes(flow.id) && (
           <Box sx={{
             position: 'absolute',
             top: 16,
