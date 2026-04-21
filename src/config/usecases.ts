@@ -665,3 +665,94 @@ export function getUsecasesByArea(area: string, usecases: Usecase[] = DEFAULT_US
 export function getUsecasesByPhase(phase: FlowPhase, usecases: Usecase[] = DEFAULT_USECASES): Usecase[] {
   return usecases.filter(uc => uc.phase === phase);
 }
+
+// ── Exportable JSON shape ─────────────────────────────────────────────────────
+//
+// A flat, portable representation of the usecase registry shaped as:
+//   [{ name, description, color, list: [{ name, type, destination, running, disabled, ... }] }]
+//
+// Used by the "Export JSON" action on the Automations page. The same shape can
+// also be used to seed/replace usecases from an external file.
+
+export interface UsecaseJsonEntry {
+  /** Display label (e.g. "SIEM alerts") */
+  name: string;
+  /** Source category label (e.g. "SIEM") */
+  type: string;
+  /** Target category label (e.g. "Case Management") */
+  destination: string;
+  /** True when an underlying workflow exists / is enabled */
+  running: boolean;
+  /** True when the usecase is hidden from regular users (no `animated` flag) */
+  disabled: boolean;
+  /** Stable ID — needed to round-trip back into the registry */
+  id: string;
+  /** Source / target raw category IDs (for re-import) */
+  source_id: string;
+  target_id: string;
+  /** Free-form tags (Alert, Detection, Logs, …) */
+  tags: string[];
+  description: string;
+  agentic_description: string;
+  /** Workflow label sent to /api/v2/workflows/generate (when toggleable) */
+  automation_label?: string;
+  automation_category?: string;
+  automation_area?: Usecase['automationArea'];
+  /** Manual verification required (e.g. log forwarding) */
+  manual_verification?: boolean;
+}
+
+export interface UsecaseCategoryJson {
+  /** Phase label (e.g. "Ingest & Tool Setup") */
+  name: string;
+  description: string;
+  /** Resolved CSS color string (HSL var reference, e.g. "hsl(var(--infra-siem))") */
+  color: string;
+  /** Phase ID — kept for round-trip imports */
+  phase: FlowPhase;
+  /** Phase order (1, 2, 3) */
+  step: number;
+  list: UsecaseJsonEntry[];
+}
+
+const labelFor = (categoryId: string): string =>
+  TOOL_CATEGORIES.find(c => c.id === categoryId)?.label || categoryId;
+
+/**
+ * Convert the in-memory usecase registry into the portable JSON shape.
+ *
+ * @param usecases       The current (possibly API-enriched) usecase list.
+ * @param enabledLabels  Optional set of `automationLabel`s known to have a
+ *                       running workflow — used to populate `running: true`.
+ */
+export function getUsecasesJson(
+  usecases: Usecase[] = DEFAULT_USECASES,
+  enabledLabels?: Set<string>,
+): UsecaseCategoryJson[] {
+  return FLOW_PHASES.map(phase => ({
+    name: phase.label,
+    description: phase.subtitle,
+    color: `hsl(var(${phase.color}))`,
+    phase: phase.id,
+    step: phase.step,
+    list: usecases
+      .filter(uc => uc.phase === phase.id)
+      .map<UsecaseJsonEntry>(uc => ({
+        name: uc.label,
+        type: labelFor(uc.source),
+        destination: labelFor(uc.target),
+        running: !!(uc.automationLabel && enabledLabels?.has(uc.automationLabel)),
+        disabled: uc.animated !== true,
+        id: uc.id,
+        source_id: uc.source,
+        target_id: uc.target,
+        tags: uc.tags,
+        description: uc.description,
+        agentic_description: uc.agenticDescription,
+        ...(uc.automationLabel ? { automation_label: uc.automationLabel } : {}),
+        ...(uc.automationCategory ? { automation_category: uc.automationCategory } : {}),
+        ...(uc.automationArea ? { automation_area: uc.automationArea } : {}),
+        ...(uc.manualVerification ? { manual_verification: true } : {}),
+      })),
+  }));
+}

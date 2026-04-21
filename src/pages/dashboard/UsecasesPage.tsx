@@ -20,12 +20,13 @@ import {
   Button,
   CircularProgress,
 } from '@mui/material';
-import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff } from 'lucide-react';
+import { Search, ArrowRight, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
   FLOW_PHASES,
   TOOL_CATEGORIES,
+  getUsecasesJson,
   type FlowPhase,
   type Usecase,
 } from '@/config/usecases';
@@ -76,6 +77,26 @@ export default function UsecasesPage() {
     }
     return set;
   }, [workflows, usecases]);
+
+  // Export the current usecase registry (with live `running` state) as JSON.
+  const handleExportJson = () => {
+    try {
+      const json = getUsecasesJson(usecases, enabledLabels);
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `automations-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Automations exported');
+    } catch (err) {
+      console.error('[UsecasesPage] export failed', err);
+      toast.error('Failed to export automations');
+    }
+  };
 
   // Collect unique tags across all usecases
   const allTags = useMemo(() => {
@@ -136,34 +157,65 @@ export default function UsecasesPage() {
             All data flows across your security stack — grouped by implementation phase.
           </Typography>
         </Box>
-        <Box
-          component={Link}
-          to="/infrastructure"
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 1,
-            px: 2,
-            py: 1,
-            borderRadius: 1.5,
-            border: '1px solid hsl(var(--border))',
-            bgcolor: 'hsl(var(--card))',
-            color: 'hsl(var(--foreground))',
-            textDecoration: 'none',
-            fontSize: '0.85rem',
-            fontWeight: 500,
-            transition: 'all 0.15s ease',
-            whiteSpace: 'nowrap',
-            '&:hover': {
-              bgcolor: 'hsl(var(--muted))',
-              borderColor: 'hsl(var(--primary) / 0.4)',
-              boxShadow: '0 2px 8px hsl(var(--primary) / 0.1)',
-            },
-          }}
-        >
-          <Network size={16} />
-          Infrastructure
-          <ArrowRight size={14} style={{ opacity: 0.5 }} />
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Box
+            component="button"
+            onClick={handleExportJson}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              borderRadius: 1.5,
+              border: '1px solid hsl(var(--border))',
+              bgcolor: 'hsl(var(--card))',
+              color: 'hsl(var(--foreground))',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              fontFamily: 'inherit',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: 'hsl(var(--muted))',
+                borderColor: 'hsl(var(--primary) / 0.4)',
+                boxShadow: '0 2px 8px hsl(var(--primary) / 0.1)',
+              },
+            }}
+          >
+            <FileJson size={16} />
+            Export JSON
+          </Box>
+          <Box
+            component={Link}
+            to="/infrastructure"
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              borderRadius: 1.5,
+              border: '1px solid hsl(var(--border))',
+              bgcolor: 'hsl(var(--card))',
+              color: 'hsl(var(--foreground))',
+              textDecoration: 'none',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: 'hsl(var(--muted))',
+                borderColor: 'hsl(var(--primary) / 0.4)',
+                boxShadow: '0 2px 8px hsl(var(--primary) / 0.1)',
+              },
+            }}
+          >
+            <Network size={16} />
+            Infrastructure
+            <ArrowRight size={14} style={{ opacity: 0.5 }} />
+          </Box>
         </Box>
       </Box>
 
