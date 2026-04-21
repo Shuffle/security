@@ -443,11 +443,13 @@ const Section = forwardRef<HTMLDivElement, {
           <Chip 
             label={badge} 
             size="small" 
+            variant="outlined"
             sx={{ 
               height: 20, 
               fontSize: '0.7rem',
-              bgcolor: '#ff6600',
-              color: '#ffffff',
+              bgcolor: 'transparent',
+              color: '#ff6600',
+              borderColor: 'rgba(255, 102, 0, 0.4)',
             }} 
           />
         )}
