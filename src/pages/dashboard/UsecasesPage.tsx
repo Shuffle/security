@@ -826,7 +826,7 @@ export default function UsecasesPage() {
             }}
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <IntegrationStatus collapsed={false} showAll hideAddButton hideHeader />
+              <IntegrationStatusLite />
             </Box>
             <Button
               component={Link}
@@ -1091,6 +1091,7 @@ export default function UsecasesPage() {
             flowId={drawerFlowId ?? undefined}
             hideBackNav
             onNavigateUsecase={(id) => setDrawerFlowId(id || null)}
+            usecases={usecases}
           />
         </Box>
       </Drawer>
