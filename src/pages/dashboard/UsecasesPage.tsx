@@ -2040,6 +2040,18 @@ function UsecasesPageInner() {
   const [searchParams, setSearchParams] = useSearchParams();
   const routeParams = useParams<{ flowId?: string }>();
 
+  // Locally-remembered usecase interests — survive the not-logged-in →
+  // logged-in transition (and pre-fill before the first /getinfo lands).
+  const [localInterests, setLocalInterests] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('shuffle_usecase_interests');
+      const list = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(list) ? list : []);
+    } catch {
+      return new Set();
+    }
+  });
+
   // Drawer is driven by the route segment /usecases/:flowId where the segment
   // is the URL-encoded usecase label (human-readable name). We resolve it back
   // to a flow id by matching against `flow.label`.
