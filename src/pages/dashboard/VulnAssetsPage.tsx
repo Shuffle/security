@@ -1400,7 +1400,10 @@ const VulnAssetsPage = () => {
             {addHostStep === 'checks' ? (
               <Button
                 size="sm"
-                onClick={() => setAddHostStep('deploy')}
+                onClick={() => {
+                  trackPredefinedEvent(GA_EVENTS.MONITOR_ADD_HOST_DEPLOY, hostPlatform);
+                  setAddHostStep('deploy');
+                }}
                 disabled={Object.values(hostChecks).every(v => !v) || !selectedGroupId}
               >
                 Next: Deploy
