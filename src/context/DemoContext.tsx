@@ -484,7 +484,33 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [refreshStats]);
 
-  // Poll the datastore for demo incidents whenever the demo is active so the
+  const forceGenerateSingleIncident = useCallback(async () => {
+    setIsForceGeneratingSingle(true);
+    try {
+      const added = await forceCreateSingleDemoIncident();
+      refreshStats();
+      const present = await countDemoIncidents();
+      setHasDemoIncidents(present > 0);
+      trackPredefinedEvent(GA_EVENTS.DEMO_FORCE_CREATE_INCIDENTS, added > 0 ? 'success-single' : 'failure-single', present, {
+        added,
+        present,
+        mode: 'single',
+      });
+      if (added > 0) {
+        toast.success('Generated focus incident — others will follow.');
+      } else {
+        toast.error('Could not generate the focus incident. Please try again.');
+      }
+    } catch (err) {
+      trackPredefinedEvent(GA_EVENTS.DEMO_FORCE_CREATE_INCIDENTS, 'error-single', 0, {
+        error: String((err as Error)?.message || 'unknown'),
+        mode: 'single',
+      });
+      toast.error('Failed to generate the focus incident.');
+    } finally {
+      setIsForceGeneratingSingle(false);
+    }
+  }, [refreshStats]);
   // incidents-list step gate flips automatically as soon as data lands. Also
   // re-checks on the demo:refresh broadcast that the seeder fires.
   useEffect(() => {
