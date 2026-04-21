@@ -1552,6 +1552,7 @@ function UsecaseDetailContent({
   usecases,
   isEnabled = false,
   canToggle = false,
+  isAuthenticated = true,
   onToggled,
 }: {
   flowId: string | undefined;
@@ -1563,6 +1564,8 @@ function UsecaseDetailContent({
   isEnabled?: boolean;
   /** Whether the Enable/Disable button should be shown (auth + automationLabel) */
   canToggle?: boolean;
+  /** Whether the viewer is logged in — drives the guest CTA banner */
+  isAuthenticated?: boolean;
   /** Called after a successful toggle so the parent can refetch workflows */
   onToggled?: () => void;
 }) {
