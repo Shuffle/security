@@ -5,8 +5,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Button } from '@/components/ui/button';
 import {
   HardDrive, Lock, Package, Zap, ChevronRight, ChevronDown,
-  Hash, Cpu, Send, ShieldCheck, ShieldX, FileCode, ScanLine,
+  Hash, Cpu, Send, ShieldCheck, ShieldX, FileCode, ScanLine, AlertTriangle,
 } from 'lucide-react';
+import type { Vulnerability, VulnSeverity } from '@/hooks/useVulnerabilities';
 
 /**
  * Click handler that mimics <a> behavior:
@@ -66,7 +67,21 @@ interface HostDetailPanelProps {
   hostname?: string;
   groupName?: string;
   mode?: string;
+  /** Open vulnerabilities scoped to this host. When provided, badges render at host, software, and package levels. */
+  vulnerabilities?: Vulnerability[];
 }
+
+const SEV_ORDER: VulnSeverity[] = ['critical', 'high', 'medium', 'low', 'info'];
+const SEV_CLASSES: Record<VulnSeverity, string> = {
+  critical: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30',
+  high: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30',
+  medium: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
+  low: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+  info: 'bg-muted text-muted-foreground border-border',
+};
+
+const normalize = (s: string) => s.toLowerCase().trim();
+const stripVersion = (s: string) => s.toLowerCase().trim().replace(/[@:]\d.*$/, '');
 
 const stateOf = (v: boolean | string | undefined): 'on' | 'off' => {
   if (v === true || v === 'true') return 'on';
@@ -82,7 +97,7 @@ const fmtRaw = (v: unknown): string => {
   return String(v);
 };
 
-export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false, hostUuid, hostname, groupName, mode }: HostDetailPanelProps) => {
+export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections = false, hostUuid, hostname, groupName, mode, vulnerabilities }: HostDetailPanelProps) => {
   const navigate = useNavigate();
   const resolvedUuid = hostUuid || (host.uuid as string | undefined);
   const resolvedHostname = hostname || (host.hostname as string | undefined);
@@ -115,6 +130,83 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const raLower = String(responseActionsRaw ?? '').toLowerCase().trim();
   const responseActionsOn = !!responseActionsRaw && raLower !== 'false' && raLower !== '0' && raLower !== 'no' && raLower !== 'off';
   const logForwardingOn = !!host.log_forwarding;
+
+  // ── Vulnerability matching ──────────────────────────────────────────────
+  // `vulnerabilities` is already pre-filtered to this host by the caller.
+  // We further classify each vuln so we can render badges next to the matching
+  // installed-software / code-scanner row.
+  const openVulns = (vulnerabilities || []).filter(v => v.status === 'open' || v.status === 'in_progress');
+  const sevCounts: Record<VulnSeverity, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const v of openVulns) sevCounts[v.severity] = (sevCounts[v.severity] || 0) + 1;
+  const totalOpenVulns = openVulns.length;
+
+  const vulnsBySoftwareName = new Map<string, Vulnerability[]>();
+  const vulnsByCodePath = new Map<string, Vulnerability[]>();
+  const vulnsByCodePackage = new Map<string, Vulnerability[]>();
+  for (const v of openVulns) {
+    const pname = v.package_name ? normalize(v.package_name) : '';
+    if (pname) {
+      const list = vulnsBySoftwareName.get(pname) || [];
+      list.push(v);
+      vulnsBySoftwareName.set(pname, list);
+      const plist = vulnsByCodePackage.get(pname) || [];
+      plist.push(v);
+      vulnsByCodePackage.set(pname, plist);
+    }
+    for (const p of v.paths || []) {
+      if (!p.path) continue;
+      const key = normalize(p.path);
+      const list = vulnsByCodePath.get(key) || [];
+      list.push(v);
+      vulnsByCodePath.set(key, list);
+    }
+  }
+
+  const SeverityBadgeRow = ({ counts, size = 'sm' }: { counts: Record<VulnSeverity, number>; size?: 'sm' | 'xs' }) => {
+    const pad = size === 'xs' ? 'px-1.5 py-0.5 text-[0.6rem]' : 'px-2 py-0.5 text-[0.65rem]';
+    return (
+      <div className="inline-flex items-center gap-1">
+        {SEV_ORDER.filter(s => counts[s] > 0).map(s => (
+          <span key={s} className={`inline-flex items-center gap-0.5 rounded border font-medium ${pad} ${SEV_CLASSES[s]}`}>
+            {counts[s]} {s.charAt(0).toUpperCase()}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+  const RowVulnBadge = ({ vulns }: { vulns: Vulnerability[] }) => {
+    if (!vulns || vulns.length === 0) return null;
+    const counts: Record<VulnSeverity, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    for (const v of vulns) counts[v.severity] = (counts[v.severity] || 0) + 1;
+    const top = SEV_ORDER.find(s => counts[s] > 0) || 'info';
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[0.6rem] font-medium cursor-help ${SEV_CLASSES[top]}`}>
+              <AlertTriangle size={9} />
+              {vulns.length} vuln{vulns.length !== 1 ? 's' : ''}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="z-[9999] max-w-xs">
+            <div className="space-y-1">
+              <p className="text-[0.65rem] font-semibold">Open vulnerabilities</p>
+              <div className="space-y-0.5">
+                {vulns.slice(0, 6).map(v => (
+                  <p key={v.id} className="text-[0.6rem] font-mono">
+                    <span className={`uppercase mr-1 ${SEV_CLASSES[v.severity].split(' ').filter(c => c.startsWith('text-')).join(' ')}`}>{v.severity}</span>
+                    {v.cve_id || v.record_id || v.id.split('::')[0]}
+                  </p>
+                ))}
+                {vulns.length > 6 && <p className="text-[0.6rem] text-muted-foreground italic">+ {vulns.length - 6} more</p>}
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
 
   const wrapperClass = variant === 'page'
     ? 'rounded-lg border border-border bg-card p-5 space-y-5'
@@ -257,7 +349,23 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
         </div>
       </TooltipProvider>
 
-      {/* Installed Software */}
+      {/* Host-level vulnerability summary */}
+      {vulnerabilities !== undefined && (
+        <div className={`rounded-md border p-3 ${totalOpenVulns > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-border bg-muted/20'}`}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={14} className={totalOpenVulns > 0 ? 'text-red-500' : 'text-muted-foreground'} />
+              <span className="text-xs font-semibold text-foreground">
+                {totalOpenVulns > 0
+                  ? `${totalOpenVulns} open vulnerabilit${totalOpenVulns === 1 ? 'y' : 'ies'} on this host`
+                  : 'No open vulnerabilities on this host'}
+              </span>
+            </div>
+            {totalOpenVulns > 0 && <SeverityBadgeRow counts={sevCounts} />}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         {collapsibleSections ? (
           <button onClick={() => setSoftwareOpen(!softwareOpen)} className="flex items-center gap-2 w-full text-left hover:bg-muted/20 rounded px-1 py-0.5 -mx-1 transition-colors">
@@ -311,18 +419,26 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                       <tbody className="divide-y divide-border">
                         {filtered.length === 0 ? (
                           <tr><td colSpan={3} className="px-3 py-3 text-center text-muted-foreground italic">No matches</td></tr>
-                        ) : filtered.map((sw, idx) => (
-                          <tr
-                            key={idx}
-                            className="hover:bg-muted/20 cursor-pointer"
-                            onClick={(e) => sw.name && handleEntityClick(e, `/software/${encodeURIComponent(sw.name)}`, navigate)}
-                            onAuxClick={(e) => sw.name && e.button === 1 && window.open(`/software/${encodeURIComponent(sw.name)}`, '_blank')}
-                          >
-                            <td className="px-3 py-1.5 font-medium text-foreground">{sw.name || '—'}</td>
-                            <td className="px-3 py-1.5 font-mono text-muted-foreground">{(sw.version as string) || '—'}</td>
-                            <td className="px-3 py-1.5 text-muted-foreground">{(sw.source as string) || '—'}</td>
-                          </tr>
-                        ))}
+                        ) : filtered.map((sw, idx) => {
+                          const swVulns = sw.name ? vulnsBySoftwareName.get(normalize(String(sw.name))) || [] : [];
+                          return (
+                            <tr
+                              key={idx}
+                              className="hover:bg-muted/20 cursor-pointer"
+                              onClick={(e) => sw.name && handleEntityClick(e, `/software/${encodeURIComponent(sw.name)}`, navigate)}
+                              onAuxClick={(e) => sw.name && e.button === 1 && window.open(`/software/${encodeURIComponent(sw.name)}`, '_blank')}
+                            >
+                              <td className="px-3 py-1.5 font-medium text-foreground">
+                                <span className="inline-flex items-center gap-2">
+                                  {sw.name || '—'}
+                                  <RowVulnBadge vulns={swVulns} />
+                                </span>
+                              </td>
+                              <td className="px-3 py-1.5 font-mono text-muted-foreground">{(sw.version as string) || '—'}</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{(sw.source as string) || '—'}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -379,6 +495,20 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                     ) : filtered.map((proj, pi) => {
                       const isExpanded = expandedCodePaths.has(proj.path);
                       const pkgCount = proj.packages?.length || 0;
+                      // Aggregate vulns at the project level: any package matching by name OR a path matching this project root.
+                      const projVulnSet = new Map<string, Vulnerability>();
+                      const projPathKey = normalize(proj.path || '');
+                      for (const v of openVulns) {
+                        if (v.package_name && (proj.packages || []).some(p => normalize(p.name || '') === normalize(v.package_name!))) {
+                          projVulnSet.set(v.id, v);
+                        }
+                        for (const pp of v.paths || []) {
+                          if (pp.path && normalize(pp.path).startsWith(projPathKey) && projPathKey) {
+                            projVulnSet.set(v.id, v);
+                          }
+                        }
+                      }
+                      const projVulns = Array.from(projVulnSet.values());
                       return (
                         <div key={pi} className="border-b border-border last:border-b-0">
                           <div className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/20 transition-colors">
@@ -408,6 +538,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                               </span>
                               <span className="text-xs font-mono font-medium text-foreground truncate flex-1">{proj.path}</span>
                               <span className="text-[0.65rem] text-muted-foreground shrink-0">{pkgCount} pkg{pkgCount !== 1 ? 's' : ''}</span>
+                              <RowVulnBadge vulns={projVulns} />
                             </button>
                             {canRunCbom && (
                               <TooltipProvider delayDuration={200}>
@@ -442,17 +573,25 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                  {proj.packages.map((pkg, ki) => (
-                                    <tr
-                                      key={ki}
-                                      className="hover:bg-muted/20 cursor-pointer"
-                                      onClick={(e) => pkg.name && handleEntityClick(e, `/packages/${encodeURIComponent(pkg.name)}`, navigate)}
-                                      onAuxClick={(e) => pkg.name && e.button === 1 && window.open(`/packages/${encodeURIComponent(pkg.name)}`, '_blank')}
-                                    >
-                                      <td className="px-3 py-1.5 font-medium text-foreground">{pkg.name || '—'}</td>
-                                      <td className="px-3 py-1.5 font-mono text-muted-foreground">{pkg.version || '—'}</td>
-                                    </tr>
-                                  ))}
+                                  {proj.packages.map((pkg, ki) => {
+                                    const pkgVulns = pkg.name ? vulnsByCodePackage.get(normalize(pkg.name)) || [] : [];
+                                    return (
+                                      <tr
+                                        key={ki}
+                                        className="hover:bg-muted/20 cursor-pointer"
+                                        onClick={(e) => pkg.name && handleEntityClick(e, `/packages/${encodeURIComponent(pkg.name)}`, navigate)}
+                                        onAuxClick={(e) => pkg.name && e.button === 1 && window.open(`/packages/${encodeURIComponent(pkg.name)}`, '_blank')}
+                                      >
+                                        <td className="px-3 py-1.5 font-medium text-foreground">
+                                          <span className="inline-flex items-center gap-2">
+                                            {pkg.name || '—'}
+                                            <RowVulnBadge vulns={pkgVulns} />
+                                          </span>
+                                        </td>
+                                        <td className="px-3 py-1.5 font-mono text-muted-foreground">{pkg.version || '—'}</td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>

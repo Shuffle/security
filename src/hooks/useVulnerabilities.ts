@@ -13,6 +13,8 @@ export type VulnAssetType = 'asset' | 'user';
 
 export interface Vulnerability {
   id: string;
+  /** Stable record id without the per-host suffix (e.g. CVE-2024-xxxx) */
+  record_id?: string;
   title: string;
   description?: string;
   severity: VulnSeverity;
@@ -23,6 +25,12 @@ export interface Vulnerability {
   asset_id?: string;
   asset_name?: string;
   cve_id?: string;
+  /** OSV affected package name (preserved separately from asset_id when host-scoped) */
+  package_name?: string;
+  /** OSV affected package ecosystem (e.g. PyPI, npm) */
+  ecosystem?: string;
+  /** Per-host install paths from the OSV record */
+  paths?: Array<{ path?: string; version?: string; last_seen?: string }>;
   remediation?: string;
   first_seen?: string;
   last_seen?: string;
@@ -82,6 +90,7 @@ function parseRecord(raw: any): Vulnerability[] {
       if (hosts.length === 0) {
         return [{
           id: data.id,
+          record_id: data.id,
           title,
           description,
           severity,
@@ -92,6 +101,8 @@ function parseRecord(raw: any): Vulnerability[] {
           asset_id: pkgName,
           asset_name: pkgName,
           cve_id: cveId,
+          package_name: pkgName,
+          ecosystem: ecosystem || undefined,
           first_seen: firstSeen,
           last_seen: lastSeen,
           resolved_at: rootResolvedAt,
@@ -109,6 +120,7 @@ function parseRecord(raw: any): Vulnerability[] {
         const resolvedAt = hasHostResolution ? (hostResolution.at || '') : rootResolvedAt;
         return {
           id: `${data.id}::${h.hostname}`,
+          record_id: data.id,
           title,
           description,
           severity,
@@ -119,6 +131,9 @@ function parseRecord(raw: any): Vulnerability[] {
           asset_id: h.hostname,
           asset_name: h.hostname,
           cve_id: cveId,
+          package_name: pkgName,
+          ecosystem: ecosystem || undefined,
+          paths: Array.isArray(h.paths) ? h.paths : undefined,
           first_seen: firstSeen,
           last_seen: lastSeen,
           resolved_at: resolvedAt,

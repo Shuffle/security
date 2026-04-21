@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Laptop, ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { useHostActions } from '@/hooks/useHostActions';
+import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { HostActionPopover } from '@/components/monitors/HostActionPopover';
 import { HostDetailPanel } from '@/components/monitors/HostDetailPanel';
 import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirmDialog';
@@ -154,6 +155,17 @@ const MonitorDetailPage = () => {
   // Shared host action state — same hook used by /monitors list view
   const hostActions = useHostActions({ onActionComplete: fetchHost });
 
+  // Cross-load vulnerabilities and filter to this host (by hostname, with domain-stripped fallback)
+  const { vulnerabilities: allVulns, hasFetched: vulnsFetched } = useVulnerabilities({ tab: 'assets' });
+  const hostVulnerabilities = useMemo(() => {
+    if (!host) return undefined;
+    if (!vulnsFetched) return undefined; // undefined → don't render the summary block yet
+    const stripDomain = (h: string) => h.toLowerCase().trim().replace(/\.(local|lan|home|internal|corp)$/i, '');
+    const target = stripDomain(host.hostname || '');
+    if (!target) return [];
+    return allVulns.filter(v => v.asset_name && stripDomain(v.asset_name) === target);
+  }, [allVulns, vulnsFetched, host]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -233,6 +245,7 @@ const MonitorDetailPage = () => {
         hostUuid={host.uuid}
         hostname={host.hostname}
         groupName={groupName}
+        vulnerabilities={hostVulnerabilities}
       />
 
       <DisableRceConfirmDialog
