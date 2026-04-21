@@ -1721,7 +1721,7 @@ function UsecaseDetailContent({
     else {
       const target = usecases.find((u) => u.id === id);
       const seg = target?.label || id;
-      navigate(`/usecases/${encodeURIComponent(seg)}`);
+      navigate(`/usecases/${slugify(seg)}`);
     }
   };
 
@@ -1790,7 +1790,7 @@ function UsecaseDetailContent({
           <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
             <Button
               component={Link}
-              to={`/register?returnUrl=${encodeURIComponent(`/usecases/${encodeURIComponent(flow.label)}`)}`}
+              to={`/register?returnUrl=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
               variant="contained"
               disableElevation
               endIcon={<ArrowRight size={16} />}
@@ -1810,7 +1810,7 @@ function UsecaseDetailContent({
             </Button>
             <Button
               component={Link}
-              to={`/login?returnUrl=${encodeURIComponent(`/usecases/${encodeURIComponent(flow.label)}`)}`}
+              to={`/login?returnUrl=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
               variant="text"
               sx={{
                 textTransform: 'none',
@@ -2055,31 +2055,30 @@ function UsecasesPageInner() {
   // Drawer state — local source of truth so it works regardless of how the
   // host app wires routes. We still sync to/from /usecases/:flowId so refreshes
   // and deep-links open the drawer.
+  //
+  // URL slug convention: lowercase + underscores (e.g. /usecases/siem_alerts).
+  // We still accept legacy URL-encoded labels ("SIEM%20alerts") for back-compat.
   const drawerLabel = routeParams.flowId ? decodeURIComponent(routeParams.flowId) : null;
   const [drawerFlowId, setDrawerFlowIdState] = useState<string | null>(null);
 
-  // Resolve a label from the URL to a flow id once usecases load (and whenever
-  // the URL segment changes). Match is permissive — slugified comparison, plus
-  // exact / case-insensitive / id fallbacks — so deep-links keep working even
-  // when the host platform's backend renames the usecase or formats it
-  // slightly differently (e.g. "siem_alerts" vs "SIEM alerts").
+  // Resolve a slug/label from the URL to a flow id once usecases load (and
+  // whenever the URL segment changes). Match is permissive so deep-links keep
+  // working even when the backend renames or reformats the usecase.
   useEffect(() => {
     if (!drawerLabel) {
       setDrawerFlowIdState(null);
       return;
     }
-    const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
-    const target = norm(drawerLabel);
+    const target = slugify(drawerLabel);
     const match =
-      usecases.find(u => u.label === drawerLabel) ||
-      usecases.find(u => u.label && norm(u.label) === target) ||
-      usecases.find(u => u.id && norm(u.id) === target) ||
-      usecases.find(u => u.label && norm(u.label).includes(target)) ||
-      usecases.find(u => u.label && target.includes(norm(u.label)));
+      usecases.find(u => u.label && slugify(u.label) === target) ||
+      usecases.find(u => u.id && slugify(u.id) === target) ||
+      usecases.find(u => u.label && slugify(u.label).includes(target)) ||
+      usecases.find(u => u.label && target.includes(slugify(u.label)));
     if (match) {
       setDrawerFlowIdState(match.id);
     } else if (usecases.length > 0) {
-      console.warn('[UsecasesPage] No matching usecase for URL label:', drawerLabel,
+      console.warn('[UsecasesPage] No matching usecase for URL slug:', drawerLabel,
         '— available labels:', usecases.map(u => u.label));
     }
   }, [drawerLabel, usecases]);
@@ -2092,6 +2091,7 @@ function UsecasesPageInner() {
     }
     const flow = usecases.find(u => u.id === id);
     const name = flow?.label || id;
+    const slug = slugify(name);
     // Persist locally so the "Interest shown" indicator survives the
     // not-logged-in → logged-in transition (the API call below is a no-op
     // for guests, so without this we'd lose the signal entirely).
@@ -2114,7 +2114,7 @@ function UsecasesPageInner() {
         .catch(() => { /* ignore */ });
     } catch { /* ignore */ }
     navigate({
-      pathname: `/usecases/${encodeURIComponent(name)}`,
+      pathname: `/usecases/${slug}`,
       search: searchParams.toString() ? `?${searchParams.toString()}` : '',
     });
   };
@@ -2514,7 +2514,7 @@ function UsecasesPageInner() {
                 onClick={() => {
                   const id = drawerFlowId;
                   const name = usecases.find(u => u.id === id)?.label || id || '';
-                  window.open(`https://security.shuffler.io/usecases/${encodeURIComponent(name)}/details`, '_blank', 'noopener,noreferrer');
+                  window.open(`https://security.shuffler.io/usecases/${slugify(name)}/details`, '_blank', 'noopener,noreferrer');
                 }}
                 endIcon={<ExternalLink size={14} />}
                 sx={{
@@ -2745,7 +2745,7 @@ function UsecaseCard({
           ) : (
             <Button
               component={Link}
-              to={`/register?returnUrl=${encodeURIComponent(`/usecases/${encodeURIComponent(flow.label)}`)}`}
+              to={`/register?returnUrl=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
               size="small"
               variant="contained"
               disableElevation
