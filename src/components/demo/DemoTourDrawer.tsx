@@ -389,15 +389,17 @@ export const DemoTourDrawer = () => {
                         ? current.subGoals.map(g => ({
                             id: g.id,
                             label: g.label,
-                            done: !!completedSteps[g.id],
+                            // Special-case: the "incident must be present"
+                            // sub-goal is satisfied by the live datastore
+                            // presence check, not by completedSteps.
+                            done: g.id === 'incidents-list:present'
+                              ? hasDemoIncidents
+                              : !!completedSteps[g.id],
                           }))
                         : requirement
                           ? [{
                               id: current.id,
                               label: requirement.label,
-                              // Special-case the incidents-list gate: it is
-                              // satisfied by the presence of a demo incident
-                              // in the datastore, not by completedSteps.
                               done: isIncidentsListStep
                                 ? hasDemoIncidents
                                 : !!completedSteps[current.id],
