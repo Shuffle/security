@@ -15,7 +15,7 @@ import {
   Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { Settings, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Settings, CheckCircle, AlertTriangle, Mail } from 'lucide-react';
 import type { AgentNotification } from '@/services/notifications';
 
 interface Props {
@@ -157,6 +157,25 @@ const AgentConfigureDialog = ({ open, onClose, notification, onApprove }: Props)
               },
             }}
           />
+        </Box>
+
+        {/* Email-also notice */}
+        <Box sx={{ px: 3, pb: 2 }}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1,
+            px: 1.5,
+            py: 1,
+            borderRadius: 1.5,
+            backgroundColor: 'hsl(var(--severity-info) / 0.08)',
+            border: '1px solid hsl(var(--severity-info) / 0.2)',
+          }}>
+            <Mail size={14} style={{ color: 'hsl(var(--severity-info))', marginTop: 2, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--foreground))', lineHeight: 1.5 }}>
+              We have also emailed you this approval request — you can allow or deny it directly from your inbox.
+            </Typography>
+          </Box>
         </Box>
 
         {/* Actions */}
