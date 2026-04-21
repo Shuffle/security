@@ -37,6 +37,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
   singulBaseUrl = 'https://singul.io',
   hideAuthStatus = false,
   authenticatedApps: externalAuthenticatedApps,
+  pinnedApps,
   customStyles = {},
   className = '',
   renderItem,
