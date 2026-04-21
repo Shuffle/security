@@ -240,6 +240,10 @@ const VulnAssetsPage = () => {
   const [pollingActivated, setPollingActivated] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // GA funnel guards: ensure DETECTED fires once per dialog session, and that
+  // DISMISS only fires when the user closed the dialog without success.
+  const detectedFiredRef = useRef(false);
+  const dialogOpenRef = useRef(false);
 
   // Monitoring groups (from API)
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
@@ -739,6 +743,15 @@ const VulnAssetsPage = () => {
             setSensorDetected(true);
             setSensorPolling(false);
             if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+            // GA: success — fire DETECTED exactly once per dialog session.
+            if (!detectedFiredRef.current) {
+              detectedFiredRef.current = true;
+              trackPredefinedEvent(
+                GA_EVENTS.MONITOR_ADD_HOST_DETECTED,
+                selectedGroup?.name,
+                hasNewHost ? currentHostCount - baseline : 0,
+              );
+            }
           }
         }
       } catch { /* continue polling */ }
