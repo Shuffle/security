@@ -202,7 +202,7 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
   return (
     <Box sx={{ px: collapsed ? 0 : 1, py: 1 }}>
       {/* Header - only show when expanded */}
-      {!collapsed && (
+      {!collapsed && !hideHeader && (
         <Typography 
           sx={{ 
             color: 'hsl(var(--muted-foreground))', 
