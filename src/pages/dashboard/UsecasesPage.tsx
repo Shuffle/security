@@ -2436,7 +2436,7 @@ function UsecasesPageInner() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {drawerFlowId && (
               <Button
-                onClick={() => { const id = drawerFlowId; setDrawerFlowId(null); navigate(`/usecases/${id}`); }}
+                onClick={() => { const id = drawerFlowId; navigate(`/usecases/${encodeURIComponent(usecases.find(u => u.id === id)?.label || id || '')}/details`); }}
                 endIcon={<ExternalLink size={14} />}
                 sx={{
                   textTransform: 'none',
