@@ -353,13 +353,22 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
       {vulnerabilities !== undefined && (
         <div className={`rounded-md border p-3 ${totalOpenVulns > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-border bg-muted/20'}`}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className={totalOpenVulns > 0 ? 'text-red-500' : 'text-muted-foreground'} />
-              <span className="text-xs font-semibold text-foreground">
-                {totalOpenVulns > 0
-                  ? `${totalOpenVulns} open vulnerabilit${totalOpenVulns === 1 ? 'y' : 'ies'} on this host`
-                  : 'No open vulnerabilities on this host'}
-              </span>
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={14} className={`mt-0.5 ${totalOpenVulns > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-foreground">
+                  {totalOpenVulns > 0
+                    ? `${totalOpenVulns} open vulnerabilit${totalOpenVulns === 1 ? 'y' : 'ies'} attached to this host`
+                    : 'No vulnerabilities attached to this host'}
+                </span>
+                {totalOpenVulns === 0 && (
+                  <span className="text-[0.65rem] text-muted-foreground leading-snug">
+                    Only vulnerabilities recorded against this hostname in the vulnerability datastore are shown here.
+                    OSV lookups from <span className="font-mono">/software/&#123;name&#125;</span> and <span className="font-mono">/packages/&#123;name&#125;</span> are
+                    live registry queries and aren't attached to a host until a scanner workflow imports them.
+                  </span>
+                )}
+              </div>
             </div>
             {totalOpenVulns > 0 && <SeverityBadgeRow counts={sevCounts} />}
           </div>
