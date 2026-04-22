@@ -5900,9 +5900,29 @@ const IncidentDetailPage = () => {
               <CircularProgress size={24} />
             </Box>
           ) : correlations.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
-              No correlations found for this incident
-            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1.5 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                No correlations found for this incident
+              </Typography>
+              <Tooltip title="Re-run correlation search" arrow>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => fetchCorrelations()}
+                    disabled={correlationsLoading}
+                    sx={{
+                      p: 0.75,
+                      color: 'hsl(var(--muted-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 1,
+                      '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--accent))' },
+                    }}
+                  >
+                    <RefreshIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {/* Correlation summary — quiet header */}
