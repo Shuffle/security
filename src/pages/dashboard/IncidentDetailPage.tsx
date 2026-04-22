@@ -544,6 +544,13 @@ const IncidentDetailPage = () => {
   // Observable keys: `${type}::${value}` (lowercase). Activity keys: actItem.id.
   const [newlyArrivedObservables, setNewlyArrivedObservables] = useState<Set<string>>(() => new Set());
   const [newlyArrivedActivity, setNewlyArrivedActivity] = useState<Set<string>>(() => new Set());
+  // Transient highlights triggered by clicking a timeline step pill — let the
+  // user jump from the timeline to the corresponding row in the Observables /
+  // Correlations tab without losing track of which item they followed.
+  const [flashedObsKey, setFlashedObsKey] = useState<string | null>(null);
+  const [flashedCorrelationKey, setFlashedCorrelationKey] = useState<string | null>(null);
+  const flashedObsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashedCorrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track the user's most recent keystroke so background polls can defer
   // while they're actively typing in a textfield.
   const lastKeystrokeRef = useRef<number>(0);
@@ -644,6 +651,42 @@ const IncidentDetailPage = () => {
      const paramStr = newParams.toString();
      window.history.replaceState(null, '', `${window.location.pathname}${paramStr ? '?' + paramStr : ''}`);
    };
+
+   /**
+    * Jump to the Observables tab and flash the row matching the given
+    * `${type}::${value}` (lowercase) key. Used by clickable timeline pills so
+    * the user can see exactly which observable the timeline entry refers to.
+    */
+   const focusObservableFromTimeline = (typeValueKey: string) => {
+     setActiveTab(2);
+     setFlashedObsKey(typeValueKey);
+     if (flashedObsTimerRef.current) clearTimeout(flashedObsTimerRef.current);
+     flashedObsTimerRef.current = setTimeout(() => setFlashedObsKey(null), 2200);
+     // Defer scroll until the tab content has mounted.
+     setTimeout(() => {
+       const el = document.querySelector(`[data-obs-highlight-key="${typeValueKey}"]`) as HTMLElement | null;
+       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+     }, 80);
+   };
+
+   /**
+    * Jump to the Correlations tab and flash the row with the given
+    * correlation key. When `correlationKey` is null we just switch tabs
+    * (used for the "incident-level correlations" pill that has no key).
+    */
+   const focusCorrelationFromTimeline = (correlationKey: string | null) => {
+     setActiveTab(3);
+     if (correlationKey) {
+       setFlashedCorrelationKey(correlationKey);
+       if (flashedCorrTimerRef.current) clearTimeout(flashedCorrTimerRef.current);
+       flashedCorrTimerRef.current = setTimeout(() => setFlashedCorrelationKey(null), 2200);
+       setTimeout(() => {
+         const el = document.querySelector(`[data-corr-key="${CSS.escape(correlationKey)}"]`) as HTMLElement | null;
+         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+       }, 80);
+     }
+   };
+
    const [rawJsonText, setRawJsonText] = useState('');
    const [rawJsonValid, setRawJsonValid] = useState(true);
   // File editor state
@@ -3044,7 +3087,7 @@ const IncidentDetailPage = () => {
             kind: 'observable-added',
             timestamp: ts,
             id: `step-obs-${k}`,
-            label: o.source === 'enrichment' ? 'Observable enriched' : 'Observable added',
+            label: 'Observable',
             detail: `${o.type}: ${o.value}`,
           });
         }
@@ -3421,11 +3464,30 @@ const IncidentDetailPage = () => {
         const isStepHighlighted = item.kind === 'observable-added'
           && item.id.startsWith('step-obs-')
           && newlyArrivedObservables.has(item.id.slice('step-obs-'.length));
+
+        // Decide whether the pill should be clickable and where it jumps to.
+        // Observable pills jump to the matching row in the Observables tab;
+        // correlation pills jump to the Correlations tab (and to the matching
+        // observable row when the correlation was discovered per-observable).
+        let pillOnClick: (() => void) | undefined;
+        if (item.kind === 'observable-added' && item.id.startsWith('step-obs-')) {
+          const obsKey = item.id.slice('step-obs-'.length);
+          pillOnClick = () => focusObservableFromTimeline(obsKey);
+        } else if (item.kind === 'correlation-found') {
+          if (item.id.startsWith('step-corr-obs-')) {
+            const obsKey = item.id.slice('step-corr-obs-'.length).toLowerCase();
+            pillOnClick = () => focusObservableFromTimeline(obsKey);
+          } else {
+            pillOnClick = () => focusCorrelationFromTimeline(null);
+          }
+        }
+        const isClickable = !!pillOnClick;
         return (
           <Box
             key={item.id}
             data-timeline-compact="true"
             className={isStepHighlighted ? 'incident-new-flash' : undefined}
+            onClick={pillOnClick}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -3437,6 +3499,14 @@ const IncidentDetailPage = () => {
               bgcolor: `${cfg.color}0F`,
               border: `1px solid ${cfg.color}33`,
               maxWidth: 'fit-content',
+              cursor: isClickable ? 'pointer' : 'default',
+              transition: 'background-color 0.15s ease, border-color 0.15s ease',
+              ...(isClickable && {
+                '&:hover': {
+                  bgcolor: `${cfg.color}1F`,
+                  borderColor: `${cfg.color}66`,
+                },
+              }),
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', color: cfg.color }}>
@@ -5450,7 +5520,8 @@ const IncidentDetailPage = () => {
                   return (
                     <Box
                       key={obsRowKey}
-                      className={isNewlyArrived ? 'incident-new-flash' : undefined}
+                      data-obs-highlight-key={obsHighlightKey}
+                      className={(isNewlyArrived || flashedObsKey === obsHighlightKey) ? 'incident-new-flash' : undefined}
                       sx={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -5896,6 +5967,8 @@ const IncidentDetailPage = () => {
                   return (
                     <Box
                       key={corr.key || idx}
+                      data-corr-key={corr.key}
+                      className={flashedCorrelationKey === corr.key ? 'incident-new-flash' : undefined}
                       sx={{
                         p: 1.75,
                         borderRadius: 1.5,
