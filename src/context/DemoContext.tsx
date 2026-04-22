@@ -221,6 +221,10 @@ interface DemoContextValue {
   hasDemoIncidents: boolean;
   /** True when the user is currently on an incident-detail route. Live. */
   isOnIncidentDetail: boolean;
+  /** Increments every time openTour/restoreTour is called — drawer uses this
+   *  to flash an attention pulse so repeated clicks of "Continue demo mode"
+   *  visibly do something even when the drawer is already open. */
+  attentionPulse: number;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
