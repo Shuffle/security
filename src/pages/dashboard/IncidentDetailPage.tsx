@@ -2024,12 +2024,18 @@ const IncidentDetailPage = () => {
       content: newComment.trim() || (commentAttachments.length > 0 ? `Attached ${commentAttachments.length} file(s)` : ''),
       details: {},
       attachments: commentAttachments.length > 0 ? [...commentAttachments] : [],
+      ...(replyingTo ? {
+        replyToId: replyingTo.id,
+        replyToLabel: replyingTo.label,
+        replyToPreview: replyingTo.preview,
+      } : {}),
     };
     
     const updatedActivity = [...activity, commentActivity];
     setActivity(updatedActivity);
     setNewComment('');
     setCommentAttachments([]);
+    setReplyingTo(null);
     
     // CRITICAL: Never delete fields - always preserve existing structure
     const updatedOCSF = {
