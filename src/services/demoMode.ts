@@ -38,49 +38,6 @@ const IOC_DOMAIN_CATEGORY = 'ioc_domain';
 const DEMO_IOC_OVERRIDES_KEY = 'shuffle_demo_ioc_overrides';
 
 
-/**
- * Strip the demo-injected sensor host stub(s) from /api/v1/getenvironments.
- * Looks for hosts tagged demo:true (via metadata.extensions.custom_attributes.demo)
- * or matching the well-known demo uuid/hostname, and PUTs the cleaned set.
- */
-const removeDemoMonitorHostFromEnvs = async (): Promise<void> => {
-  try {
-    const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
-      credentials: 'include',
-      headers: { ...getAuthHeader() },
-    });
-    if (!res.ok) return;
-    const envs = await res.json();
-    if (!Array.isArray(envs)) return;
-
-    let mutated = false;
-    const cleaned = envs.map((env: Record<string, unknown>) => {
-      const hosts = Array.isArray(env.sensor_hosts) ? env.sensor_hosts as Array<Record<string, unknown>> : null;
-      if (!hosts) return env;
-      const next = hosts.filter(h => {
-        const isDemo = (h?.metadata as { extensions?: { custom_attributes?: { demo?: boolean } } } | undefined)
-          ?.extensions?.custom_attributes?.demo === true;
-        const matchesDemoUuid = String(h?.uuid || '') === 'demo-host-fin-laptop-04';
-        const matchesDemoHost = String(h?.hostname || '').toLowerCase() === 'fin-laptop-04';
-        return !isDemo && !matchesDemoUuid && !matchesDemoHost;
-      });
-      if (next.length !== hosts.length) {
-        mutated = true;
-        return { ...env, sensor_hosts: next };
-      }
-      return env;
-    });
-
-    if (!mutated) return;
-    await fetch(getApiUrl('/api/v1/setenvironments'), {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify(cleaned),
-    });
-  } catch { /* best-effort */ }
-};
-
 interface SeededIndex {
   [category: string]: string[]; // category -> list of keys we wrote
 }
@@ -727,9 +684,6 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
       }
     } catch { /* best-effort */ }
   }
-
-  // Strip the injected sensor host stub from the environments API.
-  await removeDemoMonitorHostFromEnvs();
 
   // Restore the user's original "Ingest Tickets" apps (snapshotted at demo
   // start). Best-effort — never block cleanup on this.
