@@ -668,7 +668,7 @@ export const DemoTourDrawer = () => {
                     const isCurrent = i === step;
                     const hasSubGoals = !!s.subGoals && s.subGoals.length > 0;
                     const isComplete = hasSubGoals
-                      ? s.subGoals!.every(g => !!completedSteps[g.id])
+                      ? s.subGoals!.filter(g => !g.optional).every(g => !!completedSteps[g.id])
                       : !!completedSteps[s.id];
                     const hasReq = !!s.requirement || hasSubGoals;
                     return (
