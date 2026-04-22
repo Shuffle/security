@@ -566,7 +566,7 @@ export const IncidentCardView = ({
                       </>
                     );
                   })()}
-                  {incident.source && !sourceApp?.image && (
+                  {incident.source && !resolvedImage && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                         •
