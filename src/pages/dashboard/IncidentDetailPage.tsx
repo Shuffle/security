@@ -660,8 +660,9 @@ const IncidentDetailPage = () => {
     * `${type}::${value}` (lowercase) key. Used by clickable timeline pills so
     * the user can see exactly which observable the timeline entry refers to.
     */
-   const focusObservableFromTimeline = (typeValueKey: string) => {
+   const focusObservableFromTimeline = (typeValueKey: string | null) => {
      setActiveTab(2);
+     if (!typeValueKey) return;
      setFlashedObsKey(typeValueKey);
      if (flashedObsTimerRef.current) clearTimeout(flashedObsTimerRef.current);
      flashedObsTimerRef.current = setTimeout(() => setFlashedObsKey(null), 2200);
