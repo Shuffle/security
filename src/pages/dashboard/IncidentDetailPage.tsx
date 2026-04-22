@@ -598,7 +598,7 @@ const IncidentDetailPage = () => {
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
-  const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual'>('all');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual' | 'steps'>('all');
   const [revisionDialogData, setRevisionDialogData] = useState<{ json: string; changedKeys: Set<string> } | null>(null);
   const initialTab = (() => {
     const t = searchParams.get('tab');
@@ -914,7 +914,11 @@ const IncidentDetailPage = () => {
   }, [showForwardDialog]);
   const [correlations, setCorrelations] = useState<Array<{ key: string; amount: number; ref: string[] }>>([]);
   const [correlationsLoading, setCorrelationsLoading] = useState(false);
-  const [obsCorrelations, setObsCorrelations] = useState<Record<string, { loading: boolean; data: Array<{ key: string; amount: number; ref: string[] }> }>>({});
+  // Track when the incident-level correlations finished loading. Correlations
+  // have no native timestamp so we use "discovered at" (when the API returned
+  // them) to place them on the unified timeline.
+  const [correlationsDiscoveredAt, setCorrelationsDiscoveredAt] = useState<number | null>(null);
+  const [obsCorrelations, setObsCorrelations] = useState<Record<string, { loading: boolean; data: Array<{ key: string; amount: number; ref: string[] }>; discoveredAt?: number }>>({});
   const [obsCorrelationAnchor, setObsCorrelationAnchor] = useState<{ el: HTMLElement; obsKey: string } | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
@@ -1435,7 +1439,14 @@ const IncidentDetailPage = () => {
             'unknown', 'none', 'null', 'undefined', 'true', 'false',
             id?.toLowerCase(),
           ].filter(Boolean));
-          setCorrelations(correlationData.filter((c: { key: string }) => !noiseKeys.has(c.key.toLowerCase())));
+          const filteredCorr = correlationData.filter((c: { key: string }) => !noiseKeys.has(c.key.toLowerCase()));
+          setCorrelations(filteredCorr);
+          // Capture the discovery time so the timeline can place this event
+          // chronologically. Only set on the first non-empty discovery so the
+          // timestamp is stable across re-renders / refetches.
+          if (filteredCorr.length > 0) {
+            setCorrelationsDiscoveredAt((prev) => prev ?? Date.now());
+          }
         }
       } catch (error) {
         console.error('Failed to fetch correlations:', error);
@@ -1491,7 +1502,7 @@ const IncidentDetailPage = () => {
           const data = await resp.json();
           const corrData = Array.isArray(data) ? data : (data.correlations || data.data || []);
           const filtered = corrData.filter((c: { key: string }) => !noiseKeys.has(c.key.toLowerCase()));
-          setObsCorrelations(prev => ({ ...prev, [obsKey]: { loading: false, data: filtered } }));
+          setObsCorrelations(prev => ({ ...prev, [obsKey]: { loading: false, data: filtered, discoveredAt: filtered.length > 0 ? Date.now() : undefined } }));
         } else {
           setObsCorrelations(prev => ({ ...prev, [obsKey]: { loading: false, data: [] } }));
         }
@@ -2418,6 +2429,7 @@ const IncidentDetailPage = () => {
               { key: 'revisions' as const, label: 'Changes', count: revisions.length },
               { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
               { key: 'manual' as const, label: 'Comments', count: activity.length },
+              { key: 'steps' as const, label: 'Steps', count: undefined as number | undefined },
             ]).map(({ key, label, count }) => (
               <Chip
                 key={key}
@@ -2620,10 +2632,12 @@ const IncidentDetailPage = () => {
   // Builder for the unified timeline items (revisions + agent runs + comments).
   // Returns an array of JSX nodes (or a single empty-state node).
   const renderTimelineFeedItems = () => {
+    type StepKind = 'task-created' | 'task-completed' | 'observable-added' | 'correlation-found';
     type TimelineItem =
       | { type: 'revision'; timestamp: number; data: any; idx: number; parsedCurrent: any; parsedPrevious: any | null }
       | { type: 'agent'; timestamp: number; data: typeof agentRuns[number] }
-      | { type: 'manual'; timestamp: number; data: ActivityItem };
+      | { type: 'manual'; timestamp: number; data: ActivityItem }
+      | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number };
 
     const items: TimelineItem[] = [];
 
@@ -2666,6 +2680,113 @@ const IncidentDetailPage = () => {
     if (activityFilter === 'all' || activityFilter === 'manual') {
       activity.forEach((item) => {
         items.push({ type: 'manual', timestamp: normalizeToMs(item.timestamp), data: item });
+      });
+    }
+
+    // ── Step injection ─────────────────────────────────────────────────────
+    // Render Tasks, Observables and Correlations as small "step" markers in
+    // the timeline so users can see *when* each artefact appeared. These are
+    // injected purely on the frontend — no persistence needed.
+    //
+    // Timestamp sources:
+    //   • Tasks → `createdAt` (and `completedAt` for completion steps).
+    //     Falls back to incident creation time if missing on legacy data.
+    //   • Observables (manual + enrichments) → `first_seen` when present,
+    //     otherwise the incident creation time.
+    //   • Correlations → "discovered at" (when the correlations API returned
+    //     them); they have no native timestamp.
+    if (activityFilter === 'all' || activityFilter === 'steps') {
+      const fallbackTs = incident?.createdTs ? normalizeToMs(incident.createdTs) : 0;
+
+      // Tasks — both creation and completion produce a step.
+      tasks.filter(t => !t.disabled).forEach((t) => {
+        const createdTs = t.createdAt ? normalizeToMs(t.createdAt) : fallbackTs;
+        if (createdTs > 0) {
+          items.push({
+            type: 'step',
+            kind: 'task-created',
+            timestamp: createdTs,
+            id: `step-task-created-${t.id}`,
+            label: 'Task created',
+            detail: t.title,
+          });
+        }
+        if (t.completed && t.completedAt) {
+          const completedTs = normalizeToMs(t.completedAt);
+          if (completedTs > 0) {
+            items.push({
+              type: 'step',
+              kind: 'task-completed',
+              timestamp: completedTs,
+              id: `step-task-completed-${t.id}`,
+              label: 'Task completed',
+              detail: t.title,
+            });
+          }
+        }
+      });
+
+      // Observables — manual entries + automated enrichments. Dedupe by
+      // type+value so the same indicator does not appear twice.
+      const seenObs = new Set<string>();
+      const allObservables: Array<{ type: string; value: string; first_seen?: string | number; source: 'manual' | 'enrichment' }> = [
+        ...editedObservables.filter(o => !o.archived).map(o => ({
+          type: o.type,
+          value: o.value,
+          first_seen: o.first_seen,
+          source: 'manual' as const,
+        })),
+        ...enrichments.map(e => ({
+          type: e.type || 'unknown',
+          value: e.value || e.data || '',
+          first_seen: e.first_seen,
+          source: 'enrichment' as const,
+        })),
+      ];
+      allObservables.forEach((o) => {
+        if (!o.value) return;
+        const k = `${o.type}::${o.value}`.toLowerCase();
+        if (seenObs.has(k)) return;
+        seenObs.add(k);
+        const ts = o.first_seen ? normalizeToMs(o.first_seen) : fallbackTs;
+        if (ts > 0) {
+          items.push({
+            type: 'step',
+            kind: 'observable-added',
+            timestamp: ts,
+            id: `step-obs-${k}`,
+            label: o.source === 'enrichment' ? 'Observable enriched' : 'Observable added',
+            detail: `${o.type}: ${o.value}`,
+          });
+        }
+      });
+
+      // Correlations — collapsed into a single "discovered" step (the count
+      // tells the story; listing every key would drown the timeline).
+      if (correlationsDiscoveredAt && correlations.length > 0) {
+        items.push({
+          type: 'step',
+          kind: 'correlation-found',
+          timestamp: correlationsDiscoveredAt,
+          id: `step-corr-incident`,
+          label: 'Correlations found',
+          detail: `${correlations.length} shared attribute${correlations.length === 1 ? '' : 's'} across other incidents`,
+          count: correlations.length,
+        });
+      }
+      // Per-observable correlations — one step per observable that returned
+      // matches. Useful when an enrichment surfaces a known-bad indicator.
+      Object.entries(obsCorrelations).forEach(([obsKey, entry]) => {
+        if (!entry.discoveredAt || entry.data.length === 0) return;
+        items.push({
+          type: 'step',
+          kind: 'correlation-found',
+          timestamp: entry.discoveredAt,
+          id: `step-corr-obs-${obsKey}`,
+          label: 'Observable correlation',
+          detail: `${entry.data.length} match${entry.data.length === 1 ? '' : 'es'} for ${obsKey.split('::')[1] || obsKey}`,
+          count: entry.data.length,
+        });
       });
     }
 
@@ -2724,6 +2845,7 @@ const IncidentDetailPage = () => {
         return `rev-${rev.id || rev.key || it.idx}`;
       }
       if (it.type === 'agent') return `agent-${it.data.execution_id}`;
+      if (it.type === 'step') return it.id;
       return it.data.id;
     };
     const getItemLabel = (it: TimelineItem): string => {
@@ -2732,6 +2854,7 @@ const IncidentDetailPage = () => {
         return `Revision #${revisions.length - it.idx}`;
       }
       if (it.type === 'agent') return 'Agent run';
+      if (it.type === 'step') return it.label;
       return `${it.data.user || 'Comment'}`;
     };
     const getItemPreview = (it: TimelineItem): string => {
@@ -2743,6 +2866,7 @@ const IncidentDetailPage = () => {
         const r: any = it.data;
         return String(r.run_input || r.summary || r.status || '').slice(0, 80);
       }
+      if (it.type === 'step') return (it.detail || '').slice(0, 80);
       const text = it.data.content && /<[a-z][\s\S]*>/i.test(it.data.content)
         ? htmlToPlainText(it.data.content).trim()
         : (it.data.content || '');
@@ -2971,6 +3095,61 @@ const IncidentDetailPage = () => {
           <Box key={`agent-${item.data.execution_id}`} sx={{ position: 'relative' }}>
             <AgentActivityFeed runs={[item.data]} />
             <Box sx={{ position: 'absolute', top: 6, right: 6 }}>{replyButton}</Box>
+          </Box>
+        );
+      }
+
+      if (item.type === 'step') {
+        // Compact "step" pill — these are derived events (task created /
+        // observable added / correlation found) injected on the frontend so
+        // the user can see *when* every artefact appeared on the timeline.
+        const stepStyle: Record<StepKind, { color: string; icon: React.ReactNode }> = {
+          'task-created':       { color: '#a855f7', icon: <TaskAltIcon sx={{ fontSize: 12 }} /> },
+          'task-completed':     { color: '#22c55e', icon: <CheckCircleIcon sx={{ fontSize: 12 }} /> },
+          'observable-added':   { color: '#06b6d4', icon: <VisibilityIcon sx={{ fontSize: 12 }} /> },
+          'correlation-found':  { color: '#f59e0b', icon: <LinkIcon sx={{ fontSize: 12 }} /> },
+        };
+        const cfg = stepStyle[item.kind];
+        return (
+          <Box
+            key={item.id}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.25,
+              py: 0.5,
+              ml: 0.5,
+              borderRadius: 999,
+              bgcolor: `${cfg.color}0F`,
+              border: `1px solid ${cfg.color}33`,
+              maxWidth: 'fit-content',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', color: cfg.color }}>
+              {cfg.icon}
+            </Box>
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: cfg.color }}>
+              {item.label}
+            </Typography>
+            {item.detail && (
+              <Typography
+                sx={{
+                  fontSize: '0.7rem',
+                  color: 'text.secondary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: 320,
+                }}
+                title={item.detail}
+              >
+                {item.detail}
+              </Typography>
+            )}
+            <Typography sx={{ fontSize: '0.65rem', color: 'text.disabled', ml: 'auto', pl: 1 }}>
+              {item.timestamp ? formatRelativeTime(item.timestamp) : ''}
+            </Typography>
           </Box>
         );
       }
