@@ -570,10 +570,32 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                     >
                       {config.name}
                     </Typography>
+                    {/* Chevron — only for automations that have a config
+                        section. Clicking expands/collapses the config without
+                        toggling the enabled state. Enabling no longer auto-
+                        opens the config; the user controls visibility. */}
+                    {config.hasConfig && (
+                      <IconButton
+                        size="small"
+                        aria-label={expandedTypes[automation.type!] ? 'Collapse configuration' : 'Expand configuration'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpanded(automation.type!);
+                        }}
+                        sx={{
+                          color: 'hsl(var(--muted-foreground))',
+                          p: 0.5,
+                          transition: 'transform 0.15s',
+                          transform: expandedTypes[automation.type!] ? 'rotate(180deg)' : 'rotate(0deg)',
+                        }}
+                      >
+                        <ExpandMoreIcon sx={{ fontSize: 20 }} />
+                      </IconButton>
+                    )}
                   </Box>
 
                   {/* Workflow Configuration */}
-                  {automation.enabled && automation.type === 'workflow' && (
+                  {automation.enabled && automation.type === 'workflow' && expandedTypes['workflow'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
                       <Autocomplete
                         multiple
