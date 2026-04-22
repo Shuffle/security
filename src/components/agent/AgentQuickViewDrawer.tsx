@@ -636,6 +636,23 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
                 sx={approveButtonSx}>
                 Approve
               </Button>
+              <Button
+                onClick={handleDeny}
+                fullWidth
+                variant="outlined"
+                startIcon={<XCircle size={15} />}
+                sx={{
+                  ...outlineButtonSx,
+                  borderColor: 'hsl(var(--severity-high) / 0.4)',
+                  color: 'hsl(var(--severity-high))',
+                  '&:hover': {
+                    borderColor: 'hsl(var(--severity-high))',
+                    backgroundColor: 'hsl(var(--severity-high) / 0.08)',
+                  },
+                }}
+              >
+                Deny
+              </Button>
               {!isConfiguring && (
                 <Button
                   fullWidth
