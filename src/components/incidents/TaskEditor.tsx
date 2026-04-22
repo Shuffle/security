@@ -38,9 +38,9 @@ interface TaskEditorProps {
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
-    bgcolor: 'rgba(0, 0, 0, 0.2)',
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+    bgcolor: 'hsl(var(--input))',
+    '& fieldset': { borderColor: 'hsl(var(--border))' },
+    '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.4)' },
     '&.Mui-focused fieldset': { borderColor: '#FF6600' },
   },
 };
@@ -157,7 +157,7 @@ export const TaskEditor = ({
             sx={{ 
               height: 4, 
               borderRadius: 2,
-              bgcolor: 'rgba(255,255,255,0.1)',
+              bgcolor: 'hsl(var(--border))',
               '& .MuiLinearProgress-bar': {
                 bgcolor: getTaskProgress() === 100 ? '#22c55e' : '#ff6600',
                 borderRadius: 2,
@@ -203,7 +203,7 @@ export const TaskEditor = ({
                       ? 'rgba(34, 197, 94, 0.08)' 
                       : isBlocked 
                         ? 'rgba(255,255,255,0.02)' 
-                        : 'rgba(0,0,0,0.2)',
+                        : 'hsl(var(--input))',
                   border: '2px solid',
                   borderColor: isExpanded 
                     ? 'rgba(255, 102, 0, 0.4)' 
@@ -325,7 +325,7 @@ export const TaskEditor = ({
                     <SelectTrigger 
                       className="h-7 w-auto min-w-[100px] border-0 px-2.5 text-xs font-medium"
                       style={{
-                        backgroundColor: categoryInfo ? `${categoryInfo.color}20` : 'rgba(255,255,255,0.1)',
+                        backgroundColor: categoryInfo ? `${categoryInfo.color}20` : 'hsl(var(--border))',
                         color: categoryInfo?.color || 'hsl(var(--muted-foreground))',
                         borderRadius: '9999px',
                       }}
@@ -496,7 +496,7 @@ export const TaskEditor = ({
                       px: 3,
                       py: 1,
                       borderRadius: '8px',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      border: '1px solid hsl(var(--border))',
                       bgcolor: 'rgba(255,255,255,0.05)',
                       color: 'text.secondary',
                       fontSize: '0.85rem',
