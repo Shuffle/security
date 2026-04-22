@@ -807,10 +807,44 @@ const DashboardPage = () => {
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {visibleSteps.map((step, i) => (
+            {(showCompleted ? visibleSteps : incompleteVisibleSteps).map((step, i) => (
               <SetupStepCard key={step.id} step={step} index={i} onIgnore={handleIgnoreStep} onRestore={handleRestoreStep} />
             ))}
-            {ignoredStepsList.length > 0 && (
+            {(completedVisibleSteps.length > 0 || ignoredStepsList.length > 0) && (
+              <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                {completedVisibleSteps.length > 0 && (
+                  <Chip
+                    size="small"
+                    label={showCompleted ? `Hide finished (${completedVisibleSteps.length})` : `Show finished (${completedVisibleSteps.length})`}
+                    onClick={() => setShowCompleted(v => !v)}
+                    variant="outlined"
+                    sx={{
+                      fontSize: '0.72rem',
+                      height: 24,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--muted-foreground))',
+                      '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                    }}
+                  />
+                )}
+                {ignoredStepsList.length > 0 && (
+                  <Chip
+                    size="small"
+                    label={showIgnored ? `Hide ignored (${ignoredStepsList.length})` : `Show ignored (${ignoredStepsList.length})`}
+                    onClick={() => setShowIgnored(v => !v)}
+                    variant="outlined"
+                    sx={{
+                      fontSize: '0.72rem',
+                      height: 24,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--muted-foreground))',
+                      '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                    }}
+                  />
+                )}
+              </Box>
+            )}
+            {showIgnored && ignoredStepsList.length > 0 && (
               <>
                 <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 1, opacity: 0.7 }}>
                   Ignored ({ignoredStepsList.length})
