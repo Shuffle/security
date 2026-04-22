@@ -2749,7 +2749,98 @@ const IncidentDetailPage = () => {
       return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
     };
 
-    return items.map((item) => {
+    // ─── Reply threading helpers ────────────────────────────────────────────
+    // Each timeline item gets a stable canonical id; manual comments may carry
+    // a `replyToId` pointing at one of those ids. We then group replies under
+    // their parent and render them indented so users can pivot between
+    // separate threads (one per parent) without losing the chronology.
+    const getItemKey = (it: TimelineItem): string => {
+      if (it.type === 'revision') {
+        const rev = it.data;
+        return `rev-${rev.id || rev.key || it.idx}`;
+      }
+      if (it.type === 'agent') return `agent-${it.data.execution_id}`;
+      return it.data.id;
+    };
+    const getItemLabel = (it: TimelineItem): string => {
+      if (it.type === 'revision') {
+        if (it.idx === revisions.length - 1 && activityFilter !== 'revisions') return 'Incident created';
+        return `Revision #${revisions.length - it.idx}`;
+      }
+      if (it.type === 'agent') return 'Agent run';
+      return `${it.data.user || 'Comment'}`;
+    };
+    const getItemPreview = (it: TimelineItem): string => {
+      if (it.type === 'revision') {
+        const t = it.parsedCurrent?.title || it.parsedCurrent?.finding_info?.title || '';
+        return String(t).slice(0, 80);
+      }
+      if (it.type === 'agent') {
+        const r: any = it.data;
+        return String(r.run_input || r.summary || r.status || '').slice(0, 80);
+      }
+      const text = it.data.content && /<[a-z][\s\S]*>/i.test(it.data.content)
+        ? htmlToPlainText(it.data.content).trim()
+        : (it.data.content || '');
+      return text.slice(0, 80);
+    };
+
+    const startReplyTo = (it: TimelineItem) => {
+      setReplyingTo({ id: getItemKey(it), label: getItemLabel(it), preview: getItemPreview(it) });
+      // Scroll the input into view + focus it so the user can immediately type.
+      setTimeout(() => {
+        commentInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const ta = commentInputRef.current?.querySelector('textarea');
+        (ta as HTMLTextAreaElement | null)?.focus();
+      }, 50);
+    };
+
+    // Build canonical-id set + replies-by-parent map. Only manual items can
+    // *be* replies; any timeline item can be a parent.
+    const allKeys = new Set(items.map(getItemKey));
+    const repliesByParent = new Map<string, TimelineItem[]>();
+    for (const it of items) {
+      if (it.type !== 'manual') continue;
+      const parentId = it.data.replyToId;
+      if (!parentId || !allKeys.has(parentId)) continue;
+      const arr = repliesByParent.get(parentId) || [];
+      arr.push(it);
+      repliesByParent.set(parentId, arr);
+    }
+    // Replies render oldest-first inside their thread so the conversation
+    // reads top-to-bottom even though the outer feed is newest-first.
+    repliesByParent.forEach((arr) => arr.sort((a, b) => a.timestamp - b.timestamp));
+
+    // Top-level items = anything that isn't a reply with a known parent.
+    const topLevel = items.filter((it) => {
+      if (it.type !== 'manual') return true;
+      const parentId = it.data.replyToId;
+      return !parentId || !allKeys.has(parentId);
+    });
+
+    const renderItem = (item: TimelineItem, opts: { isReply?: boolean } = {}): React.ReactNode => {
+      const { isReply = false } = opts;
+      const itemKey = getItemKey(item);
+
+      // Reply button — added to every item so users can start a thread off
+      // any timeline event (revision, agent run, or comment).
+      const replyButton = (
+        <Tooltip title="Reply to this in a new comment" arrow>
+          <IconButton
+            size="small"
+            onClick={() => startReplyTo(item)}
+            sx={{
+              width: 22,
+              height: 22,
+              color: 'text.secondary',
+              '&:hover': { color: '#ff6600', bgcolor: 'rgba(255, 102, 0, 0.08)' },
+            }}
+          >
+            <ReplyIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
+      );
+
       if (item.type === 'revision') {
         const rev = item.data;
         const isLatest = item.idx === 0;
@@ -2759,11 +2850,6 @@ const IncidentDetailPage = () => {
 
         if (activityFilter !== 'revisions' && !isFirst && diff && totalChanges === 0) return null;
 
-        // Outside the dedicated "Changes" filter, the very first revision
-        // reads as the incident's creation event — show its original title +
-        // description instead of a "Revision #1" technical label so the
-        // timeline starts with what actually arrived. The "Revision #N"
-        // numbering is reserved for the Changes filter where it's useful.
         const showAsCreation = isFirst && activityFilter !== 'revisions';
         const initialTitle = showAsCreation
           ? (item.parsedCurrent?.title
@@ -2818,6 +2904,7 @@ const IncidentDetailPage = () => {
                   )}
                 </Box>
               </Box>
+              {replyButton}
               {rev.value && (
                 <Tooltip title="View revision data">
                   <IconButton
@@ -2857,8 +2944,6 @@ const IncidentDetailPage = () => {
                     color: 'hsl(var(--muted-foreground))',
                     lineHeight: 1.5,
                     whiteSpace: 'pre-wrap',
-                    // Keep the timeline scannable — the full description still
-                    // lives in the Description section above.
                     display: '-webkit-box',
                     WebkitLineClamp: 6,
                     WebkitBoxOrient: 'vertical',
@@ -2919,8 +3004,9 @@ const IncidentDetailPage = () => {
 
       if (item.type === 'agent') {
         return (
-          <Box key={`agent-${item.data.execution_id}`}>
+          <Box key={`agent-${item.data.execution_id}`} sx={{ position: 'relative' }}>
             <AgentActivityFeed runs={[item.data]} />
+            <Box sx={{ position: 'absolute', top: 6, right: 6 }}>{replyButton}</Box>
           </Box>
         );
       }
@@ -2945,6 +3031,7 @@ const IncidentDetailPage = () => {
             borderColor: actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255,255,255,0.04)',
             position: 'relative',
             '&:hover .delete-btn': { opacity: 1 },
+            '&:hover .reply-btn': { opacity: 1 },
           }}
         >
           <Avatar sx={{
@@ -2962,6 +3049,22 @@ const IncidentDetailPage = () => {
               <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem' }}>
                 {formatRelativeTime(actItem.timestamp)}
               </Typography>
+              {isReply && actItem.replyToLabel && (
+                <Chip
+                  icon={<ReplyIcon sx={{ fontSize: 11 }} />}
+                  label={actItem.replyToLabel}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 18,
+                    fontSize: '0.6rem',
+                    bgcolor: 'transparent',
+                    borderColor: 'rgba(255, 102, 0, 0.3)',
+                    color: 'text.secondary',
+                    '& .MuiChip-icon': { color: '#ff6600', ml: 0.5 },
+                  }}
+                />
+              )}
             </Box>
             <MentionText
               text={actItem.content && /<[a-z][\s\S]*>/i.test(actItem.content) ? htmlToPlainText(actItem.content).trim() : actItem.content}
@@ -2980,6 +3083,18 @@ const IncidentDetailPage = () => {
                 ))}
               </Box>
             )}
+          </Box>
+          <Box
+            className="reply-btn"
+            sx={{
+              position: 'absolute',
+              top: 4,
+              right: canDelete ? 28 : 4,
+              opacity: 0,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            {replyButton}
           </Box>
           {canDelete && (
             <Tooltip title={`Delete (${timeRemaining}m left)`} arrow>
@@ -3004,6 +3119,34 @@ const IncidentDetailPage = () => {
               </IconButton>
             </Tooltip>
           )}
+        </Box>
+      );
+    };
+
+    // Render top-level items, threading replies indented underneath. The
+    // indent + left rail visually groups the conversation while keeping the
+    // outer chronology intact.
+    return topLevel.map((item) => {
+      const itemKey = getItemKey(item);
+      const replies = repliesByParent.get(itemKey) || [];
+      const node = renderItem(item);
+      if (!node) return null;
+      if (replies.length === 0) return node;
+      return (
+        <Box key={`thread-${itemKey}`} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {node}
+          <Box
+            sx={{
+              ml: 4,
+              pl: 2,
+              borderLeft: '2px solid rgba(255, 102, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
+            {replies.map((reply) => renderItem(reply, { isReply: true }))}
+          </Box>
         </Box>
       );
     });
