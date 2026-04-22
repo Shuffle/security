@@ -307,11 +307,11 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2,
       }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{
+          <Typography component="div" sx={{
             fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))',
             lineHeight: 1.4, wordBreak: 'break-word',
           }}>
-            {data.title}
+            <InlineMarkdown text={data.title} />
           </Typography>
           {/* Severity & status chips */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1, flexWrap: 'wrap' }}>
