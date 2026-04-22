@@ -2734,7 +2734,12 @@ const IncidentDetailPage = () => {
     if (activityFilter === 'all' || activityFilter === 'steps') {
       const fallbackTs = incident?.createdTs ? normalizeToMs(incident.createdTs) : 0;
 
-      // Tasks — both creation and completion produce a step.
+      // Tasks — creation, status transitions, and completion each produce
+      // a step so the user can see exactly when state changed and by whom.
+      const laneLabel = (key: string): string =>
+        taskStatuses.find((s) => s.key === key)?.label
+        || (key === 'done' ? 'Done' : key.replace(/[_-]+/g, ' '));
+
       tasks.filter(t => !t.disabled).forEach((t) => {
         const createdTs = t.createdAt ? normalizeToMs(t.createdAt) : fallbackTs;
         if (createdTs > 0) {
@@ -2747,6 +2752,23 @@ const IncidentDetailPage = () => {
             detail: t.title,
           });
         }
+        // Status transitions captured in `statusHistory` (every drag between
+        // kanban columns appends an entry). Skip the trivial → Done case
+        // because the dedicated 'task-completed' step already covers it.
+        (t.statusHistory || []).forEach((entry, hIdx) => {
+          if (!entry?.at) return;
+          if (entry.to === 'done') return;
+          const ts = normalizeToMs(entry.at);
+          if (ts <= 0) return;
+          items.push({
+            type: 'step',
+            kind: 'task-status-changed',
+            timestamp: ts,
+            id: `step-task-status-${t.id}-${hIdx}`,
+            label: 'Task moved',
+            detail: `${t.title} · ${laneLabel(entry.from)} → ${laneLabel(entry.to)}${entry.by ? ` by ${entry.by}` : ''}`,
+          });
+        });
         if (t.completed && t.completedAt) {
           const completedTs = normalizeToMs(t.completedAt);
           if (completedTs > 0) {
