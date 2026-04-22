@@ -23,6 +23,7 @@ import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
 import { getDatastoreByCategory, setDatastoreItems, DATASTORE_CATEGORIES } from '@/services/datastore';
 import { DEFAULT_THREAT_FEEDS } from '@/hooks/useThreatFeeds';
 import { DEFAULT_IOC_TYPES, DEFAULT_ENABLED_IOCS } from '@/hooks/useIOCTypes';
+import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 
 /**
  * localStorage key holding the JSON-encoded list of app names that were on
