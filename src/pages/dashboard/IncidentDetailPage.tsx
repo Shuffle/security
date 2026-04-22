@@ -2808,7 +2808,20 @@ const IncidentDetailPage = () => {
       });
     }
 
-    items.sort((a, b) => b.timestamp - a.timestamp);
+    // Newest first. On exact-tie timestamps, force the "Incident created"
+    // marker (the oldest revision) to always sort *after* every other item
+    // so it stays anchored at the bottom of the feed — even when observables
+    // or steps were stamped with the same `createdTs`.
+    const oldestRevisionIdx = revisions.length - 1;
+    const isCreationItem = (it: TimelineItem) => it.type === 'revision' && it.idx === oldestRevisionIdx;
+    items.sort((a, b) => {
+      if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
+      const aCreate = isCreationItem(a);
+      const bCreate = isCreationItem(b);
+      if (aCreate && !bCreate) return 1;   // a goes after b
+      if (bCreate && !aCreate) return -1;  // b goes after a
+      return 0;
+    });
 
     if (items.length === 0) {
       return (
