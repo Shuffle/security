@@ -16,6 +16,7 @@ import { Box, IconButton, Typography, Button, LinearProgress, Tooltip } from '@m
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   Sparkles,
   Lock,
