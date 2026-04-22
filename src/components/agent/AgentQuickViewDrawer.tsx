@@ -42,6 +42,7 @@ import {
 } from '@/lib/agentParsers';
 import { hasOutputWarning, getFailureInfo } from '@/components/agent/AgentRunResultViewer';
 import { getTimeAgo, formatDuration, getRunTitle } from '@/components/agent/AgentRunHeader';
+import InlineMarkdown from '@/components/shared/InlineMarkdown';
 
 export type QuickViewItem =
   | { type: 'notification'; notification: AgentNotification }
