@@ -20,9 +20,13 @@ interface IncidentsEmptyStateProps {
   isLoading?: boolean;
   onSyncNow?: () => void;
   onCreateIncident?: () => void;
+  /** When provided, the "Add ingestion source" button calls this instead of
+   *  navigating to /onboarding/sources. Used by the demo tour so the
+   *  spotlight target stays mounted on /incidents. */
+  onAddSource?: () => void;
 }
 
-export const IncidentsEmptyState = ({ ingestionApps = [], onIngestionToggled, onToggleApp, webhook, isSyncing = false, isUpdatingApps = false, isLoading = false, onSyncNow, onCreateIncident }: IncidentsEmptyStateProps) => {
+export const IncidentsEmptyState = ({ ingestionApps = [], onIngestionToggled, onToggleApp, webhook, isSyncing = false, isUpdatingApps = false, isLoading = false, onSyncNow, onCreateIncident, onAddSource }: IncidentsEmptyStateProps) => {
   const hasApps = ingestionApps.length > 0 || !!webhook?.exists || !!webhook?.enabled;
   const hasNonWebhookSources = ingestionApps.length > 0;
 
@@ -121,8 +125,10 @@ export const IncidentsEmptyState = ({ ingestionApps = [], onIngestionToggled, on
             ))}
             <Tooltip title="Add ingestion source" placement="bottom">
               <IconButton
-                component={Link}
-                to="/onboarding/sources"
+                data-tour="add-ingestion-source-button"
+                {...(onAddSource
+                  ? { onClick: onAddSource }
+                  : { component: Link, to: '/onboarding/sources' })}
                 size="small"
                 sx={{
                   width: 28,
