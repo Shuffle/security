@@ -98,8 +98,6 @@ const SEVERITY_TOKEN_MAP: Record<string, string> = {
 };
 
 const buildFromNotification = (n: AgentNotification, entityBasePath: string): UnifiedData => {
-  const incidentId = n.incident_id || n.reference_url;
-
   // Build timeline from available data
   const timeline: TimelineEntry[] = [];
   if (n.description) {
@@ -111,6 +109,27 @@ const buildFromNotification = (n: AgentNotification, entityBasePath: string): Un
 
   const hasQuestions = n.questions && n.questions.length > 0;
 
+  // Resolve the bottom CTA link.
+  //  • incident_id → in-app incident detail page
+  //  • reference_url that points at /forms/{id} → original Shuffle Core
+  //    agent approval form (always shuffler.io on cloud)
+  //  • any other reference_url → use as-is
+  let incidentLink: string | null = null;
+  let incidentLinkLabel = 'View Full Incident';
+  let incidentLinkExternal = false;
+  if (n.incident_id) {
+    incidentLink = `${entityBasePath}/${n.incident_id}`;
+  } else if (n.reference_url) {
+    if (isAgentApprovalFormUrl(n.reference_url)) {
+      incidentLink = getShuffleCoreFormUrl(n.reference_url);
+      incidentLinkLabel = 'Open Agent Approval';
+      incidentLinkExternal = true;
+    } else {
+      incidentLink = n.reference_url;
+      incidentLinkExternal = /^https?:\/\//i.test(n.reference_url);
+    }
+  }
+
   return {
     title: n.title || 'Agent Notification',
     severity: null,
@@ -119,7 +138,9 @@ const buildFromNotification = (n: AgentNotification, entityBasePath: string): Un
     errorExplanation: n.description || null,
     timeline,
     pendingAction: n.action || n.description || null,
-    incidentLink: incidentId ? `${entityBasePath}/${n.incident_id}` : null,
+    incidentLink,
+    incidentLinkLabel,
+    incidentLinkExternal,
     isApproval: !hasQuestions,
     isQuestion: !!hasQuestions,
     questions: hasQuestions ? n.questions! : [],
