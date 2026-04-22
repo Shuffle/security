@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { getApiUrl, getAuthHeader } from '@/config/api';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
