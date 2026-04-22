@@ -2003,6 +2003,8 @@ const IncidentDetailPage = () => {
     };
     await addItem(incident.id, updatedOCSF);
     toast.success('Comment added');
+    // Demo Mode signal — lets the tour mark "ask the agent" as complete.
+    try { window.dispatchEvent(new CustomEvent('demo:incident-comment-sent')); } catch { /* no-op */ }
 
     // Schedule observable/enrichment refresh ~7s after comment save
     // Backend may extract IOCs from comment text and create enrichments
