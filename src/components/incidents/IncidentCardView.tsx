@@ -393,10 +393,10 @@ export const IncidentCardView = ({
                   justifyContent: 'center',
                   backgroundColor: showCheck 
                     ? 'transparent' 
-                    : (sourceApp?.image ? 'hsl(var(--muted) / 0.4)' : `${iconColor}15`),
+                    : (resolvedImage ? 'hsl(var(--muted) / 0.4)' : `${iconColor}15`),
                   border: showCheck 
                     ? 'none' 
-                    : (sourceApp?.image ? '1px solid hsl(var(--border))' : `1px solid ${iconColor}30`),
+                    : (resolvedImage ? '1px solid hsl(var(--border))' : `1px solid ${iconColor}30`),
                   flexShrink: 0,
                   position: 'relative',
                 }}
