@@ -660,8 +660,9 @@ const IncidentDetailPage = () => {
     * `${type}::${value}` (lowercase) key. Used by clickable timeline pills so
     * the user can see exactly which observable the timeline entry refers to.
     */
-   const focusObservableFromTimeline = (typeValueKey: string) => {
+   const focusObservableFromTimeline = (typeValueKey: string | null) => {
      setActiveTab(2);
+     if (!typeValueKey) return;
      setFlashedObsKey(typeValueKey);
      if (flashedObsTimerRef.current) clearTimeout(flashedObsTimerRef.current);
      flashedObsTimerRef.current = setTimeout(() => setFlashedObsKey(null), 2200);
@@ -3110,7 +3111,11 @@ const IncidentDetailPage = () => {
       });
 
       // Observables — manual entries + automated enrichments. Dedupe by
-      // type+value so the same indicator does not appear twice.
+      // type+value so the same indicator does not appear twice. Bulk
+      // observables added within a ~3s window into a single summary pill so
+      // a burst of enrichments does not flood the timeline. Known-IOC
+      // observables are *always* kept as their own standalone pill so the
+      // bad indicator visibly stands out.
       const seenObs = new Set<string>();
       const allObservables: Array<{ type: string; value: string; first_seen?: string | number; source: 'manual' | 'enrichment' }> = [
         ...editedObservables.filter(o => !o.archived).map(o => ({
@@ -3126,6 +3131,8 @@ const IncidentDetailPage = () => {
           source: 'enrichment' as const,
         })),
       ];
+      type ObsEntry = { key: string; type: string; value: string; ts: number; isIoc: boolean };
+      const obsEntries: ObsEntry[] = [];
       allObservables.forEach((o) => {
         if (!o.value) return;
         const k = `${o.type}::${o.value}`.toLowerCase();
@@ -3133,13 +3140,52 @@ const IncidentDetailPage = () => {
         seenObs.add(k);
         const ts = o.first_seen ? normalizeToMs(o.first_seen) : fallbackTs;
         if (ts > 0) {
+          obsEntries.push({ key: k, type: o.type, value: o.value, ts, isIoc: iocObservableKeys.has(k) });
+        }
+      });
+      // Sort oldest-first for deterministic bucketing.
+      obsEntries.sort((a, b) => a.ts - b.ts);
+      const OBS_BUCKET_MS = 3000;
+      const obsBuckets: Array<{ ts: number; entries: ObsEntry[] }> = [];
+      obsEntries.forEach((e) => {
+        // Known-IOC observables never bulk — they always emit a standalone
+        // pill so the bad indicator visibly stands out on the timeline.
+        if (e.isIoc) {
+          obsBuckets.push({ ts: e.ts, entries: [e] });
+          return;
+        }
+        const last = obsBuckets[obsBuckets.length - 1];
+        // Only merge into a bucket whose entries are all non-IOC.
+        if (last && !last.entries[0].isIoc && Math.abs(e.ts - last.ts) <= OBS_BUCKET_MS) {
+          last.entries.push(e);
+          last.ts = Math.max(last.ts, e.ts);
+        } else {
+          obsBuckets.push({ ts: e.ts, entries: [e] });
+        }
+      });
+      obsBuckets.forEach((b, i) => {
+        if (b.entries.length === 1) {
+          const e = b.entries[0];
           items.push({
             type: 'step',
             kind: 'observable-added',
-            timestamp: ts,
-            id: `step-obs-${k}`,
+            timestamp: e.ts,
+            id: `step-obs-${e.key}`,
             label: 'Observable',
-            detail: `${o.type}: ${o.value}`,
+            detail: `${e.type}: ${e.value}`,
+          });
+        } else {
+          // Bulked → one pill summarising the burst. Detail lists the first
+          // few values so the user still has a hint of what was added.
+          const sample = b.entries.slice(0, 3).map(e => e.value).join(', ');
+          const more = b.entries.length > 3 ? ` +${b.entries.length - 3} more` : '';
+          items.push({
+            type: 'step',
+            kind: 'observable-added',
+            timestamp: b.ts,
+            id: `step-obs-bulk-${i}-${b.ts}`,
+            label: `${b.entries.length} observables`,
+            detail: `${sample}${more}`,
           });
         }
       });
@@ -3564,7 +3610,7 @@ const IncidentDetailPage = () => {
         // correlation pills jump to the Correlations tab (and to the matching
         // observable row when the correlation was discovered per-observable).
         let pillOnClick: (() => void) | undefined;
-        if (item.kind === 'observable-added' && item.id.startsWith('step-obs-')) {
+        if (item.kind === 'observable-added' && item.id.startsWith('step-obs-') && !item.id.startsWith('step-obs-bulk-')) {
           const obsKey = item.id.slice('step-obs-'.length);
           pillOnClick = () => {
             // Demo mode: notify the tour when the user clicks an IP pill.
@@ -3573,6 +3619,9 @@ const IncidentDetailPage = () => {
             }
             focusObservableFromTimeline(obsKey);
           };
+        } else if (item.kind === 'observable-added' && item.id.startsWith('step-obs-bulk-')) {
+          // Bulked observable pills jump to the Observables tab generally.
+          pillOnClick = () => focusObservableFromTimeline(null);
         } else if (item.kind === 'correlation-found') {
           // Bulked observable correlations (id prefix `step-corr-obs-bulk-`)
           // can't jump to a single observable row — send the user to the
@@ -3593,7 +3642,7 @@ const IncidentDetailPage = () => {
         // Bulked correlations have no single underlying obs — they never
         // light up as IOC pills.
         let pillObsKey: string | null = null;
-        if (item.kind === 'observable-added' && item.id.startsWith('step-obs-')) {
+        if (item.kind === 'observable-added' && item.id.startsWith('step-obs-') && !item.id.startsWith('step-obs-bulk-')) {
           pillObsKey = item.id.slice('step-obs-'.length).toLowerCase();
         } else if (
           item.kind === 'correlation-found'
