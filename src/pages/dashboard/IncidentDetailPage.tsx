@@ -5744,18 +5744,40 @@ const IncidentDetailPage = () => {
                             if (!corr?.data?.length) {
                               return (
                                 <Box sx={{ mt: 0.5 }}>
-                                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                    Correlations
-                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                      Correlations
+                                    </Typography>
+                                    <Tooltip title="Re-run correlation search for this observable" arrow>
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => { e.stopPropagation(); refetchObsCorrelation(obs); }}
+                                        sx={{ p: 0.25, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--foreground))' } }}
+                                      >
+                                        <RefreshIcon sx={{ fontSize: 12 }} />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Box>
                                   <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}>No correlations found</Typography>
                                 </Box>
                               );
                             }
                             return (
                               <Box sx={{ mt: 0.5 }}>
-                                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                  Correlations ({corr.data.length})
-                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Correlations ({corr.data.length})
+                                  </Typography>
+                                  <Tooltip title="Re-run correlation search for this observable" arrow>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => { e.stopPropagation(); refetchObsCorrelation(obs); }}
+                                      sx={{ p: 0.25, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--foreground))' } }}
+                                    >
+                                      <RefreshIcon sx={{ fontSize: 12 }} />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
                                   {corr.data.slice(0, 8).map((c: any, ci: number) => (
                                     <Box key={ci} sx={{ p: 0.75, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.5)', border: '1px solid hsl(var(--border-subtle))' }}>
