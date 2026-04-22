@@ -3414,10 +3414,18 @@ const IncidentDetailPage = () => {
           'incident-created':     { color: '#6495ed', icon: <HistoryIcon sx={{ fontSize: 12 }} /> },
         };
         const cfg = stepStyle[item.kind];
+        // Highlight observable-added pills when the underlying observable
+        // arrived in the most recent background poll. The id format is
+        // `step-obs-${type::value}` (lowercase) — matched against
+        // newlyArrivedObservables which uses the same key format.
+        const isStepHighlighted = item.kind === 'observable-added'
+          && item.id.startsWith('step-obs-')
+          && newlyArrivedObservables.has(item.id.slice('step-obs-'.length));
         return (
           <Box
             key={item.id}
             data-timeline-compact="true"
+            className={isStepHighlighted ? 'incident-new-flash' : undefined}
             sx={{
               display: 'flex',
               alignItems: 'center',
