@@ -312,6 +312,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
   const [isForceCreatingIncidents, setIsForceCreatingIncidents] = useState(false);
   const [isForceGeneratingSingle, setIsForceGeneratingSingle] = useState(false);
+  const [isForceGeneratingWazuh, setIsForceGeneratingWazuh] = useState(false);
   const [hasDemoIncidents, setHasDemoIncidents] = useState(false);
   const [attentionPulse, setAttentionPulse] = useState(0);
 
