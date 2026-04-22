@@ -15,6 +15,7 @@ import SensorsIcon from '@mui/icons-material/Sensors';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import RadarIcon from '@mui/icons-material/Radar';
+import DownloadIcon from '@mui/icons-material/Download';
 
 interface DocLink {
   label: string;
@@ -22,6 +23,7 @@ interface DocLink {
   icon: React.ReactNode;
   external?: boolean;
   href?: string;
+  download?: boolean;
 }
 
 interface DocsSidebarProps {
@@ -38,6 +40,14 @@ const docLinks: DocLink[] = [
 ];
 
 const externalLinks: DocLink[] = [
+  {
+    label: 'Agent Skill (SHUFFLE.md)',
+    slug: 'shuffle-md',
+    icon: <DownloadIcon />,
+    external: true,
+    href: '/SHUFFLE.md',
+    download: true,
+  },
   {
     label: 'Shuffle API Docs',
     slug: 'api',
@@ -142,6 +152,7 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
+              {...(link.download ? { download: '' } : {})}
               sx={{
                 borderRadius: 1,
                 mx: 1,
