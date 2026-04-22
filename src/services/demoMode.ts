@@ -131,6 +131,10 @@ const recordSeed = (category: string, keys: string[]) => {
 const FIRST_ENRICHMENT_DELAY_MS = 4000;
 const ENRICHMENT_INTERVAL_MS = 3500;
 
+// Kept for future use — no demo incident currently pre-bakes enrichments,
+// but the helper stays available for any seeder that needs to drip observables
+// onto a freshly-written incident over time.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const scheduleDemoObservableEnrichment = (
   key: string,
   observables: PendingObservable[],
@@ -450,11 +454,9 @@ export const seedDemoWazuhImplantIncident = async (): Promise<number> => {
         // materializes it into the datastore.
         recordSeed(DATASTORE_CATEGORIES.INCIDENTS, [item.key]);
         broadcastRefresh(DATASTORE_CATEGORIES.INCIDENTS);
-        // Background-enrich the webhook-fed incident too. The first
-        // enrichment delay (4s) is comfortably longer than the typical
-        // webhook->datastore materialization latency, so the patch will
-        // land on the freshly-materialized record.
-        scheduleDemoObservableEnrichment(item.key, item.pendingObservables);
+        // Like the focus phishing incident, the Wazuh / Sliver follow-up
+        // lands "raw" — Shuffle is what actually surfaces observables in
+        // the background, so the demo no longer pre-bakes them.
         return 1;
       }
     } catch { /* fall through to datastore write */ }
@@ -465,7 +467,8 @@ export const seedDemoWazuhImplantIncident = async (): Promise<number> => {
   if (!res.success) throw new Error(res.error || 'Failed to seed Sliver implant incident');
   recordSeed(DATASTORE_CATEGORIES.INCIDENTS, [item.key]);
   broadcastRefresh(DATASTORE_CATEGORIES.INCIDENTS);
-  scheduleDemoObservableEnrichment(item.key, item.pendingObservables);
+  // No pre-baked enrichments — Shuffle is responsible for surfacing
+  // observables on the Wazuh / Sliver follow-up incident.
   return 1;
 };
 
