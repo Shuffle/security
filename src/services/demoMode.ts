@@ -21,6 +21,7 @@ import {
   DEMO_FLAG_KEY,
   DEMO_ACTIVE_KEY,
   DEMO_SEEDED_STEPS_KEY,
+  type PendingObservable,
 } from '@/lib/demoSeedData';
 
 const VULNS_CATEGORY = 'shuffle-security_vulnerabilities';
