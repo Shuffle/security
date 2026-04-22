@@ -536,6 +536,33 @@ const IncidentDetailPage = () => {
   // Activity/comments
   const [newComment, setNewComment] = useState('');
   const [commentAttachments, setCommentAttachments] = useState<FileAttachment[]>([]);
+  const commentFileInputRef = useRef<HTMLInputElement>(null);
+  const [commentUploading, setCommentUploading] = useState(false);
+  const handleCommentAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setCommentUploading(true);
+    const newAttachments: FileAttachment[] = [];
+    for (const file of Array.from(files)) {
+      const result = await createAndUploadFile(file, 'incidents', incident?.id ? [incident.id, 'comments'] : ['comments']);
+      if (result.success && result.file) {
+        newAttachments.push({
+          id: result.file.id,
+          filename: result.file.filename,
+          filesize: result.file.filesize,
+          uploadedAt: Date.now(),
+        });
+        toast.success(`Uploaded ${file.name}`);
+      } else {
+        toast.error(`Failed to upload ${file.name}: ${result.reason}`);
+      }
+    }
+    if (newAttachments.length > 0) {
+      setCommentAttachments(prev => [...prev, ...newAttachments]);
+    }
+    setCommentUploading(false);
+    if (commentFileInputRef.current) commentFileInputRef.current.value = '';
+  };
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   
   // Tasks
