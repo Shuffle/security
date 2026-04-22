@@ -224,7 +224,7 @@ export const DemoTourDrawer = () => {
           <Box
             sx={{
               height: isBottom ? 'auto' : '100%',
-              maxHeight: isBottom ? 'min(370px, 60vh)' : '100%',
+              maxHeight: isBottom ? 'min(360px, 60vh)' : '100%',
               display: 'flex',
               flexDirection: isBottom ? 'row' : 'column',
               borderRadius: 3,
