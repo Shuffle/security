@@ -656,7 +656,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   )}
 
                   {/* AI Agent Configuration - multiple prompts */}
-                  {automation.enabled && automation.type === 'ai_agent' && (
+                  {automation.enabled && automation.type === 'ai_agent' && expandedTypes['ai_agent'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {aiAgentPrompts.map((prompt, idx) => (
                         <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
