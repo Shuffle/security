@@ -592,9 +592,9 @@ export const DemoTourDrawer = () => {
                                   )}
                                   {showForceGenerate && (
                                     <Button
-                                      data-tour="demo-force-generate-single"
-                                      onClick={forceGenerateSingleIncident}
-                                      disabled={isForceGeneratingSingle}
+                                      data-tour={isWazuhForce ? 'demo-force-generate-wazuh' : 'demo-force-generate-single'}
+                                      onClick={isWazuhForce ? forceGenerateWazuhIncident : forceGenerateSingleIncident}
+                                      disabled={isWazuhForce ? isForceGeneratingWazuh : isForceGeneratingSingle}
                                       variant="contained"
                                       size="small"
                                       sx={{
@@ -613,7 +613,7 @@ export const DemoTourDrawer = () => {
                                         '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
                                       }}
                                     >
-                                      {isForceGeneratingSingle ? 'Generating…' : 'Force generate'}
+                                      {(isWazuhForce ? isForceGeneratingWazuh : isForceGeneratingSingle) ? 'Generating…' : 'Force generate'}
                                     </Button>
                                   )}
                                 </Box>
