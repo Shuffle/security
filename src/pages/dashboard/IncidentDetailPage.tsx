@@ -1670,10 +1670,18 @@ const IncidentDetailPage = () => {
       setRefreshingObservables(true);
       const refreshId = Date.now();
       (obsRefreshTimerRef as any)._activeId = refreshId;
+      // Hard wall-clock safety: even if the refresh fetch hangs (the
+      // datastore fetch has no abort signal), force the spinner off after
+      // 20s so the UI never gets stuck. Stored on the ref so a subsequent
+      // refresh can clear it.
+      const hardTimeout = setTimeout(() => {
+        if ((obsRefreshTimerRef as any)._activeId === refreshId) {
+          console.warn('[ObsRefresh] Hard timeout reached — forcing spinner off');
+          setRefreshingObservables(false);
+        }
+      }, 20000);
+      (obsRefreshTimerRef as any)._hardTimeout = hardTimeout;
       obsRefreshTimerRef.current = setTimeout(async () => {
-        // Safety timeout: abort after 15s to prevent infinite spinner
-        const controller = new AbortController();
-        const safetyTimeout = setTimeout(() => controller.abort(), 15000);
         try {
           const refreshResult = isPublicView
             ? await getDatastoreItemPublic(incident.id, publicOrg!, publicAuth!)
@@ -1706,7 +1714,7 @@ const IncidentDetailPage = () => {
         } catch (err) {
           console.warn('[ObsRefresh] Failed to refresh observables:', err);
         } finally {
-          clearTimeout(safetyTimeout);
+          clearTimeout(hardTimeout);
           // Only clear loading if this is still the active refresh
           if ((obsRefreshTimerRef as any)._activeId === refreshId) {
             setRefreshingObservables(false);
