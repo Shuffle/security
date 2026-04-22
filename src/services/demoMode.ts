@@ -112,7 +112,7 @@ const recordSeed = (category: string, keys: string[]) => {
   localStorage.setItem(DEMO_ACTIVE_KEY, 'true');
 };
 
-const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
 
 // ─── Per-step seeders ────────────────────────────────────────────────────────
 // Each returns the number of items written (or 0 if already seeded).
