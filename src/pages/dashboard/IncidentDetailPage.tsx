@@ -3850,6 +3850,11 @@ const IncidentDetailPage = () => {
       </Box>
 
       {/* Main content with Activity sidebar */}
+      {/* LayoutGroup enables shared-element layout animation for the
+          Timeline panel — when the active tab changes, the timeline morphs
+          between its inline position (Details tab) and the right sidebar
+          position (other tabs) instead of unmount/remount jumping. */}
+      <LayoutGroup>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 2, mt: 2 }}>
         {/* Left content area */}
         <Box sx={{ flex: 1, minWidth: 0, order: { xs: 1, lg: 0 } }}>
