@@ -185,6 +185,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [threadCollapsed, setThreadCollapsed] = useState(false);
 
   const messages = useMemo(
     () => parseEmailThread(descriptionText, descriptionHtml),
