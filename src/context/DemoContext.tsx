@@ -438,6 +438,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     // `requirement` is purely cosmetic and only the sub-goals decide.
     if (s.subGoals && s.subGoals.length > 0) {
       return s.subGoals.every(g => {
+        // Optional sub-goals never block step advancement.
+        if (g.optional) return true;
         // Special-case the incidents-list:present sub-goal — it is satisfied
         // by the live datastore presence check, not by the completedSteps map.
         if (g.id === 'incidents-list:present') return hasDemoIncidents;
