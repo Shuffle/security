@@ -67,6 +67,16 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LanguageIcon from '@mui/icons-material/Language';
 import SearchIcon from '@mui/icons-material/Search';
 import Menu from '@mui/material/Menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
 import { useAppDetail } from '@/context/AppDetailContext';
@@ -571,6 +581,13 @@ const IncidentDetailPage = () => {
     if (commentFileInputRef.current) commentFileInputRef.current.value = '';
   };
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  /**
+   * Pending soft-delete confirmation. We never hard-delete a comment — the
+   * confirm dialog flips `deleted: true` on the original entity so the
+   * timestamp, author and thread position survive. Set to the comment id
+   * when the user clicks the delete icon; cleared on cancel/confirm.
+   */
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   
   // Tasks
   const [tasks, setTasks] = useState<IncidentTask[]>([]);
@@ -3189,7 +3206,8 @@ const IncidentDetailPage = () => {
       const actItem = item.data;
       const isOwnMessage = actItem.user === currentUsername;
       const messageAge = Date.now() - actItem.timestamp;
-      const canDelete = isOwnMessage && actItem.type === 'comment' && messageAge < 5 * 60 * 1000;
+      const isDeleted = !!actItem.deleted;
+      const canDelete = !isDeleted && isOwnMessage && actItem.type === 'comment' && messageAge < 5 * 60 * 1000;
       const timeRemaining = Math.max(0, Math.ceil((5 * 60 * 1000 - messageAge) / 60000));
 
       return (
@@ -3200,10 +3218,15 @@ const IncidentDetailPage = () => {
             gap: 1.5,
             p: 1.5,
             borderRadius: 1.5,
-            bgcolor: actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.05)' : 'rgba(0,0,0,0.15)',
+            bgcolor: isDeleted
+              ? 'rgba(255,255,255,0.02)'
+              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.05)' : 'rgba(0,0,0,0.15)',
             border: '1px solid',
-            borderColor: actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255,255,255,0.04)',
+            borderColor: isDeleted
+              ? 'rgba(255,255,255,0.05)'
+              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255,255,255,0.04)',
             position: 'relative',
+            opacity: isDeleted ? 0.7 : 1,
             '&:hover .delete-btn': { opacity: 1 },
             '&:hover .reply-btn': { opacity: 1 },
           }}
@@ -3211,7 +3234,9 @@ const IncidentDetailPage = () => {
           <Avatar sx={{
             width: 24,
             height: 24,
-            bgcolor: actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.08)',
+            bgcolor: isDeleted
+              ? 'rgba(255,255,255,0.06)'
+              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.08)',
           }}>
             {getActivityIcon(actItem.type)}
           </Avatar>
@@ -3240,48 +3265,59 @@ const IncidentDetailPage = () => {
                 />
               )}
             </Box>
-            <MentionText
-              text={actItem.content && /<[a-z][\s\S]*>/i.test(actItem.content) ? htmlToPlainText(actItem.content).trim() : actItem.content}
-              sx={{ fontSize: '0.8rem', color: 'text.secondary', whiteSpace: 'pre-wrap' }}
-            />
-            {actItem.attachments && actItem.attachments.length > 0 && (
-              <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {actItem.attachments.map((att, ai) => (
-                  <Chip
-                    key={ai}
-                    label={att.filename}
-                    size="small"
-                    variant="outlined"
-                    sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'transparent', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3b82f6' }}
-                  />
-                ))}
-              </Box>
+            {isDeleted ? (
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: '0.8rem',
+                  color: 'text.disabled',
+                  fontStyle: 'italic',
+                }}
+              >
+                Comment deleted
+              </Typography>
+            ) : (
+              <>
+                <MentionText
+                  text={actItem.content && /<[a-z][\s\S]*>/i.test(actItem.content) ? htmlToPlainText(actItem.content).trim() : actItem.content}
+                  sx={{ fontSize: '0.8rem', color: 'text.secondary', whiteSpace: 'pre-wrap' }}
+                />
+                {actItem.attachments && actItem.attachments.length > 0 && (
+                  <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {actItem.attachments.map((att, ai) => (
+                      <Chip
+                        key={ai}
+                        label={att.filename}
+                        size="small"
+                        variant="outlined"
+                        sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'transparent', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3b82f6' }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </>
             )}
           </Box>
-          <Box
-            className="reply-btn"
-            sx={{
-              position: 'absolute',
-              top: 4,
-              right: canDelete ? 28 : 4,
-              opacity: 0,
-              transition: 'opacity 0.2s',
-            }}
-          >
-            {replyButton}
-          </Box>
+          {!isDeleted && (
+            <Box
+              className="reply-btn"
+              sx={{
+                position: 'absolute',
+                top: 4,
+                right: canDelete ? 28 : 4,
+                opacity: 0,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              {replyButton}
+            </Box>
+          )}
           {canDelete && (
             <Tooltip title={`Delete (${timeRemaining}m left)`} arrow>
               <IconButton
                 className="delete-btn"
                 size="small"
-                onClick={() => {
-                  setActivity(prev => prev.filter(a => a.id !== actItem.id));
-                  pendingSaveRef.current = true;
-                  if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-                  saveTimeoutRef.current = setTimeout(() => { saveToDatastore(); }, 500);
-                  toast.success('Message deleted');
-                }}
+                onClick={() => setCommentToDelete(actItem.id)}
                 sx={{
                   position: 'absolute', top: 4, right: 4, width: 20, height: 20,
                   opacity: 0, transition: 'opacity 0.2s',
@@ -6171,6 +6207,60 @@ const IncidentDetailPage = () => {
         subtitle="Authenticate Gmail, Outlook, or another tool to forward incidents"
         priorityCategory="Email"
       />
+
+      {/*
+        Soft-delete confirmation for timeline comments. We do NOT remove the
+        activity item from the array — instead we flip `deleted: true` on the
+        original entity so the timestamp, author and thread anchoring stay
+        intact. The renderer shows a muted "Comment deleted" placeholder.
+      */}
+      <AlertDialog
+        open={commentToDelete !== null}
+        onOpenChange={(o) => { if (!o) setCommentToDelete(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this comment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The comment text will be removed, but the entry stays in the
+              timeline so the original timestamp, author and thread position
+              are preserved. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                const id = commentToDelete;
+                if (!id) return;
+                setActivity(prev => prev.map(a =>
+                  a.id === id
+                    ? {
+                        ...a,
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        // Strip body + attachments so the deleted text and
+                        // any uploaded files are not still present in the
+                        // persisted incident JSON. The shell of the entity
+                        // (id, type, user, timestamp, replyTo*) survives.
+                        content: '',
+                        attachments: [],
+                      }
+                    : a
+                ));
+                pendingSaveRef.current = true;
+                if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = setTimeout(() => { saveToDatastore(); }, 500);
+                toast.success('Comment deleted');
+                setCommentToDelete(null);
+              }}
+            >
+              Delete comment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };
