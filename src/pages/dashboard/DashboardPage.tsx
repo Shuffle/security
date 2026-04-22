@@ -43,6 +43,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import AgentQuestionDialog from '@/components/agent/AgentQuestionDialog';
 import AgentQuickViewDrawer, { type QuickViewItem } from '@/components/agent/AgentQuickViewDrawer';
+import InlineMarkdown from '@/components/shared/InlineMarkdown';
 import { useAgentNotifications } from '@/hooks/useNotifications';
 import { isApprovalNotification, approveAgentAction, type AgentNotification } from '@/services/notifications';
 import { getTimeAgo } from '@/components/agent/AgentRunHeader';
