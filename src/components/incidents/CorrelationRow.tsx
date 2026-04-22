@@ -179,13 +179,15 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
         {categories.map((category) => {
           const keys = refsByCategory[category];
           const isIncidentCategory = category === 'shuffle-security_incidents';
+          const isIoc = isIocCategory(category);
 
           return (
             <Box key={category} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  color: 'text.disabled',
+                  color: isIoc ? 'hsl(var(--destructive))' : 'text.disabled',
+                  fontWeight: isIoc ? 700 : undefined,
                   minWidth: compact ? 84 : 100,
                   textTransform: 'capitalize',
                   pt: 0.25,
@@ -209,9 +211,13 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
                       height: compact ? 20 : 22,
                       fontSize: compact ? '0.65rem' : '0.7rem',
                       fontFamily: 'monospace',
-                      bgcolor: 'transparent',
-                      borderColor: 'hsl(var(--border))',
-                      color: isIncidentCategory ? 'hsl(var(--primary))' : 'text.secondary',
+                      bgcolor: isIoc ? 'hsl(var(--destructive) / 0.08)' : 'transparent',
+                      borderColor: isIoc
+                        ? 'hsl(var(--destructive) / 0.5)'
+                        : 'hsl(var(--border))',
+                      color: isIoc
+                        ? 'hsl(var(--destructive))'
+                        : isIncidentCategory ? 'hsl(var(--primary))' : 'text.secondary',
                       cursor: isIncidentCategory ? 'pointer' : 'default',
                       '&:hover': isIncidentCategory
                         ? {
@@ -232,8 +238,8 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
                         height: compact ? 20 : 22,
                         fontSize: compact ? '0.65rem' : '0.7rem',
                         bgcolor: 'transparent',
-                        borderColor: 'hsl(var(--border))',
-                        color: 'text.disabled',
+                        borderColor: isIoc ? 'hsl(var(--destructive) / 0.4)' : 'hsl(var(--border))',
+                        color: isIoc ? 'hsl(var(--destructive))' : 'text.disabled',
                       }}
                     />
                   </Tooltip>
