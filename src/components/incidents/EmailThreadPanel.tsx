@@ -310,7 +310,9 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       {/* Messages */}
       <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
         {messages.map((msg, idx) => {
-          const isExpanded = msg.isLatest || expandedMessages.has(msg.id);
+          // Latest defaults to expanded but is now collapsible too — toggling
+          // collapses it; older messages start collapsed and toggle open.
+          const isExpanded = msg.isLatest ? !expandedMessages.has(msg.id) : expandedMessages.has(msg.id);
           const { name, email } = extractEmail(msg.from);
           const avatarColor = hashColor(msg.from);
 
