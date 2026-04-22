@@ -2501,9 +2501,9 @@ const IncidentDetailPage = () => {
 
   const inputSx = {
     '& .MuiOutlinedInput-root': {
-      bgcolor: 'rgba(0, 0, 0, 0.2)',
-      '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+      bgcolor: 'hsl(var(--input))',
+      '& fieldset': { borderColor: 'hsl(var(--border))' },
+      '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.4)' },
       '&.Mui-focused fieldset': { borderColor: '#FF6600' },
     },
   };
@@ -2691,7 +2691,7 @@ const IncidentDetailPage = () => {
       </Box>
 
       {/* Comment Input */}
-      <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Avatar sx={{ width: 28, height: 28, bgcolor: 'rgba(255, 102, 0, 0.2)' }}>
             <PersonIcon sx={{ fontSize: 16, color: '#ff6600' }} />
@@ -2753,7 +2753,7 @@ const IncidentDetailPage = () => {
                 placeholder={replyingTo ? `Reply to ${replyingTo.label}…` : 'Add a comment... (Enter to send, Shift+Enter for new line)'}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    bgcolor: 'rgba(0, 0, 0, 0.2)',
+                    bgcolor: 'hsl(var(--input))',
                     fontSize: '0.8rem',
                     pr: 9,
                     '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' },
@@ -3486,12 +3486,12 @@ const IncidentDetailPage = () => {
             p: 1.5,
             borderRadius: 1.5,
             bgcolor: isDeleted
-              ? 'rgba(255,255,255,0.02)'
-              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.05)' : 'rgba(0,0,0,0.15)',
+              ? 'hsl(var(--muted) / 0.3)'
+              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.05)' : 'hsl(var(--muted) / 0.5)',
             border: '1px solid',
             borderColor: isDeleted
-              ? 'rgba(255,255,255,0.05)'
-              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'rgba(255,255,255,0.04)',
+              ? 'hsl(var(--border-subtle))'
+              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--border-subtle))',
             position: 'relative',
             opacity: isDeleted ? 0.7 : 1,
             '&:hover .delete-btn': { opacity: 1 },
@@ -3502,7 +3502,7 @@ const IncidentDetailPage = () => {
             width: 24,
             height: 24,
             bgcolor: isDeleted
-              ? 'rgba(255,255,255,0.06)'
+              ? 'hsl(var(--border-subtle))'
               : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.2)' : 'rgba(255,255,255,0.08)',
           }}>
             {getActivityIcon(actItem.type)}
@@ -4694,9 +4694,9 @@ const IncidentDetailPage = () => {
               <Box
                 sx={{
                   p: 2,
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
+                  bgcolor: 'hsl(var(--input))',
                   borderRadius: 1,
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid hsl(var(--border))',
                   minHeight: 120,
                   maxHeight: 450,
                   overflow: 'auto',
@@ -4729,15 +4729,15 @@ const IncidentDetailPage = () => {
               <Box
                 sx={{
                   p: 1.5,
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
+                  bgcolor: 'hsl(var(--input))',
                   borderRadius: 1,
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid hsl(var(--border))',
                   minHeight: 120,
                   maxHeight: 350,
                   overflow: 'auto',
                   whiteSpace: 'pre-wrap',
                   cursor: 'pointer',
-                  '&:hover': { borderColor: 'rgba(255,255,255,0.2)' },
+                  '&:hover': { borderColor: 'hsl(var(--muted-foreground) / 0.4)' },
                 }}
                 onClick={() => setIsEditingDescription(true)}
               >
@@ -5002,8 +5002,8 @@ const IncidentDetailPage = () => {
                       sx: {
                         fontSize: '0.7rem',
                         height: 24,
-                        bgcolor: 'rgba(0,0,0,0.2)',
-                        '& fieldset': { borderColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed' },
+                        bgcolor: 'hsl(var(--input))',
+                        '& fieldset': { borderColor: 'hsl(var(--border))', borderStyle: 'dashed' },
                         '&:hover fieldset': { borderColor: 'rgba(6, 182, 212, 0.3)' },
                         '&.Mui-focused fieldset': { borderColor: '#06b6d4' },
                       },
@@ -5267,8 +5267,8 @@ const IncidentDetailPage = () => {
                   sx={{
                     minWidth: 120,
                     fontSize: '0.8rem',
-                    bgcolor: 'rgba(0,0,0,0.2)',
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
+                    bgcolor: 'hsl(var(--input))',
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
                     '& .MuiSelect-select': { py: 0.75, px: 1.5 },
                   }}
                   MenuProps={{ PaperProps: { sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' } } }}
@@ -5290,8 +5290,8 @@ const IncidentDetailPage = () => {
               sx={{
                 minWidth: 110,
                 fontSize: '0.75rem',
-                bgcolor: 'rgba(0,0,0,0.2)',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
+                bgcolor: 'hsl(var(--input))',
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
                 '& .MuiSelect-select': { py: 0.75, px: 1.5 },
               }}
               MenuProps={{ PaperProps: { sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' } } }}
@@ -5457,8 +5457,8 @@ const IncidentDetailPage = () => {
                         gap: mismatch ? 0.5 : 0,
                         p: 1.5,
                         borderRadius: 1,
-                        bgcolor: 'rgba(0,0,0,0.2)',
-                        border: mismatch ? '1px solid rgba(251, 146, 60, 0.3)' : isExpanded ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid rgba(255,255,255,0.06)',
+                        bgcolor: 'hsl(var(--input))',
+                        border: mismatch ? '1px solid rgba(251, 146, 60, 0.3)' : isExpanded ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--border-subtle))',
                         cursor: 'pointer',
                         transition: 'border-color 0.15s ease',
                         '&:hover': { borderColor: 'hsl(var(--primary) / 0.2)' },
@@ -5574,7 +5574,7 @@ const IncidentDetailPage = () => {
                       </Box>
                       {/* Expanded detail panel */}
                       {isExpanded && (
-                        <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                        <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid hsl(var(--border-subtle))', display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                             <Box>
                               <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -5666,7 +5666,7 @@ const IncidentDetailPage = () => {
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
                                   {corr.data.slice(0, 8).map((c: any, ci: number) => (
-                                    <Box key={ci} sx={{ p: 0.75, borderRadius: 1, bgcolor: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <Box key={ci} sx={{ p: 0.75, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.5)', border: '1px solid hsl(var(--border-subtle))' }}>
                                       <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', wordBreak: 'break-all' }}>
                                         {c.key}
                                       </Typography>
@@ -5785,7 +5785,7 @@ const IncidentDetailPage = () => {
                   </Typography>
                   <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {corr?.data?.map((c, i) => (
-                      <Box key={i} sx={{ p: 1, borderRadius: 1, bgcolor: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <Box key={i} sx={{ p: 1, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.5)', border: '1px solid hsl(var(--border-subtle))' }}>
                         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', wordBreak: 'break-all' }}>
                           {c.key}
                         </Typography>
@@ -6004,13 +6004,13 @@ const IncidentDetailPage = () => {
         <Box sx={{
           bgcolor: 'rgba(255,255,255,0.02)',
           borderRadius: 2,
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid hsl(var(--border-subtle))',
           p: 2,
           display: 'flex',
           flexDirection: 'column',
           gap: 1.5,
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, bgcolor: 'hsl(var(--card))', mx: -2, px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, bgcolor: 'hsl(var(--card))', mx: -2, px: 2, py: 1.5, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <DescriptionIcon sx={{ fontSize: 18, color: '#ff6600' }} />

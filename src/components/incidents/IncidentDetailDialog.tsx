@@ -544,7 +544,7 @@ export const IncidentDetailDialog = ({ open, incident, onClose, onResolve, onUpd
                 <IconButton 
                   onClick={handleAddReference} 
                   size="small" 
-                  sx={{ bgcolor: 'rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+                  sx={{ bgcolor: 'rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'hsl(var(--border))' } }}
                   disabled={!newReference.trim()}
                 >
                   <AddIcon />
@@ -596,7 +596,7 @@ export const IncidentDetailDialog = ({ open, incident, onClose, onResolve, onUpd
               <IconButton 
                 onClick={handleAddObservable} 
                 size="small" 
-                sx={{ bgcolor: 'rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+                sx={{ bgcolor: 'rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'hsl(var(--border))' } }}
                 disabled={!newObservableValue.trim()}
               >
                 <AddIcon />
@@ -672,7 +672,7 @@ export const IncidentDetailDialog = ({ open, incident, onClose, onResolve, onUpd
                 </Typography>
                 <Box
                   sx={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                    backgroundColor: 'hsl(var(--input))',
                     borderRadius: 1,
                     p: 2,
                     fontFamily: 'monospace',

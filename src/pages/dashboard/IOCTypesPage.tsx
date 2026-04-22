@@ -447,7 +447,7 @@ const IOCTypesPage = () => {
             fullWidth
             sx={{ 
               '& .MuiOutlinedInput-root': { 
-                bgcolor: 'rgba(0,0,0,0.2)',
+                bgcolor: 'hsl(var(--input))',
                 fontFamily: 'monospace',
               } 
             }}

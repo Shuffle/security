@@ -178,7 +178,7 @@ export const CategoryAutomations: React.FC<CategoryAutomationsProps> = ({
                       sx={{
                         height: 18,
                         fontSize: '0.65rem',
-                        bgcolor: 'rgba(0,0,0,0.2)',
+                        bgcolor: 'hsl(var(--input))',
                         color: trigger.color,
                         '& .MuiChip-label': { px: 0.5 },
                         '& .MuiChip-icon': { ml: 0.5 },

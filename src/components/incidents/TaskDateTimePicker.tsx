@@ -75,11 +75,11 @@ export const TaskDateTimePicker = ({ value, onChange }: TaskDateTimePickerProps)
             borderRadius: 1,
             cursor: 'pointer',
             bgcolor: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid hsl(var(--border))',
             transition: 'all 0.2s ease',
             '&:hover': {
               bgcolor: 'rgba(255,255,255,0.08)',
-              borderColor: 'rgba(255,255,255,0.2)',
+              borderColor: 'hsl(var(--muted-foreground) / 0.4)',
             },
           }}
         >
@@ -108,7 +108,7 @@ export const TaskDateTimePicker = ({ value, onChange }: TaskDateTimePickerProps)
           
           {/* Time input with seconds */}
           <Box sx={{ 
-            borderTop: '1px solid rgba(255,255,255,0.1)', 
+            borderTop: '1px solid hsl(var(--border))', 
             pt: 2, 
             mt: 2,
             display: 'flex',
@@ -125,9 +125,9 @@ export const TaskDateTimePicker = ({ value, onChange }: TaskDateTimePickerProps)
               sx={{
                 width: 100,
                 '& .MuiOutlinedInput-root': {
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                  bgcolor: 'hsl(var(--input))',
+                  '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.4)' },
                   '&.Mui-focused fieldset': { borderColor: '#FF6600' },
                 },
                 '& input': { fontSize: '0.8rem', py: 0.5 },
@@ -148,9 +148,9 @@ export const TaskDateTimePicker = ({ value, onChange }: TaskDateTimePickerProps)
               sx={{
                 width: 50,
                 '& .MuiOutlinedInput-root': {
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                  bgcolor: 'hsl(var(--input))',
+                  '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.4)' },
                   '&.Mui-focused fieldset': { borderColor: '#FF6600' },
                 },
                 '& input': { fontSize: '0.8rem', py: 0.5, textAlign: 'center' },
