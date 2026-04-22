@@ -3880,13 +3880,14 @@ const IncidentDetailPage = () => {
               scrollbarWidth: 'none',
             }}>
               {[
-                { label: 'Details', count: null },
-                { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null },
-                { label: 'Observables', count: (editedObservables.filter(o => !o.archived).length + enrichments.length) > 0 ? (editedObservables.filter(o => !o.archived).length + enrichments.length) : null, loading: refreshingObservables },
-                { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading },
+                { label: 'Details', count: null, tour: 'incident-tab-details' },
+                { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null, tour: 'incident-tab-tasks' },
+                { label: 'Observables', count: (editedObservables.filter(o => !o.archived).length + enrichments.length) > 0 ? (editedObservables.filter(o => !o.archived).length + enrichments.length) : null, loading: refreshingObservables, tour: 'incident-tab-observables' },
+                { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading, tour: 'incident-tab-correlations' },
               ].map((tab, index) => (
                 <Box
                   key={tab.label}
+                  data-tour={tab.tour}
                   onClick={() => setActiveTab(index)}
                   sx={{
                     px: 2,
