@@ -1480,68 +1480,72 @@ const IncidentDetailPage = () => {
     return () => clearInterval(intervalId);
   }, [loadIncident, isSaving]);
 
-  // Fetch correlations — deferred until incident is loaded to avoid blocking the UI
-  useEffect(() => {
-    const fetchCorrelations = async () => {
-      if (!id || loading) return;
-      
-      setCorrelationsLoading(true);
-      try {
-        const response = await fetch(getApiUrl('/api/v2/correlations'), {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeader(),
-            ...crossOrgHeaders,
-          },
-          body: JSON.stringify({
-            type: 'datastore',
-            key: id,
-            category: DATASTORE_CATEGORIES.INCIDENTS,
-          }),
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          // API returns array directly with { key, amount, ref[] }
-          const correlationData = Array.isArray(data) ? data : (data.correlations || data.data || []);
-          // Filter out noise: current incident key, status values, severity values, and common non-meaningful keys
-          const noiseKeys = new Set([
-            'new', 'in_progress', 'resolved', 'escalated', 'closed', 'open', 'pending',
-            'critical', 'high', 'medium', 'low', 'informational', 'info', 'warning', 'error',
-            'unknown', 'none', 'null', 'undefined', 'true', 'false',
-            id?.toLowerCase(),
-          ].filter(Boolean));
-          const currentIdLower = (id || '').toLowerCase();
-          const filteredCorr = correlationData.filter((c: { key: string; ref?: string[] }) => {
-            if (noiseKeys.has(c.key.toLowerCase())) return false;
-            // Exclude correlations whose only reference is the current incident itself —
-            // a correlation needs at least one OTHER incident to be meaningful.
-            const refs = Array.isArray(c.ref) ? c.ref : [];
-            const otherRefs = refs.filter((r) => {
-              const tail = (r.includes('|') ? r.split('|').pop() : r.split('/').pop()) || '';
-              return tail.toLowerCase() !== currentIdLower;
-            });
-            return otherRefs.length > 0;
-          });
-          setCorrelations(filteredCorr);
-          // Capture the discovery time so the timeline can place this event
-          // chronologically. Only set on the first non-empty discovery so the
-          // timestamp is stable across re-renders / refetches.
-          if (filteredCorr.length > 0) {
-            setCorrelationsDiscoveredAt((prev) => prev ?? Date.now());
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch correlations:', error);
-      } finally {
-        setCorrelationsLoading(false);
-      }
-    };
+  // Fetch correlations — extracted into a callback so the "Re-run" button on
+  // the Correlations tab header can refresh on demand. Deferred until the
+  // incident is loaded to avoid blocking the UI.
+  const fetchCorrelations = useCallback(async () => {
+    if (!id) return;
 
+    setCorrelationsLoading(true);
+    try {
+      const response = await fetch(getApiUrl('/api/v2/correlations'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+          ...crossOrgHeaders,
+        },
+        body: JSON.stringify({
+          type: 'datastore',
+          key: id,
+          category: DATASTORE_CATEGORIES.INCIDENTS,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // API returns array directly with { key, amount, ref[] }
+        const correlationData = Array.isArray(data) ? data : (data.correlations || data.data || []);
+        // Filter out noise: current incident key, status values, severity values, and common non-meaningful keys
+        const noiseKeys = new Set([
+          'new', 'in_progress', 'resolved', 'escalated', 'closed', 'open', 'pending',
+          'critical', 'high', 'medium', 'low', 'informational', 'info', 'warning', 'error',
+          'unknown', 'none', 'null', 'undefined', 'true', 'false',
+          id?.toLowerCase(),
+        ].filter(Boolean));
+        const currentIdLower = (id || '').toLowerCase();
+        const filteredCorr = correlationData.filter((c: { key: string; ref?: string[] }) => {
+          if (noiseKeys.has(c.key.toLowerCase())) return false;
+          // Exclude correlations whose only reference is the current incident itself —
+          // a correlation needs at least one OTHER incident to be meaningful.
+          const refs = Array.isArray(c.ref) ? c.ref : [];
+          const otherRefs = refs.filter((r) => {
+            const tail = (r.includes('|') ? r.split('|').pop() : r.split('/').pop()) || '';
+            return tail.toLowerCase() !== currentIdLower;
+          });
+          return otherRefs.length > 0;
+        });
+        setCorrelations(filteredCorr);
+        // Capture the discovery time so the timeline can place this event
+        // chronologically. Only set on the first non-empty discovery so the
+        // timestamp is stable across re-renders / refetches.
+        if (filteredCorr.length > 0) {
+          setCorrelationsDiscoveredAt((prev) => prev ?? Date.now());
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch correlations:', error);
+    } finally {
+      setCorrelationsLoading(false);
+    }
+  }, [id, crossOrgHeaders]);
+
+  useEffect(() => {
+    if (loading) return;
     fetchCorrelations();
-  }, [id, loading]);
+  }, [fetchCorrelations, loading]);
+
 
   // Tick periodically while the incident is "fresh" (created within the last
   // 2 minutes) so the observables area can show a loading state until the
@@ -5896,9 +5900,29 @@ const IncidentDetailPage = () => {
               <CircularProgress size={24} />
             </Box>
           ) : correlations.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
-              No correlations found for this incident
-            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1.5 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                No correlations found for this incident
+              </Typography>
+              <Tooltip title="Re-run correlation search" arrow>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => fetchCorrelations()}
+                    disabled={correlationsLoading}
+                    sx={{
+                      p: 0.75,
+                      color: 'hsl(var(--muted-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 1,
+                      '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--accent))' },
+                    }}
+                  >
+                    <RefreshIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {/* Correlation summary — quiet header */}
@@ -5916,6 +5940,25 @@ const IncidentDetailPage = () => {
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   · linked across other datastore items
                 </Typography>
+                <Tooltip title="Re-run correlation search" arrow>
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => fetchCorrelations()}
+                      disabled={correlationsLoading}
+                      sx={{
+                        ml: 'auto',
+                        p: 0.5,
+                        color: 'hsl(var(--muted-foreground))',
+                        '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--accent))' },
+                      }}
+                    >
+                      {correlationsLoading
+                        ? <CircularProgress size={14} />
+                        : <RefreshIcon sx={{ fontSize: 16 }} />}
+                    </IconButton>
+                  </span>
+                </Tooltip>
               </Box>
 
               {/* Correlation list */}
