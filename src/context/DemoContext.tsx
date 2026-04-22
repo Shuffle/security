@@ -221,6 +221,10 @@ interface DemoContextValue {
   hasDemoIncidents: boolean;
   /** True when the user is currently on an incident-detail route. Live. */
   isOnIncidentDetail: boolean;
+  /** Increments every time openTour/restoreTour is called — drawer uses this
+   *  to flash an attention pulse so repeated clicks of "Continue demo mode"
+   *  visibly do something even when the drawer is already open. */
+  attentionPulse: number;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -251,6 +255,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [isForceCreatingIncidents, setIsForceCreatingIncidents] = useState(false);
   const [isForceGeneratingSingle, setIsForceGeneratingSingle] = useState(false);
   const [hasDemoIncidents, setHasDemoIncidents] = useState(false);
+  const [attentionPulse, setAttentionPulse] = useState(0);
 
   // GA dedupe: each step view fires at most once per session, each completion
   // fires at most once per step. Refs survive re-renders without retriggering.
@@ -275,6 +280,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const restoreTour = useCallback(() => {
     setMinimized(false);
     setDrawerOpen(true);
+    setAttentionPulse(p => p + 1);
     try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
     trackPredefinedEvent(GA_EVENTS.DEMO_RESTORE, TOUR_STEPS[step]?.id, step);
   }, [step]);
@@ -372,6 +378,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const openTour = useCallback(() => {
     setDrawerOpen(true);
     setMinimized(false);
+    setAttentionPulse(p => p + 1);
     try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
     navigateForStep(step);
     runStepSeed(step);
@@ -594,6 +601,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     forceGenerateSingleIncident, isForceGeneratingSingle,
     hasDemoIncidents,
     isOnIncidentDetail,
+    attentionPulse,
   }), [
     active, isSeeding, isCleaning, drawerOpen, minimized, dock, step, stats,
     completedSteps, currentStepUnlocked,
@@ -604,6 +612,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     forceGenerateSingleIncident, isForceGeneratingSingle,
     hasDemoIncidents,
     isOnIncidentDetail,
+    attentionPulse,
   ]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;

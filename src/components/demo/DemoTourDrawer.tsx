@@ -24,6 +24,7 @@ import {
   PanelRight,
   PanelBottom,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -48,7 +49,26 @@ export const DemoTourDrawer = () => {
     isForceGeneratingSingle,
     hasDemoIncidents,
     isOnIncidentDetail,
+    attentionPulse,
   } = useDemo();
+
+  // Trigger a brief attention flash whenever attentionPulse increments while
+  // the drawer is already visible — so repeatedly clicking "Continue demo
+  // mode" on the dashboard makes the panel visibly react.
+  const [flash, setFlash] = useState(false);
+  const lastPulseRef = useRef(attentionPulse);
+  useEffect(() => {
+    if (attentionPulse !== lastPulseRef.current) {
+      lastPulseRef.current = attentionPulse;
+      if (drawerOpen && !minimized) {
+        setFlash(false);
+        // next tick so the class re-applies even on rapid repeats
+        const r = requestAnimationFrame(() => setFlash(true));
+        const t = window.setTimeout(() => setFlash(false), 900);
+        return () => { cancelAnimationFrame(r); window.clearTimeout(t); };
+      }
+    }
+  }, [attentionPulse, drawerOpen, minimized]);
 
   const total = TOUR_STEPS.length;
   const current = TOUR_STEPS[step];
@@ -210,7 +230,11 @@ export const DemoTourDrawer = () => {
               borderRadius: 3,
               border: '1px solid hsl(var(--border))',
               backgroundColor: 'hsl(var(--card))',
-              boxShadow: '0 24px 60px -16px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--primary) / 0.08)',
+              boxShadow: flash
+                ? '0 24px 60px -16px hsl(0 0% 0% / 0.45), 0 0 0 3px hsl(var(--primary)), 0 0 0 10px hsl(var(--primary) / 0.25), 0 0 40px 6px hsl(var(--primary) / 0.5)'
+                : '0 24px 60px -16px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--primary) / 0.08)',
+              transform: flash ? 'scale(1.015)' : 'scale(1)',
+              transition: 'box-shadow 0.35s ease, transform 0.35s ease',
               overflow: 'hidden',
             }}
           >
