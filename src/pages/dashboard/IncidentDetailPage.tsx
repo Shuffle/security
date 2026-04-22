@@ -2003,6 +2003,8 @@ const IncidentDetailPage = () => {
     };
     await addItem(incident.id, updatedOCSF);
     toast.success('Comment added');
+    // Demo Mode signal — lets the tour mark "ask the agent" as complete.
+    try { window.dispatchEvent(new CustomEvent('demo:incident-comment-sent')); } catch { /* no-op */ }
 
     // Schedule observable/enrichment refresh ~7s after comment save
     // Backend may extract IOCs from comment text and create enrichments
@@ -2484,7 +2486,7 @@ const IncidentDetailPage = () => {
                 </IconButton>
               </Box>
             )}
-            <Box sx={{ position: 'relative' }}>
+            <Box data-tour="incident-comment-input" sx={{ position: 'relative' }}>
               <MentionInput
                 value={newComment}
                 onChange={setNewComment}
@@ -3880,13 +3882,15 @@ const IncidentDetailPage = () => {
               scrollbarWidth: 'none',
             }}>
               {[
-                { label: 'Details', count: null },
-                { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null },
-                { label: 'Observables', count: (editedObservables.filter(o => !o.archived).length + enrichments.length) > 0 ? (editedObservables.filter(o => !o.archived).length + enrichments.length) : null, loading: refreshingObservables },
-                { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading },
+                { label: 'Details', count: null, tour: 'incident-tab-details' },
+                { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null, tour: 'incident-tab-tasks' },
+                { label: 'Observables', count: (editedObservables.filter(o => !o.archived).length + enrichments.length) > 0 ? (editedObservables.filter(o => !o.archived).length + enrichments.length) : null, loading: refreshingObservables, tour: 'incident-tab-observables' },
+                { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading, tour: 'incident-tab-correlations' },
               ].map((tab, index) => (
                 <Box
                   key={tab.label}
+                  data-tour={tab.tour}
+                  data-active={activeTab === index ? 'true' : 'false'}
                   onClick={() => setActiveTab(index)}
                   sx={{
                     px: 2,

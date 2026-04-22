@@ -20,9 +20,10 @@ import { isWorkflowScheduleStopped } from '@/lib/ingestionDetection';
 import { seedDemoWazuhImplantIncident } from '@/services/demoMode';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 
-/** How long the user must dwell on the incident-detail step before the
- *  Wazuh / Sliver follow-up incident is auto-seeded ("arrives" mid-investigation). */
-const WAZUH_FOLLOWUP_DELAY_MS = 8000;
+/** How long after the user asks the agent a question before the Wazuh /
+ *  Sliver follow-up incident "arrives" — long enough to feel earned, short
+ *  enough that the user does not lose context. */
+const WAZUH_FOLLOWUP_DELAY_MS = 6000;
 
 export const DemoCompletionWatcher = () => {
   const { drawerOpen, step, setStepCompleted, markStepCompleted } = useDemo();
@@ -73,50 +74,85 @@ export const DemoCompletionWatcher = () => {
   // computed live from the current route in DemoContext (`isOnIncidentDetail`)
   // so leaving the detail page reverts the gate immediately.
 
-  // ─── Auto-seed the Wazuh / Sliver follow-up incident ──────────────────────
-  // Once the user lands on the incident-detail step (i.e. they have opened
-  // the phishing focus incident), wait a short beat so they can read it,
-  // then drop the critical Wazuh detection into the datastore. This makes
-  // the malware finding visibly "arrive" mid-investigation.
-  useEffect(() => {
-    if (!drawerOpen) return;
-    if (wazuhSeededRef.current) return;
-    const stepId = TOUR_STEPS[step]?.id;
-    if (stepId !== 'incident-detail') return;
+  // ─── incident-detail sub-goals ─────────────────────────────────────────────
+  // Step #5 is now a guided walkthrough: open Tasks, open Observables, ask
+  // the agent a question, then watch the Wazuh / Sliver C2 follow-up arrive.
+  // Each sub-goal flips on as the user performs the action — and the Wazuh
+  // incident is intentionally NOT auto-seeded on a timer anymore. Instead we
+  // wait until the user has actually asked the agent a question, so the new
+  // correlated detection feels like a direct response to the investigation.
 
-    const timer = window.setTimeout(async () => {
-      if (wazuhSeededRef.current) return;
-      try {
-        const added = await seedDemoWazuhImplantIncident();
-        wazuhSeededRef.current = true;
-        if (added > 0) {
-          toast.warning('New critical incident: Sliver C2 implant detected.', {
-            duration: 4500,
-          });
-        }
-      } catch {
-        // best-effort; don't block the tour
-      }
-    }, WAZUH_FOLLOWUP_DELAY_MS);
-
-    return () => window.clearTimeout(timer);
-  }, [drawerOpen, step]);
-
-  // ─── incident-detail — auto-complete once the Activity feed is visible ────
-  // The step has a `requirement.targetSelector` so the spotlight points at
-  // the Activity feed, but we don't want to *block* Next on it. Mark complete
-  // as soon as the feed exists in the DOM (i.e. user is on the detail page).
+  // Tabs — poll the active tab via data-active="true" on the data-tour nodes.
   useEffect(() => {
     if (!drawerOpen) return;
     const stepId = TOUR_STEPS[step]?.id;
     if (stepId !== 'incident-detail') return;
     const id = window.setInterval(() => {
-      const el = document.querySelector('[data-tour="incident-activity-feed"]');
-      if (el) {
-        markStepCompleted('incident-detail');
-        window.clearInterval(id);
-      }
+      const tasksTab = document.querySelector('[data-tour="incident-tab-tasks"][data-active="true"]');
+      if (tasksTab) markStepCompleted('incident-detail:tasks');
+      const obsTab = document.querySelector('[data-tour="incident-tab-observables"][data-active="true"]');
+      if (obsTab) markStepCompleted('incident-detail:observables');
     }, 500);
+    return () => window.clearInterval(id);
+  }, [drawerOpen, step, markStepCompleted]);
+
+  // Comment-sent — listens for the custom event dispatched by the incident
+  // detail page when the user adds a comment. Doubles as "ask the agent".
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onSent = () => {
+      const stepId = TOUR_STEPS[step]?.id;
+      if (stepId !== 'incident-detail') return;
+      markStepCompleted('incident-detail:ask-agent');
+      // Once the user asks the agent something, schedule the Wazuh / Sliver C2
+      // follow-up to arrive shortly after — as if the agent dug deeper and
+      // found the related implant. We do not seed instantly so it reads as a
+      // genuine "new correlation found" moment a few seconds later.
+      if (wazuhSeededRef.current) return;
+      window.setTimeout(async () => {
+        if (wazuhSeededRef.current) return;
+        try {
+          const added = await seedDemoWazuhImplantIncident();
+          wazuhSeededRef.current = true;
+          if (added > 0) {
+            toast.warning('New correlation found: Sliver C2 implant detected on the same host.', {
+              duration: 5000,
+            });
+            markStepCompleted('incident-detail:wazuh');
+          }
+        } catch {
+          // best-effort; user can still force-generate from the drawer
+        }
+      }, WAZUH_FOLLOWUP_DELAY_MS);
+    };
+    window.addEventListener('demo:incident-comment-sent', onSent);
+    return () => window.removeEventListener('demo:incident-comment-sent', onSent);
+  }, [drawerOpen, step, markStepCompleted]);
+
+  // Wazuh sub-goal — also flips on if the incident is already seeded (e.g.
+  // user force-generated it from the tour drawer, or it landed on a previous
+  // run). We read the seeded-keys index from localStorage instead of poking
+  // the datastore directly so this stays cheap.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const stepId = TOUR_STEPS[step]?.id;
+    if (stepId !== 'incident-detail') return;
+    const check = () => {
+      try {
+        const idx = JSON.parse(localStorage.getItem('shuffle_demo_seeded_keys') || '{}');
+        const incidents = idx['shuffle-security_incidents'];
+        if (Array.isArray(incidents) && incidents.some((k: string) => typeof k === 'string' && k.includes('-wazuh'))) {
+          wazuhSeededRef.current = true;
+          markStepCompleted('incident-detail:wazuh');
+          return true;
+        }
+      } catch { /* ignore */ }
+      return false;
+    };
+    if (check()) return;
+    const id = window.setInterval(() => {
+      if (check()) window.clearInterval(id);
+    }, 2000);
     return () => window.clearInterval(id);
   }, [drawerOpen, step, markStepCompleted]);
 
