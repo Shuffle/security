@@ -52,31 +52,25 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return () => mq.removeEventListener('change', handler);
   }, [theme]);
 
-  // Check /api/v1/getinfo for theme preference (only once)
+  // Theme preference is sourced from the same `/api/v1/getinfo` request that
+  // AuthContext already fires on mount. Listening for the broadcast event it
+  // dispatches avoids a second duplicate request to the same endpoint.
   useEffect(() => {
     if (apiChecked) return;
-    const checkApiTheme = async () => {
-      try {
-        const res = await fetch(getApiUrl('/api/v1/getinfo'), {
-          credentials: 'include',
-          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) throw new Error('getinfo failed');
-        const data = await res.json();
-        if (data && data.success && (data.theme === 'dark' || data.theme === 'light')) {
-          // Only apply API theme if user hasn't manually set one
-          const saved = localStorage.getItem(THEME_STORAGE_KEY);
-          if (!saved) {
-            setThemeState(data.theme);
-            localStorage.setItem(THEME_STORAGE_KEY, data.theme);
-          }
+    const onGetInfo = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      if (data && data.success && (data.theme === 'dark' || data.theme === 'light')) {
+        // Only apply API theme if user has not manually set one
+        const saved = localStorage.getItem(THEME_STORAGE_KEY);
+        if (!saved) {
+          setThemeState(data.theme);
+          localStorage.setItem(THEME_STORAGE_KEY, data.theme);
         }
-      } catch {
-        // Silently fail — use default
       }
       setApiChecked(true);
     };
-    checkApiTheme();
+    window.addEventListener('shuffle:getinfo', onGetInfo as EventListener);
+    return () => window.removeEventListener('shuffle:getinfo', onGetInfo as EventListener);
   }, [apiChecked]);
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
