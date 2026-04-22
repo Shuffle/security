@@ -640,10 +640,25 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
           </>
         )}
         {data.incidentLink && (
-          <Button component={Link} to={data.incidentLink} fullWidth variant="outlined"
-            endIcon={<ArrowRight size={14} />} sx={outlineButtonSx}>
-            View Full Incident
-          </Button>
+          data.incidentLinkExternal ? (
+            <Button
+              component="a"
+              href={data.incidentLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              fullWidth
+              variant="outlined"
+              endIcon={<ArrowRight size={14} />}
+              sx={outlineButtonSx}
+            >
+              {data.incidentLinkLabel}
+            </Button>
+          ) : (
+            <Button component={Link} to={data.incidentLink} fullWidth variant="outlined"
+              endIcon={<ArrowRight size={14} />} sx={outlineButtonSx}>
+              {data.incidentLinkLabel}
+            </Button>
+          )
         )}
       </Box>
     </Drawer>
