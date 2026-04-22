@@ -20,9 +20,10 @@ hand-holding.
 
 1. **Pick a base URL** - `https://shuffler.io` (EU), `https://us.shuffler.io`
    (US), or your self-hosted host.
-2. **Get an API key** - UI -> user settings -> "API key". Send as
-   `Authorization: Bearer <key>` on every request, or use a session cookie
-   (never both).
+2. **Get an API key** - either grab one from UI -> user settings -> "API key",
+   or bootstrap from scratch with the register / generateapikey flow below
+   (section 0.1). Send as `Authorization: Bearer <key>` on every request, or
+   use a session cookie (never both).
 3. **Call `GET /api/v1/getinfo`** - source of truth for the active user, the
    active org, and the user's `region_url`. Retarget your client to that URL
    if it differs from where you logged in.
@@ -39,6 +40,47 @@ console.log(me.username, '->', me.active_org.id);
 That single call gives you everything else you need: `active_org.id` (used in
 every datastore call), `region_url` (your true API base), `regions[]`,
 `role`, `app_execution_usage` and `app_execution_limit`.
+
+### 0.1 Bootstrap from zero (register + generate API key)
+
+The agent can start from a completely blank slate - no account, no key - and
+build everything itself using these two endpoints:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `POST` | `/api/v1/register` | Create a brand-new user. Body: `{"username": "", "password": ""}`. On Cloud the username is an email; on self-hosted it can be any string. Returns a session cookie / token for the new user. |
+| `POST` | `/api/v1/generateapikey` | Generate (or rotate) an API key for the **currently authenticated** user. Use this immediately after register, or any time the user has no key yet. The response contains the new `apikey` - store it and use it as `Authorization: Bearer <key>` from then on. |
+
+Typical zero-to-running flow:
+
+```js
+// 1. Register a new user (returns a session cookie)
+await fetch(`${BASE}/api/v1/register`, {
+  method: 'POST',
+  credentials: 'include',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ username: 'agent@example.com', password: 'a-strong-password' }),
+});
+
+// 2. Mint an API key for that user (uses the session cookie from step 1)
+const { apikey } = await fetch(`${BASE}/api/v1/generateapikey`, {
+  method: 'POST',
+  credentials: 'include',
+}).then(r => r.json());
+
+// 3. From here on, use the API key for every call
+const H = { Authorization: `Bearer ${apikey}`, 'Content-Type': 'application/json' };
+const me = await fetch(`${BASE}/api/v1/getinfo`, { headers: H }).then(r => r.json());
+```
+
+Notes:
+- If `/api/v1/register` returns "user already exists", log in instead
+  (`POST /api/v1/login` with the same body) and then call `generateapikey`.
+- `generateapikey` rotates the key - any previous key for that user stops
+  working. Only call it when the user has no key, or when you explicitly want
+  to rotate.
+- On Shuffle Cloud, public registration may be disabled per-tenant. Self-hosted
+  installs always allow it unless the admin turns it off.
 
 ---
 
