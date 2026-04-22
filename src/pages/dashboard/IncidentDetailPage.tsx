@@ -598,7 +598,7 @@ const IncidentDetailPage = () => {
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
-  const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual'>('all');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual' | 'steps'>('all');
   const [revisionDialogData, setRevisionDialogData] = useState<{ json: string; changedKeys: Set<string> } | null>(null);
   const initialTab = (() => {
     const t = searchParams.get('tab');
