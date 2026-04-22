@@ -20,9 +20,10 @@ import { isWorkflowScheduleStopped } from '@/lib/ingestionDetection';
 import { seedDemoWazuhImplantIncident } from '@/services/demoMode';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 
-/** How long the user must dwell on the incident-detail step before the
- *  Wazuh / Sliver follow-up incident is auto-seeded ("arrives" mid-investigation). */
-const WAZUH_FOLLOWUP_DELAY_MS = 8000;
+/** How long after the user asks the agent a question before the Wazuh /
+ *  Sliver follow-up incident "arrives" — long enough to feel earned, short
+ *  enough that the user does not lose context. */
+const WAZUH_FOLLOWUP_DELAY_MS = 6000;
 
 export const DemoCompletionWatcher = () => {
   const { drawerOpen, step, setStepCompleted, markStepCompleted } = useDemo();
