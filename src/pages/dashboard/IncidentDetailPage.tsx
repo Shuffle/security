@@ -581,6 +581,13 @@ const IncidentDetailPage = () => {
     if (commentFileInputRef.current) commentFileInputRef.current.value = '';
   };
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  /**
+   * Pending soft-delete confirmation. We never hard-delete a comment — the
+   * confirm dialog flips `deleted: true` on the original entity so the
+   * timestamp, author and thread position survive. Set to the comment id
+   * when the user clicks the delete icon; cleared on cancel/confirm.
+   */
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   
   // Tasks
   const [tasks, setTasks] = useState<IncidentTask[]>([]);
