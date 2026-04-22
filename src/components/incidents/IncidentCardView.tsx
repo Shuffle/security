@@ -19,6 +19,33 @@ import {
 } from 'lucide-react';
 import { statusConfig, severityColors, isKnownStatus } from '@/config/incidentConfig';
 import { useState, useEffect, useRef } from 'react';
+import { useSourceAppImage } from '@/hooks/useSourceAppImage';
+
+/**
+ * Resolves a source-app logo for an incident card.
+ *
+ * Strategy:
+ *   1. First check `ingestionApps` (the user's wired-up integrations) — fast,
+ *      no network, and respects user's authenticated apps.
+ *   2. If no match, fall back to `useSourceAppImage` which queries the
+ *      authenticated apps endpoint and the public Algolia catalog. This
+ *      ensures sources like `outlook_office365` still render a logo even
+ *      when the user has not explicitly added that app to their ingestion
+ *      pipeline yet.
+ */
+const ResolvedSourceImage = ({
+  source,
+  directImage,
+  children,
+}: {
+  source: string | undefined | null;
+  directImage: string | undefined;
+  children: (image: string | undefined) => React.ReactNode;
+}) => {
+  // Only run Algolia/auth-app lookup when we don't already have a direct hit.
+  const fallback = useSourceAppImage(directImage ? null : source ?? null);
+  return <>{children(directImage || fallback || undefined)}</>;
+};
 
 interface DisplayIncident {
   id: string;
@@ -305,6 +332,12 @@ export const IncidentCardView = ({
           : undefined;
 
         return (
+          <ResolvedSourceImage
+            key={incident.id}
+            source={incident.source}
+            directImage={sourceApp?.image}
+          >
+            {(resolvedImage) => (
           <motion.div
             key={incident.id}
             initial={index < 10 ? { opacity: 0, y: 10 } : false}
@@ -360,10 +393,10 @@ export const IncidentCardView = ({
                   justifyContent: 'center',
                   backgroundColor: showCheck 
                     ? 'transparent' 
-                    : (sourceApp?.image ? 'hsl(var(--muted) / 0.4)' : `${iconColor}15`),
+                    : (resolvedImage ? 'hsl(var(--muted) / 0.4)' : `${iconColor}15`),
                   border: showCheck 
                     ? 'none' 
-                    : (sourceApp?.image ? '1px solid hsl(var(--border))' : `1px solid ${iconColor}30`),
+                    : (resolvedImage ? '1px solid hsl(var(--border))' : `1px solid ${iconColor}30`),
                   flexShrink: 0,
                   position: 'relative',
                 }}
@@ -397,7 +430,7 @@ export const IncidentCardView = ({
                         onClick={(e) => handleCheckboxChange(incident.id, !selected, e)}
                       />
                     </motion.div>
-                  ) : sourceApp?.image ? (
+                  ) : resolvedImage ? (
                     <motion.div
                       key="source-img"
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -416,7 +449,7 @@ export const IncidentCardView = ({
                           sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'stretch', justifyContent: 'stretch', cursor: 'pointer' }}
                         >
                           <img
-                            src={sourceApp.image}
+                            src={resolvedImage}
                             alt={incident.source}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
                           />
@@ -533,7 +566,7 @@ export const IncidentCardView = ({
                       </>
                     );
                   })()}
-                  {incident.source && !sourceApp?.image && (
+                  {incident.source && !resolvedImage && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                         •
@@ -775,6 +808,8 @@ export const IncidentCardView = ({
 
             </Box>
           </motion.div>
+            )}
+          </ResolvedSourceImage>
         );
       })}
 
