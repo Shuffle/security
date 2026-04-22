@@ -3166,6 +3166,8 @@ const IncidentDetailPage = () => {
       obsBuckets.forEach((b, i) => {
         if (b.entries.length === 1) {
           const e = b.entries[0];
+          const corr = obsCorrelations[e.key];
+          const corrCount = corr?.data?.length || 0;
           items.push({
             type: 'step',
             kind: 'observable-added',
@@ -3173,12 +3175,25 @@ const IncidentDetailPage = () => {
             id: `step-obs-${e.key}`,
             label: 'Observable',
             detail: `${e.type}: ${e.value}`,
+            corrCount: corrCount > 0 ? corrCount : undefined,
+            corrObsKeys: corrCount > 0 ? [e.key] : undefined,
           });
         } else {
           // Bulked → one pill summarising the burst. Detail lists the first
           // few values so the user still has a hint of what was added.
           const sample = b.entries.slice(0, 3).map(e => e.value).join(', ');
           const more = b.entries.length > 3 ? ` +${b.entries.length - 3} more` : '';
+          // Aggregate correlation matches across every observable in the bucket
+          // so the user can see "N matches" inline without a separate pill.
+          let corrCount = 0;
+          const corrObsKeys: string[] = [];
+          b.entries.forEach((e) => {
+            const c = obsCorrelations[e.key]?.data?.length || 0;
+            if (c > 0) {
+              corrCount += c;
+              corrObsKeys.push(e.key);
+            }
+          });
           items.push({
             type: 'step',
             kind: 'observable-added',
@@ -3186,12 +3201,17 @@ const IncidentDetailPage = () => {
             id: `step-obs-bulk-${i}-${b.ts}`,
             label: `${b.entries.length} observables`,
             detail: `${sample}${more}`,
+            corrCount: corrCount > 0 ? corrCount : undefined,
+            corrObsKeys: corrObsKeys.length > 0 ? corrObsKeys : undefined,
           });
         }
       });
 
-      // Correlations — collapsed into a single "discovered" step (the count
-      // tells the story; listing every key would drown the timeline).
+      // Incident-level correlations stay as their own pill (these are
+      // shared-attribute matches across other incidents, not per-observable).
+      // Per-observable correlations have moved inline onto the observable pill
+      // itself so the user can see the match next to the indicator that
+      // triggered it instead of as a separate timeline row.
       if (correlationsDiscoveredAt && correlations.length > 0) {
         items.push({
           type: 'step',
@@ -3203,63 +3223,6 @@ const IncidentDetailPage = () => {
           count: correlations.length,
         });
       }
-      // Per-observable correlations — bucket by timestamp so a burst of
-      // matches discovered in the same poll collapses into a single timeline
-      // pill. Bucket window is 3s; entries within the same window are merged
-      // into one step labelled "N observable correlations" so the timeline
-      // does not get drowned in one row per match.
-      const CORR_BUCKET_MS = 3000;
-      type ObsCorrEntry = { obsKey: string; ts: number; count: number };
-      const obsCorrEntries: ObsCorrEntry[] = [];
-      Object.entries(obsCorrelations).forEach(([obsKey, entry]) => {
-        if (!entry.discoveredAt || entry.data.length === 0) return;
-        obsCorrEntries.push({ obsKey, ts: entry.discoveredAt, count: entry.data.length });
-      });
-      // Sort oldest-first so the bucket boundary is deterministic.
-      obsCorrEntries.sort((a, b) => a.ts - b.ts);
-      const buckets: Array<{ ts: number; entries: ObsCorrEntry[] }> = [];
-      obsCorrEntries.forEach((e) => {
-        const last = buckets[buckets.length - 1];
-        if (last && Math.abs(e.ts - last.ts) <= CORR_BUCKET_MS) {
-          last.entries.push(e);
-          // Use the most recent timestamp as the bucket anchor so the pill
-          // shows the freshest "found at" time.
-          last.ts = Math.max(last.ts, e.ts);
-        } else {
-          buckets.push({ ts: e.ts, entries: [e] });
-        }
-      });
-      buckets.forEach((b, i) => {
-        const totalCount = b.entries.reduce((acc, e) => acc + e.count, 0);
-        if (b.entries.length === 1) {
-          // Single match → keep the per-observable detail so the user can
-          // still see which indicator triggered it.
-          const e = b.entries[0];
-          items.push({
-            type: 'step',
-            kind: 'correlation-found',
-            timestamp: e.ts,
-            id: `step-corr-obs-${e.obsKey}`,
-            label: 'Observable correlation',
-            detail: `${e.count} match${e.count === 1 ? '' : 'es'} for ${e.obsKey.split('::')[1] || e.obsKey}`,
-            count: e.count,
-          });
-        } else {
-          // Bulked → one pill summarising the burst. Detail lists the first
-          // few observables so the user still has a hint of what was found.
-          const sample = b.entries.slice(0, 3).map(e => e.obsKey.split('::')[1] || e.obsKey).join(', ');
-          const more = b.entries.length > 3 ? ` +${b.entries.length - 3} more` : '';
-          items.push({
-            type: 'step',
-            kind: 'correlation-found',
-            timestamp: b.ts,
-            id: `step-corr-obs-bulk-${i}-${b.ts}`,
-            label: `${b.entries.length} observable correlations`,
-            detail: `${totalCount} match${totalCount === 1 ? '' : 'es'} across ${sample}${more}`,
-            count: totalCount,
-          });
-        }
-      });
     }
 
     // Newest first. On exact-tie timestamps, force the "Incident created"
