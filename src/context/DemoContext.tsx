@@ -229,7 +229,7 @@ export const TOUR_STEPS: TourStep[] = [
 
 export type DemoDock = 'right' | 'bottom';
 
-interface DemoContextValue {
+export interface DemoContextValue {
   active: boolean;
   isSeeding: boolean;
   isCleaning: boolean;
@@ -284,7 +284,12 @@ interface DemoContextValue {
   attentionPulse: number;
 }
 
-const DemoContext = createContext<DemoContextValue | null>(null);
+// DemoContext + useDemo are defined in ./demoContextObject so HMR cannot
+// desync the context identity between provider and consumers. Re-exported
+// here so existing `import { useDemo } from '@/context/DemoContext'` calls
+// keep working without touching every call site.
+import { DemoContext, useDemo } from './demoContextObject';
+export { useDemo };
 
 export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
