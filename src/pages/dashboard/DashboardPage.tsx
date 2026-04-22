@@ -522,6 +522,8 @@ const DashboardPage = () => {
       return JSON.parse(localStorage.getItem(IGNORED_STEPS_KEY) || '[]');
     } catch { return []; }
   });
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [showIgnored, setShowIgnored] = useState(false);
   const [questionNotification, setQuestionNotification] = useState<AgentNotification | null>(null);
   const [quickViewItem, setQuickViewItem] = useState<QuickViewItem | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
