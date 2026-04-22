@@ -15,9 +15,30 @@ const PADDING = 8;
 const Z_BASE = 1290; // just below the drawer (1300)
 
 export const DemoSpotlight = () => {
-  const { drawerOpen, step, currentStepUnlocked } = useDemo();
+  const { drawerOpen, step, currentStepUnlocked, completedSteps, hasDemoIncidents, isOnIncidentDetail } = useDemo();
   const current = TOUR_STEPS[step];
-  const selector = current?.requirement?.targetSelector;
+
+  // If the current step has sub-goals with their own targetSelector, point at
+  // the first incomplete one (required first, then optional). Otherwise fall
+  // back to the step-level requirement target. We intentionally allow the
+  // spotlight to keep showing for optional sub-goals even after the step is
+  // unlocked, so the user is nudged to engage with the optional goal too.
+  const subGoalSelector = (() => {
+    const goals = current?.subGoals;
+    if (!goals || goals.length === 0) return null;
+    const isDone = (g: typeof goals[number]) => {
+      if (g.id === 'incidents-list:present') return hasDemoIncidents;
+      if (g.id === 'incidents-list:open') return isOnIncidentDetail;
+      return !!completedSteps[g.id];
+    };
+    const required = goals.find(g => !g.optional && !isDone(g) && g.targetSelector);
+    if (required) return required.targetSelector!;
+    const optional = goals.find(g => g.optional && !isDone(g) && g.targetSelector);
+    if (optional) return optional.targetSelector!;
+    return null;
+  })();
+  const selector = subGoalSelector ?? current?.requirement?.targetSelector ?? null;
+  const isOptionalTarget = !!(subGoalSelector && current?.subGoals?.find(g => g.targetSelector === subGoalSelector)?.optional);
 
   const [rect, setRect] = useState<DOMRect | null>(null);
   // True when the user has opened a modal/drawer (e.g. AppSearchDrawer) on top
