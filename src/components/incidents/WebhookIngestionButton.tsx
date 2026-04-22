@@ -9,6 +9,7 @@ import { getApiUrl, getAuthHeader } from '@/config/api';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { useDemo } from '@/context/DemoContext';
 
 export interface WebhookIngestionInfo {
   /** Webhook URL to display (null if workflow doesn't exist yet) */
@@ -33,6 +34,7 @@ export const WebhookIngestionButton = ({ webhook, onToggled }: WebhookIngestionB
   const popoverOpen = Boolean(anchorEl);
   const optimisticTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+  const { drawerOpen: demoDrawerOpen, setStepCompleted: setDemoStepCompleted } = useDemo();
 
   const isEnabled = optimisticEnabled !== null ? optimisticEnabled : webhook.enabled;
 
@@ -73,6 +75,14 @@ export const WebhookIngestionButton = ({ webhook, onToggled }: WebhookIngestionB
     setOptimisticEnabled(willBeEnabled);
     setAnchorEl(null);
     trackPredefinedEvent(GA_EVENTS.INCIDENT_INGESTION_TOGGLE, 'webhook', willBeEnabled ? 1 : 0);
+
+    // If the demo tour is open, flip the `ingest-webhook` step state right
+    // away so the tour reacts in real time. The DemoCompletionWatcher will
+    // re-confirm against the live workflow state once it refetches, but we
+    // don't want the user to wait for that to feel the change.
+    if (demoDrawerOpen) {
+      setDemoStepCompleted('ingest-webhook', willBeEnabled);
+    }
 
     try {
       if (willBeEnabled) {
@@ -118,6 +128,10 @@ export const WebhookIngestionButton = ({ webhook, onToggled }: WebhookIngestionB
       }, 15000);
     } catch (error) {
       setOptimisticEnabled(null);
+      // Roll back the demo step flip so the tour mirrors the real (failed) state.
+      if (demoDrawerOpen) {
+        setDemoStepCompleted('ingest-webhook', !willBeEnabled);
+      }
       console.error('Failed to toggle webhook:', error);
       toast.error('Failed to update webhook status');
     }
