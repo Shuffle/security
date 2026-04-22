@@ -270,6 +270,11 @@ interface DemoContextValue {
   forceGenerateSingleIncident: () => Promise<void>;
   /** True while the single-incident force-generate is running. */
   isForceGeneratingSingle: boolean;
+  /** Force-generate the Wazuh / Sliver C2 follow-up incident immediately
+   *  (used by the step-5 sub-goal "force generate" button). */
+  forceGenerateWazuhIncident: () => Promise<void>;
+  /** True while the Wazuh force-generate is running. */
+  isForceGeneratingWazuh: boolean;
   /** True when at least one demo incident is present in the datastore. */
   hasDemoIncidents: boolean;
   /** True when the user is currently on an incident-detail route. Live. */
