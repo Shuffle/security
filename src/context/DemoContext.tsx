@@ -710,8 +710,5 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 };
 
-export const useDemo = (): DemoContextValue => {
-  const ctx = useContext(DemoContext);
-  if (!ctx) throw new Error('useDemo must be used within DemoProvider');
-  return ctx;
-};
+// useDemo is re-exported above from ./demoContextObject.
+
