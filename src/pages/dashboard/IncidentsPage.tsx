@@ -2151,6 +2151,7 @@ const IncidentsPage = () => {
             return wfId ? "Click to open automation workflow" : "Automation for Incidents";
           })()}>
             <IconButton 
+              data-tour="incidents-automation-button"
               onClick={() => {
                 const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
                 const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
@@ -2159,6 +2160,11 @@ const IncidentsPage = () => {
                 } else {
                   trackPredefinedEvent(GA_EVENTS.INCIDENT_AUTOMATION_CHANGE, 'open_dialog');
                   setAutomationsDialogOpen(true);
+                }
+                // Demo: mark the optional "peek at automation" sub-goal as
+                // done the moment the user engages with this button.
+                if (demoActive && demoDrawerOpen && demoStepId === 'ingest-webhook') {
+                  markStepCompleted('ingest-webhook:automation');
                 }
               }}
               sx={{ 

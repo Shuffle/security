@@ -33,6 +33,15 @@ export interface TourStepSubGoal {
   id: string;
   /** Short human label shown in the drawer. */
   label: string;
+  /** When true, this sub-goal does NOT block the step from advancing. It is
+   *  shown as an "Optional" suggestion and gets its own (secondary) spotlight
+   *  once all required sub-goals are done. */
+  optional?: boolean;
+  /** Optional CSS selector for a per-sub-goal spotlight target. Used when
+   *  the spotlight should move to a different element after a previous
+   *  sub-goal is completed (e.g. point at the Automation button after the
+   *  webhook is enabled). */
+  targetSelector?: string;
 }
 
 export interface TourStep {
@@ -94,16 +103,29 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'ingest-webhook',
     title: 'Turn on the ingestion webhook',
-    body: 'A webhook URL where tools can post incidents.',
+    body: 'A webhook URL where tools can post incidents — and a peek at how automations decide what happens next.',
     bullets: [
-      'Click the highlighted Webhook button',
-      'Enable it to receive incoming alerts',
+      'Click the highlighted Webhook button and enable it',
+      'Optional: open "Automation for Incidents" to see how agent actions and ingestion are wired together',
     ],
     route: '/incidents',
     requirement: {
       label: 'Enable the ingestion webhook',
       targetSelector: '[data-tour="webhook-ingestion-button"]',
     },
+    subGoals: [
+      {
+        id: 'ingest-webhook',
+        label: 'Enable the ingestion webhook',
+        targetSelector: '[data-tour="webhook-ingestion-button"]',
+      },
+      {
+        id: 'ingest-webhook:automation',
+        label: 'Peek at "Automation for Incidents"',
+        optional: true,
+        targetSelector: '[data-tour="incidents-automation-button"]',
+      },
+    ],
   },
   {
     id: 'incidents-list',
@@ -416,6 +438,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     // `requirement` is purely cosmetic and only the sub-goals decide.
     if (s.subGoals && s.subGoals.length > 0) {
       return s.subGoals.every(g => {
+        // Optional sub-goals never block step advancement.
+        if (g.optional) return true;
         // Special-case the incidents-list:present sub-goal — it is satisfied
         // by the live datastore presence check, not by the completedSteps map.
         if (g.id === 'incidents-list:present') return hasDemoIncidents;
