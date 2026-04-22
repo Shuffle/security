@@ -3609,7 +3609,7 @@ const IncidentDetailPage = () => {
         // correlation pills jump to the Correlations tab (and to the matching
         // observable row when the correlation was discovered per-observable).
         let pillOnClick: (() => void) | undefined;
-        if (item.kind === 'observable-added' && item.id.startsWith('step-obs-')) {
+        if (item.kind === 'observable-added' && item.id.startsWith('step-obs-') && !item.id.startsWith('step-obs-bulk-')) {
           const obsKey = item.id.slice('step-obs-'.length);
           pillOnClick = () => {
             // Demo mode: notify the tour when the user clicks an IP pill.
@@ -3618,6 +3618,9 @@ const IncidentDetailPage = () => {
             }
             focusObservableFromTimeline(obsKey);
           };
+        } else if (item.kind === 'observable-added' && item.id.startsWith('step-obs-bulk-')) {
+          // Bulked observable pills jump to the Observables tab generally.
+          pillOnClick = () => focusObservableFromTimeline(null);
         } else if (item.kind === 'correlation-found') {
           // Bulked observable correlations (id prefix `step-corr-obs-bulk-`)
           // can't jump to a single observable row — send the user to the
