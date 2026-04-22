@@ -544,6 +544,13 @@ const IncidentDetailPage = () => {
   // Observable keys: `${type}::${value}` (lowercase). Activity keys: actItem.id.
   const [newlyArrivedObservables, setNewlyArrivedObservables] = useState<Set<string>>(() => new Set());
   const [newlyArrivedActivity, setNewlyArrivedActivity] = useState<Set<string>>(() => new Set());
+  // Transient highlights triggered by clicking a timeline step pill — let the
+  // user jump from the timeline to the corresponding row in the Observables /
+  // Correlations tab without losing track of which item they followed.
+  const [flashedObsKey, setFlashedObsKey] = useState<string | null>(null);
+  const [flashedCorrelationKey, setFlashedCorrelationKey] = useState<string | null>(null);
+  const flashedObsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashedCorrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track the user's most recent keystroke so background polls can defer
   // while they're actively typing in a textfield.
   const lastKeystrokeRef = useRef<number>(0);
