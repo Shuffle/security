@@ -91,7 +91,7 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
       // request with other consumers (e.g. the incident header source-app
       // logo). Without this, every detail-page navigation triggered 3+
       // identical /apps/authentication requests.
-      const authData: AuthAppEntry[] = await fetchAuthenticatedApps().catch(() => []);
+      const authData = (await fetchAuthenticatedApps().catch(() => [])) as unknown as AuthAppEntry[];
 
       let dedupedIntegrations: Integration[] = [];
       const authNameSet = new Set<string>();
