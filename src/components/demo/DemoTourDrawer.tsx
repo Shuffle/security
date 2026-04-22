@@ -224,13 +224,17 @@ export const DemoTourDrawer = () => {
           <Box
             sx={{
               height: isBottom ? 'auto' : '100%',
-              maxHeight: isBottom ? 'min(360px, 60vh)' : '100%',
+              maxHeight: isBottom ? 'min(370px, 60vh)' : '100%',
               display: 'flex',
               flexDirection: isBottom ? 'row' : 'column',
               borderRadius: 3,
               border: '1px solid hsl(var(--border))',
               backgroundColor: 'hsl(var(--card))',
-              boxShadow: '0 24px 60px -16px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--primary) / 0.08)',
+              boxShadow: flash
+                ? '0 24px 60px -16px hsl(0 0% 0% / 0.45), 0 0 0 3px hsl(var(--primary)), 0 0 0 10px hsl(var(--primary) / 0.25), 0 0 40px 6px hsl(var(--primary) / 0.5)'
+                : '0 24px 60px -16px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--primary) / 0.08)',
+              transform: flash ? 'scale(1.015)' : 'scale(1)',
+              transition: 'box-shadow 0.35s ease, transform 0.35s ease',
               overflow: 'hidden',
             }}
           >
