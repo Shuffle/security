@@ -32,6 +32,7 @@ export const WebhookIngestionButton = ({ webhook, onToggled }: WebhookIngestionB
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const popoverOpen = Boolean(anchorEl);
   const optimisticTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queryClient = useQueryClient();
 
   const isEnabled = optimisticEnabled !== null ? optimisticEnabled : webhook.enabled;
 
