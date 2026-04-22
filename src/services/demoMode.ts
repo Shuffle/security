@@ -12,6 +12,7 @@
 import { setDatastoreItems, setDatastoreItem, getDatastoreItem, deleteDatastoreItem, DATASTORE_CATEGORIES, getDatastoreByCategory } from '@/services/datastore';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { restoreOriginalIngestTicketsApps } from '@/services/demoLiveEnvironment';
+import { DEFAULT_THREAT_FEEDS, type ThreatFeed } from '@/hooks/useThreatFeeds';
 import {
   buildDemoFocusIncident,
   buildDemoWazuhImplantIncident,
@@ -21,12 +22,20 @@ import {
   DEMO_FLAG_KEY,
   DEMO_ACTIVE_KEY,
   DEMO_SEEDED_STEPS_KEY,
+  type DemoIocOverrides,
   type PendingObservable,
 } from '@/lib/demoSeedData';
 
 const VULNS_CATEGORY = 'shuffle-security_vulnerabilities';
 const SENSORS_CATEGORY = 'shuffle-security_sensors';
 const AGENTS_CATEGORY = 'shuffle-security_agents';
+// Real-IOC categories populated by the backend's threat-feed parser. Keys
+// are raw IPs / domains; values are STIX 2.1 indicators.
+const IOC_IP_CATEGORY = 'ioc_ip';
+const IOC_DOMAIN_CATEGORY = 'ioc_domain';
+// Stash the IOC overrides chosen at step 1 so the Wazuh follow-up reuses
+// the exact same IP + domain (correlations rely on byte-identical values).
+const DEMO_IOC_OVERRIDES_KEY = 'shuffle_demo_ioc_overrides';
 
 
 /**
