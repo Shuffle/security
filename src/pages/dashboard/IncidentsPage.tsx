@@ -372,6 +372,7 @@ const IncidentsPage = () => {
   const isParentOrg = subOrgs.length > 0;
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   // Default child orgs to showing only their own incidents immediately
   const [filters, setFilters] = useState<Filters>(() => ({
     severity: null, status: null, tlp: null, assignee: null, source: null, tag: null,
