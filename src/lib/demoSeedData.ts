@@ -172,12 +172,15 @@ const PHISH_REPORTER_EMAIL = 'diego.ruiz@example.com';
  * Wazuh / Sliver C2 detection on Sarah's laptop arrives later as the user
  * is exploring this incident.
  */
-export const buildDemoFocusIncident = (): {
+export const buildDemoFocusIncident = (overrides: DemoIocOverrides = {}): {
   key: string;
   value: OCSFIncidentFinding;
   pendingObservables: PendingObservable[];
 } => {
   const t = now();
+  const attackerIp = overrides.attackerIp || PHISH_ATTACKER_IP_DEFAULT;
+  const lureDomain = overrides.lureDomain || PHISH_LURE_DOMAIN_DEFAULT;
+  const lureUrl = composeLureUrl(lureDomain);
   return toIncidentWithPending({
     _key: `demo-inc-phish-${t}-focus`,
     title: `Phishing email reported by ${PHISH_REPORTER_NAME}`,
@@ -197,7 +200,7 @@ Diego Ruiz
 Senior Accountant, Finance
 
 ---------- Forwarded message ----------
-From: IT Support <it-support@itsupport-portal.live>
+From: IT Support <it-support@${lureDomain}>
 To: ${PHISH_REPORTER_EMAIL}
 Subject: [Action required] Reset your MFA within 24 hours
 Date: ${new Date(now() - 14 * 60 * 1000).toUTCString()}
@@ -206,7 +209,7 @@ Dear user,
 
 Our records indicate that your multi-factor authentication enrollment is out of date. To avoid losing access to your account, please reset your MFA within the next 24 hours by visiting the secure portal below:
 
-  ${PHISH_LURE_URL}
+  ${lureUrl}
 
 If you do not complete this step, your account will be temporarily suspended.
 
@@ -219,8 +222,9 @@ IT Support Team`,
     observables: [
       { type: 'email', value: PHISH_REPORTER_EMAIL },
       { type: 'email', value: PHISH_USER_EMAIL },
-      { type: 'url', value: PHISH_LURE_URL },
-      { type: 'ip', value: PHISH_ATTACKER_IP },
+      { type: 'url', value: lureUrl },
+      { type: 'domain', value: lureDomain },
+      { type: 'ip', value: attackerIp },
     ],
   });
 };
@@ -231,16 +235,19 @@ IT Support Team`,
  * incident — confirming that Sarah did click the link and that her outdated
  * Chrome (CVE-2024-5274) was exploited. Source is Wazuh.
  */
-export const buildDemoWazuhImplantIncident = (): {
+export const buildDemoWazuhImplantIncident = (overrides: DemoIocOverrides = {}): {
   key: string;
   value: OCSFIncidentFinding;
   pendingObservables: PendingObservable[];
 } => {
   const t = now();
+  const attackerIp = overrides.attackerIp || PHISH_ATTACKER_IP_DEFAULT;
+  const lureDomain = overrides.lureDomain || PHISH_LURE_DOMAIN_DEFAULT;
+  const lureUrl = composeLureUrl(lureDomain);
   return toIncidentWithPending({
     _key: `demo-inc-malware-${t}-wazuh`,
     title: `Sliver C2 implant beaconing on ${PHISH_HOST}`,
-    desc: `Wazuh agent flagged an unsigned Go binary at %APPDATA%\\Roaming\\Microsoft\\Edge\\msedge_proxy.exe on ${PHISH_HOST} (owner: Sarah Chen) making low-and-slow HTTPS callbacks to ${PHISH_ATTACKER_IP} every ~57s with jitter — Sliver implant signature (rule 100221, level 12). Process tree: chrome.exe (v124.0.6367.91 — outdated, vulnerable to CVE-2024-5274) → cmd.exe → msedge_proxy.exe, triggered after the user visited ${PHISH_LURE_URL}. Sysmon EID 1 + 3 correlated; persistence created via Run key "EdgeUpdate".`,
+    desc: `Wazuh agent flagged an unsigned Go binary at %APPDATA%\\Roaming\\Microsoft\\Edge\\msedge_proxy.exe on ${PHISH_HOST} (owner: Sarah Chen) making low-and-slow HTTPS callbacks to ${attackerIp} every ~57s with jitter — Sliver implant signature (rule 100221, level 12). Process tree: chrome.exe (v124.0.6367.91 — outdated, vulnerable to CVE-2024-5274) → cmd.exe → msedge_proxy.exe, triggered after the user visited ${lureUrl}. Sysmon EID 1 + 3 correlated; persistence created via Run key "EdgeUpdate".`,
     severity_id: 5, severity: 'Critical', status_id: 1, status: 'New',
     product: { name: 'Wazuh' },
     first_seen_time: minsAgo(0),
@@ -248,8 +255,9 @@ export const buildDemoWazuhImplantIncident = (): {
     observables: [
       { type: 'hostname', value: PHISH_HOST },
       { type: 'email', value: PHISH_USER_EMAIL },
-      { type: 'ip', value: PHISH_ATTACKER_IP },
-      { type: 'url', value: PHISH_LURE_URL },
+      { type: 'ip', value: attackerIp },
+      { type: 'url', value: lureUrl },
+      { type: 'domain', value: lureDomain },
       { type: 'sha256', value: PHISH_PAYLOAD_SHA256 },
       { type: 'cve', value: 'CVE-2024-5274' },
       { type: 'tool_name', value: 'Sliver' },
@@ -257,13 +265,16 @@ export const buildDemoWazuhImplantIncident = (): {
   });
 };
 
-export const buildDemoIncidentsBatch1 = (): { key: string; value: OCSFIncidentFinding }[] => {
+export const buildDemoIncidentsBatch1 = (overrides: DemoIocOverrides = {}): { key: string; value: OCSFIncidentFinding }[] => {
   const t = now();
+  const attackerIp = overrides.attackerIp || PHISH_ATTACKER_IP_DEFAULT;
+  const lureDomain = overrides.lureDomain || PHISH_LURE_DOMAIN_DEFAULT;
+  const lureUrl = composeLureUrl(lureDomain);
   return ([
     {
       _key: `demo-inc-phish-${t}-1`,
       title: 'Phishing email reported by Sarah Chen',
-      desc: `User reported a suspicious email impersonating IT support, asking to reset MFA. She admits she clicked the link from her ${PHISH_HOST} laptop before flagging the message. URL resolves to a known credential-harvesting kit hosted at ${PHISH_ATTACKER_IP}.`,
+      desc: `User reported a suspicious email impersonating IT support, asking to reset MFA. She admits she clicked the link from her ${PHISH_HOST} laptop before flagging the message. URL resolves to a known credential-harvesting kit hosted at ${attackerIp}.`,
       severity_id: 4, severity: 'High', status_id: 2, status: 'In Progress',
       product: { name: 'Microsoft Defender for Office 365' },
       first_seen_time: minsAgo(38),
@@ -271,14 +282,15 @@ export const buildDemoIncidentsBatch1 = (): { key: string; value: OCSFIncidentFi
       observables: [
         { type: 'email', value: PHISH_USER_EMAIL },
         { type: 'hostname', value: PHISH_HOST },
-        { type: 'url', value: PHISH_LURE_URL },
-        { type: 'ip', value: PHISH_ATTACKER_IP },
+        { type: 'url', value: lureUrl },
+        { type: 'domain', value: lureDomain },
+        { type: 'ip', value: attackerIp },
       ],
     },
     {
       _key: `demo-inc-malware-${t}-2`,
       title: `Sliver C2 implant beaconing on ${PHISH_HOST}`,
-      desc: `Wazuh agent flagged an unsigned Go binary at %APPDATA%\\Roaming\\Microsoft\\Edge\\msedge_proxy.exe on ${PHISH_HOST} (owner: Sarah Chen) making low-and-slow HTTPS callbacks to ${PHISH_ATTACKER_IP} every ~57s with jitter — Sliver implant signature (rule 100221, level 12). Process tree: chrome.exe (v124.0.6367.91 — outdated, vulnerable to CVE-2024-5274) → cmd.exe → msedge_proxy.exe, triggered after the user visited ${PHISH_LURE_URL}. Sysmon EID 1 + 3 correlated; persistence created via Run key "EdgeUpdate".`,
+      desc: `Wazuh agent flagged an unsigned Go binary at %APPDATA%\\Roaming\\Microsoft\\Edge\\msedge_proxy.exe on ${PHISH_HOST} (owner: Sarah Chen) making low-and-slow HTTPS callbacks to ${attackerIp} every ~57s with jitter — Sliver implant signature (rule 100221, level 12). Process tree: chrome.exe (v124.0.6367.91 — outdated, vulnerable to CVE-2024-5274) → cmd.exe → msedge_proxy.exe, triggered after the user visited ${lureUrl}. Sysmon EID 1 + 3 correlated; persistence created via Run key "EdgeUpdate".`,
       severity_id: 5, severity: 'Critical', status_id: 1, status: 'New',
       product: { name: 'Wazuh' },
       first_seen_time: minsAgo(12),
@@ -286,8 +298,9 @@ export const buildDemoIncidentsBatch1 = (): { key: string; value: OCSFIncidentFi
       observables: [
         { type: 'hostname', value: PHISH_HOST },
         { type: 'email', value: PHISH_USER_EMAIL },
-        { type: 'ip', value: PHISH_ATTACKER_IP },
-        { type: 'url', value: PHISH_LURE_URL },
+        { type: 'ip', value: attackerIp },
+        { type: 'url', value: lureUrl },
+        { type: 'domain', value: lureDomain },
         { type: 'sha256', value: PHISH_PAYLOAD_SHA256 },
         { type: 'cve', value: 'CVE-2024-5274' },
         { type: 'tool_name', value: 'Sliver' },
