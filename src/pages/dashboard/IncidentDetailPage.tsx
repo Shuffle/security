@@ -3675,7 +3675,43 @@ const IncidentDetailPage = () => {
                 Known IOC
               </Typography>
             )}
-            {item.detail && (
+            {item.kind === 'observable-added' && item.obsType && item.obsValue ? (
+              <>
+                <Typography
+                  sx={{
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.4,
+                    px: 0.6,
+                    py: 0.05,
+                    borderRadius: 999,
+                    bgcolor: 'hsl(var(--muted) / 0.6)',
+                    color: 'text.secondary',
+                    border: '1px solid hsl(var(--border-subtle))',
+                    flexShrink: 0,
+                    minWidth: 44,
+                    textAlign: 'center',
+                  }}
+                >
+                  {item.obsType}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontFamily: 'monospace',
+                    color: isIocPill ? 'hsl(var(--destructive))' : 'text.primary',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    width: 280,
+                  }}
+                  title={item.obsValue}
+                >
+                  {item.obsValue}
+                </Typography>
+              </>
+            ) : item.detail && (
               <Typography
                 sx={{
                   fontSize: '0.7rem',
