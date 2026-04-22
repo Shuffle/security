@@ -166,7 +166,7 @@ export const buildDemoWazuhImplantIncident = (): { key: string; value: OCSFIncid
   const t = now();
   return toIncident({
     _key: `demo-inc-malware-${t}-wazuh`,
-    title: `Wazuh: Sliver C2 implant beaconing on ${PHISH_HOST}`,
+    title: `Sliver C2 implant beaconing on ${PHISH_HOST}`,
     desc: `Wazuh agent flagged an unsigned Go binary at %APPDATA%\\Roaming\\Microsoft\\Edge\\msedge_proxy.exe on ${PHISH_HOST} (owner: Sarah Chen) making low-and-slow HTTPS callbacks to ${PHISH_ATTACKER_IP} every ~57s with jitter — Sliver implant signature (rule 100221, level 12). Process tree: chrome.exe (v124.0.6367.91 — outdated, vulnerable to CVE-2024-5274) → cmd.exe → msedge_proxy.exe, triggered after the user visited ${PHISH_LURE_URL}. Sysmon EID 1 + 3 correlated; persistence created via Run key "EdgeUpdate".`,
     severity_id: 5, severity: 'Critical', status_id: 1, status: 'New',
     product: { name: 'Wazuh' },
@@ -204,7 +204,7 @@ export const buildDemoIncidentsBatch1 = (): { key: string; value: OCSFIncidentFi
     },
     {
       _key: `demo-inc-malware-${t}-2`,
-      title: `Wazuh: Sliver C2 implant beaconing on ${PHISH_HOST}`,
+      title: `Sliver C2 implant beaconing on ${PHISH_HOST}`,
       desc: `Wazuh agent flagged an unsigned Go binary at %APPDATA%\\Roaming\\Microsoft\\Edge\\msedge_proxy.exe on ${PHISH_HOST} (owner: Sarah Chen) making low-and-slow HTTPS callbacks to ${PHISH_ATTACKER_IP} every ~57s with jitter — Sliver implant signature (rule 100221, level 12). Process tree: chrome.exe (v124.0.6367.91 — outdated, vulnerable to CVE-2024-5274) → cmd.exe → msedge_proxy.exe, triggered after the user visited ${PHISH_LURE_URL}. Sysmon EID 1 + 3 correlated; persistence created via Run key "EdgeUpdate".`,
       severity_id: 5, severity: 'Critical', status_id: 1, status: 'New',
       product: { name: 'Wazuh' },
