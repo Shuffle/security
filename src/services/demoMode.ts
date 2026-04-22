@@ -123,6 +123,102 @@ const recordSeed = (category: string, keys: string[]) => {
   localStorage.setItem(DEMO_ACTIVE_KEY, 'true');
 };
 
+// ─── IOC helpers ─────────────────────────────────────────────────────────────
+// We want demo incidents to feature *real* IOCs from the user's threat feeds
+// instead of made-up "example" values, so the IOC parser will (a) recognise
+// them as known-bad and (b) link the incident to the actual STIX indicator.
+//
+// 1. `forceEnableDefaultThreatFeeds` writes the curated DEFAULT_THREAT_FEEDS
+//    list into the threat-feeds datastore (no-op if already populated). This
+//    causes the backend parser to start ingesting the feeds in the background.
+// 2. `pickRandomIocs` reads `ioc_ip` / `ioc_domain` and picks one of each at
+//    random. If the categories are empty (parser hasn't caught up yet) we
+//    return undefined so the caller can fall back to static defaults.
+// 3. The chosen pair is cached in localStorage so the Wazuh follow-up
+//    incident reuses the exact same IP + domain → correlations match.
+
+const readIocOverrides = (): DemoIocOverrides | null => {
+  try {
+    const raw = localStorage.getItem(DEMO_IOC_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) as DemoIocOverrides : null;
+  } catch { return null; }
+};
+const writeIocOverrides = (overrides: DemoIocOverrides) => {
+  try { localStorage.setItem(DEMO_IOC_OVERRIDES_KEY, JSON.stringify(overrides)); } catch { /* ignore */ }
+};
+const clearIocOverrides = () => {
+  try { localStorage.removeItem(DEMO_IOC_OVERRIDES_KEY); } catch { /* ignore */ }
+};
+
+/**
+ * Ensure the user's threat feed list is populated with the curated defaults.
+ * Idempotent: skips writes when the threat-feeds datastore already has at
+ * least one entry. Best-effort — failures are logged but never thrown.
+ */
+export const forceEnableDefaultThreatFeeds = async (): Promise<void> => {
+  try {
+    const existing = await getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS);
+    if (existing.success && (existing.data?.length || 0) > 0) return;
+    const items = DEFAULT_THREAT_FEEDS.map((feed: ThreatFeed) => ({
+      key: feed.id,
+      value: { ...feed, enabled: true },
+    }));
+    const res = await setDatastoreItems(items, DATASTORE_CATEGORIES.THREAT_FEEDS);
+    if (!res.success) {
+      console.warn('[demo] failed to seed default threat feeds', res.error);
+      return;
+    }
+    broadcastRefresh(DATASTORE_CATEGORIES.THREAT_FEEDS);
+  } catch (err) {
+    console.warn('[demo] forceEnableDefaultThreatFeeds error', err);
+  }
+};
+
+const pickRandom = <T,>(arr: T[]): T | undefined => {
+  if (!arr || arr.length === 0) return undefined;
+  return arr[Math.floor(Math.random() * arr.length)];
+};
+
+/**
+ * Try to pick a random IP from `ioc_ip` and a random domain from `ioc_domain`.
+ * Returns undefined fields when a category is empty (the backend parser may
+ * not have populated it yet — caller should fall back to static defaults).
+ */
+export const pickRandomIocs = async (): Promise<DemoIocOverrides> => {
+  const out: DemoIocOverrides = {};
+  try {
+    const ipRes = await getDatastoreByCategory(IOC_IP_CATEGORY);
+    if (ipRes.success && ipRes.data) {
+      const ipKey = pickRandom(ipRes.data.map(i => i.key).filter(Boolean));
+      if (ipKey) out.attackerIp = ipKey;
+    }
+  } catch (err) { console.warn('[demo] pick ioc_ip failed', err); }
+  try {
+    const domRes = await getDatastoreByCategory(IOC_DOMAIN_CATEGORY);
+    if (domRes.success && domRes.data) {
+      const domKey = pickRandom(domRes.data.map(i => i.key).filter(Boolean));
+      if (domKey) out.lureDomain = domKey;
+    }
+  } catch (err) { console.warn('[demo] pick ioc_domain failed', err); }
+  return out;
+};
+
+/**
+ * Resolve IOC overrides for the demo, preferring values cached at step 1 so
+ * the focus + Wazuh incidents share the exact same IP/domain. Falls back to
+ * a fresh pick if nothing is cached.
+ */
+const resolveIocOverrides = async (): Promise<DemoIocOverrides> => {
+  const cached = readIocOverrides();
+  if (cached?.attackerIp && cached?.lureDomain) return cached;
+  const fresh = await pickRandomIocs();
+  // Merge with whatever was cached (in case only one half resolved earlier).
+  const merged: DemoIocOverrides = { ...cached, ...fresh };
+  if (merged.attackerIp || merged.lureDomain) writeIocOverrides(merged);
+  return merged;
+};
+
+
 /**
  * Demo enrichment scheduler.
  *
