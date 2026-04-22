@@ -47,6 +47,7 @@ export const DemoTourDrawer = () => {
     forceGenerateSingleIncident,
     isForceGeneratingSingle,
     hasDemoIncidents,
+    isOnIncidentDetail,
   } = useDemo();
 
   const total = TOUR_STEPS.length;
@@ -389,12 +390,13 @@ export const DemoTourDrawer = () => {
                         ? current.subGoals.map(g => ({
                             id: g.id,
                             label: g.label,
-                            // Special-case: the "incident must be present"
-                            // sub-goal is satisfied by the live datastore
-                            // presence check, not by completedSteps.
+                            // Special-cases for live-state sub-goals — these
+                            // ignore the persisted completedSteps map.
                             done: g.id === 'incidents-list:present'
                               ? hasDemoIncidents
-                              : !!completedSteps[g.id],
+                              : g.id === 'incidents-list:open'
+                                ? isOnIncidentDetail
+                                : !!completedSteps[g.id],
                           }))
                         : requirement
                           ? [{

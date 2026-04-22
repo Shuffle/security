@@ -9,7 +9,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { seedForStep, cleanupDemoData, isDemoActive, getDemoStats, forceRecreateDemoIncidents, forceCreateSingleDemoIncident, countDemoIncidents } from '@/services/demoMode';
 import { enableLiveDemoEnvironment } from '@/services/demoLiveEnvironment';
@@ -219,12 +219,19 @@ interface DemoContextValue {
   isForceGeneratingSingle: boolean;
   /** True when at least one demo incident is present in the datastore. */
   hasDemoIncidents: boolean;
+  /** True when the user is currently on an incident-detail route. Live. */
+  isOnIncidentDetail: boolean;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
 
 export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Real-time route check: are we currently on an incident-detail page?
+  // Used to gate the `incidents-list:open` sub-goal so the gate flips back
+  // off if the user navigates away from the detail page.
+  const isOnIncidentDetail = /^\/(?:incidents|alerts|tickets|jobs)\/[^/]+/.test(location.pathname);
   const [active, setActive] = useState(() => isDemoActive());
   const [isSeeding, setIsSeeding] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
@@ -397,13 +404,16 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         // Special-case the incidents-list:present sub-goal — it is satisfied
         // by the live datastore presence check, not by the completedSteps map.
         if (g.id === 'incidents-list:present') return hasDemoIncidents;
+        // Special-case the incidents-list:open sub-goal — it tracks the live
+        // route, so leaving the detail page reverts the gate.
+        if (g.id === 'incidents-list:open') return isOnIncidentDetail;
         return !!completedSteps[g.id];
       });
     }
     // Step-level requirement gate (legacy single-goal).
     if (s.requirement && !completedSteps[s.id]) return false;
     return true;
-  }, [completedSteps, hasDemoIncidents]);
+  }, [completedSteps, hasDemoIncidents, isOnIncidentDetail]);
 
   const currentStep = TOUR_STEPS[step];
   const currentStepUnlocked = isStepUnlocked(currentStep);
@@ -585,6 +595,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     forceCreateIncidents, isForceCreatingIncidents,
     forceGenerateSingleIncident, isForceGeneratingSingle,
     hasDemoIncidents,
+    isOnIncidentDetail,
   }), [
     active, isSeeding, isCleaning, drawerOpen, minimized, dock, step, stats,
     completedSteps, currentStepUnlocked,
@@ -594,6 +605,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     forceCreateIncidents, isForceCreatingIncidents,
     forceGenerateSingleIncident, isForceGeneratingSingle,
     hasDemoIncidents,
+    isOnIncidentDetail,
   ]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
