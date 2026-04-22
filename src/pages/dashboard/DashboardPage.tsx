@@ -698,7 +698,9 @@ const DashboardPage = () => {
 
   const visibleSteps = setupSteps.filter(s => !ignoredSteps.includes(s.id));
   const ignoredStepsList = setupSteps.filter(s => ignoredSteps.includes(s.id));
-  const completedCount = visibleSteps.filter(s => s.status === 'complete').length;
+  const incompleteVisibleSteps = visibleSteps.filter(s => s.status !== 'complete');
+  const completedVisibleSteps = visibleSteps.filter(s => s.status === 'complete');
+  const completedCount = completedVisibleSteps.length;
   const totalSteps = visibleSteps.length;
   const progressPercent = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 100;
   const allComplete = completedCount === totalSteps;
