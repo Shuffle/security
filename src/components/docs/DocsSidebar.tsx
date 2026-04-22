@@ -152,6 +152,7 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
+              {...(link.download ? { download: '' } : {})}
               sx={{
                 borderRadius: 1,
                 mx: 1,
