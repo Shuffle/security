@@ -670,46 +670,7 @@ export const IncidentCardView = ({
                     </Typography>
                   </Box>
                 )}
-                {incident.labels && incident.labels.length > 0 && (
-                  <>
-                    {incident.labels.slice(0, 3).map((label, idx) => (
-                      <Chip
-                        key={`label-${idx}`}
-                        
-                        label={label}
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          onFilterChange?.('tag', label);
-                        }}
-                        sx={{
-                          backgroundColor: 'hsl(var(--severity-info) / 0.12)',
-                          color: 'hsl(var(--severity-info))',
-                          fontWeight: 500,
-                          fontSize: '0.65rem',
-                          height: 22,
-                          '& .MuiChip-icon': { color: 'hsl(var(--severity-info))', ml: 0.5 },
-                        }}
-                      />
-                    ))}
-                    {incident.labels.length > 3 && (
-                      <Tooltip title={incident.labels.slice(3).join(', ')} placement="bottom">
-                        <Chip
-                          label={`+${incident.labels.length - 3}`}
-                          size="small"
-                          sx={{
-                           backgroundColor: 'hsl(var(--severity-info) / 0.08)',
-                            color: 'hsl(var(--severity-info))',
-                            fontWeight: 500,
-                            fontSize: '0.65rem',
-                            height: 22,
-                          }}
-                        />
-                      </Tooltip>
-                    )}
-                  </>
-                )}
+                {/* Labels moved to the bottom meta row to free up title space. */}
                 <Chip
                   label={incident.severity || 'unknown'}
                   size="small"
