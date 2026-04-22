@@ -3158,19 +3158,62 @@ const IncidentDetailPage = () => {
           count: correlations.length,
         });
       }
-      // Per-observable correlations — one step per observable that returned
-      // matches. Useful when an enrichment surfaces a known-bad indicator.
+      // Per-observable correlations — bucket by timestamp so a burst of
+      // matches discovered in the same poll collapses into a single timeline
+      // pill. Bucket window is 3s; entries within the same window are merged
+      // into one step labelled "N observable correlations" so the timeline
+      // does not get drowned in one row per match.
+      const CORR_BUCKET_MS = 3000;
+      type ObsCorrEntry = { obsKey: string; ts: number; count: number };
+      const obsCorrEntries: ObsCorrEntry[] = [];
       Object.entries(obsCorrelations).forEach(([obsKey, entry]) => {
         if (!entry.discoveredAt || entry.data.length === 0) return;
-        items.push({
-          type: 'step',
-          kind: 'correlation-found',
-          timestamp: entry.discoveredAt,
-          id: `step-corr-obs-${obsKey}`,
-          label: 'Observable correlation',
-          detail: `${entry.data.length} match${entry.data.length === 1 ? '' : 'es'} for ${obsKey.split('::')[1] || obsKey}`,
-          count: entry.data.length,
-        });
+        obsCorrEntries.push({ obsKey, ts: entry.discoveredAt, count: entry.data.length });
+      });
+      // Sort oldest-first so the bucket boundary is deterministic.
+      obsCorrEntries.sort((a, b) => a.ts - b.ts);
+      const buckets: Array<{ ts: number; entries: ObsCorrEntry[] }> = [];
+      obsCorrEntries.forEach((e) => {
+        const last = buckets[buckets.length - 1];
+        if (last && Math.abs(e.ts - last.ts) <= CORR_BUCKET_MS) {
+          last.entries.push(e);
+          // Use the most recent timestamp as the bucket anchor so the pill
+          // shows the freshest "found at" time.
+          last.ts = Math.max(last.ts, e.ts);
+        } else {
+          buckets.push({ ts: e.ts, entries: [e] });
+        }
+      });
+      buckets.forEach((b, i) => {
+        const totalCount = b.entries.reduce((acc, e) => acc + e.count, 0);
+        if (b.entries.length === 1) {
+          // Single match → keep the per-observable detail so the user can
+          // still see which indicator triggered it.
+          const e = b.entries[0];
+          items.push({
+            type: 'step',
+            kind: 'correlation-found',
+            timestamp: e.ts,
+            id: `step-corr-obs-${e.obsKey}`,
+            label: 'Observable correlation',
+            detail: `${e.count} match${e.count === 1 ? '' : 'es'} for ${e.obsKey.split('::')[1] || e.obsKey}`,
+            count: e.count,
+          });
+        } else {
+          // Bulked → one pill summarising the burst. Detail lists the first
+          // few observables so the user still has a hint of what was found.
+          const sample = b.entries.slice(0, 3).map(e => e.obsKey.split('::')[1] || e.obsKey).join(', ');
+          const more = b.entries.length > 3 ? ` +${b.entries.length - 3} more` : '';
+          items.push({
+            type: 'step',
+            kind: 'correlation-found',
+            timestamp: b.ts,
+            id: `step-corr-obs-bulk-${i}-${b.ts}`,
+            label: `${b.entries.length} observable correlations`,
+            detail: `${totalCount} match${totalCount === 1 ? '' : 'es'} across ${sample}${more}`,
+            count: totalCount,
+          });
+        }
       });
     }
 
@@ -3524,9 +3567,20 @@ const IncidentDetailPage = () => {
         let pillOnClick: (() => void) | undefined;
         if (item.kind === 'observable-added' && item.id.startsWith('step-obs-')) {
           const obsKey = item.id.slice('step-obs-'.length);
-          pillOnClick = () => focusObservableFromTimeline(obsKey);
+          pillOnClick = () => {
+            // Demo mode: notify the tour when the user clicks an IP pill.
+            if (obsKey.toLowerCase().startsWith('ip::') || obsKey.toLowerCase().startsWith('ipv4::') || obsKey.toLowerCase().startsWith('ipv6::')) {
+              try { window.dispatchEvent(new CustomEvent('demo:timeline-ip-clicked', { detail: { obsKey } })); } catch { /* ignore */ }
+            }
+            focusObservableFromTimeline(obsKey);
+          };
         } else if (item.kind === 'correlation-found') {
-          if (item.id.startsWith('step-corr-obs-')) {
+          // Bulked observable correlations (id prefix `step-corr-obs-bulk-`)
+          // can't jump to a single observable row — send the user to the
+          // Correlations tab instead.
+          if (item.id.startsWith('step-corr-obs-bulk-')) {
+            pillOnClick = () => focusCorrelationFromTimeline(null);
+          } else if (item.id.startsWith('step-corr-obs-')) {
             const obsKey = item.id.slice('step-corr-obs-'.length).toLowerCase();
             pillOnClick = () => focusObservableFromTimeline(obsKey);
           } else {
@@ -3537,10 +3591,16 @@ const IncidentDetailPage = () => {
         // Detect whether the pill represents (or correlates to) an observable
         // already known to match an IOC / threat-feed entry. We pull the obs
         // key out of the synthetic `step-obs-` / `step-corr-obs-` id format.
+        // Bulked correlations have no single underlying obs — they never
+        // light up as IOC pills.
         let pillObsKey: string | null = null;
         if (item.kind === 'observable-added' && item.id.startsWith('step-obs-')) {
           pillObsKey = item.id.slice('step-obs-'.length).toLowerCase();
-        } else if (item.kind === 'correlation-found' && item.id.startsWith('step-corr-obs-')) {
+        } else if (
+          item.kind === 'correlation-found'
+          && item.id.startsWith('step-corr-obs-')
+          && !item.id.startsWith('step-corr-obs-bulk-')
+        ) {
           pillObsKey = item.id.slice('step-corr-obs-'.length).toLowerCase();
         }
         const isIocPill = !!pillObsKey && iocObservableKeys.has(pillObsKey);

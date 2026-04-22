@@ -104,29 +104,23 @@ export const DemoCompletionWatcher = () => {
   // so leaving the detail page reverts the gate immediately.
 
   // ─── incident-detail sub-goals ─────────────────────────────────────────────
-  // Step #5 is a guided observation: wait for the background enrichment to
-  // surface observables, ask the agent a question, then watch the Wazuh /
-  // Sliver C2 follow-up arrive. Each sub-goal flips on as evidence appears.
+  // Step #5 is a guided observation: read the timeline (find the attacker
+  // IP), ask the agent a question, then watch the Wazuh / Sliver C2 follow-up
+  // arrive. Each sub-goal flips on as evidence appears.
 
-  // Observables-present — poll the Observables tab badge for a numeric count.
-  // The tab renders a child <span> with the count when > 0, so the presence
-  // of a number means background enrichment has populated something. This
-  // also flips back off if the count drops to zero again.
+  // Timeline-IP — listens for a custom event dispatched when the user clicks
+  // any IP observable pill on the timeline. Fired from the timeline pill
+  // click handler in IncidentDetailPage.
   useEffect(() => {
     if (!drawerOpen) return;
-    const stepId = TOUR_STEPS[step]?.id;
-    if (stepId !== 'incident-detail') return;
-    const id = window.setInterval(() => {
-      const tab = document.querySelector('[data-tour="incident-tab-observables"]');
-      if (!tab) return;
-      const badge = tab.querySelector('span');
-      const txt = badge?.textContent?.trim() || '';
-      const n = parseInt(txt, 10);
-      const present = Number.isFinite(n) && n > 0;
-      setStepCompleted('incident-detail:observables-present', present);
-    }, 800);
-    return () => window.clearInterval(id);
-  }, [drawerOpen, step, setStepCompleted]);
+    const onIp = () => {
+      const stepId = TOUR_STEPS[step]?.id;
+      if (stepId !== 'incident-detail') return;
+      markStepCompleted('incident-detail:timeline-ip');
+    };
+    window.addEventListener('demo:timeline-ip-clicked', onIp);
+    return () => window.removeEventListener('demo:timeline-ip-clicked', onIp);
+  }, [drawerOpen, step, markStepCompleted]);
 
   // Comment-sent — listens for the custom event dispatched by the incident
   // detail page when the user adds a comment. Doubles as "ask the agent".
