@@ -399,11 +399,9 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                       {msg.date}
                     </Typography>
                   )}
-                  {!msg.isLatest && (
-                    <IconButton size="small" sx={{ color: 'text.secondary' }}>
-                      {isExpanded ? <ExpandLessIcon sx={{ fontSize: 16 }} /> : <ExpandMoreIcon sx={{ fontSize: 16 }} />}
-                    </IconButton>
-                  )}
+                  <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                    {isExpanded ? <ExpandLessIcon sx={{ fontSize: 16 }} /> : <ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                  </IconButton>
                 </Box>
               </Box>
 
