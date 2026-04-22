@@ -150,7 +150,6 @@ IT Support Team`,
     observables: [
       { type: 'email', value: PHISH_REPORTER_EMAIL },
       { type: 'email', value: PHISH_USER_EMAIL },
-      { type: 'hostname', value: PHISH_HOST },
       { type: 'url', value: PHISH_LURE_URL },
       { type: 'ip', value: PHISH_ATTACKER_IP },
     ],
