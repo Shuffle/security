@@ -45,23 +45,14 @@ type RawInc = {
 };
 
 const toIncident = (item: RawInc): { key: string; value: OCSFIncidentFinding } => {
-  // Stagger enrichment timestamps a few seconds after the incident's
-  // first_seen so the unified timeline reads as "incident landed → Shuffle
-  // analysed it and added observables seconds later". This is what makes the
-  // demo feel like real-time enrichment instead of pre-baked data.
-  const incidentTs = new Date(item.first_seen_time).getTime();
-  const enrichments = (item.observables || []).map((o, idx) => {
-    // 4s, 8s, 12s … after incident creation. Capped well within the minute.
-    const offsetMs = (idx + 1) * 4000;
-    const seenAt = new Date(incidentTs + offsetMs).toISOString();
-    return {
-      type: o.type,
-      value: o.value,
-      first_seen: seenAt,
-      last_seen: seenAt,
-    };
-  });
-
+  // NOTE: Observables are intentionally NOT seeded directly on the incident
+  // anymore. The incident lands "raw" with no enrichments; a background
+  // process (see `enrichDemoIncidentObservables` in services/demoMode.ts)
+  // adds them dynamically a few seconds after the incident is written, so
+  // the timeline reads as "incident landed → Shuffle analysed it and
+  // surfaced observables seconds later". The pending observables are
+  // returned via `pendingObservables` (see toIncidentWithPending below) so
+  // the seeder can schedule the background enrichment.
   return {
     key: item._key,
     value: {
@@ -80,12 +71,7 @@ const toIncident = (item: RawInc): { key: string; value: OCSFIncidentFinding } =
       last_seen_time: item.first_seen_time,
       types: item.types,
       product: item.product,
-      // Observables are intentionally NOT seeded as native incident
-      // observables. We surface them as `enrichments` (system-added) so the
-      // user sees Shuffle adding them in real time on the timeline, instead
-      // of them being inherent to the incident. Correlations still light up
-      // because shared values are detected across the same indicator pool.
-      enrichments,
+      enrichments: [],
       metadata: {
         ...demoMeta(item._key),
         extensions: {
@@ -94,7 +80,25 @@ const toIncident = (item: RawInc): { key: string; value: OCSFIncidentFinding } =
           },
         },
       },
-    } as OCSFIncidentFinding & { enrichments: typeof enrichments },
+    } as OCSFIncidentFinding & { enrichments: { type: string; value: string; first_seen: string; last_seen: string }[] },
+  };
+};
+
+/**
+ * Wrapper around `toIncident` that also returns the observables that should
+ * be added in the background after the incident lands. Used by the demo
+ * seeders to kick off the dynamic enrichment process.
+ */
+export type PendingObservable = { type: string; value: string };
+export const toIncidentWithPending = (item: RawInc): {
+  key: string;
+  value: OCSFIncidentFinding;
+  pendingObservables: PendingObservable[];
+} => {
+  const built = toIncident(item);
+  return {
+    ...built,
+    pendingObservables: (item.observables || []).map(o => ({ type: o.type, value: o.value })),
   };
 };
 
