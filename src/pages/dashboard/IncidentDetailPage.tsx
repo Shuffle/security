@@ -3475,9 +3475,11 @@ const IncidentDetailPage = () => {
       const canDelete = !isDeleted && isOwnMessage && actItem.type === 'comment' && messageAge < 5 * 60 * 1000;
       const timeRemaining = Math.max(0, Math.ceil((5 * 60 * 1000 - messageAge) / 60000));
 
+      const isActHighlighted = !!actItem.id && newlyArrivedActivity.has(actItem.id);
       return (
         <Box
           key={actItem.id}
+          className={isActHighlighted ? 'incident-new-flash' : undefined}
           sx={{
             display: 'flex',
             gap: 1.5,
