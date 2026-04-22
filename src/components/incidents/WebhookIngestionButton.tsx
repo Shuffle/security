@@ -9,6 +9,7 @@ import { getApiUrl, getAuthHeader } from '@/config/api';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { useDemo } from '@/context/DemoContext';
 
 export interface WebhookIngestionInfo {
   /** Webhook URL to display (null if workflow doesn't exist yet) */
