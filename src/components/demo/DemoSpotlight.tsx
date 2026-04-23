@@ -83,7 +83,9 @@ export const DemoSpotlight = () => {
 
   // For optional targets, keep the spotlight active even after the step is
   // unlocked — the goal is to nudge engagement, not to gate progress.
-  const suppressForUnlock = currentStepUnlocked && !isOptionalTarget;
+  // Hover preview also bypasses the unlock suppression (the user is asking
+  // to see *that* goal, even if the step is already unlocked).
+  const suppressForUnlock = currentStepUnlocked && !isOptionalTarget && !isHoverOverride;
 
   // Find + track the target element. Polls because the DOM may load async.
   useEffect(() => {
