@@ -894,12 +894,18 @@ const HostTerminalPage = () => {
         <div className="flex gap-2 items-center max-w-4xl">
           <span className="text-sm font-mono text-primary shrink-0">$</span>
           <Input
-            placeholder={canRunActions ? (isFull ? 'Type command…' : 'Custom action…') : 'Monitor resolution required before running commands'}
+            placeholder={
+              isDemoHost
+                ? 'Custom commands are disabled in the demo — use "Isolate Host"'
+                : canRunActions
+                  ? (isFull ? 'Type command…' : 'Custom action…')
+                  : 'Monitor resolution required before running commands'
+            }
             value={customAction}
             onChange={e => setCustomAction(e.target.value)}
             className="h-9 text-sm flex-1 font-mono"
             ref={inputRef}
-            disabled={!canRunActions}
+            disabled={!canRunActions || isDemoHost}
             onKeyDown={e => {
               // Full ordered history, every entry (no dedup), most recent first
               const history = [...actionHistory].reverse().map(e => e.actionName).filter(Boolean);
@@ -929,10 +935,9 @@ const HostTerminalPage = () => {
             size="icon"
             variant="ghost"
             className="h-9 w-9 shrink-0"
-            disabled={!canRunActions || !customAction.trim()}
+            disabled={!canRunActions || isDemoHost || !customAction.trim()}
             onClick={() => {
               if (customAction.trim()) {
-                
                 executeHostAction(customAction.trim(), customAction.trim());
                 setCustomAction('');
               }
@@ -941,7 +946,11 @@ const HostTerminalPage = () => {
             <Play size={14} />
           </Button>
         </div>
-        <p className="text-[0.65rem] text-muted-foreground/60 mt-2.5 text-center">No session is created — each command is standalone. History is stored locally in your browser.</p>
+        <p className="text-[0.65rem] text-muted-foreground/60 mt-2.5 text-center">
+          {isDemoHost
+            ? 'Demo terminal — only the "Isolate Host" predefined action is enabled.'
+            : 'No session is created — each command is standalone. History is stored locally in your browser.'}
+        </p>
       </div>
 
       <AlertDialog open={!!pendingDisableRce} onOpenChange={(o) => { if (!o) setPendingDisableRce(null); }}>
