@@ -392,10 +392,14 @@ export const DemoTourDrawer = () => {
       {drawerOpen && (
         <motion.div
           key="demo-drawer"
-          initial={{ x: 480, opacity: 0 }}
-          animate={dockedAnimate}
-          exit={{ x: 480, opacity: 0 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+          // Enter/exit with a small fade + lift from where the drawer already
+          // lives. Animating positional keys (left/right/bottom) from "auto"
+          // to numeric values caused a wide, distracting fly across the
+          // viewport — the new entrance just settles into place.
+          initial={{ ...dockedAnimate, opacity: 0, y: 12 }}
+          animate={{ ...dockedAnimate, opacity: 1, y: 0 }}
+          exit={{ ...dockedAnimate, opacity: 0, y: 12 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           style={containerStyle}
         >
           <Box
