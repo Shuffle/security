@@ -1087,7 +1087,7 @@ export const AutomationConfig = ({
                         </Box>
                       )}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 0.5 }}>
-                        {(hasExpandableTools || (hasConfig && state.enabled)) && (
+                        {isExpandable && (
                           <Box
                             onClick={(e) => {
                               e.stopPropagation();
