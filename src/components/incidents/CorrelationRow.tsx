@@ -1,6 +1,7 @@
-import { Box, Typography, Chip, Tooltip } from '@mui/material';
+import { useState } from 'react';
+import { Box, Typography, Chip, Tooltip, Popover } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { Link } from 'react-router-dom';
+import IncidentCorrelationPreview from './IncidentCorrelationPreview';
 
 /**
  * Returns true when a datastore category represents a threat-intelligence
