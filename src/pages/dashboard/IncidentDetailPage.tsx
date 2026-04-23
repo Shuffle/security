@@ -2856,7 +2856,8 @@ const IncidentDetailPage = () => {
                 size="small"
                 fullWidth
                 multiline
-                rows={2}
+                minRows={2}
+                maxRows={15}
                 placeholder={replyingTo ? `Reply to ${replyingTo.label}…` : 'Add a comment... (Enter to send, Shift+Enter for new line)'}
                 sx={{
                   '& .MuiOutlinedInput-root': {
