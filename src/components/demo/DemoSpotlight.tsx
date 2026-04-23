@@ -15,7 +15,7 @@ const PADDING = 8;
 const Z_BASE = 1290; // just below the drawer (1300)
 
 export const DemoSpotlight = () => {
-  const { drawerOpen, step, currentStepUnlocked, completedSteps, hasDemoIncidents, isOnIncidentDetail } = useDemo();
+  const { drawerOpen, step, currentStepUnlocked, completedSteps, hasDemoIncidents, isOnIncidentDetail, hoveredGoalSelector } = useDemo();
   const current = TOUR_STEPS[step];
 
   // If the current step has sub-goals with their own targetSelector, point at
@@ -37,7 +37,11 @@ export const DemoSpotlight = () => {
     if (optional) return optional.targetSelector!;
     return null;
   })();
-  const selector = subGoalSelector ?? current?.requirement?.targetSelector ?? null;
+  // Hover takes top priority — if the user is hovering a goal in the drawer,
+  // point the spotlight there with extra emphasis (see `isHoverOverride`).
+  const baseSelector = subGoalSelector ?? current?.requirement?.targetSelector ?? null;
+  const selector = hoveredGoalSelector ?? baseSelector;
+  const isHoverOverride = !!hoveredGoalSelector;
   const isOptionalTarget = !!(subGoalSelector && current?.subGoals?.find(g => g.targetSelector === subGoalSelector)?.optional);
 
   const [rect, setRect] = useState<DOMRect | null>(null);
