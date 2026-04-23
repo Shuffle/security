@@ -174,6 +174,26 @@ const HostTerminalPage = () => {
       : '';
   const displayHostname = hasResolvedHostname ? hostname : 'Unresolved monitor';
 
+  // Demo terminal: when the URL points at a `demo-…` host (e.g.
+  // /monitors/demo-host-fin-laptop-04/terminal) we lock the free-form
+  // command input so the demo cannot be derailed by typing real shell
+  // commands, but we still let the user click the "Isolate Host" predefined
+  // chip so the agent's headline action remains demonstrable. We also
+  // broadcast `demo-object-context` so the floating "Re-open demo tour"
+  // pill stays visible while the terminal is open.
+  const isDemoHost = /^demo-/i.test(hostUuid || '');
+  useEffect(() => {
+    if (!isDemoHost) return;
+    window.dispatchEvent(
+      new CustomEvent('demo-object-context', { detail: { active: true } }),
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent('demo-object-context', { detail: { active: false } }),
+      );
+    };
+  }, [isDemoHost]);
+
   usePageMeta({ title: `Terminal · ${displayHostname}`, description: `Terminal session for ${displayHostname}` });
 
   const [customAction, setCustomAction] = useState('');
