@@ -1776,9 +1776,13 @@ const IncidentDetailPage = () => {
   }, [incident?.id, id, isPublicView, loading, crossOrgId, isSaving, FRESH_OBS_WINDOW_MS, incident?.createdTs]);
 
 
-  // Fetch per-observable correlations when observables tab is active
+  // Fetch per-observable correlations as soon as the incident is loaded.
+  // Previously this was gated behind `activeTab === 2` (Observables tab), but
+  // the timeline / chat needs these lookups too — without them the IOC red
+  // highlight never appears unless the user manually opens Observables. Run
+  // eagerly so the timeline lights up correlations on first paint.
   useEffect(() => {
-    if (activeTab !== 2 || loading) return;
+    if (loading) return;
     const manualObs = editedObservables.filter(o => !o.archived);
     const enrichObs = enrichments.map(e => ({ type: e.type || 'unknown', value: e.value || e.data || '' }));
     const allObs = [...manualObs, ...enrichObs].filter(o => o.value);
