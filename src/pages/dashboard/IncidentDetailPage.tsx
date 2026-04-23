@@ -4072,8 +4072,28 @@ const IncidentDetailPage = () => {
                 right: canDelete ? 28 : 4,
                 opacity: 0,
                 transition: 'opacity 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
               }}
             >
+              {actItem.ai_handled === true && (
+                <Tooltip title="Handled by AI Agent" arrow>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      bgcolor: 'rgba(156, 90, 242, 0.12)',
+                    }}
+                  >
+                    <AgentIcon size={12} />
+                  </Box>
+                </Tooltip>
+              )}
               {replyButton}
             </Box>
           )}
