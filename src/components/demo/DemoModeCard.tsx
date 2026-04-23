@@ -76,6 +76,10 @@ export const DemoModeCard = () => {
   const { data: workflows } = useWorkflows();
   const { data: monitorCount = 0 } = useMonitorCount();
   const { data: incidentCount = 0 } = useIncidentCount();
+  const { singular: entitySingular, plural: entityPlural } = useEntityPreference();
+  const t = (s: string) => applyEntityTerminology(s, entitySingular, entityPlural);
+  const entityPluralLower = entityPlural.toLowerCase();
+  const entitySingularLower = entitySingular.toLowerCase();
 
   // Allow demo mode when the account is still light on real data:
   // ≤ 10 incidents AND ≤ 1 host monitor. Ingest workflow is informational only.
@@ -86,9 +90,9 @@ export const DemoModeCard = () => {
   const setupExists = tooManyIncidents || tooManyMonitors;
   const disableStart = !active && setupExists;
   const disableReason = tooManyIncidents && tooManyMonitors
-    ? `You already have ${incidentCount} incidents and ${monitorCount} host monitors — demo mode is for lightly-used accounts.`
+    ? `You already have ${incidentCount} ${entityPluralLower} and ${monitorCount} host monitors — demo mode is for lightly-used accounts.`
     : tooManyIncidents
-      ? `You already have ${incidentCount} incidents — demo mode is for accounts with fewer than ${INCIDENT_THRESHOLD}.`
+      ? `You already have ${incidentCount} ${entityPluralLower} — demo mode is for accounts with fewer than ${INCIDENT_THRESHOLD}.`
       : `You already have ${monitorCount} host monitors — demo mode is for accounts with ${MONITOR_THRESHOLD} or fewer.`;
 
   return (
