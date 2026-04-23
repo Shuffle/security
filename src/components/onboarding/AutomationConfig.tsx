@@ -330,6 +330,8 @@ export const AutomationConfig = ({
   // Threat feeds management
   const { threatFeeds, saveFeed, deleteFeed, toggleFeed, initializeDefaults: initThreatFeeds } = useThreatFeeds();
   const enrichmentStatus = useEnrichmentStatus();
+  // Users powering the on-call schedule editor inside the Assign & Escalate card
+  const { users: scheduleUsers, loading: scheduleUsersLoading } = useUsers();
   const [editingFeed, setEditingFeed] = useState<ThreatFeed | null>(null);
   const [newFeedUrl, setNewFeedUrl] = useState('');
   const [newFeedName, setNewFeedName] = useState('');
