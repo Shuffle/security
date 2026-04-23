@@ -87,6 +87,11 @@ interface CorrelationRowProps {
  * incident, and renders incident chips as links.
  */
 export const CorrelationRow = ({ correlation, currentIncidentId, className, compact = false, focusedIncidentKey }: CorrelationRowProps) => {
+  // Pivot popover state — keyed by the incident key the user clicked so two
+  // chips in the same row don't fight over the same anchor element.
+  const [pivotAnchor, setPivotAnchor] = useState<{ el: HTMLElement; key: string; category: string } | null>(null);
+  const closePivot = () => setPivotAnchor(null);
+
   // Group refs by category, excluding the current incident itself.
   const refsByCategory: Record<string, string[]> = {};
   correlation.ref.forEach((r) => {
