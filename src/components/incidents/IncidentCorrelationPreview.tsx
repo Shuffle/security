@@ -51,16 +51,35 @@ export const IncidentCorrelationPreview = ({
     setLoading(true);
     setError(null);
     setPreview(null);
+    setNotFound(false);
     (async () => {
       try {
         const result = await getDatastoreItem(incidentKey, category);
         if (cancelled) return;
-        const raw = result?.item?.value;
+        // The datastore returns { success: true, item: undefined } when the key
+        // is missing (HTTP 404 or API-level "not found"). Correlations can
+        // outlive their referenced incident — surface this explicitly instead
+        // of pretending the load succeeded with empty data.
+        if (!result?.success) {
+          setError(result?.error || 'Failed to load incident');
+          return;
+        }
+        if (!result.item || result.item.value === undefined || result.item.value === null || result.item.value === '') {
+          setNotFound(true);
+          return;
+        }
+        const raw = result.item.value;
         let parsed: Record<string, unknown> | undefined;
         if (typeof raw === 'string') {
           try { parsed = JSON.parse(raw); } catch { /* ignore */ }
         } else if (raw && typeof raw === 'object') {
           parsed = raw as Record<string, unknown>;
+        }
+        // If the value parsed but contained nothing recognisable, treat as not-found
+        // so we don't render an empty card pretending the incident is healthy.
+        if (!parsed || (typeof parsed === 'object' && Object.keys(parsed).length === 0)) {
+          setNotFound(true);
+          return;
         }
         // Try a handful of well-known shapes (raw OCSF, custom_attributes, etc.)
         const findings = (parsed?.finding_info as Record<string, unknown> | undefined)
