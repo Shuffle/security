@@ -219,23 +219,25 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {keys.slice(0, 5).map((key) => {
-                  // For incident pivots, jump into the target incident's Correlations tab
-                  // and pass back the current incident as `focus` so the matching chip
-                  // there pulses — making the bidirectional link obvious.
-                  const incidentTo = isIncidentCategory
-                    ? `/incidents/${key}?tab=correlations&correlation=${encodeURIComponent(correlation.key)}${currentIncidentId ? `&focus=${encodeURIComponent(currentIncidentId)}` : ''}`
-                    : undefined;
                   const isFocused = isIncidentCategory && focusedIncidentKey && key.toLowerCase() === focusedIncidentKey.toLowerCase();
+                  // Incident chips open a preview popover instead of hard-navigating.
+                  // The popover loads the target incident and lets the user decide
+                  // whether to actually pivot — keeps context, avoids churn.
+                  const handleClick = isIncidentCategory
+                    ? (e: React.MouseEvent<HTMLDivElement>) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setPivotAnchor({ el: e.currentTarget, key, category });
+                      }
+                    : undefined;
                   return (
                     <Chip
                       key={key}
                       label={key}
                       size="small"
                       variant="outlined"
-                      component={isIncidentCategory ? Link : 'div'}
-                      to={incidentTo}
                       clickable={isIncidentCategory}
-                      onClick={isIncidentCategory ? (e: React.MouseEvent) => e.stopPropagation() : undefined}
+                      onClick={handleClick}
                       className={isFocused ? 'incident-new-flash' : undefined}
                       sx={{
                         height: compact ? 20 : 22,
