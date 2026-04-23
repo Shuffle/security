@@ -6010,6 +6010,14 @@ const IncidentDetailPage = () => {
                           // Only count correlations with refs OTHER than the current incident.
                           const meaningful = filterMeaningfulCorrelations(corr.data, id);
                           if (meaningful.length === 0) return null;
+                          // Total number of OTHER references across all meaningful
+                          // correlations — this is the count the user actually
+                          // cares about (e.g. "5 other incidents share this
+                          // observable"), not the number of distinct keys.
+                          const totalRefs = meaningful.reduce(
+                            (sum, c) => sum + getEffectiveCorrelationCount(c, id),
+                            0,
+                          );
                           // Highlight the badge in red when ANY correlation
                           // points to a known IOC / threat-feed entry.
                           const iocHit = meaningful.some(hasIocMatch);
@@ -6018,13 +6026,13 @@ const IncidentDetailPage = () => {
                               title={
                                 iocHit
                                   ? 'This observable matches a known Indicator of Compromise — open to investigate.'
-                                  : `${meaningful.length} correlation${meaningful.length !== 1 ? 's' : ''} found`
+                                  : `${totalRefs} correlation${totalRefs !== 1 ? 's' : ''} found`
                               }
                               arrow
                             >
                               <Chip
                                 icon={iocHit ? <WarningAmberIcon sx={{ fontSize: 12, color: 'hsl(var(--destructive)) !important' }} /> : undefined}
-                                label={iocHit ? `${meaningful.length} IOC` : `${meaningful.length} corr`}
+                                label={iocHit ? `${totalRefs} IOC` : `${totalRefs} corr`}
                                 size="small"
                                 variant="outlined"
                                 onClick={(e) => { e.stopPropagation(); setObsCorrelationAnchor({ el: e.currentTarget, obsKey }); }}
