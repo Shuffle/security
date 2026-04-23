@@ -67,10 +67,13 @@ const generateWorkflow = async (
   label: string,
   enabledAppNames: string[],
   category: string = 'cases',
-  actionName?: string
+  actionName?: string,
+  allowEmpty: boolean = false,
 ): Promise<void> => {
-  // For disable action, we still need to send the request even with no apps
-  if (enabledAppNames.length === 0 && actionName !== 'disable') return;
+  // For disable action, we still need to send the request even with no apps.
+  // Some automations (e.g. Assign & Escalate) are schedule-based and have no
+  // app dependencies — they pass `allowEmpty` so the workflow is still created.
+  if (enabledAppNames.length === 0 && actionName !== 'disable' && !allowEmpty) return;
   
   const appNamesStr = enabledAppNames.join(',');
   
