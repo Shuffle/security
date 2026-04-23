@@ -25,9 +25,11 @@ import {
   PanelRight,
   PanelBottom,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
+import { useEntityPreference } from '@/hooks/useEntityLabel';
+import { applyEntityTerminology } from '@/lib/demoTerminology';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const DemoTourDrawer = () => {
