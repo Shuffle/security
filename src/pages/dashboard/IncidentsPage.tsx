@@ -1816,9 +1816,21 @@ const IncidentsPage = () => {
           onClose={() => setCreateDialogOpen(false)}
           onSubmit={handleCreateIncident}
         />
+
+        <CategoryAutomationsDialog
+          open={automationsDialogOpen}
+          onClose={() => setAutomationsDialogOpen(false)}
+          category={DATASTORE_CATEGORIES.INCIDENTS}
+          automations={categoryAutomations}
+          onAutomationsChange={setCategoryAutomations}
+          initialSettings={categoryConfig?.settings}
+          onSaved={() => {
+            // Re-fetch ingestion apps & workflows, then auto-sync
+            fetchIngestionApps();
+            triggerSync();
+          }}
+        />
       </motion.div>
-    );
-  }
 
   return (
     <motion.div
