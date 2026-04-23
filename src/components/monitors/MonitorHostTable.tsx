@@ -7,7 +7,7 @@
  * Both /monitors (VulnAssetsPage) and /assets (AssetsPage) render this so
  * any future column / dot / action work happens in one place.
  */
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight, HardDrive, Lock, Package, FileCode, Zap, Send, Laptop,
