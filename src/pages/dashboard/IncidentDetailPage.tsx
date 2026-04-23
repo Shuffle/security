@@ -3737,7 +3737,8 @@ const IncidentDetailPage = () => {
           <Box
             key={item.id}
             data-timeline-compact="true"
-            className={isStepHighlighted ? 'incident-new-flash' : undefined}
+            data-tour={isIocPill ? 'timeline-ioc-pill' : undefined}
+            data-ioc-pill={isIocPill ? 'true' : undefined}
             onClick={pillOnClick}
             sx={{
               display: 'flex',
