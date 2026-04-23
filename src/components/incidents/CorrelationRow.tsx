@@ -75,6 +75,8 @@ interface CorrelationRowProps {
   className?: string;
   /** Compact density variant for inline rendering inside observable rows. */
   compact?: boolean;
+  /** When set, the matching incident chip in this row gets a pulse highlight (used when arriving via ?focus=…). */
+  focusedIncidentKey?: string;
 }
 
 /**
