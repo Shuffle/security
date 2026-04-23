@@ -518,6 +518,14 @@ const IncidentDetailPage = () => {
 
   const [incident, setIncident] = useState<DisplayIncident | null>(null);
   const [loading, setLoading] = useState(true);
+  // Demo-mode self-heal: when the user lands on a demo focus incident URL
+  // that no longer exists in the datastore (e.g. it was force-regenerated
+  // with a fresh timestamp suffix while the list was cached), we recreate
+  // the focus incident and redirect to the new key — no "Incident not found"
+  // dead-end during the tour. See "Incidents arriving" step 4.
+  const { active: demoActive } = useDemo();
+  const [demoRecovering, setDemoRecovering] = useState(false);
+  const demoRecoveryTriedRef = useRef(false);
   
   // Editable fields
   const [editedTitle, setEditedTitle] = useState('');
