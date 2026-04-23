@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'r
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useEntityLabel, useTaskStatuses } from '@/hooks/useEntityLabel';
+import { useEntityLabel, useTaskStatuses, useEntityText } from '@/hooks/useEntityLabel';
 import {
   Box,
   Typography,
@@ -489,6 +489,7 @@ const IncidentDetailPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { plural: entityPlural, singular: entitySingular, basePath: entityBasePath } = useEntityLabel();
+  const t = useEntityText();
   const taskStatuses = useTaskStatuses();
   const { userInfo } = useAuth();
   const { openApp } = useAppDetail();
@@ -2799,7 +2800,7 @@ const IncidentDetailPage = () => {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2 }}>
-          Incident not found
+          {entitySingular} not found
         </Typography>
         <Button 
           component={Link} 
