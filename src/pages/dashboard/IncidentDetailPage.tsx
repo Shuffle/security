@@ -3011,7 +3011,7 @@ const IncidentDetailPage = () => {
       | { type: 'revision'; timestamp: number; data: any; idx: number; parsedCurrent: any; parsedPrevious: any | null }
       | { type: 'agent'; timestamp: number; data: typeof agentRuns[number] }
       | { type: 'manual'; timestamp: number; data: ActivityItem }
-      | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsType?: string; obsValue?: string };
+      | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsKeys?: string[]; obsType?: string; obsValue?: string };
 
     const items: TimelineItem[] = [];
 
@@ -3236,6 +3236,10 @@ const IncidentDetailPage = () => {
             detail: `${sample}${more}`,
             corrCount: corrCount > 0 ? corrCount : undefined,
             corrObsKeys: corrObsKeys.length > 0 ? corrObsKeys : undefined,
+            // Carry every observable key in the bulk so clicking the pill can
+            // scroll the Observables tab to the first row from this burst,
+            // not just swap tabs.
+            obsKeys: b.entries.map((e) => e.key),
           });
         }
       });
@@ -3616,8 +3620,11 @@ const IncidentDetailPage = () => {
             focusObservableFromTimeline(obsKey);
           };
         } else if (item.kind === 'observable-added' && item.id.startsWith('step-obs-bulk-')) {
-          // Bulked observable pills jump to the Observables tab generally.
-          pillOnClick = () => focusObservableFromTimeline(null);
+          // Bulked observable pills: jump to the Observables tab and scroll
+          // to the first observable from this burst so the user lands at the
+          // actual content the pill is summarising — not the top of the tab.
+          const firstKey = item.obsKeys && item.obsKeys.length > 0 ? item.obsKeys[0] : null;
+          pillOnClick = () => focusObservableFromTimeline(firstKey);
         } else if (item.kind === 'correlation-found') {
           // Bulked observable correlations (id prefix `step-corr-obs-bulk-`)
           // can't jump to a single observable row — send the user to the
