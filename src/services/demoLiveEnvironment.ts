@@ -207,7 +207,13 @@ export const restoreOriginalIngestTicketsApps = async (): Promise<void> => {
   let names: string[] = [];
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) names = parsed.filter(n => typeof n === 'string');
+    if (Array.isArray(parsed)) {
+      names = parsed
+        .filter(n => typeof n === 'string')
+        // Strip Shuffle's internal apps from older backups so cleanup never
+        // POSTs `app_name: "shuffle_tools"` to /workflows/generate.
+        .filter(n => !isShuffleInternalApp(n));
+    }
   } catch { /* ignore corrupt backup */ }
 
   try {
