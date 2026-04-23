@@ -153,47 +153,40 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const sidebarTabs = useSidebarTabs();
   const isSupport = userInfo?.support === true;
 
-  // Map sidebar tab keys to nav item labels/child paths for filtering
-  const tabKeyToChildPath: Record<string, string> = {
-    threat_feeds: '/incidents/threat-feeds',
-    ioc_types: '/incidents/ioc-types',
-    templates: '/templates',
-    custom_fields: '/incidents/custom-fields',
-    detection_rules: '/detection/sigma',
-    detection_pipelines: '/detection/pipelines',
-    detection_mitre: '/detection/mitre',
-  };
-  const tabKeyToNavLabel: Record<string, string> = {
-    dashboard: 'Dashboard',
-    detection: 'Detection',
-    automation: 'Automation',
-    vulnerabilities: 'Vulnerabilities',
-    documentation: 'Documentation',
-  };
-
+  // Filter the shared SIDEBAR_NAV against the user's preferences and
+  // support flag, then convert to runtime nav items. The visibility map is
+  // keyed by `tabKey`, so this stays in lock-step with /preferences without
+  // any path/label lookup tables.
   const navItems = useMemo(() => {
-    const items = buildNavItems(entityPlural, entityBasePath, isSupport);
-    return items
-      .filter(item => {
-        // Hide support-only top-level items for non-support users
-        if (item.supportOnly && !isSupport) return false;
-        // Check if this top-level item should be hidden
-        const hideKey = Object.entries(tabKeyToNavLabel).find(([, label]) => label === item.label)?.[0] as SidebarTabKey | undefined;
-        if (hideKey && !sidebarTabs[hideKey]) return false;
-        return true;
-      })
-      .map(item => {
-        if (!item.children) return item;
-        // Filter children based on tab visibility
-        const filteredChildren = item.children.filter(child => {
-          // Hide support-only children for non-support users
-          if (child.supportOnly && !isSupport) return false;
-          const hideKey = Object.entries(tabKeyToChildPath).find(([, path]) => path === child.path)?.[0] as SidebarTabKey | undefined;
-          if (hideKey && !sidebarTabs[hideKey]) return false;
+    const out: NavItem[] = [];
+    for (const spec of SIDEBAR_NAV) {
+      // Top-level visibility gate (Incidents is alwaysVisible).
+      if (spec.supportOnly && !isSupport) continue;
+      if (!spec.alwaysVisible && sidebarTabs[spec.tabKey] === false) continue;
+
+      const filteredChildren = spec.children
+        ?.filter((c) => {
+          if (c.supportOnly && !isSupport) return false;
+          if (sidebarTabs[c.tabKey] === false) return false;
           return true;
-        });
-        return { ...item, children: filteredChildren };
+        })
+        .map(childToNav);
+
+      const isIncidents = spec.tabKey === 'incidents';
+      out.push({
+        label: isIncidents ? entityPlural : spec.label,
+        icon: spec.icon,
+        path: isIncidents ? entityBasePath : spec.path,
+        supportOnly: spec.supportOnly,
+        children: filteredChildren && filteredChildren.length > 0 ? filteredChildren : undefined,
       });
+
+      // Divider after the Detection group, matching the previous layout.
+      if (spec.tabKey === 'detection') {
+        out.push({ label: '__divider__', icon: <></> });
+      }
+    }
+    return out;
   }, [entityPlural, entityBasePath, isSupport, sidebarTabs]);
   const [expandedItems, setExpandedItems] = useState<string[]>([entityPlural]);
   const [changingOrg, setChangingOrg] = useState(false);
