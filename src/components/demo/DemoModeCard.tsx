@@ -12,6 +12,8 @@ import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useDemo } from '@/context/DemoContext';
 import { useWorkflows } from '@/hooks/useWorkflows';
+import { useEntityPreference } from '@/hooks/useEntityLabel';
+import { applyEntityTerminology } from '@/lib/demoTerminology';
 import { findIngestTicketsWorkflow, isWorkflowScheduleStopped } from '@/lib/ingestionDetection';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 
