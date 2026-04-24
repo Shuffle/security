@@ -45,6 +45,7 @@ const AUTOMATION_CONFIG_KEY = 'automation_config';
 
 const ThreatFeedsPage = () => {
   const { threatFeeds: feeds, isLoading, saveFeed, deleteFeed, toggleFeed, initializeDefaults, refetch } = useThreatFeeds();
+  const { iocTypes } = useIOCTypes();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFeed, setEditingFeed] = useState<ThreatFeed | null>(null);
   const [formData, setFormData] = useState<Partial<ThreatFeed>>({ 
