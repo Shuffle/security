@@ -4419,7 +4419,20 @@ const IncidentDetailPage = () => {
     };
     const toolsSummary = buildToolsSummary();
 
-    const renderAgentProcessingPlaceholder = (key: string, timedOut: boolean, commentId?: string) => (
+    const formatRelativeShort = (ms: number): string => {
+      if (ms < 60_000) return `${Math.max(1, Math.floor(ms / 1000))}s ago`;
+      if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
+      if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
+      return `${Math.floor(ms / 86_400_000)}d ago`;
+    };
+
+    const renderAgentProcessingPlaceholder = (
+      key: string,
+      timedOut: boolean,
+      commentId?: string,
+      rerunCount: number = 0,
+      lastActionTs: number = 0,
+    ) => (
       <Box
         key={`ai-processing-${key}`}
         sx={{
