@@ -2377,6 +2377,7 @@ const IncidentsPage = () => {
               )}
             </Box>
 
+            {incidents.length >= 3 && (
             <TextField
               size="small"
               placeholder="Filter"
@@ -2392,6 +2393,7 @@ const IncidentsPage = () => {
               }}
               sx={{ width: { xs: 100, sm: 140 }, minWidth: 0, flexShrink: 1 }}
       />
+            )}
 
       <AppSearchDrawer
         open={forwardAppSearchOpen}
@@ -2801,7 +2803,10 @@ const IncidentsPage = () => {
           )}
         </Box>
         
-        {/* Stats sidebar - sticky on desktop */}
+        {/* Stats sidebar — sticky on desktop. Hidden until the user has a few
+            incidents so a brand-new tenant is not greeted by empty charts and
+            zeroed-out stat cards (less weird stuff to focus on upfront). */}
+        {incidents.length >= 3 && (
         <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', order: { xs: -1, lg: 0 } }}>
           {/* Date range filter */}
           {/* Date range filter */}
@@ -2974,6 +2979,7 @@ const IncidentsPage = () => {
             </Box>
           )}
         </Box>
+        )}
       </Box>
 
       <CreateIncidentDialog
