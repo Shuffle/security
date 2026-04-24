@@ -157,6 +157,16 @@ export const ScheduleHealthBanner = ({
             >
               <ExpandMoreIcon fontSize="small" />
             </IconButton>
+            {dismissKey && (
+              <IconButton
+                size="small"
+                aria-label="Dismiss"
+                onClick={handleDismiss}
+                sx={{ color: 'hsl(var(--muted-foreground))' }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            )}
           </Stack>
         }
       >
