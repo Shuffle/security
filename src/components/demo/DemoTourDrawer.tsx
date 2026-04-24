@@ -443,21 +443,17 @@ export const DemoTourDrawer = () => {
         top: 'auto' as const,
         left: 24,
         right: 24,
-        bottom: 24,
+        bottom: 104,
         width: 'auto' as const,
         opacity: 1,
-        x: 0,
-        y: 0,
       }
     : {
         top: 'auto' as const,
         left: 'auto' as const,
         right: 24,
-        bottom: 24,
+        bottom: 104,
         width: 380,
         opacity: 1,
-        x: 0,
-        y: 0,
       };
 
   const containerStyle: React.CSSProperties = {
@@ -475,15 +471,17 @@ export const DemoTourDrawer = () => {
       {drawerOpen && (
         <motion.div
           key="demo-drawer"
-          // Enter/exit with a small fade + lift from where the drawer already
-          // lives. Animating positional keys (left/right/bottom) from "auto"
-          // to numeric values caused a wide, distracting fly across the
-          // viewport — the new entrance just settles into place.
-          initial={{ ...dockedAnimate, opacity: 0, y: 12 }}
-          animate={{ ...dockedAnimate, opacity: 1, y: 0 }}
-          exit={{ ...dockedAnimate, opacity: 0, y: 12 }}
+          // Enter/exit fade only — x/y are driven by the persisted drag
+          // offset (useMotionValue), so animating them here would fight the
+          // user's chosen position.
+          initial={{ ...dockedAnimate, opacity: 0 }}
+          animate={{ ...dockedAnimate, opacity: 1 }}
+          exit={{ ...dockedAnimate, opacity: 0 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          style={containerStyle}
+          drag
+          dragMomentum={false}
+          onDragEnd={drag.onDragEnd}
+          style={{ ...containerStyle, x: drag.x, y: drag.y, touchAction: 'none' }}
         >
           <Box
             sx={{
