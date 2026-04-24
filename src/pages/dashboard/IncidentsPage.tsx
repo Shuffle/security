@@ -1852,6 +1852,7 @@ const IncidentsPage = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
+      style={{ maxWidth: 1400, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}
     >
       <HighlightSpotlight />
       <ScheduleHealthBanner
@@ -2726,11 +2727,13 @@ const IncidentsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Card View with Stats */}
+      {/* Card View with Stats — collapses to a single full-width column when
+          the stats sidebar is hidden (under the same `incidents.length >= 3`
+          gate as the sidebar itself) so cards fill the available space. */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '1fr 320px' },
+          gridTemplateColumns: incidents.length >= 3 ? { xs: '1fr', lg: '1fr 320px' } : '1fr',
           gap: 3,
           alignItems: 'start',
         }}
