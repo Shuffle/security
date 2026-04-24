@@ -4451,9 +4451,14 @@ const IncidentDetailPage = () => {
         const u = (r.data as any)?.user || '';
         return /agent|ai\s*agent|aiagent/i.test(u);
       });
-      const ageMs = isManualActivity
-        ? Date.now() - ((item.data as any)?.timestamp || item.timestamp || 0)
-        : 0;
+      // For age, prefer the most recent rerun timestamp so a "Rerun" click
+      // resets the loader window. Falls back to the original comment time.
+      const reruns = isManualActivity && Array.isArray((item.data as any)?.rerun_timestamps)
+        ? ((item.data as any).rerun_timestamps as number[])
+        : [];
+      const lastRerun = reruns.length > 0 ? Math.max(...reruns) : 0;
+      const ageBasis = lastRerun || (item.data as any)?.timestamp || item.timestamp || 0;
+      const ageMs = isManualActivity ? Date.now() - ageBasis : 0;
       const showAgentProcessing = aiHandled && mentionsAgent && !hasAgentReply;
       const isTimedOut = showAgentProcessing && ageMs > AI_RESPONSE_TIMEOUT_MS;
 
