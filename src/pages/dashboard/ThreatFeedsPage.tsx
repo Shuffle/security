@@ -136,13 +136,19 @@ const ThreatFeedsPage = () => {
 
   const handleResetDefaults = async () => {
     setIsInitializing(true);
-    // Delete all existing feeds
-    for (const feed of feeds) {
-      await deleteFeed(feed.id);
+    try {
+      // Bulk-delete every existing feed in parallel, then re-seed defaults.
+      // Using deleteDatastoreItems avoids the per-call refetch that
+      // useDatastore.removeItem triggers, so the wipe is instant.
+      const { deleteDatastoreItems, DATASTORE_CATEGORIES: DSC } =
+        await import('@/services/datastore');
+      if (feeds.length > 0) {
+        await deleteDatastoreItems(feeds.map(f => f.id), DSC.THREAT_FEEDS);
+      }
+      await initializeDefaults();
+    } finally {
+      setIsInitializing(false);
     }
-    // Initialize defaults
-    await initializeDefaults();
-    setIsInitializing(false);
   };
 
   // Filter feeds by search query
