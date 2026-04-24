@@ -2899,7 +2899,7 @@ const IncidentsPage = () => {
               </RadixPopover>
             </Box>
           </Box>
-          <ScheduleHealthBanner compact />
+          
           <IncidentStatsCards 
             incidents={filteredIncidents}
             currentUsername={currentUsername}
