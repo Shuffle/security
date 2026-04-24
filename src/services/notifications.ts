@@ -83,7 +83,7 @@ export const stripAgentTitlePrefix = (raw: string | undefined | null): string =>
  */
 export const fetchAgentNotifications = async (): Promise<NotificationsResponse> => {
   const res = await shuffleFetch(
-    getApiUrl('/api/v1/notifications?type=agent_question&status=open'),
+    getApiUrl('/api/v1/notifications?type=agent_approval&status=open'),
   );
 
   if (!res.ok) {
