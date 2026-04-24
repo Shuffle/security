@@ -1829,7 +1829,7 @@ const IncidentDetailPage = () => {
     } finally {
       setCorrelationsLoading(false);
     }
-  }, [id, crossOrgHeaders, crossOrgId, incident]);
+  }, [id, crossOrgHeaders, crossOrgId]);
 
   useEffect(() => {
     if (loading) return;
