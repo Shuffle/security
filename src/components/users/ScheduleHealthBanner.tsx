@@ -7,9 +7,9 @@
  * `analyzeSchedules` analyzer. Renders nothing when the config is healthy.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, AlertTitle, Box, Button, Collapse, IconButton, Stack, Typography } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material';
+import { Close as CloseIcon, ExpandMore as ExpandMoreIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getDatastoreItem, DATASTORE_CATEGORIES } from '@/services/datastore';
 import {
@@ -26,6 +26,8 @@ interface ScheduleHealthBannerProps {
   hideManageCta?: boolean;
   /** Compact spacing for use inside denser pages like /incidents. */
   compact?: boolean;
+  /** localStorage key used to persist a user dismissal. When set, the banner shows a close button. */
+  dismissKey?: string;
 }
 
 const SEVERITY_LABEL = {
@@ -38,11 +40,22 @@ export const ScheduleHealthBanner = ({
   manageHref = '/users',
   hideManageCta = false,
   compact = false,
+  dismissKey,
 }: ScheduleHealthBannerProps) => {
   const navigate = useNavigate();
   const [issues, setIssues] = useState<ScheduleIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [dismissed, setDismissed] = useState<boolean>(() => {
+    if (!dismissKey || typeof window === 'undefined') return false;
+    try { return window.localStorage.getItem(dismissKey) === '1'; } catch { return false; }
+  });
+
+  // Signature of current issues so a new/different issue resurfaces the banner
+  const issuesSignature = useMemo(
+    () => issues.map(i => `${i.severity}:${i.id}`).sort().join('|'),
+    [issues],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -70,9 +83,27 @@ export const ScheduleHealthBanner = ({
   }, []);
 
   if (loading || issues.length === 0) return null;
+  if (dismissed && dismissKey) {
+    // Resurface if the issue signature has changed since the last dismissal
+    try {
+      const lastSig = window.localStorage.getItem(`${dismissKey}:sig`);
+      if (lastSig === issuesSignature) return null;
+    } catch {
+      return null;
+    }
+  }
 
   const top = highestSeverity(issues);
   if (!top) return null;
+
+  const handleDismiss = () => {
+    if (!dismissKey) return;
+    try {
+      window.localStorage.setItem(dismissKey, '1');
+      window.localStorage.setItem(`${dismissKey}:sig`, issuesSignature);
+    } catch { /* ignore */ }
+    setDismissed(true);
+  };
 
   const severity: 'error' | 'warning' | 'info' =
     top === 'critical' ? 'error' : top === 'warning' ? 'warning' : 'info';
@@ -126,6 +157,16 @@ export const ScheduleHealthBanner = ({
             >
               <ExpandMoreIcon fontSize="small" />
             </IconButton>
+            {dismissKey && (
+              <IconButton
+                size="small"
+                aria-label="Dismiss"
+                onClick={handleDismiss}
+                sx={{ color: 'hsl(var(--muted-foreground))' }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            )}
           </Stack>
         }
       >
