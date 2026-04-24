@@ -517,6 +517,29 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
           )}
         </div>
 
+        {/* Source filter — only shown when private apps are loaded */}
+        {showSourceFilter && privateApps.length > 0 && (
+          <div className="singul-source-filter" role="tablist" aria-label="Filter by app source">
+            {([
+              { key: 'all', label: 'All', count: results.length + filteredPrivateApps.length },
+              { key: 'public', label: 'Public', count: results.length },
+              { key: 'private', label: 'Private', count: filteredPrivateApps.length },
+            ] as const).map(opt => (
+              <button
+                key={opt.key}
+                type="button"
+                role="tab"
+                aria-selected={sourceFilter === opt.key}
+                className={`singul-source-pill ${sourceFilter === opt.key ? 'singul-source-pill-active' : ''}`}
+                onClick={() => setSourceFilter(opt.key)}
+              >
+                {opt.label}
+                <span className="singul-source-count">{opt.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Inline Results Container */}
         {inline && (
           <div
