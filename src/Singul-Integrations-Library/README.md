@@ -25,8 +25,8 @@ npm i react algoliasearch
 
 Then import:
 ```tsx
-import { SingulJS } from '@/lib/singul-local';
-import type { AppSelectedEvent, AlgoliaSearchApp, SingulJSHandle } from '@/lib/singul-local';
+import { SingulJS } from '@/Singul-Integrations-Library';
+import type { AppSelectedEvent, AlgoliaSearchApp, SingulJSHandle } from '@/Singul-Integrations-Library';
 ```
 
 ---
@@ -55,7 +55,7 @@ The most common pattern: open a drawer, pre-fill the query, let the user pick an
 ```tsx
 import { Drawer } from '@mui/material';
 import { useState } from 'react';
-import { SingulJS } from '@/lib/singul-local';
+import { SingulJS } from '@/Singul-Integrations-Library';
 
 export function IntegrationDrawer({ open, onClose, category }: {
   open: boolean;
@@ -230,14 +230,14 @@ import type {
   AppSelectedEvent,
   AppAuthentication,
   CustomStyles,
-} from '@/lib/singul-local';
+} from '@/Singul-Integrations-Library';
 ```
 
 ---
 
 ## Publishing (CI/CD)
 
-This folder doubles as a publishable npm package. The source lives here so the host app can keep importing it via `@/lib/singul-local`, while CI bundles + ships it to npm as `@shuffle/singul.js`.
+This folder doubles as a publishable npm package. The source lives here so the host app can keep importing it via `@/Singul-Integrations-Library`, while CI bundles + ships it to npm as `@shuffle/singul.js`.
 
 ### Files in this folder
 
