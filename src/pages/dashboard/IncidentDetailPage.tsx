@@ -1113,9 +1113,15 @@ const IncidentDetailPage = () => {
   }, [showForwardDialog]);
   const [correlations, setCorrelations] = useState<Array<{ key: string; amount: number; ref: string[] }>>([]);
   const [correlationsLoading, setCorrelationsLoading] = useState(false);
-  // Track when the incident-level correlations finished loading. Correlations
-  // have no native timestamp so we use "discovered at" (when the API returned
-  // them) to place them on the unified timeline.
+  // Per-correlation "first seen" timestamps (epoch ms), keyed by correlation
+  // key. Persisted under metadata.extensions.custom_attributes.correlation_first_seen
+  // so the timeline stays stable across reloads / sessions without storing
+  // the full correlation payload (which is fetched live from /api/v2/correlations).
+  const [correlationFirstSeen, setCorrelationFirstSeen] = useState<Record<string, number>>({});
+  // Discovery time used to anchor the aggregated "N Correlations" pill on the
+  // timeline. Derived from the earliest persisted first-seen stamp; falls
+  // back to Date.now() the very first time we see correlations and haven't
+  // persisted anything yet.
   const [correlationsDiscoveredAt, setCorrelationsDiscoveredAt] = useState<number | null>(null);
   const [obsCorrelations, setObsCorrelations] = useState<Record<string, { loading: boolean; data: Array<{ key: string; amount: number; ref: string[] }>; discoveredAt?: number }>>({});
   const [obsCorrelationAnchor, setObsCorrelationAnchor] = useState<{ el: HTMLElement; obsKey: string } | null>(null);
