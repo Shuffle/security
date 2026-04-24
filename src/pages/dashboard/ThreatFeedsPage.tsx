@@ -23,6 +23,7 @@ import {
   Switch,
   Tooltip,
   Alert,
+  MenuItem,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
