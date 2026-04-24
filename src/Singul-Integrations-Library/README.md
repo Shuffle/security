@@ -17,12 +17,12 @@ Search, select, and authenticate against 3,000+ SaaS integrations.
 <table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="https://github.com/user-attachments/assets/774a6c5e-a8aa-4a12-9931-a952147b0992" alt="Singul search" width="380" style="border-radius: 12px;" />
-      <br/><sub><b>1. Search</b></sub>
+      <img src="./docs/search-preview.png" alt="Search 3,000+ integrations" width="380" style="border-radius: 12px;" />
+      <br/><sub><b>1. Search any of 3,000+ tools</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="./docs/app-detail-preview.png" alt="App detail" width="380" style="border-radius: 12px;" />
-      <br/><sub><b>2. Configure</b></sub>
+      <img src="./docs/app-detail-preview.png" alt="Authenticate and use as MCP" width="380" style="border-radius: 12px;" />
+      <br/><sub><b>2. Authenticate and use as MCP</b></sub>
     </td>
   </tr>
 </table>
