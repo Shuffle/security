@@ -4647,9 +4647,9 @@ const IncidentDetailPage = () => {
             {showAgentProcessing && renderAgentProcessingPlaceholder(
               itemKey,
               isTimedOut,
-              (item.data as any)?.id,
+              (item as any).data?.id,
               reruns.length,
-              lastRerun || (isManualActivity ? (item.data as any)?.timestamp : 0) || item.timestamp || 0,
+              lastRerun || (isManualActivity ? (item as any).data?.timestamp : 0) || item.timestamp || 0,
             )}
             {replies.map((reply) => renderThread(reply, depth + 1, true))}
           </Box>
