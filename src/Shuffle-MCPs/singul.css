@@ -420,3 +420,69 @@
     --singul-grid-columns: 2 !important;
   }
 }
+
+/* Source filter pills (All / Public / Private) */
+.singul-source-filter {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 8px;
+  flex-wrap: wrap;
+}
+
+.singul-source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.singul-source-pill:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.singul-source-pill-active {
+  background: rgba(255, 102, 0, 0.12);
+  border-color: rgba(255, 102, 0, 0.5);
+  color: #FF8544;
+}
+
+.singul-source-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.singul-source-pill-active .singul-source-count {
+  background: rgba(255, 102, 0, 0.2);
+}
+
+/* Private app badge inline next to the name */
+.singul-private-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(156, 90, 242, 0.15);
+  color: #B584F5;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+}
