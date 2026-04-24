@@ -1771,11 +1771,52 @@ const IncidentDetailPage = () => {
           return otherRefs.length > 0;
         });
         setCorrelations(filteredCorr);
-        // Capture the discovery time so the timeline can place this event
-        // chronologically. Only set on the first non-empty discovery so the
-        // timestamp is stable across re-renders / refetches.
+
+        // Stamp NEW correlation keys with a first-seen timestamp and persist
+        // a tiny `{ key: epochMs }` map under metadata.extensions.custom_attributes.
+        // We deliberately store ONLY the timestamp (not the full correlation
+        // payload) — the live data is always re-fetched from the API.
         if (filteredCorr.length > 0) {
-          setCorrelationsDiscoveredAt((prev) => prev ?? Date.now());
+          setCorrelationFirstSeen((prev) => {
+            const now = Date.now();
+            const next = { ...prev };
+            let added = 0;
+            for (const c of filteredCorr) {
+              if (!c?.key) continue;
+              if (next[c.key] === undefined) {
+                next[c.key] = now;
+                added += 1;
+              }
+            }
+            if (added === 0) return prev;
+            // Fire-and-forget persist. Re-read the latest incident snapshot
+            // off the ref so we don't clobber concurrent edits.
+            const snap = incidentRef.current?.rawOCSF as Record<string, unknown> | undefined;
+            if (snap && id) {
+              const meta = (snap.metadata as Record<string, unknown> | undefined) || {};
+              const exts = (meta.extensions as Record<string, unknown> | undefined) || {};
+              const custom = (exts.custom_attributes as Record<string, unknown> | undefined) || {};
+              const updated = {
+                ...snap,
+                metadata: {
+                  ...meta,
+                  extensions: {
+                    ...exts,
+                    custom_attributes: {
+                      ...custom,
+                      correlation_first_seen: next,
+                    },
+                  },
+                },
+              };
+              setDatastoreItem(id, updated, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined)
+                .catch((err) => console.warn('[Correlations] persist first-seen failed', err));
+            }
+            // Anchor the timeline pill at the earliest stamp we know about.
+            const earliest = Math.min(...Object.values(next));
+            setCorrelationsDiscoveredAt(earliest);
+            return next;
+          });
         }
       }
     } catch (error) {
@@ -1783,7 +1824,7 @@ const IncidentDetailPage = () => {
     } finally {
       setCorrelationsLoading(false);
     }
-  }, [id, crossOrgHeaders]);
+  }, [id, crossOrgHeaders, crossOrgId]);
 
   useEffect(() => {
     if (loading) return;
