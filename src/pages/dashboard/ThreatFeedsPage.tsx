@@ -440,6 +440,30 @@ const ThreatFeedsPage = () => {
             rows={2}
             placeholder="Optional description of the feed contents"
           />
+          <TextField
+            select
+            label="IOC Type"
+            value={formData.type || ''}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value || undefined })}
+            fullWidth
+            helperText="The IOC type this feed contains. Leave empty to auto-detect per row."
+          >
+            <MenuItem value="">
+              <em>Auto-detect (mixed feed)</em>
+            </MenuItem>
+            {iocTypes.map((t) => (
+              <MenuItem key={t.name} value={t.name}>
+                <Box component="span" sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem' }}>
+                  {t.name}
+                </Box>
+                {t.description && (
+                  <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                    — {t.description}
+                  </Typography>
+                )}
+              </MenuItem>
+            ))}
+          </TextField>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Switch
               checked={formData.enabled ?? true}
