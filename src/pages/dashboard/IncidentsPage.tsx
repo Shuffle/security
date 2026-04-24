@@ -52,6 +52,7 @@ import { IncidentStatsCards } from '@/components/incidents/IncidentStatsCards';
 import { ScheduleHealthBanner } from '@/components/users/ScheduleHealthBanner';
 import { IncidentsEmptyState } from '@/components/incidents/IncidentsEmptyState';
 import { IngestionSourceButton } from '@/components/incidents/IngestionSourceButton';
+import { HighlightSpotlight } from '@/components/incidents/HighlightSpotlight';
 import { WebhookIngestionButton, WebhookIngestionInfo } from '@/components/incidents/WebhookIngestionButton';
 import { IncidentTrendChart } from '@/components/incidents/IncidentTrendChart';
 import { OrgTrendChart } from '@/components/incidents/OrgTrendChart';
@@ -1852,6 +1853,7 @@ const IncidentsPage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
+      <HighlightSpotlight />
       <ScheduleHealthBanner
         compact
         dismissKey="shuffle:schedule-health-banner:dismissed"
