@@ -28,6 +28,14 @@ interface ScheduleHealthBannerProps {
   compact?: boolean;
   /** localStorage key used to persist a user dismissal. When set, the banner shows a close button. */
   dismissKey?: string;
+  /**
+   * Suppress rendering until the workspace has at least this many real
+   * (non-demo) incidents. Avoids nagging brand-new orgs about on-call
+   * coverage before they have any traffic to route.
+   */
+  minIncidents?: number;
+  /** Current count of real (non-demo) incidents. Required when `minIncidents` is set. */
+  incidentCount?: number;
 }
 
 const SEVERITY_LABEL = {
@@ -41,6 +49,8 @@ export const ScheduleHealthBanner = ({
   hideManageCta = false,
   compact = false,
   dismissKey,
+  minIncidents,
+  incidentCount,
 }: ScheduleHealthBannerProps) => {
   const navigate = useNavigate();
   const [issues, setIssues] = useState<ScheduleIssue[]>([]);
@@ -83,6 +93,7 @@ export const ScheduleHealthBanner = ({
   }, []);
 
   if (loading || issues.length === 0) return null;
+  if (typeof minIncidents === 'number' && (incidentCount ?? 0) < minIncidents) return null;
   if (dismissed && dismissKey) {
     // Resurface if the issue signature has changed since the last dismissal
     try {

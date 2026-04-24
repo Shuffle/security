@@ -66,7 +66,7 @@ export const analyzeSchedules = (schedules: UserSchedule[]): ScheduleIssue[] => 
     return issues;
   }
 
-  // ── Tier coverage analysis ────────────────────────────────────────────────
+  // ── Tier coverage analysis (Tier 2+ only — Tier 1 is the AI Agent's job) ──
   const coveragePerTier: Record<EscalationLevel, number> = {
     tier1: 0, tier2: 0, tier3: 0, manager: 0,
   };
@@ -83,10 +83,13 @@ export const analyzeSchedules = (schedules: UserSchedule[]): ScheduleIssue[] => 
     }
   }
 
-  // Orphaned higher tiers (e.g. Tier 3 staffed but no Tier 2)
-  for (let i = 1; i < TIER_ORDER.length; i++) {
-    const above = TIER_ORDER[i];
-    const below = TIER_ORDER[i - 1];
+  // Orphaned higher tiers among Tier 2+ (e.g. Tier 3 staffed but no Tier 2).
+  // We deliberately skip the Tier 1 → Tier 2 relationship because the AI
+  // Agent covers Tier 1 by design.
+  const ESCALATION_TIERS: EscalationLevel[] = ['tier2', 'tier3', 'manager'];
+  for (let i = 1; i < ESCALATION_TIERS.length; i++) {
+    const above = ESCALATION_TIERS[i];
+    const below = ESCALATION_TIERS[i - 1];
     if (usersPerTier[above] > 0 && usersPerTier[below] === 0) {
       issues.push({
         id: `orphan-${above}`,
@@ -95,18 +98,6 @@ export const analyzeSchedules = (schedules: UserSchedule[]): ScheduleIssue[] => 
         detail: `Incidents will jump straight to ${TIER_LABEL[above]} because no one covers ${TIER_LABEL[below]}.`,
       });
     }
-  }
-
-  // Tier 1 coverage gap (anything less than ~80% of the week)
-  const tier1Coverage = coveragePerTier.tier1;
-  if (usersPerTier.tier1 > 0 && tier1Coverage < WEEK_MINUTES * 0.8) {
-    const pct = Math.round((tier1Coverage / WEEK_MINUTES) * 100);
-    issues.push({
-      id: 'tier1-gap',
-      severity: 'warning',
-      title: `Tier 1 only covers ~${pct}% of the week`,
-      detail: 'The AI Agent will pick up everything else. Add more availability windows to reduce AI fallback hours.',
-    });
   }
 
   // Top of chain has no escalation target — Manager tier empty
@@ -119,7 +110,7 @@ export const analyzeSchedules = (schedules: UserSchedule[]): ScheduleIssue[] => 
     });
   }
 
-  // AI cannot escalate anywhere — only Tier 1 staffed and no human above
+  // AI Agent (Tier 1) has no human to escalate to — no Tier 2+ staffed at all
   const hasAnyHigherTier = usersPerTier.tier2 + usersPerTier.tier3 + usersPerTier.manager > 0;
   if (!hasAnyHigherTier) {
     issues.push({
