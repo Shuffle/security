@@ -30,7 +30,55 @@ import { useLocation } from 'react-router-dom';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 import { applyEntityTerminology } from '@/lib/demoTerminology';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, type PanInfo } from 'framer-motion';
+
+// Persisted drag offset for the floating demo UI (anchor pill, minimized
+// pill, and expanded drawer all share one position so the user's preferred
+// spot survives mode switches and reloads). Stored as { x, y } pixel deltas
+// from the default bottom-right anchor.
+const DEMO_OFFSET_KEY = 'shuffle:demo-drawer-offset';
+
+const readOffset = (): { x: number; y: number } => {
+  try {
+    const raw = localStorage.getItem(DEMO_OFFSET_KEY);
+    if (!raw) return { x: 0, y: 0 };
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') return parsed;
+  } catch { /* ignore */ }
+  return { x: 0, y: 0 };
+};
+
+const writeOffset = (offset: { x: number; y: number }) => {
+  try { localStorage.setItem(DEMO_OFFSET_KEY, JSON.stringify(offset)); } catch { /* ignore */ }
+};
+
+/** Hook that wires up persisted drag for one of the floating demo elements. */
+const useDraggableDemoOffset = () => {
+  const initial = useMemo(() => readOffset(), []);
+  const x = useMotionValue(initial.x);
+  const y = useMotionValue(initial.y);
+  const onDragEnd = (_: unknown, info: PanInfo) => {
+    const next = { x: x.get(), y: y.get() };
+    writeOffset(next);
+    // Broadcast so any other floating demo element (e.g. the anchor pill
+    // mounting after the drawer was dragged) syncs to the same offset on
+    // its next render.
+    window.dispatchEvent(new CustomEvent('demo-offset-changed', { detail: next }));
+  };
+  // Sync to other instances updating the offset while we are mounted.
+  useEffect(() => {
+    const onSync = (e: Event) => {
+      const detail = (e as CustomEvent<{ x: number; y: number }>).detail;
+      if (!detail) return;
+      x.set(detail.x);
+      y.set(detail.y);
+    };
+    window.addEventListener('demo-offset-changed', onSync as EventListener);
+    return () => window.removeEventListener('demo-offset-changed', onSync as EventListener);
+  }, [x, y]);
+  return { x, y, onDragEnd };
+};
+
 
 export const DemoTourDrawer = () => {
   const {
@@ -59,6 +107,7 @@ export const DemoTourDrawer = () => {
     openTour,
     setHoveredGoalSelector,
   } = useDemo();
+  const drag = useDraggableDemoOffset();
   const location = useLocation();
   // True whenever the current route deep-links into a demo-seeded object
   // (incident, asset, host, user, etc.). All demo data uses the `demo-…`
@@ -170,15 +219,22 @@ export const DemoTourDrawer = () => {
     return (
       <motion.div
         key="demo-anchor-pill"
-        initial={{ opacity: 0, y: 16, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+        drag
+        dragMomentum={false}
+        onDragEnd={drag.onDragEnd}
         style={{
           position: 'fixed',
           right: 24,
-          bottom: 24,
+          bottom: 104,
           zIndex: 2147483000,
           pointerEvents: 'auto',
+          x: drag.x,
+          y: drag.y,
+          cursor: 'grab',
+          touchAction: 'none',
         }}
       >
         <Tooltip
@@ -272,16 +328,23 @@ export const DemoTourDrawer = () => {
       <AnimatePresence>
         <motion.div
           key="demo-pill"
-          initial={{ opacity: 0, y: 16, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+          drag
+          dragMomentum={false}
+          onDragEnd={drag.onDragEnd}
           style={{
             position: 'fixed',
             right: 24,
-            bottom: 24,
+            bottom: 104,
             zIndex: 1300,
             pointerEvents: 'auto',
+            x: drag.x,
+            y: drag.y,
+            cursor: 'grab',
+            touchAction: 'none',
           }}
         >
           <Tooltip title={`${current.title} — click to expand`} arrow placement="left">
@@ -380,21 +443,17 @@ export const DemoTourDrawer = () => {
         top: 'auto' as const,
         left: 24,
         right: 24,
-        bottom: 24,
+        bottom: 104,
         width: 'auto' as const,
         opacity: 1,
-        x: 0,
-        y: 0,
       }
     : {
         top: 'auto' as const,
         left: 'auto' as const,
         right: 24,
-        bottom: 24,
+        bottom: 104,
         width: 380,
         opacity: 1,
-        x: 0,
-        y: 0,
       };
 
   const containerStyle: React.CSSProperties = {
@@ -412,15 +471,17 @@ export const DemoTourDrawer = () => {
       {drawerOpen && (
         <motion.div
           key="demo-drawer"
-          // Enter/exit with a small fade + lift from where the drawer already
-          // lives. Animating positional keys (left/right/bottom) from "auto"
-          // to numeric values caused a wide, distracting fly across the
-          // viewport — the new entrance just settles into place.
-          initial={{ ...dockedAnimate, opacity: 0, y: 12 }}
-          animate={{ ...dockedAnimate, opacity: 1, y: 0 }}
-          exit={{ ...dockedAnimate, opacity: 0, y: 12 }}
+          // Enter/exit fade only — x/y are driven by the persisted drag
+          // offset (useMotionValue), so animating them here would fight the
+          // user's chosen position.
+          initial={{ ...dockedAnimate, opacity: 0 }}
+          animate={{ ...dockedAnimate, opacity: 1 }}
+          exit={{ ...dockedAnimate, opacity: 0 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          style={containerStyle}
+          drag
+          dragMomentum={false}
+          onDragEnd={drag.onDragEnd}
+          style={{ ...containerStyle, x: drag.x, y: drag.y, touchAction: 'none' }}
         >
           <Box
             sx={{
