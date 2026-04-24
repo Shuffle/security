@@ -112,7 +112,7 @@ const [picked, setPicked] = useState<AlgoliaSearchApp[]>([]);
 />
 ```
 
-When `apiKey` is set, status dots appear: validated, configured, selected, inactive.
+When `apiKey` is set, the component also fetches the user's **private apps** from `/api/v1/apps` and merges them into the search results, with an **All / Public / Private** filter shown above the list. Status dots appear too: validated, configured, selected, inactive.
 
 ## Common props
 
@@ -125,7 +125,8 @@ When `apiKey` is set, status dots appear: validated, configured, selected, inact
 | `preventDefault` | `boolean` | Skip default `window.open(authUrl)` so you can handle selection. |
 | `onAppSelected` | `(detail) => void` | Fires on single-select pick. |
 | `multiSelect` | `boolean` | Allow selecting multiple apps. |
-| `apiKey` | `string` | Bearer token. Enables status dots. |
+| `apiKey` | `string` | Bearer token. Enables status dots and merges your private apps from `/api/v1/apps`. |
+| `showSourceFilter` | `boolean` | Toggle the All / Public / Private filter. Default `true`. |
 | `customStyles` | `CustomStyles` | Per-slot style overrides. |
 
 Full prop reference, framework setup (Next.js, Vue), styling slots, custom rendering, and publishing: [**LIBRARY.md**](./LIBRARY.md).
