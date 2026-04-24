@@ -4274,8 +4274,11 @@ const IncidentDetailPage = () => {
                 gap: 0.5,
               }}
             >
-              {actItem.ai_handled === true && (
-                <Tooltip title="Handled by AI Agent" arrow>
+              {actItem.ai_handled === true && userInfo?.support === true && (
+                <Tooltip
+                  title="Support: ai_handled=true on this comment (the workflow has finished processing it)"
+                  arrow
+                >
                   <Box
                     sx={{
                       display: 'flex',
