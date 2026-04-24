@@ -38,7 +38,12 @@ import { useAuth } from '@/context/AuthContext';
 import AgentQuestionDialog from './AgentQuestionDialog';
 
 const AgentHandoffWatcher = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userInfo } = useAuth();
+  // GATING: while this flow is still being validated, only surface the
+  // sticky toasts to support users. Everyone else gets the inline dashboard
+  // experience only. The "(beta — support only)" label in the toast makes
+  // this restriction obvious to internal testers.
+  const isSupport = userInfo?.support === true;
   // Subscribes to the same shared query as the dashboard. The hook is a no-op
   // network-wise when other consumers are already polling.
   const { notifications, refresh } = useAgentNotifications();
@@ -85,6 +90,8 @@ const AgentHandoffWatcher = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    // Beta gate — only support users see the global handoff toasts for now.
+    if (!isSupport) return;
     if (!notifications || notifications.length === 0) {
       // Mark as seeded even on empty so subsequent arrivals do toast.
       seededRef.current = true;
@@ -112,7 +119,7 @@ const AgentHandoffWatcher = () => {
         // System #1 — agent wants to perform an action and needs go/no-go.
         // Inline Approve + Deny so the user does not have to context-switch
         // for a single binary decision.
-        toast('AI Agent needs approval', {
+        toast('AI Agent needs approval (beta — support only)', {
           id: toastId,
           description: n.title || n.description || 'An agent action is paused waiting on you.',
           duration: Infinity,
@@ -149,7 +156,7 @@ const AgentHandoffWatcher = () => {
         // System #2 — agent has open questions that require typed answers.
         // Open the standard AgentQuestionDialog right here so the user can
         // answer without losing their current page context.
-        toast('AI Agent has a question', {
+        toast('AI Agent has a question (beta — support only)', {
           id: toastId,
           description: n.title || n.description || 'An agent run is paused waiting on your input.',
           duration: Infinity,
@@ -164,7 +171,7 @@ const AgentHandoffWatcher = () => {
         });
       }
     });
-  }, [notifications, isAuthenticated, location.pathname, refresh]);
+  }, [notifications, isAuthenticated, isSupport, location.pathname, refresh]);
 
   return (
     <AgentQuestionDialog

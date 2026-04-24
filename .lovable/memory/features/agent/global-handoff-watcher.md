@@ -8,6 +8,11 @@ that surfaces stuck AI Agent runs outside the dashboard. It subscribes to the
 shared `useAgentNotifications` query (60s poll, 30s stale) so polling is never
 duplicated.
 
+**Beta gate**: toasts only render for support users (`userInfo.support === true`)
+while the flow is being validated. Toast titles include "(beta — support only)"
+so testers see the restriction at a glance. Non-support users still get the
+inline dashboard surface — only the global toasts are gated.
+
 Two distinct handoff systems share the same notification feed (both polled via
 `?type=agent_question`) and MUST be kept visually + functionally separate.
 Disambiguation lives in `isApprovalNotification(n)` and uses, in order:
