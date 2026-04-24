@@ -263,7 +263,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
       setQuery('');
       setResults([]);
     }
-  }, [authToken, multiSelect, internalSelectedApps, onAppSelected, onSelectionChange, preventDefault]);
+  }, [authToken, apiBaseUrl, appAuthPath, multiSelect, internalSelectedApps, onAppSelected, onSelectionChange, preventDefault]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
