@@ -2801,7 +2801,10 @@ const IncidentsPage = () => {
           )}
         </Box>
         
-        {/* Stats sidebar - sticky on desktop */}
+        {/* Stats sidebar — sticky on desktop. Hidden until the user has a few
+            incidents so a brand-new tenant is not greeted by empty charts and
+            zeroed-out stat cards (less weird stuff to focus on upfront). */}
+        {incidents.length >= 3 && (
         <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', order: { xs: -1, lg: 0 } }}>
           {/* Date range filter */}
           {/* Date range filter */}
