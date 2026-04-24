@@ -37,6 +37,9 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
   apiBaseUrl = 'https://shuffler.io',
   authPath = '/api/v1/apps/authentication',
   appAuthPath = '/appauth',
+  privateAppsPath = '/api/v1/apps',
+  disablePrivateApps = false,
+  showSourceFilter = true,
   singulBaseUrl = 'https://singul.io',
   hideAuthStatus = false,
   authenticatedApps: externalAuthenticatedApps,
@@ -55,6 +58,8 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
 }, ref) => {
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<AlgoliaSearchApp[]>([]);
+  const [privateApps, setPrivateApps] = useState<AlgoliaSearchApp[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'public' | 'private'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -93,6 +98,51 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
       fetchAuthenticatedApps();
     }
   }, [apiKey, apiBaseUrl]);
+
+  // Fetch the user's private apps from /api/v1/apps when apiKey is provided.
+  // These get merged into search results so users can find their own apps too.
+  useEffect(() => {
+    if (!apiKey || disablePrivateApps) {
+      setPrivateApps([]);
+      return;
+    }
+    const fetchPrivateApps = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}${privateAppsPath}`, {
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+          credentials: 'include',
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const apps = Array.isArray(data) ? data : (data?.data || []);
+        // Normalize to AlgoliaSearchApp shape, tagged as 'private' source.
+        const normalized: AlgoliaSearchApp[] = apps.map((a: any) => ({
+          name: a.name || '',
+          description: a.description || '',
+          objectID: a.id || a.objectID || `private-${a.name}`,
+          creator: a.owner || a.creator || '',
+          app_version: a.app_version || '1.0.0',
+          image_url: a.large_image || a.image_url || '',
+          time_edited: a.edited || 0,
+          generated: !!a.generated,
+          invalid: !!a.invalid,
+          priority: a.priority || 0,
+          actions: Array.isArray(a.actions) ? a.actions.length : (a.actions || 0),
+          tags: a.tags || [],
+          accessible_by: a.accessible_by || [],
+          categories: a.categories || [],
+          action_labels: a.action_labels || [],
+          triggers: a.triggers || [],
+          verified: !!a.verified,
+          source: 'private',
+        }));
+        setPrivateApps(normalized);
+      } catch (error) {
+        console.error('Failed to fetch private apps:', error);
+      }
+    };
+    fetchPrivateApps();
+  }, [apiKey, apiBaseUrl, privateAppsPath, disablePrivateApps]);
 
   // Auto-select validated apps when they're loaded (validated = tests ran successfully)
   useEffect(() => {
@@ -197,7 +247,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
         },
       });
 
-      const hits = searchResult.hits as AlgoliaSearchApp[];
+      const hits = (searchResult.hits as AlgoliaSearchApp[]).map(h => ({ ...h, source: 'public' as const }));
       setResults(hits);
       setIsOpen(hits.length > 0);
       setSelectedIndex(-1);
@@ -298,14 +348,38 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
     return internalSelectedApps.some((a) => a.objectID === app.objectID);
   }, [internalSelectedApps]);
 
-  // Merge pinned apps at the top of the results, deduped by normalized name
+  // Filter the user's private apps client-side by the current query.
+  const filteredPrivateApps = useMemo(() => {
+    if (privateApps.length === 0) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return privateApps;
+    return privateApps.filter(a =>
+      a.name.toLowerCase().includes(q) ||
+      (a.description || '').toLowerCase().includes(q) ||
+      (a.categories || []).some(c => c.toLowerCase().includes(q))
+    );
+  }, [privateApps, query]);
+
+  // Merge private + public apps, apply source filter, prepend pinned, dedupe by name.
   const displayResults = useMemo(() => {
-    if (!pinnedApps || pinnedApps.length === 0) return results;
     const norm = (n: string) => (n || '').toLowerCase().replace(/[\s_\-]+/g, '');
+
+    let merged: AlgoliaSearchApp[];
+    if (sourceFilter === 'public') {
+      merged = results;
+    } else if (sourceFilter === 'private') {
+      merged = filteredPrivateApps;
+    } else {
+      // 'all' — private apps first (your own tools win), then public, deduped by name
+      const privateNames = new Set(filteredPrivateApps.map(a => norm(a.name)));
+      const publicOnly = results.filter(a => !privateNames.has(norm(a.name)));
+      merged = [...filteredPrivateApps, ...publicOnly];
+    }
+
+    if (!pinnedApps || pinnedApps.length === 0) return merged;
     const pinnedNames = new Set(pinnedApps.map(a => norm(a.name)));
-    const filtered = results.filter(a => !pinnedNames.has(norm(a.name)));
-    return [...pinnedApps, ...filtered];
-  }, [pinnedApps, results]);
+    return [...pinnedApps, ...merged.filter(a => !pinnedNames.has(norm(a.name)))];
+  }, [pinnedApps, results, filteredPrivateApps, sourceFilter]);
 
   // Get grid columns style
   const getGridColumnsStyle = useMemo(() => {
@@ -370,6 +444,9 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
           <div className="singul-app-details" style={customStyles.appDetails}>
             <span className="singul-app-name" style={customStyles.appName}>
               {app.name.replace(/_/g, ' ')}
+              {app.source === 'private' && (
+                <span className="singul-private-badge" title="From your private apps">Private</span>
+              )}
             </span>
             {showDescription && app.description && (
               <span className="singul-app-description" style={customStyles.appDescription}>
@@ -439,6 +516,29 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
             </div>
           )}
         </div>
+
+        {/* Source filter — only shown when private apps are loaded */}
+        {showSourceFilter && privateApps.length > 0 && (
+          <div className="singul-source-filter" role="tablist" aria-label="Filter by app source">
+            {([
+              { key: 'all', label: 'All', count: results.length + filteredPrivateApps.length },
+              { key: 'public', label: 'Public', count: results.length },
+              { key: 'private', label: 'Private', count: filteredPrivateApps.length },
+            ] as const).map(opt => (
+              <button
+                key={opt.key}
+                type="button"
+                role="tab"
+                aria-selected={sourceFilter === opt.key}
+                className={`singul-source-pill ${sourceFilter === opt.key ? 'singul-source-pill-active' : ''}`}
+                onClick={() => setSourceFilter(opt.key)}
+              >
+                {opt.label}
+                <span className="singul-source-count">{opt.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Inline Results Container */}
         {inline && (
