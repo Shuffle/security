@@ -190,7 +190,7 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
     setIsLoading(true);
     try {
       const searchResult = await searchClient.current.searchSingleIndex({
-        indexName: 'appsearch',
+        indexName: algoliaIndexName,
         searchParams: {
           query: searchQuery || '', // Empty string gets top results
           hitsPerPage,
