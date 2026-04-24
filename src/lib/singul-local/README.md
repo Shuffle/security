@@ -232,3 +232,52 @@ import type {
   CustomStyles,
 } from '@/lib/singul-local';
 ```
+
+---
+
+## Publishing (CI/CD)
+
+This folder doubles as a publishable npm package. The source lives here so the host app can keep importing it via `@/lib/singul-local`, while CI bundles + ships it to npm as `@shuffle/singul.js`.
+
+### Files in this folder
+
+| File | Purpose |
+|---|---|
+| `SingulJS.tsx`, `singul.helpers.ts`, `singul.css`, `index.ts` | Library source — used by both the host app and the published package |
+| `package.tpl.json` | Template for the published `package.json`. CI fills in `version` and writes `package.json` |
+| `tsup.config.ts` | Bundler config for emitting ESM + CJS + `.d.ts` to `dist/` |
+| `tsconfig.build.json` | Standalone tsconfig for the library build (host app's tsconfig excludes it) |
+| `.npmignore` | Whitelist `dist/`, README, LICENSE only |
+
+### How to publish
+
+Tag a commit:
+```bash
+git tag singul-v0.1.0
+git push origin singul-v0.1.0
+```
+
+The `.github/workflows/publish-singul.yml` workflow then:
+1. Resolves the version from the tag (`singul-v0.1.0` → `0.1.0`)
+2. Materializes `package.json` from `package.tpl.json` with that version
+3. Runs `npm run build` (tsup) inside `src/lib/singul-local`
+4. Runs `npm publish --access public --provenance`
+
+You can also trigger the workflow manually from the Actions tab with a custom version, or with `dry_run: true` to only produce the `.tgz` artifact.
+
+### Required secret
+
+- `NPM_TOKEN` — npm automation token with publish rights to the `@shuffle` scope.
+
+### Local test
+
+```bash
+cd src/lib/singul-local
+cp package.tpl.json package.json
+# edit version manually for local test
+npm install
+npm run build
+npm pack
+```
+
+The resulting `shuffle-singul.js-X.Y.Z.tgz` is installable in any project with `npm i ./shuffle-singul.js-X.Y.Z.tgz`.
