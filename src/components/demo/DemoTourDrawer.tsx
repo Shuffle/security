@@ -30,7 +30,55 @@ import { useLocation } from 'react-router-dom';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 import { applyEntityTerminology } from '@/lib/demoTerminology';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, type PanInfo } from 'framer-motion';
+
+// Persisted drag offset for the floating demo UI (anchor pill, minimized
+// pill, and expanded drawer all share one position so the user's preferred
+// spot survives mode switches and reloads). Stored as { x, y } pixel deltas
+// from the default bottom-right anchor.
+const DEMO_OFFSET_KEY = 'shuffle:demo-drawer-offset';
+
+const readOffset = (): { x: number; y: number } => {
+  try {
+    const raw = localStorage.getItem(DEMO_OFFSET_KEY);
+    if (!raw) return { x: 0, y: 0 };
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') return parsed;
+  } catch { /* ignore */ }
+  return { x: 0, y: 0 };
+};
+
+const writeOffset = (offset: { x: number; y: number }) => {
+  try { localStorage.setItem(DEMO_OFFSET_KEY, JSON.stringify(offset)); } catch { /* ignore */ }
+};
+
+/** Hook that wires up persisted drag for one of the floating demo elements. */
+const useDraggableDemoOffset = () => {
+  const initial = useMemo(() => readOffset(), []);
+  const x = useMotionValue(initial.x);
+  const y = useMotionValue(initial.y);
+  const onDragEnd = (_: unknown, info: PanInfo) => {
+    const next = { x: x.get(), y: y.get() };
+    writeOffset(next);
+    // Broadcast so any other floating demo element (e.g. the anchor pill
+    // mounting after the drawer was dragged) syncs to the same offset on
+    // its next render.
+    window.dispatchEvent(new CustomEvent('demo-offset-changed', { detail: next }));
+  };
+  // Sync to other instances updating the offset while we are mounted.
+  useEffect(() => {
+    const onSync = (e: Event) => {
+      const detail = (e as CustomEvent<{ x: number; y: number }>).detail;
+      if (!detail) return;
+      x.set(detail.x);
+      y.set(detail.y);
+    };
+    window.addEventListener('demo-offset-changed', onSync as EventListener);
+    return () => window.removeEventListener('demo-offset-changed', onSync as EventListener);
+  }, [x, y]);
+  return { x, y, onDragEnd };
+};
+
 
 export const DemoTourDrawer = () => {
   const {
