@@ -5,6 +5,7 @@ import { AppSidebar } from './AppSidebar';
 import { MobileBottomNav } from './MobileBottomNav';
 import { AppDetailProvider, useAppDetail } from '@/context/AppDetailContext';
 import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
+import AgentHandoffWatcher from '@/components/agent/AgentHandoffWatcher';
 import { useAuth } from '@/context/AuthContext';
 
 const drawerWidth = 260;
