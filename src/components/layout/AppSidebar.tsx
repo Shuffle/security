@@ -497,8 +497,9 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
 
       <Divider sx={{ borderColor: 'hsl(var(--border))', mx: visuallyCollapsed ? 1 : 2 }} />
 
-      {/* Navigation Items */}
-      <List sx={{ px: 1, py: 2, flexGrow: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+      {/* Scrollable area: nav items + integrations */}
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+        <List sx={{ px: 1, py: 2 }}>
         {navItems.map((item, idx) => (
           <Box key={item.label === '__divider__' ? `divider-${idx}` : item.label}>
             {item.label === '__divider__' ? (
