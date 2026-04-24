@@ -226,6 +226,29 @@ const parseTimestamp = (timestamp: number | string | undefined): number => {
   return normalizeToMs(timestamp);
 };
 
+// Quick OCSF-shape check used by the revision-fallback logic. Mirrors the
+// detection inside parseIncidentFromDatastore so we agree on what "valid OCSF"
+// means: a finding with finding_uid + title (new format), finding_info(_list)
+// (legacy), or a numeric severity_id.
+const isOcsfShapedData = (data: unknown): boolean => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  const d = data as any;
+  const isNewFormat = 'finding_uid' in d && 'title' in d;
+  const isLegacyOCSF = !!d.finding_info_list || !!d.finding_info || typeof d.severity_id === 'number';
+  return isNewFormat || isLegacyOCSF;
+};
+
+// Best-effort JSON parse for revision values (handles base64-encoded strings).
+const parseRevisionValue = (raw: unknown): any | null => {
+  if (raw == null) return null;
+  if (typeof raw === 'object') return raw;
+  if (typeof raw !== 'string') return null;
+  const decoded = decodeIfBase64(raw);
+  try { return JSON.parse(decoded); } catch {}
+  try { return JSON.parse(raw); } catch {}
+  return null;
+};
+
 
 // Strict check: only return string if it has meaningful non-whitespace content
 // Also rejects raw JSON objects/arrays that shouldn't be displayed as text
