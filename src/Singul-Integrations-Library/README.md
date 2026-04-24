@@ -1,8 +1,14 @@
-# SingulJS
+# 📦 Singul-Integrations-Library
 
-A standalone React component for searching, selecting, and authenticating against a catalog of 3,000+ SaaS integrations. Powers the integration drawer, onboarding flows, and app pickers.
+> **Standalone React library** — `singul-integrations` on npm
+> Search, select, and authenticate against a catalog of **3,000+ SaaS integrations**. Powers integration drawers, onboarding flows, and app pickers.
 
-> Local copy. Upstream: [github.com/Shuffle/singul.js](https://github.com/Shuffle/singul.js)
+[![npm](https://img.shields.io/npm/v/singul-integrations.svg)](https://www.npmjs.com/package/singul-integrations)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
+This folder is **self-contained**. The host app consumes it via `@/Singul-Integrations-Library`, and CI publishes the same folder to npm as `singul-integrations`. Source lives here for fast iteration; the package is shipped to npm by `.github/workflows/publish-singul.yml`.
+
+> Upstream: [github.com/Shuffle/singul.js](https://github.com/Shuffle/singul.js)
 
 ---
 
