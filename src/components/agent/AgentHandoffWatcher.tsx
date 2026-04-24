@@ -33,7 +33,7 @@ const AgentHandoffWatcher = () => {
   const { isAuthenticated } = useAuth();
   // Subscribes to the same shared query as the dashboard. The hook is a no-op
   // network-wise when other consumers are already polling.
-  const { notifications } = useAgentNotifications();
+  const { notifications, refresh } = useAgentNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const { basePath: entityBasePath } = useEntityPreference();
