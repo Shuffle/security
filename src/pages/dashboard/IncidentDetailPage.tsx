@@ -128,6 +128,7 @@ import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
 import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor';
 import EmailThreadPanel, { isEmailContent } from '@/components/incidents/EmailThreadPanel';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
+import { useAssignEscalateStatus } from '@/hooks/useAssignEscalateStatus';
 import AppSearchDrawer from '@/components/shared/AppSearchDrawer';
 
 // TaskTemplate interface is now imported from useCaseTemplates
