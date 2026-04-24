@@ -444,6 +444,9 @@ export const SingulJS = React.forwardRef<SingulJSHandle, SingulJSProps>(({
           <div className="singul-app-details" style={customStyles.appDetails}>
             <span className="singul-app-name" style={customStyles.appName}>
               {app.name.replace(/_/g, ' ')}
+              {app.source === 'private' && (
+                <span className="singul-private-badge" title="From your private apps">Private</span>
+              )}
             </span>
             {showDescription && app.description && (
               <span className="singul-app-description" style={customStyles.appDescription}>
