@@ -4325,18 +4325,31 @@ const IncidentDetailPage = () => {
     // indicator so users know the agent didn't get back to them.
     const AI_RESPONSE_TIMEOUT_MS = 2 * 60 * 1000;
 
-    // Reruns the AI Agent for a comment that previously timed out by flipping
-    // ai_handled back to false. Background automation re-picks unprocessed
-    // comments, so this effectively retriggers the agent run.
+    // Reruns the AI Agent for a comment that previously timed out.
+    // We keep ai_handled=true (so the agent placeholder stays visible) and
+    // append a fresh entry to `rerun_timestamps`. The age used by the
+    // loader/timeout logic is derived from the latest rerun timestamp, so
+    // the spinner immediately resumes for another full timeout window.
+    // Background automation watches `rerun_timestamps` to pick the comment
+    // back up — see the assign_escalate workflow.
     const handleRerunAgent = (commentId: string) => {
-      setActivity(prev => prev.map(a =>
-        a.id === commentId
-          ? { ...a, ai_handled: false, timestamp: Date.now() } as ActivityItem
-          : a
-      ));
+      const now = Date.now();
+      setActivity(prev => prev.map(a => {
+        if (a.id !== commentId) return a;
+        const existing = Array.isArray((a as any).rerun_timestamps)
+          ? (a as any).rerun_timestamps as number[]
+          : [];
+        return {
+          ...a,
+          ai_handled: true,
+          rerun_timestamps: [...existing, now],
+        } as ActivityItem;
+      }));
       pendingSaveRef.current = true;
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => { saveToDatastore(); }, 300);
+      // Force the placeholder to recompute "age" right away.
+      setAiPlaceholderTick((t) => t + 1);
       toast.success('Re-running AI Agent');
     };
 
@@ -4438,9 +4451,17 @@ const IncidentDetailPage = () => {
         const u = (r.data as any)?.user || '';
         return /agent|ai\s*agent|aiagent/i.test(u);
       });
-      const ageMs = isManualActivity
-        ? Date.now() - ((item.data as any)?.timestamp || item.timestamp || 0)
-        : 0;
+      // For age, prefer the most recent rerun timestamp so a "Rerun" click
+      // resets the loader window. Falls back to the original comment time.
+      const reruns = isManualActivity && Array.isArray((item.data as any)?.rerun_timestamps)
+        ? ((item.data as any).rerun_timestamps as number[])
+        : [];
+      const lastRerun = reruns.length > 0 ? Math.max(...reruns) : 0;
+      const ageBasis = lastRerun
+        || (isManualActivity ? (item.data as any)?.timestamp : 0)
+        || item.timestamp
+        || 0;
+      const ageMs = isManualActivity ? Date.now() - ageBasis : 0;
       const showAgentProcessing = aiHandled && mentionsAgent && !hasAgentReply;
       const isTimedOut = showAgentProcessing && ageMs > AI_RESPONSE_TIMEOUT_MS;
 
