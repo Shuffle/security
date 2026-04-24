@@ -128,6 +128,7 @@ import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
 import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor';
 import EmailThreadPanel, { isEmailContent } from '@/components/incidents/EmailThreadPanel';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
+import { useAssignEscalateStatus } from '@/hooks/useAssignEscalateStatus';
 import AppSearchDrawer from '@/components/shared/AppSearchDrawer';
 
 // TaskTemplate interface is now imported from useCaseTemplates
@@ -936,7 +937,7 @@ const IncidentDetailPage = () => {
   const hasHtmlDescription = sanitizedDescriptionHtml.length > 0;
 
   const enrichmentStatus = useEnrichmentStatus();
-
+  const assignEscalateStatus = useAssignEscalateStatus();
 
   const incidentFileRef = useMemo(() => {
     const raw = incident?.rawOCSF;
@@ -3115,6 +3116,47 @@ const IncidentDetailPage = () => {
                 >
                   <DeleteIcon sx={{ fontSize: 12 }} />
                 </IconButton>
+              </Box>
+            )}
+            {/* Inline help: typing @AIAgent without the "Assign & Escalate"
+                background workflow means the agent will never pick up the
+                comment. Mirror the enrichment-banner pattern and let users
+                enable it inline without leaving the incident. */}
+            {!assignEscalateStatus.isLoading
+              && !assignEscalateStatus.active
+              && /@\s*ai[\s_-]*agent\b/i.test(newComment) && (
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                mb: 1,
+                px: 1.5,
+                py: 1,
+                borderRadius: 1.5,
+                bgcolor: 'rgba(251, 146, 60, 0.08)',
+                border: '1px solid rgba(251, 146, 60, 0.18)',
+              }}>
+                <Typography variant="caption" sx={{ color: '#fb923c', fontWeight: 500, flex: 1, lineHeight: 1.3 }}>
+                  AI Agent automation is not active. The "Assign & Escalate" workflow needs to be enabled for the agent to respond to mentions.
+                </Typography>
+                <Button
+                  size="small"
+                  variant="contained"
+                  disabled={assignEscalateStatus.isEnabling}
+                  onClick={assignEscalateStatus.enable}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.72rem',
+                    height: 26,
+                    minWidth: 70,
+                    bgcolor: '#fb923c',
+                    color: '#fff',
+                    boxShadow: 'none',
+                    '&:hover': { bgcolor: '#f97316', boxShadow: 'none' },
+                  }}
+                >
+                  {assignEscalateStatus.isEnabling ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Enable'}
+                </Button>
               </Box>
             )}
             <Box data-tour="incident-comment-input" sx={{ position: 'relative' }}>
