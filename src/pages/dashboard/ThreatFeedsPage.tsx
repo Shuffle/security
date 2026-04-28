@@ -328,24 +328,19 @@ const ThreatFeedsPage = () => {
             <Button
               size="small"
               variant={automationEnabled ? 'outlined' : 'contained'}
+              disabled={enrichmentStatus.isEnabling}
               onClick={async () => {
                 try {
-                  const response = await getDatastoreItem(AUTOMATION_CONFIG_KEY, ONBOARDING_CONFIG_CATEGORY);
-                  let config: any = {};
-                  if (response.success && response.item?.value) {
-                    config = typeof response.item.value === 'string'
-                      ? JSON.parse(response.item.value)
-                      : response.item.value;
+                  if (automationEnabled) {
+                    await enrichmentStatus.disable();
+                  } else {
+                    await enrichmentStatus.enable();
                   }
-                  const newEnabled = !automationEnabled;
-                  config.threat_intel = { ...config.threat_intel, enabled: newEnabled };
-                  await setDatastoreItem(AUTOMATION_CONFIG_KEY, config, ONBOARDING_CONFIG_CATEGORY);
-                  setAutomationEnabled(newEnabled);
                 } catch (error) {
                   console.error('Failed to toggle threat intel:', error);
                 }
               }}
-              sx={{ 
+              sx={{
                 whiteSpace: 'nowrap',
                 ml: 0.5,
               ...(automationEnabled ? {
@@ -358,7 +353,7 @@ const ThreatFeedsPage = () => {
                 }),
               }}
             >
-              {automationEnabled ? 'Disable' : 'Enable'}
+              {enrichmentStatus.isEnabling ? '...' : (automationEnabled ? 'Disable' : 'Enable')}
             </Button>
           </Box>
         </Alert>
