@@ -552,6 +552,11 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Correlate known vulnerabilities (CVEs, misconfigurations, missing patches) on affected assets with active incidents — surfacing exploitable weaknesses that elevate risk and guide containment priorities.',
     agenticDescription: 'An agent matches observables and affected hosts in a case against the vulnerability inventory, identifies exploitable CVEs aligned with the attack technique, recalculates incident severity, and recommends remediation or compensating controls.',
     automationArea: 'correlation',
+    customAction: {
+      label: 'Configure Vulnerabilities',
+      href: '/vulnerabilities',
+      description: 'Open the vulnerability inventory to ingest CVEs from your scanners.',
+    },
   },
   {
     id: 'email_threat_intel_1', phase: 'correlation', source: 'email', target: 'threat_intel',
