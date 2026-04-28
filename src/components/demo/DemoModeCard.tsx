@@ -200,36 +200,65 @@ export const DemoModeCard = () => {
               </Button>
             </>
           ) : (
-            <Tooltip title={disableStart ? disableReason : ''} arrow disableHoverListener={!disableStart}>
-              <span>
+            <>
+              {/* Demo data left over from a previous session — surface the
+                  cleanup so the user is not stuck with seeded incidents. */}
+              {hasLeftoverDemoData && (
                 <Button
-                  onClick={startDemo}
-                  disabled={isSeeding || disableStart}
-                  variant="contained"
-                  size="medium"
-                  endIcon={isSeeding ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <ArrowRight size={16} />}
+                  onClick={cleanup}
+                  disabled={isCleaning}
+                  variant="outlined"
+                  size="small"
+                  startIcon={isCleaning ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : <Trash2 size={14} />}
                   sx={{
                     textTransform: 'none',
-                    fontSize: '0.85rem',
+                    fontSize: '0.8rem',
                     fontWeight: 600,
-                    backgroundColor: 'hsl(var(--primary))',
-                    color: 'hsl(var(--primary-foreground))',
-                    px: 2.5,
-                    py: 1,
-                    boxShadow: 'none',
+                    borderColor: 'hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                    px: 2,
                     whiteSpace: 'nowrap',
-                    width: { xs: '100%', sm: 'auto' },
-                    '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
-                    '&.Mui-disabled': {
-                      backgroundColor: 'hsl(var(--muted))',
-                      color: 'hsl(var(--muted-foreground))',
+                    '&:hover': {
+                      borderColor: 'hsl(var(--destructive) / 0.5)',
+                      backgroundColor: 'hsl(var(--destructive) / 0.06)',
+                      color: 'hsl(var(--destructive))',
                     },
                   }}
                 >
-                  {isSeeding ? 'Seeding sample data…' : 'Start demo mode'}
+                  {isCleaning ? 'Cleaning…' : `Clean up demo data (${leftoverDemoCount})`}
                 </Button>
-              </span>
-            </Tooltip>
+              )}
+              <Tooltip title={disableStart ? disableReason : ''} arrow disableHoverListener={!disableStart}>
+                <span>
+                  <Button
+                    onClick={startDemo}
+                    disabled={isSeeding || disableStart}
+                    variant="contained"
+                    size="medium"
+                    endIcon={isSeeding ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <ArrowRight size={16} />}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      backgroundColor: 'hsl(var(--primary))',
+                      color: 'hsl(var(--primary-foreground))',
+                      px: 2.5,
+                      py: 1,
+                      boxShadow: 'none',
+                      whiteSpace: 'nowrap',
+                      width: { xs: '100%', sm: 'auto' },
+                      '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
+                      '&.Mui-disabled': {
+                        backgroundColor: 'hsl(var(--muted))',
+                        color: 'hsl(var(--muted-foreground))',
+                      },
+                    }}
+                  >
+                    {isSeeding ? 'Seeding sample data…' : 'Start demo mode'}
+                  </Button>
+                </span>
+              </Tooltip>
+            </>
           )}
         </Box>
       </Box>
