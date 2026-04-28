@@ -179,6 +179,7 @@ export const TOUR_STEPS: TourStep[] = [
         id: 'incident-detail:timeline-ip',
         label: 'Click the Known IOC pill on the Timeline',
         targetSelector: '[data-tour="timeline-ioc-pill"]',
+        optional: true,
       },
       {
         id: 'incident-detail:ask-agent',
