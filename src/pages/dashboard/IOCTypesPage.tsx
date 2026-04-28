@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
 import {
   Box,
@@ -22,7 +22,6 @@ import {
   Chip,
   InputAdornment,
   MenuItem,
-  LinearProgress,
   Tooltip,
   ToggleButton,
   ToggleButtonGroup,
@@ -43,19 +42,26 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { useDatastore } from '@/hooks/useDatastore';
 import { DEFAULT_IOC_TYPES, IOCType, IOC_CATEGORIES, IOCCategory, DEFAULT_ENABLED_IOCS } from '@/hooks/useIOCTypes';
 import { DATASTORE_CATEGORIES } from '@/services/datastore';
+import { toast } from 'sonner';
 
 const CATEGORY = DATASTORE_CATEGORIES.IOCS;
+
+const getDefaultIOCTypes = (): IOCType[] =>
+  DEFAULT_IOC_TYPES.map(ioc => ({
+    ...ioc,
+    enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name),
+  }));
 
 const IOCTypesPage = () => {
   const enrichmentStatus = useEnrichmentStatus();
   const { items, isLoading, error, fetchItems, addItem, removeItem } = useDatastore({ category: CATEGORY });
   const [iocTypes, setIocTypes] = useState<IOCType[]>([]);
+  const optimisticOverrides = useRef<Map<string, IOCType>>(new Map());
+  const optimisticDeletes = useRef<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<IOCType | null>(null);
   const [formData, setFormData] = useState<Partial<IOCType>>({ name: '', regex: '', description: '', category: 'other', needsPattern: false });
   const [searchQuery, setSearchQuery] = useState('');
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [initProgress, setInitProgress] = useState(0);
   const [filterMode, setFilterMode] = useState<'all' | 'todo'>('all');
   
   // Regex tester state
@@ -76,20 +82,23 @@ const IOCTypesPage = () => {
         
         sessionStorage.setItem(initKey, 'true');
         
-        setIsInitializing(true);
-        setInitProgress(50); // Show progress immediately
+        const defaults = getDefaultIOCTypes();
+        optimisticOverrides.current.clear();
+        optimisticDeletes.current.clear();
+        defaults.forEach(type => optimisticOverrides.current.set(type.name, type));
+        setIocTypes(defaults);
         
-        // Use bulk API for faster initialization
-        const { setDatastoreItems } = await import('@/services/datastore');
-        const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
-          key: ioc.name,
-          value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
-        }));
-        await setDatastoreItems(bulkItems, CATEGORY);
-        
-        setInitProgress(100);
-        setIsInitializing(false);
-        await fetchItems();
+        void (async () => {
+          try {
+            const { setDatastoreItems } = await import('@/services/datastore');
+            const bulkItems = defaults.map(ioc => ({ key: ioc.name, value: ioc }));
+            const result = await setDatastoreItems(bulkItems, CATEGORY);
+            if (!result.success) throw new Error(result.error || 'Failed to save default IOC types');
+          } catch (err) {
+            console.error('Failed to initialize IOC type defaults:', err);
+            toast.error('Failed to persist IOC type defaults');
+          }
+        })();
       }
     };
     
@@ -110,27 +119,53 @@ const IOCTypesPage = () => {
         return { name: item.key, regex: item.value, description: '' };
       }
     });
-    if (parsed.length > 0) {
-      console.log('[IOC] Sample parsed regex:', parsed[0].name, parsed[0].regex);
-    }
-    setIocTypes(parsed);
+    const visibleParsed = parsed.filter(type => !optimisticDeletes.current.has(type.name));
+    const merged = optimisticOverrides.current.size === 0
+      ? visibleParsed
+      : visibleParsed.map(type => optimisticOverrides.current.get(type.name) || type);
+    optimisticOverrides.current.forEach((type, name) => {
+      if (!optimisticDeletes.current.has(name) && !merged.some(existing => existing.name === name)) {
+        merged.push(type);
+      }
+    });
+    setIocTypes(merged);
   }, [items]);
 
-  const handleInitDefaults = async () => {
-    setIsInitializing(true);
-    setInitProgress(50); // Show progress immediately
-    
-    // Use bulk API for faster initialization
-    const { setDatastoreItems } = await import('@/services/datastore');
-    const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
-      key: ioc.name,
-      value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
-    }));
-    await setDatastoreItems(bulkItems, CATEGORY);
-    
-    setInitProgress(100);
-    setIsInitializing(false);
-    await fetchItems();
+  const handleInitDefaults = () => {
+    const defaults = getDefaultIOCTypes();
+    const defaultNames = new Set(defaults.map(type => type.name));
+    optimisticOverrides.current.clear();
+    optimisticDeletes.current.clear();
+    [...iocTypes.map(type => type.name), ...items.map(item => item.key)]
+      .filter(name => !defaultNames.has(name))
+      .forEach(name => optimisticDeletes.current.add(name));
+    defaults.forEach(type => optimisticOverrides.current.set(type.name, type));
+    setIocTypes(defaults);
+    toast.success(`Restored ${defaults.length} default IOC types`);
+
+    void (async () => {
+      try {
+        const { setDatastoreItems, deleteDatastoreItems, getDatastoreByCategory } = await import('@/services/datastore');
+        const allKeys: string[] = [];
+        let cursor: string | undefined;
+        for (let i = 0; i < 50; i++) {
+          const page = await getDatastoreByCategory(CATEGORY, cursor);
+          const pageItems = page?.data || [];
+          pageItems.forEach(item => { if (item?.key) allKeys.push(item.key); });
+          if (!page?.cursor || pageItems.length === 0) break;
+          cursor = page.cursor;
+        }
+        if (allKeys.length > 0) {
+          const deleteResult = await deleteDatastoreItems(allKeys, CATEGORY);
+          if (!deleteResult.success) throw new Error(deleteResult.error || 'Failed to delete existing IOC types');
+        }
+        const saveResult = await setDatastoreItems(defaults.map(type => ({ key: type.name, value: type })), CATEGORY);
+        if (!saveResult.success) throw new Error(saveResult.error || 'Failed to save default IOC types');
+      } catch (err) {
+        console.error('Failed to reset IOC types:', err);
+        toast.error('Failed to persist IOC type defaults');
+      }
+    })();
   };
 
   const handleOpenDialog = (type?: IOCType) => {
@@ -145,45 +180,95 @@ const IOCTypesPage = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!formData.name) return;
-    
-    if (editingType && editingType.name !== formData.name) {
-      await removeItem(editingType.name);
-    }
-    // If regex is provided, auto-clear needsPattern
-    const dataToSave = { ...formData };
+    const dataToSave = { ...formData } as IOCType;
+    dataToSave.name = formData.name;
     if (dataToSave.regex && dataToSave.regex.trim()) {
       dataToSave.needsPattern = false;
     }
-    await addItem(formData.name, dataToSave as IOCType);
+    if (editingType && editingType.name !== formData.name) {
+      optimisticDeletes.current.add(editingType.name);
+      setIocTypes(prev => prev.filter(type => type.name !== editingType.name));
+    }
+    optimisticDeletes.current.delete(dataToSave.name);
+    optimisticOverrides.current.set(dataToSave.name, dataToSave);
+    setIocTypes(prev => prev.some(type => type.name === dataToSave.name)
+      ? prev.map(type => (type.name === dataToSave.name ? dataToSave : type))
+      : [...prev, dataToSave]);
     setDialogOpen(false);
     setFormData({ name: '', regex: '', description: '', category: 'common', needsPattern: false });
+
+    void (async () => {
+      try {
+        if (editingType && editingType.name !== dataToSave.name) {
+          const deleted = await removeItem(editingType.name);
+          if (!deleted) throw new Error('Failed to remove old IOC type');
+        }
+        const saved = await addItem(dataToSave.name, dataToSave);
+        if (!saved) throw new Error('Failed to save IOC type');
+      } catch (err) {
+        console.error('Failed to save IOC type:', err);
+        toast.error('Failed to persist IOC type');
+      }
+    })();
   };
 
-  const handleDelete = async (name: string) => {
-    await removeItem(name);
+  const handleDelete = (name: string) => {
+    const previous = iocTypes.find(type => type.name === name);
+    optimisticDeletes.current.add(name);
+    optimisticOverrides.current.delete(name);
+    setIocTypes(prev => prev.filter(type => type.name !== name));
+
+    void (async () => {
+      try {
+        const deleted = await removeItem(name);
+        if (!deleted) throw new Error('Failed to delete IOC type');
+      } catch (err) {
+        if (previous) {
+          optimisticDeletes.current.delete(name);
+          optimisticOverrides.current.set(name, previous);
+          setIocTypes(prev => [...prev, previous]);
+        }
+        console.error('Failed to delete IOC type:', err);
+        toast.error('Failed to delete IOC type');
+      }
+    })();
   };
 
-  const handleToggleEnabled = async (type: IOCType) => {
+  const handleToggleEnabled = (type: IOCType) => {
     const updated = { ...type, enabled: !type.enabled };
-    await addItem(type.name, updated);
+    optimisticOverrides.current.set(type.name, updated);
+    setIocTypes(prev => prev.map(item => (item.name === type.name ? updated : item)));
+
+    void (async () => {
+      try {
+        const saved = await addItem(type.name, updated);
+        if (!saved) throw new Error('Failed to save IOC type');
+      } catch (err) {
+        optimisticOverrides.current.delete(type.name);
+        setIocTypes(prev => prev.map(item => (item.name === type.name ? type : item)));
+        console.error('Failed to toggle IOC type:', err);
+        toast.error('Failed to persist IOC type');
+      }
+    })();
   };
 
-  const handleBulkEnable = async (enable: boolean) => {
-    setIsInitializing(true);
-    setInitProgress(10);
-    const { setDatastoreItems } = await import('@/services/datastore');
-    const bulkItems = iocTypes.map(ioc => ({
-      key: ioc.name,
-      value: { ...ioc, enabled: enable },
-    }));
-    setInitProgress(50);
-    await setDatastoreItems(bulkItems, CATEGORY);
-    setInitProgress(100);
-    await fetchItems();
-    setIsInitializing(false);
-    setInitProgress(0);
+  const handleBulkEnable = (enable: boolean) => {
+    const updatedTypes = iocTypes.map(ioc => ({ ...ioc, enabled: enable }));
+    updatedTypes.forEach(type => optimisticOverrides.current.set(type.name, type));
+    setIocTypes(updatedTypes);
+
+    void (async () => {
+      try {
+        const { setDatastoreItems } = await import('@/services/datastore');
+        const result = await setDatastoreItems(updatedTypes.map(type => ({ key: type.name, value: type })), CATEGORY);
+        if (!result.success) throw new Error(result.error || 'Failed to save IOC type changes');
+      } catch (err) {
+        console.error('Failed to bulk update IOC types:', err);
+        toast.error('Failed to persist IOC type changes');
+      }
+    })();
   };
 
   const enabledCount = useMemo(() => iocTypes.filter(t => t.enabled).length, [iocTypes]);
@@ -363,9 +448,9 @@ const IOCTypesPage = () => {
             }}
             sx={{ minWidth: 220 }}
           />
-          {iocTypes.length === 0 && !isLoading && !isInitializing && (
-            <Button variant="outlined" onClick={handleInitDefaults} disabled={isInitializing} sx={{ height: 36 }}>
-              Initialize Defaults
+          {iocTypes.length === 0 && !isLoading && (
+            <Button variant="outlined" onClick={handleInitDefaults} sx={{ height: 36 }}>
+              Reset to Defaults
             </Button>
           )}
           {iocTypes.length > 0 && (
@@ -376,7 +461,7 @@ const IOCTypesPage = () => {
                   color="success"
                   startIcon={<CheckBoxIcon />}
                   onClick={() => handleBulkEnable(true)}
-                  disabled={isInitializing || enabledCount === iocTypes.length}
+                  disabled={enabledCount === iocTypes.length}
                   sx={{ height: 36 }}
                 >
                   All
@@ -388,7 +473,7 @@ const IOCTypesPage = () => {
                   color="error"
                   startIcon={<CheckBoxOutlineBlankIcon />}
                   onClick={() => handleBulkEnable(false)}
-                  disabled={isInitializing || enabledCount === 0}
+                  disabled={enabledCount === 0}
                   sx={{ height: 36 }}
                 >
                   None
@@ -400,10 +485,9 @@ const IOCTypesPage = () => {
                   color="warning"
                   startIcon={<RestartAltIcon />}
                   onClick={handleInitDefaults}
-                  disabled={isInitializing}
                   sx={{ height: 36 }}
                 >
-                  Reset
+                  Reset to Defaults
                 </Button>
               </Tooltip>
             </>
@@ -413,22 +497,6 @@ const IOCTypesPage = () => {
           </Button>
         </Box>
       </Box>
-
-      {/* Initialization Progress */}
-      {isInitializing && (
-        <Card sx={{ mb: 3, p: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <CircularProgress size={20} />
-            <Typography variant="body2">
-              Initializing {DEFAULT_IOC_TYPES.length} default IOC types...
-            </Typography>
-          </Box>
-          <LinearProgress variant="determinate" value={initProgress} sx={{ height: 6, borderRadius: 1 }} />
-          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-            {Math.round(initProgress)}% complete
-          </Typography>
-        </Card>
-      )}
 
       {/* Regex Tester Bar */}
       <Card sx={{ mb: 2, p: 1.5 }}>
@@ -584,7 +652,7 @@ const IOCTypesPage = () => {
                     ))
                   ];
                 })}
-                {filteredAndSortedTypes.length === 0 && !isLoading && !isInitializing && (
+                {filteredAndSortedTypes.length === 0 && !isLoading && (
                   <TableRow>
                     <TableCell colSpan={Object.keys(testResults).length > 0 ? 7 : 6} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
@@ -592,7 +660,7 @@ const IOCTypesPage = () => {
                           ? 'No IOC types need patterns. All done!' 
                           : searchQuery 
                             ? 'No IOC types match your search.' 
-                            : 'No IOC types configured. Click "Initialize Defaults" to add common indicator types.'}
+                            : 'No IOC types configured. Click "Reset to Defaults" to add common indicator types.'}
                       </Typography>
                     </TableCell>
                   </TableRow>
