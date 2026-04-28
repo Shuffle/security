@@ -37,8 +37,13 @@ import {
 } from '@/lib/ingestionDetection';
 import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
 import { getDatastoreByCategory, setDatastoreItems, DATASTORE_CATEGORIES } from '@/services/datastore';
-import { DEFAULT_THREAT_FEEDS } from '@/hooks/useThreatFeeds';
-import { DEFAULT_IOC_TYPES, DEFAULT_ENABLED_IOCS } from '@/hooks/useIOCTypes';
+// Canonical seeders + workflow generator — SAME functions used by the
+// Threat Feeds page, IOC Types page, and the onboarding AutomationConfig.
+// Keeping a single source of truth means changes there propagate to demo
+// mode automatically (and vice-versa).
+import { seedDefaultThreatFeeds } from '@/hooks/useThreatFeeds';
+import { seedDefaultIOCTypes } from '@/hooks/useIOCTypes';
+import { generateWorkflow } from '@/lib/workflowGenerate';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { DEMO_FLAG_KEY, DEMO_ACTIVE_KEY } from '@/lib/demoSeedData';
 
@@ -73,40 +78,9 @@ export const DEMO_INGEST_APPS_BACKUP_KEY = 'shuffle_demo_ingest_apps_backup';
 /** The label "Ingest Tickets" comes from the usecase registry — keep in sync. */
 const INGEST_TICKETS_LABEL = 'Ingest Tickets';
 
-/**
- * POST to /api/v2/workflows/generate.
- *
- * If `enabledAppNames` is empty:
- *   - by default we skip the call (matches the original onboarding semantics);
- *   - when `allowEmpty` is true, we still POST without an `app_name` so the
- *     workflow gets generated with no apps wired up. Used in demo mode for
- *     "Ingest Tickets" so we never touch the user's real integrations.
- */
-const generateWorkflow = async (
-  label: string,
-  enabledAppNames: string[],
-  category: string = 'cases',
-  options: { allowEmpty?: boolean } = {},
-): Promise<void> => {
-  if (enabledAppNames.length === 0 && !options.allowEmpty) return;
-  try {
-    const body: Record<string, string> = { label, category };
-    if (enabledAppNames.length > 0) {
-      body.app_name = enabledAppNames.join(',');
-    }
-    await fetch(getApiUrl('/api/v2/workflows/generate'), {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    console.warn(`[demo] workflow generate failed for ${label}`, err);
-  }
-};
+// Workflow generation delegates to the shared canonical helper so the
+// demo bootstrap and the onboarding AutomationConfig page stay in
+// lockstep — any backend contract change touches one file.
 
 /** Fetch the current authenticated apps. */
 const fetchAuthenticatedApps = async (): Promise<AuthAppEntry[]> => {
@@ -199,14 +173,14 @@ const generateOnboardingWorkflows = async (): Promise<void> => {
   for (const label of ingestLabels) {
     if (label === INGEST_TICKETS_LABEL) {
       // Demo: generate with NO apps so we never touch the user's integrations.
-      tasks.push(generateWorkflow(label, [], 'cases', { allowEmpty: true }));
+      tasks.push(generateWorkflow({ label, enabledAppNames: [], category: 'cases', allowEmpty: true }));
     } else {
       // Webhook variant + anything else keeps original behavior.
-      tasks.push(generateWorkflow(label, [], 'cases', { allowEmpty: true }));
+      tasks.push(generateWorkflow({ label, enabledAppNames: [], category: 'cases', allowEmpty: true }));
     }
   }
   for (const label of threatLabels) {
-    tasks.push(generateWorkflow(label, threatIntelAppNames, 'cases'));
+    tasks.push(generateWorkflow({ label, enabledAppNames: threatIntelAppNames, category: 'cases' }));
   }
   await Promise.allSettled(tasks);
 };
@@ -315,18 +289,21 @@ const runThreatFeedsWorkflow = async (): Promise<void> => {
 };
 
 /**
- * Initialize Threat Feeds defaults if the category is empty. Does NOT run
- * the enablement workflow — the caller (Stage B) does that explicitly so
- * we keep the dependency order clear.
+ * Initialize Threat Feeds defaults — but ONLY if the user has not already
+ * customised the list. Delegates to the canonical `seedDefaultThreatFeeds`
+ * so the write itself is identical to the Threat Feeds page reset button.
+ *
+ * Does NOT run the enablement workflow — the caller (Stage B) does that
+ * explicitly so we keep the dependency order clear.
  */
 const initThreatFeedsDefaults = async (): Promise<void> => {
   try {
     const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS);
     const alreadySeeded = res.success && res.data && res.data.length > 0;
-    if (!alreadySeeded) {
-      const items = DEFAULT_THREAT_FEEDS.map(feed => ({ key: feed.id, value: feed }));
-      await setDatastoreItems(items, DATASTORE_CATEGORIES.THREAT_FEEDS);
-    }
+    // Respect the user's existing configuration — never overwrite their
+    // custom feeds just because demo mode started.
+    if (alreadySeeded) return;
+    await seedDefaultThreatFeeds();
   } catch (err) {
     console.warn('[demo] threat feeds init failed', err);
   }
@@ -431,16 +408,19 @@ const initDemoMonitorHost = async (): Promise<void> => {
   await initDemoSensorRecord();
 };
 
-/** Initialize IOC Types defaults if the category is empty. */
+/**
+ * Initialize IOC Types defaults — but ONLY if the user has not already
+ * customised the list. Delegates to the canonical `seedDefaultIOCTypes`
+ * so the write itself is identical to the IOC Types page reset and the
+ * /incidents auto-init in lib/initDefaults.ts.
+ */
 const initIOCTypesDefaults = async (): Promise<void> => {
   try {
     const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS);
+    // Respect the user's existing configuration — never overwrite their
+    // custom IOC types just because demo mode started.
     if (res.success && res.data && res.data.length > 0) return;
-    const items = DEFAULT_IOC_TYPES.map(ioc => ({
-      key: ioc.name,
-      value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
-    }));
-    await setDatastoreItems(items, DATASTORE_CATEGORIES.IOCS);
+    await seedDefaultIOCTypes();
   } catch (err) {
     console.warn('[demo] IOC types init failed', err);
   }
