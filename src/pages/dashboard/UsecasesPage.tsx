@@ -2704,8 +2704,8 @@ function UsecaseCard({
         </Box>
       </CardActionArea>
 
-      {/* Hover-revealed Enable/Disable button (or Sign-up CTA for guests) */}
-      {(canToggle || (!isAuthenticated && flow.automationLabel)) && (
+      {/* Hover-revealed Enable / Notify-me / Sign-up CTA */}
+      {(isComingSoon || canToggle || (!isAuthenticated && flow.automationLabel)) && (
         <Box
           className="uc-toggle-btn"
           sx={{
@@ -2717,7 +2717,36 @@ function UsecaseCard({
             transition: 'opacity 0.15s ease',
           }}
         >
-          {canToggle ? (
+          {isComingSoon ? (
+            <Button
+              size="small"
+              variant="contained"
+              disableElevation
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onClick();
+              }}
+              startIcon={<Sparkles size={12} />}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                minHeight: 0,
+                py: 0.4,
+                px: 1,
+                bgcolor: 'hsl(var(--card))',
+                color: 'hsl(45 93% 47%)',
+                border: '1px solid hsl(45 93% 47% / 0.4)',
+                '&:hover': {
+                  bgcolor: 'hsl(45 93% 47% / 0.1)',
+                  borderColor: 'hsl(45 93% 47%)',
+                },
+              }}
+            >
+              Notify me
+            </Button>
+          ) : canToggle ? (
             <Button
               size="small"
               variant="contained"
