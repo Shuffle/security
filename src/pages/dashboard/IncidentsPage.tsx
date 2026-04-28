@@ -1035,7 +1035,9 @@ const IncidentsPage = () => {
     }
 
     return deduped;
-  }, [datastoreItems, validUsernames, subOrgItems]);
+    // currentOrgId/Name/Image must be deps — otherwise items parsed before
+    // auth resolves stay tagged with orgId='' and the org filter drops them all.
+  }, [datastoreItems, validUsernames, subOrgItems, currentOrgId, currentOrgName, userInfo?.active_org?.image]);
 
   // Count incidents per source for current org only (used by ingestion source buttons)
   const incidentCountsBySource = useMemo(() => {
