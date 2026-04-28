@@ -37,8 +37,13 @@ import {
 } from '@/lib/ingestionDetection';
 import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
 import { getDatastoreByCategory, setDatastoreItems, DATASTORE_CATEGORIES } from '@/services/datastore';
-import { DEFAULT_THREAT_FEEDS } from '@/hooks/useThreatFeeds';
-import { DEFAULT_IOC_TYPES, DEFAULT_ENABLED_IOCS } from '@/hooks/useIOCTypes';
+// Canonical seeders + workflow generator — SAME functions used by the
+// Threat Feeds page, IOC Types page, and the onboarding AutomationConfig.
+// Keeping a single source of truth means changes there propagate to demo
+// mode automatically (and vice-versa).
+import { seedDefaultThreatFeeds } from '@/hooks/useThreatFeeds';
+import { seedDefaultIOCTypes } from '@/hooks/useIOCTypes';
+import { generateWorkflow } from '@/lib/workflowGenerate';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { DEMO_FLAG_KEY, DEMO_ACTIVE_KEY } from '@/lib/demoSeedData';
 
