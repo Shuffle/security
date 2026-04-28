@@ -2574,6 +2574,7 @@ const ACTIVE_USECASE_IDS = [
   'asset_management_case_management_vuln_1',
   'case_management_cases_forward_1',
   'case_management_asset_management_monitors_1',
+  'case_management_assign_escalate_1',
 ];
 
 function UsecaseCard({
