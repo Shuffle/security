@@ -240,6 +240,22 @@ const clearIocOverrides = () => {
   try { localStorage.removeItem(DEMO_IOC_OVERRIDES_KEY); } catch { /* ignore */ }
 };
 
+/**
+ * Promise published by the live-environment bootstrap that resolves once
+ * `ioc_domain` has at least one entry (true) or we gave up polling
+ * (false). The incidents-list step seeder awaits this before picking
+ * IOCs so the focus incident features a *real* indicator instead of the
+ * static fallback. Module-level so it survives across React renders.
+ */
+let pendingIndicatorReady: Promise<boolean> | null = null;
+export const setPendingIndicatorReady = (p: Promise<boolean> | null) => {
+  pendingIndicatorReady = p;
+};
+const awaitPendingIndicators = async (): Promise<void> => {
+  if (!pendingIndicatorReady) return;
+  try { await pendingIndicatorReady; } catch { /* fall through to fallback */ }
+};
+
 /** Label of the workflow that ingests the configured threat feeds. */
 const THREAT_FEEDS_WORKFLOW_LABEL = 'Enable Threat feeds';
 /** Session guard so we only kick the workflow once per demo run. */
