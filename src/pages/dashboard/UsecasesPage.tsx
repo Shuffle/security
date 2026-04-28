@@ -1869,7 +1869,28 @@ function UsecaseDetailContent({
               <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: FG, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
                 {flow.label}
               </Typography>
-              {canToggle && flow.automationLabel && (
+              {isComingSoon ? (
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.6,
+                    textTransform: 'none',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    py: 0.6,
+                    px: 1.25,
+                    borderRadius: 1,
+                    bgcolor: 'hsl(var(--card))',
+                    color: 'hsl(45 93% 47%)',
+                    border: '1px solid hsl(45 93% 47% / 0.4)',
+                  }}
+                >
+                  <Clock size={14} />
+                  Coming soon
+                </Box>
+              ) : canToggle && flow.automationLabel && (
                 <Button
                   size="small"
                   variant="contained"
