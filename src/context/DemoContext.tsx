@@ -194,24 +194,64 @@ export const TOUR_STEPS: TourStep[] = [
     ],
   },
   {
-    id: 'assets',
-    title: 'Assets',
-    body: 'The devices and accounts you protect.',
+    id: 'correlations',
+    title: 'Correlate the two incidents',
+    body: 'The phishing email and the Sliver C2 detection share the same lure URL and attacker IP. Open the Correlations tab to see how Shuffle automatically linked them.',
     bullets: [
-      'Laptops, servers, mobile, cloud workloads',
-      'Risk score per asset for triage',
+      'Open the Correlations tab',
+      'Notice the shared URL and IP — that is the pivot point',
+      'Click through to jump between the two related incidents',
     ],
-    route: '/assets',
+    requirement: {
+      label: 'Open the Correlations tab and inspect the shared URL',
+      targetSelector: '[data-tour="incident-tab-correlations"]',
+    },
+    subGoals: [
+      {
+        id: 'correlations:open-tab',
+        label: 'Open the Correlations tab',
+        targetSelector: '[data-tour="incident-tab-correlations"]',
+      },
+      {
+        id: 'correlations:pivot',
+        label: 'Click a correlation to pivot to the related incident',
+        targetSelector: '[data-corr-key]',
+        optional: true,
+      },
+    ],
   },
   {
-    id: 'vulnerabilities',
-    title: 'Vulnerabilities',
-    body: 'Scanner findings unified into one view.',
+    id: 'cve-host-pivot',
+    title: 'Pivot from CVE to host',
+    body: 'The Sliver implant landed because Sarah\'s Chrome was outdated and vulnerable to CVE-2024-5274. Open the Observables tab to pivot from the CVE to the affected host.',
     bullets: [
-      'Sources: Qualys, Tenable, Snyk, AWS Config…',
-      'Filter by severity, source, or asset',
+      'Open the Observables tab',
+      'Find the CVE-2024-5274 observable — that is the exploited vulnerability',
+      'Find the FIN-LAPTOP-04 host observable — the affected asset',
     ],
-    route: '/vulnerabilities',
+    requirement: {
+      label: 'Open the Observables tab and find the CVE + host pivot',
+      targetSelector: '[data-tour="incident-tab-observables"]',
+    },
+    subGoals: [
+      {
+        id: 'cve-host-pivot:open-tab',
+        label: 'Open the Observables tab',
+        targetSelector: '[data-tour="incident-tab-observables"]',
+      },
+      {
+        id: 'cve-host-pivot:cve',
+        label: 'Find the CVE-2024-5274 observable',
+        targetSelector: '[data-tour="incident-tab-observables"]',
+        optional: true,
+      },
+      {
+        id: 'cve-host-pivot:host',
+        label: 'Find the FIN-LAPTOP-04 host observable',
+        targetSelector: '[data-tour="incident-tab-observables"]',
+        optional: true,
+      },
+    ],
   },
   {
     id: 'agent',
