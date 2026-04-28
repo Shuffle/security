@@ -161,9 +161,11 @@ const IOCTypesPage = () => {
           cursor = page.cursor;
         }
         if (allKeys.length > 0) {
-          await deleteDatastoreItems(allKeys, CATEGORY);
+          const deleteResult = await deleteDatastoreItems(allKeys, CATEGORY);
+          if (!deleteResult.success) throw new Error(deleteResult.error || 'Failed to delete existing IOC types');
         }
-        await setDatastoreItems(defaults.map(type => ({ key: type.name, value: type })), CATEGORY);
+        const saveResult = await setDatastoreItems(defaults.map(type => ({ key: type.name, value: type })), CATEGORY);
+        if (!saveResult.success) throw new Error(saveResult.error || 'Failed to save default IOC types');
       } catch (err) {
         console.error('Failed to reset IOC types:', err);
         toast.error('Failed to persist IOC type defaults');
@@ -205,9 +207,11 @@ const IOCTypesPage = () => {
     void (async () => {
       try {
         if (editingType && editingType.name !== dataToSave.name) {
-          await removeItem(editingType.name);
+          const deleted = await removeItem(editingType.name);
+          if (!deleted) throw new Error('Failed to remove old IOC type');
         }
-        await addItem(dataToSave.name, dataToSave);
+        const saved = await addItem(dataToSave.name, dataToSave);
+        if (!saved) throw new Error('Failed to save IOC type');
       } catch (err) {
         console.error('Failed to save IOC type:', err);
         toast.error('Failed to persist IOC type');
@@ -223,7 +227,8 @@ const IOCTypesPage = () => {
 
     void (async () => {
       try {
-        await removeItem(name);
+        const deleted = await removeItem(name);
+        if (!deleted) throw new Error('Failed to delete IOC type');
       } catch (err) {
         if (previous) {
           optimisticDeletes.current.delete(name);
@@ -243,7 +248,8 @@ const IOCTypesPage = () => {
 
     void (async () => {
       try {
-        await addItem(type.name, updated);
+        const saved = await addItem(type.name, updated);
+        if (!saved) throw new Error('Failed to save IOC type');
       } catch (err) {
         optimisticOverrides.current.delete(type.name);
         setIocTypes(prev => prev.map(item => (item.name === type.name ? type : item)));
@@ -261,7 +267,8 @@ const IOCTypesPage = () => {
     void (async () => {
       try {
         const { setDatastoreItems } = await import('@/services/datastore');
-        await setDatastoreItems(updatedTypes.map(type => ({ key: type.name, value: type })), CATEGORY);
+        const result = await setDatastoreItems(updatedTypes.map(type => ({ key: type.name, value: type })), CATEGORY);
+        if (!result.success) throw new Error(result.error || 'Failed to save IOC type changes');
       } catch (err) {
         console.error('Failed to bulk update IOC types:', err);
         toast.error('Failed to persist IOC type changes');
