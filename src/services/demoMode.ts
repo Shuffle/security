@@ -30,11 +30,13 @@ const VULNS_CATEGORY = 'shuffle-security_vulnerabilities';
 const SENSORS_CATEGORY = 'shuffle-security_sensors';
 const AGENTS_CATEGORY = 'shuffle-security_agents';
 // Real-IOC categories populated by the backend's threat-feed parser. Keys
-// are raw IPs / domains; values are STIX 2.1 indicators.
+// are raw IPs / URLs; values are STIX 2.1 indicators. We pick from `ioc_url`
+// (rather than `ioc_domain`) because URL feeds tend to carry richer, more
+// reliably-typed entries — the host portion gives us the lure domain too.
 const IOC_IP_CATEGORY = 'ioc_ip';
-const IOC_DOMAIN_CATEGORY = 'ioc_domain';
+const IOC_URL_CATEGORY = 'ioc_url';
 // Stash the IOC overrides chosen at step 1 so the Wazuh follow-up reuses
-// the exact same IP + domain (correlations rely on byte-identical values).
+// the exact same IP + URL (correlations rely on byte-identical values).
 const DEMO_IOC_OVERRIDES_KEY = 'shuffle_demo_ioc_overrides';
 
 
