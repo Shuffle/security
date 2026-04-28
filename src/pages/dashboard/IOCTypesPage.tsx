@@ -87,11 +87,14 @@ const IOCTypesPage = () => {
         setIsInitializing(true);
         setInitProgress(50); // Show progress immediately
         
+        const defaults = getDefaultIOCTypes();
+        setIocTypes(defaults);
+
         // Use bulk API for faster initialization
         const { setDatastoreItems } = await import('@/services/datastore');
-        const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
+        const bulkItems = defaults.map(ioc => ({
           key: ioc.name,
-          value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
+          value: ioc,
         }));
         await setDatastoreItems(bulkItems, CATEGORY);
         
@@ -118,27 +121,42 @@ const IOCTypesPage = () => {
         return { name: item.key, regex: item.value, description: '' };
       }
     });
-    if (parsed.length > 0) {
-      console.log('[IOC] Sample parsed regex:', parsed[0].name, parsed[0].regex);
-    }
-    setIocTypes(parsed);
+    const merged = optimisticOverrides.current.size === 0
+      ? parsed
+      : parsed.map(type => optimisticOverrides.current.get(type.name) || type);
+    setIocTypes(merged);
   }, [items]);
 
-  const handleInitDefaults = async () => {
-    setIsInitializing(true);
-    setInitProgress(50); // Show progress immediately
-    
-    // Use bulk API for faster initialization
-    const { setDatastoreItems } = await import('@/services/datastore');
-    const bulkItems = DEFAULT_IOC_TYPES.map(ioc => ({
-      key: ioc.name,
-      value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
-    }));
-    await setDatastoreItems(bulkItems, CATEGORY);
-    
-    setInitProgress(100);
+  const handleInitDefaults = () => {
+    const defaults = getDefaultIOCTypes();
+    optimisticOverrides.current.clear();
+    defaults.forEach(type => optimisticOverrides.current.set(type.name, type));
+    setIocTypes(defaults);
     setIsInitializing(false);
-    await fetchItems();
+    setInitProgress(0);
+    toast.success(`Restored ${defaults.length} default IOC types`);
+
+    void (async () => {
+      try {
+        const { setDatastoreItems, deleteDatastoreItems, getDatastoreByCategory } = await import('@/services/datastore');
+        const allKeys: string[] = [];
+        let cursor: string | undefined;
+        for (let i = 0; i < 50; i++) {
+          const page = await getDatastoreByCategory(CATEGORY, cursor);
+          const pageItems = page?.data || [];
+          pageItems.forEach(item => { if (item?.key) allKeys.push(item.key); });
+          if (!page?.cursor || pageItems.length === 0) break;
+          cursor = page.cursor;
+        }
+        if (allKeys.length > 0) {
+          await deleteDatastoreItems(allKeys, CATEGORY);
+        }
+        await setDatastoreItems(defaults.map(type => ({ key: type.name, value: type })), CATEGORY);
+      } catch (err) {
+        console.error('Failed to reset IOC types:', err);
+        toast.error('Failed to persist IOC type defaults');
+      }
+    })();
   };
 
   const handleOpenDialog = (type?: IOCType) => {
