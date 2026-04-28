@@ -150,8 +150,10 @@ const PHISH_PAYLOAD_SHA256 = '7b1c4f9a2e3d8b6f1a0c5d7e9b2a4c6e8d1f3a5b7c9e1d2f4a
 export interface DemoIocOverrides {
   /** Attacker IP — ideally a key pulled from the `ioc_ip` datastore category. */
   attackerIp?: string;
-  /** Lure domain — ideally a key pulled from the `ioc_domain` datastore category. */
+  /** Lure domain — derived from the picked `ioc_url` (host portion). */
   lureDomain?: string;
+  /** Full lure URL — ideally a key pulled from the `ioc_url` datastore category. */
+  lureUrl?: string;
 }
 
 /** Compose the credential-harvesting URL from a domain override (or default). */
