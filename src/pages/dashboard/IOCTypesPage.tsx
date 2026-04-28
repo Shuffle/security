@@ -136,8 +136,12 @@ const IOCTypesPage = () => {
 
   const handleInitDefaults = () => {
     const defaults = getDefaultIOCTypes();
+    const defaultNames = new Set(defaults.map(type => type.name));
     optimisticOverrides.current.clear();
     optimisticDeletes.current.clear();
+    [...iocTypes.map(type => type.name), ...items.map(item => item.key)]
+      .filter(name => !defaultNames.has(name))
+      .forEach(name => optimisticDeletes.current.add(name));
     defaults.forEach(type => optimisticOverrides.current.set(type.name, type));
     setIocTypes(defaults);
     setIsInitializing(false);
@@ -444,7 +448,7 @@ const IOCTypesPage = () => {
           />
           {iocTypes.length === 0 && !isLoading && !isInitializing && (
             <Button variant="outlined" onClick={handleInitDefaults} disabled={isInitializing} sx={{ height: 36 }}>
-              Initialize Defaults
+              Reset to Defaults
             </Button>
           )}
           {iocTypes.length > 0 && (
@@ -455,7 +459,7 @@ const IOCTypesPage = () => {
                   color="success"
                   startIcon={<CheckBoxIcon />}
                   onClick={() => handleBulkEnable(true)}
-                  disabled={isInitializing || enabledCount === iocTypes.length}
+                  disabled={enabledCount === iocTypes.length}
                   sx={{ height: 36 }}
                 >
                   All
@@ -467,7 +471,7 @@ const IOCTypesPage = () => {
                   color="error"
                   startIcon={<CheckBoxOutlineBlankIcon />}
                   onClick={() => handleBulkEnable(false)}
-                  disabled={isInitializing || enabledCount === 0}
+                  disabled={enabledCount === 0}
                   sx={{ height: 36 }}
                 >
                   None
@@ -479,10 +483,9 @@ const IOCTypesPage = () => {
                   color="warning"
                   startIcon={<RestartAltIcon />}
                   onClick={handleInitDefaults}
-                  disabled={isInitializing}
                   sx={{ height: 36 }}
                 >
-                  Reset
+                  Reset to Defaults
                 </Button>
               </Tooltip>
             </>
@@ -671,7 +674,7 @@ const IOCTypesPage = () => {
                           ? 'No IOC types need patterns. All done!' 
                           : searchQuery 
                             ? 'No IOC types match your search.' 
-                            : 'No IOC types configured. Click "Initialize Defaults" to add common indicator types.'}
+                            : 'No IOC types configured. Click "Reset to Defaults" to add common indicator types.'}
                       </Typography>
                     </TableCell>
                   </TableRow>
