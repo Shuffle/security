@@ -240,6 +240,22 @@ const clearIocOverrides = () => {
   try { localStorage.removeItem(DEMO_IOC_OVERRIDES_KEY); } catch { /* ignore */ }
 };
 
+/**
+ * Promise published by the live-environment bootstrap that resolves once
+ * `ioc_domain` has at least one entry (true) or we gave up polling
+ * (false). The incidents-list step seeder awaits this before picking
+ * IOCs so the focus incident features a *real* indicator instead of the
+ * static fallback. Module-level so it survives across React renders.
+ */
+let pendingIndicatorReady: Promise<boolean> | null = null;
+export const setPendingIndicatorReady = (p: Promise<boolean> | null) => {
+  pendingIndicatorReady = p;
+};
+const awaitPendingIndicators = async (): Promise<void> => {
+  if (!pendingIndicatorReady) return;
+  try { await pendingIndicatorReady; } catch { /* fall through to fallback */ }
+};
+
 /** Label of the workflow that ingests the configured threat feeds. */
 const THREAT_FEEDS_WORKFLOW_LABEL = 'Enable Threat feeds';
 /** Session guard so we only kick the workflow once per demo run. */
@@ -388,6 +404,10 @@ export const pickRandomIocs = async (): Promise<DemoIocOverrides> => {
 const resolveIocOverrides = async (): Promise<DemoIocOverrides> => {
   const cached = readIocOverrides();
   if (cached?.attackerIp && cached?.lureDomain) return cached;
+  // Wait for the live-environment bootstrap to populate `ioc_domain` so
+  // we pick a real indicator instead of the static fallback. Best-effort:
+  // if the poll times out, pickRandomIocs falls back to FALLBACK_IOC_*.
+  await awaitPendingIndicators();
   const fresh = await pickRandomIocs();
   // Merge with whatever was cached (in case only one half resolved earlier).
   const merged: DemoIocOverrides = { ...cached, ...fresh };

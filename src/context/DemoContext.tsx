@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { seedForStep, cleanupDemoData, isDemoActive, getDemoStats, forceRecreateDemoIncidents, forceCreateSingleDemoIncident, countDemoIncidents, seedDemoWazuhImplantIncident } from '@/services/demoMode';
+import { seedForStep, cleanupDemoData, isDemoActive, getDemoStats, forceRecreateDemoIncidents, forceCreateSingleDemoIncident, countDemoIncidents, seedDemoWazuhImplantIncident, setPendingIndicatorReady } from '@/services/demoMode';
 import { enableLiveDemoEnvironment } from '@/services/demoLiveEnvironment';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { applyEntityTerminology } from '@/lib/entityTerminology';
@@ -456,10 +456,17 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       trackPredefinedEvent(GA_EVENTS.DEMO_START);
       navigateForStep(0);
       // Make the environment "live": generate ingest + threat-intel
-      // workflows and seed Threat Feeds + IOC Types defaults. Runs in
-      // parallel with the first-step seeder so it does not block the UI.
+      // workflows and seed Threat Feeds + IOC Types defaults. The
+      // indicator pipeline (1 → 2 → 3 → 4) runs sequentially inside
+      // enableLiveDemoEnvironment; `indicatorReady` resolves once at
+      // least one entry exists in `ioc_domain` so the incidents-list
+      // seeder can pick a real IOC instead of the static fallback.
       const liveEnvStartedAt = Date.now();
-      const liveEnvPromise = enableLiveDemoEnvironment()
+      const { ready, indicatorReady } = enableLiveDemoEnvironment();
+      // Publish the indicator-availability promise so the incidents-list
+      // step seeder can await it before picking IOCs.
+      setPendingIndicatorReady(indicatorReady);
+      const liveEnvPromise = ready
         .then(() => {
           trackPredefinedEvent(GA_EVENTS.DEMO_LIVE_ENV_SUCCESS, undefined, Date.now() - liveEnvStartedAt);
         })
