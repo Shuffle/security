@@ -58,6 +58,7 @@ const IOCTypesPage = () => {
   const { items, isLoading, error, fetchItems, addItem } = useDatastore({ category: CATEGORY });
   const [iocTypes, setIocTypes] = useState<IOCType[]>([]);
   const optimisticOverrides = useRef<Map<string, IOCType>>(new Map());
+  const optimisticDeletes = useRef<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<IOCType | null>(null);
   const [formData, setFormData] = useState<Partial<IOCType>>({ name: '', regex: '', description: '', category: 'other', needsPattern: false });
@@ -121,15 +122,22 @@ const IOCTypesPage = () => {
         return { name: item.key, regex: item.value, description: '' };
       }
     });
+    const visibleParsed = parsed.filter(type => !optimisticDeletes.current.has(type.name));
     const merged = optimisticOverrides.current.size === 0
-      ? parsed
-      : parsed.map(type => optimisticOverrides.current.get(type.name) || type);
+      ? visibleParsed
+      : visibleParsed.map(type => optimisticOverrides.current.get(type.name) || type);
+    optimisticOverrides.current.forEach((type, name) => {
+      if (!optimisticDeletes.current.has(name) && !merged.some(existing => existing.name === name)) {
+        merged.push(type);
+      }
+    });
     setIocTypes(merged);
   }, [items]);
 
   const handleInitDefaults = () => {
     const defaults = getDefaultIOCTypes();
     optimisticOverrides.current.clear();
+    optimisticDeletes.current.clear();
     defaults.forEach(type => optimisticOverrides.current.set(type.name, type));
     setIocTypes(defaults);
     setIsInitializing(false);
