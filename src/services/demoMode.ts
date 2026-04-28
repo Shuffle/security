@@ -596,7 +596,22 @@ export const STEP_SEEDERS: Record<string, () => Promise<number>> = {
     return items.length;
   },
 
-  // Step 6: wrap
+  // Step 6 (correlations) — relies on existing data; no new seeds.
+  correlations: async () => 0,
+
+  // Step 7 (cve-host-pivot) — make sure the affected asset (FIN-LAPTOP-04)
+  // and the exploited CVE (CVE-2024-5274) actually exist in the datastore so
+  // the user can pivot from the CVE observable to a real host record. We
+  // chain the existing assets + vulnerabilities seeders here so the pivot
+  // step is self-contained and does not depend on earlier steps that no
+  // longer exist in the tour.
+  'cve-host-pivot': async () => {
+    let added = 0;
+    try { added += await STEP_SEEDERS.assets(); } catch { /* best-effort */ }
+    try { added += await STEP_SEEDERS.vulnerabilities(); } catch { /* best-effort */ }
+    return added;
+  },
+
   wrap: async () => 0,
 };
 
