@@ -26,7 +26,8 @@ import { useEntityPreference } from '@/hooks/useEntityLabel';
 const WAZUH_FOLLOWUP_DELAY_MS = 6000;
 
 export const DemoCompletionWatcher = () => {
-  const { drawerOpen, step, setStepCompleted, markStepCompleted, goToStep, setDock, dock, hoveredGoalSelector } = useDemo();
+  const { drawerOpen, step, setStepCompleted, markStepCompleted, goToStep, setDock, dock, hoveredGoalSelector, completedSteps } = useDemo();
+  const askAgentInjectedRef = useRef(false);
   const { data: workflows } = useWorkflows();
   const { notifications } = useAgentNotifications();
   const queryClient = useQueryClient();
