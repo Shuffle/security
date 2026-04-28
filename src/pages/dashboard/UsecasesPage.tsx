@@ -557,6 +557,11 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Correlate known vulnerabilities (CVEs, misconfigurations, missing patches) on affected assets with active incidents — surfacing exploitable weaknesses that elevate risk and guide containment priorities.',
     agenticDescription: 'An agent matches observables and affected hosts in a case against the vulnerability inventory, identifies exploitable CVEs aligned with the attack technique, recalculates incident severity, and recommends remediation or compensating controls.',
     automationArea: 'correlation',
+    customAction: {
+      label: 'Configure Vulnerabilities',
+      href: '/vulnerabilities',
+      description: 'Open the vulnerability inventory to ingest CVEs from your scanners.',
+    },
   },
   {
     id: 'email_threat_intel_1', phase: 'correlation', source: 'email', target: 'threat_intel',
@@ -2713,8 +2718,8 @@ function UsecaseCard({
         </Box>
       </CardActionArea>
 
-      {/* Hover-revealed Enable / Notify-me / Sign-up CTA */}
-      {(isComingSoon || canToggle || (!isAuthenticated && flow.automationLabel)) && (
+      {/* Hover-revealed Custom-action / Enable / Notify-me / Sign-up CTA */}
+      {(flow.customAction?.href || flow.customAction?.url || isComingSoon || canToggle || (!isAuthenticated && flow.automationLabel)) && (
         <Box
           className="uc-toggle-btn"
           sx={{
@@ -2726,7 +2731,31 @@ function UsecaseCard({
             transition: 'opacity 0.15s ease',
           }}
         >
-          {isComingSoon ? (
+          {flow.customAction?.href || flow.customAction?.url ? (
+            <Button
+              {...(flow.customAction.url
+                ? { component: 'a' as const, href: flow.customAction.url, target: '_blank', rel: 'noopener noreferrer' }
+                : { component: Link, to: flow.customAction.href! })}
+              size="small"
+              variant="contained"
+              disableElevation
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              startIcon={<ArrowRight size={12} />}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                minHeight: 0,
+                py: 0.4,
+                px: 1,
+                bgcolor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+              }}
+            >
+              {flow.customAction.label || 'Configure'}
+            </Button>
+          ) : isComingSoon ? (
             <Button
               size="small"
               variant="contained"
