@@ -18,4 +18,7 @@ export default defineConfig({
     '.css': 'copy',
   },
   injectStyle: false,
+  // Don't run the host app's PostCSS/Tailwind pipeline when packaging the
+  // library — the .css is copied as-is.
+  postcss: false,
 });
