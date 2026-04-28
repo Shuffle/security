@@ -448,6 +448,15 @@ const IncidentsPage = () => {
      if (hasDefender) markStepCompleted('add-outlook:defender');
    }, [demoActive, demoInjectedApps, markStepCompleted]);
 
+   // When demo mode is off, drop any stale injected apps so they don't keep
+   // appearing in the Ingest bar after cleanup (or in fresh sessions where
+   // localStorage still has leftovers from a prior demo run).
+   useEffect(() => {
+     if (!demoActive && demoInjectedApps.length > 0) {
+       setDemoInjectedApps([]);
+     }
+   }, [demoActive, demoInjectedApps.length]);
+
    // When the demo lands on a step that depends on the seeded incidents being
    // visible, make sure the user's current filters are not silently hiding
    // the demo data we just wrote into their org. We clear narrowing filters
