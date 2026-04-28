@@ -119,6 +119,7 @@ const ThreatFeedsPage = () => {
       url: formData.url,
       description: formData.description || '',
       type: formData.type || undefined,
+      headers: formData.headers?.trim() || undefined,
       enabled: formData.enabled ?? true,
     };
 
