@@ -22,6 +22,10 @@ export interface EnrichmentStatus {
   disable: () => Promise<void>;
   /** Whether an enable/disable action is in progress */
   isEnabling: boolean;
+  /** The current enable/disable action, used for accurate loading copy */
+  action: 'enable' | 'disable' | null;
+  /** Whether a disable action is in progress */
+  isDisabling: boolean;
 }
 
 const THREAT_FEEDS_WORKFLOW = 'Enable Threat feeds';
@@ -73,7 +77,7 @@ export const useEnrichmentStatus = (
 ): EnrichmentStatus => {
   const { data: workflows, isLoading: wfLoading, refetch: refetchWorkflows } = useWorkflows();
   const queryClient = useQueryClient();
-  const [isEnabling, setIsEnabling] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'enable' | 'disable' | null>(null);
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
 
   const { data: fetchedConfig, isLoading: cfgLoading } = useQuery<CategoryConfig | null>({
@@ -102,15 +106,19 @@ export const useEnrichmentStatus = (
   const pollAfterGenerate = useCallback(async () => {
     const ATTEMPTS = 4;
     const DELAY_MS = 1000;
+    const POLL_TIMEOUT_MS = 2500;
     for (let i = 0; i < ATTEMPTS; i++) {
       await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-      await refetchAll();
+      await Promise.race([
+        refetchAll(),
+        new Promise((resolve) => setTimeout(resolve, POLL_TIMEOUT_MS)),
+      ]);
     }
   }, [refetchAll]);
 
   const enable = useCallback(async () => {
     setOptimistic(true);
-    setIsEnabling(true);
+    setPendingAction('enable');
     try {
       await Promise.allSettled([
         fetch(getApiUrl('/api/v2/workflows/generate'), {
@@ -155,14 +163,14 @@ export const useEnrichmentStatus = (
         console.warn('[enrichment] force-run Enable Threat feeds failed', err);
       }
     } finally {
-      setIsEnabling(false);
+      setPendingAction(null);
       setOptimistic(null);
     }
   }, [pollAfterGenerate]);
 
   const disable = useCallback(async () => {
     setOptimistic(false);
-    setIsEnabling(true);
+    setPendingAction('disable');
     try {
       await Promise.allSettled([
         fetch(getApiUrl('/api/v2/workflows/generate'), {
@@ -180,7 +188,7 @@ export const useEnrichmentStatus = (
       ]);
       await pollAfterGenerate();
     } finally {
-      setIsEnabling(false);
+      setPendingAction(null);
       setOptimistic(null);
     }
   }, [pollAfterGenerate]);
@@ -214,7 +222,14 @@ export const useEnrichmentStatus = (
     };
   }, [workflows, categoryConfig, isLoading, optimistic]);
 
-  return { ...result, enable, disable, isEnabling };
+  return {
+    ...result,
+    enable,
+    disable,
+    isEnabling: pendingAction !== null,
+    action: pendingAction,
+    isDisabling: pendingAction === 'disable',
+  };
 };
 
 /**

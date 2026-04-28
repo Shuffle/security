@@ -63,6 +63,7 @@ const ThreatFeedsPage = () => {
   // Canonical Threat Intel automation state — same hook used by the
   // onboarding "Threat Intel" toggle, so behaviour stays consistent.
   const automationEnabled = enrichmentStatus.active;
+  const automationAction = enrichmentStatus.action;
 
   useEffect(() => {
     refetch();
@@ -362,9 +363,11 @@ const ThreatFeedsPage = () => {
               }}
               startIcon={enrichmentStatus.isEnabling ? <CircularProgress size={14} color="inherit" /> : undefined}
             >
-              {enrichmentStatus.isEnabling
-                ? (automationEnabled ? 'Disabling…' : 'Enabling…')
-                : (automationEnabled ? 'Disable' : 'Enable')}
+              {automationAction === 'disable'
+                ? 'Disabling…'
+                : automationAction === 'enable'
+                  ? 'Enabling…'
+                  : automationEnabled ? 'Disable' : 'Enable'}
             </Button>
           </Box>
         </Alert>
