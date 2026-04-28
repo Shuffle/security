@@ -106,9 +106,13 @@ export const useEnrichmentStatus = (
   const pollAfterGenerate = useCallback(async () => {
     const ATTEMPTS = 4;
     const DELAY_MS = 1000;
+    const POLL_TIMEOUT_MS = 2500;
     for (let i = 0; i < ATTEMPTS; i++) {
       await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-      await refetchAll();
+      await Promise.race([
+        refetchAll(),
+        new Promise((resolve) => setTimeout(resolve, POLL_TIMEOUT_MS)),
+      ]);
     }
   }, [refetchAll]);
 
