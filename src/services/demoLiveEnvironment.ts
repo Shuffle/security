@@ -408,16 +408,19 @@ const initDemoMonitorHost = async (): Promise<void> => {
   await initDemoSensorRecord();
 };
 
-/** Initialize IOC Types defaults if the category is empty. */
+/**
+ * Initialize IOC Types defaults — but ONLY if the user has not already
+ * customised the list. Delegates to the canonical `seedDefaultIOCTypes`
+ * so the write itself is identical to the IOC Types page reset and the
+ * /incidents auto-init in lib/initDefaults.ts.
+ */
 const initIOCTypesDefaults = async (): Promise<void> => {
   try {
     const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS);
+    // Respect the user's existing configuration — never overwrite their
+    // custom IOC types just because demo mode started.
     if (res.success && res.data && res.data.length > 0) return;
-    const items = DEFAULT_IOC_TYPES.map(ioc => ({
-      key: ioc.name,
-      value: { ...ioc, enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name) },
-    }));
-    await setDatastoreItems(items, DATASTORE_CATEGORIES.IOCS);
+    await seedDefaultIOCTypes();
   } catch (err) {
     console.warn('[demo] IOC types init failed', err);
   }
