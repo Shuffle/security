@@ -1195,6 +1195,37 @@ function useWorkflowsLite() {
   return { data, refetch: fetchOnce };
 }
 
+/**
+ * Match workflows to a usecase via its `automationLabel`.
+ * Same rule as `workflowEnabledLabels` so the linked-workflow list stays
+ * consistent with the card's enabled/disabled badge.
+ *
+ * Mirror of `findWorkflowsForUsecase` in `src/config/usecases.ts`. Kept
+ * inline because this page intentionally inlines its registry copy.
+ */
+function findWorkflowsForUsecase(
+  usecase: Pick<Usecase, 'automationLabel' | 'automationArea'>,
+  workflows: WorkflowSummary[],
+): WorkflowSummary[] {
+  if (!usecase.automationLabel || !workflows?.length) return [];
+  const labels = [usecase.automationLabel.toLowerCase()];
+  if (usecase.automationArea === 'automatic_ingestion') {
+    labels.push(`${usecase.automationLabel.toLowerCase()}_webhook`);
+  }
+  const matched: WorkflowSummary[] = [];
+  const seen = new Set<string>();
+  for (const wf of workflows) {
+    const name = (wf?.name || '').toLowerCase();
+    if (!name) continue;
+    if (labels.some((label) => name.includes(label))) {
+      if (wf.id && seen.has(wf.id)) continue;
+      if (wf.id) seen.add(wf.id);
+      matched.push(wf);
+    }
+  }
+  return matched;
+}
+
 // ============================================================================
 // Inlined: usecases query
 // ============================================================================
