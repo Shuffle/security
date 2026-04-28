@@ -1051,14 +1051,16 @@ function useApi() {
 }
 
 // ============================================================================
-// Inlined: minimal toast (was `sonner`)
-// ============================================================================
+// Real sonner toast — visible UI feedback for success/error.
+import { toast as sonnerToast } from 'sonner';
 const toast = {
-  success: (msg: string, _opts?: { duration?: number }) => {
+  success: (msg: string, opts?: { duration?: number; description?: string }) => {
     if (typeof window !== 'undefined') console.info('[toast]', msg);
+    sonnerToast.success(msg, opts);
   },
-  error: (msg: string, _opts?: { duration?: number }) => {
+  error: (msg: string, opts?: { duration?: number; description?: string }) => {
     if (typeof window !== 'undefined') console.error('[toast]', msg);
+    sonnerToast.error(msg, opts);
   },
 };
 
@@ -1684,7 +1686,15 @@ function UsecaseDetailContent({
       setTimeout(() => setOptimisticEnabled(null), 8000);
     } catch (err: any) {
       setOptimisticEnabled(null);
-      toast.error(err?.message || 'Failed to update automation', { duration: 6000 });
+      const raw = err?.message || '';
+      const isNetwork = /failed to fetch|networkerror|load failed/i.test(raw);
+      const description = isNetwork
+        ? 'Could not reach the Shuffle API. Check your connection or backend status and try again.'
+        : (raw || 'The backend rejected the request.');
+      toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`, {
+        description,
+        duration: 8000,
+      });
     } finally {
       setToggling(false);
     }
@@ -2730,8 +2740,15 @@ function UsecaseCard({
       setTimeout(() => setOptimisticEnabled(null), 8000);
     } catch (err: any) {
       setOptimisticEnabled(null);
-      const msg = err?.message || 'Failed to update automation';
-      toast.error(msg, { duration: 6000 });
+      const raw = err?.message || '';
+      const isNetwork = /failed to fetch|networkerror|load failed/i.test(raw);
+      const description = isNetwork
+        ? 'Could not reach the Shuffle API. Check your connection or backend status and try again.'
+        : (raw || 'The backend rejected the request.');
+      toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`, {
+        description,
+        duration: 8000,
+      });
     } finally {
       setToggling(false);
     }
