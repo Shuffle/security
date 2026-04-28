@@ -732,6 +732,62 @@ export function getUsecasesByPhase(phase: FlowPhase, usecases: Usecase[] = DEFAU
   return usecases.filter(uc => uc.phase === phase);
 }
 
+// ── Usecase ↔ Workflow correlation ─────────────────────────────────────────────
+
+/**
+ * Minimal workflow shape needed to correlate a workflow back to a usecase.
+ * Matches the `WorkflowSummary` used in UsecasesPage / AutomationConfig.
+ */
+export interface UsecaseWorkflowCandidate {
+  id: string;
+  name?: string;
+  tags?: string[];
+  [key: string]: any;
+}
+
+/**
+ * Returns all workflow labels (case-sensitive originals) that should be
+ * considered "linked" to the given usecase. For ingestion usecases this
+ * includes the `_webhook` variant so the Ingestion Webhook workflow is
+ * correlated to "EDR alerts" / "SIEM alerts" / "Email reports".
+ */
+export function getUsecaseWorkflowLabels(usecase: Pick<Usecase, 'automationLabel' | 'automationArea'>): string[] {
+  const out: string[] = [];
+  if (!usecase.automationLabel) return out;
+  out.push(usecase.automationLabel);
+  if (usecase.automationArea === 'automatic_ingestion') {
+    out.push(`${usecase.automationLabel}_webhook`);
+  }
+  return out;
+}
+
+/**
+ * Match workflows from `/api/v1/workflows` to a usecase via its
+ * `automationLabel`. A workflow matches when its name contains the label
+ * (case-insensitive) — same matching rule used by `workflowEnabledLabels` in
+ * `UsecasesPage` so the "Linked Workflows" list is consistent with the
+ * Enabled / Disabled state shown on the card.
+ */
+export function findWorkflowsForUsecase(
+  usecase: Pick<Usecase, 'automationLabel' | 'automationArea'>,
+  workflows: UsecaseWorkflowCandidate[],
+): UsecaseWorkflowCandidate[] {
+  const labels = getUsecaseWorkflowLabels(usecase).map((l) => l.toLowerCase());
+  if (labels.length === 0 || !workflows?.length) return [];
+  const matched: UsecaseWorkflowCandidate[] = [];
+  const seen = new Set<string>();
+  for (const wf of workflows) {
+    const name = (wf?.name || '').toLowerCase();
+    if (!name) continue;
+    if (labels.some((label) => name.includes(label))) {
+      if (wf.id && seen.has(wf.id)) continue;
+      if (wf.id) seen.add(wf.id);
+      matched.push(wf);
+    }
+  }
+  return matched;
+}
+
 // ── Exportable JSON shape ─────────────────────────────────────────────────────
 //
 // A flat, portable representation of the usecase registry shaped as:
