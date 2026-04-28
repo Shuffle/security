@@ -311,20 +311,20 @@ const initThreatFeedsDefaults = async (): Promise<void> => {
 };
 
 /**
- * Poll `ioc_domain` until at least one indicator is present, or we hit
+ * Poll `ioc_url` until at least one indicator is present, or we hit
  * the timeout. Returns true if an indicator was observed.
  *
  * The threat-feed parser is async on the backend, so we give it a short
  * but generous window. If it never shows up, the caller falls back to its
  * static pool — but at least we tried.
  */
-const waitForFirstIndicatorDomain = async (
+const waitForFirstIndicatorUrl = async (
   { timeoutMs = 15000, intervalMs = 1000 }: { timeoutMs?: number; intervalMs?: number } = {},
 ): Promise<boolean> => {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const res = await getDatastoreByCategory(IOC_DOMAIN_CATEGORY);
+      const res = await getDatastoreByCategory(IOC_URL_CATEGORY);
       const count = res.success && res.data ? res.data.length : 0;
       if (count > 0) return true;
     } catch {
