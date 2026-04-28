@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkflows } from './useWorkflows';
 import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/services/datastore';
@@ -167,6 +167,10 @@ export const useEnrichmentStatus = (
       } else {
         await refetchAll();
       }
+      // NOTE: do NOT clear optimistic in finally — clearing it before the
+      // workflow list / category config caches catch up causes a quick
+      // Active → Inactive → Active flicker. The reconciliation effect
+      // below clears it once serverActive matches.
 
       // Force-run "Enable Threat feeds" so ingestion starts immediately
       // instead of waiting for the next scheduled tick. The first generate
@@ -186,7 +190,6 @@ export const useEnrichmentStatus = (
       }
     } finally {
       setPendingAction(null);
-      setOptimistic(null);
     }
   }, [validateWorkflowIds, refetchAll]);
 
@@ -218,7 +221,6 @@ export const useEnrichmentStatus = (
       }
     } finally {
       setPendingAction(null);
-      setOptimistic(null);
     }
   }, [validateWorkflowIds, refetchAll]);
 
