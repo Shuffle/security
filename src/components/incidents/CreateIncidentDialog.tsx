@@ -99,7 +99,8 @@ export const papLevels = [
 
 // DEPRECATED: Use useIOCTypes().observableTypeNames instead
 export const observableTypes = [
-  'ip',
+  'ipv4',
+  'ipv6',
   'domain',
   'url',
   'email',
