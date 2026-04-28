@@ -117,6 +117,7 @@ import { normalizeStatus } from '@/config/incidentConfig';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
 import { MergeIncidentDialog } from '@/components/incidents/MergeIncidentDialog';
 import { MentionText } from '@/components/incidents/MentionText';
+import CollapsibleContent from '@/components/incidents/CollapsibleContent';
 import { UserHoverCard, resolveUserAvatar } from '@/components/incidents/UserHoverCard';
 import { TaskKanbanBoard } from '@/components/incidents/TaskKanbanBoard';
 import { MentionInput } from '@/components/incidents/MentionInput';
@@ -4456,23 +4457,25 @@ const IncidentDetailPage = () => {
               </Typography>
             ) : (
               <>
-                <MentionText
-                  text={actItem.content && /<[a-z][\s\S]*>/i.test(actItem.content) ? htmlToPlainText(actItem.content).trim() : actItem.content}
-                  sx={{ fontSize: '0.8rem', color: 'text.secondary', whiteSpace: 'pre-wrap' }}
-                />
-                {actItem.attachments && actItem.attachments.length > 0 && (
-                  <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {actItem.attachments.map((att, ai) => (
-                      <Chip
-                        key={ai}
-                        label={att.filename}
-                        size="small"
-                        variant="outlined"
-                        sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'transparent', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3b82f6' }}
-                      />
-                    ))}
-                  </Box>
-                )}
+                <CollapsibleContent maxHeight={240} storageKey={`incident-comment-expand::${rawId || ''}::${actItem.id || ''}`}>
+                  <MentionText
+                    text={actItem.content && /<[a-z][\s\S]*>/i.test(actItem.content) ? htmlToPlainText(actItem.content).trim() : actItem.content}
+                    sx={{ fontSize: '0.8rem', color: 'text.secondary', whiteSpace: 'pre-wrap' }}
+                  />
+                  {actItem.attachments && actItem.attachments.length > 0 && (
+                    <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {actItem.attachments.map((att, ai) => (
+                        <Chip
+                          key={ai}
+                          label={att.filename}
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'transparent', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3b82f6' }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </CollapsibleContent>
               </>
             )}
           </Box>
