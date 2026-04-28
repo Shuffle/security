@@ -1633,8 +1633,8 @@ function UsecaseDetailContent({
   canToggle?: boolean;
   /** Whether the viewer is logged in — drives the guest CTA banner */
   isAuthenticated?: boolean;
-  /** Called after a successful toggle so the parent can refetch workflows */
-  onToggled?: () => void;
+  /** Called after successful generation so the parent can trust the requested workflow state */
+  onToggled?: (label: string, enabled: boolean) => void;
 }) {
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
@@ -1679,8 +1679,7 @@ function UsecaseDetailContent({
       const ok = res.ok && body?.success !== false;
       if (!ok) throw new Error(reason || `Request failed (${res.status})`);
       toast.success(willBeEnabled ? `${flow.label} enabled` : `${flow.label} disabled`);
-      // Give the backend a moment to register the change before refetching.
-      setTimeout(() => onToggled?.(), 1500);
+      onToggled?.(flow.automationLabel, willBeEnabled);
       // Hard safety net in case the server never reflects the change.
       setTimeout(() => setOptimisticEnabled(null), 8000);
     } catch (err: any) {
