@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
 import {
   Box,
@@ -43,13 +43,21 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { useDatastore } from '@/hooks/useDatastore';
 import { DEFAULT_IOC_TYPES, IOCType, IOC_CATEGORIES, IOCCategory, DEFAULT_ENABLED_IOCS } from '@/hooks/useIOCTypes';
 import { DATASTORE_CATEGORIES } from '@/services/datastore';
+import { toast } from 'sonner';
 
 const CATEGORY = DATASTORE_CATEGORIES.IOCS;
 
+const getDefaultIOCTypes = (): IOCType[] =>
+  DEFAULT_IOC_TYPES.map(ioc => ({
+    ...ioc,
+    enabled: ioc.enabled ?? DEFAULT_ENABLED_IOCS.has(ioc.name),
+  }));
+
 const IOCTypesPage = () => {
   const enrichmentStatus = useEnrichmentStatus();
-  const { items, isLoading, error, fetchItems, addItem, removeItem } = useDatastore({ category: CATEGORY });
+  const { items, isLoading, error, fetchItems, addItem } = useDatastore({ category: CATEGORY });
   const [iocTypes, setIocTypes] = useState<IOCType[]>([]);
+  const optimisticOverrides = useRef<Map<string, IOCType>>(new Map());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<IOCType | null>(null);
   const [formData, setFormData] = useState<Partial<IOCType>>({ name: '', regex: '', description: '', category: 'other', needsPattern: false });
