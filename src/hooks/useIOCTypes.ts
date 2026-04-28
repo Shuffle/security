@@ -25,9 +25,26 @@ export type IOCCategory = typeof IOC_CATEGORIES[number]['id'];
 
 // IOC types that are enabled by default (most commonly used in SOC operations)
 export const DEFAULT_ENABLED_IOCS = new Set([
-  'ip', 'domain', 'url', 'email', 'hash_md5', 'hash_sha256',
+  'ipv4', 'ipv6', 'domain', 'url', 'email', 'hash_md5', 'hash_sha256',
   'file_name', 'hostname', 'username', 'cve',
 ]);
+
+/**
+ * Backward-compat alias map. Older datastore entries / payloads may still
+ * use the legacy 'ip' name — normalize to STIX-style 'ipv4'.
+ * STIX 2.1 uses `ipv4-addr` and `ipv6-addr` as distinct SCO types.
+ */
+export const IOC_TYPE_ALIASES: Record<string, string> = {
+  ip: 'ipv4',
+  'ipv4-addr': 'ipv4',
+  'ipv6-addr': 'ipv6',
+};
+
+export const normalizeIOCType = (name: string | undefined | null): string => {
+  if (!name) return '';
+  const lower = String(name).toLowerCase();
+  return IOC_TYPE_ALIASES[lower] || lower;
+};
 
 export interface IOCType {
   name: string;
@@ -46,7 +63,8 @@ export interface IOCType {
 export const DEFAULT_IOC_TYPES: IOCType[] = [
   // === MOST COMMONLY USED ===
   { name: 'url', regex: '^https?:\\/\\/[^\\s<>"\'`]+[^\\s<>"\'`.,;:!?)\\]}]$', description: 'Full URL', category: 'common', enabled: true },
-  { name: 'ip', regex: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', description: 'IPv4 address', category: 'common', enabled: true },
+  { name: 'ipv4', regex: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', description: 'IPv4 address (STIX ipv4-addr)', category: 'common', enabled: true },
+  { name: 'ipv6', regex: '^(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}$|^::1$|^::$|^(?:[A-Fa-f0-9]{1,4}:){1,7}:$|^(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}$', description: 'IPv6 address (STIX ipv6-addr)', category: 'common', enabled: true },
   { name: 'domain', regex: '^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)+(?!data|json|xml|html|css|js|ts|tsx|jsx|yml|yaml|toml|log|tmp|bak|cfg|conf|env|lock|local|internal|example|invalid|test|localhost$)[a-zA-Z]{2,16}$', description: 'Domain name', category: 'common', enabled: true },
   { name: 'email', regex: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$', description: 'Email address', category: 'common', enabled: true },
   { name: 'hash_md5', regex: '^[a-fA-F0-9]{32}$', description: 'MD5 hash (32 hex chars)', category: 'common', enabled: true },
@@ -61,8 +79,8 @@ export const DEFAULT_IOC_TYPES: IOCType[] = [
   { name: 'hash_imphash', regex: '^[a-fA-F0-9]{32}$', description: 'PE Import hash', category: 'hash' },
   { name: 'hash_tlsh', description: 'TLSH locality-sensitive hash', category: 'hash', needsPattern: true },
   // === NETWORK ARTIFACTS ===
-  { name: 'ipv6', regex: '^(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}$', description: 'IPv6 address', category: 'network' },
-  { name: 'ip_range', regex: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\/(?:[0-9]|[1-2][0-9]|3[0-2])$', description: 'IP CIDR range (e.g., 192.168.1.0/24)', category: 'network' },
+  { name: 'ipv4_range', regex: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\/(?:[0-9]|[1-2][0-9]|3[0-2])$', description: 'IPv4 CIDR range (e.g., 192.168.1.0/24)', category: 'network' },
+  { name: 'ipv6_range', description: 'IPv6 CIDR range (e.g., 2001:db8::/32)', category: 'network', needsPattern: true },
   { name: 'asn', regex: '^AS\\d+$', description: 'Autonomous System Number', category: 'network' },
   { name: 'subdomain', description: 'Subdomain pattern', category: 'network' },
   { name: 'uri_path', description: 'URI path pattern', category: 'network' },
