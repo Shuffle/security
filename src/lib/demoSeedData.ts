@@ -182,7 +182,7 @@ export const buildDemoFocusIncident = (overrides: DemoIocOverrides = {}): {
   const t = now();
   const attackerIp = overrides.attackerIp || PHISH_ATTACKER_IP_DEFAULT;
   const lureDomain = overrides.lureDomain || PHISH_LURE_DOMAIN_DEFAULT;
-  const lureUrl = composeLureUrl(lureDomain);
+  const lureUrl = overrides.lureUrl || composeLureUrl(lureDomain);
   return toIncidentWithPending({
     _key: `demo-inc-phish-${t}-focus`,
     title: `Phishing email reported by ${PHISH_REPORTER_NAME}`,
@@ -245,7 +245,7 @@ export const buildDemoWazuhImplantIncident = (overrides: DemoIocOverrides = {}):
   const t = now();
   const attackerIp = overrides.attackerIp || PHISH_ATTACKER_IP_DEFAULT;
   const lureDomain = overrides.lureDomain || PHISH_LURE_DOMAIN_DEFAULT;
-  const lureUrl = composeLureUrl(lureDomain);
+  const lureUrl = overrides.lureUrl || composeLureUrl(lureDomain);
   return toIncidentWithPending({
     _key: `demo-inc-malware-${t}-wazuh`,
     title: `Sliver C2 implant beaconing on ${PHISH_HOST}`,
@@ -271,7 +271,7 @@ export const buildDemoIncidentsBatch1 = (overrides: DemoIocOverrides = {}): { ke
   const t = now();
   const attackerIp = overrides.attackerIp || PHISH_ATTACKER_IP_DEFAULT;
   const lureDomain = overrides.lureDomain || PHISH_LURE_DOMAIN_DEFAULT;
-  const lureUrl = composeLureUrl(lureDomain);
+  const lureUrl = overrides.lureUrl || composeLureUrl(lureDomain);
   return ([
     {
       _key: `demo-inc-phish-${t}-1`,
