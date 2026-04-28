@@ -55,7 +55,7 @@ const getDefaultIOCTypes = (): IOCType[] =>
 
 const IOCTypesPage = () => {
   const enrichmentStatus = useEnrichmentStatus();
-  const { items, isLoading, error, fetchItems, addItem } = useDatastore({ category: CATEGORY });
+  const { items, isLoading, error, fetchItems, addItem, removeItem } = useDatastore({ category: CATEGORY });
   const [iocTypes, setIocTypes] = useState<IOCType[]>([]);
   const optimisticOverrides = useRef<Map<string, IOCType>>(new Map());
   const optimisticDeletes = useRef<Set<string>>(new Set());
@@ -179,45 +179,90 @@ const IOCTypesPage = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!formData.name) return;
-    
-    if (editingType && editingType.name !== formData.name) {
-      await removeItem(editingType.name);
-    }
-    // If regex is provided, auto-clear needsPattern
-    const dataToSave = { ...formData };
+    const dataToSave = { ...formData } as IOCType;
+    dataToSave.name = formData.name;
     if (dataToSave.regex && dataToSave.regex.trim()) {
       dataToSave.needsPattern = false;
     }
-    await addItem(formData.name, dataToSave as IOCType);
+    if (editingType && editingType.name !== formData.name) {
+      optimisticDeletes.current.add(editingType.name);
+      setIocTypes(prev => prev.filter(type => type.name !== editingType.name));
+    }
+    optimisticDeletes.current.delete(dataToSave.name);
+    optimisticOverrides.current.set(dataToSave.name, dataToSave);
+    setIocTypes(prev => prev.some(type => type.name === dataToSave.name)
+      ? prev.map(type => (type.name === dataToSave.name ? dataToSave : type))
+      : [...prev, dataToSave]);
     setDialogOpen(false);
     setFormData({ name: '', regex: '', description: '', category: 'common', needsPattern: false });
+
+    void (async () => {
+      try {
+        if (editingType && editingType.name !== dataToSave.name) {
+          await removeItem(editingType.name);
+        }
+        await addItem(dataToSave.name, dataToSave);
+      } catch (err) {
+        console.error('Failed to save IOC type:', err);
+        toast.error('Failed to persist IOC type');
+      }
+    })();
   };
 
-  const handleDelete = async (name: string) => {
-    await removeItem(name);
+  const handleDelete = (name: string) => {
+    const previous = iocTypes.find(type => type.name === name);
+    optimisticDeletes.current.add(name);
+    optimisticOverrides.current.delete(name);
+    setIocTypes(prev => prev.filter(type => type.name !== name));
+
+    void (async () => {
+      try {
+        await removeItem(name);
+      } catch (err) {
+        if (previous) {
+          optimisticDeletes.current.delete(name);
+          optimisticOverrides.current.set(name, previous);
+          setIocTypes(prev => [...prev, previous]);
+        }
+        console.error('Failed to delete IOC type:', err);
+        toast.error('Failed to delete IOC type');
+      }
+    })();
   };
 
-  const handleToggleEnabled = async (type: IOCType) => {
+  const handleToggleEnabled = (type: IOCType) => {
     const updated = { ...type, enabled: !type.enabled };
-    await addItem(type.name, updated);
+    optimisticOverrides.current.set(type.name, updated);
+    setIocTypes(prev => prev.map(item => (item.name === type.name ? updated : item)));
+
+    void (async () => {
+      try {
+        await addItem(type.name, updated);
+      } catch (err) {
+        optimisticOverrides.current.delete(type.name);
+        setIocTypes(prev => prev.map(item => (item.name === type.name ? type : item)));
+        console.error('Failed to toggle IOC type:', err);
+        toast.error('Failed to persist IOC type');
+      }
+    })();
   };
 
-  const handleBulkEnable = async (enable: boolean) => {
-    setIsInitializing(true);
-    setInitProgress(10);
-    const { setDatastoreItems } = await import('@/services/datastore');
-    const bulkItems = iocTypes.map(ioc => ({
-      key: ioc.name,
-      value: { ...ioc, enabled: enable },
-    }));
-    setInitProgress(50);
-    await setDatastoreItems(bulkItems, CATEGORY);
-    setInitProgress(100);
-    await fetchItems();
-    setIsInitializing(false);
-    setInitProgress(0);
+  const handleBulkEnable = (enable: boolean) => {
+    const updatedTypes = iocTypes.map(ioc => ({ ...ioc, enabled: enable }));
+    updatedTypes.forEach(type => optimisticOverrides.current.set(type.name, type));
+    setIocTypes(updatedTypes);
+
+    void (async () => {
+      try {
+        const { setDatastoreItems } = await import('@/services/datastore');
+        await setDatastoreItems(updatedTypes.map(type => ({ key: type.name, value: type })), CATEGORY);
+      } catch (err) {
+        console.error('Failed to bulk update IOC types:', err);
+        toast.error('Failed to persist IOC type changes');
+      }
+    })();
   };
 
   const enabledCount = useMemo(() => iocTypes.filter(t => t.enabled).length, [iocTypes]);
