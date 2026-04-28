@@ -590,6 +590,8 @@ export const DEFAULT_USECASES: Usecase[] = [
     tags: ['Intel', 'Correlation', 'Detection'],
     description: 'Pushing IOC feeds to cloud-native security tools (GuardDuty, Sentinel, SCC) enables detection of known-malicious activity within cloud workloads.',
     agenticDescription: 'An agent maps threat intel IOCs to active cloud workloads, identifies which resources are communicating with known-malicious infrastructure, and auto-creates remediation tasks in cloud security tools.',
+    automationLabel: 'Enable Threat feeds',
+    automationCategory: 'cases',
     automationArea: 'threat_intel',
   },
   {
