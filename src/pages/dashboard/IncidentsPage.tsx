@@ -2597,13 +2597,18 @@ const IncidentsPage = () => {
             <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap' }}>
               {(() => {
                 const localCount = sortedIncidents.length;
-                const totalIncidents = Math.max(incidents.length, totalAmount ?? 0);
+                // Total = real number of incidents the user has access to.
+                // Prefer the post-filter pool size as the denominator only when
+                // no filter is active; otherwise show "<filtered> of <total>"
+                // where total is the ACTIVE (pre-filter) pool so the user can
+                // see how many are hidden by their filters.
+                const activeTotal = activeIncidents.length;
+                const apiTotal = totalAmount ?? 0;
+                const totalIncidents = Math.max(activeTotal, apiTotal, incidents.length);
                 const totalPages = Math.max(1, Math.ceil(localCount / ITEMS_PER_PAGE));
-                // `amount` is the loaded page size; `total_amount` is the category
-                // total. Keep the UI honest when the API returns a partial page.
                 const isNarrowed = totalIncidents > localCount;
                 const countLabel = isNarrowed
-                  ? `${localCount} of ${totalIncidents} incidents`
+                  ? `${localCount} of ${totalIncidents} incidents (filtered)`
                   : `${localCount} incident${localCount !== 1 ? 's' : ''}`;
                 return `${countLabel}${totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ''}`;
               })()}
