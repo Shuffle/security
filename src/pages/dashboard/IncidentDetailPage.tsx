@@ -128,6 +128,10 @@ import { isAIAssignee, deduplicateTasks, htmlToPlainText, decodeHtmlEntities, de
 import { useIncidentAgentRuns } from '@/hooks/useIncidentAgentRuns';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
+import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
+import { getRunTitle, getRunIconColor, formatDuration as formatAgentRunDuration, getTimeAgo as getAgentTimeAgo, STATUS_CONFIG as AGENT_STATUS_CONFIG } from '@/components/agent/AgentRunHeader';
+import { Zap as ZapIcon } from 'lucide-react';
+import type { AgentRun } from '@/services/agentActivity';
 import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor';
 import EmailThreadPanel, { isEmailContent } from '@/components/incidents/EmailThreadPanel';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
@@ -1298,6 +1302,7 @@ const IncidentDetailPage = () => {
 
   // Fetch agent runs for this incident — deferred until incident loaded
   const { runsForIncident: agentRuns, isLoading: agentRunsLoading } = useIncidentAgentRuns(!loading ? id : undefined);
+  const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
 
   // Load incident function (reusable for refresh)
   const loadIncident = useCallback(async (showLoading = true) => {
@@ -4059,10 +4064,66 @@ const IncidentDetailPage = () => {
       }
 
       if (item.type === 'agent') {
+        const run = item.data;
+        const status = run.status?.toUpperCase() || '';
+        const statusCfg = AGENT_STATUS_CONFIG[status];
+        const accent = getRunIconColor(run);
+        const title = getRunTitle(run);
+        const duration = formatAgentRunDuration(run);
+        const timeAgo = run.started_at ? getAgentTimeAgo(run.started_at) : '';
         return (
-          <Box key={`agent-${item.data.execution_id}`} sx={{ position: 'relative' }}>
-            <AgentActivityFeed runs={[item.data]} />
-            <Box sx={{ position: 'absolute', top: 6, right: 6 }}>{replyButton}</Box>
+          <Box
+            key={`agent-${run.execution_id}`}
+            onClick={() => setSelectedAgentRun(run)}
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.25,
+              py: 0.75,
+              borderRadius: 1.5,
+              border: '1px solid hsl(var(--border))',
+              bgcolor: 'hsl(var(--card))',
+              cursor: 'pointer',
+              transition: 'border-color 0.15s ease, background-color 0.15s ease',
+              '&:hover': {
+                borderColor: 'hsl(var(--muted-foreground) / 0.4)',
+                bgcolor: 'hsl(var(--muted) / 0.3)',
+              },
+            }}
+          >
+            <ZapIcon size={14} style={{ color: accent, flexShrink: 0 }} />
+            <Typography
+              sx={{
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'hsl(var(--foreground))',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                flexShrink: 1,
+                minWidth: 0,
+              }}
+            >
+              {title}
+            </Typography>
+            {statusCfg && (
+              <Typography sx={{ fontSize: '0.7rem', color: statusCfg.color, flexShrink: 0 }}>
+                {statusCfg.label}
+              </Typography>
+            )}
+            {duration && (
+              <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
+                · {duration}
+              </Typography>
+            )}
+            {timeAgo && (
+              <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 'auto', flexShrink: 0, mr: 3 }}>
+                {timeAgo}
+              </Typography>
+            )}
+            <Box sx={{ position: 'absolute', top: 4, right: 4 }} onClick={(e) => e.stopPropagation()}>{replyButton}</Box>
           </Box>
         );
       }
@@ -7863,6 +7924,13 @@ const IncidentDetailPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Agent execution drawer — opened when clicking an agent row in the timeline */}
+      <AgentActionDrawer
+        open={!!selectedAgentRun}
+        onClose={() => setSelectedAgentRun(null)}
+        run={selectedAgentRun}
+      />
     </motion.div>
   );
 };
