@@ -3440,26 +3440,10 @@ const IncidentDetailPage = () => {
           },
         }),
       }}>
-        {refreshingObservables && enrichmentStatus.active && (
-          <Box
-            data-timeline-compact="true"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 1.25,
-              py: 0.75,
-              borderRadius: 1,
-              border: '1px dashed hsl(var(--border-subtle))',
-              bgcolor: 'hsl(var(--primary) / 0.04)',
-            }}
-          >
-            <CircularProgress size={12} sx={{ color: '#ff6600' }} />
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
-              Running indicator check on your message…
-            </Typography>
-          </Box>
-        )}
+        {/* Indicator-check loader is now rendered inline under the comment that
+            triggered it — see renderIndicatorCheckPlaceholder() inside renderThread().
+            Standardised to match the "AI Agent processing" pill so loaders attach
+            to the message they relate to instead of floating at the top. */}
         {renderTimelineFeedItems()}
       </Box>
     </>
