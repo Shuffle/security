@@ -3840,7 +3840,7 @@ const IncidentDetailPage = () => {
     };
     const getItemLabel = (it: TimelineItem): string => {
       if (it.type === 'revision') {
-        if (it.idx === revisions.length - 1 && activityFilter !== 'revisions') return 'Incident created';
+        if (it.idx === revisions.length - 1 && !isOnlyRevisionsFilter) return 'Incident created';
         return `Revision #${revisions.length - it.idx}`;
       }
       if (it.type === 'agent') return 'Agent run';
