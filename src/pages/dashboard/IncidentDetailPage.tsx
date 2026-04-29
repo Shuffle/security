@@ -574,6 +574,11 @@ const IncidentDetailPage = () => {
   const [enrichments, setEnrichments] = useState<Array<{ type: string; value?: string; data?: string; first_seen?: string | number; last_seen?: string | number }>>([]);
   const [expandedObsKey, setExpandedObsKey] = useState<string | null>(null);
   const [refreshingObservables, setRefreshingObservables] = useState(false);
+  // Baseline observable+enrichment count captured when a comment is sent.
+  // Used to early-clear the "Running indicator check" loader as soon as
+  // new enrichments/observables show up — even if the scheduled 7s refresh
+  // has not fired yet.
+  const obsRefreshBaselineRef = useRef<number | null>(null);
   const obsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // When an incident was just created (within the last 2 minutes) we keep the
   // observables area in a "loading" state so the user can see automated
