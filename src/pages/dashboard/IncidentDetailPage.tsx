@@ -4133,7 +4133,7 @@ const IncidentDetailPage = () => {
               </Typography>
             )}
             {timeAgo && (
-              <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 'auto', flexShrink: 0, mr: 3 }}>
+              <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 'auto', flexShrink: 0 }}>
                 {timeAgo}
               </Typography>
             )}
