@@ -50,6 +50,7 @@ const AgentActivityPage = () => {
     setSearchQuery,
     loadMore,
     refresh,
+    skippedCount,
   } = useAgentActivity();
 
   const { enabledPermissions, totalPermissions } = useAgentPermissions();
