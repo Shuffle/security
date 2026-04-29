@@ -744,7 +744,46 @@ const IncidentDetailPage = () => {
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
-  const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual' | 'steps'>('all');
+  // Timeline filter — multi-select. Each key can be toggled independently;
+  // all are enabled by default. Persisted to localStorage so the same set
+  // is restored across page loads. Substep filters (`tasks`, `observables`,
+  // `correlations`) split the legacy "steps" bucket so each artefact type
+  // can be hidden individually.
+  type TimelineFilterKey = 'revisions' | 'agent' | 'manual' | 'tasks' | 'observables' | 'correlations';
+  const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'manual', 'tasks', 'observables', 'correlations'];
+  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters';
+  const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
+    if (typeof window === 'undefined') return new Set(ALL_TIMELINE_FILTERS);
+    try {
+      const raw = localStorage.getItem(TIMELINE_FILTER_STORAGE_KEY);
+      if (!raw) return new Set(ALL_TIMELINE_FILTERS);
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return new Set(ALL_TIMELINE_FILTERS);
+      const valid = arr.filter((k): k is TimelineFilterKey => ALL_TIMELINE_FILTERS.includes(k));
+      // Empty set is allowed — user explicitly hid everything.
+      return new Set(valid);
+    } catch {
+      return new Set(ALL_TIMELINE_FILTERS);
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(TIMELINE_FILTER_STORAGE_KEY, JSON.stringify(Array.from(activeTimelineFilters)));
+    } catch { /* ignore quota */ }
+  }, [activeTimelineFilters]);
+  const toggleTimelineFilter = (key: TimelineFilterKey) => {
+    setActiveTimelineFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+  const isFilterActive = (key: TimelineFilterKey) => activeTimelineFilters.has(key);
+  // Legacy compatibility shim — a few render branches used to special-case
+  // the single-select "revisions" tab to relabel the oldest revision as
+  // "Incident created". The equivalent in the new multi-select model is
+  // "only the Changes filter is enabled".
+  const isOnlyRevisionsFilter = activeTimelineFilters.size === 1 && activeTimelineFilters.has('revisions');
   const [revisionDialogData, setRevisionDialogData] = useState<{ json: string; changedKeys: Set<string> } | null>(null);
   const initialTab = (() => {
     const t = searchParams.get('tab');
@@ -3195,28 +3234,35 @@ const IncidentDetailPage = () => {
           </Box>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {([
-              { key: 'all' as const, label: 'All', count: undefined as number | undefined },
               { key: 'revisions' as const, label: 'Changes', count: revisions.length },
               { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
               { key: 'manual' as const, label: 'Comments', count: activity.length },
-              { key: 'steps' as const, label: 'Steps', count: undefined as number | undefined },
-            ]).map(({ key, label, count }) => (
-              <Chip
-                key={key}
-                label={count !== undefined ? `${label} (${count})` : label}
-                size="small"
-                variant="outlined"
-                onClick={() => setActivityFilter(key)}
-                sx={{
-                  height: 24,
-                  fontSize: '0.7rem',
-                  bgcolor: 'transparent',
-                  borderColor: activityFilter === key ? 'rgba(255, 102, 0, 0.5)' : 'rgba(255,255,255,0.12)',
-                  color: activityFilter === key ? '#ff6600' : 'text.secondary',
-                  '&:hover': { bgcolor: 'rgba(255, 102, 0, 0.06)' },
-                }}
-              />
-            ))}
+              { key: 'tasks' as const, label: 'Tasks', count: tasks.filter(t => !t.disabled).length },
+              { key: 'observables' as const, label: 'Observables', count: editedObservables.filter(o => !o.archived).length + enrichments.length },
+              { key: 'correlations' as const, label: 'Correlations', count: correlations.length },
+            ]).map(({ key, label, count }) => {
+              const active = isFilterActive(key);
+              return (
+                <Tooltip key={key} title={active ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`} arrow>
+                  <Chip
+                    label={`${label} (${count})`}
+                    size="small"
+                    variant="outlined"
+                    onClick={() => toggleTimelineFilter(key)}
+                    sx={{
+                      height: 24,
+                      fontSize: '0.7rem',
+                      bgcolor: 'transparent',
+                      borderColor: active ? 'rgba(255, 102, 0, 0.5)' : 'hsl(var(--border))',
+                      color: active ? '#ff6600' : 'text.secondary',
+                      opacity: active ? 1 : 0.5,
+                      textDecoration: active ? 'none' : 'line-through',
+                      '&:hover': { bgcolor: 'rgba(255, 102, 0, 0.06)', opacity: 1 },
+                    }}
+                  />
+                </Tooltip>
+              );
+            })}
           </Box>
         </Box>
       </Box>
@@ -3471,28 +3517,30 @@ const IncidentDetailPage = () => {
       } catch { return null; }
     });
 
-    revisions.forEach((rev, idx) => {
-      // For the "Incident created" item (the oldest revision), prefer the
-      // incident's true creation timestamp instead of the revision's `edited`
-      // field. The first stored revision is often written *after* the user's
-      // first comment (the comment triggers the save), so its `edited` time
-      // can be later than that comment's `Date.now()` — which would
-      // incorrectly push the first comment below "Incident created" in the
-      // newest-first feed. Anchoring to `incident.createdTs` keeps creation
-      // at the bottom of the timeline where it belongs.
-      const isOldest = idx === revisions.length - 1;
-      const ts = isOldest && incident?.createdTs
-        ? normalizeToMs(incident.createdTs)
-        : normalizeToMs(rev.edited ?? rev.created);
-      items.push({
-        type: 'revision',
-        timestamp: ts,
-        data: rev,
-        idx,
-        parsedCurrent: parsedRevisions[idx],
-        parsedPrevious: idx < revisions.length - 1 ? parsedRevisions[idx + 1] : null,
+    if (isFilterActive('revisions')) {
+      revisions.forEach((rev, idx) => {
+        // For the "Incident created" item (the oldest revision), prefer the
+        // incident's true creation timestamp instead of the revision's `edited`
+        // field. The first stored revision is often written *after* the user's
+        // first comment (the comment triggers the save), so its `edited` time
+        // can be later than that comment's `Date.now()` — which would
+        // incorrectly push the first comment below "Incident created" in the
+        // newest-first feed. Anchoring to `incident.createdTs` keeps creation
+        // at the bottom of the timeline where it belongs.
+        const isOldest = idx === revisions.length - 1;
+        const ts = isOldest && incident?.createdTs
+          ? normalizeToMs(incident.createdTs)
+          : normalizeToMs(rev.edited ?? rev.created);
+        items.push({
+          type: 'revision',
+          timestamp: ts,
+          data: rev,
+          idx,
+          parsedCurrent: parsedRevisions[idx],
+          parsedPrevious: idx < revisions.length - 1 ? parsedRevisions[idx + 1] : null,
+        });
       });
-    });
+    }
 
     // Synthetic "Incident created" step — guarantees the timeline always
     // shows when the incident was created, even before any revision has
@@ -3501,7 +3549,10 @@ const IncidentDetailPage = () => {
     // "Incident created".
     if (revisions.length === 0 && incident?.createdTs) {
       const createdTs = normalizeToMs(incident.createdTs);
-      if (createdTs > 0 && (activityFilter === 'all' || activityFilter === 'steps')) {
+      // The synthetic "Incident created" marker rides along with the
+      // Changes filter (since it conceptually represents the very first
+      // change to the incident).
+      if (createdTs > 0 && isFilterActive('revisions')) {
         const sourceLabel = incident.source ? ` from ${incident.source}` : '';
         items.push({
           type: 'step',
@@ -3514,20 +3565,22 @@ const IncidentDetailPage = () => {
       }
     }
 
-    if (activityFilter === 'all' || activityFilter === 'agent') {
+    if (isFilterActive('agent')) {
+      // Skipped runs (workflow-level decision_string.success === false) are
+      // hidden from the unified timeline by default because the agent itself
+      // never ran — only the routing check did. They become visible when the
+      // user has narrowed the timeline to *only* the Agent filter so
+      // debugging skipped runs is still possible.
+      const onlyAgent = activeTimelineFilters.size === 1 && activeTimelineFilters.has('agent');
       agentRuns.forEach((run) => {
-        // Skipped runs (workflow-level decision_string.success === false) are
-        // hidden from the unified timeline because the agent itself never ran —
-        // only the routing check did. They remain visible when the user
-        // explicitly filters by "Agent" so debugging skipped runs is possible.
         const skip = getAgentSkipInfo(run);
-        if (skip.skipped && activityFilter !== 'agent') return;
+        if (skip.skipped && !onlyAgent) return;
         const ts = normalizeToMs(run.started_at);
         items.push({ type: 'agent', timestamp: ts, data: run });
       });
     }
 
-    if (activityFilter === 'all' || activityFilter === 'manual') {
+    if (isFilterActive('manual')) {
       activity.forEach((item) => {
         items.push({ type: 'manual', timestamp: normalizeToMs(item.timestamp), data: item });
       });
@@ -3536,16 +3589,10 @@ const IncidentDetailPage = () => {
     // ── Step injection ─────────────────────────────────────────────────────
     // Render Tasks, Observables and Correlations as small "step" markers in
     // the timeline so users can see *when* each artefact appeared. These are
-    // injected purely on the frontend — no persistence needed.
-    //
-    // Timestamp sources:
-    //   • Tasks → `createdAt` (and `completedAt` for completion steps).
-    //     Falls back to incident creation time if missing on legacy data.
-    //   • Observables (manual + enrichments) → `first_seen` when present,
-    //     otherwise the incident creation time.
-    //   • Correlations → "discovered at" (when the correlations API returned
-    //     them); they have no native timestamp.
-    if (activityFilter === 'all' || activityFilter === 'steps') {
+    // injected purely on the frontend — no persistence needed. Each artefact
+    // type gates on its own filter so the user can hide e.g. observables
+    // without also hiding tasks.
+    if (isFilterActive('tasks') || isFilterActive('observables') || isFilterActive('correlations')) {
       const fallbackTs = incident?.createdTs ? normalizeToMs(incident.createdTs) : 0;
 
       // Tasks — creation, status transitions, and completion each produce
@@ -3554,7 +3601,7 @@ const IncidentDetailPage = () => {
         taskStatuses.find((s) => s.key === key)?.label
         || (key === 'done' ? 'Done' : key.replace(/[_-]+/g, ' '));
 
-      tasks.filter(t => !t.disabled).forEach((t) => {
+      if (isFilterActive('tasks')) tasks.filter(t => !t.disabled).forEach((t) => {
         const createdTs = t.createdAt ? normalizeToMs(t.createdAt) : fallbackTs;
         if (createdTs > 0) {
           items.push({
@@ -3598,6 +3645,7 @@ const IncidentDetailPage = () => {
         }
       });
 
+      if (isFilterActive('observables')) {
       // Observables — manual entries + automated enrichments. Dedupe by
       // type+value so the same indicator does not appear twice. Bulk
       // observables added within a ~3s window into a single summary pill so
@@ -3699,13 +3747,14 @@ const IncidentDetailPage = () => {
           });
         }
       });
+      } // end isFilterActive('observables')
 
       // Incident-level correlations stay as their own pill (these are
       // shared-attribute matches across other incidents, not per-observable).
       // Per-observable correlations have moved inline onto the observable pill
       // itself so the user can see the match next to the indicator that
       // triggered it instead of as a separate timeline row.
-      if (correlationsDiscoveredAt && correlations.length > 0) {
+      if (isFilterActive('correlations') && correlationsDiscoveredAt && correlations.length > 0) {
         items.push({
           type: 'step',
           kind: 'correlation-found',
@@ -3734,6 +3783,7 @@ const IncidentDetailPage = () => {
     });
 
     if (items.length === 0) {
+      const allHidden = activeTimelineFilters.size === 0;
       return (
         <Box sx={{
           display: 'flex',
@@ -3741,12 +3791,22 @@ const IncidentDetailPage = () => {
           alignItems: 'center',
           justifyContent: 'center',
           py: 4,
+          gap: 1,
           color: 'text.secondary',
         }}>
-          <HistoryIcon sx={{ fontSize: 32, mb: 1, opacity: 0.5 }} />
+          <HistoryIcon sx={{ fontSize: 32, opacity: 0.5 }} />
           <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-            No activity yet
+            {allHidden ? 'All timeline filters are turned off' : 'No activity yet'}
           </Typography>
+          {allHidden && (
+            <Chip
+              label="Show all"
+              size="small"
+              variant="outlined"
+              onClick={() => setActiveTimelineFilters(new Set(ALL_TIMELINE_FILTERS))}
+              sx={{ height: 22, fontSize: '0.7rem', borderColor: 'rgba(255, 102, 0, 0.5)', color: '#ff6600' }}
+            />
+          )}
         </Box>
       );
     }
@@ -3791,7 +3851,7 @@ const IncidentDetailPage = () => {
     };
     const getItemLabel = (it: TimelineItem): string => {
       if (it.type === 'revision') {
-        if (it.idx === revisions.length - 1 && activityFilter !== 'revisions') return 'Incident created';
+        if (it.idx === revisions.length - 1 && !isOnlyRevisionsFilter) return 'Incident created';
         return `Revision #${revisions.length - it.idx}`;
       }
       if (it.type === 'agent') return 'Agent run';
@@ -3877,9 +3937,9 @@ const IncidentDetailPage = () => {
         const diff = item.parsedPrevious ? computeDiff(item.parsedCurrent, item.parsedPrevious) : null;
         const totalChanges = diff ? diff.added.length + diff.removed.length + diff.changed.length : 0;
 
-        if (activityFilter !== 'revisions' && !isFirst && diff && totalChanges === 0) return null;
+        if (!isOnlyRevisionsFilter && !isFirst && diff && totalChanges === 0) return null;
 
-        const showAsCreation = isFirst && activityFilter !== 'revisions';
+        const showAsCreation = isFirst && !isOnlyRevisionsFilter;
         const initialTitle = showAsCreation
           ? (item.parsedCurrent?.title
               || item.parsedCurrent?.finding_info?.title
