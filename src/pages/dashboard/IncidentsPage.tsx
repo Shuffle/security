@@ -2962,7 +2962,7 @@ const IncidentsPage = () => {
           </Box>
           
           <IncidentStatsCards 
-            incidents={filteredIncidents}
+            incidents={activeIncidents}
             currentUsername={currentUsername}
             isLoading={isLoading || !hasFetched}
             onFilterChange={(type, value) => {
@@ -2972,12 +2972,14 @@ const IncidentsPage = () => {
               }));
             }}
           />
-          {/* Incident trend charts */}
-          <IncidentTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-          <SourceTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
+          {/* Incident trend charts — show real totals across all incidents,
+              not the currently filtered list, so the charts stay informative
+              even when the user has a status/severity filter active. */}
+          <IncidentTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
+          <SourceTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
           {/* Org trend chart - only when multiple orgs selected */}
           {Array.isArray(filters.org) && filters.org.length > 1 && (
-            <OrgTrendChart incidents={filteredIncidents} dateFrom={dateFrom} dateTo={dateTo} />
+            <OrgTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} />
           )}
           {/* Irrelevant incidents bar */}
           {irrelevantCount > 0 && (
