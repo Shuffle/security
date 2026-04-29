@@ -162,58 +162,10 @@ const ThreatFeedsPage = () => {
       await initializeDefaults();
       toast.success(`Restored ${DEFAULT_THREAT_FEEDS.length} default threat feeds`);
 
-      // STEP 3 — Background: wipe ingested threat intel (IOCs) so the next
-      // ingest run has a clean slate. Fire-and-forget; it can take a while
-      // on large datasets and must not block the UI reset.
-      void (async () => {
-        try {
-          const orgId = (() => {
-            try {
-              const info = localStorage.getItem('shuffle_user_info');
-              return info ? JSON.parse(info)?.active_org?.id : null;
-            } catch { return null; }
-          })();
-          if (!orgId) return;
-
-          const { getApiUrl, getAuthHeader } = await import('@/config/api');
-          const catRes = await fetch(
-            getApiUrl(`/api/v1/orgs/${orgId}/list_cache`),
-            { credentials: 'include', headers: { ...getAuthHeader() } },
-          );
-          if (!catRes.ok) return;
-          const catData = await catRes.json();
-          const rawCats: Array<{ name?: string } | string> = Array.isArray(catData?.categories)
-            ? catData.categories
-            : (catData?.data || []);
-          const isIntel = (n: string) => {
-            const c = (n || '').toLowerCase();
-            return c.includes('ioc') || c.includes('threat-feed') || c.includes('threat_feed');
-          };
-          const intelCategories = rawCats
-            .map(c => (typeof c === 'string' ? c : c?.name || ''))
-            .filter(name => name && isIntel(name) && name !== DSC.IOCS);
-
-          let cleared = 0;
-          for (const cat of intelCategories) {
-            let bgCursor: string | undefined;
-            for (let i = 0; i < 50; i++) {
-              const page = await getDatastoreByCategory(cat, bgCursor);
-              const items = page?.data || [];
-              if (items.length > 0) {
-                await deleteDatastoreItems(items.map(it => it.key), cat);
-                cleared += items.length;
-              }
-              if (!page?.cursor || items.length === 0) break;
-              bgCursor = page.cursor;
-            }
-          }
-          if (cleared > 0) {
-            console.info(`[ThreatFeeds] Background-cleared ${cleared} ingested IOCs from ${intelCategories.length} categories`);
-          }
-        } catch (clearErr) {
-          console.warn('[ThreatFeeds] Background IOC clear failed:', clearErr);
-        }
-      })();
+      // NOTE: We intentionally do NOT touch ingested IOCs or other threat-intel
+      // datastore categories here. "Reset to Defaults" only restores the feed
+      // list itself — wiping ingested intel caused the UI to flicker/crash and
+      // destroyed user data unexpectedly.
     } catch (err) {
       console.error('Failed to reset threat feeds:', err);
       toast.error('Failed to reset threat feeds');
