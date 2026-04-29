@@ -112,30 +112,71 @@ export interface AgentSkipInfo {
 }
 
 export const getAgentSkipInfo = (run: AgentRun): AgentSkipInfo => {
-  const tryParse = (s: unknown): any => {
-    if (!s || typeof s !== 'string') return null;
-    try { return JSON.parse(s); } catch { return null; }
+  // Robust JSON.parse that survives markdown fences + a couple of common
+  // formatting issues (trailing commas, control chars).
+  const safeParse = (raw: unknown): any => {
+    if (raw == null) return null;
+    if (typeof raw === 'object') return raw;
+    if (typeof raw !== 'string') return null;
+    let s = raw.trim();
+    if (!s) return null;
+    s = s.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    try { return JSON.parse(s); } catch { /* try repair */ }
+    try {
+      const repaired = s
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']')
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1F\x7F]/g, '');
+      return JSON.parse(repaired);
+    } catch {
+      return null;
+    }
   };
 
-  const candidates: any[] = [];
-  const top = tryParse((run as any).result) ?? (run as any).result;
-  if (top && typeof top === 'object') candidates.push(top);
-  if (Array.isArray(run.results)) {
-    for (const r of run.results) {
-      const parsed = tryParse(r?.result);
-      if (parsed && typeof parsed === 'object') candidates.push(parsed);
-    }
-  }
-
-  for (const obj of candidates) {
-    const ds = obj?.decision_string;
+  // Inspect a candidate object for a decision_string — which itself may be
+  // either a real object OR a JSON-encoded string.
+  const inspect = (obj: any): AgentSkipInfo | null => {
+    if (!obj || typeof obj !== 'object') return null;
+    let ds: any = obj.decision_string;
+    if (ds == null) return null;
+    if (typeof ds === 'string') ds = safeParse(ds) ?? ds;
     if (ds && typeof ds === 'object' && ds.success === false) {
       return {
         skipped: true,
         reason: typeof ds.reason === 'string' ? ds.reason : undefined,
       };
     }
+    return null;
+  };
+
+  // 1) Top-level run object (the viewer in the screenshot shows decision_string
+  //    sitting at the root of the run alongside status/started_at).
+  const direct = inspect(run as any);
+  if (direct) return direct;
+
+  // 2) run.result may be a JSON string blob.
+  const topParsed = safeParse((run as any).result);
+  const topHit = inspect(topParsed);
+  if (topHit) return topHit;
+
+  // 3) Any of the run.results[*].result strings.
+  if (Array.isArray(run.results)) {
+    for (const r of run.results) {
+      const parsed = safeParse(r?.result);
+      const hit = inspect(parsed);
+      if (hit) return hit;
+      // Some payloads nest the agent response one level deeper.
+      if (parsed && typeof parsed === 'object') {
+        for (const v of Object.values(parsed)) {
+          const nested = typeof v === 'string' ? safeParse(v) : v;
+          const nestedHit = inspect(nested);
+          if (nestedHit) return nestedHit;
+        }
+      }
+    }
   }
+
   return { skipped: false };
 };
 /**
