@@ -87,6 +87,8 @@ import { useAppDetail } from '@/context/AppDetailContext';
 import { useDemo } from '@/context/DemoContext';
 import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
 import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem } from '@/services/datastore';
+import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
+import type { GenerateReportInput } from '@/services/incidentReports';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
 import { resyncState } from '@/lib/resyncState';
 import { useUsers } from '@/hooks/useUsers';
@@ -739,6 +741,7 @@ const IncidentDetailPage = () => {
   const [showForwardDialog, setShowForwardDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
   const [activityFilter, setActivityFilter] = useState<'all' | 'revisions' | 'agent' | 'manual' | 'steps'>('all');
@@ -5694,6 +5697,16 @@ const IncidentDetailPage = () => {
                 <TaskAltIcon sx={{ fontSize: 16, mr: 1 }} />
                 Simple view
               </MenuItem>
+              {/* Generate Report */}
+              <MenuItem
+                onClick={() => {
+                  setActionsMenuAnchor(null);
+                  setShowReportDialog(true);
+                }}
+              >
+                <DescriptionIcon sx={{ fontSize: 16, mr: 1 }} />
+                Generate Report
+              </MenuItem>
               {/* Visit Source */}
               <MenuItem disabled>
                 <LinkIcon sx={{ fontSize: 16, mr: 1 }} />
@@ -5859,6 +5872,35 @@ const IncidentDetailPage = () => {
                 </MenuItem>
               )}
             </Menu>
+
+            <IncidentReportDialog
+              open={showReportDialog}
+              onClose={() => setShowReportDialog(false)}
+              overrideOrgId={crossOrgId || undefined}
+              generatedBy={currentUsername}
+              buildInput={(): GenerateReportInput => ({
+                incidentId: incident?.id || id || '',
+                title: editedTitle || incident?.title || 'Untitled incident',
+                description: editedMessage || '',
+                source: incident?.source,
+                severity: editedSeverity || incident?.severity,
+                status: editedStatus || incident?.status,
+                assignee: editedAssignee || incident?.assignee || null,
+                created: incident?.created,
+                edited: incident?.edited,
+                tlp: editedTlp || incident?.tlp,
+                pap: incident?.pap,
+                labels: editedLabels,
+                references: editedReferences,
+                customFields: editedCustomFields,
+                observables: editedObservables,
+                enrichments,
+                tasks: visibleTasks,
+                activity: activity as any,
+                agentRuns: (agentRuns || []) as any,
+                rawOCSF: incident?.rawOCSF,
+              })}
+            />
 
           </Box>
         </Box>
