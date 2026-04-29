@@ -3234,28 +3234,35 @@ const IncidentDetailPage = () => {
           </Box>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {([
-              { key: 'all' as const, label: 'All', count: undefined as number | undefined },
               { key: 'revisions' as const, label: 'Changes', count: revisions.length },
               { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
               { key: 'manual' as const, label: 'Comments', count: activity.length },
-              { key: 'steps' as const, label: 'Steps', count: undefined as number | undefined },
-            ]).map(({ key, label, count }) => (
-              <Chip
-                key={key}
-                label={count !== undefined ? `${label} (${count})` : label}
-                size="small"
-                variant="outlined"
-                onClick={() => setActivityFilter(key)}
-                sx={{
-                  height: 24,
-                  fontSize: '0.7rem',
-                  bgcolor: 'transparent',
-                  borderColor: activityFilter === key ? 'rgba(255, 102, 0, 0.5)' : 'rgba(255,255,255,0.12)',
-                  color: activityFilter === key ? '#ff6600' : 'text.secondary',
-                  '&:hover': { bgcolor: 'rgba(255, 102, 0, 0.06)' },
-                }}
-              />
-            ))}
+              { key: 'tasks' as const, label: 'Tasks', count: tasks.filter(t => !t.disabled).length },
+              { key: 'observables' as const, label: 'Observables', count: editedObservables.filter(o => !o.archived).length + enrichments.length },
+              { key: 'correlations' as const, label: 'Correlations', count: correlations.length },
+            ]).map(({ key, label, count }) => {
+              const active = isFilterActive(key);
+              return (
+                <Tooltip key={key} title={active ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`} arrow>
+                  <Chip
+                    label={`${label} (${count})`}
+                    size="small"
+                    variant="outlined"
+                    onClick={() => toggleTimelineFilter(key)}
+                    sx={{
+                      height: 24,
+                      fontSize: '0.7rem',
+                      bgcolor: 'transparent',
+                      borderColor: active ? 'rgba(255, 102, 0, 0.5)' : 'hsl(var(--border))',
+                      color: active ? '#ff6600' : 'text.secondary',
+                      opacity: active ? 1 : 0.5,
+                      textDecoration: active ? 'none' : 'line-through',
+                      '&:hover': { bgcolor: 'rgba(255, 102, 0, 0.06)', opacity: 1 },
+                    }}
+                  />
+                </Tooltip>
+              );
+            })}
           </Box>
         </Box>
       </Box>
