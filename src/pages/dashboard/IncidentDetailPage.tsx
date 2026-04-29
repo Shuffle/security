@@ -3783,6 +3783,7 @@ const IncidentDetailPage = () => {
     });
 
     if (items.length === 0) {
+      const allHidden = activeTimelineFilters.size === 0;
       return (
         <Box sx={{
           display: 'flex',
@@ -3790,12 +3791,22 @@ const IncidentDetailPage = () => {
           alignItems: 'center',
           justifyContent: 'center',
           py: 4,
+          gap: 1,
           color: 'text.secondary',
         }}>
-          <HistoryIcon sx={{ fontSize: 32, mb: 1, opacity: 0.5 }} />
+          <HistoryIcon sx={{ fontSize: 32, opacity: 0.5 }} />
           <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-            No activity yet
+            {allHidden ? 'All timeline filters are turned off' : 'No activity yet'}
           </Typography>
+          {allHidden && (
+            <Chip
+              label="Show all"
+              size="small"
+              variant="outlined"
+              onClick={() => setActiveTimelineFilters(new Set(ALL_TIMELINE_FILTERS))}
+              sx={{ height: 22, fontSize: '0.7rem', borderColor: 'rgba(255, 102, 0, 0.5)', color: '#ff6600' }}
+            />
+          )}
         </Box>
       );
     }
