@@ -210,7 +210,7 @@ const ThreatFeedsPage = () => {
             </IconButton>
           </Tooltip>
           {feeds.length > 0 && (
-            <Tooltip title="Remove all current feeds and restore the curated default list">
+            <Tooltip title="Restore the curated default feed list without removing existing threat intelligence">
               <span>
                 <Button 
                   variant="outlined" 

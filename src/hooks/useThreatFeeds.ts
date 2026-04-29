@@ -119,10 +119,9 @@ export const DEFAULT_THREAT_FEEDS: ThreatFeed[] = [
  *     initializeDefaults).
  *   - The demo-mode live environment bootstrap.
  *
- * Writes the curated DEFAULT_THREAT_FEEDS into the datastore using the
- * bulk API. Caller is responsible for deciding *whether* to call this —
- * this helper unconditionally writes (it is what "Reset to Defaults"
- * needs).
+ * Writes the curated DEFAULT_THREAT_FEEDS into the datastore. Caller is
+ * responsible for deciding *whether* to call this — this helper
+ * unconditionally writes default feed keys without deleting existing data.
  *
  * Returns true on success, false on failure.
  */
