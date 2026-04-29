@@ -4088,7 +4088,9 @@ const IncidentDetailPage = () => {
               },
             }}
           >
-            <ZapIcon size={14} style={{ color: accent, flexShrink: 0 }} />
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: skip.skipped ? 0.6 : 1 }}>
+              <AgentIcon size={14} />
+            </Box>
             <Typography
               sx={{
                 fontSize: '0.8125rem',
