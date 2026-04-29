@@ -2714,6 +2714,8 @@ const IncidentDetailPage = () => {
     // Backend may extract IOCs from comment text and create enrichments
     if (obsRefreshTimerRef.current) clearTimeout(obsRefreshTimerRef.current);
     setRefreshingObservables(true);
+    obsRefreshBaselineRef.current =
+      editedObservables.filter(o => !o.archived).length + enrichments.length;
     const refreshId = Date.now();
     (obsRefreshTimerRef as any)._activeId = refreshId;
     // Hard wall-clock safety: force the spinner off after 20s even if the
