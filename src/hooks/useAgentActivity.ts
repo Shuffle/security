@@ -99,11 +99,25 @@ export const useAgentActivity = (autoFetch = true) => {
       : 0,
   };
 
-  // Filter runs by debounced search query (searches through results too)
+  // Filter runs by skipped state and debounced search query
+  const skippedCount = useMemo(
+    () => runs.filter(r => getAgentSkipInfo(r).skipped).length,
+    [runs]
+  );
+
   const filteredRuns = useMemo(() => {
-    if (!debouncedQuery) return runs;
-    return runs.filter(r => runMatchesSearch(r, debouncedQuery));
-  }, [runs, debouncedQuery]);
+    let list = runs;
+    if (statusFilter === 'SKIPPED') {
+      list = list.filter(r => getAgentSkipInfo(r).skipped);
+    } else if (!statusFilter) {
+      // Default: hide skipped
+      list = list.filter(r => !getAgentSkipInfo(r).skipped);
+    }
+    if (debouncedQuery) {
+      list = list.filter(r => runMatchesSearch(r, debouncedQuery));
+    }
+    return list;
+  }, [runs, debouncedQuery, statusFilter]);
 
   useEffect(() => {
     if (autoFetch) {
