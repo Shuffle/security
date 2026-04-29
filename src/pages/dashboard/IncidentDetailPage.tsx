@@ -3645,6 +3645,7 @@ const IncidentDetailPage = () => {
         }
       });
 
+      if (isFilterActive('observables')) {
       // Observables — manual entries + automated enrichments. Dedupe by
       // type+value so the same indicator does not appear twice. Bulk
       // observables added within a ~3s window into a single summary pill so
