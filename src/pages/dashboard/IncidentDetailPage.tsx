@@ -792,6 +792,16 @@ const IncidentDetailPage = () => {
   // "Incident created". The equivalent in the new multi-select model is
   // "only the Changes filter is enabled".
   const isOnlyRevisionsFilter = activeTimelineFilters.size === 1 && activeTimelineFilters.has('revisions');
+  // Timeline expand/collapse — same UX as Email Thread / Description sections.
+  // Persisted per-browser so the choice survives navigation.
+  const TIMELINE_COLLAPSED_STORAGE_KEY = 'shuffle-incident-timeline-collapsed';
+  const [timelineCollapsed, setTimelineCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem(TIMELINE_COLLAPSED_STORAGE_KEY) === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(TIMELINE_COLLAPSED_STORAGE_KEY, timelineCollapsed ? '1' : '0'); } catch { /* ignore */ }
+  }, [timelineCollapsed]);
   const [revisionDialogData, setRevisionDialogData] = useState<{ json: string; changedKeys: Set<string> } | null>(null);
   const initialTab = (() => {
     const t = searchParams.get('tab');
@@ -3239,7 +3249,17 @@ const IncidentDetailPage = () => {
             <HistoryIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Timeline</Typography>
             {revisionsLoading && <CircularProgress size={14} sx={{ color: '#ff6600' }} />}
+            <Tooltip title={timelineCollapsed ? 'Expand timeline' : 'Collapse timeline'} arrow>
+              <IconButton
+                size="small"
+                onClick={() => setTimelineCollapsed(v => !v)}
+                sx={{ ml: 0.25, width: 24, height: 24, color: 'text.secondary' }}
+              >
+                {timelineCollapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />}
+              </IconButton>
+            </Tooltip>
           </Box>
+          {!timelineCollapsed && (
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {([
               { key: 'revisions' as const, label: 'Changes', count: revisions.length },
@@ -3305,9 +3325,11 @@ const IncidentDetailPage = () => {
               );
             })}
           </Box>
+          )}
         </Box>
       </Box>
 
+      {!timelineCollapsed && (<>
       {/* Comment Input */}
       <Box sx={{ p: 2, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -3537,6 +3559,7 @@ const IncidentDetailPage = () => {
             to the message they relate to instead of floating at the top. */}
         {renderTimelineFeedItems()}
       </Box>
+      </>)}
     </>
   );
 
