@@ -713,39 +713,137 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
                   {/* AI Agent Configuration - multiple prompts */}
                   {automation.enabled && automation.type === 'ai_agent' && expandedTypes['ai_agent'] && (
-                    <Box sx={{ px: 2, pb: 2, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {aiAgentPrompts.map((prompt, idx) => (
-                        <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <PopupTextEditor
-                            value={prompt}
-                            onChange={(next) => {
-                              const updated = [...aiAgentPrompts];
-                              updated[idx] = next;
-                              setAiAgentPrompts(updated);
-                              setHasChanges(true);
+                    <Box sx={{ px: 2, pb: 2, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                      {aiAgentPrompts.map((prompt, idx) => {
+                        const apps = aiAgentApps[idx] || [];
+                        return (
+                          <Box
+                            key={idx}
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 0.75,
+                              p: 1,
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: 1.5,
+                              bgcolor: 'hsl(var(--muted) / 0.2)',
                             }}
-                            placeholder={`Prompt ${idx + 1}...`}
-                            title={`Edit prompt ${idx + 1}`}
-                            subtitle="Full editor for the AI Agent prompt. More controls (permissions, variables) coming soon."
-                          />
-                          {aiAgentPrompts.length > 1 && (
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setAiAgentPrompts(aiAgentPrompts.filter((_, i) => i !== idx));
-                                setHasChanges(true);
-                              }}
-                              sx={{ color: 'text.secondary', '&:hover': { color: 'hsl(var(--destructive))' } }}
-                            >
-                              <CloseIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                          )}
-                        </Box>
-                      ))}
+                          >
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                              <PopupTextEditor
+                                value={prompt}
+                                onChange={(next) => {
+                                  const updated = [...aiAgentPrompts];
+                                  updated[idx] = next;
+                                  setAiAgentPrompts(updated);
+                                  setHasChanges(true);
+                                }}
+                                placeholder={`Prompt ${idx + 1}...`}
+                                title={`Edit prompt ${idx + 1}`}
+                                subtitle="Full editor for the AI Agent prompt."
+                              />
+                              {aiAgentPrompts.length > 1 && (
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    setAiAgentPrompts(aiAgentPrompts.filter((_, i) => i !== idx));
+                                    setAiAgentApps(aiAgentApps.filter((_, i) => i !== idx));
+                                    setHasChanges(true);
+                                  }}
+                                  sx={{ color: 'text.secondary', '&:hover': { color: 'hsl(var(--destructive))' } }}
+                                >
+                                  <CloseIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              )}
+                            </Box>
+
+                            {/* Per-prompt App Permissions */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                              <Typography sx={{
+                                fontSize: '0.65rem',
+                                fontWeight: 600,
+                                color: 'hsl(var(--muted-foreground))',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                              }}>
+                                Allowed apps
+                              </Typography>
+                              <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                flexWrap: 'wrap',
+                                flex: 1,
+                              }}>
+                                {apps.length === 0 && (
+                                  <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', opacity: 0.7 }}>
+                                    All authenticated apps
+                                  </Typography>
+                                )}
+                                {apps.map((appName) => {
+                                  const img = appImageByName.get(appName) || `https://shuffler.io/images/apps/${appName}.png`;
+                                  return (
+                                    <Tooltip key={appName} title={`Remove ${appName.replace(/_/g, ' ')}`}>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                          const updated = [...aiAgentApps];
+                                          updated[idx] = (updated[idx] || []).filter(n => n !== appName);
+                                          setAiAgentApps(updated);
+                                          setHasChanges(true);
+                                        }}
+                                        sx={{
+                                          width: 26,
+                                          height: 26,
+                                          border: '1px solid hsl(var(--severity-low) / 0.3)',
+                                          bgcolor: 'hsl(var(--severity-low) / 0.1)',
+                                          borderRadius: 1,
+                                          '&:hover': {
+                                            bgcolor: 'hsl(var(--destructive) / 0.15)',
+                                            borderColor: 'hsl(var(--destructive) / 0.4)',
+                                          },
+                                        }}
+                                      >
+                                        <Box
+                                          component="img"
+                                          src={img}
+                                          alt={appName}
+                                          sx={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'contain' }}
+                                        />
+                                      </IconButton>
+                                    </Tooltip>
+                                  );
+                                })}
+                                <Tooltip title="Add allowed app">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => setAppPickerForIdx(idx)}
+                                    sx={{
+                                      width: 24,
+                                      height: 24,
+                                      color: 'hsl(var(--muted-foreground))',
+                                      border: '1px dashed hsl(var(--border))',
+                                      borderRadius: 1,
+                                      '&:hover': {
+                                        bgcolor: 'hsl(var(--muted))',
+                                        borderStyle: 'solid',
+                                        color: 'hsl(var(--primary))',
+                                      },
+                                    }}
+                                  >
+                                    <AddIcon sx={{ fontSize: 14 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                          </Box>
+                        );
+                      })}
                       <Button
                         size="small"
                         onClick={() => {
                           setAiAgentPrompts([...aiAgentPrompts, '']);
+                          setAiAgentApps([...aiAgentApps, []]);
                           setHasChanges(true);
                         }}
                         sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: '0.8rem', color: 'hsl(var(--severity-low))' }}
