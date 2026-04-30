@@ -34,6 +34,7 @@ import type {
 } from '@/components/users/OnCallScheduleManager';
 import { computeDefaultPolicy } from '@/components/users/OnCallScheduleManager';
 import { useUsers } from '@/hooks/useUsers';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface ScheduleHealthBannerProps {
   manageHref?: string;
