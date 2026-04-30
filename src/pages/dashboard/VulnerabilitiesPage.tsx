@@ -53,6 +53,7 @@ const STATUS_LABELS: Record<string, string> = {
 const VulnerabilitiesPage = () => {
   usePageMeta({ title: 'Vulnerabilities', description: 'Track and manage vulnerabilities across assets and users' });
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const isAdmin = useIsAdmin();
   if (authLoading) return null;
   if (!isAuthenticated) return <PublicVulnerabilitiesView />;
   return <AuthenticatedVulnerabilitiesView />;
