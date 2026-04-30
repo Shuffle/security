@@ -180,6 +180,7 @@ export const ScheduleHealthBanner = ({
     }
   };
 
+  if (!isAdmin) return null;
   if (loading || issues.length === 0) return null;
   if (typeof minIncidents === 'number' && (incidentCount ?? 0) < minIncidents) return null;
   if (dismissed && dismissKey) {
