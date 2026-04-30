@@ -1812,6 +1812,8 @@ function UsecaseDetailContent({
         }
       } catch {
         if (!cancelled) setCategoryAppNames({});
+      } finally {
+        if (!cancelled) setCategoryAppsResolved(true);
       }
     };
 
