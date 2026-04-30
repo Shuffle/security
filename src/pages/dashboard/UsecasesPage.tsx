@@ -2061,7 +2061,28 @@ function UsecaseDetailContent({
           Connection Path
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-          {[{ title: 'Source', meta: sourceCat, details: sourceDetails, appNames: categoryAppNames[flow.source] || [] }, { title: 'Destination', meta: targetCat, details: targetDetails, appNames: categoryAppNames[flow.target] || [] }].map((endpoint, index) => (
+          {[
+            { title: 'Source', meta: sourceCat, details: sourceDetails, categoryId: flow.source, appNames: categoryAppNames[flow.source] || [] },
+            { title: 'Destination', meta: targetCat, details: targetDetails, categoryId: flow.target, appNames: categoryAppNames[flow.target] || [] },
+          ].map((endpoint) => {
+            // The Shuffle platform itself owns the Cases category, so always
+            // surface "Shuffle Security" alongside any installed case-management
+            // apps. Pre-pend it so it sorts first and the user immediately sees
+            // that Shuffle covers this leg of the flow.
+            const isCases = endpoint.categoryId === 'case_management';
+            const appNamesWithShuffle = isCases
+              ? ['Shuffle Security', ...endpoint.appNames.filter((n) => n.toLowerCase() !== 'shuffle security')]
+              : endpoint.appNames;
+            const synthetic = isCases
+              ? [{
+                  id: 'shuffle-security',
+                  name: 'Shuffle Security',
+                  icon: shuffleSecurityIcon,
+                  validated: true,
+                  active: true,
+                }]
+              : undefined;
+            return (
             <Box key={endpoint.title} sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontSize: '0.66rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
                 {endpoint.title}
@@ -2086,9 +2107,14 @@ function UsecaseDetailContent({
               <Typography sx={{ fontSize: '0.64rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
                 Your Tools
               </Typography>
-              <IntegrationStatusLite filterApps={endpoint.appNames} />
+              <IntegrationStatusLite
+                filterApps={appNamesWithShuffle}
+                isResolving={!categoryAppsResolved}
+                syntheticApps={synthetic}
+              />
             </Box>
-          ))}
+            );
+          })}
         </Box>
       </Box>
 
