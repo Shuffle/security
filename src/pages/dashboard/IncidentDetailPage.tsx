@@ -6172,7 +6172,7 @@ const IncidentDetailPage = () => {
                 { label: 'Details', count: null, tour: 'incident-tab-details' },
                 { label: 'Tasks', count: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length}` : null, tour: 'incident-tab-tasks' },
                 { label: 'Observables', count: visibleObservablesCount > 0 ? visibleObservablesCount : null, loading: refreshingObservables, tour: 'incident-tab-observables' },
-                { label: 'Correlations', count: correlations.length > 0 ? correlations.length : null, loading: correlationsLoading, tour: 'incident-tab-correlations' },
+                { label: 'Correlations', count: visibleCorrelations.length > 0 ? visibleCorrelations.length : null, loading: correlationsLoading, tour: 'incident-tab-correlations' },
               ].map((tab, index) => (
                 <Box
                   key={tab.label}
