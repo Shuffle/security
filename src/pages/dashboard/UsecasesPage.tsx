@@ -2389,6 +2389,57 @@ function UsecasesPageInner() {
     return set;
   }, [trustedWorkflowStates, workflowEnabledLabels]);
 
+  // Categories (e.g. 'siem', 'edr', 'email') for which the user has at least
+  // one *authenticated* / validated source-tool installed. We use this to gate
+  // the visual "Enabled" state on cards: a workflow can be generated server-
+  // side, but it is not actually doing anything useful until a source tool
+  // can feed it. Sourced from /api/v1/apps/authentication so the signal
+  // matches the IntegrationStatus indicator (green dot = validated).
+  const [validatedCategories, setValidatedCategories] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl('/api/v1/apps/authentication'), {
+          credentials: 'include',
+          headers: { ...authHeader() },
+        });
+        if (!res.ok) return;
+        const body = await res.json();
+        const list = Array.isArray(body) ? body : (body?.data || []);
+        const cats = new Set<string>();
+        for (const entry of Array.isArray(list) ? list : []) {
+          // Only count fully-validated authentications — matches the green
+          // dot in IntegrationStatus. An unvalidated/active one is not yet
+          // a working source.
+          if (entry?.validation?.valid !== true) continue;
+          const app = entry?.app;
+          if (!app?.name) continue;
+          const categoryId = matchAppToCategory(app.name, app.categories || []);
+          if (categoryId) cats.add(categoryId);
+        }
+        if (!cancelled) setValidatedCategories(cats);
+      } catch {
+        /* keep previous state */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [apiUrl, authHeader]);
+
+  // Compose the final per-flow "is enabled" predicate. A flow is shown as
+  // enabled only when (a) a workflow exists for its automationLabel AND
+  // (b) at least one validated source-tool covers `flow.source`. Without (b)
+  // the workflow has no input and would never run, so surfacing a green
+  // "Disable" button there is misleading.
+  const isFlowVisuallyEnabled = React.useCallback(
+    (flow: Usecase): boolean => {
+      if (!flow.automationLabel) return false;
+      if (!enabledLabels.has(flow.automationLabel)) return false;
+      return validatedCategories.has(flow.source);
+    },
+    [enabledLabels, validatedCategories],
+  );
+
   const handleUsecaseWorkflowGenerated = React.useCallback((label: string, enabled: boolean) => {
     setTrustedWorkflowStates((prev) => ({ ...prev, [label]: enabled }));
     window.setTimeout(() => { refetchWorkflows(); }, 3000);
