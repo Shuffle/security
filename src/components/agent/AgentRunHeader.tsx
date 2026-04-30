@@ -156,6 +156,12 @@ const AgentRunHeader = ({ run, onClick, showChevron, isExpanded }: AgentRunHeade
   const failureInfo = isFailed ? getFailureInfo(run) : null;
   const isUnsure = !isSkipped && !isFailed && hasOutputWarning(run);
 
+  // Pivot link — when this run references an incident via a Datastore block,
+  // expose a click-through so users can jump straight to the related incident
+  // from the Agent Activity view.
+  const dsRef = parseDatastoreReference(run);
+  const incidentKey = dsRef && isIncidentReference(dsRef) ? dsRef.key : null;
+
   return (
     <Box
       onClick={onClick}
