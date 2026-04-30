@@ -88,7 +88,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAppDetail } from '@/context/AppDetailContext';
 import { useDemo } from '@/context/DemoContext';
 import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
-import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem } from '@/services/datastore';
+import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem, getDatastoreByCategory } from '@/services/datastore';
 import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
 import type { GenerateReportInput } from '@/services/incidentReports';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
