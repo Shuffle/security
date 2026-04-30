@@ -26,8 +26,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { Activity, CheckCircle2, Circle, AlertCircle, Clock, Wrench, MessageCircleQuestion, Flag, Play, Brain, ChevronRight, ChevronDown } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import AgentIcon from '@/components/agent/AgentIcon';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { runAgent } from '@/services/agentRun';
@@ -108,7 +106,7 @@ const DECISION_TYPE_CONFIG: Record<DecisionType, {
 /** Fields rendered explicitly on the card — excluded from the Details dump. */
 const SURFACED_FIELDS = new Set([
   'title', 'description', 'status', 'timestamp', 'duration',
-  'action', 'result', 'tool', 'reason',
+  'action', 'result', 'tool',
 ]);
 
 const DecisionItem = ({
@@ -121,6 +119,7 @@ const DecisionItem = ({
   isLast: boolean;
 }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
   const type = classifyDecision(decision);
   const cfg = DECISION_TYPE_CONFIG[type];
   const label = decision.title || decision.action?.replace(/_/g, ' ') || cfg.label;
@@ -142,7 +141,7 @@ const DecisionItem = ({
 
   const durationMs = typeof decision.duration === 'number' ? decision.duration * 1000 : 0;
 
-  // Extra fields not surfaced explicitly — shown inside Details
+  // Extra fields not surfaced explicitly — shown inside Details (includes `reason`)
   const extraEntries = Object.entries(decision).filter(([k, v]) => {
     if (SURFACED_FIELDS.has(k)) return false;
     if (v === null || v === undefined || v === '') return false;
@@ -151,7 +150,9 @@ const DecisionItem = ({
     return true;
   });
 
-  const hasReason = typeof decision.reason === 'string' && decision.reason.trim().length > 0;
+  // Sort so `reason` appears first in Details
+  extraEntries.sort(([a], [b]) => (a === 'reason' ? -1 : b === 'reason' ? 1 : 0));
+
   const hasDetails = extraEntries.length > 0;
 
   return (
@@ -269,50 +270,6 @@ const DecisionItem = ({
             </Box>
           )}
 
-          {/* Reason — primary "why" rendered as Markdown */}
-          {hasReason && (
-            <Box sx={{
-              mx: 1.5, mb: 1, px: 1.25, py: 1,
-              borderRadius: 1,
-              bgcolor: 'hsl(var(--background))',
-              border: `1px solid ${cfg.borderColor}`,
-              borderLeft: `2px solid ${cfg.color}`,
-              '& p': {
-                fontSize: '0.76rem',
-                color: 'hsl(var(--foreground))',
-                lineHeight: 1.6,
-                m: 0,
-                mb: 0.5,
-              },
-              '& p:last-child': { mb: 0 },
-              '& strong': { color: cfg.color, fontWeight: 700 },
-              '& code': {
-                fontSize: '0.7rem',
-                bgcolor: 'hsl(var(--muted))',
-                px: 0.5,
-                py: 0.15,
-                borderRadius: 0.5,
-                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-              },
-              '& ul, & ol': { fontSize: '0.76rem', pl: 2.25, m: 0, mb: 0.5 },
-            }}>
-              <Typography sx={{
-                fontSize: '0.58rem',
-                fontWeight: 700,
-                color: cfg.color,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                mb: 0.5,
-                opacity: 0.85,
-              }}>
-                Reason
-              </Typography>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {decision.reason as string}
-              </ReactMarkdown>
-            </Box>
-          )}
-
           {/* Tool badge */}
           {decision.tool && (
             <Box sx={{ px: 1.5, pb: 1 }}>
@@ -416,6 +373,56 @@ const DecisionItem = ({
               )}
             </Box>
           )}
+
+          {/* Debug (collapsible) — full raw decision JSON */}
+          <Box sx={{ px: 1.5, pb: 1 }}>
+            <Box
+              onClick={() => setDebugOpen((v) => !v)}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                cursor: 'pointer',
+                userSelect: 'none',
+                color: 'hsl(var(--muted-foreground))',
+                opacity: 0.7,
+                '&:hover': { color: 'hsl(var(--foreground))', opacity: 1 },
+              }}
+            >
+              {debugOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+              <Typography sx={{
+                fontSize: '0.6rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}>
+                Debug
+              </Typography>
+            </Box>
+            {debugOpen && (
+              <Box sx={{
+                mt: 0.75,
+                p: 1,
+                borderRadius: 1,
+                bgcolor: 'hsl(var(--muted))',
+                border: '1px solid hsl(var(--border))',
+                overflow: 'auto',
+                maxHeight: 320,
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontSize: '0.68rem',
+                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+                  color: 'hsl(var(--foreground))',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.5,
+                }}>
+                  {JSON.stringify(decision, null, 2)}
+                </pre>
+              </Box>
+            )}
+          </Box>
 
           {/* Footer */}
           {(decision.status || decision.timestamp) && (
