@@ -1276,6 +1276,13 @@ const IncidentDetailPage = () => {
     });
     return set;
   }, [obsCorrelations]);
+  // Filtered view of correlations that drops any whose key matches an
+  // ignored observable value. Used by every "Correlations (N)" badge and the
+  // timeline so the count agrees with what the user actually sees.
+  const visibleCorrelations = useMemo(
+    () => correlations.filter(c => !ignoredObs.isValueIgnored(c.key)),
+    [correlations, ignoredObs],
+  );
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
   // Track the initial normalized values so auto-save doesn't fire on load
