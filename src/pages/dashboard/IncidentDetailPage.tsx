@@ -4189,24 +4189,16 @@ const IncidentDetailPage = () => {
               borderRadius: 1.5,
               border: skip.skipped
                 ? '1px dashed hsl(var(--border))'
-                : hasWarning
-                  ? '1px solid hsl(var(--severity-medium) / 0.5)'
-                  : '1px solid hsl(var(--border))',
+                : '1px solid hsl(var(--border))',
               bgcolor: skip.skipped
                 ? 'hsl(var(--muted) / 0.2)'
-                : hasWarning
-                  ? 'hsl(var(--severity-medium) / 0.06)'
-                  : 'hsl(var(--card))',
+                : 'hsl(var(--card))',
               opacity: skip.skipped ? 0.85 : 1,
               cursor: 'pointer',
               transition: 'border-color 0.15s ease, background-color 0.15s ease',
               '&:hover': {
-                borderColor: hasWarning
-                  ? 'hsl(var(--severity-medium) / 0.7)'
-                  : 'hsl(var(--muted-foreground) / 0.4)',
-                bgcolor: hasWarning
-                  ? 'hsl(var(--severity-medium) / 0.1)'
-                  : 'hsl(var(--muted) / 0.3)',
+                borderColor: 'hsl(var(--muted-foreground) / 0.4)',
+                bgcolor: 'hsl(var(--muted) / 0.3)',
               },
             }}
           >
