@@ -1318,6 +1318,39 @@ const IncidentDetailPage = () => {
     () => correlations.filter(c => !ignoredObs.isValueIgnored(c.key)),
     [correlations, ignoredObs],
   );
+
+  // ---------------------------------------------------------------------
+  // Merge candidate suggestions
+  //
+  // Build the input signal sets — observable keys, correlation keys, and
+  // the subset that we already know matches a known IOC. Each is wrapped
+  // in `useMemo` so identity only changes when the underlying data does;
+  // that keeps the candidate scoring inside `useMergeCandidates` stable
+  // while correlations stream in over time.
+  // ---------------------------------------------------------------------
+  const currentObservableKeys = useMemo(() => {
+    const set = new Set<string>();
+    (incident?.observables || []).forEach((o: any) => {
+      if (!o?.value || !o?.type) return;
+      set.add(`${String(o.type).toLowerCase()}::${String(o.value).toLowerCase()}`);
+    });
+    return set;
+  }, [incident?.observables]);
+
+  const currentCorrelationKeys = useMemo(() => {
+    const set = new Set<string>();
+    visibleCorrelations.forEach(c => set.add(String(c.key).toLowerCase()));
+    return set;
+  }, [visibleCorrelations]);
+
+  const mergeCandidates = useMergeCandidates({
+    currentIncidentId: incident?.id,
+    currentTitle: incident?.title || '',
+    currentObservableKeys,
+    currentCorrelationKeys,
+    currentIocKeys: iocObservableKeys,
+    enabled: !!incident?.id && !isPublicView,
+  });
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
   // Track the initial normalized values so auto-save doesn't fire on load
