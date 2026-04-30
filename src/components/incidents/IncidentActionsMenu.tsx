@@ -68,10 +68,6 @@ export interface IncidentActionsMenuProps {
   publicAuthorization?: string;
   /** Optional list of orgs that share this incident (for cross-org save). */
   sharedOrgs?: Array<{ id: string; name?: string; image?: string }>;
-  /** Show the "Simple view" entry. Hide when already in the simple view. */
-  showSimpleViewEntry?: boolean;
-  /** Show "Full view" entry instead of "Simple view". */
-  showFullViewEntry?: boolean;
 }
 
 const buttonSx = {
