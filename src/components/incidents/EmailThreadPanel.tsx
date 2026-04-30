@@ -28,7 +28,6 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import PersonIcon from '@mui/icons-material/Person';
 import DOMPurify from 'dompurify';
 import { resolveEmailThread, type ResolvedEmailThread } from '@/lib/emailThreadAdapters';
-import { stripColorStyles } from '@/utils/sanitizeEmailHtml';
 
 export interface EmailMessage {
   id: string;
