@@ -2034,13 +2034,16 @@ function UsecaseDetailContent({
                       ? 'transparent'
                       : 'hsl(var(--primary, 24 100% 50%))',
                     color: effectiveEnabled
-                      ? 'hsl(var(--muted-foreground))'
+                      ? 'hsl(var(--foreground))'
                       : 'hsl(var(--primary-foreground, 0 0% 100%))',
-                    border: effectiveEnabled ? '1px solid hsl(var(--border))' : 'none',
+                    border: effectiveEnabled ? '1px solid hsl(var(--border))' : '1px solid transparent',
+                    boxShadow: 'none',
                     '&:hover': {
                       bgcolor: effectiveEnabled
-                        ? 'hsl(var(--muted) / 0.6)'
+                        ? 'transparent'
                         : 'hsla(24, 100%, 50%, 0.9)',
+                      borderColor: effectiveEnabled ? 'hsl(var(--foreground) / 0.4)' : 'transparent',
+                      boxShadow: 'none',
                     },
                   }}
                 >
