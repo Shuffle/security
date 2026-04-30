@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
 import { AppAuthCard } from '@/components/onboarding/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
 import { useAppAuth } from '@/hooks/useAppAuth';
+import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
+import { refreshAllIntegrationStatus } from '@/components/layout/IntegrationStatus';
 import singulAgentIcon from '@/assets/singul-agent-icon.png';
 
 const OPENAI_APP_NAME = 'OpenAI';
