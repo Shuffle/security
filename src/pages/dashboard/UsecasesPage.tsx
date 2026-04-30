@@ -2768,7 +2768,7 @@ function UsecasesPageInner() {
                 flow={flow}
                 drift={getDrift(flow.id)}
                 apiLoaded={apiLoaded}
-                isEnabled={!!flow.automationLabel && enabledLabels.has(flow.automationLabel)}
+                isEnabled={isFlowVisuallyEnabled(flow)}
                 hasInterest={isSupport && interestNames.has(flow.label)}
                 canToggle={isAuthenticated && !!flow.automationLabel}
                 isAuthenticated={isAuthenticated}
@@ -2848,7 +2848,7 @@ function UsecasesPageInner() {
         <Box sx={{ p: { xs: 2, md: 3 } }}>
           {(() => {
             const drawerFlow = drawerFlowId ? usecases.find(u => u.id === drawerFlowId) : null;
-            const drawerEnabled = !!drawerFlow?.automationLabel && enabledLabels.has(drawerFlow.automationLabel);
+            const drawerEnabled = drawerFlow ? isFlowVisuallyEnabled(drawerFlow) : false;
             const drawerCanToggle = isAuthenticated && !!drawerFlow?.automationLabel;
             return (
               <UsecaseDetailContent
