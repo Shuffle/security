@@ -900,6 +900,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       onClose={() => setPromptEditor(null)}
       maxWidth="md"
       fullWidth
+      sx={{ zIndex: 9999 }}
       PaperProps={{
         sx: {
           background: 'hsl(var(--card))',
