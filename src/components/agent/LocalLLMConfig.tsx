@@ -3,7 +3,7 @@ import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField }
 import { AppAuthCard } from '@/components/onboarding/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
 import { useAppAuth } from '@/hooks/useAppAuth';
-import { API_CONFIG, getApiUrl, getAuthHeader } from '@/config/api';
+import { getApiUrl, getAuthHeader } from '@/config/api';
 import { refreshAllIntegrationStatus } from '@/components/layout/IntegrationStatus';
 import singulAgentIcon from '@/assets/singul-agent-icon.png';
 
