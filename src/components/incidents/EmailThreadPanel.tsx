@@ -76,6 +76,10 @@ const hashColor = (s: string): string => {
  * Detect whether content is email-like by looking for common patterns.
  */
 export const isEmailContent = (text: string, html: string, rawOCSF?: any): boolean => {
+  // Strongest signal: rawOCSF.unmapped_original parses cleanly as a known
+  // email provider payload (Gmail / Outlook / generic envelope).
+  if (rawOCSF && resolveEmailThread(rawOCSF)) return true;
+
   // Check OCSF fields for email indicators
   if (rawOCSF) {
     const src = rawOCSF.metadata?.product?.name?.toLowerCase() || '';
