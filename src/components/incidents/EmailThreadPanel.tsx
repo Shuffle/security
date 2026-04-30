@@ -680,7 +680,14 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
             <Button
               size="small"
               variant="outlined"
-              onClick={() => { setShowReplyBox(false); setReplyText(''); }}
+              onClick={() => {
+                setShowReplyBox(false);
+                setReplyText('');
+                setReplyCc('');
+                setReplyBcc('');
+                setShowCc(false);
+                setShowBcc(false);
+              }}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
               Cancel
@@ -690,7 +697,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
               variant="contained"
               startIcon={<SendIcon sx={{ fontSize: 14 }} />}
               onClick={handleReply}
-              disabled={!replyText.trim()}
+              disabled={!replyText.trim() || !replyTo.trim()}
               sx={{
                 fontSize: '0.75rem',
                 textTransform: 'none',
