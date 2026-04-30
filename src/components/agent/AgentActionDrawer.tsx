@@ -272,50 +272,6 @@ const DecisionItem = ({
             </Box>
           )}
 
-          {/* Reason — primary "why" rendered as Markdown */}
-          {hasReason && (
-            <Box sx={{
-              mx: 1.5, mb: 1, px: 1.25, py: 1,
-              borderRadius: 1,
-              bgcolor: 'hsl(var(--background))',
-              border: `1px solid ${cfg.borderColor}`,
-              borderLeft: `2px solid ${cfg.color}`,
-              '& p': {
-                fontSize: '0.76rem',
-                color: 'hsl(var(--foreground))',
-                lineHeight: 1.6,
-                m: 0,
-                mb: 0.5,
-              },
-              '& p:last-child': { mb: 0 },
-              '& strong': { color: cfg.color, fontWeight: 700 },
-              '& code': {
-                fontSize: '0.7rem',
-                bgcolor: 'hsl(var(--muted))',
-                px: 0.5,
-                py: 0.15,
-                borderRadius: 0.5,
-                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-              },
-              '& ul, & ol': { fontSize: '0.76rem', pl: 2.25, m: 0, mb: 0.5 },
-            }}>
-              <Typography sx={{
-                fontSize: '0.58rem',
-                fontWeight: 700,
-                color: cfg.color,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                mb: 0.5,
-                opacity: 0.85,
-              }}>
-                Reason
-              </Typography>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {decision.reason as string}
-              </ReactMarkdown>
-            </Box>
-          )}
-
           {/* Tool badge */}
           {decision.tool && (
             <Box sx={{ px: 1.5, pb: 1 }}>
