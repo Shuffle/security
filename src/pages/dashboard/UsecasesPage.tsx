@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import { Search, ArrowRight, ArrowLeft, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink, Flame, PlayCircle, BookOpen, LayoutGrid, Server, Shield, MessageSquare, Mail, Crosshair, HardDrive, KeyRound, Cloud, Sparkles } from 'lucide-react';
 import ReactGA from 'react-ga4';
+import shuffleSecurityIcon from '@/assets/shuffle-icon.png';
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
 export type FlowPhase = 'ingest' | 'response' | 'correlation';
@@ -1395,7 +1396,23 @@ interface IntegrationItem {
   active: boolean;
 }
 
-function IntegrationStatusLite({ filterApps, singleLine = false }: { filterApps?: string[]; singleLine?: boolean }) {
+function IntegrationStatusLite({
+  filterApps,
+  singleLine = false,
+  isResolving = false,
+  syntheticApps,
+}: {
+  filterApps?: string[];
+  singleLine?: boolean;
+  /** When true, show the loader instead of "all apps" / "no apps" — used while
+   * the parent is still resolving which app names belong to this category. */
+  isResolving?: boolean;
+  /** Virtual entries that should always appear in the visible list when their
+   * name is in `filterApps`, even if the API has never seen them as an
+   * installed app. Used to surface the Shuffle platform itself under the
+   * Cases category. */
+  syntheticApps?: IntegrationItem[];
+}) {
   const { apiUrl, authHeader } = useApi();
   const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1455,11 +1472,25 @@ function IntegrationStatusLite({ filterApps, singleLine = false }: { filterApps?
     return () => { cancelled = true; };
   }, []);
 
-  const visible = filterApps?.length
-    ? integrations.filter((item) => filterApps.some((name) => name.toLowerCase() === item.name.toLowerCase()))
-    : integrations;
+  // Merge synthetic platform entries (e.g. "Shuffle Security") into the
+  // installed-app list so they participate in filtering and ordering. Real
+  // API data wins on the icon/state if both exist with the same name.
+  const merged = useMemo(() => {
+    if (!syntheticApps?.length) return integrations;
+    const existing = new Set(integrations.map((i) => i.name.toLowerCase()));
+    const extras = syntheticApps.filter((s) => !existing.has(s.name.toLowerCase()));
+    if (!extras.length) return integrations;
+    return [...extras, ...integrations];
+  }, [integrations, syntheticApps]);
 
-  if (isLoading) {
+  const visible = filterApps?.length
+    ? merged.filter((item) => filterApps.some((name) => name.toLowerCase() === item.name.toLowerCase()))
+    : merged;
+
+  // Show the loader both while we are fetching the API and while the parent
+  // is still figuring out which app names belong to this category — this
+  // prevents a flash of "all apps" before the filter narrows the list.
+  if (isLoading || isResolving) {
     return <CircularProgress size={20} sx={{ color: 'hsl(var(--muted-foreground))' }} />;
   }
 
@@ -1676,6 +1707,11 @@ function UsecaseDetailContent({
   const { apiUrl, authHeader } = useApi();
   const flow = usecases.find((item) => item.id === flowId);
   const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
+  // Tracks whether the apps→category resolution has completed at least once.
+  // While false, the popup's per-endpoint tools section shows a loader so the
+  // user does not see a flash of "all apps" or "No apps selected" before the
+  // filtered list narrows down.
+  const [categoryAppsResolved, setCategoryAppsResolved] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const effectiveEnabled = optimisticEnabled !== null ? optimisticEnabled : isEnabled;
@@ -1776,6 +1812,8 @@ function UsecaseDetailContent({
         }
       } catch {
         if (!cancelled) setCategoryAppNames({});
+      } finally {
+        if (!cancelled) setCategoryAppsResolved(true);
       }
     };
 
@@ -2023,7 +2061,28 @@ function UsecaseDetailContent({
           Connection Path
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-          {[{ title: 'Source', meta: sourceCat, details: sourceDetails, appNames: categoryAppNames[flow.source] || [] }, { title: 'Destination', meta: targetCat, details: targetDetails, appNames: categoryAppNames[flow.target] || [] }].map((endpoint, index) => (
+          {[
+            { title: 'Source', meta: sourceCat, details: sourceDetails, categoryId: flow.source, appNames: categoryAppNames[flow.source] || [] },
+            { title: 'Destination', meta: targetCat, details: targetDetails, categoryId: flow.target, appNames: categoryAppNames[flow.target] || [] },
+          ].map((endpoint) => {
+            // The Shuffle platform itself owns the Cases category, so always
+            // surface "Shuffle Security" alongside any installed case-management
+            // apps. Pre-pend it so it sorts first and the user immediately sees
+            // that Shuffle covers this leg of the flow.
+            const isCases = endpoint.categoryId === 'case_management';
+            const appNamesWithShuffle = isCases
+              ? ['Shuffle Security', ...endpoint.appNames.filter((n) => n.toLowerCase() !== 'shuffle security')]
+              : endpoint.appNames;
+            const synthetic = isCases
+              ? [{
+                  id: 'shuffle-security',
+                  name: 'Shuffle Security',
+                  icon: shuffleSecurityIcon,
+                  validated: true,
+                  active: true,
+                }]
+              : undefined;
+            return (
             <Box key={endpoint.title} sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontSize: '0.66rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
                 {endpoint.title}
@@ -2048,9 +2107,14 @@ function UsecaseDetailContent({
               <Typography sx={{ fontSize: '0.64rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
                 Your Tools
               </Typography>
-              <IntegrationStatusLite filterApps={endpoint.appNames} />
+              <IntegrationStatusLite
+                filterApps={appNamesWithShuffle}
+                isResolving={!categoryAppsResolved}
+                syntheticApps={synthetic}
+              />
             </Box>
-          ))}
+            );
+          })}
         </Box>
       </Box>
 
