@@ -262,12 +262,36 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     });
   };
 
+  // Prefill To/Cc when the reply box is opened, derived from the latest
+  // message: reply goes to the sender, Cc preserves any existing Cc recipients.
+  useEffect(() => {
+    if (!showReplyBox) return;
+    const latest = messages[0];
+    if (!latest) return;
+    const defaultTo = latest.fromEmail || latest.from || '';
+    setReplyTo(prev => prev || defaultTo);
+    if (latest.cc && !replyCc) {
+      setReplyCc(latest.cc);
+      setShowCc(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showReplyBox]);
+
   const handleReply = () => {
-    if (!replyText.trim()) return;
-    const latestFrom = messages[0]?.fromEmail || messages[0]?.from || '';
+    if (!replyText.trim() || !replyTo.trim()) return;
     const subject = threadSubject ? `Re: ${threadSubject}` : '';
-    onReply?.(latestFrom, subject, replyText);
+    // Encode Cc/Bcc into the body header so downstream consumers that only
+    // accept (to, subject, body) still receive the routing info.
+    const headerLines: string[] = [];
+    if (replyCc.trim()) headerLines.push(`Cc: ${replyCc.trim()}`);
+    if (replyBcc.trim()) headerLines.push(`Bcc: ${replyBcc.trim()}`);
+    const body = headerLines.length ? `${headerLines.join('\n')}\n\n${replyText}` : replyText;
+    onReply?.(replyTo.trim(), subject, body);
     setReplyText('');
+    setReplyCc('');
+    setReplyBcc('');
+    setShowCc(false);
+    setShowBcc(false);
     setShowReplyBox(false);
   };
 
