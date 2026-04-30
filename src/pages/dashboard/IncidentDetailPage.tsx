@@ -6149,77 +6149,92 @@ const IncidentDetailPage = () => {
               </Tooltip>
               <Divider />
               {/* Resync */}
-              <MenuItem
-                disabled={isSaving || !incident?.source || incident?.source === 'Tenzir' || (() => {
-                  const product = incident?.rawOCSF?.product || incident?.rawOCSF?.metadata?.product;
-                  const name = product?.name;
-                  const id = product?.id;
-                  const uid = product?.uid;
-                  return name && (name === id || name === uid);
-                })()}
-                onClick={async () => {
-                  setActionsMenuAnchor(null);
-                  if (!incident?.id) return;
-                  const source = incident.source || '';
-                  setIsResyncing(true);
-                  resyncState.add(incident.id);
-                  const label = source ? `Resyncing from ${source}…` : 'Resyncing…';
-                  toast.success(label, { duration: 30000 });
-                  try {
-                    const preResult = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
-                    const previousEdited = preResult.item?.edited || 0;
+              {(() => {
+                const product = incident?.rawOCSF?.product || incident?.rawOCSF?.metadata?.product;
+                const productName = product?.name;
+                const productId = product?.id;
+                const productUid = product?.uid;
+                const placeholderProduct = !!(productName && (productName === productId || productName === productUid));
+                let resyncReason = '';
+                if (isSaving) resyncReason = 'Saving in progress — please wait';
+                else if (!incident?.source) resyncReason = 'No source app recorded — cannot resync';
+                else if (incident?.source === 'Tenzir') resyncReason = 'Tenzir-ingested incidents cannot be resynced';
+                else if (placeholderProduct) resyncReason = 'Source product metadata is incomplete — cannot resync';
+                const resyncDisabled = !!resyncReason;
+                const resyncItem = (
+                  <MenuItem
+                    disabled={resyncDisabled}
+                    sx={{ width: '100%' }}
+                    onClick={async () => {
+                      setActionsMenuAnchor(null);
+                      if (!incident?.id) return;
+                      const source = incident.source || '';
+                      setIsResyncing(true);
+                      resyncState.add(incident.id);
+                      const label = source ? `Resyncing from ${source}…` : 'Resyncing…';
+                      toast.success(label, { duration: 30000 });
+                      try {
+                        const preResult = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
+                        const previousEdited = preResult.item?.edited || 0;
 
-                    const response = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
-                      method: 'POST',
-                      credentials: 'include',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        ...getAuthHeader(),
-                        ...crossOrgHeaders,
-                      },
-                      body: JSON.stringify({
-                        action: 'get_ticket',
-                        category: 'cases',
-                        fields: [{ key: 'id', value: incident.id }],
-                        app_name: source,
-                      }),
-                    });
-                    if (!response.ok) {
-                      toast.error('Resync failed');
-                      setIsResyncing(false);
-                      resyncState.remove(incident.id);
-                      return;
-                    }
-                    // Poll every 5s for up to 30s checking if the item was updated
-                    let pollCount = 0;
-                    const pollInterval = setInterval(async () => {
-                      pollCount++;
-                      const postResult = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
-                      const newEdited = postResult.item?.edited || 0;
-                        if (newEdited && newEdited !== previousEdited) {
-                          clearInterval(pollInterval);
-                          await loadIncident(false);
+                        const response = await fetch(getApiUrl('/api/v1/apps/categories/run'), {
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...getAuthHeader(),
+                            ...crossOrgHeaders,
+                          },
+                          body: JSON.stringify({
+                            action: 'get_ticket',
+                            category: 'cases',
+                            fields: [{ key: 'id', value: incident.id }],
+                            app_name: source,
+                          }),
+                        });
+                        if (!response.ok) {
+                          toast.error('Resync failed');
                           setIsResyncing(false);
                           resyncState.remove(incident.id);
-                          toast.success('Resync complete — update found');
-                        } else if (pollCount >= 6) {
-                          clearInterval(pollInterval);
-                          await loadIncident(false);
-                          setIsResyncing(false);
-                          resyncState.remove(incident.id);
-                          toast.info('Resync complete — no changes detected');
+                          return;
                         }
-                    }, 5000);
-                  } catch {
-                    toast.error('Resync failed');
-                    setIsResyncing(false);
-                    resyncState.remove(incident.id);
-                  }
-                }}
-              >
-                <RefreshIcon sx={{ fontSize: 16, mr: 1 }} />
-                Resync
-              </MenuItem>
+                        // Poll every 5s for up to 30s checking if the item was updated
+                        let pollCount = 0;
+                        const pollInterval = setInterval(async () => {
+                          pollCount++;
+                          const postResult = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
+                          const newEdited = postResult.item?.edited || 0;
+                            if (newEdited && newEdited !== previousEdited) {
+                              clearInterval(pollInterval);
+                              await loadIncident(false);
+                              setIsResyncing(false);
+                              resyncState.remove(incident.id);
+                              toast.success('Resync complete — update found');
+                            } else if (pollCount >= 6) {
+                              clearInterval(pollInterval);
+                              await loadIncident(false);
+                              setIsResyncing(false);
+                              resyncState.remove(incident.id);
+                              toast.info('Resync complete — no changes detected');
+                            }
+                        }, 5000);
+                      } catch {
+                        toast.error('Resync failed');
+                        setIsResyncing(false);
+                        resyncState.remove(incident.id);
+                      }
+                    }}
+                  >
+                    <RefreshIcon sx={{ fontSize: 16, mr: 1 }} />
+                    Resync
+                  </MenuItem>
+                );
+                return resyncDisabled ? (
+                  <Tooltip title={resyncReason} placement="left">
+                    <span>{resyncItem}</span>
+                  </Tooltip>
+                ) : resyncItem;
+              })()}
               {/* Forward */}
               <MenuItem
                 disabled
