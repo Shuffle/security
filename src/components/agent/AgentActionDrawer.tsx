@@ -152,10 +152,8 @@ const DecisionItem = ({
     return true;
   });
 
-  // Sort so `reason` appears first in Details
-  extraEntries.sort(([a], [b]) => (a === 'reason' ? -1 : b === 'reason' ? 1 : 0));
-
-  const hasDetails = extraEntries.length > 0;
+  // `reason` is rendered separately as Markdown — exclude from key/value rows
+  const nonReasonEntries = extraEntries.filter(([k]) => k !== 'reason');
 
   return (
     <Box>
