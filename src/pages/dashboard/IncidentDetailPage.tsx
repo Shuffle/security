@@ -651,6 +651,15 @@ const IncidentDetailPage = () => {
   const [obsFilterText, setObsFilterText] = useState('');
   const [obsSortField, setObsSortField] = useState<'first_seen' | 'last_seen' | 'type' | 'value'>('first_seen');
   const [obsSortDir, setObsSortDir] = useState<'asc' | 'desc'>('desc');
+  // Frozen sort-rank cache for the Observables tab. Captures (ioc, corr)
+  // values the FIRST time we see a given observable key, so when correlation
+  // lookups stream in later they don't yank rows around the list while the
+  // user is mid-click. Cleared explicitly when the user changes sort/filter
+  // or hits the manual refresh.
+  const obsSortRankRef = useRef<Map<string, { ioc: number; corr: number }>>(new Map());
+  // Bumped to force a fresh capture of the sort rank cache (used by the
+  // sort/filter controls and the explicit "Re-run correlations" button).
+  const [obsSortRankEpoch, setObsSortRankEpoch] = useState(0);
   // Ignored observables (per-org) — uninteresting indicators the user has
   // chosen to hide from the default Observables view. Toggle reveals them.
   const ignoredObs = useIgnoredObservables();
