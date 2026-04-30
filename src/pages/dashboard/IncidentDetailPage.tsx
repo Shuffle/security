@@ -465,14 +465,31 @@ const Section = forwardRef<HTMLDivElement, {
   children: React.ReactNode; 
   defaultOpen?: boolean;
   badge?: string | number;
+  /** Optional localStorage key to persist the open/closed state across
+   *  navigation. Users typically follow a consistent workflow per incident
+   *  page, so e.g. "always show Description" should stick. */
+  storageKey?: string;
 }>(({ 
   title, 
   icon: Icon, 
   children, 
   defaultOpen = true,
   badge,
+  storageKey,
 }, ref) => {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(() => {
+    if (!storageKey || typeof window === 'undefined') return defaultOpen;
+    try {
+      const v = localStorage.getItem(storageKey);
+      if (v === '1') return true;
+      if (v === '0') return false;
+    } catch { /* ignore */ }
+    return defaultOpen;
+  });
+  useEffect(() => {
+    if (!storageKey) return;
+    try { localStorage.setItem(storageKey, open ? '1' : '0'); } catch { /* ignore */ }
+  }, [open, storageKey]);
   
   return (
     <Box ref={ref} sx={{ 
