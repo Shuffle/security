@@ -132,6 +132,8 @@ import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
 import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
 import { getRunTitle, getRunIconColor, formatDuration as formatAgentRunDuration, getTimeAgo as getAgentTimeAgo, STATUS_CONFIG as AGENT_STATUS_CONFIG } from '@/components/agent/AgentRunHeader';
+import { getFailureInfo as getAgentFailureInfo, hasOutputWarning as hasAgentOutputWarning } from '@/components/agent/AgentRunResultViewer';
+import { AlertTriangle as AlertTriangleIcon, Loader2 as Loader2Icon } from 'lucide-react';
 import { Zap as ZapIcon } from 'lucide-react';
 import type { AgentRun } from '@/services/agentActivity';
 import { getAgentSkipInfo } from '@/lib/agentParsers';
