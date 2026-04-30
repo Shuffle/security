@@ -577,6 +577,24 @@ const IncidentDetailPage = () => {
 
   const [incident, setIncident] = useState<DisplayIncident | null>(null);
   const [loading, setLoading] = useState(true);
+  // Support-only debug capture for failed loads. Populated whenever loadIncident
+  // ends without producing an incident, so support users can see why.
+  const [loadDebug, setLoadDebug] = useState<{
+    stage: 'fetch-error' | 'no-success' | 'no-item' | 'parse-failed' | 'no-id';
+    message?: string;
+    rawId?: string;
+    id?: string;
+    crossOrgId?: string | null;
+    activeOrgId?: string;
+    isPublicView?: boolean;
+    httpSuccess?: boolean;
+    reason?: string;
+    itemKey?: string;
+    valueLength?: number;
+    valuePreview?: string;
+    error?: string;
+    timestamp?: string;
+  } | null>(null);
   // Demo-mode self-heal: when the user lands on a demo focus incident URL
   // that no longer exists in the datastore (e.g. it was force-regenerated
   // with a fresh timestamp suffix while the list was cached), we recreate
@@ -1460,6 +1478,12 @@ const IncidentDetailPage = () => {
   // Load incident function (reusable for refresh)
   const loadIncident = useCallback(async (showLoading = true) => {
     if (!id) {
+      setLoadDebug({
+        stage: 'no-id',
+        message: 'No incident id present in URL',
+        rawId,
+        timestamp: new Date().toISOString(),
+      });
       setLoading(false);
       return;
     }
@@ -1473,6 +1497,17 @@ const IncidentDetailPage = () => {
         : await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
     } catch (err) {
       console.error('[IncidentDetail] Failed to fetch incident:', err);
+      setLoadDebug({
+        stage: 'fetch-error',
+        message: 'Network/transport failure while fetching incident',
+        rawId,
+        id,
+        crossOrgId,
+        activeOrgId: userInfo?.active_org?.id,
+        isPublicView,
+        error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        timestamp: new Date().toISOString(),
+      });
       setLoading(false);
       return;
     }
@@ -1624,13 +1659,45 @@ const IncidentDetailPage = () => {
           setRawJsonText(JSON.stringify(parsed.rawOCSF || {}, null, 2));
         }
         setLoading(false);
+        setLoadDebug(null);
         console.log(`[Perf] Total loadIncident: ${(performance.now() - loadStart).toFixed(1)}ms`);
         return;
       }
+      // result.success && result.item, but parse returned null
+      setLoadDebug({
+        stage: 'parse-failed',
+        message: 'Datastore item was returned but parseIncidentFromDatastore() returned null (likely invalid/empty JSON in value)',
+        rawId,
+        id,
+        crossOrgId,
+        activeOrgId: userInfo?.active_org?.id,
+        isPublicView,
+        httpSuccess: true,
+        itemKey: result.item.key,
+        valueLength: result.item.value?.length || 0,
+        valuePreview: (result.item.value || '').slice(0, 500),
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      setLoadDebug({
+        stage: result.success ? 'no-item' : 'no-success',
+        message: result.success
+          ? 'API responded success=true but no item was returned'
+          : 'API responded success=false (no item present in datastore for this key)',
+        rawId,
+        id,
+        crossOrgId,
+        activeOrgId: userInfo?.active_org?.id,
+        isPublicView,
+        httpSuccess: !!result.success,
+        reason: (result as { reason?: string }).reason,
+        valueLength: result.item?.value?.length || 0,
+        timestamp: new Date().toISOString(),
+      });
     }
     
     setLoading(false);
-  }, [id, isPublicView, publicOrg, publicAuth]);
+  }, [id, rawId, isPublicView, publicOrg, publicAuth, crossOrgId, userInfo?.active_org?.id]);
 
   // Initial load
   useEffect(() => {
@@ -3291,8 +3358,9 @@ const IncidentDetailPage = () => {
   }
 
   if (!incident) {
+    const isSupport = userInfo?.support === true;
     return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
+      <Box sx={{ p: 4, textAlign: 'center', maxWidth: 900, mx: 'auto' }}>
         <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2 }}>
           {entitySingular} not found
         </Typography>
@@ -3304,6 +3372,51 @@ const IncidentDetailPage = () => {
         >
           Back to {entityPlural}
         </Button>
+        {isSupport && loadDebug && (
+          <Box
+            sx={{
+              mt: 4,
+              textAlign: 'left',
+              p: 2,
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1,
+              bgcolor: 'hsl(var(--muted) / 0.4)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mb: 1,
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                fontWeight: 600,
+              }}
+            >
+              Support debug — load failure ({loadDebug.stage})
+            </Typography>
+            <Box
+              component="pre"
+              sx={{
+                m: 0,
+                p: 1.5,
+                fontFamily: 'monospace',
+                fontSize: 12,
+                lineHeight: 1.5,
+                color: 'hsl(var(--foreground))',
+                bgcolor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 1,
+                overflow: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {JSON.stringify(loadDebug, null, 2)}
+            </Box>
+          </Box>
+        )}
       </Box>
     );
   }
