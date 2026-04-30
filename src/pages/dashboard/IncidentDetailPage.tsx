@@ -3796,6 +3796,9 @@ const IncidentDetailPage = () => {
       const obsEntries: ObsEntry[] = [];
       allObservables.forEach((o) => {
         if (!o.value) return;
+        // Hide ignored observables from the timeline as well — same source of
+        // truth as the Observables tab badge so the counts agree.
+        if (isObservableIgnored(o.type, o.value)) return;
         const k = `${o.type}::${o.value}`.toLowerCase();
         if (seenObs.has(k)) return;
         seenObs.add(k);
