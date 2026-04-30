@@ -7732,7 +7732,7 @@ const IncidentDetailPage = () => {
               }}>
                 <LinkIcon sx={{ fontSize: 18, color: 'hsl(var(--muted-foreground))' }} />
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {correlations.length} shared attribute{correlations.length !== 1 ? 's' : ''}
+                  {visibleCorrelations.length} shared attribute{visibleCorrelations.length !== 1 ? 's' : ''}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   · linked across other datastore items
