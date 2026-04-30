@@ -3,7 +3,8 @@
  * Detects email content (From/To/Subject headers, forwarded chains, "On … wrote:" markers)
  * and displays them as a threaded conversation. Stays within OCSF class_uid 2005.
  */
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import {
   Box,
@@ -26,6 +27,9 @@ import SendIcon from '@mui/icons-material/Send';
 import ForwardIcon from '@mui/icons-material/Forward';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import PersonIcon from '@mui/icons-material/Person';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import CloseIcon from '@mui/icons-material/Close';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DOMPurify from 'dompurify';
 import { resolveEmailThread, type ResolvedEmailThread } from '@/lib/emailThreadAdapters';
 
