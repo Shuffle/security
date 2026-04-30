@@ -577,6 +577,24 @@ const IncidentDetailPage = () => {
 
   const [incident, setIncident] = useState<DisplayIncident | null>(null);
   const [loading, setLoading] = useState(true);
+  // Support-only debug capture for failed loads. Populated whenever loadIncident
+  // ends without producing an incident, so support users can see why.
+  const [loadDebug, setLoadDebug] = useState<{
+    stage: 'fetch-error' | 'no-success' | 'no-item' | 'parse-failed' | 'no-id';
+    message?: string;
+    rawId?: string;
+    id?: string;
+    crossOrgId?: string | null;
+    activeOrgId?: string;
+    isPublicView?: boolean;
+    httpSuccess?: boolean;
+    reason?: string;
+    itemKey?: string;
+    valueLength?: number;
+    valuePreview?: string;
+    error?: string;
+    timestamp?: string;
+  } | null>(null);
   // Demo-mode self-heal: when the user lands on a demo focus incident URL
   // that no longer exists in the datastore (e.g. it was force-regenerated
   // with a fresh timestamp suffix while the list was cached), we recreate
