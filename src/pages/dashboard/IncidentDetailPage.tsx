@@ -132,6 +132,8 @@ import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
 import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
 import { getRunTitle, getRunIconColor, formatDuration as formatAgentRunDuration, getTimeAgo as getAgentTimeAgo, STATUS_CONFIG as AGENT_STATUS_CONFIG } from '@/components/agent/AgentRunHeader';
+import { getFailureInfo as getAgentFailureInfo, hasOutputWarning as hasAgentOutputWarning } from '@/components/agent/AgentRunResultViewer';
+import { AlertTriangle as AlertTriangleIcon, Loader2 as Loader2Icon } from 'lucide-react';
 import { Zap as ZapIcon } from 'lucide-react';
 import type { AgentRun } from '@/services/agentActivity';
 import { getAgentSkipInfo } from '@/lib/agentParsers';
@@ -4162,6 +4164,15 @@ const IncidentDetailPage = () => {
         const exactTs = run.started_at
           ? new Date(normalizeToMs(run.started_at)).toLocaleString()
           : '';
+        // Treat FAILED/ABORTED as "Completed — needs attention" rather than a hard
+        // failure, per product direction. We still surface the underlying reason
+        // via tooltip so analysts can act on it.
+        const isFailed = status === 'FAILED' || status === 'ABORTED';
+        const failureInfo = isFailed ? getAgentFailureInfo(run) : null;
+        const isRunning = status === 'EXECUTING' || status === 'RUNNING';
+        const hasWarning = !skip.skipped && (isFailed || (!isRunning && hasAgentOutputWarning(run)));
+        const warningReason = failureInfo?.reason
+          || 'The agent completed but the output suggests it may need a human to review or assist.';
         return (
           <Box
             key={`agent-${run.execution_id}`}
@@ -4177,14 +4188,24 @@ const IncidentDetailPage = () => {
               borderRadius: 1.5,
               border: skip.skipped
                 ? '1px dashed hsl(var(--border))'
-                : '1px solid hsl(var(--border))',
-              bgcolor: skip.skipped ? 'hsl(var(--muted) / 0.2)' : 'hsl(var(--card))',
+                : hasWarning
+                  ? '1px solid hsl(var(--severity-medium) / 0.5)'
+                  : '1px solid hsl(var(--border))',
+              bgcolor: skip.skipped
+                ? 'hsl(var(--muted) / 0.2)'
+                : hasWarning
+                  ? 'hsl(var(--severity-medium) / 0.06)'
+                  : 'hsl(var(--card))',
               opacity: skip.skipped ? 0.85 : 1,
               cursor: 'pointer',
               transition: 'border-color 0.15s ease, background-color 0.15s ease',
               '&:hover': {
-                borderColor: 'hsl(var(--muted-foreground) / 0.4)',
-                bgcolor: 'hsl(var(--muted) / 0.3)',
+                borderColor: hasWarning
+                  ? 'hsl(var(--severity-medium) / 0.7)'
+                  : 'hsl(var(--muted-foreground) / 0.4)',
+                bgcolor: hasWarning
+                  ? 'hsl(var(--severity-medium) / 0.1)'
+                  : 'hsl(var(--muted) / 0.3)',
               },
             }}
           >
@@ -4238,6 +4259,38 @@ const IncidentDetailPage = () => {
                 >
                   Skipped — agent did not run
                 </Typography>
+              </Tooltip>
+            ) : isRunning ? (
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                <Loader2Icon
+                  size={11}
+                  className="animate-spin"
+                  style={{ color: 'hsl(var(--severity-medium))' }}
+                />
+                <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--severity-medium))' }}>
+                  Running…
+                </Typography>
+              </Box>
+            ) : hasWarning ? (
+              <Tooltip title={warningReason} arrow>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    flexShrink: 0,
+                    border: '1px solid hsl(var(--severity-medium) / 0.5)',
+                    bgcolor: 'hsl(var(--severity-medium) / 0.12)',
+                    borderRadius: 999,
+                    px: 0.75,
+                    py: 0.1,
+                  }}
+                >
+                  <AlertTriangleIcon size={11} style={{ color: 'hsl(var(--severity-medium))' }} />
+                  <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--severity-medium))', fontWeight: 500 }}>
+                    Completed — needs attention
+                  </Typography>
+                </Box>
               </Tooltip>
             ) : statusCfg && (
               <Typography sx={{ fontSize: '0.7rem', color: statusCfg.color, flexShrink: 0 }}>
