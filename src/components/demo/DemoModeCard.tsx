@@ -17,19 +17,22 @@ import { applyEntityTerminology } from '@/lib/entityTerminology';
 import { findIngestTicketsWorkflow, isWorkflowScheduleStopped } from '@/lib/ingestionDetection';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { countDemoIncidents } from '@/services/demoMode';
+import { useAuth } from '@/context/AuthContext';
 
 /** Returns the total number of incidents in the org's datastore. */
-const useIncidentCount = () => {
+const useIncidentCount = (orgId: string | null | undefined) => {
   return useQuery<number>({
-    queryKey: ['demo-card', 'incident-count'],
+    queryKey: ['demo-card', 'incident-count', orgId],
+    enabled: !!orgId,
     queryFn: async () => {
       try {
         const res = await fetch(
-          getApiUrl('/api/v1/datastore/list_cache?category=shuffle-security_incidents&top=50'),
+          getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=shuffle-security_incidents&top=50`),
           { credentials: 'include', headers: { ...getAuthHeader() } },
         );
         if (!res.ok) return 0;
         const data = await res.json();
+        if (typeof data?.total_amount === 'number') return data.total_amount;
         if (typeof data?.total === 'number') return data.total;
         if (Array.isArray(data?.keys)) return data.keys.length;
         if (Array.isArray(data)) return data.length;
