@@ -188,6 +188,47 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
   return messages;
 };
 
+/** Inline header-style row for To/Cc/Bcc inputs in the reply box. */
+const RecipientRow = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  onRemove,
+  autoFocus,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  onRemove?: () => void;
+  autoFocus?: boolean;
+}) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', px: 1.25, py: 0.25, gap: 1 }}>
+    <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary', minWidth: 32 }}>
+      {label}
+    </Typography>
+    <TextField
+      variant="standard"
+      fullWidth
+      autoFocus={autoFocus}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      InputProps={{ disableUnderline: true, sx: { fontSize: '0.78rem', py: 0.25 } }}
+    />
+    {onRemove && (
+      <IconButton
+        size="small"
+        onClick={onRemove}
+        sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: '#ff6600' } }}
+      >
+        <ExpandLessIcon sx={{ fontSize: 14, transform: 'rotate(45deg)' }} />
+      </IconButton>
+    )}
+  </Box>
+);
+
 const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, onForward }: EmailThreadPanelProps) => {
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [showReplyBox, setShowReplyBox] = useState(false);
