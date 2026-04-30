@@ -7696,7 +7696,7 @@ const IncidentDetailPage = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress size={24} />
             </Box>
-          ) : correlations.length === 0 ? (
+          ) : visibleCorrelations.length === 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1.5 }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 No correlations found for this incident
