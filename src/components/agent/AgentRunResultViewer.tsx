@@ -383,8 +383,10 @@ const AgentRunResultViewer = ({ run }: AgentRunResultViewerProps) => {
         </Box>
       )}
 
-      {/* Output warning banner (unsure / needs review) */}
-      {outputWarning && (
+      {/* Output warning banner — uses the diagnosis to show the actual
+          error type (auth/permission/rate-limit/...) and a remediation hint
+          instead of a generic "may need review" message. */}
+      {outputWarning && diagnosis && (
         <Box sx={{
           display: 'flex',
           alignItems: 'flex-start',
@@ -397,13 +399,53 @@ const AgentRunResultViewer = ({ run }: AgentRunResultViewerProps) => {
           border: '1px solid hsla(var(--severity-medium) / 0.2)',
         }}>
           <HelpCircle size={14} style={{ color: 'hsl(var(--severity-medium))', marginTop: 2, flexShrink: 0 }} />
-          <Typography sx={{
-            fontSize: '0.78rem',
-            color: 'hsl(var(--severity-medium))',
-            lineHeight: 1.5,
-          }}>
-            This result may need review — the output contains error indicators
-          </Typography>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              color: 'hsl(var(--severity-medium))',
+              lineHeight: 1.4,
+              mb: 0.25,
+            }}>
+              {diagnosis.title}
+            </Typography>
+            <Typography sx={{
+              fontSize: '0.74rem',
+              color: 'hsl(var(--foreground))',
+              lineHeight: 1.5,
+              mb: 0.5,
+            }}>
+              {diagnosis.explanation}
+            </Typography>
+            <Typography sx={{
+              fontSize: '0.74rem',
+              color: 'hsl(var(--foreground))',
+              lineHeight: 1.5,
+            }}>
+              <Box component="span" sx={{ fontWeight: 600, color: 'hsl(var(--severity-medium))' }}>
+                How to fix:
+              </Box>{' '}
+              {diagnosis.remediation}
+            </Typography>
+            {diagnosis.snippet && (
+              <Box sx={{
+                mt: 0.75,
+                p: 0.75,
+                borderRadius: 0.5,
+                bgcolor: 'hsl(var(--background))',
+                border: '1px solid hsl(var(--border))',
+                fontSize: '0.7rem',
+                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+                color: 'hsl(var(--muted-foreground))',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: 80,
+                overflow: 'auto',
+              }}>
+                {diagnosis.snippet}
+              </Box>
+            )}
+          </Box>
         </Box>
       )}
 
