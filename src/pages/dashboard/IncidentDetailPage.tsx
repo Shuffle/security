@@ -3323,6 +3323,10 @@ const IncidentDetailPage = () => {
             })}
           </Box>
           )}
+          {/* Chevron — far right, mirroring the Section pattern. */}
+          {timelineCollapsed
+            ? <ExpandMoreIcon sx={{ color: 'text.secondary', ml: 'auto' }} />
+            : <ExpandLessIcon sx={{ color: 'text.secondary', ml: 'auto' }} />}
         </Box>
       </Box>
 
