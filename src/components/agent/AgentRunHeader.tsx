@@ -244,6 +244,43 @@ const AgentRunHeader = ({ run, onClick, showChevron, isExpanded }: AgentRunHeade
               {statusCfg.icon}
             </Box>
           )}
+          {incidentKey && (
+            <Tooltip title={`Open incident ${incidentKey}`} arrow>
+              <Box
+                component="a"
+                href={`/incidents/${incidentKey}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 0.875,
+                  py: 0.25,
+                  ml: 0.5,
+                  borderRadius: 999,
+                  border: '1px solid hsl(var(--border))',
+                  bgcolor: 'hsl(var(--muted) / 0.4)',
+                  color: 'hsl(var(--muted-foreground))',
+                  fontSize: '0.7rem',
+                  fontWeight: 500,
+                  lineHeight: 1.4,
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    borderColor: '#ff6600',
+                    color: '#ff6600',
+                    bgcolor: 'rgba(255, 102, 0, 0.08)',
+                  },
+                }}
+              >
+                <ExternalLink size={11} />
+                Open incident
+              </Box>
+            </Tooltip>
+          )}
         </Box>
 
         {isSkipped && skipInfo.reason ? (
