@@ -26,6 +26,7 @@ import ForwardIcon from '@mui/icons-material/Forward';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import PersonIcon from '@mui/icons-material/Person';
 import DOMPurify from 'dompurify';
+import { resolveEmailThread, type ResolvedEmailThread } from '@/lib/emailThreadAdapters';
 
 export interface EmailMessage {
   id: string;
