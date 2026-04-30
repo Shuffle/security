@@ -510,7 +510,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       )}
 
       {/* Messages */}
-      <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
+      <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
         {messages.map((msg, idx) => {
           // Latest defaults to expanded but is now collapsible too — toggling
           // collapses it; older messages start collapsed and toggle open.
