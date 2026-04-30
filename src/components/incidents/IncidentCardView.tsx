@@ -670,69 +670,62 @@ export const IncidentCardView = ({
                       />
                     </>
                   )}
-                  {(incident.taskCount ?? 0) > 0 && (
-                    <>
-                      <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                        •
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <ListTodo size={12} color="hsl(var(--muted-foreground))" />
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'hsl(var(--muted-foreground))' }}
-                        >
-                          {incident.taskCount}
-                        </Typography>
-                      </Box>
-                    </>
-                  )}
+                   {/* Task count intentionally hidden from the incidents list — too noisy. */}
                   {/* Labels / tags — moved down here from the right-side chip
                       cluster so the title row has more breathing room. They
                       sit alongside org / assignee / source as another piece
                       of contextual metadata. */}
-                  {incident.labels && incident.labels.length > 0 && (
-                    <>
-                      <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                        •
-                      </Typography>
-                      {incident.labels.slice(0, 3).map((label, idx) => (
-                        <Chip
-                          key={`label-bottom-${idx}`}
-                          label={label}
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            onFilterChange?.('tag', label);
-                          }}
-                          sx={{
-                            backgroundColor: 'hsl(var(--severity-info) / 0.12)',
-                            color: 'hsl(var(--severity-info))',
-                            fontWeight: 500,
-                            fontSize: '0.65rem',
-                            height: 22,
-                            cursor: 'pointer',
-                            '&:hover': { backgroundColor: 'hsl(var(--severity-info) / 0.22)' },
-                          }}
-                        />
-                      ))}
-                      {incident.labels.length > 3 && (
-                        <Tooltip title={incident.labels.slice(3).join(', ')} placement="bottom">
-                          <Chip
-                            label={`+${incident.labels.length - 3}`}
-                            size="small"
-                            sx={{
-                              backgroundColor: 'hsl(var(--severity-info) / 0.08)',
-                              color: 'hsl(var(--severity-info))',
-                              fontWeight: 500,
-                              fontSize: '0.65rem',
-                              height: 22,
-                            }}
-                          />
-                        </Tooltip>
-                      )}
-                    </>
-                  )}
+                   {(() => {
+                     // Hide the synthetic "Manual" label that's auto-attached to
+                     // manually-created incidents — it's noise, not metadata.
+                     const visibleLabels = (incident.labels || []).filter(
+                       (l) => l.trim().toLowerCase() !== 'manual',
+                     );
+                     if (visibleLabels.length === 0) return null;
+                     return (
+                       <>
+                         <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                           •
+                         </Typography>
+                         {visibleLabels.slice(0, 3).map((label, idx) => (
+                           <Chip
+                             key={`label-bottom-${idx}`}
+                             label={label}
+                             size="small"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               e.preventDefault();
+                               onFilterChange?.('tag', label);
+                             }}
+                             sx={{
+                               backgroundColor: 'hsl(var(--severity-info) / 0.12)',
+                               color: 'hsl(var(--severity-info))',
+                               fontWeight: 500,
+                               fontSize: '0.65rem',
+                               height: 22,
+                               cursor: 'pointer',
+                               '&:hover': { backgroundColor: 'hsl(var(--severity-info) / 0.22)' },
+                             }}
+                           />
+                         ))}
+                         {visibleLabels.length > 3 && (
+                           <Tooltip title={visibleLabels.slice(3).join(', ')} placement="bottom">
+                             <Chip
+                               label={`+${visibleLabels.length - 3}`}
+                               size="small"
+                               sx={{
+                                 backgroundColor: 'hsl(var(--severity-info) / 0.08)',
+                                 color: 'hsl(var(--severity-info))',
+                                 fontWeight: 500,
+                                 fontSize: '0.65rem',
+                                 height: 22,
+                               }}
+                             />
+                           </Tooltip>
+                         )}
+                       </>
+                     );
+                   })()}
                 </Box>
               </Box>
 
