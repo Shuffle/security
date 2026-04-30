@@ -6827,6 +6827,7 @@ const IncidentDetailPage = () => {
         </Box>
         );
       })()}
+      </Box>
 
       {activeTab === 2 && (
         /* Observables Tab */
