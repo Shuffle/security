@@ -340,6 +340,7 @@ const AgentRunResultViewer = ({ run }: AgentRunResultViewerProps) => {
   const isFailed = run.status?.toUpperCase() === 'FAILED' || run.status?.toUpperCase() === 'ABORTED';
   const failureInfo = getFailureInfo(run);
   const outputWarning = !isFailed && hasOutputWarning(run);
+  const diagnosis = outputWarning ? diagnoseOutputWarning(run) : null;
   const outputText = getOutputText(parsed);
   const datastoreRef = parseDatastoreReference(run);
   const refPath = datastoreRef ? getReferencePath(datastoreRef) : null;
