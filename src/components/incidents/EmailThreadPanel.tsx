@@ -31,6 +31,18 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DOMPurify from 'dompurify';
+
+// Force every anchor in sanitized HTML to open in a new tab with safe rel.
+// This protects middle-click / cmd-click paths that bypass our React
+// onClick handler — without it, those would still navigate the current
+// tab to whatever the email contained.
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node && (node as Element).tagName === 'A') {
+    const el = node as HTMLAnchorElement;
+    el.setAttribute('target', '_blank');
+    el.setAttribute('rel', 'noopener noreferrer nofollow');
+  }
+});
 import { resolveEmailThread, type ResolvedEmailThread } from '@/lib/emailThreadAdapters';
 import { confirmExternalLinkClick } from '@/utils/safeExternalLinks';
 
