@@ -5453,6 +5453,21 @@ const IncidentDetailPage = () => {
         </Box>
       )}
 
+      {/* Possible duplicates / merge suggestions banner — surfaces past
+          incidents that share observables, correlations, or known IOCs with
+          the one being viewed. Hidden in the public/read-only view. */}
+      {!isPublicView && (
+        <MergeCandidatesBanner
+          candidates={mergeCandidates.candidates}
+          loading={mergeCandidates.loading}
+          storageKey={incident?.id ? `merge-candidates::${incident.id}` : undefined}
+          onMergeWith={(id) => {
+            setMergePreselectedId(id);
+            setShowMergeDialog(true);
+          }}
+        />
+      )}
+
       {/* Agent action required banner — shown when navigating from dashboard */}
       {(() => {
         const agentActionId = searchParams.get('agent_action');
