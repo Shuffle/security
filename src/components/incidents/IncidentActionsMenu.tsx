@@ -411,29 +411,6 @@ export const IncidentActionsMenu = ({
           Share
         </MenuItem>
 
-        {showSimpleViewEntry && (
-          <MenuItem
-            onClick={() => {
-              setAnchor(null);
-              navigate(`/incidents-simple/${incident.id}`);
-            }}
-          >
-            <TaskAltIcon sx={{ fontSize: 16, mr: 1 }} />
-            Simple view
-          </MenuItem>
-        )}
-
-        {showFullViewEntry && (
-          <MenuItem
-            onClick={() => {
-              setAnchor(null);
-              navigate(`/incidents/${incident.id}`);
-            }}
-          >
-            <TaskAltIcon sx={{ fontSize: 16, mr: 1 }} />
-            Full view
-          </MenuItem>
-        )}
 
         <MenuItem disabled>
           <LinkIcon sx={{ fontSize: 16, mr: 1 }} />
