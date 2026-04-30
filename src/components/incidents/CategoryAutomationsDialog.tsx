@@ -1073,7 +1073,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         subtitle="Restrict this AI Agent prompt to specific apps"
         onQuickSelect={(app) => {
           if (appPickerForIdx === null) return;
-          const appId = app.id || app.name; // fallback to name if no Algolia ID
+          if (!app.id) {
+            toast.error('Cannot allow app: missing canonical app ID');
+            return;
+          }
+          const appId = app.id;
           const updated = [...aiAgentApps];
           const current = updated[appPickerForIdx] || [];
           if (!current.includes(appId)) {
