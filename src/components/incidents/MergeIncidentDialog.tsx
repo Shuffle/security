@@ -50,6 +50,10 @@ interface MergeIncidentDialogProps {
   currentIncidentId: string;
   currentIncidentTitle: string;
   onMergeComplete: () => void;
+  /** When set, the candidate with this id is preselected and the dialog opens
+   * directly on the confirmation step. Used by the merge-candidates banner so
+   * the user can review and confirm in one click. */
+  preselectedTargetId?: string;
 }
 
 const parseIncidentSummary = (item: { key: string; value: string; created?: number }): IncidentSummary | null => {
@@ -190,6 +194,7 @@ export const MergeIncidentDialog = ({
   currentIncidentId,
   currentIncidentTitle,
   onMergeComplete,
+  preselectedTargetId,
 }: MergeIncidentDialogProps) => {
   const t = useEntityText();
   const [incidents, setIncidents] = useState<IncidentSummary[]>([]);
@@ -216,10 +221,20 @@ export const MergeIncidentDialog = ({
         // Sort by created desc
         parsed.sort((a, b) => b.created - a.created);
         setIncidents(parsed);
+
+        // If the caller pre-selected a target (e.g. from the banner),
+        // jump straight to the confirm step with it selected.
+        if (preselectedTargetId) {
+          const pre = parsed.find(i => i.id === preselectedTargetId);
+          if (pre) {
+            setSelectedTarget(pre);
+            setStep('confirm');
+          }
+        }
       }
       setLoading(false);
     });
-  }, [open, currentIncidentId]);
+  }, [open, currentIncidentId, preselectedTargetId]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return incidents;

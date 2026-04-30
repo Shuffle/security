@@ -121,6 +121,8 @@ import {
 import { normalizeStatus } from '@/config/incidentConfig';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
 import { MergeIncidentDialog } from '@/components/incidents/MergeIncidentDialog';
+import { MergeCandidatesBanner } from '@/components/incidents/MergeCandidatesBanner';
+import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { MentionText } from '@/components/incidents/MentionText';
 import CollapsibleContent from '@/components/incidents/CollapsibleContent';
 import { UserHoverCard, resolveUserAvatar } from '@/components/incidents/UserHoverCard';
@@ -796,6 +798,7 @@ const IncidentDetailPage = () => {
   const [showForwardDialog, setShowForwardDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [mergePreselectedId, setMergePreselectedId] = useState<string | undefined>(undefined);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
@@ -1315,6 +1318,39 @@ const IncidentDetailPage = () => {
     () => correlations.filter(c => !ignoredObs.isValueIgnored(c.key)),
     [correlations, ignoredObs],
   );
+
+  // ---------------------------------------------------------------------
+  // Merge candidate suggestions
+  //
+  // Build the input signal sets — observable keys, correlation keys, and
+  // the subset that we already know matches a known IOC. Each is wrapped
+  // in `useMemo` so identity only changes when the underlying data does;
+  // that keeps the candidate scoring inside `useMergeCandidates` stable
+  // while correlations stream in over time.
+  // ---------------------------------------------------------------------
+  const currentObservableKeys = useMemo(() => {
+    const set = new Set<string>();
+    (incident?.observables || []).forEach((o: any) => {
+      if (!o?.value || !o?.type) return;
+      set.add(`${String(o.type).toLowerCase()}::${String(o.value).toLowerCase()}`);
+    });
+    return set;
+  }, [incident?.observables]);
+
+  const currentCorrelationKeys = useMemo(() => {
+    const set = new Set<string>();
+    visibleCorrelations.forEach(c => set.add(String(c.key).toLowerCase()));
+    return set;
+  }, [visibleCorrelations]);
+
+  const mergeCandidates = useMergeCandidates({
+    currentIncidentId: incident?.id,
+    currentTitle: incident?.title || '',
+    currentObservableKeys,
+    currentCorrelationKeys,
+    currentIocKeys: iocObservableKeys,
+    enabled: !!incident?.id && !isPublicView,
+  });
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
   // Track the initial normalized values so auto-save doesn't fire on load
@@ -5417,6 +5453,21 @@ const IncidentDetailPage = () => {
         </Box>
       )}
 
+      {/* Possible duplicates / merge suggestions banner — surfaces past
+          incidents that share observables, correlations, or known IOCs with
+          the one being viewed. Hidden in the public/read-only view. */}
+      {!isPublicView && (
+        <MergeCandidatesBanner
+          candidates={mergeCandidates.candidates}
+          loading={mergeCandidates.loading}
+          storageKey={incident?.id ? `merge-candidates::${incident.id}` : undefined}
+          onMergeWith={(id) => {
+            setMergePreselectedId(id);
+            setShowMergeDialog(true);
+          }}
+        />
+      )}
+
       {/* Agent action required banner — shown when navigating from dashboard */}
       {(() => {
         const agentActionId = searchParams.get('agent_action');
@@ -8303,9 +8354,13 @@ const IncidentDetailPage = () => {
       {/* Merge Dialog */}
       <MergeIncidentDialog
         open={showMergeDialog}
-        onClose={() => setShowMergeDialog(false)}
+        onClose={() => {
+          setShowMergeDialog(false);
+          setMergePreselectedId(undefined);
+        }}
         currentIncidentId={incident?.id || ''}
         currentIncidentTitle={incident?.title || ''}
+        preselectedTargetId={mergePreselectedId}
         onMergeComplete={() => {
           loadIncident(false);
         }}
