@@ -108,7 +108,7 @@ const DECISION_TYPE_CONFIG: Record<DecisionType, {
 /** Fields rendered explicitly on the card — excluded from the Details dump. */
 const SURFACED_FIELDS = new Set([
   'title', 'description', 'status', 'timestamp', 'duration',
-  'action', 'result', 'tool', 'reason',
+  'action', 'result', 'tool',
 ]);
 
 const DecisionItem = ({
@@ -121,6 +121,7 @@ const DecisionItem = ({
   isLast: boolean;
 }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
   const type = classifyDecision(decision);
   const cfg = DECISION_TYPE_CONFIG[type];
   const label = decision.title || decision.action?.replace(/_/g, ' ') || cfg.label;
@@ -142,7 +143,7 @@ const DecisionItem = ({
 
   const durationMs = typeof decision.duration === 'number' ? decision.duration * 1000 : 0;
 
-  // Extra fields not surfaced explicitly — shown inside Details
+  // Extra fields not surfaced explicitly — shown inside Details (includes `reason`)
   const extraEntries = Object.entries(decision).filter(([k, v]) => {
     if (SURFACED_FIELDS.has(k)) return false;
     if (v === null || v === undefined || v === '') return false;
@@ -151,7 +152,9 @@ const DecisionItem = ({
     return true;
   });
 
-  const hasReason = typeof decision.reason === 'string' && decision.reason.trim().length > 0;
+  // Sort so `reason` appears first in Details
+  extraEntries.sort(([a], [b]) => (a === 'reason' ? -1 : b === 'reason' ? 1 : 0));
+
   const hasDetails = extraEntries.length > 0;
 
   return (
