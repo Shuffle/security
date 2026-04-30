@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Box, Typography, Chip, Tooltip, Popover } from '@mui/material';
+import { Box, Typography, Chip, Tooltip, Popover, IconButton } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import IncidentCorrelationPreview from './IncidentCorrelationPreview';
 import CorrelationContextStrip from './CorrelationContextStrip';
+import { useIgnoredObservables } from '@/hooks/useIgnoredObservables';
 
 /**
  * Returns true when a datastore category represents a threat-intelligence
@@ -92,6 +95,11 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
   // chips in the same row don't fight over the same anchor element.
   const [pivotAnchor, setPivotAnchor] = useState<{ el: HTMLElement; key: string; category: string } | null>(null);
   const closePivot = () => setPivotAnchor(null);
+
+  // Per-org "ignored observables" list — same datastore the Observables tab
+  // uses, value-based so it filters correlations regardless of OCSF type.
+  const ignoredObs = useIgnoredObservables();
+  const isHidden = ignoredObs.isValueIgnored(correlation.key);
 
   // Group refs by category, excluding the current incident itself.
   const refsByCategory: Record<string, string[]> = {};
@@ -194,6 +202,30 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
         >
           {effectiveAmount} match{effectiveAmount !== 1 ? 'es' : ''}
         </Typography>
+        {/* Hide / show — writes to the same per-org `ignored-observables`
+            datastore as the Observables tab, value-based so the same row
+            disappears from both places. */}
+        <Tooltip title={isHidden ? 'Stop ignoring this observable' : 'Hide this observable from the default view'} arrow>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isHidden) ignoredObs.unignore('value', correlation.key);
+              else ignoredObs.ignore('value', correlation.key);
+            }}
+            sx={{
+              p: 0.25,
+              ml: 0.25,
+              flexShrink: 0,
+              color: isHidden ? 'hsl(var(--primary))' : 'text.disabled',
+              '&:hover': { color: 'hsl(var(--primary))' },
+            }}
+          >
+            {isHidden
+              ? <VisibilityIcon sx={{ fontSize: compact ? 14 : 16 }} />
+              : <VisibilityOffIcon sx={{ fontSize: compact ? 14 : 16 }} />}
+          </IconButton>
+        </Tooltip>
       </Box>
 
       {/* Refs grouped by category */}
