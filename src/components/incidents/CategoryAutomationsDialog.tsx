@@ -836,9 +836,9 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                                   </Typography>
                                 )}
                                 {apps.map((appKey) => {
-                                  const meta = appMetaById.get(appKey);
-                                  const displayName = meta?.name || appKey;
-                                  const img = meta?.image || `https://shuffler.io/images/apps/${displayName}.png`;
+                                  const meta = resolveAppMeta(appKey);
+                                  const displayName = meta.name;
+                                  const img = meta.image || `https://shuffler.io/images/apps/${displayName}.png`;
                                   return (
                                     <Tooltip key={appKey} title={`Remove ${displayName.replace(/_/g, ' ')}`}>
                                       <IconButton
