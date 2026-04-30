@@ -1659,13 +1659,45 @@ const IncidentDetailPage = () => {
           setRawJsonText(JSON.stringify(parsed.rawOCSF || {}, null, 2));
         }
         setLoading(false);
+        setLoadDebug(null);
         console.log(`[Perf] Total loadIncident: ${(performance.now() - loadStart).toFixed(1)}ms`);
         return;
       }
+      // result.success && result.item, but parse returned null
+      setLoadDebug({
+        stage: 'parse-failed',
+        message: 'Datastore item was returned but parseIncidentFromDatastore() returned null (likely invalid/empty JSON in value)',
+        rawId,
+        id,
+        crossOrgId,
+        activeOrgId: userInfo?.active_org?.id,
+        isPublicView,
+        httpSuccess: true,
+        itemKey: result.item.key,
+        valueLength: result.item.value?.length || 0,
+        valuePreview: (result.item.value || '').slice(0, 500),
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      setLoadDebug({
+        stage: result.success ? 'no-item' : 'no-success',
+        message: result.success
+          ? 'API responded success=true but no item was returned'
+          : 'API responded success=false (no item present in datastore for this key)',
+        rawId,
+        id,
+        crossOrgId,
+        activeOrgId: userInfo?.active_org?.id,
+        isPublicView,
+        httpSuccess: !!result.success,
+        reason: (result as { reason?: string }).reason,
+        valueLength: result.item?.value?.length || 0,
+        timestamp: new Date().toISOString(),
+      });
     }
     
     setLoading(false);
-  }, [id, isPublicView, publicOrg, publicAuth]);
+  }, [id, rawId, isPublicView, publicOrg, publicAuth, crossOrgId, userInfo?.active_org?.id]);
 
   // Initial load
   useEffect(() => {
