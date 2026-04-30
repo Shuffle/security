@@ -219,7 +219,24 @@ const DecisionItem = ({
 
   const durationMs = typeof decision.duration === 'number' ? decision.duration * 1000 : 0;
 
-  const hasReason = typeof decision.reason === 'string' && decision.reason.trim().length > 0;
+  // Reason can come back under several keys depending on the agent payload.
+  const reasonText = (() => {
+    const candidates = [
+      decision.reason,
+      (decision as Record<string, unknown>).finish_reason,
+      (decision as Record<string, unknown>).finishReason,
+      (decision as Record<string, unknown>).rationale,
+    ];
+    for (const c of candidates) {
+      if (typeof c === 'string' && c.trim().length > 0) return c;
+    }
+    return '';
+  })();
+  const hasReason = reasonText.length > 0;
+  // For "finish" decisions the reason IS the primary content (especially on
+  // failure), so we render it inline above the Details collapsible instead of
+  // hiding it behind a click.
+  const showReasonInline = hasReason && type === 'finish';
 
   return (
     <Box>
