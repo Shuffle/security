@@ -652,7 +652,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                           boxShadow: (t) => t.palette.mode === 'dark'
                             ? '0 1px 2px rgba(0,0,0,0.4)'
                             : '0 1px 2px rgba(0,0,0,0.06)',
-                          '& a': { color: '#1a73e8' },
+                          '& a': { color: '#1a73e8', cursor: 'pointer' },
                           '& img': { maxWidth: '100%', height: 'auto' },
                           '& blockquote': {
                             borderLeft: '3px solid #e0e0e0',
@@ -661,10 +661,21 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                             color: '#5f6368',
                           },
                         }}
+                        // Intercept ALL link clicks inside the foreign HTML:
+                        // confirm with the user, then open in a new window
+                        // with noopener/noreferrer. Provider HTML often wraps
+                        // huge blocks (e.g. a whole notification card) in a
+                        // single <a>, so we cannot trust them to navigate.
+                        onClick={confirmExternalLinkClick}
                         dangerouslySetInnerHTML={{
                           __html: DOMPurify.sanitize(msg.bodyHtml, {
                             FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
                             FORBID_ATTR: ['onerror', 'onload', 'onclick'],
+                            // Force every anchor to open in a new tab with
+                            // safe rel attributes; our click handler also
+                            // enforces this, but belt-and-suspenders for
+                            // middle-click / cmd-click which bypass onClick.
+                            ADD_ATTR: ['target', 'rel'],
                           }),
                         }}
                       />
