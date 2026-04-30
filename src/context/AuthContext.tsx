@@ -85,7 +85,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           app_execution_usage: data.app_execution_usage,
         };
         setUserInfo(info);
+        // Make org ID available to non-React modules (e.g. datastore service)
+        // synchronously, BEFORE consumers re-render and start fetching.
+        setRuntimeOrgId(newOrgId);
         // Store in localStorage so datastore service can access org ID
+        // across reloads / new tabs.
         localStorage.setItem('shuffle_user_info', JSON.stringify(info));
         // Broadcast the raw getinfo payload so other contexts (e.g. ThemeContext)
         // can read fields like `theme` without firing their own duplicate request.
