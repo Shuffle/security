@@ -36,6 +36,7 @@ import type { AgentRun, AgentDecision } from '@/services/agentActivity';
 import AgentRunResultViewer, { parseRunResult } from '@/components/agent/AgentRunResultViewer';
 import AgentRunHeader from '@/components/agent/AgentRunHeader';
 import { useExecutionPolling } from '@/hooks/useExecutionPolling';
+import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
