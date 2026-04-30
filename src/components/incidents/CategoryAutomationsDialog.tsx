@@ -869,7 +869,6 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         </Box>
       </DialogActions>
     </Dialog>
-    </>
   );
 };
 
