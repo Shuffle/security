@@ -3114,7 +3114,7 @@ function UsecaseCard({
           ) : canToggle ? (
             <Button
               size="small"
-              variant="contained"
+              variant={effectiveEnabled ? 'outlined' : 'contained'}
               disableElevation
               onClick={handleToggle}
               disabled={toggling}
@@ -3136,7 +3136,7 @@ function UsecaseCard({
                 px: 1,
                 bgcolor: effectiveEnabled ? 'transparent' : 'hsl(var(--primary))',
                 color: effectiveEnabled ? 'hsl(var(--foreground))' : 'hsl(var(--primary-foreground))',
-                border: effectiveEnabled ? '1px solid hsl(var(--border))' : '1px solid transparent',
+                borderColor: effectiveEnabled ? 'hsl(var(--border))' : 'transparent',
                 boxShadow: 'none',
                 '&:hover': {
                   bgcolor: effectiveEnabled ? 'transparent' : 'hsl(var(--primary) / 0.9)',
