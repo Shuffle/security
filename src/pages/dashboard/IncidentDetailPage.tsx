@@ -7196,14 +7196,32 @@ const IncidentDetailPage = () => {
                 0,
               );
             };
+            // Read the cached IOC/correlation rank for this observable, or
+            // capture and freeze it on first sight. This is what stops a row
+            // from leaping to the top of the list mid-click when its
+            // correlation lookup finishes — the rank only updates on an
+            // explicit user action that bumps `obsSortRankEpoch`.
+            const rankFor = (o: any): { ioc: number; corr: number } => {
+              const k = `${o.type}::${o.value}`.toLowerCase();
+              const cache = obsSortRankRef.current;
+              const cached = cache.get(k);
+              if (cached) return cached;
+              const fresh = {
+                ioc: iocObservableKeys.has(k) ? 1 : 0,
+                corr: corrCountFor(o),
+              };
+              cache.set(k, fresh);
+              return fresh;
+            };
+            // void-read so the linter / reader knows this memo intentionally
+            // depends on the epoch counter (the ref itself is mutable).
+            void obsSortRankEpoch;
             const allObsRaw = Array.from(deduped.values()).sort((a, b) => {
               if (isDefaultSort) {
-                const aIoc = iocObservableKeys.has(`${a.type}::${a.value}`.toLowerCase()) ? 1 : 0;
-                const bIoc = iocObservableKeys.has(`${b.type}::${b.value}`.toLowerCase()) ? 1 : 0;
-                if (aIoc !== bIoc) return bIoc - aIoc;
-                const aCorr = corrCountFor(a);
-                const bCorr = corrCountFor(b);
-                if (aCorr !== bCorr) return bCorr - aCorr;
+                const ar = rankFor(a);
+                const br = rankFor(b);
+                if (ar.ioc !== br.ioc) return br.ioc - ar.ioc;
+                if (ar.corr !== br.corr) return br.corr - ar.corr;
               }
               let cmp = 0;
               if (obsSortField === 'first_seen' || obsSortField === 'last_seen') {
