@@ -6558,7 +6558,7 @@ const IncidentDetailPage = () => {
               thread. Otherwise it lives on the right column collapsed. */}
           {!hasEmail && (
           <Box data-tour="incident-description">
-            <Section title="Description" icon={DescriptionIcon} defaultOpen={false}>
+            <Section title="Description" icon={DescriptionIcon} defaultOpen={false} storageKey="shuffle-incident-description-open">
               {descriptionBody}
             </Section>
           </Box>
