@@ -6626,7 +6626,7 @@ const IncidentDetailPage = () => {
               raw / readable / rendered views without losing focus on the
               parsed thread. */}
           {hasEmail && (
-            <Section title="Description" icon={DescriptionIcon} defaultOpen={false}>
+            <Section title="Description" icon={DescriptionIcon} defaultOpen={false} storageKey="shuffle-incident-description-open">
               {descriptionBody}
             </Section>
           )}
