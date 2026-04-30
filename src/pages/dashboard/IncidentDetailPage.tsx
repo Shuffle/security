@@ -6236,54 +6236,59 @@ const IncidentDetailPage = () => {
                 ) : resyncItem;
               })()}
               {/* Forward */}
-              <MenuItem
-                disabled
-                onClick={() => {
-                  setActionsMenuAnchor(null);
-                  setShowForwardDialog(true);
-                  setForwardingAppsLoading(true);
-                  fetch(getApiUrl('/api/v1/apps/authentication'), {
-                    credentials: 'include',
-                    headers: { ...getAuthHeader(), ...crossOrgHeaders },
-                  })
-                    .then(r => r.json())
-                    .then(result => {
-                      const authData = result.data || result;
-                      if (Array.isArray(authData)) {
-                        const seen = new Set<string>();
-                        const apps = authData
-                          .filter((a: any) => a.app?.name && a.validation?.valid)
-                          .filter((a: any) => {
-                            if (seen.has(a.app.name)) return false;
-                            seen.add(a.app.name);
-                            return true;
-                          })
-                          .map((a: any) => {
-                            const rawCategories = a.app?.categories ?? a.categories ?? a.app?.category ?? a.category ?? [];
-                            const categories = Array.isArray(rawCategories)
-                              ? rawCategories
-                              : typeof rawCategories === 'string'
-                                ? [rawCategories]
-                                : typeof rawCategories === 'object' && rawCategories !== null
-                                  ? Object.keys(rawCategories)
-                                  : [];
-                            return {
-                              id: a.app.name,
-                              name: (a.app.name || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                              large_image: a.app.large_image || '',
-                              categories,
-                            };
-                          });
-                        setForwardingApps(apps);
-                      }
-                    })
-                    .catch(() => setForwardingApps([]))
-                    .finally(() => setForwardingAppsLoading(false));
-                }}
-              >
-                <ForwardIcon sx={{ fontSize: 16, mr: 1 }} />
-                Forward
-              </MenuItem>
+              <Tooltip title="Forwarding is not yet available" placement="left">
+                <span>
+                  <MenuItem
+                    disabled
+                    sx={{ width: '100%' }}
+                    onClick={() => {
+                      setActionsMenuAnchor(null);
+                      setShowForwardDialog(true);
+                      setForwardingAppsLoading(true);
+                      fetch(getApiUrl('/api/v1/apps/authentication'), {
+                        credentials: 'include',
+                        headers: { ...getAuthHeader(), ...crossOrgHeaders },
+                      })
+                        .then(r => r.json())
+                        .then(result => {
+                          const authData = result.data || result;
+                          if (Array.isArray(authData)) {
+                            const seen = new Set<string>();
+                            const apps = authData
+                              .filter((a: any) => a.app?.name && a.validation?.valid)
+                              .filter((a: any) => {
+                                if (seen.has(a.app.name)) return false;
+                                seen.add(a.app.name);
+                                return true;
+                              })
+                              .map((a: any) => {
+                                const rawCategories = a.app?.categories ?? a.categories ?? a.app?.category ?? a.category ?? [];
+                                const categories = Array.isArray(rawCategories)
+                                  ? rawCategories
+                                  : typeof rawCategories === 'string'
+                                    ? [rawCategories]
+                                    : typeof rawCategories === 'object' && rawCategories !== null
+                                      ? Object.keys(rawCategories)
+                                      : [];
+                                return {
+                                  id: a.app.name,
+                                  name: (a.app.name || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                                  large_image: a.app.large_image || '',
+                                  categories,
+                                };
+                              });
+                            setForwardingApps(apps);
+                          }
+                        })
+                        .catch(() => setForwardingApps([]))
+                        .finally(() => setForwardingAppsLoading(false));
+                    }}
+                  >
+                    <ForwardIcon sx={{ fontSize: 16, mr: 1 }} />
+                    Forward
+                  </MenuItem>
+                </span>
+              </Tooltip>
               <Divider />
               {/* Merge */}
               <MenuItem
