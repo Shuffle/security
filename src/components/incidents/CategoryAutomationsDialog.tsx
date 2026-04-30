@@ -677,43 +677,17 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                     <Box sx={{ px: 2, pb: 2, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {aiAgentPrompts.map((prompt, idx) => (
                         <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder={`Prompt ${idx + 1}...`}
+                          <PopupTextEditor
                             value={prompt}
-                            onChange={(e) => {
+                            onChange={(next) => {
                               const updated = [...aiAgentPrompts];
-                              updated[idx] = e.target.value;
+                              updated[idx] = next;
                               setAiAgentPrompts(updated);
                               setHasChanges(true);
                             }}
-                            InputProps={{
-                              endAdornment: (
-                                <IconButton
-                                  size="small"
-                                  onMouseDown={(e) => e.preventDefault()}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPromptEditor({ idx, value: aiAgentPrompts[idx] ?? '' });
-                                  }}
-                                  title="Open editor"
-                                  sx={{
-                                    color: 'hsl(var(--muted-foreground))',
-                                    '&:hover': { color: 'hsl(var(--primary))' },
-                                    mr: -0.5,
-                                  }}
-                                >
-                                  <OpenInFullIcon sx={{ fontSize: 14 }} />
-                                </IconButton>
-                              ),
-                            }}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                bgcolor: 'hsl(var(--background))',
-                                fontSize: '0.85rem',
-                              },
-                            }}
+                            placeholder={`Prompt ${idx + 1}...`}
+                            title={`Edit prompt ${idx + 1}`}
+                            subtitle="Full editor for the AI Agent prompt. More controls (permissions, variables) coming soon."
                           />
                           {aiAgentPrompts.length > 1 && (
                             <IconButton
