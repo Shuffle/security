@@ -2593,7 +2593,7 @@ const IncidentDetailPage = () => {
   useEffect(() => {
     const loadKnownStakeholders = async () => {
       try {
-        const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.USERS, 500);
+        const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.USERS);
         if (!res.success || !Array.isArray(res.data)) return;
         const all: Stakeholder[] = [];
         for (const item of res.data) {
