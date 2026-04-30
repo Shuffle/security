@@ -175,13 +175,16 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   const [aiAgentApps, setAiAgentApps] = useState<string[][]>([[]]);
   const [appPickerForIdx, setAppPickerForIdx] = useState<number | null>(null);
   const { data: authenticatedApps = [] } = useAuthenticatedApps();
-  const appImageByName = React.useMemo(() => {
-    const map = new Map<string, string>();
+  /** Lookup table for app metadata (image, display name) keyed by both
+   *  app ID and app name, so that legacy stored values still resolve. */
+  const appMetaById = React.useMemo(() => {
+    const map = new Map<string, { name: string; image: string }>();
     authenticatedApps.forEach((a: any) => {
       const name = a?.app?.name;
-      if (name && !map.has(name)) {
-        map.set(name, a?.app?.large_image || a?.app?.small_image || '');
-      }
+      const id = a?.app?.id || a?.id;
+      const image = a?.app?.large_image || a?.app?.small_image || '';
+      if (id && !map.has(id)) map.set(id, { name: name || id, image });
+      if (name && !map.has(name)) map.set(name, { name, image });
     });
     return map;
   }, [authenticatedApps]);
@@ -780,15 +783,17 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                                     All authenticated apps
                                   </Typography>
                                 )}
-                                {apps.map((appName) => {
-                                  const img = appImageByName.get(appName) || `https://shuffler.io/images/apps/${appName}.png`;
+                                {apps.map((appKey) => {
+                                  const meta = appMetaById.get(appKey);
+                                  const displayName = meta?.name || appKey;
+                                  const img = meta?.image || `https://shuffler.io/images/apps/${displayName}.png`;
                                   return (
-                                    <Tooltip key={appName} title={`Remove ${appName.replace(/_/g, ' ')}`}>
+                                    <Tooltip key={appKey} title={`Remove ${displayName.replace(/_/g, ' ')}`}>
                                       <IconButton
                                         size="small"
                                         onClick={() => {
                                           const updated = [...aiAgentApps];
-                                          updated[idx] = (updated[idx] || []).filter(n => n !== appName);
+                                          updated[idx] = (updated[idx] || []).filter(n => n !== appKey);
                                           setAiAgentApps(updated);
                                           setHasChanges(true);
                                         }}
@@ -807,7 +812,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                                         <Box
                                           component="img"
                                           src={img}
-                                          alt={appName}
+                                          alt={displayName}
                                           sx={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'contain' }}
                                         />
                                       </IconButton>
@@ -1016,10 +1021,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         subtitle="Restrict this AI Agent prompt to specific apps"
         onQuickSelect={(app) => {
           if (appPickerForIdx === null) return;
+          const appId = app.id || app.name; // fallback to name if no Algolia ID
           const updated = [...aiAgentApps];
           const current = updated[appPickerForIdx] || [];
-          if (!current.includes(app.name)) {
-            updated[appPickerForIdx] = [...current, app.name];
+          if (!current.includes(appId)) {
+            updated[appPickerForIdx] = [...current, appId];
             setAiAgentApps(updated);
             setHasChanges(true);
           }
