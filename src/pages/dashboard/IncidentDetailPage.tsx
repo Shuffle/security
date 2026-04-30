@@ -1478,6 +1478,12 @@ const IncidentDetailPage = () => {
   // Load incident function (reusable for refresh)
   const loadIncident = useCallback(async (showLoading = true) => {
     if (!id) {
+      setLoadDebug({
+        stage: 'no-id',
+        message: 'No incident id present in URL',
+        rawId,
+        timestamp: new Date().toISOString(),
+      });
       setLoading(false);
       return;
     }
@@ -1491,6 +1497,17 @@ const IncidentDetailPage = () => {
         : await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
     } catch (err) {
       console.error('[IncidentDetail] Failed to fetch incident:', err);
+      setLoadDebug({
+        stage: 'fetch-error',
+        message: 'Network/transport failure while fetching incident',
+        rawId,
+        id,
+        crossOrgId,
+        activeOrgId: userInfo?.active_org?.id,
+        isPublicView,
+        error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        timestamp: new Date().toISOString(),
+      });
       setLoading(false);
       return;
     }
