@@ -7760,7 +7760,7 @@ const IncidentDetailPage = () => {
 
               {/* Correlation list */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {[...correlations].reverse().map((corr, idx) => (
+                {[...visibleCorrelations].reverse().map((corr, idx) => (
                   <CorrelationRow
                     key={corr.key || idx}
                     correlation={corr}
@@ -7771,7 +7771,7 @@ const IncidentDetailPage = () => {
                 ))}
               </Box>
               {/* STIX context for any IOC matches at the incident level. */}
-              <IocDetailsCard correlations={correlations} />
+              <IocDetailsCard correlations={visibleCorrelations} />
             </Box>
           )}
         </Box>
