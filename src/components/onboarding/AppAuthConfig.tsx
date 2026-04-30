@@ -163,6 +163,8 @@ export interface AppAuthCardProps {
   onSelectAuth?: (appId: string, authId: string) => void;
   /** Called to refresh auth entries (e.g. after OAuth popup closes) */
   onRefreshAuth?: () => Promise<void> | void;
+  /** When true, do NOT auto-fill URL fields with the param.example value. */
+  disableUrlPrefill?: boolean;
 }
 
 const containerVariants = {
@@ -191,6 +193,7 @@ export const AppAuthCard = ({
   apiAuthEntries,
   onSelectAuth,
   onRefreshAuth,
+  disableUrlPrefill,
 }: AppAuthCardProps) => {
   // Helper to get best default auth: prioritize validated, otherwise last entry
   const getBestDefaultAuth = (entries: ApiAuthEntry[]): string => {
@@ -498,6 +501,7 @@ export const AppAuthCard = ({
   
   // Auto-populate URL fields with example values when auth config loads
   useEffect(() => {
+    if (disableUrlPrefill) return;
     if (!auth?.parameters || auth.parameters.length === 0) return;
     
     const urlDefaults: Record<string, string> = {};
@@ -522,7 +526,7 @@ export const AppAuthCard = ({
     if (Object.keys(urlDefaults).length > 0) {
       setLocalCredentials(prev => ({ ...urlDefaults, ...prev }));
     }
-  }, [auth?.parameters]);
+  }, [auth?.parameters, disableUrlPrefill]);
 
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsContent, setDocsContent] = useState<string>('');
