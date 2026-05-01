@@ -6224,16 +6224,18 @@ const IncidentDetailPage = () => {
                   />
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
                     {[
-                      'Summarize this incident',
-                      'Investigate the indicators',
-                      'Suggest next steps',
-                      'Draft a response',
-                    ].map((suggestion) => (
+                      { label: 'Summarize', prompt: 'Summarize this incident in a few short bullet points: what happened, who/what is involved, and the current status.' },
+                      { label: 'Investigate indicators', prompt: 'Investigate every observable on this incident. Look up reputation, related incidents, and flag anything suspicious.' },
+                      { label: 'Suggest next steps', prompt: 'Based on the current state of this incident, suggest the next concrete response steps in priority order.' },
+                      { label: 'Draft a response', prompt: 'Draft a response message I can send to the reporter or affected user. Keep it clear, professional, and reassuring.' },
+                      { label: 'Assess severity', prompt: 'Assess the severity and potential impact of this incident, and explain the reasoning behind the rating.' },
+                      { label: 'Find related incidents', prompt: 'Look for past incidents that share observables, indicators, or patterns with this one and summarize the matches.' },
+                    ].map(({ label, prompt }) => (
                       <Chip
-                        key={suggestion}
-                        label={suggestion}
+                        key={label}
+                        label={label}
                         size="small"
-                        onClick={() => setAskAgentText((cur) => (cur ? cur : suggestion))}
+                        onClick={() => setAskAgentText(prompt)}
                         sx={{
                           height: 22,
                           fontSize: '0.7rem',
