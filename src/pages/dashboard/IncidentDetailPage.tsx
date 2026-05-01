@@ -725,6 +725,7 @@ const IncidentDetailPage = () => {
   const [askAgentAnchor, setAskAgentAnchor] = useState<HTMLElement | null>(null);
   const [askAgentText, setAskAgentText] = useState('');
   const [askAgentSending, setAskAgentSending] = useState(false);
+  const agentReadiness = useAgentReadiness();
 
   // Persist the draft on every change. Empty string clears the saved draft so
   // we don't leak stale content between sessions.
