@@ -2884,8 +2884,9 @@ const IncidentDetailPage = () => {
     setEditedObservables(updated);
   };
 
-  const handleAddComment = async () => {
-    if ((!newComment.trim() && commentAttachments.length === 0) || !incident?.rawOCSF) return;
+  const handleAddComment = async (overrideText?: string) => {
+    const effectiveText = typeof overrideText === 'string' ? overrideText : newComment;
+    if ((!effectiveText.trim() && commentAttachments.length === 0) || !incident?.rawOCSF) return;
     
     autoProgressStatus();
     
@@ -2894,7 +2895,7 @@ const IncidentDetailPage = () => {
       type: 'comment',
       user: currentUsername,
       timestamp: Date.now(),
-      content: newComment.trim() || (commentAttachments.length > 0 ? `Attached ${commentAttachments.length} file(s)` : ''),
+      content: effectiveText.trim() || (commentAttachments.length > 0 ? `Attached ${commentAttachments.length} file(s)` : ''),
       details: {},
       attachments: commentAttachments.length > 0 ? [...commentAttachments] : [],
       // Default to unprocessed so AI agents pick up new human comments
