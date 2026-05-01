@@ -29,7 +29,13 @@ const AgentQuestionDialog = ({ open, onClose, notification, onSubmit }: Props) =
 
   if (!notification) return null;
 
-  const questions = notification.questions || [];
+  // Fall back to the (cleaned) title when the backend did not send a
+  // discrete questions[] array — common for "input required" handoffs where
+  // the question itself lives in the notification title.
+  const rawQuestions = notification.questions && notification.questions.length > 0
+    ? notification.questions
+    : [stripAgentTitlePrefix(notification.title) || notification.description || 'Provide an answer to continue'];
+  const questions = rawQuestions;
   const allAnswered = questions.every((_, i) => answers[i]?.trim());
 
   const handleSubmit = () => {
