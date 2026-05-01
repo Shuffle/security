@@ -82,6 +82,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useIgnoredObservables } from '@/hooks/useIgnoredObservables';
+import { useAgentReadiness } from '@/hooks/useAgentReadiness';
 import { CorrelationRow, getEffectiveCorrelationCount, filterMeaningfulCorrelations, hasIocMatch } from '@/components/incidents/CorrelationRow';
 import CorrelationContextStrip from '@/components/incidents/CorrelationContextStrip';
 import { IocDetailsCard } from '@/components/incidents/IocDetailsCard';
@@ -724,6 +725,7 @@ const IncidentDetailPage = () => {
   const [askAgentAnchor, setAskAgentAnchor] = useState<HTMLElement | null>(null);
   const [askAgentText, setAskAgentText] = useState('');
   const [askAgentSending, setAskAgentSending] = useState(false);
+  const agentReadiness = useAgentReadiness();
 
   // Persist the draft on every change. Empty string clears the saved draft so
   // we don't leak stale content between sessions.
@@ -6060,12 +6062,35 @@ const IncidentDetailPage = () => {
             
             {/* Ask the AI agent — quick popover that posts an @AIAgent comment
                 into the Timeline. The existing agent handler picks it up. */}
-            <Tooltip title="Ask the AI agent">
+            <Tooltip title={
+              agentReadiness.isLoading
+                ? 'Checking AI agent status…'
+                : agentReadiness.active
+                  ? 'Ask the AI agent'
+                  : 'AI agent is not enabled — click to set it up'
+            }>
               <Button
                 size="small"
                 variant="outlined"
                 onClick={(e) => setAskAgentAnchor(e.currentTarget)}
                 startIcon={<AgentIcon size={14} />}
+                endIcon={
+                  !agentReadiness.isLoading ? (
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: agentReadiness.active
+                          ? 'hsl(var(--severity-low))'
+                          : 'hsl(var(--severity-medium))',
+                        boxShadow: agentReadiness.active
+                          ? '0 0 6px hsl(var(--severity-low) / 0.6)'
+                          : 'none',
+                      }}
+                    />
+                  ) : undefined
+                }
                 sx={{
                   height: 32,
                   textTransform: 'none',
@@ -6111,6 +6136,58 @@ const IncidentDetailPage = () => {
               <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mb: 1.5 }}>
                 Your question is posted to the Timeline as @AIAgent and the agent will reply there.
               </Typography>
+              {!agentReadiness.isLoading && !agentReadiness.active && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 1,
+                    p: 1.25,
+                    mb: 1.5,
+                    borderRadius: 1,
+                    border: '1px solid hsl(var(--severity-medium) / 0.4)',
+                    bgcolor: 'hsl(var(--severity-medium) / 0.08)',
+                  }}
+                >
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, color: 'hsl(var(--foreground))', mb: 0.25 }}>
+                      AI Agent is not enabled
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', lineHeight: 1.4 }}>
+                      {!agentReadiness.hasWorkflow && !agentReadiness.hasCategoryAutomation
+                        ? 'The "Assign & Escalate" workflow and the incident "Run workflow" automation need to be set up.'
+                        : !agentReadiness.hasWorkflow
+                          ? 'The "Assign & Escalate" workflow is missing.'
+                          : 'The incident "Run workflow" automation is not pointing at the agent workflow.'}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    disabled={agentReadiness.isEnabling}
+                    onClick={async () => {
+                      try {
+                        await agentReadiness.enable();
+                        toast.success('AI Agent enabled');
+                      } catch (err: any) {
+                        toast.error(err?.message || 'Failed to enable AI Agent');
+                      }
+                    }}
+                    startIcon={agentReadiness.isEnabling ? <CircularProgress size={10} sx={{ color: 'inherit' }} /> : undefined}
+                    sx={{
+                      height: 28,
+                      textTransform: 'none',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      bgcolor: '#ff6600',
+                      '&:hover': { bgcolor: '#e65c00' },
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {agentReadiness.isEnabling ? 'Enabling…' : 'Enable'}
+                  </Button>
+                </Box>
+              )}
               <TextField
                 autoFocus
                 multiline
@@ -6121,7 +6198,7 @@ const IncidentDetailPage = () => {
                 value={askAgentText}
                 onChange={(e) => setAskAgentText(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && askAgentText.trim() && !askAgentSending) {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && askAgentText.trim() && !askAgentSending && agentReadiness.active) {
                     e.preventDefault();
                     (async () => {
                       setAskAgentSending(true);
@@ -6181,7 +6258,7 @@ const IncidentDetailPage = () => {
                   <Button
                     size="small"
                     variant="contained"
-                    disabled={!askAgentText.trim() || askAgentSending}
+                    disabled={!askAgentText.trim() || askAgentSending || !agentReadiness.active}
                     onClick={async () => {
                       setAskAgentSending(true);
                       try {
