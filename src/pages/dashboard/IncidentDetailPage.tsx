@@ -6136,6 +6136,58 @@ const IncidentDetailPage = () => {
               <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mb: 1.5 }}>
                 Your question is posted to the Timeline as @AIAgent and the agent will reply there.
               </Typography>
+              {!agentReadiness.isLoading && !agentReadiness.active && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 1,
+                    p: 1.25,
+                    mb: 1.5,
+                    borderRadius: 1,
+                    border: '1px solid hsl(var(--severity-medium) / 0.4)',
+                    bgcolor: 'hsl(var(--severity-medium) / 0.08)',
+                  }}
+                >
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, color: 'hsl(var(--foreground))', mb: 0.25 }}>
+                      AI Agent is not enabled
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', lineHeight: 1.4 }}>
+                      {!agentReadiness.hasWorkflow && !agentReadiness.hasCategoryAutomation
+                        ? 'The "Assign & Escalate" workflow and the incident "Run workflow" automation need to be set up.'
+                        : !agentReadiness.hasWorkflow
+                          ? 'The "Assign & Escalate" workflow is missing.'
+                          : 'The incident "Run workflow" automation is not pointing at the agent workflow.'}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    disabled={agentReadiness.isEnabling}
+                    onClick={async () => {
+                      try {
+                        await agentReadiness.enable();
+                        toast.success('AI Agent enabled');
+                      } catch (err: any) {
+                        toast.error(err?.message || 'Failed to enable AI Agent');
+                      }
+                    }}
+                    startIcon={agentReadiness.isEnabling ? <CircularProgress size={10} sx={{ color: 'inherit' }} /> : undefined}
+                    sx={{
+                      height: 28,
+                      textTransform: 'none',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      bgcolor: '#ff6600',
+                      '&:hover': { bgcolor: '#e65c00' },
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {agentReadiness.isEnabling ? 'Enabling…' : 'Enable'}
+                  </Button>
+                </Box>
+              )}
               <TextField
                 autoFocus
                 multiline
