@@ -145,7 +145,8 @@ When `apiKey` is set, the component also fetches the user's **private apps** fro
 
 | Prop | Type | Description |
 |---|---|---|
-| `authToken` | `string` | Required. Forwarded into the auth URL. |
+| `apiKey` | `string` | Shuffle API key. Used as `Authorization: Bearer` on every request and forwarded into the auth handoff URL as `&auth=`. This is the canonical credential. |
+| `~~authToken~~` | `string` | **Deprecated.** Use `apiKey`. Kept for back-compat — only used as the auth-URL token if `apiKey` is not set. |
 | `orgId` | `string` | Optional Shuffle organization ID. When set, every API call (`/api/v1/apps/authentication`, `/api/v1/apps`) is sent with an `Org-Id: <orgId>` header, and the auth URL gets `&org_id=<orgId>` appended. Default: not sent. |
 | `inline` | `boolean` | Inline results vs floating dropdown. |
 | `layout` | `'list' \| 'grid'` | Result layout. Default `'list'`. |
