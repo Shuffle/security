@@ -407,8 +407,8 @@ const SingulActionsPreview = ({
           <Box sx={{ position: 'relative' }}>
             <Box
               component="textarea"
-              value={curl}
-              onChange={(e: any) => setCurl(e.target.value)}
+              value={snippet}
+              onChange={(e: any) => setSnippet(e.target.value)}
               spellCheck={false}
               sx={{
                 width: '100%',
