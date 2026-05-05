@@ -146,8 +146,6 @@ export interface ShuffleMCPProps {
   hitsPerPage?: number;
   
   // Authentication
-  /** API key for fetching authenticated apps from the auth endpoint */
-  apiKey?: string;
   /** Base URL for backend API calls (default: https://shuffler.io) */
   apiBaseUrl?: string;
   /** Path appended to apiBaseUrl to fetch authenticated apps (default: /api/v1/apps/authentication) */
