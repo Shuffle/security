@@ -44,6 +44,7 @@ export const LandingNavbar = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const isOnLoginPage = location.pathname === '/login';
+  const isOnAuthPage = isOnLoginPage || location.pathname === '/register';
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
