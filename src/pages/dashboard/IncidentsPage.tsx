@@ -1905,7 +1905,7 @@ const IncidentsPage = () => {
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {/* Ingestion + Forward pipeline container */}
-          {showAutomation && (
+          {(showAutomation || demoActive) && (
           <Box
             className="automation-pipeline"
             sx={{
