@@ -124,6 +124,7 @@ import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/com
 import { MergeIncidentDialog } from '@/components/incidents/MergeIncidentDialog';
 import { MergeCandidatesBanner } from '@/components/incidents/MergeCandidatesBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
+import { buildAgentContextBlock } from '@/utils/agentContextBlock';
 import { MentionText } from '@/components/incidents/MentionText';
 import CollapsibleContent from '@/components/incidents/CollapsibleContent';
 import { UserHoverCard, resolveUserAvatar } from '@/components/incidents/UserHoverCard';
@@ -726,6 +727,39 @@ const IncidentDetailPage = () => {
   const [askAgentText, setAskAgentText] = useState('');
   const [askAgentSending, setAskAgentSending] = useState(false);
   const agentReadiness = useAgentReadiness();
+
+  // Builds the auto-attached context block sent with @AIAgent questions.
+  // Lives as a closure so it always reads the latest scoped state.
+  const buildAskAgentContext = (): string => {
+    try {
+      return buildAgentContextBlock({
+        incident: incident ? {
+          id: incident.id,
+          title: incident.title,
+          severity: (incident as any).severity,
+          status: (incident as any).status,
+          type: (incident as any).type,
+          source: (incident as any).source,
+          created: (incident as any).created,
+          assignee: (incident as any).assignee,
+        } : null,
+        observables: editedObservables || [],
+        enrichments: enrichments || [],
+        iocObservableKeys: iocObservableKeys instanceof Set ? iocObservableKeys : new Set<string>(),
+        correlationKeys: (visibleCorrelations || []).map((c: any) => String(c?.label || c?.key || '')).filter(Boolean),
+        stakeholders: (editedStakeholders || []) as any,
+        recentTimeline: (activity || [])
+          .filter((a: any) => a && a.type !== 'comment')
+          .slice(-12)
+          .map((a: any) => ({ type: a.type, user: a.user, content: a.content || a.details?.summary, timestamp: a.timestamp })),
+        mergeCandidates: mergeCandidates?.candidates || [],
+      });
+    } catch (e) {
+      console.warn('[AskAgent] Failed to build context block', e);
+      return '';
+    }
+  };
+
 
   // Persist the draft on every change. Empty string clears the saved draft so
   // we don't leak stale content between sessions.
@@ -6134,7 +6168,7 @@ const IncidentDetailPage = () => {
                 </Typography>
               </Box>
               <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mb: 1.5 }}>
-                Your question is posted to the Timeline as @AIAgent and the agent will reply there.
+                Your question is posted to the Timeline as @AIAgent and the agent will reply there. Observables, IOC matches, correlations, stakeholders and the top related incidents are auto-attached as context.
               </Typography>
               {!agentReadiness.isLoading && !agentReadiness.active && (
                 <Box
@@ -6205,7 +6239,7 @@ const IncidentDetailPage = () => {
                         (async () => {
                           setAskAgentSending(true);
                           try {
-                            await handleAddComment(`@AIAgent ${askAgentText.trim()}`);
+                            await handleAddComment(`@AIAgent ${askAgentText.trim()}${buildAskAgentContext()}`);
                             setAskAgentText('');
                             setAskAgentAnchor(null);
                             toast.success('Sent to the AI agent');
@@ -6266,7 +6300,7 @@ const IncidentDetailPage = () => {
                         onClick={async () => {
                           setAskAgentSending(true);
                           try {
-                            await handleAddComment(`@AIAgent ${askAgentText.trim()}`);
+                            await handleAddComment(`@AIAgent ${askAgentText.trim()}${buildAskAgentContext()}`);
                             setAskAgentText('');
                             setAskAgentAnchor(null);
                             toast.success('Sent to the AI agent');
