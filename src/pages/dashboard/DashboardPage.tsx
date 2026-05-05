@@ -848,9 +848,34 @@ const DashboardPage = () => {
       {/* ── Demo Mode CTA ────────────────────────────────────────────────────── */}
       <DemoModeCard />
 
+      {/* When setup is mostly done, surface the Overview above the Setup Guide
+          so the dashboard feels useful at a glance. Otherwise show it below. */}
+      {!setupLoading && progressPercent >= 80 && (
+        <DashboardOverview
+          incidents={overviewIncidents}
+          incidentsLoading={incidentsLoading}
+          vulnSeverityCounts={vulnSeverityCounts}
+          vulnLoading={vulnLoading}
+          monitorHostCount={hostMonitorCount}
+          runningSensorCount={runningSensorCount}
+          monitorsLoading={hasHostMonitor === null}
+        />
+      )}
+
       {/* ── Setup Checklist ──────────────────────────────────────────────────── */}
       <Box sx={{ mb: 5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: setupCollapsed ? 0 : 2,
+            cursor: progressPercent >= 80 ? 'pointer' : 'default',
+          }}
+          onClick={() => {
+            if (progressPercent >= 80) setSetupCollapsed(c => !c);
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Sparkles size={18} style={{ color: 'hsl(var(--primary))' }} />
             <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
@@ -868,6 +893,11 @@ const DashboardPage = () => {
               }}
             />
           </Box>
+          {progressPercent >= 80 && (
+            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSetupCollapsed(c => !c); }} sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              {setupCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            </IconButton>
+          )}
         </Box>
 
         {/* Progress bar */}
