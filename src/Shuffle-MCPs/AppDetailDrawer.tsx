@@ -832,6 +832,18 @@ export default function AppDetailDrawer({
   const authCount = matchingEntries.length;
   const displayName = (appInfo?.name || appName || '').replace(/_/g, ' ');
 
+  // Auto-collapse when valid auth appears, auto-expand when it disappears.
+  useEffect(() => {
+    if (lastValidAuthRef.current === hasValidAuth) return;
+    lastValidAuthRef.current = hasValidAuth;
+    setAuthExpanded(!hasValidAuth);
+  }, [hasValidAuth]);
+
+  // Reset tracker when switching apps so the new app starts from current state.
+  useEffect(() => {
+    lastValidAuthRef.current = null;
+  }, [appName]);
+
   const handleActivateToggle = async () => {
     if (!appName || activateLoading) return;
     const wasActivated = isActivated;
