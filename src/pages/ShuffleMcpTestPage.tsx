@@ -347,6 +347,33 @@ const ShuffleMcpTestPage = () => {
             ))}
           </Stack>
         </DemoSection>
+
+        <DemoSection
+          title="4. Authentication (standalone)"
+          description={<><code>&lt;AppAuthSection /&gt;</code> + <code>useAppLookup()</code> — drop the auth card anywhere by passing just an app name.</>}
+          code={SNIPPET_AUTH_SECTION}
+        >
+          <AppNamePicker value={authApp} onChange={setAuthApp} />
+          <AuthSectionDemo appName={authApp} />
+        </DemoSection>
+
+        <DemoSection
+          title="5. Try MCP (standalone)"
+          description={<><code>&lt;TryMcpSection /&gt;</code> — chat against an app's MCP tools. Resolves icon + id from the app name.</>}
+          code={SNIPPET_TRY_MCP}
+        >
+          <AppNamePicker value={mcpApp} onChange={setMcpApp} />
+          <TryMcpDemo appName={mcpApp} />
+        </DemoSection>
+
+        <DemoSection
+          title="6. Try individual actions (standalone)"
+          description={<><code>&lt;SingulActionsPreview /&gt;</code> — full curl/python catalog with Play. Sorts the app's category to the top.</>}
+          code={SNIPPET_TRY_ACTIONS}
+        >
+          <AppNamePicker value={actionsApp} onChange={setActionsApp} />
+          <TryActionsDemo appName={actionsApp} />
+        </DemoSection>
       </Stack>
 
       <AppSearchDrawer
