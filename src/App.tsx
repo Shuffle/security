@@ -118,6 +118,7 @@ const ThemedApp = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/apps" element={<AppsPage />} />
+            <Route path="/shuffle-mcp-test" element={<ShuffleMcpTestPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/register" element={<AuthPage mode="register" />} />
             <Route path="/docs" element={<DocsPage />} />
