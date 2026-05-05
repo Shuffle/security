@@ -221,11 +221,11 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
                 <Line
                   type="monotone"
                   dataKey="v"
-                  stroke={`url(#${sparkId})`}
-                  strokeWidth={1.75}
+                  stroke={glow}
+                  strokeOpacity={0.7}
+                  strokeWidth={1.5}
                   dot={false}
                   isAnimationActive={false}
-                  style={{ filter: `drop-shadow(0 0 4px ${glow})` }}
                 />
               </LineChart>
             </ResponsiveContainer>
