@@ -1,16 +1,34 @@
 services:
-  frontend:
+  # Shuffle Core — the new security/incidents UI shipped from this repo.
+  # Talks to the same backend over the internal docker network.
+  shuffle-core:
     image: ghcr.io/shuffle/shuffle-security:latest
-    container_name: shuffle-frontend
-    hostname: shuffle-frontend
+    container_name: shuffle-core
+    hostname: shuffle-core
     ports:
-      - "${FRONTEND_PORT:-3002}:80"
-      - "${FRONTEND_PORT_HTTPS:-3444}:443"
+      - "${SHUFFLE_CORE_PORT:-3002}:80"
+      - "${SHUFFLE_CORE_PORT_HTTPS:-3444}:443"
     networks:
       - shuffle
     environment:
       # Hostname (or container name) of the Shuffle backend service.
       # Resolved at container start by envsubst into nginx.conf for /api/v1 + /api/v2 proxying.
+      - BACKEND_HOSTNAME=${BACKEND_HOSTNAME:-shuffle-backend}
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # Original Shuffle frontend — kept for parity with the standard Shuffle install.
+  frontend:
+    image: ghcr.io/shuffle/shuffle-frontend:latest
+    container_name: shuffle-frontend
+    hostname: shuffle-frontend
+    ports:
+      - "${FRONTEND_PORT:-3001}:80"
+      - "${FRONTEND_PORT_HTTPS:-3443}:443"
+    networks:
+      - shuffle
+    environment:
       - BACKEND_HOSTNAME=${BACKEND_HOSTNAME:-shuffle-backend}
     restart: unless-stopped
     depends_on:
