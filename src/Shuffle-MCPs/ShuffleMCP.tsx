@@ -298,7 +298,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
 
   // Handle app selection
   const selectApp = useCallback((app: AlgoliaSearchApp) => {
-    const authUrl = `${apiBaseUrl}${appAuthPath}?app_id=${app.objectID}&auth=${authToken}&source=shuffle`;
+    const authUrl = `${apiBaseUrl}${appAuthPath}?app_id=${app.objectID}&auth=${authToken}&source=shuffle${orgId ? `&org_id=${encodeURIComponent(orgId)}` : ''}`;
 
     if (multiSelect) {
       const isAlreadySelected = internalSelectedApps.some((a) => a.objectID === app.objectID);
