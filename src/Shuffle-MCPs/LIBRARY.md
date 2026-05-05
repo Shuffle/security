@@ -120,7 +120,7 @@ When `apiKey` is set, status dots are populated: validated, configured, selected
 ### Required
 | Prop | Type | Description |
 |---|---|---|
-| `authToken` | `string` | Token forwarded into the auth URL. |
+| `apiKey` | `string` | Your Shuffle API key. Used as `Authorization: Bearer` on all API calls and forwarded into the auth handoff URL as `&auth=`. |
 
 ### Search
 | Prop | Type | Default | Description |
