@@ -28,8 +28,11 @@ interface AuthPageProps {
 const AuthPage = ({ mode }: AuthPageProps) => {
 
   usePageMeta({
-    title: 'Sign in',
-    description: 'Sign in or create your Shuffle Security account to manage incidents, alerts, and security automation.',
+    title: mode === 'register' ? 'Create your account' : 'Sign in',
+    description: mode === 'register'
+      ? 'Create your Shuffle Security account and start automating incident response across 3,000+ integrations.'
+      : 'Sign in to Shuffle Security to manage incidents, alerts, and security automation.',
+    url: mode === 'register' ? '/register' : '/login',
   });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
