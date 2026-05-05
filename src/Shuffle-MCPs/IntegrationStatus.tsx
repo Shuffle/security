@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { fetchAuthenticatedApps } from '@/Shuffle-MCPs/authenticatedApps';
 import { deduplicateAuthApps, backfillAppImages, type AuthAppEntry } from '@/Shuffle-MCPs/auth-utils';
-import { useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
+import { useAppDetailOptional } from '@/Shuffle-MCPs/AppDetailContext';
 import { SIEM_PATTERNS, CASES_PATTERNS, EDR_PATTERNS, EMAIL_APP_PATTERNS } from '@/Shuffle-MCPs/ingestionDetection';
 
 interface Integration {
