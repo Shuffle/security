@@ -22,6 +22,7 @@ import {
   SingulActionsPreview,
   useAppLookup,
 } from '@/Shuffle-MCPs';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import { Box as MuiBox, TextField, Skeleton } from '@mui/material';
 
@@ -295,7 +296,9 @@ const ShuffleMcpTestPage = () => {
   const [actionsApp, setActionsApp] = useState('VirusTotal');
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
+    <>
+      <LandingNavbar />
+      <Container maxWidth="lg" sx={{ py: 6 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
           Shuffle MCP — library demo
@@ -389,6 +392,7 @@ const ShuffleMcpTestPage = () => {
         appName={detailApp}
       />
     </Container>
+    </>
   );
 };
 
