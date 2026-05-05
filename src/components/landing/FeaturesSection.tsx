@@ -730,6 +730,38 @@ const features: Omit<FeatureSectionProps, 'reverse'>[] = [
     link: '/docs/shuffle-pipelines',
     linkLabel: 'Read the Pipelines guide',
   },
+  {
+    icon: null,
+    title: 'Host Monitoring for',
+    highlight: 'SOC2 & Response',
+    description: 'Lightweight monitors on every endpoint give you continuous compliance evidence, vulnerability signals, and a remote action channel — without standing up an EDR.',
+    bullets: [
+      'Continuous SOC2 checks: encryption, screenlock, patching, MDM posture',
+      'Live software inventory and vulnerability matching per host',
+      'Run shell commands or response actions on any host from the browser',
+      'Audit trail of every check and action for your auditors',
+    ],
+    color: '#10b981',
+    visual: <HostMonitorVisual />,
+    link: '/monitors',
+    linkLabel: 'See Host Monitors',
+  },
+  {
+    icon: null,
+    title: 'Vulnerability',
+    highlight: 'Automation at Scale',
+    description: 'Stop drowning in CVEs. Ingest findings from any scanner, enrich with threat intel and reachability, then route fixes through automated patching or ticketing workflows.',
+    bullets: [
+      'Ingest from Qualys, Tenable, Wiz, Defender and host monitors',
+      'Auto-prioritize using EPSS, KEV and exploitability context',
+      'Trigger patch, isolate, ticket or suppression workflows automatically',
+      'Track MTTR per team, asset and severity in one place',
+    ],
+    color: '#f43f5e',
+    visual: <VulnAutomationVisual />,
+    link: '/vulnerabilities',
+    linkLabel: 'Open Vulnerability Management',
+  },
 ];
 
 export const FeaturesSection = () => {
