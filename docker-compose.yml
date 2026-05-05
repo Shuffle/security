@@ -1,13 +1,11 @@
-version: "3.8"
-
 services:
-  frontend:
-    image: ghcr.io/shuffle/shuffle-cases:latest
-    container_name: shuffle-cases
-    hostname: shuffle-cases
+  security-frontend:
+    image: ghcr.io/shuffle/shuffle-security:latest
+    container_name: shuffle-frontend
+    hostname: shuffle-frontend
     ports:
-      - "${FRONTEND_SECURITY_PORT:-3443}:80"
-      - "${FRONTEND_SECURITY_PORT_HTTPS:-3444}:443"
+      - "3002:80"
+      - "3444:443"
     networks:
       - shuffle
     environment:
@@ -15,7 +13,108 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+  frontend:
+    image: ghcr.io/shuffle/shuffle-frontend:latest
+    container_name: shuffle-frontend
+    hostname: shuffle-frontend
+    ports:
+      - "${FRONTEND_PORT}:80"
+      - "${FRONTEND_PORT_HTTPS}:443"
+    networks:
+      - shuffle
+    environment:
+      - BACKEND_HOSTNAME=${BACKEND_HOSTNAME}
+    restart: unless-stopped
+    depends_on:
+      - backend
+  backend:
+    image: ghcr.io/shuffle/shuffle-backend:latest
+    container_name: shuffle-backend
+    hostname: ${BACKEND_HOSTNAME}
+    # Here for debugging:
+    ports:
+      - "${BACKEND_PORT}:5001"
+    networks:
+      - shuffle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${SHUFFLE_APP_HOTLOAD_LOCATION}:/shuffle-apps:z
+      - ${SHUFFLE_FILE_LOCATION}:/shuffle-files:z
+    env_file: .env
+    environment:
+      #- DOCKER_HOST=tcp://docker-socket-proxy:2375
+      - SHUFFLE_APP_HOTLOAD_FOLDER=/shuffle-apps
+      - SHUFFLE_FILE_LOCATION=/shuffle-files
+    restart: unless-stopped
+  orborus:
+    image: ghcr.io/shuffle/shuffle-orborus:latest
+    container_name: shuffle-orborus
+    hostname: shuffle-orborus
+    networks:
+      - shuffle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SHUFFLE_APP_SDK_TIMEOUT=300
+      - ENVIRONMENT_NAME=Shuffle
+      - ORG_ID=Shuffle
+      - BASE_URL=http://${OUTER_HOSTNAME}:5001
+      - DOCKER_API_VERSION=1.40
+      - HTTP_PROXY=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - SHUFFLE_PASS_WORKER_PROXY=${SHUFFLE_PASS_WORKER_PROXY}
+      - SHUFFLE_PASS_APP_PROXY=${SHUFFLE_PASS_APP_PROXY}
+      # - SHUFFLE_APP_REPLICAS=${SHUFFLE_APP_REPLICAS}
+      - SHUFFLE_STATS_DISABLED=true
+      - SHUFFLE_LOGS_DISABLED=true
+      - SHUFFLE_SWARM_CONFIG=run
+      - CLEANUP=false
+      - SHUFFLE_WORKER_IMAGE=ghcr.io/shuffle/shuffle-worker:latest
+    env_file: .env
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+  opensearch:
+    image: opensearchproject/opensearch:3.2.0
+    hostname: shuffle-opensearch
+    container_name: shuffle-opensearch
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms3072m -Xmx3072m" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
+      - bootstrap.memory_lock=true
+      - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
+      - cluster.initial_master_nodes=shuffle-opensearch
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - cluster.name=shuffle-cluster
+      - node.name=shuffle-opensearch
+      - node.store.allow_mmap=false
+      - discovery.seed_hosts=shuffle-opensearch
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${SHUFFLE_OPENSEARCH_PASSWORD}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - shuffle-database:/usr/share/opensearch/data:z
+    ports:
+      - 9200:9200
+    networks:
+      - shuffle
+    restart: unless-stopped
+
+volumes:
+  shuffle-database:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${DB_LOCATION}
+      o: bind
 
 networks:
   shuffle:
     driver: bridge
+    # driver_opts:
+    #   com.docker.network.driver.mtu: 1460
+    # uncomment to set MTU for swarm mode. MTU should be whatever is your host's preferred MTU is: https://shuffler.io/docs/troubleshooting#TLS_timeout_error/Timeout_Errors/EOF_Errors
