@@ -147,24 +147,23 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5, position: 'relative' }}>
           <Box
             sx={{
-              width: 34, height: 34, borderRadius: 1.5,
+              width: 32, height: 32, borderRadius: 1.25,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: `linear-gradient(135deg, ${glow}33, ${glow}11)`,
-              border: `1px solid ${glow}55`,
-              boxShadow: `0 0 12px ${glow}44, inset 0 0 8px ${glow}22`,
+              backgroundColor: `${glow}1A`,
+              border: `1px solid ${glow}33`,
             }}
           >
-            <Icon size={16} style={{ color: glow, filter: `drop-shadow(0 0 4px ${glow})` }} />
+            <Icon size={16} style={{ color: glow }} />
           </Box>
           {onClick && (
             <ArrowUpRight
               size={14}
               className="kpi-arrow"
               style={{
-                color: glow,
+                color: 'hsl(var(--muted-foreground))',
                 opacity: 0,
                 transform: 'translate(-4px, 4px)',
-                transition: 'all 0.25s ease',
+                transition: 'all 0.2s ease',
               }}
             />
           )}
@@ -172,16 +171,14 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
 
         <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, position: 'relative' }}>
           {isLoading ? (
-            <Skeleton variant="text" width={70} height={40} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
+            <Skeleton variant="text" width={70} height={36} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
           ) : (
             <Typography sx={{
-              fontWeight: 700,
-              fontSize: '2rem',
+              fontWeight: 600,
+              fontSize: '1.75rem',
               lineHeight: 1,
               color: 'hsl(var(--foreground))',
-              fontFamily: 'ui-monospace, "SF Mono", monospace',
-              letterSpacing: '-0.03em',
-              textShadow: `0 0 24px ${glow}55`,
+              letterSpacing: '-0.02em',
             }}>
               {value}
             </Typography>
@@ -189,27 +186,23 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
           {delta && (
             <Box sx={{
               display: 'inline-flex', alignItems: 'center', gap: 0.25,
-              px: 0.75, py: 0.25,
-              borderRadius: 999,
+              px: 0.6, py: 0.15,
+              borderRadius: 1,
               fontSize: '0.65rem',
-              fontWeight: 700,
-              fontFamily: 'ui-monospace, monospace',
+              fontWeight: 600,
               color: delta.positive ? NEON.green : NEON.red,
-              background: delta.positive ? `${NEON.green}1A` : `${NEON.red}1A`,
-              border: `1px solid ${delta.positive ? NEON.green : NEON.red}44`,
-              mb: 0.5,
+              backgroundColor: delta.positive ? `${NEON.green}1A` : `${NEON.red}1A`,
+              mb: 0.4,
             }}>
               {delta.positive ? '↓' : '↑'} {delta.value}
             </Box>
           )}
         </Box>
         <Typography sx={{
-          fontSize: '0.7rem',
+          fontSize: '0.72rem',
           color: 'hsl(var(--muted-foreground))',
-          mt: 0.5,
+          mt: 0.75,
           fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
           position: 'relative',
         }}>
           {label}
