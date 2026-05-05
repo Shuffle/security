@@ -580,6 +580,13 @@ const SingulActionsPreview = ({
               }}
             >
               {playResult}
+            </Box>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
 
 interface AppDetailDrawerProps {
   open: boolean;
