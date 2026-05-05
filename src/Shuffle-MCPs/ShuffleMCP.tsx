@@ -323,7 +323,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
 
       setIsOpen(false);
     }
-  }, [authToken, apiBaseUrl, appAuthPath, multiSelect, internalSelectedApps, onAppSelected, onSelectionChange, preventDefault]);
+  }, [authToken, apiBaseUrl, appAuthPath, orgId, multiSelect, internalSelectedApps, onAppSelected, onSelectionChange, preventDefault]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
