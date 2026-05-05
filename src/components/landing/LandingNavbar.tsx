@@ -16,6 +16,7 @@ import {
   useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import GitHubIcon from '@mui/icons-material/GitHub';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { trackCTA, trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
