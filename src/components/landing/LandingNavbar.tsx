@@ -247,20 +247,22 @@ export const LandingNavbar = () => {
                     <ListItemText primary={isOnLoginPage ? 'Sign Up' : 'Sign In'} />
                   </ListItemButton>
                 </ListItem>
-                <ListItem sx={{ px: 2, pt: 2 }}>
-                  <Button
-                    component={Link}
-                    to="/register"
-                    variant="contained"
-                    fullWidth
-                    onClick={() => {
-                      trackCTA('get_started', 'mobile_drawer');
-                      handleDrawerToggle();
-                    }}
-                  >
-                    Get Started
-                  </Button>
-                </ListItem>
+                {!isOnAuthPage && (
+                  <ListItem sx={{ px: 2, pt: 2 }}>
+                    <Button
+                      component={Link}
+                      to="/register"
+                      variant="contained"
+                      fullWidth
+                      onClick={() => {
+                        trackCTA('get_started', 'mobile_drawer');
+                        handleDrawerToggle();
+                      }}
+                    >
+                      Get Started
+                    </Button>
+                  </ListItem>
+                )}
               </>
             )}
           </List>
