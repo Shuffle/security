@@ -198,7 +198,6 @@ function buildSingulCurl(appName: string, action: SingulAction | null): string {
   };
   return `curl -X POST https://singul.io/api/${act} \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
-  -H "Content-Type: application/json" \\
   -d '${JSON.stringify(body, null, 2)}'`;
 }
 
