@@ -118,7 +118,6 @@ const ThemedApp = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/apps" element={<AppsPage />} />
-            <Route path="/shuffle-mcp-test" element={<ShuffleMcpTestPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/register" element={<AuthPage mode="register" />} />
             <Route path="/docs" element={<DocsPage />} />
@@ -146,6 +145,7 @@ const ThemedApp = () => {
               }
             >
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/shuffle-mcp-test" element={<ShuffleMcpTestPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
               {/* Simple incident view was removed — redirect any old links to the full view. */}
               <Route path="/incidents-simple" element={<Navigate to="/incidents" replace />} />
