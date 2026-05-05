@@ -338,6 +338,7 @@ const SingulActionsPreview = ({
       toast.error(msg);
     } finally {
       setPlayLoading(false);
+      scrollToResponse();
     }
   };
 
