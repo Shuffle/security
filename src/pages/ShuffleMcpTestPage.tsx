@@ -121,7 +121,7 @@ const lookup = useAppLookup('VirusTotal');
 />`;
 
 function CodeBlock({ code }: { code: string }) {
-
+  const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(code);
