@@ -54,8 +54,8 @@ const NotFound = () => {
             href="https://shuffler.io"
             className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary hover:bg-card/80"
           >
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Radar className="h-5 w-5" />
+            <div className="mb-4 flex h-10 w-10 items-center justify-center">
+              <img src={shuffleInfraLogo} alt="Shuffle Core" width={40} height={40} style={{ borderRadius: 6 }} />
             </div>
             <h2 className="mb-1 text-lg font-semibold text-foreground">
               Return to Shuffle Core
