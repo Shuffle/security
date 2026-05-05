@@ -8,8 +8,8 @@ import { useAuth } from '@/context/AuthContext';
  * opens the built-in detail drawer with existing authentications.
  */
 const ShuffleMcpTestPage = () => {
-  const { userInfo } = useAuth();
-  const apiKey = userInfo?.apikey || '';
+  const { userInfo, sessionToken } = useAuth();
+  const apiKey = sessionToken || '';
   const orgId = userInfo?.active_org?.id;
 
   return (
