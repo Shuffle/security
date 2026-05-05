@@ -16,6 +16,7 @@ import {
   useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import GitHubIcon from '@mui/icons-material/GitHub';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { trackCTA, trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
@@ -143,6 +144,19 @@ export const LandingNavbar = () => {
             transition={{ duration: 0.5 }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {!isMobile && (
+                <Button
+                  component="a"
+                  href="https://github.com/shuffle/shuffle-security"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="text"
+                  startIcon={<GitHubIcon />}
+                  sx={{ color: 'text.secondary', textTransform: 'none' }}
+                >
+                  Open Source
+                </Button>
+              )}
               {!isMobile && (
                 <>
                   {isAuthenticated ? (
