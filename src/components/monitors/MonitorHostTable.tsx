@@ -488,7 +488,7 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
             );
           };
           return (
-            <div key={host.uuid}>
+            <div key={rowKey}>
               <div
                 className="grid grid-cols-[2rem_1.5fr_2rem_2rem_2rem_2rem_2rem_2rem_0.7fr_0.8fr_2.5rem] gap-2 px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors items-center cursor-pointer"
                 onClick={toggleExpanded}
