@@ -199,7 +199,7 @@ const ShuffleMcpTestPage = () => {
           description={<><code>&lt;ShuffleMCP /&gt;</code> — Algolia + private apps merged into one searchable list.</>}
           code={SNIPPET_INLINE_SEARCH}
         >
-          <ShuffleMCP inline layout="grid" gridColumns={3} />
+          <ShuffleMCP inline layout="grid" gridColumns={3} apiKey={API_CONFIG.apiKey || undefined} />
         </DemoSection>
 
         <DemoSection
