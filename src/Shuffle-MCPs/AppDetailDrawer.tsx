@@ -278,11 +278,19 @@ const SingulActionsPreview = ({
 
   const [playLoading, setPlayLoading] = useState(false);
   const [playResult, setPlayResult] = useState<string | null>(null);
+  const responseRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToResponse = () => {
+    requestAnimationFrame(() => {
+      responseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  };
 
   const handlePlay = async () => {
     if (!snippet || playLoading) return;
     setPlayLoading(true);
-    setPlayResult(null);
+    setPlayResult('');
+    scrollToResponse();
     try {
       const body = lang === 'python'
         ? {
@@ -330,6 +338,7 @@ const SingulActionsPreview = ({
       toast.error(msg);
     } finally {
       setPlayLoading(false);
+      scrollToResponse();
     }
   };
 
@@ -564,8 +573,8 @@ const SingulActionsPreview = ({
           </>
         )}
 
-        {playResult !== null && (
-          <Box sx={{ mt: 1.5 }}>
+        {(playLoading || playResult !== null) && (
+          <Box ref={responseRef} sx={{ mt: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'hsl(140 60% 55%)' }} />
               <Typography sx={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', letterSpacing: 0.4 }}>
@@ -590,7 +599,7 @@ const SingulActionsPreview = ({
                 m: 0,
               }}
             >
-              {playResult}
+              {playLoading && !playResult ? 'Running…' : playResult}
             </Box>
           </Box>
         )}
