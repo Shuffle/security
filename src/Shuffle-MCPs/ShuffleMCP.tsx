@@ -148,7 +148,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
       }
     };
     fetchPrivateApps();
-  }, [apiKey, apiBaseUrl, privateAppsPath, disablePrivateApps]);
+  }, [apiKey, apiBaseUrl, privateAppsPath, disablePrivateApps, orgId]);
 
   // Auto-select validated apps when they're loaded (validated = tests ran successfully)
   useEffect(() => {
