@@ -28,9 +28,5 @@ export const AppDetailProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useAppDetail = () => {
-  const context = useContext(AppDetailContext);
-  if (!context) {
-    throw new Error('useAppDetail must be used within an AppDetailProvider');
-  }
-  return context;
+  return useContext(AppDetailContext);
 };
