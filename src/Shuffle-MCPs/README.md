@@ -92,7 +92,7 @@ The most common pattern. Set `preventDefault` and handle `onAppSelected` to chai
 
 ```tsx
 <ShuffleMCP
-  apiKey={token}
+  apiKey={user.apiKey}
   inline
   preventDefault
   onAppSelected={(d) => openDetailDrawer(d.app)}
@@ -155,7 +155,6 @@ When `apiKey` is set, the component also fetches the user's **private apps** fro
 | `preventDefault` | `boolean` | Skip the default click behavior (built-in drawer or `window.open(authUrl)`) so you can handle selection yourself. |
 | `onAppSelected` | `(detail) => void` | Fires on single-select pick. If provided, the built-in drawer is **not** opened — you take over. |
 | `multiSelect` | `boolean` | Allow selecting multiple apps. |
-| `apiKey` | `string` | Bearer token. Enables status dots and merges your private apps from `/api/v1/apps`. |
 | `showSourceFilter` | `boolean` | Toggle the All / Public / Private filter. Default `true`. |
 | `customStyles` | `CustomStyles` | Per-slot style overrides. |
 
@@ -167,9 +166,8 @@ When you do **not** pass `onAppSelected`, clicking an app opens a built-in right
 
 ```tsx
 <ShuffleMCP
-  apiKey={token}
-  apiKey={user.apiKey}
-  orgId={currentOrg.id}   // every request now scoped to this org
+  apiKey={user.apiKey}     // current user's Shuffle API key, fetched by your backend
+  orgId={currentOrg.id}    // every request now scoped to this org
 />
 ```
 
