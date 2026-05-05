@@ -19,12 +19,18 @@ import { getApiUrl, API_ENDPOINTS, API_CONFIG, isDevEnvironment } from '@/Shuffl
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
 }
 
 const AuthPage = ({ mode }: AuthPageProps) => {
+
+  usePageMeta({
+    title: 'Sign in',
+    description: 'Sign in or create your Shuffle Security account to manage incidents, alerts, and security automation.',
+  });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
