@@ -54,6 +54,11 @@ import { findIngestTicketsWorkflow } from '@/lib/ingestionDetection';
 import { getApiUrl, getAuthHeader } from '@/config/api';
 import { toast } from 'sonner';
 import { DemoModeCard } from '@/components/demo/DemoModeCard';
+import { useDatastore } from '@/hooks/useDatastore';
+import { DATASTORE_CATEGORIES } from '@/services/datastore';
+import { useVulnerabilities } from '@/hooks/useVulnerabilities';
+import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 // ── Setup Step ─────────────────────────────────────────────────────────────────
 
