@@ -590,26 +590,53 @@ const SingulActionsPreview = ({
                     <div key={i}>{i + 1}</div>
                   ))}
                 </Box>
-                <Box
-                  component="textarea"
-                  value={snippet}
-                  onChange={(e: any) => setSnippet(e.target.value)}
-                  spellCheck={false}
-                  sx={{
-                    flex: 1,
-                    minHeight: 270,
-                    resize: 'vertical',
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: '0.72rem',
-                    lineHeight: 1.5,
-                    color: 'hsl(var(--foreground))',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    p: 1.5,
-                    outline: 'none',
-                    caretColor: 'hsl(var(--primary))',
-                  }}
-                />
+                <Box sx={{ flex: 1, position: 'relative', minHeight: 270 }}>
+                  <Box
+                    aria-hidden
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      m: 0,
+                      p: 1.5,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '0.72rem',
+                      lineHeight: 1.5,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      pointerEvents: 'none',
+                      overflow: 'hidden',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: highlightSnippet(snippet, lang) + '\n' }}
+                  />
+                  <Box
+                    component="textarea"
+                    value={snippet}
+                    onChange={(e: any) => setSnippet(e.target.value)}
+                    spellCheck={false}
+                    sx={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '100%',
+                      minHeight: 270,
+                      resize: 'vertical',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '0.72rem',
+                      lineHeight: 1.5,
+                      color: 'transparent',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      p: 1.5,
+                      m: 0,
+                      outline: 'none',
+                      caretColor: 'hsl(var(--primary))',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      overflow: 'auto',
+                      '&::selection': { color: 'inherit', backgroundColor: 'hsl(var(--primary) / 0.3)' },
+                    }}
+                  />
+                </Box>
               </Box>
             </Box>
           </>
