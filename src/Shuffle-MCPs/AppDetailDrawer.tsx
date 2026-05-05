@@ -371,7 +371,7 @@ const SingulActionsPreview = ({
                 size="small"
                 disableClearable
                 options={actions}
-                value={selected || undefined}
+                value={selected ?? null}
                 onChange={(_, v) => handleSelect(v as SingulAction)}
                 getOptionLabel={(o: SingulAction) => o.name}
                 isOptionEqualToValue={(a, b) => a.name === b.name}
