@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, useImperativeHandle } from 'react';
 import { algoliasearch, SearchClient } from 'algoliasearch';
 import type { AlgoliaSearchApp, AppSelectedEvent, ShuffleMCPProps, AppAuthentication } from './shuffle-mcp.helpers';
+import SingulDrawer from './SingulDrawer';
 import './shuffle-mcp.css';
 
 const DEFAULT_ALGOLIA_APP_ID = 'JNSS5CFDZZ';
@@ -75,32 +76,30 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const searchClient = useRef<SearchClient | null>(null);
 
   // Fetch authenticated apps when apiKey is provided
-  useEffect(() => {
-    if (apiKey) {
-      const fetchAuthenticatedApps = async () => {
-        try {
-          const response = await fetch(`${apiBaseUrl}${authPath}`, {
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              ...(orgId ? { 'Org-Id': orgId } : {}),
-            },
-          });
-          if (response.ok) {
-            const result = await response.json();
-            // Handle both { success: true, data: [...] } and direct array response
-            const authData = result.data || result;
-            if (Array.isArray(authData)) {
-              console.log('Loaded authenticated apps:', authData.length, authData.map(a => a.app?.name));
-              setAuthenticatedApps(authData);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch authenticated apps:', error);
+  const fetchAuthenticatedApps = useCallback(async () => {
+    if (!apiKey) return;
+    try {
+      const response = await fetch(`${apiBaseUrl}${authPath}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          ...(orgId ? { 'Org-Id': orgId } : {}),
+        },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        const authData = result.data || result;
+        if (Array.isArray(authData)) {
+          setAuthenticatedApps(authData);
         }
-      };
-      fetchAuthenticatedApps();
+      }
+    } catch (error) {
+      console.error('Failed to fetch authenticated apps:', error);
     }
-  }, [apiKey, apiBaseUrl, orgId]);
+  }, [apiKey, apiBaseUrl, authPath, orgId]);
+
+  useEffect(() => {
+    fetchAuthenticatedApps();
+  }, [fetchAuthenticatedApps]);
 
   // Fetch the user's private apps from /api/v1/apps when apiKey is provided.
   // These get merged into search results so users can find their own apps too.
@@ -615,77 +614,20 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
         )}
       </div>
 
-      {/* Built-in app auth drawer — shown when no custom onAppSelected handler is provided */}
-      {drawerApp && (() => {
-        const norm = (n: string) => (n || '').toLowerCase().replace(/[\s_\-]+/g, '_');
-        const matchingAuths = authenticatedApps.filter(
-          a => norm(a.app?.name || '') === norm(drawerApp.name)
-        );
-        const drawerAuthUrl = `${apiBaseUrl}${appAuthPath}?app_id=${drawerApp.objectID}&auth=${apiKey || authToken || ''}&source=shuffle${orgId ? `&org_id=${encodeURIComponent(orgId)}` : ''}`;
-        return (
-          <>
-            <div className="singul-drawer-backdrop" onClick={() => setDrawerApp(null)} />
-            <aside className="singul-drawer" role="dialog" aria-label={`${drawerApp.name} configuration`}>
-              <header className="singul-drawer-header">
-                <div className="singul-drawer-title-row">
-                  {drawerApp.image_url && (
-                    <img src={drawerApp.image_url} alt={drawerApp.name} className="singul-drawer-icon" />
-                  )}
-                  <div>
-                    <div className="singul-drawer-title">{drawerApp.name.replace(/_/g, ' ')}</div>
-                    <div className="singul-drawer-subtitle">App configuration</div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="singul-drawer-close"
-                  onClick={() => setDrawerApp(null)}
-                  aria-label="Close"
-                >×</button>
-              </header>
-
-              <div className="singul-drawer-body">
-                {drawerApp.description && (
-                  <p className="singul-drawer-desc">{drawerApp.description}</p>
-                )}
-
-                <div className="singul-drawer-section-title">
-                  Authentication
-                  <span className="singul-drawer-count">
-                    {matchingAuths.length} configuration{matchingAuths.length === 1 ? '' : 's'} found
-                  </span>
-                </div>
-
-                {matchingAuths.length > 0 ? (
-                  <ul className="singul-drawer-auth-list">
-                    {matchingAuths.map(a => (
-                      <li key={a.id} className="singul-drawer-auth-item">
-                        <div className="singul-drawer-auth-label">{a.label || 'Untitled'}</div>
-                        <div className="singul-drawer-auth-chips">
-                          {a.active && <span className="singul-chip singul-chip-configured">Configured</span>}
-                          {a.validation?.valid && <span className="singul-chip singul-chip-tested">Tested</span>}
-                          {!a.active && <span className="singul-chip singul-chip-inactive">Inactive</span>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="singul-drawer-empty">No authentications yet for this app.</div>
-                )}
-
-                <a
-                  href={drawerAuthUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="singul-drawer-cta"
-                >
-                  {matchingAuths.length > 0 ? 'Manage authentication' : 'Add authentication'}
-                </a>
-              </div>
-            </aside>
-          </>
-        );
-      })()}
+      {/* Built-in app config drawer — shown when no custom onAppSelected handler is provided */}
+      {drawerApp && (
+        <SingulDrawer
+          app={drawerApp}
+          authenticatedApps={authenticatedApps}
+          apiKey={apiKey}
+          authToken={authToken}
+          orgId={orgId}
+          apiBaseUrl={apiBaseUrl}
+          appAuthPath={appAuthPath}
+          onClose={() => setDrawerApp(null)}
+          onAuthRefresh={fetchAuthenticatedApps}
+        />
+      )}
     </div>
   );
 });
