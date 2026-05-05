@@ -21,7 +21,7 @@ Full API reference for [`shuffle-mcps`](./README.md). For a quick start, see the
 ```tsx
 import { ShuffleMCP } from 'shuffle-mcps';
 
-<ShuffleMCP authToken="..." onAppSelected={(d) => console.log(d)} />
+<ShuffleMCP apiKey="..." onAppSelected={(d) => console.log(d)} />
 ```
 
 ### Next.js
@@ -63,7 +63,7 @@ export default { components: { ShuffleMCP } /* ... */ };
 ```tsx
 <Drawer open={open} onClose={onClose} PaperProps={{ sx: { width: 560 } }}>
   <ShuffleMCP
-    authToken="..."
+    apiKey="..."
     inline
     layout="grid"
     gridColumns={2}
@@ -82,7 +82,7 @@ A full two-drawer reference (search → detail/auth) lives in [`src/components/s
 ```tsx
 const ref = useRef<ShuffleMCPHandle>(null);
 <button onClick={() => ref.current?.search('slack')}>Find Slack</button>
-<ShuffleMCP ref={ref} authToken="..." inline />
+<ShuffleMCP ref={ref} apiKey="..." inline />
 ```
 
 ### Multi-select
@@ -91,7 +91,7 @@ const ref = useRef<ShuffleMCPHandle>(null);
 const [picked, setPicked] = useState<AlgoliaSearchApp[]>([]);
 
 <ShuffleMCP
-  authToken="..."
+  apiKey="..."
   inline
   multiSelect
   showCheckbox
@@ -104,7 +104,7 @@ const [picked, setPicked] = useState<AlgoliaSearchApp[]>([]);
 
 ```tsx
 <ShuffleMCP
-  authToken={user.token}
+  apiKey={user.apiKey}
   apiKey={user.apiKey}
   apiBaseUrl="https://your-backend.example.com"
   algoliaAppId="YOUR_APP_ID"
