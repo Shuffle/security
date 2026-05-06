@@ -145,7 +145,7 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
           } : {},
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5, position: 'relative' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.25, position: 'relative' }}>
           <Box
             sx={{
               width: 32, height: 32, borderRadius: 1.25,
@@ -170,13 +170,13 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
           )}
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, position: 'relative' }}>
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, position: 'relative' }}>
           {isLoading ? (
-            <Skeleton variant="text" width={70} height={36} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
+            <Skeleton variant="text" width={70} height={32} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
           ) : (
             <Typography sx={{
               fontWeight: 600,
-              fontSize: '1.75rem',
+              fontSize: '1.6rem',
               lineHeight: 1,
               color: 'hsl(var(--foreground))',
               letterSpacing: '-0.02em',
@@ -193,7 +193,6 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
               fontWeight: 600,
               color: delta.positive ? NEON.green : NEON.red,
               backgroundColor: delta.positive ? `${NEON.green}1A` : `${NEON.red}1A`,
-              mb: 0.4,
             }}>
               {delta.positive ? '↓' : '↑'} {delta.value}
             </Box>
@@ -202,7 +201,7 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
         <Typography sx={{
           fontSize: '0.72rem',
           color: 'hsl(var(--muted-foreground))',
-          mt: 0.75,
+          mt: 0.5,
           fontWeight: 500,
           position: 'relative',
         }}>
