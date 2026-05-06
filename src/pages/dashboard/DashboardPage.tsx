@@ -1087,7 +1087,7 @@ const DashboardPage = () => {
           />
         </Box>
       )}
-      <Box sx={{ order: allComplete ? 1 : 2 }}>
+      <Box sx={{ order: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <AlertTriangle size={18} style={{ color: 'hsl(var(--severity-high))' }} />
           <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
