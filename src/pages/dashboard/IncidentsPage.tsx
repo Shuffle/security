@@ -385,11 +385,34 @@ const IncidentsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   // Default child orgs to showing only their own incidents immediately
-  const [filters, setFilters] = useState<Filters>(() => ({
-    severity: null, status: null, tlp: null, assignee: null, source: null, tag: null,
-    org: isChildOrg && currentOrgId ? [currentOrgId] : null,
-  }));
-  const [negatedFilters, setNegatedFilters] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<Filters>(() => {
+    const parseList = (v: string | null) => {
+      if (!v) return null;
+      const arr = v.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (!arr.length) return null;
+      return arr.length === 1 ? arr[0] : arr;
+    };
+    const sevParam = parseList(searchParams.get('severity'));
+    const statusParam = parseList(searchParams.get('status'));
+    const tlpParam = searchParams.get('tlp');
+    const assigneeParam = searchParams.get('assignee');
+    const sourceParam = searchParams.get('source');
+    const tagParam = searchParams.get('tag');
+    return {
+      severity: sevParam,
+      status: statusParam,
+      tlp: tlpParam || null,
+      assignee: assigneeParam || null,
+      source: sourceParam || null,
+      tag: tagParam || null,
+      org: isChildOrg && currentOrgId ? [currentOrgId] : null,
+    };
+  });
+  const [negatedFilters, setNegatedFilters] = useState<Set<string>>(() => {
+    const neg = searchParams.get('not');
+    if (!neg) return new Set();
+    return new Set(neg.split(',').map(s => s.trim()).filter(Boolean));
+  });
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
