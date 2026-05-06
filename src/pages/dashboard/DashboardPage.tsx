@@ -528,7 +528,7 @@ const DashboardPage = () => {
     url: '/dashboard',
   });
   const navigate = useNavigate();
-  const { userInfo, setActiveOrg } = useAuth();
+  const { userInfo } = useAuth();
   const isSupport = userInfo?.support === true;
   const { notifications, isLoading, refresh: refreshNotifications } = useAgentNotifications();
   const { singular: entitySingular, basePath: entityBasePath } = useEntityPreference();
@@ -556,15 +556,23 @@ const DashboardPage = () => {
 
   // Incidents + vulnerabilities for the overview charts
   const currentOrgId = userInfo?.active_org?.id;
-  const { items: incidentItems, isLoading: incidentsLoading, fetchItems: fetchIncidents, hasFetched: incidentsFetched } = useDatastore({
+
+  // Local "view as tenant" — does NOT change the active org. Just re-fetches
+  // dashboard data using a different Org-Id header.
+  const [viewOrgId, setViewOrgId] = useState<string | null>(null);
+  const effectiveOrgId = viewOrgId || currentOrgId;
+  const isViewingChild = !!viewOrgId && viewOrgId !== currentOrgId;
+
+  // Default datastore/vulnerability hooks — only used when viewing the active org.
+  const { items: incidentItems, isLoading: incidentsLoadingDefault, fetchItems: fetchIncidents, hasFetched: incidentsFetched } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
   });
-  const { severityCounts: vulnSeverityCounts, isLoading: vulnLoading } = useVulnerabilities({ tab: 'assets' });
+  const { severityCounts: vulnSeverityCountsDefault, isLoading: vulnLoadingDefault } = useVulnerabilities({ tab: 'assets' });
 
   // Trigger initial fetch (the hook does not auto-fetch)
   useEffect(() => {
-    if (!incidentsFetched) fetchIncidents();
-  }, [incidentsFetched, fetchIncidents]);
+    if (!incidentsFetched && !isViewingChild) fetchIncidents();
+  }, [incidentsFetched, fetchIncidents, isViewingChild]);
 
   // Multi-tenant: pull child-org incidents for parents so the overview
   // reflects everything across the organization, not just the current org.
@@ -572,7 +580,7 @@ const DashboardPage = () => {
   const [subOrgIncidentItems, setSubOrgIncidentItems] = useState<{ key: string; value: string; created?: number; edited?: number }[]>([]);
 
   useEffect(() => {
-    if (!isParentOrg) { setSubOrgIncidentItems([]); return; }
+    if (!isParentOrg || isViewingChild) { setSubOrgIncidentItems([]); return; }
     const orgsToFetch = subOrgs.filter(o => o.id !== currentOrgId);
     if (orgsToFetch.length === 0) return;
     let cancelled = false;
@@ -595,7 +603,64 @@ const DashboardPage = () => {
       if (!cancelled) setSubOrgIncidentItems(results.flat());
     })();
     return () => { cancelled = true; };
-  }, [isParentOrg, subOrgs, currentOrgId]);
+  }, [isParentOrg, subOrgs, currentOrgId, isViewingChild]);
+
+  // When viewing a specific child tenant, fetch incidents + vulnerabilities
+  // scoped to that org via Org-Id header (no active-org change).
+  const [viewIncidentItems, setViewIncidentItems] = useState<{ key: string; value: string; created?: number; edited?: number }[]>([]);
+  const [viewVulnSeverityCounts, setViewVulnSeverityCounts] = useState<{ critical: number; high: number; medium: number; low: number; info: number }>({ critical: 0, high: 0, medium: 0, low: 0, info: 0 });
+  const [viewLoading, setViewLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isViewingChild || !viewOrgId) { setViewIncidentItems([]); setViewVulnSeverityCounts({ critical: 0, high: 0, medium: 0, low: 0, info: 0 }); return; }
+    let cancelled = false;
+    setViewLoading(true);
+    (async () => {
+      const fetchCategory = async (category: string) => {
+        try {
+          const url = getApiUrl(`/api/v1/orgs/${viewOrgId}/list_cache?category=${encodeURIComponent(category)}&top=50`);
+          const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeader(), 'Org-Id': viewOrgId },
+          });
+          if (!response.ok) return [];
+          const data = await response.json();
+          return Array.isArray(data) ? data : (data.keys || data.data || []);
+        } catch { return []; }
+      };
+      const [incs, vulns] = await Promise.all([
+        fetchCategory(DATASTORE_CATEGORIES.INCIDENTS),
+        fetchCategory('shuffle-security_vulnerabilities'),
+      ]);
+      if (cancelled) return;
+      setViewIncidentItems(incs);
+      // Compute severity counts from raw vuln items (lightweight inline)
+      const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 } as Record<string, number>;
+      for (const item of vulns) {
+        try {
+          const v = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+          const sevRaw = (v?.severity || v?.database_specific?.severity || '').toString().toLowerCase();
+          let sev: keyof typeof counts = 'info';
+          if (sevRaw.startsWith('crit')) sev = 'critical';
+          else if (sevRaw.startsWith('high') || sevRaw === 'severe') sev = 'high';
+          else if (sevRaw.startsWith('mod') || sevRaw.startsWith('med')) sev = 'medium';
+          else if (sevRaw.startsWith('low')) sev = 'low';
+          counts[sev]++;
+        } catch { /* skip */ }
+      }
+      setViewVulnSeverityCounts(counts as typeof viewVulnSeverityCounts);
+      setViewLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [isViewingChild, viewOrgId]);
+
+  // Effective values used by the rest of the page
+  const effectiveIncidentItems = isViewingChild ? viewIncidentItems : incidentItems;
+  const effectiveSubOrgIncidentItems = isViewingChild ? [] : subOrgIncidentItems;
+  const incidentsLoading = isViewingChild ? viewLoading : incidentsLoadingDefault;
+  const vulnSeverityCounts = isViewingChild ? viewVulnSeverityCounts : vulnSeverityCountsDefault;
+  const vulnLoading = isViewingChild ? viewLoading : vulnLoadingDefault;
 
   const overviewIncidents = useMemo(() => {
     const out: { status: string; severity: string; createdTs: number }[] = [];
@@ -623,7 +688,7 @@ const DashboardPage = () => {
       if (n < 1e18) return n / 1000;
       return n / 1e6;
     };
-    const all = [...incidentItems, ...subOrgIncidentItems];
+    const all = [...effectiveIncidentItems, ...effectiveSubOrgIncidentItems];
     const seen = new Set<string>();
     for (const item of all) {
       try {
@@ -643,7 +708,7 @@ const DashboardPage = () => {
       } catch { /* skip */ }
     }
     return out;
-  }, [incidentItems, subOrgIncidentItems]);
+  }, [effectiveIncidentItems, effectiveSubOrgIncidentItems]);
 
 
   // Check for running detection sensors AND deployed host monitors
@@ -652,7 +717,7 @@ const DashboardPage = () => {
       try {
         const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
           credentials: 'include',
-          headers: { ...getAuthHeader() },
+          headers: { ...getAuthHeader(), ...(isViewingChild && viewOrgId ? { 'Org-Id': viewOrgId } : {}) },
         });
         if (res.ok) {
           const envs = await res.json();
@@ -680,7 +745,7 @@ const DashboardPage = () => {
       }
     };
     checkSensors();
-  }, []);
+  }, [isViewingChild, viewOrgId]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -921,7 +986,7 @@ const DashboardPage = () => {
               { id: currentOrgId || '', name: currentOrgName, image: currentOrgImage },
               ...subOrgs.filter(o => o.id !== currentOrgId).map(o => ({ id: o.id, name: o.name, image: o.image })),
             ];
-            const value = options.find(o => o.id === currentOrgId) || options[0];
+            const value = options.find(o => o.id === effectiveOrgId) || options[0];
             return (
               <Autocomplete
                 size="small"
@@ -931,9 +996,10 @@ const DashboardPage = () => {
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, v) => option.id === v.id}
                 onChange={(_, newValue) => {
-                  if (newValue && newValue.id && newValue.id !== currentOrgId) {
-                    setActiveOrg(newValue.id);
-                  }
+                  if (!newValue) return;
+                  // Local view-as: do NOT change the active org. Just re-fetch
+                  // the dashboard's data using this org's Org-Id header.
+                  setViewOrgId(newValue.id === currentOrgId ? null : newValue.id);
                 }}
                 renderOption={(props, option) => (
                   <li {...props} key={option.id}>
