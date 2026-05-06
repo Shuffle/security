@@ -209,7 +209,7 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
         </Typography>
 
         {sparkData.length > 1 && !isLoading && (
-          <Box sx={{ height: 32, mt: 1, mx: -0.5, position: 'relative' }}>
+          <Box sx={{ height: 28, mt: 'auto', pt: 1, mx: -0.5, position: 'relative' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sparkData}>
                 <defs>
