@@ -898,7 +898,7 @@ const DashboardPage = () => {
         status: hasIngest ? 'complete' : hasAuthenticatedApps ? 'action-needed' : 'not-started',
         ctaLabel: 'Configure',
         ctaPath: '/incidents?highlight=ingest',
-        priority: 4,
+        priority: 3,
       },
       {
         id: 'setup-vulns',
