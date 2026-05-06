@@ -1335,6 +1335,7 @@ const DashboardPage = () => {
         )}
         </>)}
       </Box>
+      </Box>
     </Box>
 
     <AgentQuestionDialog
