@@ -381,7 +381,7 @@ export const DashboardOverview = ({
         }}
       >
         <KpiTile
-          icon={Flame}
+          icon={AlertTriangle}
           glow={NEON.magenta}
           gradient={''}
           value={incidentStats.openCount}
@@ -393,7 +393,7 @@ export const DashboardOverview = ({
           delay={0}
         />
         <KpiTile
-          icon={AlertTriangle}
+          icon={Flame}
           glow={NEON.red}
           gradient={''}
           value={incidentStats.criticalCount}
@@ -403,7 +403,7 @@ export const DashboardOverview = ({
           delay={0.05}
         />
         <KpiTile
-          icon={Monitor}
+          icon={MonitorCheck}
           glow={NEON.cyan}
           gradient={''}
           value={monitorHostCount ?? 0}
@@ -413,7 +413,7 @@ export const DashboardOverview = ({
           delay={0.1}
         />
         <KpiTile
-          icon={ShieldAlert}
+          icon={Bug}
           glow={NEON.violet}
           gradient={''}
           value={vulnTotal}
