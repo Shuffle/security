@@ -280,9 +280,34 @@ const Panel = ({ title, action, children, delay = 0, accent }: {
   </motion.div>
 );
 
-const EmptyState = ({ text }: { text: string }) => (
-  <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+const EmptyState = ({ text, ctaLabel, onCta }: { text: string; ctaLabel?: string; onCta?: () => void }) => (
+  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 120, gap: 1.25, textAlign: 'center', px: 2 }}>
     <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.78rem' }}>{text}</Typography>
+    {ctaLabel && onCta && (
+      <Box
+        component="button"
+        onClick={onCta}
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.5,
+          height: 28,
+          px: 1.5,
+          borderRadius: 1,
+          border: '1px solid hsl(var(--primary) / 0.4)',
+          bgcolor: 'hsl(var(--primary) / 0.1)',
+          color: 'hsl(var(--primary))',
+          fontSize: '0.72rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+          '&:hover': { bgcolor: 'hsl(var(--primary) / 0.18)', borderColor: 'hsl(var(--primary))' },
+        }}
+      >
+        {ctaLabel}
+        <ArrowUpRight size={12} />
+      </Box>
+    )}
   </Box>
 );
 
