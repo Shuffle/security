@@ -2483,6 +2483,9 @@ const IncidentDetailPage = () => {
     // CRITICAL: Never use undefined - always use empty values to prevent field deletion
     const updatedData = incident.rawOCSF ? {
       ...incident.rawOCSF,
+      // Keep top-level title in sync with finding_info_list[0].title so
+      // re-fetches (which read ocsf.title first) reflect the edit.
+      title: editedTitle,
       desc: editedMessage || editedTitle,
       severity_id: severityOption?.id || 3,
       severity: severityOption?.label || 'Medium',
