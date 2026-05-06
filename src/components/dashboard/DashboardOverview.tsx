@@ -25,8 +25,8 @@ import {
 } from 'recharts';
 import {
   AlertTriangle,
-  Monitor,
-  ShieldAlert,
+  MonitorCheck,
+  Bug,
   Flame,
   ArrowUpRight,
   type LucideIcon,
