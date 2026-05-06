@@ -128,7 +128,7 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
         onClick={onClick}
         sx={{
           position: 'relative',
-          p: 2.25,
+          p: 2,
           borderRadius: 2,
           backgroundColor: 'hsl(var(--card))',
           border: '1px solid hsl(var(--border))',
@@ -136,7 +136,8 @@ const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onCl
           transition: 'border-color 0.2s, transform 0.2s',
           overflow: 'hidden',
           height: '100%',
-          minHeight: 140,
+          display: 'flex',
+          flexDirection: 'column',
           '&:hover': onClick ? {
             borderColor: 'hsl(var(--border) / 1)',
             transform: 'translateY(-1px)',
