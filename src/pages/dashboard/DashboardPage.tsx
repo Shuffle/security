@@ -856,7 +856,7 @@ const DashboardPage = () => {
         status: hasHostMonitor === true ? 'complete' : 'not-started',
         ctaLabel: 'Set Up',
         ctaPath: '/monitors?add_host=true',
-        priority: 1,
+        priority: 4,
       },
       {
         id: 'activate-apps',
@@ -866,7 +866,7 @@ const DashboardPage = () => {
         status: hasActivatedApps ? 'complete' : 'not-started',
         ctaLabel: 'Browse Apps',
         ctaPath: '/apps',
-        priority: 2,
+        priority: 1,
         detail: hasActivatedApps ? undefined : 'Activate at least one app to unlock other steps.',
       },
       {
@@ -881,7 +881,7 @@ const DashboardPage = () => {
         status: hasAuthenticatedApps ? 'complete' : hasActivatedApps ? 'action-needed' : 'not-started',
         ctaLabel: 'Set Up Auth',
         ctaPath: '/onboarding/authenticate',
-        priority: 3,
+        priority: 2,
         detail: hasActivatedApps && !hasAuthenticatedApps
           ? `${activatedApps.length} activated — add credentials to connect.`
           : undefined,
@@ -898,7 +898,7 @@ const DashboardPage = () => {
         status: hasIngest ? 'complete' : hasAuthenticatedApps ? 'action-needed' : 'not-started',
         ctaLabel: 'Configure',
         ctaPath: '/incidents?highlight=ingest',
-        priority: 4,
+        priority: 3,
       },
       {
         id: 'setup-vulns',
