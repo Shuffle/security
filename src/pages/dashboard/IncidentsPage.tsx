@@ -352,7 +352,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
 };
 
 interface Filters {
-  severity: string | null;
+  severity: string | string[] | null;
   status: string | string[] | null;
   tlp: string | null;
   assignee: string | null;
@@ -385,11 +385,60 @@ const IncidentsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   // Default child orgs to showing only their own incidents immediately
-  const [filters, setFilters] = useState<Filters>(() => ({
-    severity: null, status: null, tlp: null, assignee: null, source: null, tag: null,
-    org: isChildOrg && currentOrgId ? [currentOrgId] : null,
-  }));
-  const [negatedFilters, setNegatedFilters] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<Filters>(() => {
+    const parseList = (v: string | null) => {
+      if (!v) return null;
+      const arr = v.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (!arr.length) return null;
+      return arr.length === 1 ? arr[0] : arr;
+    };
+    const sevParam = parseList(searchParams.get('severity'));
+    const statusParam = parseList(searchParams.get('status'));
+    const tlpParam = searchParams.get('tlp');
+    const assigneeParam = searchParams.get('assignee');
+    const sourceParam = searchParams.get('source');
+    const tagParam = searchParams.get('tag');
+    return {
+      severity: sevParam,
+      status: statusParam,
+      tlp: tlpParam || null,
+      assignee: assigneeParam || null,
+      source: sourceParam || null,
+      tag: tagParam || null,
+      org: isChildOrg && currentOrgId ? [currentOrgId] : null,
+    };
+  });
+  const [negatedFilters, setNegatedFilters] = useState<Set<string>>(() => {
+    const neg = searchParams.get('not');
+    if (!neg) return new Set();
+    return new Set(neg.split(',').map(s => s.trim()).filter(Boolean));
+  });
+
+  // Sync filter state -> URL search params (excludes org which is controlled separately)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    const setOrDelete = (key: string, value: string | null) => {
+      if (value && value.length > 0) params.set(key, value);
+      else params.delete(key);
+    };
+    const serialize = (v: string | string[] | null) => {
+      if (!v) return null;
+      return Array.isArray(v) ? v.join(',') : v;
+    };
+    setOrDelete('severity', serialize(filters.severity));
+    setOrDelete('status', serialize(filters.status));
+    setOrDelete('tlp', filters.tlp);
+    setOrDelete('assignee', filters.assignee);
+    setOrDelete('source', filters.source);
+    setOrDelete('tag', filters.tag);
+    setOrDelete('not', negatedFilters.size > 0 ? Array.from(negatedFilters).join(',') : null);
+    const next = params.toString();
+    const current = searchParams.toString();
+    if (next !== current) {
+      setSearchParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.severity, filters.status, filters.tlp, filters.assignee, filters.source, filters.tag, negatedFilters]);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -1251,7 +1300,15 @@ const IncidentsPage = () => {
 
     if (filters.severity) {
       const neg = negatedFilters.has('severity');
-      result = result.filter(i => neg ? i.severity !== filters.severity : i.severity === filters.severity);
+      if (Array.isArray(filters.severity)) {
+        const sevs = filters.severity;
+        result = result.filter(i => {
+          const match = sevs.includes(i.severity);
+          return neg ? !match : match;
+        });
+      } else {
+        result = result.filter(i => neg ? i.severity !== filters.severity : i.severity === filters.severity);
+      }
     }
     if (filters.status) {
       const neg = negatedFilters.has('status');
@@ -2515,22 +2572,27 @@ const IncidentsPage = () => {
                 />
               )}
 
-              {filters.severity && (
-                <Chip
-                  label={`${negatedFilters.has('severity') ? 'NOT ' : ''}${filters.severity}`}
-                  size="small"
-                  onClick={() => setNegatedFilters(prev => { const next = new Set(prev); next.has('severity') ? next.delete('severity') : next.add('severity'); return next; })}
-                  onDelete={() => { setFilters(prev => ({ ...prev, severity: null })); setNegatedFilters(prev => { const next = new Set(prev); next.delete('severity'); return next; }); }}
-                  sx={{ 
-                    cursor: 'pointer',
-                    textTransform: 'capitalize',
-                    backgroundColor: negatedFilters.has('severity') ? 'rgba(239, 68, 68, 0.15)' : `${severityColors[filters.severity] || '#94a3b8'}20`,
-                    color: negatedFilters.has('severity') ? '#f87171' : (severityColors[filters.severity] || '#94a3b8'),
-                    fontWeight: 500,
-                    '& .MuiChip-deleteIcon': { color: negatedFilters.has('severity') ? '#f87171' : (severityColors[filters.severity] || '#94a3b8') },
-                  }}
-                />
-              )}
+              {filters.severity && (() => {
+                const sevArr = Array.isArray(filters.severity) ? filters.severity : [filters.severity];
+                const sevLabel = sevArr.join(' / ');
+                const sevColor = sevArr.length === 1 ? (severityColors[sevArr[0]] || '#94a3b8') : '#94a3b8';
+                return (
+                  <Chip
+                    label={`${negatedFilters.has('severity') ? 'NOT ' : ''}${sevLabel}`}
+                    size="small"
+                    onClick={() => setNegatedFilters(prev => { const next = new Set(prev); next.has('severity') ? next.delete('severity') : next.add('severity'); return next; })}
+                    onDelete={() => { setFilters(prev => ({ ...prev, severity: null })); setNegatedFilters(prev => { const next = new Set(prev); next.delete('severity'); return next; }); }}
+                    sx={{
+                      cursor: 'pointer',
+                      textTransform: 'capitalize',
+                      backgroundColor: negatedFilters.has('severity') ? 'rgba(239, 68, 68, 0.15)' : `${sevColor}20`,
+                      color: negatedFilters.has('severity') ? '#f87171' : sevColor,
+                      fontWeight: 500,
+                      '& .MuiChip-deleteIcon': { color: negatedFilters.has('severity') ? '#f87171' : sevColor },
+                    }}
+                  />
+                );
+              })()}
 
               {filters.status && (
                 Array.isArray(filters.status) ? (
