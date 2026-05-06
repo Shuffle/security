@@ -58,6 +58,7 @@ import { useDatastore } from '@/hooks/useDatastore';
 import { DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
+import { useAuth } from '@/context/AuthContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
@@ -524,6 +525,8 @@ const DashboardPage = () => {
     url: '/dashboard',
   });
   const navigate = useNavigate();
+  const { userInfo } = useAuth();
+  const isSupport = userInfo?.support === true;
   const { notifications, isLoading, refresh: refreshNotifications } = useAgentNotifications();
   const { singular: entitySingular, basePath: entityBasePath } = useEntityPreference();
   const { authenticatedApps, loading: authLoading } = useAppAuth();
@@ -857,7 +860,7 @@ const DashboardPage = () => {
 
       {/* When setup is mostly done, surface the Overview above the Setup Guide
           so the dashboard feels useful at a glance. Otherwise show it below. */}
-      {!setupLoading && progressPercent >= 80 && (
+      {!setupLoading && progressPercent >= 80 && isSupport && (
         <DashboardOverview
           incidents={overviewIncidents}
           incidentsLoading={incidentsLoading}
@@ -988,7 +991,7 @@ const DashboardPage = () => {
       </Box>
 
       {/* Show Overview below the Setup Guide when it is not already above. */}
-      {(setupLoading || progressPercent < 80) && (
+      {(setupLoading || progressPercent < 80) && isSupport && (
         <DashboardOverview
           incidents={overviewIncidents}
           incidentsLoading={incidentsLoading}
