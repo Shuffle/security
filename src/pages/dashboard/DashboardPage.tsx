@@ -872,6 +872,14 @@ const DashboardPage = () => {
   const totalSteps = visibleSteps.length;
   const progressPercent = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 100;
   const allComplete = completedCount === totalSteps;
+
+  // Auto-collapse Setup Guide once when fully complete
+  useEffect(() => {
+    if (!setupLoading && allComplete && totalSteps > 0 && !setupAutoCollapsedRef.current) {
+      setSetupCollapsed(true);
+      setupAutoCollapsedRef.current = true;
+    }
+  }, [setupLoading, allComplete, totalSteps]);
   const setupLoading = authLoading || workflowsLoading;
 
   // Notification counts & filter
