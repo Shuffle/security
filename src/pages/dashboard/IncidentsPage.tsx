@@ -352,7 +352,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
 };
 
 interface Filters {
-  severity: string | null;
+  severity: string | string[] | null;
   status: string | string[] | null;
   tlp: string | null;
   assignee: string | null;
@@ -1251,7 +1251,15 @@ const IncidentsPage = () => {
 
     if (filters.severity) {
       const neg = negatedFilters.has('severity');
-      result = result.filter(i => neg ? i.severity !== filters.severity : i.severity === filters.severity);
+      if (Array.isArray(filters.severity)) {
+        const sevs = filters.severity;
+        result = result.filter(i => {
+          const match = sevs.includes(i.severity);
+          return neg ? !match : match;
+        });
+      } else {
+        result = result.filter(i => neg ? i.severity !== filters.severity : i.severity === filters.severity);
+      }
     }
     if (filters.status) {
       const neg = negatedFilters.has('status');
