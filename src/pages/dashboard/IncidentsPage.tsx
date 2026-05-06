@@ -413,6 +413,32 @@ const IncidentsPage = () => {
     if (!neg) return new Set();
     return new Set(neg.split(',').map(s => s.trim()).filter(Boolean));
   });
+
+  // Sync filter state -> URL search params (excludes org which is controlled separately)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    const setOrDelete = (key: string, value: string | null) => {
+      if (value && value.length > 0) params.set(key, value);
+      else params.delete(key);
+    };
+    const serialize = (v: string | string[] | null) => {
+      if (!v) return null;
+      return Array.isArray(v) ? v.join(',') : v;
+    };
+    setOrDelete('severity', serialize(filters.severity));
+    setOrDelete('status', serialize(filters.status));
+    setOrDelete('tlp', filters.tlp);
+    setOrDelete('assignee', filters.assignee);
+    setOrDelete('source', filters.source);
+    setOrDelete('tag', filters.tag);
+    setOrDelete('not', negatedFilters.size > 0 ? Array.from(negatedFilters).join(',') : null);
+    const next = params.toString();
+    const current = searchParams.toString();
+    if (next !== current) {
+      setSearchParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.severity, filters.status, filters.tlp, filters.assignee, filters.source, filters.tag, negatedFilters]);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
