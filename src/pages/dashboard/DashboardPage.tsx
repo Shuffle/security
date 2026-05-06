@@ -528,7 +528,7 @@ const DashboardPage = () => {
     url: '/dashboard',
   });
   const navigate = useNavigate();
-  const { userInfo, setActiveOrg } = useAuth();
+  const { userInfo } = useAuth();
   const isSupport = userInfo?.support === true;
   const { notifications, isLoading, refresh: refreshNotifications } = useAgentNotifications();
   const { singular: entitySingular, basePath: entityBasePath } = useEntityPreference();
