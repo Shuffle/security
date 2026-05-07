@@ -105,6 +105,9 @@ interface AppDetailDrawerProps {
   onClose: () => void;
   /** App name to load */
   appName: string | null;
+  /** Pre-resolved Algolia objectID — bypasses Algolia lookup when provided (e.g. when the
+   *  caller already had the hit, like AppSearchDrawer / "Add Ingestion Source"). */
+  appId?: string | null;
   /** Anchor side */
   anchor?: 'left' | 'right';
   /** Width in px */
