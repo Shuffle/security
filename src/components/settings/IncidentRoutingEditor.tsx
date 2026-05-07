@@ -192,14 +192,6 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
     [drafts]
   );
 
-  if (!isParentOrg && !forceShow) {
-    return (
-      <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-        Incident routing is only available when you have one or more child tenants.
-      </Typography>
-    );
-  }
-
   const updateRule = (id: string, patch: Partial<RoutingRule>) => {
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], ...patch, updatedTs: Date.now() } }));
   };
