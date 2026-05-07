@@ -53,6 +53,7 @@ import { ScheduleHealthBanner } from '@/components/users/ScheduleHealthBanner';
 import { IncidentsEmptyState } from '@/components/incidents/IncidentsEmptyState';
 import { IngestionSourceButton } from '@/components/incidents/IngestionSourceButton';
 import { HighlightSpotlight } from '@/components/incidents/HighlightSpotlight';
+import { AutomationReadinessBanner } from '@/components/incidents/AutomationReadinessBanner';
 import { WebhookIngestionButton, WebhookIngestionInfo } from '@/components/incidents/WebhookIngestionButton';
 import { IncidentTrendChart } from '@/components/incidents/IncidentTrendChart';
 import { OrgTrendChart } from '@/components/incidents/OrgTrendChart';
@@ -1987,6 +1988,7 @@ const IncidentsPage = () => {
       transition={{ duration: 0.4 }}
     >
       <HighlightSpotlight />
+      <AutomationReadinessBanner />
       <ScheduleHealthBanner
         compact
         dismissKey="shuffle:schedule-health-banner:dismissed"
