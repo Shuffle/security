@@ -24,14 +24,15 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { AppAuthCard } from '@/Shuffle-MCPs/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import AppTitleHeader from '@/Shuffle-MCPs/AppTitleHeader';
+import AppAuthSection from '@/Shuffle-MCPs/AppAuthSection';
+import TryMcpSection from '@/Shuffle-MCPs/TryMcpSection';
 import { useAuth } from '@/context/AuthContext';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 
-import AppMcpChat from '@/Shuffle-MCPs/AppMcpChat';
 import ApiCallViewer from '@/Shuffle-MCPs/ApiCallViewer';
 interface AppInfo {
   name: string;
