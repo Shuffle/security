@@ -3,6 +3,7 @@ import { Box, Button, CircularProgress, IconButton, Tooltip, Typography } from '
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import BoltIcon from '@mui/icons-material/Bolt';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import { useWebhookStatus } from '@/hooks/useWebhookStatus';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
@@ -14,23 +15,21 @@ import { seedDefaultThreatFeeds } from '@/hooks/useThreatFeeds';
 import { toast } from '@/lib/toast';
 
 /**
- * Compact automation readiness panel.
- *
- * Shown underneath the trend charts in the right-hand column on /incidents.
- * Always renders for admins so they have at-a-glance visibility into which
- * critical automations are wired up. Each row shows status + an inline
- * "Enable" action; "Enable all" wires up everything in one click.
+ * Compact automation readiness panel — sits underneath the trend charts in the
+ * right-hand column on /incidents. Each row shows status and inline
+ * Enable/Disable actions; "Enable all" wires up everything in one click.
  */
 interface RowProps {
   label: string;
   active: boolean;
   loading?: boolean;
-  enabling?: boolean;
+  busy?: boolean;
   tooltip?: string;
   onEnable?: () => void;
+  onDisable?: () => void;
 }
 
-const Row = ({ label, active, loading, enabling, tooltip, onEnable }: RowProps) => {
+const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable }: RowProps) => {
   const icon = loading ? (
     <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
   ) : active ? (
@@ -53,12 +52,31 @@ const Row = ({ label, active, loading, enabling, tooltip, onEnable }: RowProps) 
           {label}
         </Typography>
       </Tooltip>
-      {!active && !loading && onEnable && (
+      {!loading && active && onDisable && (
+        <Tooltip title={`Disable ${label}`} arrow>
+          <span>
+            <IconButton
+              size="small"
+              disabled={busy}
+              onClick={onDisable}
+              sx={{
+                width: 22,
+                height: 22,
+                color: 'hsl(var(--muted-foreground))',
+                '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.1)', color: 'hsl(var(--destructive))' },
+              }}
+            >
+              {busy ? <CircularProgress size={12} /> : <PowerSettingsNewIcon sx={{ fontSize: 14 }} />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
+      {!loading && !active && onEnable && (
         <Tooltip title={`Enable ${label}`} arrow>
           <span>
             <IconButton
               size="small"
-              disabled={enabling}
+              disabled={busy}
               onClick={onEnable}
               sx={{
                 width: 22,
@@ -67,7 +85,7 @@ const Row = ({ label, active, loading, enabling, tooltip, onEnable }: RowProps) 
                 '&:hover': { bgcolor: 'hsl(var(--primary) / 0.1)' },
               }}
             >
-              {enabling ? <CircularProgress size={12} /> : <BoltIcon sx={{ fontSize: 14 }} />}
+              {busy ? <CircularProgress size={12} /> : <BoltIcon sx={{ fontSize: 14 }} />}
             </IconButton>
           </span>
         </Tooltip>
@@ -83,7 +101,7 @@ export const AutomationReadinessBanner = () => {
   const assign = useAssignEscalateStatus();
 
   const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
-  const [enabling, setEnabling] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [enablingAll, setEnablingAll] = useState(false);
 
   const checkDefaults = useCallback(async () => {
@@ -108,19 +126,18 @@ export const AutomationReadinessBanner = () => {
 
   const isLoading = webhook.isLoading || enrichment.isLoading || assign.isLoading || defaultsReady === null;
 
-  const wrap = useCallback(async (key: string, fn: () => Promise<unknown>) => {
-    setEnabling(key);
+  const wrap = useCallback(async (key: string, fn: () => Promise<unknown>, verb: 'Enabled' | 'Disabled') => {
+    setBusy(key);
     try {
       await fn();
-      if (key === 'defaults') await checkDefaults();
-      toast.success(`Enabled: ${key}`);
+      toast.success(`${verb}: ${key}`);
     } catch (err) {
-      console.error('[automation-readiness] enable failed', key, err);
-      toast.error(`Failed to enable ${key}`);
+      console.error('[automation-readiness]', verb.toLowerCase(), 'failed', key, err);
+      toast.error(`Failed to ${verb.toLowerCase().replace(/d$/, '')} ${key}`);
     } finally {
-      setEnabling(null);
+      setBusy(null);
     }
-  }, [checkDefaults]);
+  }, []);
 
   const handleEnableAll = useCallback(async () => {
     setEnablingAll(true);
@@ -171,38 +188,42 @@ export const AutomationReadinessBanner = () => {
         </Typography>
       </Box>
       <Row
-        label="Ingestion Webhook"
+        label="Ingestion"
         active={webhook.enabled}
         loading={webhook.isLoading}
-        enabling={enabling === 'webhook'}
+        busy={busy === 'Ingestion'}
         tooltip="Pushes alerts directly into incidents via webhook URL"
-        onEnable={() => wrap('webhook', () => webhook.enable())}
+        onEnable={() => wrap('Ingestion', () => webhook.enable(), 'Enabled')}
+        onDisable={() => wrap('Ingestion', () => webhook.disable(), 'Disabled')}
       />
       <Row
-        label="Automatic Enrichment"
+        label="Enrichment"
         active={enrichment.active}
         loading={enrichment.isLoading}
-        enabling={enabling === 'enrichment'}
+        busy={busy === 'Enrichment'}
         tooltip="Threat feeds + IOC extraction + Enrich automation"
-        onEnable={() => wrap('enrichment', () => enrichment.enable())}
+        onEnable={() => wrap('Enrichment', () => enrichment.enable(), 'Enabled')}
+        onDisable={() => wrap('Enrichment', () => enrichment.disable(), 'Disabled')}
       />
       <Row
         label="Assign & Escalate"
         active={assign.active}
         loading={assign.isLoading}
-        enabling={enabling === 'assign'}
+        busy={busy === 'Assign & Escalate'}
         tooltip="Routes incidents to the on-call analyst and escalates"
-        onEnable={() => wrap('assign', () => assign.enable())}
+        onEnable={() => wrap('Assign & Escalate', () => assign.enable(), 'Enabled')}
+        onDisable={() => wrap('Assign & Escalate', () => assign.disable(), 'Disabled')}
       />
       <Row
         label="Default config"
         active={defaultsReady === true}
         loading={defaultsReady === null}
-        enabling={enabling === 'defaults'}
+        busy={busy === 'Default config'}
         tooltip="Default IOC types and threat feeds seeded in datastore"
-        onEnable={() => wrap('defaults', async () => {
+        onEnable={() => wrap('Default config', async () => {
           await Promise.allSettled([seedDefaultIOCTypes(), seedDefaultThreatFeeds()]);
-        })}
+          await checkDefaults();
+        }, 'Enabled')}
       />
       {!allActive && (
         <Button
