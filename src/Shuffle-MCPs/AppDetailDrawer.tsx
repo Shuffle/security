@@ -270,7 +270,7 @@ export default function AppDetailDrawer({
 
       setAppLoading(false);
     })();
-  }, [open, appName]);
+  }, [open, appName, appId]);
 
   // Fetch incident stats for this app
   useEffect(() => {
