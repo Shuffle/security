@@ -337,6 +337,7 @@ const SingulActionsPreview = ({
   const [playLoading, setPlayLoading] = useState(false);
   const [playResult, setPlayResult] = useState<string | null>(null);
   const responseRef = useRef<HTMLDivElement | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const scrollToResponse = () => {
     requestAnimationFrame(() => {
