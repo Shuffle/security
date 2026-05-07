@@ -326,6 +326,37 @@ const OrgPreferencesPage = () => {
           </Box>
           <SidebarTabsSelector />
         </Paper>
+
+        {/*
+          Incident Routing — multi-tenant rule list. Rules are evaluated by
+          the user's incident automation (workflow); the UI only suggests
+          moves and provides a confirmation CTA on the incident page.
+          Component is fully standalone and can be lifted out to a dedicated
+          settings route later without changes here.
+        */}
+        <Paper
+          sx={{
+            p: 2.5,
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+              Incident Routing
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              Define rules that suggest moving incidents between tenants. Your incident automation
+              evaluates these rules and surfaces a "Move to tenant" CTA on matching incidents — the
+              user confirms before anything moves.
+            </Typography>
+          </Box>
+          <IncidentRoutingEditor />
+        </Paper>
       </Box>
     </Box>
   );
