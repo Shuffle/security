@@ -367,8 +367,11 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
     }
   };
 
-  const handleDelete = async (rule: RoutingRule) => {
-    // Local-only (never saved) — just drop it.
+  const [pendingDelete, setPendingDelete] = useState<RoutingRule | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = (rule: RoutingRule) => {
+    // Local-only (never saved) — just drop it without confirmation.
     if (localOnlyIds.has(rule.id)) {
       setDrafts((prev) => {
         const next = { ...prev };
@@ -387,7 +390,14 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
       });
       return;
     }
-    // Optimistic remove for persisted rules.
+    // Persisted — confirm first.
+    setPendingDelete(rule);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const rule = pendingDelete;
+    setDeleting(true);
     const snapshot = drafts[rule.id];
     setDrafts((prev) => {
       const next = { ...prev };
@@ -395,6 +405,8 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
       return next;
     });
     const ok = await removeItem(rule.id);
+    setDeleting(false);
+    setPendingDelete(null);
     if (ok) {
       toast.success(`Deleted "${rule.name}"`);
     } else {
@@ -404,6 +416,7 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
       }
     }
   };
+
 
   const handleDuplicate = (rule: RoutingRule) => {
     const copy = emptyRule({
