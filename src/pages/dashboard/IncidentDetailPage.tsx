@@ -5794,6 +5794,53 @@ const IncidentDetailPage = () => {
         />
       )}
 
+      {/* Routing rule preview — client-side dry-run of `shuffle-security_routing`
+          rules against the current incident state. Suggests applying matched
+          actions without waiting for the workflow to write back results. */}
+      {!isPublicView && incident && (
+        <RoutingRulePreviewBanner
+          incidentId={incident.id}
+          context={{
+            title: editedTitle || incident.title,
+            description: editedMessage,
+            source: incident.source,
+            severity: editedSeverity,
+            status: editedStatus,
+            labels: editedLabels,
+            observables: editedObservables,
+            stakeholders: editedStakeholders,
+            rawOCSF: incident.rawOCSF,
+          }}
+          onApply={(patch) => {
+            if (patch.severity) {
+              setEditedSeverity(patch.severity);
+              toast.success(`Severity set to ${patch.severity}`);
+            }
+            if (patch.status) {
+              setEditedStatus(patch.status);
+              toast.success(`Status set to ${patch.status}`);
+            }
+            if (patch.assignee) {
+              setEditedAssignee(patch.assignee);
+              toast.success(`Assigned to ${patch.assignee}`);
+            }
+            if (patch.addLabel) {
+              setEditedLabels((prev) => prev.includes(patch.addLabel!) ? prev : [...prev, patch.addLabel!]);
+              toast.success(`Added label "${patch.addLabel}"`);
+            }
+            if (patch.addComment) {
+              toast.message('Comment suggested', { description: patch.addComment });
+            }
+          }}
+          onMove={(targetOrgId, targetOrgName) => {
+            toast.message(
+              `Suggested move to ${targetOrgName || targetOrgId.slice(0, 8)}`,
+              { description: 'Cross-tenant moves run via the routing workflow once configured.' }
+            );
+          }}
+        />
+      )}
+
       {/* Agent action required banner — shown when navigating from dashboard */}
       {(() => {
         const agentActionId = searchParams.get('agent_action');
