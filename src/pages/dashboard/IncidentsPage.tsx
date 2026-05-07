@@ -2506,6 +2506,7 @@ const IncidentsPage = () => {
               sx={{ width: { xs: 100, sm: 140 }, minWidth: 0, flexShrink: 1 }}
       />
 
+      {false && <>
       <AppSearchDrawer
         open={forwardAppSearchOpen}
         onClose={() => {
@@ -2515,6 +2516,7 @@ const IncidentsPage = () => {
         title="Add Forward Destination"
         subtitle="Search and authenticate a tool to forward incidents to"
       />
+      </>}
 
             {/* Bulk actions */}
             {selectedIds.size > 0 && (
