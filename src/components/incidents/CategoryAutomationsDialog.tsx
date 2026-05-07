@@ -706,7 +706,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   </Box>
 
                   {/* Workflow Configuration */}
-                  {automation.enabled && automation.type === 'workflow' && expandedTypes['workflow'] && (
+                  {automation.type === 'workflow' && expandedTypes['workflow'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
                       <Autocomplete
                         multiple
