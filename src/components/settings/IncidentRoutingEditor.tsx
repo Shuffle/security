@@ -944,6 +944,49 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
         </Paper>
         );
       })}
+
+      <Dialog
+        open={!!pendingDelete}
+        onClose={() => !deleting && setPendingDelete(null)}
+        PaperProps={{
+          sx: {
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            color: 'hsl(var(--foreground))',
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: 'hsl(var(--foreground))' }}>Delete routing rule?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            This will permanently delete the rule <strong style={{ color: 'hsl(var(--foreground))' }}>"{pendingDelete?.name}"</strong>.
+            Incidents will no longer be evaluated against it. This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setPendingDelete(null)}
+            disabled={deleting}
+            sx={{ height: 36, textTransform: 'none', color: 'hsl(var(--muted-foreground))' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            disabled={deleting}
+            variant="contained"
+            sx={{
+              height: 36,
+              textTransform: 'none',
+              bgcolor: 'hsl(var(--destructive))',
+              color: 'hsl(var(--destructive-foreground))',
+              '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.9)' },
+            }}
+          >
+            {deleting ? <CircularProgress size={16} /> : 'Delete rule'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
