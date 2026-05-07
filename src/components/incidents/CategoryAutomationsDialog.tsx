@@ -706,7 +706,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   </Box>
 
                   {/* Workflow Configuration */}
-                  {automation.enabled && automation.type === 'workflow' && expandedTypes['workflow'] && (
+                  {automation.type === 'workflow' && expandedTypes['workflow'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
                       <Autocomplete
                         multiple
@@ -767,7 +767,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   )}
 
                   {/* AI Agent Configuration - multiple prompts */}
-                  {automation.enabled && automation.type === 'ai_agent' && expandedTypes['ai_agent'] && (
+                  {automation.type === 'ai_agent' && expandedTypes['ai_agent'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                       {aiAgentPrompts.map((prompt, idx) => {
                         const apps = aiAgentApps[idx] || [];
@@ -911,7 +911,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   )}
 
                   {/* Webhook Configuration */}
-                  {automation.enabled && automation.type === 'webhook' && expandedTypes['webhook'] && (
+                  {automation.type === 'webhook' && expandedTypes['webhook'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
                       <TextField
                         size="small"
@@ -932,7 +932,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   )}
 
                   {/* Security Rules Configuration */}
-                  {automation.enabled && automation.type === 'security_rules' && expandedTypes['security_rules'] && (
+                  {automation.type === 'security_rules' && expandedTypes['security_rules'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
                       <TextField
                         size="small"
