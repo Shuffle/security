@@ -415,15 +415,52 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
 
   const handleAdd = () => {
     const fresh = emptyRule({
-      action: {
-        type: 'suggest_move',
-        targetOrgId: subOrgs[0]?.id || '',
-        reason: '',
-      },
+      actions: [{ type: 'suggest_move', targetOrgId: subOrgs[0]?.id || '', reason: '' }],
     });
     setDrafts((prev) => ({ ...prev, [fresh.id]: fresh }));
     setLocalOnlyIds((prev) => new Set(prev).add(fresh.id));
     setExpanded((prev) => ({ ...prev, [fresh.id]: true }));
+  };
+
+  const updateAction = (ruleId: string, idx: number, patch: Partial<RoutingAction>) => {
+    setDrafts((prev) => {
+      const r = prev[ruleId];
+      if (!r) return prev;
+      const actions = r.actions.slice();
+      actions[idx] = { ...actions[idx], ...patch };
+      return { ...prev, [ruleId]: { ...r, actions, updatedTs: Date.now() } };
+    });
+  };
+
+  const changeActionType = (ruleId: string, idx: number, type: RoutingActionType) => {
+    setDrafts((prev) => {
+      const r = prev[ruleId];
+      if (!r) return prev;
+      const actions = r.actions.slice();
+      const prevReason = actions[idx]?.reason;
+      actions[idx] = { ...defaultActionFor(type), reason: prevReason };
+      if (type === 'suggest_move' && !actions[idx].targetOrgId) {
+        actions[idx].targetOrgId = subOrgs[0]?.id || '';
+      }
+      return { ...prev, [ruleId]: { ...r, actions, updatedTs: Date.now() } };
+    });
+  };
+
+  const addAction = (ruleId: string) => {
+    setDrafts((prev) => {
+      const r = prev[ruleId];
+      if (!r) return prev;
+      return { ...prev, [ruleId]: { ...r, actions: [...r.actions, defaultActionFor('set_severity')], updatedTs: Date.now() } };
+    });
+  };
+
+  const removeAction = (ruleId: string, idx: number) => {
+    setDrafts((prev) => {
+      const r = prev[ruleId];
+      if (!r) return prev;
+      const actions = r.actions.filter((_, i) => i !== idx);
+      return { ...prev, [ruleId]: { ...r, actions, updatedTs: Date.now() } };
+    });
   };
 
   const toggleExpanded = (id: string) => {
