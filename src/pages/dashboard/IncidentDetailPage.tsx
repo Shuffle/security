@@ -273,6 +273,14 @@ const parseRevisionValue = (raw: unknown): any | null => {
 
 // Strict check: only return string if it has meaningful non-whitespace content
 // Also rejects raw JSON objects/arrays that shouldn't be displayed as text
+// Normalize equivalent source labels (e.g. "Manual Entry" -> "Manual") so the
+// UI does not show two chips for the same logical source.
+const normalizeSourceLabel = (val: string | undefined): string | undefined => {
+  if (!val) return val;
+  if (val.trim().toLowerCase() === 'manual entry') return 'Manual';
+  return val;
+};
+
 const meaningfulString = (val: unknown): string | undefined => {
   if (typeof val !== 'string') return undefined;
   const trimmed = val.trim();
@@ -371,7 +379,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       return {
         id: item.key, // Always use datastore key as the canonical ID
         title: meaningfulString(ocsf.title) || meaningfulString(ocsf.supporting_data) || meaningfulString(ocsf.desc),
-        source: meaningfulString(ocsf.product?.name) || meaningfulString(ocsf.types?.[0]),
+        source: normalizeSourceLabel(meaningfulString(ocsf.product?.name) || meaningfulString(ocsf.types?.[0])),
         severity: mapOCSFSeverity(ocsf.severity_id || 3),
         status: normalizeStatus(ocsf.status || mapOCSFStatus(ocsf.status_id || 1)),
         assignee: customAttrs?.assignee || (data as any).assignee || null,
@@ -406,7 +414,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       return {
         id: item.key, // Always use datastore key as the canonical ID
         title: meaningfulString(findingInfo?.title) || meaningfulString(legacyData.supporting_data) || meaningfulString(legacyData.desc) || meaningfulString(legacyData.message),
-        source: meaningfulString(legacyData.metadata?.product?.name) || meaningfulString(findingInfo?.types?.[0]),
+        source: normalizeSourceLabel(meaningfulString(legacyData.metadata?.product?.name) || meaningfulString(findingInfo?.types?.[0])),
         severity: mapOCSFSeverity(legacyData.severity_id),
         status: normalizeStatus(legacyData.status || mapOCSFStatus(legacyData.status_id)),
         assignee: legacyData.assignee || null,
@@ -432,7 +440,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
     return {
       id: item.key, // Always use datastore key as the canonical ID
       title: meaningfulString(data.title) || meaningfulString(data.supporting_data) || meaningfulString(data.desc) || meaningfulString(data.message),
-      source: meaningfulString(data.source),
+      source: normalizeSourceLabel(meaningfulString(data.source)),
       severity: data.severity || 'medium',
       status: normalizeStatus(data.status),
       assignee: data.assignee || null,

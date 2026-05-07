@@ -206,6 +206,14 @@ const meaningfulString = (val: unknown): string | undefined => {
   return decodeHtmlEntities(trimmed);
 };
 
+// Normalize source labels so equivalent values render consistently in filters/charts.
+// e.g. legacy payloads use "Manual Entry" while the modern create flow uses "Manual".
+const normalizeSourceLabel = (val: string | undefined): string | undefined => {
+  if (!val) return val;
+  if (val.trim().toLowerCase() === 'manual entry') return 'Manual';
+  return val;
+};
+
 /**
  * Resolve the "created" timestamp for an incident.
  * Priority: value.created_time → item.created (datastore envelope).
@@ -275,7 +283,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       return {
         id: item.key, // Always use datastore key as the canonical ID
         title: meaningfulString(ocsf.title) || meaningfulString(ocsf.supporting_data) || meaningfulString(ocsf.desc),
-        source: meaningfulString(ocsf.product?.name) || meaningfulString(ocsf.types?.[0]),
+        source: normalizeSourceLabel(meaningfulString(ocsf.product?.name) || meaningfulString(ocsf.types?.[0])),
         severity: mapOCSFSeverity(ocsf.severity_id || 3),
         status: normalizeStatus(ocsf.status || mapOCSFStatus(ocsf.status_id || 1)),
         assignee: rawAssignee,
@@ -305,7 +313,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       return {
         id: item.key, // Always use datastore key as the canonical ID
         title: meaningfulString(findingInfo?.title) || meaningfulString(legacyData.supporting_data) || meaningfulString(legacyData.desc) || meaningfulString(legacyData.message),
-        source: meaningfulString(legacyData.metadata?.product?.name) || meaningfulString(findingInfo?.types?.[0]),
+        source: normalizeSourceLabel(meaningfulString(legacyData.metadata?.product?.name) || meaningfulString(findingInfo?.types?.[0])),
         severity: mapOCSFSeverity(legacyData.severity_id),
         status: normalizeStatus(legacyData.status || mapOCSFStatus(legacyData.status_id)),
         assignee: legacyData.assignee || null,
@@ -329,7 +337,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       return {
         id: item.key, // Always use datastore key as the canonical ID
         title: meaningfulString(data.title) || meaningfulString(data.supporting_data) || meaningfulString(data.desc) || meaningfulString(data.message),
-        source: meaningfulString(data.source),
+        source: normalizeSourceLabel(meaningfulString(data.source)),
         severity: (data.severity || 'medium').toLowerCase(),
         status: normalizeStatus(data.status),
         assignee: data.assignee || null,
