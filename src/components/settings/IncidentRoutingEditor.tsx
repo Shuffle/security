@@ -61,6 +61,28 @@ export interface RoutingCondition {
   value?: string;
 }
 
+export type RoutingActionType =
+  | 'suggest_move'
+  | 'set_severity'
+  | 'set_status'
+  | 'set_priority'
+  | 'add_label'
+  | 'assign_to'
+  | 'add_comment'
+  | 'set_field';
+
+export interface RoutingAction {
+  type: RoutingActionType;
+  /** Target tenant id — only for suggest_move. */
+  targetOrgId?: string;
+  /** Target field path — only for set_field. */
+  field?: string;
+  /** Value applied / suggested. Severity/status use the canonical string. */
+  value?: string;
+  /** Optional human-readable reason shown in the suggestion banner. */
+  reason?: string;
+}
+
 export interface RoutingRule {
   id: string;
   name: string;
@@ -68,11 +90,8 @@ export interface RoutingRule {
   priority: number;
   matchMode: 'all' | 'any';
   conditions: RoutingCondition[];
-  action: {
-    type: 'suggest_move';
-    targetOrgId: string;
-    reason?: string;
-  };
+  /** Multiple suggestions can fire per rule. */
+  actions: RoutingAction[];
   createdBy?: string;
   createdTs?: number;
   updatedTs?: number;
@@ -105,8 +124,36 @@ const OP_LABELS: Record<RoutingConditionOp, string> = {
   exists: 'exists',
 };
 
+export const ACTION_TYPE_LABELS: Record<RoutingActionType, string> = {
+  suggest_move: 'Move to tenant',
+  set_severity: 'Set severity',
+  set_status: 'Set status',
+  set_priority: 'Set priority',
+  add_label: 'Add label',
+  assign_to: 'Assign to',
+  add_comment: 'Add comment',
+  set_field: 'Set custom field',
+};
+
+const SEVERITY_OPTIONS = ['Informational', 'Low', 'Medium', 'High', 'Critical'];
+const STATUS_OPTIONS = ['New', 'In Progress', 'On Hold', 'Resolved', 'Closed'];
+const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Urgent'];
+
 const newId = () =>
   `rt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const defaultActionFor = (type: RoutingActionType): RoutingAction => {
+  switch (type) {
+    case 'suggest_move': return { type, targetOrgId: '', reason: '' };
+    case 'set_severity': return { type, value: 'High' };
+    case 'set_status': return { type, value: 'In Progress' };
+    case 'set_priority': return { type, value: 'High' };
+    case 'add_label': return { type, value: '' };
+    case 'assign_to': return { type, value: '' };
+    case 'add_comment': return { type, value: '' };
+    case 'set_field': return { type, field: '', value: '' };
+  }
+};
 
 const emptyRule = (defaults: Partial<RoutingRule> = {}): RoutingRule => ({
   id: newId(),
@@ -115,7 +162,7 @@ const emptyRule = (defaults: Partial<RoutingRule> = {}): RoutingRule => ({
   priority: 100,
   matchMode: 'all',
   conditions: [{ field: 'rawOCSF.unmapped_original.to', op: 'contains', value: '' }],
-  action: { type: 'suggest_move', targetOrgId: '', reason: '' },
+  actions: [defaultActionFor('suggest_move')],
   createdTs: Date.now(),
   updatedTs: Date.now(),
   matchCount: 0,
@@ -126,6 +173,20 @@ const parseRule = (key: string, value: string): RoutingRule | null => {
   try {
     const parsed = JSON.parse(value);
     if (!parsed || typeof parsed !== 'object') return null;
+    // Backward compat: legacy single `action` -> `actions: [action]`.
+    let actions: RoutingAction[] = [];
+    if (Array.isArray(parsed.actions)) {
+      actions = parsed.actions.filter((a: any) => a && typeof a.type === 'string');
+    } else if (parsed.action && typeof parsed.action === 'object') {
+      actions = [{
+        type: (parsed.action.type as RoutingActionType) || 'suggest_move',
+        targetOrgId: parsed.action.targetOrgId,
+        field: parsed.action.field,
+        value: parsed.action.value,
+        reason: parsed.action.reason,
+      }];
+    }
+    if (actions.length === 0) actions = [defaultActionFor('suggest_move')];
     return {
       id: parsed.id || key,
       name: typeof parsed.name === 'string' ? parsed.name : 'Untitled rule',
@@ -133,11 +194,7 @@ const parseRule = (key: string, value: string): RoutingRule | null => {
       priority: Number.isFinite(parsed.priority) ? parsed.priority : 100,
       matchMode: parsed.matchMode === 'any' ? 'any' : 'all',
       conditions: Array.isArray(parsed.conditions) ? parsed.conditions : [],
-      action: {
-        type: 'suggest_move',
-        targetOrgId: parsed.action?.targetOrgId || '',
-        reason: parsed.action?.reason || '',
-      },
+      actions,
       createdBy: parsed.createdBy,
       createdTs: parsed.createdTs,
       updatedTs: parsed.updatedTs,
@@ -146,6 +203,19 @@ const parseRule = (key: string, value: string): RoutingRule | null => {
     };
   } catch {
     return null;
+  }
+};
+
+const summarizeAction = (a: RoutingAction, orgName?: string): string => {
+  switch (a.type) {
+    case 'suggest_move': return `move to ${orgName || a.targetOrgId || 'no target'}`;
+    case 'set_severity': return `set severity to ${a.value || '?'}`;
+    case 'set_status': return `set status to ${a.value || '?'}`;
+    case 'set_priority': return `set priority to ${a.value || '?'}`;
+    case 'add_label': return `add label "${a.value || ''}"`;
+    case 'assign_to': return `assign to ${a.value || '?'}`;
+    case 'add_comment': return `add comment`;
+    case 'set_field': return `set ${a.field || '?'} = "${a.value || ''}"`;
   }
 };
 
