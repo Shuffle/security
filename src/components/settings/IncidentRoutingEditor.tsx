@@ -536,7 +536,9 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
 
       {sortedRules.map((rule) => {
         const isOpen = expanded[rule.id] ?? false;
-        const targetName = orgOptions.find((o) => o.id === rule.action.targetOrgId)?.name || 'no target';
+        const actionSummary = rule.actions
+          .map((a) => summarizeAction(a, a.type === 'suggest_move' ? orgOptions.find((o) => o.id === a.targetOrgId)?.name : undefined))
+          .join(' · ');
         const condSummary = rule.conditions.length === 1
           ? `${rule.conditions[0].field} ${OP_LABELS[rule.conditions[0].op]}${rule.conditions[0].op !== 'exists' ? ` "${rule.conditions[0].value || ''}"` : ''}`
           : `${rule.conditions.length} conditions (${rule.matchMode === 'all' ? 'all' : 'any'})`;
