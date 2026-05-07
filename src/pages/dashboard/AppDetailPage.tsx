@@ -30,6 +30,7 @@ import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import AppTitleHeader from '@/Shuffle-MCPs/AppTitleHeader';
 import AppAuthSection from '@/Shuffle-MCPs/AppAuthSection';
 import TryMcpSection from '@/Shuffle-MCPs/TryMcpSection';
+import SingulActionsPreview from '@/Shuffle-MCPs/SingulActionsPreview';
 import { useAuth } from '@/context/AuthContext';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 
@@ -521,6 +522,7 @@ const AppDetailPage = () => {
                 }}
               />
             </Box>
+            <SingulActionsPreview appName={appname || ''} categories={appInfo?.categories} />
           </>
         ) : (
           <Box sx={{ mb: 4 }}>
