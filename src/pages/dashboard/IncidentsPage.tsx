@@ -1690,7 +1690,11 @@ const IncidentsPage = () => {
     if (filters.severity || filters.tlp || filters.source || filters.tag) return false;
     if (negatedFilters.size > 0 || dateFrom || dateTo) return false;
     if (filters.assignee !== null || searchQuery.trim()) return false;
-    if (filters.status !== null) return false;
+    const statusFilter = Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : [];
+    if (statusFilter.length !== DEFAULT_STATUS_FILTER.length) return false;
+    for (const status of DEFAULT_STATUS_FILTER) {
+      if (!statusFilter.includes(status)) return false;
+    }
 
     // Org filter check
     if (isParentOrg) {
