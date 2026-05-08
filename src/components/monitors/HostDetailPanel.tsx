@@ -135,6 +135,9 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const [processOpen, setProcessOpen] = useState(!collapsibleSections);
   const [processFilter, setProcessFilter] = useState('');
   const [collapsedProcs, setCollapsedProcs] = useState<Set<number>>(new Set());
+  type ProcSortKey = 'pid' | 'created' | 'user' | 'name';
+  const [procSortKey, setProcSortKey] = useState<ProcSortKey>('pid');
+  const [procSortDir, setProcSortDir] = useState<'asc' | 'desc'>('asc');
 
   const hdState = stateOf(host.hd_encrypted);
   const screenlockState = stateOf(host.automatic_screen_lock_enabled);
