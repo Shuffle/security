@@ -135,6 +135,9 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const [processOpen, setProcessOpen] = useState(!collapsibleSections);
   const [processFilter, setProcessFilter] = useState('');
   const [collapsedProcs, setCollapsedProcs] = useState<Set<number>>(new Set());
+  type ProcSortKey = 'pid' | 'created' | 'user' | 'name';
+  const [procSortKey, setProcSortKey] = useState<ProcSortKey>('pid');
+  const [procSortDir, setProcSortDir] = useState<'asc' | 'desc'>('asc');
 
   const hdState = stateOf(host.hd_encrypted);
   const screenlockState = stateOf(host.automatic_screen_lock_enabled);
@@ -680,7 +683,22 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
               roots.push(p);
             }
           }
-          const sortFn = (a: ProcessEntry, b: ProcessEntry) => a.pid - b.pid;
+          const procName = (p: ProcessEntry): string => {
+            const src = p.exe_path || p.command_line || '';
+            const stripped = src.split(/\s+/)[0] || '';
+            const base = stripped.split('/').pop() || stripped;
+            return base.toLowerCase();
+          };
+          const sortFn = (a: ProcessEntry, b: ProcessEntry) => {
+            const dir = procSortDir === 'asc' ? 1 : -1;
+            switch (procSortKey) {
+              case 'created': return dir * ((a.creation_time || 0) - (b.creation_time || 0));
+              case 'user': return dir * (a.user || '').localeCompare(b.user || '');
+              case 'name': return dir * procName(a).localeCompare(procName(b));
+              case 'pid':
+              default: return dir * (a.pid - b.pid);
+            }
+          };
           roots.sort(sortFn);
           for (const arr of childrenMap.values()) arr.sort(sortFn);
 
@@ -772,12 +790,36 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
           return (
             <>
               {header}
-              <Input
-                placeholder="Filter by pid, command, user, path, sha256..."
-                value={processFilter}
-                onChange={(e) => setProcessFilter(e.target.value)}
-                className="h-7 text-xs mb-1"
-              />
+              <div className="flex items-center gap-2 mb-1">
+                <Input
+                  placeholder="Filter by pid, command, user, path, sha256..."
+                  value={processFilter}
+                  onChange={(e) => setProcessFilter(e.target.value)}
+                  className="h-7 text-xs flex-1"
+                />
+                <span className="text-[0.65rem] text-muted-foreground shrink-0">Sort</span>
+                {(['pid', 'name', 'user', 'created'] as const).map(k => {
+                  const label = k === 'pid' ? 'PID' : k === 'created' ? 'Started' : k === 'user' ? 'User' : 'Name';
+                  const active = procSortKey === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => {
+                        if (active) setProcSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                        else { setProcSortKey(k); setProcSortDir('asc'); }
+                      }}
+                      className={`h-7 px-2 rounded border text-[0.65rem] font-medium transition-colors ${
+                        active
+                          ? 'border-primary/40 bg-primary/10 text-foreground'
+                          : 'border-border bg-background text-muted-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      {label}{active ? (procSortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                    </button>
+                  );
+                })}
+              </div>
               <div className={`rounded-md border border-border overflow-hidden ${variant === 'page' ? 'max-h-[500px]' : 'max-h-[340px]'} overflow-y-auto`}>
                 {roots.filter(r => !q || isVisible(r)).length === 0 ? (
                   <p className="px-3 py-3 text-center text-xs text-muted-foreground italic">No matches</p>
