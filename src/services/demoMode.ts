@@ -780,22 +780,24 @@ export const seedDemoWazuhImplantIncident = async (): Promise<number> => {
   // Server-side dedup: skip seeding if a demo Wazuh / Sliver implant
   // incident already exists anywhere (local index OR backend), and wipe any
   // duplicates that crept in across sessions.
+  // Local-index dedup only: fetching the entire incidents category just to
+  // check for an existing Wazuh demo incident is too slow on large tenants.
+  // The local index reliably tracks anything seeded in this session.
   try {
-    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
-    if (res.success && res.data) {
-      const matches = res.data.filter(item =>
-        isDemoWazuhIncident(typeof item.key === 'string' ? item.key : '', item.value),
-      );
-      if (matches.length > 0) {
-        // Keep the first one, delete any extras to converge to a single copy.
-        const extras = matches.slice(1);
-        if (extras.length > 0) {
-          await Promise.allSettled(
-            extras.map(o => deleteDatastoreItem(o.key, DATASTORE_CATEGORIES.INCIDENTS)),
-          );
-        }
-        return 0;
+    const idx = readIndex();
+    const existing = idx[DATASTORE_CATEGORIES.INCIDENTS] || [];
+    const matches = existing.filter(k => isDemoWazuhIncident(k, null));
+    if (matches.length > 0) {
+      // Already seeded in this session — wipe extras and bail.
+      const extras = matches.slice(1);
+      if (extras.length > 0) {
+        await Promise.allSettled(
+          extras.map(k => deleteDatastoreItem(k, DATASTORE_CATEGORIES.INCIDENTS)),
+        );
+        idx[DATASTORE_CATEGORIES.INCIDENTS] = existing.filter(k => !extras.includes(k));
+        writeIndex(idx);
       }
+      return 0;
     }
   } catch { /* best-effort — fall through to seed */ }
 
