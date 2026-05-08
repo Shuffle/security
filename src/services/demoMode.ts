@@ -107,6 +107,7 @@ export const recordDemoSeed = (category: string, keys: string[]) => recordSeed(c
  */
 const wipeExistingDemoIncidents = async (
   matcher: (key: string, value: unknown) => boolean,
+  opts?: { skipServerScan?: boolean },
 ): Promise<void> => {
   // 1. Local index — quick path
   try {
@@ -121,7 +122,13 @@ const wipeExistingDemoIncidents = async (
   } catch { /* best-effort */ }
 
   // 2. Server scan — catches keys the local index never saw (e.g. different
-  // browser / cleared storage / pipeline-assigned keys).
+  // browser / cleared storage / pipeline-assigned keys). This fetches the
+  // ENTIRE incidents category, which is very expensive on tenants with
+  // thousands of real incidents — callers driving the interactive
+  // "Force generate" buttons should pass `skipServerScan: true` so the UI
+  // stays responsive. The local index is authoritative for anything seeded
+  // in the current browser session.
+  if (opts?.skipServerScan) return;
   try {
     const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
     if (res.success && res.data) {
