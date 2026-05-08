@@ -683,7 +683,22 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
               roots.push(p);
             }
           }
-          const sortFn = (a: ProcessEntry, b: ProcessEntry) => a.pid - b.pid;
+          const procName = (p: ProcessEntry): string => {
+            const src = p.exe_path || p.command_line || '';
+            const stripped = src.split(/\s+/)[0] || '';
+            const base = stripped.split('/').pop() || stripped;
+            return base.toLowerCase();
+          };
+          const sortFn = (a: ProcessEntry, b: ProcessEntry) => {
+            const dir = procSortDir === 'asc' ? 1 : -1;
+            switch (procSortKey) {
+              case 'created': return dir * ((a.creation_time || 0) - (b.creation_time || 0));
+              case 'user': return dir * (a.user || '').localeCompare(b.user || '');
+              case 'name': return dir * procName(a).localeCompare(procName(b));
+              case 'pid':
+              default: return dir * (a.pid - b.pid);
+            }
+          };
           roots.sort(sortFn);
           for (const arr of childrenMap.values()) arr.sort(sortFn);
 
