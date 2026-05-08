@@ -2588,6 +2588,7 @@ function UsecasesPageInner() {
       <Box sx={{ px: { xs: 2, md: 4 }, py: 4, maxWidth: 1200, width: '100%', mx: 'auto' }}>
         <UsecaseDetailContent
           flowId={drawerFlowId ?? undefined}
+          showConnectionPath
           onNavigateUsecase={(id) => {
             const f = usecases.find(u => u.id === id);
             const name = f?.label || id || '';
