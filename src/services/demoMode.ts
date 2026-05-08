@@ -107,6 +107,7 @@ export const recordDemoSeed = (category: string, keys: string[]) => recordSeed(c
  */
 const wipeExistingDemoIncidents = async (
   matcher: (key: string, value: unknown) => boolean,
+  opts?: { skipServerScan?: boolean },
 ): Promise<void> => {
   // 1. Local index — quick path
   try {
@@ -121,7 +122,13 @@ const wipeExistingDemoIncidents = async (
   } catch { /* best-effort */ }
 
   // 2. Server scan — catches keys the local index never saw (e.g. different
-  // browser / cleared storage / pipeline-assigned keys).
+  // browser / cleared storage / pipeline-assigned keys). This fetches the
+  // ENTIRE incidents category, which is very expensive on tenants with
+  // thousands of real incidents — callers driving the interactive
+  // "Force generate" buttons should pass `skipServerScan: true` so the UI
+  // stays responsive. The local index is authoritative for anything seeded
+  // in the current browser session.
+  if (opts?.skipServerScan) return;
   try {
     const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
     if (res.success && res.data) {
@@ -699,22 +706,12 @@ export const forceRecreateDemoIncidents = async (): Promise<number> => {
     await Promise.allSettled(indexedKeys.map(k => deleteDatastoreItem(k, DATASTORE_CATEGORIES.INCIDENTS)));
   }
 
-  // 2. Safety scan: also delete any orphan demo-tagged incidents
-  try {
-    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
-    if (res.success && res.data) {
-      const orphans = res.data.filter(item => {
-        if (typeof item.key === 'string' && item.key.startsWith('demo-')) return true;
-        try {
-          const parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
-          return parsed?.metadata?.extensions?.custom_attributes?.demo === true;
-        } catch { return false; }
-      });
-      if (orphans.length > 0) {
-        await Promise.allSettled(orphans.map(o => deleteDatastoreItem(o.key, DATASTORE_CATEGORIES.INCIDENTS)));
-      }
-    }
-  } catch { /* best-effort */ }
+  // 2. Safety scan SKIPPED for performance: fetching the entire incidents
+  // category to find orphan demo-tagged items is prohibitively slow on
+  // tenants with thousands of real incidents (the user's primary complaint
+  // when "Force generate" feels frozen). The local index is authoritative
+  // for anything seeded in this browser session; cleanup of cross-browser
+  // orphans is handled by the explicit "Clean up demo data" action.
 
   // 3. Clear the index entry + step marker so the seeder runs fresh
   const newIdx = readIndex();
@@ -750,7 +747,10 @@ export const forceCreateSingleDemoIncidentReturningKey = async (): Promise<strin
   // Wipe any prior focus incident so this stays a single, fresh item.
   // Uses the shared helper so duplicates can't slip in via a different
   // browser / cleared storage / pipeline-renamed key.
-  await wipeExistingDemoIncidents(isDemoFocusIncident);
+  // Skip the full-category server scan: callers hitting "Force generate"
+  // expect immediate feedback, and the local index already covers anything
+  // we seeded in this session.
+  await wipeExistingDemoIncidents(isDemoFocusIncident, { skipServerScan: true });
 
   // Same as the step seeder: ensure feeds are enabled and reuse / pick real IOCs.
   void forceEnableDefaultThreatFeeds();
@@ -780,22 +780,24 @@ export const seedDemoWazuhImplantIncident = async (): Promise<number> => {
   // Server-side dedup: skip seeding if a demo Wazuh / Sliver implant
   // incident already exists anywhere (local index OR backend), and wipe any
   // duplicates that crept in across sessions.
+  // Local-index dedup only: fetching the entire incidents category just to
+  // check for an existing Wazuh demo incident is too slow on large tenants.
+  // The local index reliably tracks anything seeded in this session.
   try {
-    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
-    if (res.success && res.data) {
-      const matches = res.data.filter(item =>
-        isDemoWazuhIncident(typeof item.key === 'string' ? item.key : '', item.value),
-      );
-      if (matches.length > 0) {
-        // Keep the first one, delete any extras to converge to a single copy.
-        const extras = matches.slice(1);
-        if (extras.length > 0) {
-          await Promise.allSettled(
-            extras.map(o => deleteDatastoreItem(o.key, DATASTORE_CATEGORIES.INCIDENTS)),
-          );
-        }
-        return 0;
+    const idx = readIndex();
+    const existing = idx[DATASTORE_CATEGORIES.INCIDENTS] || [];
+    const matches = existing.filter(k => isDemoWazuhIncident(k, null));
+    if (matches.length > 0) {
+      // Already seeded in this session — wipe extras and bail.
+      const extras = matches.slice(1);
+      if (extras.length > 0) {
+        await Promise.allSettled(
+          extras.map(k => deleteDatastoreItem(k, DATASTORE_CATEGORIES.INCIDENTS)),
+        );
+        idx[DATASTORE_CATEGORIES.INCIDENTS] = existing.filter(k => !extras.includes(k));
+        writeIndex(idx);
       }
+      return 0;
     }
   } catch { /* best-effort — fall through to seed */ }
 
