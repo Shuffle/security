@@ -790,12 +790,36 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
           return (
             <>
               {header}
-              <Input
-                placeholder="Filter by pid, command, user, path, sha256..."
-                value={processFilter}
-                onChange={(e) => setProcessFilter(e.target.value)}
-                className="h-7 text-xs mb-1"
-              />
+              <div className="flex items-center gap-2 mb-1">
+                <Input
+                  placeholder="Filter by pid, command, user, path, sha256..."
+                  value={processFilter}
+                  onChange={(e) => setProcessFilter(e.target.value)}
+                  className="h-7 text-xs flex-1"
+                />
+                <span className="text-[0.65rem] text-muted-foreground shrink-0">Sort</span>
+                {(['pid', 'name', 'user', 'created'] as const).map(k => {
+                  const label = k === 'pid' ? 'PID' : k === 'created' ? 'Started' : k === 'user' ? 'User' : 'Name';
+                  const active = procSortKey === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => {
+                        if (active) setProcSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                        else { setProcSortKey(k); setProcSortDir('asc'); }
+                      }}
+                      className={`h-7 px-2 rounded border text-[0.65rem] font-medium transition-colors ${
+                        active
+                          ? 'border-primary/40 bg-primary/10 text-foreground'
+                          : 'border-border bg-background text-muted-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      {label}{active ? (procSortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                    </button>
+                  );
+                })}
+              </div>
               <div className={`rounded-md border border-border overflow-hidden ${variant === 'page' ? 'max-h-[500px]' : 'max-h-[340px]'} overflow-y-auto`}>
                 {roots.filter(r => !q || isVisible(r)).length === 0 ? (
                   <p className="px-3 py-3 text-center text-xs text-muted-foreground italic">No matches</p>
