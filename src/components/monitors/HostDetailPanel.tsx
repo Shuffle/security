@@ -496,94 +496,102 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
             const expanded = !collapsedProcs.has(p.pid) || !!q;
             const cmd = p.command_line || p.exe_path || `(pid ${p.pid})`;
             return (
-              <div key={p.pid}>
-                <div
-                  className="flex items-center gap-2 px-2 py-1 hover:bg-muted/20 border-b border-border/40 text-xs"
-                  style={{ paddingLeft: 8 + depth * 16 }}
-                >
-                  {hasKids ? (
-                    <button
-                      type="button"
-                      onClick={() => setCollapsedProcs(prev => {
-                        const next = new Set(prev);
-                        if (next.has(p.pid)) next.delete(p.pid); else next.add(p.pid);
-                        return next;
-                      })}
-                      className="shrink-0"
-                    >
-                      {expanded ? <ChevronDown size={11} className="text-muted-foreground" /> : <ChevronRight size={11} className="text-muted-foreground" />}
-                    </button>
-                  ) : (
-                    <span className="inline-block w-[11px] shrink-0" />
-                  )}
-                  <span className="text-[0.65rem] font-mono text-muted-foreground shrink-0 w-12">{p.pid}</span>
-                  {p.user && (
-                    <span className="text-[0.65rem] font-mono text-muted-foreground shrink-0 truncate max-w-[100px]" title={p.user}>{p.user}</span>
-                  )}
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="font-mono text-foreground truncate flex-1 cursor-help">{cmd}</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" align="start" className="z-[9999] max-w-xl">
-                        <div className="space-y-0.5 text-[0.65rem] font-mono">
-                          <p><span className="text-muted-foreground">pid:</span> {p.pid} · <span className="text-muted-foreground">ppid:</span> {p.ppid}</p>
-                          {p.user && <p><span className="text-muted-foreground">user:</span> {p.user}</p>}
-                          {p.tty && <p><span className="text-muted-foreground">tty:</span> {p.tty}</p>}
-                          {p.exe_path && <p className="break-all"><span className="text-muted-foreground">exe:</span> {p.exe_path}</p>}
-                          {p.command_line && <p className="break-all whitespace-pre-wrap"><span className="text-muted-foreground">cmd:</span> {p.command_line}</p>}
-                          {p.creation_time ? <p><span className="text-muted-foreground">started:</span> {fmtTime(p.creation_time)}</p> : null}
-                          {p.sha256 && <p className="break-all"><span className="text-muted-foreground">sha256:</span> {p.sha256}</p>}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  {p.tty && <span className="text-[0.65rem] font-mono text-muted-foreground shrink-0 hidden lg:inline">{p.tty}</span>}
-                </div>
+              <>
+                <tr key={p.pid} className="hover:bg-muted/20">
+                  <td className="px-3 py-1 font-mono text-muted-foreground align-top">{p.pid}</td>
+                  <td className="px-3 py-1 font-mono text-muted-foreground align-top truncate max-w-[120px]" title={p.user || ''}>{p.user || '—'}</td>
+                  <td className="px-3 py-1 text-muted-foreground align-top whitespace-nowrap">{p.creation_time ? fmtTime(p.creation_time) : '—'}</td>
+                  <td className="px-3 py-1 align-top">
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="flex items-center gap-1 cursor-help"
+                            style={{ paddingLeft: depth * 16 }}
+                          >
+                            {hasKids ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCollapsedProcs(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(p.pid)) next.delete(p.pid); else next.add(p.pid);
+                                    return next;
+                                  });
+                                }}
+                                className="shrink-0"
+                              >
+                                {expanded ? <ChevronDown size={11} className="text-muted-foreground" /> : <ChevronRight size={11} className="text-muted-foreground" />}
+                              </button>
+                            ) : (
+                              <span className="inline-block w-[11px] shrink-0" />
+                            )}
+                            <span className="font-mono text-foreground truncate">{cmd}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" align="start" className="z-[9999] max-w-xl">
+                          <div className="space-y-0.5 text-[0.65rem] font-mono">
+                            <p><span className="text-muted-foreground">pid:</span> {p.pid} · <span className="text-muted-foreground">ppid:</span> {p.ppid}</p>
+                            {p.user && <p><span className="text-muted-foreground">user:</span> {p.user}</p>}
+                            {p.tty && <p><span className="text-muted-foreground">tty:</span> {p.tty}</p>}
+                            {p.exe_path && <p className="break-all"><span className="text-muted-foreground">exe:</span> {p.exe_path}</p>}
+                            {p.command_line && <p className="break-all whitespace-pre-wrap"><span className="text-muted-foreground">cmd:</span> {p.command_line}</p>}
+                            {p.creation_time ? <p><span className="text-muted-foreground">started:</span> {fmtTime(p.creation_time)}</p> : null}
+                            {p.sha256 && <p className="break-all"><span className="text-muted-foreground">sha256:</span> {p.sha256}</p>}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </td>
+                </tr>
                 {hasKids && expanded && kids.map(k => renderNode(k, depth + 1))}
-              </div>
+              </>
+            );
+          };
+
+          const SortableTh = ({ k, label, className = '' }: { k: ProcSortKey; label: string; className?: string }) => {
+            const active = procSortKey === k;
+            return (
+              <th
+                className={`text-left px-3 py-1.5 font-semibold text-muted-foreground bg-background border-b border-border cursor-pointer select-none hover:text-foreground ${className}`}
+                onClick={() => {
+                  if (active) setProcSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                  else { setProcSortKey(k); setProcSortDir('asc'); }
+                }}
+              >
+                {label}{active ? (procSortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+              </th>
             );
           };
 
           return (
             <>
               {header}
-              <div className="flex items-center gap-2 mb-1">
-                <Input
-                  placeholder="Filter by pid, command, user, path, sha256..."
-                  value={processFilter}
-                  onChange={(e) => setProcessFilter(e.target.value)}
-                  className="h-7 text-xs flex-1"
-                />
-                <span className="text-[0.65rem] text-muted-foreground shrink-0">Sort</span>
-                {(['pid', 'name', 'user', 'created'] as const).map(k => {
-                  const label = k === 'pid' ? 'PID' : k === 'created' ? 'Started' : k === 'user' ? 'User' : 'Name';
-                  const active = procSortKey === k;
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => {
-                        if (active) setProcSortDir(d => d === 'asc' ? 'desc' : 'asc');
-                        else { setProcSortKey(k); setProcSortDir('asc'); }
-                      }}
-                      className={`h-7 px-2 rounded border text-[0.65rem] font-medium transition-colors ${
-                        active
-                          ? 'border-primary/40 bg-primary/10 text-foreground'
-                          : 'border-border bg-background text-muted-foreground hover:bg-muted/30'
-                      }`}
-                    >
-                      {label}{active ? (procSortDir === 'asc' ? ' ↑' : ' ↓') : ''}
-                    </button>
-                  );
-                })}
-              </div>
+              <Input
+                placeholder="Filter by pid, command, user, path, sha256..."
+                value={processFilter}
+                onChange={(e) => setProcessFilter(e.target.value)}
+                className="h-7 text-xs mb-1"
+              />
               <div className={`rounded-md border border-border overflow-hidden ${variant === 'page' ? 'max-h-[500px]' : 'max-h-[340px]'} overflow-y-auto`}>
-                {roots.filter(r => !q || isVisible(r)).length === 0 ? (
-                  <p className="px-3 py-3 text-center text-xs text-muted-foreground italic">No matches</p>
-                ) : (
-                  roots.map(r => renderNode(r, 0))
-                )}
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-background">
+                      <SortableTh k="pid" label="PID" />
+                      <SortableTh k="user" label="User" />
+                      <SortableTh k="created" label="Started" />
+                      <SortableTh k="name" label="Process" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {roots.filter(r => !q || isVisible(r)).length === 0 ? (
+                      <tr><td colSpan={4} className="px-3 py-3 text-center text-muted-foreground italic">No matches</td></tr>
+                    ) : (
+                      roots.map(r => renderNode(r, 0))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </>
           );
