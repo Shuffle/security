@@ -132,6 +132,9 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const [expandedCodePaths, setExpandedCodePaths] = useState<Set<string>>(new Set());
   const [softwareOpen, setSoftwareOpen] = useState(!collapsibleSections);
   const [codeScanOpen, setCodeScanOpen] = useState(!collapsibleSections);
+  const [processOpen, setProcessOpen] = useState(!collapsibleSections);
+  const [processFilter, setProcessFilter] = useState('');
+  const [expandedProcs, setExpandedProcs] = useState<Set<number>>(new Set());
 
   const hdState = stateOf(host.hd_encrypted);
   const screenlockState = stateOf(host.automatic_screen_lock_enabled);
