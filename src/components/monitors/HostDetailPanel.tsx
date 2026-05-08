@@ -63,6 +63,7 @@ interface HostLike {
   hd_encrypted: boolean | string;
   installed_software: { name: string; [key: string]: unknown }[];
   code_scanner?: CodeScannerProject[];
+  process_list?: ProcessEntry[];
   log_forwarding: string;
   os: string;
   serial: string;
