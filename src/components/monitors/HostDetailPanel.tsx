@@ -592,7 +592,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
             try { return new Date(t > 1e12 ? t : t * 1000).toLocaleString(); } catch { return ''; }
           };
 
-          const renderNode = (p: ProcessEntry, depth: number): JSX.Element | null => {
+          const renderNode = (p: ProcessEntry, depth: number, flat = false): JSX.Element | null => {
             if (q && !isVisible(p)) return null;
             const kids = (childrenMap.get(p.pid) || []).filter(k => !q || isVisible(k));
             const hasKids = kids.length > 0;
