@@ -25,7 +25,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { Activity, CheckCircle2, Circle, AlertCircle, Clock, Wrench, MessageCircleQuestion, Flag, Play, Brain, ChevronRight, ChevronDown } from 'lucide-react';
+import { Activity, CheckCircle2, Circle, AlertCircle, Clock, Wrench, MessageCircleQuestion, Flag, Play, Brain, ChevronRight, ChevronDown, Paperclip, X as XIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import JsonView from 'react18-json-view';
@@ -642,7 +642,23 @@ const AgentActionDrawer = ({ open, onClose, run, initialApp }: AgentActionDrawer
   const [runError, setRunError] = useState<string | null>(null);
   const [selectedApps, setSelectedApps] = useState<SelectedApp[]>(initialApp ? [initialApp] : []);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
+  const [attachedImage, setAttachedImage] = useState<{ dataUrl: string; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelected = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setRunError('Only image files can be attached.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (result) setAttachedImage({ dataUrl: result, name: file.name });
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Live-poll the run while it is in-progress. Returns the same reference
   // when nothing changed, so the view does not re-render on every tick.
