@@ -435,10 +435,6 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-const DEFAULT_APPS: AgentUIApp[] = [
-  { name: 'Http', id: 'ebfe7d5c80000676588f86731db0a555' },
-  { name: 'Shuffle_tools', id: '3e2bdf9d5069fe3f4746c29d68785a6a' },
-];
 
 const AgentUI: React.FC<AgentUIProps> = ({
   apps,
