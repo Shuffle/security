@@ -484,7 +484,15 @@ const ShuffleMcpTestPage = () => {
 
       <Stack spacing={4}>
         <DemoSection
-          title="1. Inline search"
+          title="1. Agent UI — start &amp; debug"
+          description={<><code>&lt;AgentUI /&gt;</code> — modern hero "What do you want to do?" prompt with MCP/app chips, plus a live decision timeline for debugging in-flight runs. Resumes from <code>?execution_id&amp;authorization</code> URL params.</>}
+          code={SNIPPET_AGENT_UI}
+        >
+          <AgentUI maxWidth={820} />
+        </DemoSection>
+
+        <DemoSection
+          title="2. Inline search"
           description={<><code>&lt;ShuffleMCP /&gt;</code> — Algolia + private apps merged into one searchable list.</>}
           code={SNIPPET_INLINE_SEARCH}
         >
