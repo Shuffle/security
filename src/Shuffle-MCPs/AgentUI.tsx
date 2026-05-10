@@ -398,6 +398,88 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         <Box sx={{ width: 60, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
           {dur > 0 ? `${dur.toFixed(1)}s` : ''}
         </Box>
+        {/* Per-row actions: Approve/Deny, Rerun */}
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1, minWidth: 96, justifyContent: 'flex-end' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {item.type === 'decision'
+            && details?.run_details?.status === 'WAITING'
+            && (item.category === 'ask' || details?.action === 'ask')
+            && questions.length === 0 && (
+            <>
+              <Tooltip title="Approve this step">
+                <span>
+                  <IconButton
+                    size="small"
+                    disabled={agentRequestLoading}
+                    onClick={() => {
+                      if (details?.run_details?.id) onSubmitQuestions(details.run_details.id, { approve: 'true' });
+                    }}
+                    sx={{ color: STATUS_COLORS.finished }}
+                  >
+                    <ThumbUpIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title="Deny this step">
+                <span>
+                  <IconButton
+                    size="small"
+                    disabled={agentRequestLoading}
+                    onClick={() => {
+                      if (details?.run_details?.id) onSubmitQuestions(details.run_details.id, { approve: 'false' });
+                    }}
+                    sx={{ color: STATUS_COLORS.error }}
+                  >
+                    <ThumbDownIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </>
+          )}
+          {item.type === 'agent' && (
+            <Tooltip title="Rerun the agent with the same input">
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={agentRequestLoading}
+                  onClick={onRerunAgent}
+                  sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
+                >
+                  <RestartAltIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+          {item.type === 'decision' && (
+            <Tooltip title="Rerun from this decision (clears all decisions after it)">
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={agentRequestLoading || !details?.run_details?.id}
+                  onClick={() => details && onRerunDecision(details)}
+                  sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
+                >
+                  <RestartAltIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+          {item.type === 'decision' && details?.run_details?.debug_url && (
+            <Tooltip title="Open debug URL">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => window.open(details.run_details.debug_url, '_blank', 'noopener,noreferrer')}
+                  sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
+                >
+                  <OpenInNewIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
 
       {/* Question form (for ASK decisions) */}
