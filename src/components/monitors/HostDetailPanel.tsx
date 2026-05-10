@@ -688,11 +688,25 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {roots.filter(r => !q || isVisible(r)).length === 0 ? (
-                      <tr><td colSpan={4} className="px-3 py-3 text-center text-muted-foreground italic">No matches</td></tr>
-                    ) : (
-                      roots.map(r => renderNode(r, 0))
-                    )}
+                    {(() => {
+                      // When sorting by anything other than PID, render a flat
+                      // list. The tree groups siblings by parent, so sorting by
+                      // user only re-orders siblings — SYSTEM-owned processes
+                      // stay buried under pid 4. A flat sort gives the user
+                      // what they actually expect when they click a column.
+                      if (procSortKey !== 'pid') {
+                        const flat = [...procs].filter(p => !q || matches(p)).sort(sortFn);
+                        if (flat.length === 0) {
+                          return <tr><td colSpan={4} className="px-3 py-3 text-center text-muted-foreground italic">No matches</td></tr>;
+                        }
+                        return flat.map(p => renderNode({ ...p, ppid: -1 } as ProcessEntry, 0));
+                      }
+                      const visibleRoots = roots.filter(r => !q || isVisible(r));
+                      if (visibleRoots.length === 0) {
+                        return <tr><td colSpan={4} className="px-3 py-3 text-center text-muted-foreground italic">No matches</td></tr>;
+                      }
+                      return roots.map(r => renderNode(r, 0));
+                    })()}
                   </tbody>
                 </table>
               </div>
