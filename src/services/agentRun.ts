@@ -44,7 +44,30 @@ export interface AgentRunRequest {
    * `/api/v1/streams/results` itself (e.g. AgentUI's live timeline).
    */
   skipPolling?: boolean;
+  /**
+   * Optional per-call overrides so callers (e.g. embedded `AgentUI`) can
+   * point at a different Shuffle backend without mutating the global
+   * `API_CONFIG`. When omitted, falls back to `getApiUrl` / `getAuthHeader`.
+   */
+  apiKey?: string;
+  apiBaseUrl?: string;
+  orgId?: string;
 }
+
+/** Build URL + headers honouring optional per-call overrides. */
+const resolveTarget = (
+  path: string,
+  opts: { apiKey?: string; apiBaseUrl?: string; orgId?: string } = {},
+): { url: string; headers: Record<string, string> } => {
+  const url = opts.apiBaseUrl
+    ? `${opts.apiBaseUrl.replace(/\/+$/, '')}${path}`
+    : getApiUrl(path);
+  const headers: Record<string, string> = opts.apiKey
+    ? { Authorization: `Bearer ${opts.apiKey}` }
+    : { ...getAuthHeader() };
+  if (opts.orgId) headers['Org-Id'] = opts.orgId;
+  return { url, headers };
+};
 
 /** Split a `data:<mime>;base64,<data>` URL into its mime + base64 parts. */
 const parseDataUrl = (dataUrl: string): AgentImageInput | null => {
