@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Play, Terminal, Maximize2 } from 'lucide-react';
 import { CheckCircle2, ShieldX } from 'lucide-react';
 import type { ActionDebugEntry } from '@/hooks/useHostActions';
-import { HostActionChips, getActiveUser } from './hostActionDefinitions';
+import { HostActionChips, getActiveUser, inferAgentPrivilege } from './hostActionDefinitions';
 import { ActionOutputView } from './ActionOutputView';
 import { hostUrlSegment } from '@/utils/hostUrlSegment';
 
