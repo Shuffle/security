@@ -554,6 +554,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               { key: 'all', label: 'All', count: results.length + filteredPrivateApps.length, title: 'All available apps — both the public catalog and your private apps.' },
               { key: 'public', label: 'Public', count: results.length, title: 'Public apps from the Shuffle catalog (powered by Algolia).' },
               { key: 'private', label: 'Private', count: filteredPrivateApps.length, title: 'Private apps are apps you have activated in your organization, or your own custom apps — not just from the public Algolia catalog.' },
+              { key: 'authenticated', label: 'Authenticated', count: [...filteredPrivateApps, ...results].filter((a, i, arr) => arr.findIndex(x => x.name?.toLowerCase() === a.name?.toLowerCase()) === i).filter(isAppConfigured).length, title: 'Apps you have authenticated and that are ready to use.' },
             ] as const).map(opt => (
               <Tooltip
                 key={opt.key}
