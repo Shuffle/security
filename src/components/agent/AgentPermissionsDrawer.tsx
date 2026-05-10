@@ -217,27 +217,32 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
 
 
 
-  const handleImageSelected = (file: File | null) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setRunError('Only image files can be attached.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        const result = reader.result;
-        setAttachedImages(prev => [...prev, { dataUrl: result, name: file.name || 'Pasted image' }]);
-        setRunError(null);
+  const readImageAsDataUrl = (file: File): Promise<{ dataUrl: string; name: string } | null> =>
+    new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        resolve(null);
+        return;
       }
-    };
-    reader.readAsDataURL(file);
-  };
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        resolve(typeof result === 'string' ? { dataUrl: result, name: file.name || 'Pasted image' } : null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
 
-  const handleImagesSelected = (files: FileList | File[] | null) => {
+  const handleImagesSelected = async (files: FileList | File[] | null) => {
     if (!files) return;
-    Array.from(files).forEach(handleImageSelected);
+    const arr = Array.from(files);
+    const nonImages = arr.some((f) => !f.type.startsWith('image/'));
+    if (nonImages) setRunError('Only image files can be attached.');
+    const results = await Promise.all(arr.map(readImageAsDataUrl));
+    const valid = results.filter((r): r is { dataUrl: string; name: string } => r !== null);
+    if (valid.length > 0) {
+      setAttachedImages((prev) => [...prev, ...valid]);
+      setRunError(null);
+    }
   };
 
   const handleRunAgent = async () => {
