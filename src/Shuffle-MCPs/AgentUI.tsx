@@ -1233,8 +1233,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
         <AppSearchDrawer
           open={appSearchOpen}
           onClose={() => setAppSearchOpen(false)}
-          title="Select Apps / MCPs"
-          subtitle="Pick the tools the agent is allowed to use for this run"
+          title={appPickerTitle}
+          subtitle={appPickerSubtitle}
           onQuickSelect={(app) => {
             setChosenApps((prev) =>
               prev.some((a) => a.name === app.name)
