@@ -19,6 +19,7 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { fetchHostSupplements } from '@/lib/mergeMonitorHosts';
+import { HostActionChips, getActiveUser } from '@/components/monitors/hostActionDefinitions';
 
 interface HostOption {
   uuid: string;
@@ -143,6 +144,7 @@ const HostTerminalPage = () => {
   // doesn't match any env-stub host (covers cases where the env API and the
   // datastores use different UUIDs for the same machine).
   const [datastoreResolvedHostname, setDatastoreResolvedHostname] = useState<string>('');
+  const [activeUser, setActiveUser] = useState<string | null>(null);
 
   // Resolve host info from location.state first, then fall back to allHosts lookup.
   // Match by UUID first, then by hostname (with tolerant domain-suffix stripping)
@@ -259,26 +261,32 @@ const HostTerminalPage = () => {
   // their `uuid` field. Avoids showing the raw UUID in the header.
   useEffect(() => {
     if (!hostsLoaded || !hostUuid) return;
-    if (hostState?.hostname || resolvedHost || datastoreResolvedHostname) {
-      setDatastoreLookupDone(true);
-      return;
-    }
+    // Always fetch supplements: even when env stubs already resolve the hostname
+    // we still need them to compute the active user (for the Screenshot chip).
     let cancelled = false;
     (async () => {
       try {
         const supplements = await fetchHostSupplements();
         const search = (map: Map<string, Record<string, unknown>>) => {
+          // Direct hostname key match (supplements are keyed by hostname).
+          const directHostname = (resolvedHost?.hostname || hostState?.hostname || '').toLowerCase().trim();
+          if (directHostname && map.has(directHostname)) return map.get(directHostname) || null;
           for (const [, val] of map.entries()) {
             const recUuid = String((val as any).uuid || '').trim();
-            if (recUuid && recUuid === hostUuid) {
-              const hn = String((val as any).hostname || '').trim();
-              if (hn) return hn;
+            const recHost = String((val as any).hostname || '').toLowerCase().trim();
+            if ((recUuid && recUuid === hostUuid) || (recHost && recHost === idLower) || (recHost && stripDomain(recHost) === idStripped)) {
+              return val;
             }
           }
-          return '';
+          return null;
         };
-        const found = search(supplements.sensorsByHost) || search(supplements.assetsByHost);
-        if (!cancelled && found) setDatastoreResolvedHostname(found);
+        const foundRecord = search(supplements.sensorsByHost) || search(supplements.assetsByHost);
+        if (!cancelled && foundRecord) {
+          const hn = String((foundRecord as any).hostname || '').trim();
+          if (hn) setDatastoreResolvedHostname(hn);
+          const au = getActiveUser(foundRecord);
+          if (au) setActiveUser(au);
+        }
       } catch { /* ignore */ }
       finally {
         if (!cancelled) setDatastoreLookupDone(true);
@@ -821,74 +829,47 @@ const HostTerminalPage = () => {
         })}
       </div>
 
-      {/* Predefined action chips */}
-      <div className="px-6 py-3 flex flex-wrap gap-1.5 border-t border-border/50 shrink-0">
-        {hostsLoaded && isFull && (
-          <button
-            key="disable_rce"
-            disabled={!canRunActions || isDemoHost}
-            className="px-3 py-1.5 text-xs rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => executeHostAction('disable_rce', 'Disable RCE', true)}
-          >
-            Disable RCE
-          </button>
-        )}
-        {[
-          { id: 'isolate_host', name: 'Isolate Host' },
-          { id: 'disable_user', name: 'Disable User Accounts' },
-          { id: 'restart_now', name: 'Restart Endpoint' },
-        ].map(s => {
-          // Demo terminal: enable ONLY "Isolate Host" so the user can run the
-          // headline AI-agent action against FIN-LAPTOP-04 without hitting
-          // the real backend. Other chips stay disabled.
-          const enabledForDemo = isDemoHost && s.id === 'isolate_host';
-          if (enabledForDemo) {
-            return (
-              <button
-                key={s.id}
-                className="px-3 py-1.5 text-xs rounded-md border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
-                onClick={() => {
-                  const startedAt = Date.now();
-                  const entryId = ++entryIdCounter;
-                  const sendingEntry: ActionDebugEntry = {
-                    entryId,
-                    hostUuid: hostUuid || '',
-                    actionName: s.name,
-                    hostname,
-                    status: 'sending',
-                    requestBody: { demo: true, action: s.id, host: hostname },
-                    startedAt,
-                  };
-                  setActionHistory(prev => [...prev, sendingEntry]);
-                  // Brief pretend "running" pause, then a successful result
-                  // so the AI-agent isolate flow feels real in the demo.
-                  setTimeout(() => {
-                    setActionHistory(prev => prev.map(e => e.entryId === entryId ? {
-                      ...e,
-                      status: 'success',
-                      finishedAt: Date.now(),
-                      actionOutput: `Network isolation policy applied to ${hostname}.\nAll outbound connections blocked except to the security platform.\nUser session preserved. Awaiting analyst review.`,
-                      actionSuccess: true,
-                    } : e));
-                    toast.success(`${s.name} applied to ${hostname}`);
-                  }, 1200);
-                }}
-              >
-                {s.name}
-              </button>
-            );
-          }
-          return (
-            <button
-              key={s.id}
-              disabled
-              title="Not yet available on the endpoint"
-              className="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground opacity-50 cursor-not-allowed"
-            >
-              {s.name}
-            </button>
-          );
-        })}
+      {/* Predefined action chips (shared definition — must match the popover on /monitors) */}
+      <div className="px-6 py-3 border-t border-border/50 shrink-0">
+        <HostActionChips
+          activeUser={activeUser}
+          size="comfortable"
+          allDisabled={!canRunActions}
+          allDisabledReason="Monitor resolution required before running predefined actions"
+          customHandler={(id) => {
+            // Demo terminal: intercept "Isolate Host" so we can fake a successful
+            // result against FIN-LAPTOP-04 without hitting the real backend.
+            if (isDemoHost && id === 'isolate_host') {
+              const startedAt = Date.now();
+              const entryId = ++entryIdCounter;
+              const sendingEntry: ActionDebugEntry = {
+                entryId,
+                hostUuid: hostUuid || '',
+                actionName: 'Isolate Host',
+                hostname,
+                status: 'sending',
+                requestBody: { demo: true, action: id, host: hostname },
+                startedAt,
+              };
+              setActionHistory(prev => [...prev, sendingEntry]);
+              setTimeout(() => {
+                setActionHistory(prev => prev.map(e => e.entryId === entryId ? {
+                  ...e,
+                  status: 'success',
+                  finishedAt: Date.now(),
+                  actionOutput: `Network isolation policy applied to ${hostname}.\nAll outbound connections blocked except to the security platform.\nUser session preserved. Awaiting analyst review.`,
+                  actionSuccess: true,
+                } : e));
+                toast.success(`Isolate Host applied to ${hostname}`);
+              }, 1200);
+              return true;
+            }
+            // In demo mode, every other predefined action is a no-op.
+            if (isDemoHost) return true;
+            return false;
+          }}
+          onRun={({ actionId, displayName }) => executeHostAction(actionId, displayName, true)}
+        />
       </div>
 
       {/* Command input */}

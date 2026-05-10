@@ -241,7 +241,7 @@ const MonitorDetailPage = () => {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <HostActionPopover
-            host={{ uuid: host.uuid, hostname: host.hostname, groupName, responseActions: host.response_actions }}
+            host={{ uuid: host.uuid, hostname: host.hostname, groupName, responseActions: host.response_actions, raw: host }}
             trigger="button"
             actionHistoryMap={hostActions.actionHistoryMap}
             actionExecuting={hostActions.actionExecuting}

@@ -24,6 +24,7 @@ import {
 import { toast } from '@/lib/toast';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { HostDetailPanel } from './HostDetailPanel';
+import { HostActionChips, getActiveUser as sharedGetActiveUser } from './hostActionDefinitions';
 import { DEMO_HOST_HOSTNAME } from '@/services/demoLiveEnvironment';
 
 // ── Helpers (identical to the originals on VulnAssetsPage) ─────────────────
@@ -72,28 +73,10 @@ const countActiveProcesses = (host: MonitorHost): number => {
   return Array.isArray(v) ? v.length : 0;
 };
 
-const SYSTEM_USERS = new Set([
-  'root', '_root', 'system', 'daemon', 'nobody', 'launchd', '_windowserver',
-  '_spotlight', '_coreaudiod', '_locationd', '_softwareupdate', '_assetcache',
-  '_networkd', '_timed', '_mdnsresponder', '_distnote', '_usbmuxd',
-  'systemd', 'syslog', 'messagebus', 'dbus', 'sshd', 'nt authority\\system',
-  'local service', 'network service',
-]);
-
-/** Best-effort active-user detection: top non-system user across process_list. */
-const getActiveUser = (host: MonitorHost): string | null => {
-  const v = (host as { process_list?: unknown }).process_list;
-  if (!Array.isArray(v)) return null;
-  const counts = new Map<string, number>();
-  for (const p of v as Array<{ user?: unknown }>) {
-    const u = String(p?.user || '').trim();
-    if (!u) continue;
-    if (SYSTEM_USERS.has(u.toLowerCase()) || u.startsWith('_')) continue;
-    counts.set(u, (counts.get(u) || 0) + 1);
-  }
-  if (counts.size === 0) return null;
-  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-};
+// Active-user detection now lives in ./hostActionDefinitions so every host
+// action surface (popover, detail page, full terminal) computes the same
+// "current user" for the Screenshot chip.
+const getActiveUser = (host: MonitorHost): string | null => sharedGetActiveUser(host);
 
 const triState = (v: unknown): 'on' | 'off' | 'empty' => {
   if (v === true || v === 'true' || v === 'TRUE') return 'on';
@@ -279,11 +262,18 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
         try {
           const key = `terminal_session_${hostUuid}`;
           const stored = JSON.parse(localStorage.getItem(key) || '[]');
+          // Persist actionOutput + error so the full-screen terminal page shows
+          // the same output rows as the inline popover (both share this key).
+          const persistFields = {
+            status: latest.status, finishedAt: latest.finishedAt,
+            executionId: latest.executionId, authorization: latest.authorization,
+            actionOutput: latest.actionOutput, error: latest.error,
+          };
           const sIdx = stored.findIndex((e: any) => e.entryId === latest.entryId);
           if (sIdx >= 0) {
-            stored[sIdx] = { ...stored[sIdx], status: latest.status, finishedAt: latest.finishedAt, executionId: latest.executionId, authorization: latest.authorization };
+            stored[sIdx] = { ...stored[sIdx], ...persistFields };
           } else {
-            stored.push({ entryId: latest.entryId, actionName: latest.actionName, status: latest.status, startedAt: latest.startedAt, finishedAt: latest.finishedAt, executionId: latest.executionId, authorization: latest.authorization });
+            stored.push({ entryId: latest.entryId, actionName: latest.actionName, startedAt: latest.startedAt, ...persistFields });
             if (stored.length > 200) stored.splice(0, stored.length - 200);
           }
           localStorage.setItem(key, JSON.stringify(stored));
@@ -684,46 +674,16 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
                                   </div>
                                 )}
                               </div>
-                              {/* Predefined action chips */}
-                              {(() => {
-                                const activeUser = getActiveUser(host);
-                                const screenshotCmd = activeUser ? `script:screenshot ${activeUser}` : '';
-                                return (
-                                  <div className="px-3 py-2 flex flex-wrap gap-1 border-t border-border/50 shrink-0">
-                                    <button
-                                      key="disable_rce"
-                                      className="px-2 py-1 text-[0.65rem] rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors"
-                                      onClick={() => executeHostAction('disable_rce', 'Disable RCE', host.hostname, host.groupName || '', host.uuid, true)}
-                                    >
-                                      Disable RCE
-                                    </button>
-                                    <button
-                                      key="screenshot"
-                                      disabled={!activeUser}
-                                      title={activeUser ? `Capture screenshot of ${activeUser}'s session` : 'No active user detected on this host'}
-                                      className={`px-2 py-1 text-[0.65rem] rounded-md border transition-colors ${activeUser ? 'border-border text-foreground hover:bg-muted/50' : 'border-border text-muted-foreground opacity-50 cursor-not-allowed'}`}
-                                      onClick={() => activeUser && executeHostAction(screenshotCmd, `Screenshot (${activeUser})`, host.hostname, host.groupName || '', host.uuid)}
-                                    >
-                                      Screenshot{activeUser ? ` (${activeUser})` : ''}
-                                    </button>
-                                    <button
-                                      key="isolate_host"
-                                      className="px-2 py-1 text-[0.65rem] rounded-md border border-border text-foreground hover:bg-muted/50 transition-colors"
-                                      onClick={() => executeHostAction('isolate_host', 'Isolate Host', host.hostname, host.groupName || '', host.uuid, true)}
-                                    >
-                                      Isolate Host
-                                    </button>
-                                    {[
-                                      { id: 'disable_user', name: 'Disable User Accounts' },
-                                      { id: 'restart_now', name: 'Restart Endpoint' },
-                                    ].map(s => (
-                                      <button key={s.id} disabled title="Not yet available on the endpoint" className="px-2 py-1 text-[0.65rem] rounded-md border border-border text-muted-foreground opacity-50 cursor-not-allowed">
-                                        {s.name}
-                                      </button>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
+                              {/* Predefined action chips (shared definition) */}
+                              <div className="px-3 py-2 border-t border-border/50 shrink-0">
+                                <HostActionChips
+                                  activeUser={getActiveUser(host)}
+                                  size="compact"
+                                  onRun={({ actionId, displayName }) =>
+                                    executeHostAction(actionId, displayName, host.hostname, host.groupName || '', host.uuid, true)
+                                  }
+                                />
+                              </div>
                               {/* Command input */}
                               <div className="px-3 py-2 border-t border-border shrink-0">
                                 <div className="flex gap-1.5 items-center">

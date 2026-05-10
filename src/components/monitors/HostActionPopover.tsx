@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Play, Terminal, ShieldX, CheckCircle2, Maximize2 } from 'lucide-react';
+import { Loader2, Play, Terminal, Maximize2 } from 'lucide-react';
+import { CheckCircle2, ShieldX } from 'lucide-react';
 import type { ActionDebugEntry } from '@/hooks/useHostActions';
+import { HostActionChips, getActiveUser } from './hostActionDefinitions';
 
 /**
  * Shared "Run Action" popover used in BOTH the host list view (VulnAssetsPage)
@@ -23,6 +25,8 @@ export interface HostActionPopoverHost {
   groupName: string;
   /** Raw response_actions value, e.g. "full" or "controlled" */
   responseActions?: string;
+  /** Full host record (for getActiveUser → Screenshot chip) */
+  raw?: unknown;
 }
 
 interface HostActionPopoverProps {
@@ -45,11 +49,9 @@ interface HostActionPopoverProps {
   getCommandHistory: (hostUuid: string) => string[];
 }
 
-const PREDEFINED_DISABLED = [
-  { id: 'isolate_host', name: 'Isolate Host' },
-  { id: 'disable_user', name: 'Disable User Accounts' },
-  { id: 'restart_now', name: 'Restart Endpoint' },
-];
+// Predefined chip set is now sourced from ./hostActionDefinitions so this
+// popover, MonitorHostTable, and HostTerminalPage all show the EXACT same
+// actions in the EXACT same order.
 
 export const HostActionPopover = ({
   host,
@@ -229,25 +231,15 @@ export const HostActionPopover = ({
                 )}
               </div>
 
-              {/* Predefined action chips */}
-              <div className="px-3 py-2 flex flex-wrap gap-1 border-t border-border/50 shrink-0">
-                <button
-                  key="disable_rce"
-                  className="px-2 py-1 text-[0.65rem] rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors"
-                  onClick={() => executeHostAction('disable_rce', 'Disable RCE', host.hostname, host.groupName, host.uuid, true)}
-                >
-                  Disable RCE
-                </button>
-                {PREDEFINED_DISABLED.map(s => (
-                  <button
-                    key={s.id}
-                    disabled
-                    title="Not yet available on the endpoint"
-                    className="px-2 py-1 text-[0.65rem] rounded-md border border-border text-muted-foreground opacity-50 cursor-not-allowed"
-                  >
-                    {s.name}
-                  </button>
-                ))}
+              {/* Predefined action chips (shared definition) */}
+              <div className="px-3 py-2 border-t border-border/50 shrink-0">
+                <HostActionChips
+                  activeUser={getActiveUser(host.raw)}
+                  size="compact"
+                  onRun={({ actionId, displayName }) =>
+                    executeHostAction(actionId, displayName, host.hostname, host.groupName, host.uuid, true)
+                  }
+                />
               </div>
 
               {/* Command input */}
