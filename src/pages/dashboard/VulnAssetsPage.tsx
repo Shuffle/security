@@ -454,6 +454,17 @@ const AuthenticatedVulnAssetsPage = () => {
 
   // Monitoring groups (from API)
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
+  // Register every host's hostname+arch identity so terminal_session_*
+  // keys are stable across the mini popover and the full terminal page.
+  useEffect(() => {
+    for (const g of groups) {
+      for (const h of g.hosts || []) {
+        const uuid = (h as any).uuid;
+        const hostname = (h as any).hostname;
+        if (uuid && hostname) registerHostIdentity(uuid, { hostname, arch: (h as any).arch });
+      }
+    }
+  }, [groups]);
   const [allEnvs, setAllEnvs] = useState<OrbEnvironment[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
