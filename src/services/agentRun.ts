@@ -145,9 +145,15 @@ export const parseAgentResponse = (data: unknown): string => {
  */
 const pollExecutionResult = async (
   executionId: string,
-  { maxAttempts = 15, intervalMs = 2000 }: { maxAttempts?: number; intervalMs?: number } = {}
+  {
+    maxAttempts = 15,
+    intervalMs = 2000,
+    apiKey,
+    apiBaseUrl,
+    orgId,
+  }: { maxAttempts?: number; intervalMs?: number; apiKey?: string; apiBaseUrl?: string; orgId?: string } = {}
 ): Promise<AgentRunResponse> => {
-  const url = getApiUrl(`/api/v1/streams/results`);
+  const { url, headers } = resolveTarget('/api/v1/streams/results', { apiKey, apiBaseUrl, orgId });
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -156,7 +162,7 @@ const pollExecutionResult = async (
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeader(),
+          ...headers,
         },
         body: JSON.stringify({
           execution_id: executionId,
