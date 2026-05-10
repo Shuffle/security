@@ -386,6 +386,10 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
       merged = results;
     } else if (sourceFilter === 'private') {
       merged = filteredPrivateApps;
+    } else if (sourceFilter === 'authenticated') {
+      const privateNames = new Set(filteredPrivateApps.map(a => norm(a.name)));
+      const publicOnly = results.filter(a => !privateNames.has(norm(a.name)));
+      merged = [...filteredPrivateApps, ...publicOnly].filter(isAppConfigured);
     } else {
       // 'all' — private apps first (your own tools win), then public, deduped by name
       const privateNames = new Set(filteredPrivateApps.map(a => norm(a.name)));
@@ -396,7 +400,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
     if (!pinnedApps || pinnedApps.length === 0) return merged;
     const pinnedNames = new Set(pinnedApps.map(a => norm(a.name)));
     return [...pinnedApps, ...merged.filter(a => !pinnedNames.has(norm(a.name)))];
-  }, [pinnedApps, results, filteredPrivateApps, sourceFilter]);
+  }, [pinnedApps, results, filteredPrivateApps, sourceFilter, isAppConfigured]);
 
   // Get grid columns style
   const getGridColumnsStyle = useMemo(() => {
