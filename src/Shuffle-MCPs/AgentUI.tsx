@@ -1126,7 +1126,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           </Box>
         ) : (
           <Box>
-            {/* Debug header */}
+            {/* Status row */}
             <Box sx={{
               display: 'flex', alignItems: 'center', gap: 2,
               p: 2,
@@ -1135,40 +1135,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               bgcolor: 'hsl(var(--card))',
               mb: 2,
             }}>
-              <ButtonGroup size="small">
-                <Button variant="outlined" startIcon={<RestartAltIcon />} onClick={restart}>
-                  Restart
-                </Button>
-                <Tooltip title="Reload execution data">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      onClick={() => execution?.execution_id && execution?.authorization && getExecution(execution.execution_id, execution.authorization)}
-                      disabled={!execution?.execution_id || !execution?.authorization}
-                    >
-                      <RefreshIcon fontSize="small" />
-                    </Button>
-                  </span>
-                </Tooltip>
-              </ButtonGroup>
-              <ButtonGroup size="small" sx={{ ml: 1 }}>
-                <Button
-                  variant={viewMode === 'simple' ? 'contained' : 'outlined'}
-                  onClick={() => setViewMode('simple')}
-                  sx={viewMode === 'simple' ? { bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)' } } : {}}
-                >
-                  Simple
-                </Button>
-                <Button
-                  variant={viewMode === 'detailed' ? 'contained' : 'outlined'}
-                  onClick={() => setViewMode('detailed')}
-                  sx={viewMode === 'detailed' ? { bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)' } } : {}}
-                >
-                  Detailed
-                </Button>
-              </ButtonGroup>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', fontWeight: 600 }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {agentData?.original_input || actionInput || 'Agent run'}
                 </Typography>
                 <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
