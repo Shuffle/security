@@ -23,8 +23,7 @@ import {
   AppAuthSection,
   TryMcpSection,
   SingulActionsPreview,
-  AgentRunner,
-  AgentDebugger,
+  AgentUI,
   useAppLookup,
 } from '@/Shuffle-MCPs';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
@@ -37,20 +36,19 @@ import { Box as MuiBox, Skeleton } from '@mui/material';
  * showing the exact source that produced the rendered demo.
  */
 
-const SNIPPET_AGENT_RUNNER = `import { AgentRunner } from '@shuffleio/shuffle-mcps';
+const SNIPPET_AGENT_UI = `import { AgentUI } from '@shuffleio/shuffle-mcps';
 
-<AgentRunner
-  title="What do you want to do?"
-  initialApps={[
-    { name: 'Http' },
-    { name: 'Shuffle_tools' },
+// Modern hero "What do you want to do?" prompt + live debug timeline.
+// Reads ?execution_id&authorization from the URL to resume an existing run.
+<AgentUI
+  defaultApps={[
+    { name: 'Http', id: 'ebfe7d5c80000676588f86731db0a555' },
+    { name: 'Shuffle_tools', id: '3e2bdf9d5069fe3f4746c29d68785a6a' },
   ]}
-  onRun={({ input, success }) => console.log('agent run', { input, success })}
+  onRun={({ input, success, executionId }) =>
+    console.log('agent run', { input, success, executionId })
+  }
 />`;
-
-const SNIPPET_AGENT_DEBUGGER = `import { AgentDebugger } from '@shuffleio/shuffle-mcps';
-
-<AgentDebugger limit={25} pollIntervalMs={30000} />`;
 
 const SNIPPET_INLINE_SEARCH = `import { ShuffleMCP } from '@shuffleio/shuffle-mcps';
 
@@ -486,7 +484,15 @@ const ShuffleMcpTestPage = () => {
 
       <Stack spacing={4}>
         <DemoSection
-          title="1. Inline search"
+          title="1. Agent UI — start &amp; debug"
+          description={<><code>&lt;AgentUI /&gt;</code> — modern hero "What do you want to do?" prompt with MCP/app chips, plus a live decision timeline for debugging in-flight runs. Resumes from <code>?execution_id&amp;authorization</code> URL params.</>}
+          code={SNIPPET_AGENT_UI}
+        >
+          <AgentUI maxWidth={820} />
+        </DemoSection>
+
+        <DemoSection
+          title="2. Inline search"
           description={<><code>&lt;ShuffleMCP /&gt;</code> — Algolia + private apps merged into one searchable list.</>}
           code={SNIPPET_INLINE_SEARCH}
         >
@@ -500,7 +506,7 @@ const ShuffleMcpTestPage = () => {
         </DemoSection>
 
         <DemoSection
-          title="2. Search drawer"
+          title="3. Search drawer"
           description={<><code>&lt;AppSearchDrawer /&gt;</code> — the exact same drawer used on /incidents → "Add Ingestion Source".</>}
           code={SNIPPET_SEARCH_DRAWER}
         >
@@ -510,7 +516,7 @@ const ShuffleMcpTestPage = () => {
         </DemoSection>
 
         <DemoSection
-          title="3. App detail / config drawer"
+          title="4. App detail / config drawer"
           description={<><code>&lt;AppDetailDrawer /&gt;</code> — auth + MCP "try it out" for a single app.</>}
           code={SNIPPET_DETAIL_DRAWER}
         >
@@ -524,7 +530,7 @@ const ShuffleMcpTestPage = () => {
         </DemoSection>
 
         <DemoSection
-          title="4. Authentication (standalone)"
+          title="5. Authentication (standalone)"
           description={<><code>&lt;AppAuthSection /&gt;</code> + <code>useAppLookup()</code> — drop the auth card anywhere by passing just an app name.</>}
           code={SNIPPET_AUTH_SECTION}
         >
@@ -533,7 +539,7 @@ const ShuffleMcpTestPage = () => {
         </DemoSection>
 
         <DemoSection
-          title="5. Try MCP (standalone)"
+          title="6. Try MCP (standalone)"
           description={<><code>&lt;TryMcpSection /&gt;</code> — chat against an app's MCP tools. Resolves icon + id from the app name.</>}
           code={SNIPPET_TRY_MCP}
         >
@@ -542,7 +548,7 @@ const ShuffleMcpTestPage = () => {
         </DemoSection>
 
         <DemoSection
-          title="6. Try individual actions (standalone)"
+          title="7. Try individual actions (standalone)"
           description={<><code>&lt;SingulActionsPreview /&gt;</code> — full curl/python catalog with Play. Sorts the app's category to the top.</>}
           code={SNIPPET_TRY_ACTIONS}
         >
