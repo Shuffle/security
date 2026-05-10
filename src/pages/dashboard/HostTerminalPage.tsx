@@ -22,6 +22,7 @@ import { fetchHostSupplements } from '@/lib/mergeMonitorHosts';
 import { HostActionChips, getActiveUser } from '@/components/monitors/hostActionDefinitions';
 import { ActionOutputView } from '@/components/monitors/ActionOutputView';
 import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
+import { hostUrlSegment, parseHostUrlSegment } from '@/utils/hostUrlSegment';
 
 interface HostOption {
   uuid: string;
