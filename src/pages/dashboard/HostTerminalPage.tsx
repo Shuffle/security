@@ -20,6 +20,7 @@ import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { fetchHostSupplements } from '@/lib/mergeMonitorHosts';
 import { HostActionChips, getActiveUser } from '@/components/monitors/hostActionDefinitions';
+import { ActionOutputView } from '@/components/monitors/ActionOutputView';
 import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
 
 interface HostOption {
