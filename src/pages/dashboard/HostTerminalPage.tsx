@@ -389,6 +389,7 @@ const HostTerminalPage = () => {
         entryId: ++entryIdCounter,
         hostUuid,
         actionName: e.actionName,
+        commandText: e.commandText,
         hostname,
         status: (e.status === 'success' || e.status === 'error') ? e.status : 'error',
         requestBody: {},
