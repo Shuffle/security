@@ -10,7 +10,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronRight, HardDrive, Lock, Package, FileCode, Zap, Send, Laptop,
+  ChevronRight, HardDrive, Lock, Package, FileCode, Zap, Activity, Laptop,
   Play, Loader2, Maximize2, Terminal, CheckCircle2, ShieldX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -67,17 +67,9 @@ const parseResponseActionsState = (value: unknown): { enabled: boolean; mode: 'f
   return { enabled, mode: enabled ? (raw.includes('full') ? 'full' : 'controlled') : null };
 };
 
-const isActiveMonitoringEnabled = (host: { log_forwarding?: unknown }): boolean => {
-  const v = host.log_forwarding;
-  if (v === undefined || v === null) return false;
-  const raw = String(v).toLowerCase().trim();
-  if (!raw) return false;
-  // Explicit off / unconfigured states
-  if (raw === 'false' || raw === '0' || raw === 'no' || raw === 'off') return false;
-  if (raw.includes('not implemented') || raw.includes('not configured') || raw.includes('disabled')) return false;
-  // String like "not implemented: false" or "...: false" → treat as off
-  if (/[:=]\s*false\s*$/.test(raw)) return false;
-  return true;
+const countActiveProcesses = (host: MonitorHost): number => {
+  const v = (host as { process_list?: unknown }).process_list;
+  return Array.isArray(v) ? v.length : 0;
 };
 
 const triState = (v: unknown): 'on' | 'off' | 'empty' => {
@@ -187,7 +179,7 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
       case 'software': cmp = (Array.isArray(a.installed_software) ? a.installed_software.length : 0) - (Array.isArray(b.installed_software) ? b.installed_software.length : 0); break;
       case 'codescan': cmp = (Array.isArray(a.code_scanner) ? a.code_scanner.length : 0) - (Array.isArray(b.code_scanner) ? b.code_scanner.length : 0); break;
       case 'response': cmp = Number(parseResponseActionsState(a.response_actions).enabled) - Number(parseResponseActionsState(b.response_actions).enabled); break;
-      case 'logfwd': cmp = Number(!!a.log_forwarding) - Number(!!b.log_forwarding); break;
+      case 'processes': cmp = countActiveProcesses(a) - countActiveProcesses(b); break;
       case 'group': cmp = (a.groupName || '').localeCompare(b.groupName || ''); break;
       case 'checkin': cmp = (a.checkin || 0) - (b.checkin || 0); break;
     }
@@ -433,8 +425,8 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
           <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('screenlock')}><Lock size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Screenlock{sortArrow('screenlock')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort</p></TooltipContent></Tooltip></TooltipProvider>
           <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('software')}><Package size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Installed Software{sortArrow('software')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort by count</p></TooltipContent></Tooltip></TooltipProvider>
           <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('codescan')}><FileCode size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Code Package Scanner{sortArrow('codescan')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort by count</p></TooltipContent></Tooltip></TooltipProvider>
+          <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('processes')}><Activity size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Active Processes{sortArrow('processes')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort by count</p></TooltipContent></Tooltip></TooltipProvider>
           <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('response')}><Zap size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Response Actions{sortArrow('response')}</p><p className="text-[0.65rem] text-muted-foreground">Click to sort</p></TooltipContent></Tooltip></TooltipProvider>
-          <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild><span className="flex justify-center cursor-pointer" onClick={() => toggleSort('logfwd')}><Send size={13} className="text-muted-foreground" /></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-[200px]"><p className="font-semibold text-xs">Active Monitoring{sortArrow('logfwd')}</p><p className="text-[0.65rem] text-muted-foreground">Not generally available yet</p></TooltipContent></Tooltip></TooltipProvider>
           <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('group')}>Group{sortArrow('group')}</span>
           <span className="text-xs font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('checkin')}>Last Check-in{sortArrow('checkin')}</span>
           <span className="text-xs font-semibold text-muted-foreground">Actions</span>
@@ -453,7 +445,7 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
           const responseActionsState = parseResponseActionsState(responseActionsRaw);
           const responseActionsOn = responseActionsState.enabled;
           const responseActionsMode = responseActionsState.mode;
-          const logForwardingOn = isActiveMonitoringEnabled(host);
+          const activeProcessesCount = countActiveProcesses(host);
           // Stable per-row key: uuid when present, otherwise groupId+hostname+idx.
           // Avoids collapsing all uuid-less rows into a single expansion entry.
           const rowKey = (host.uuid && String(host.uuid).trim())
@@ -522,11 +514,16 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
                     : `code_scanner = ${fmtRaw(host.code_scanner)}`}
                 />
                 <CheckDot
+                  on={activeProcessesCount > 0}
+                  tip={activeProcessesCount > 0
+                    ? `process_list: ${activeProcessesCount} active ${activeProcessesCount === 1 ? 'process' : 'processes'}`
+                    : 'No active processes reported'}
+                />
+                <CheckDot
                   on={responseActionsOn}
                   tip={`response_actions = ${fmtRaw(responseActionsRaw)}`}
                   color={responseActionsMode === 'full' ? 'bg-[hsl(var(--severity-high))]' : 'bg-[hsl(var(--severity-low))]'}
                 />
-                <CheckDot on={logForwardingOn} tip={`log_forwarding = ${fmtRaw(host.log_forwarding)}`} />
                 <span className="text-xs text-muted-foreground truncate">{host.groupName}</span>
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
