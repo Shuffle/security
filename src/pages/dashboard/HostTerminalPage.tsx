@@ -639,7 +639,7 @@ const HostTerminalPage = () => {
         </Button>
         <Terminal size={18} className="text-primary" />
         {(() => {
-          const currentHost = allHosts.find(h => h.uuid === hostUuid);
+          const currentHost = resolvedHost;
           const checkinDate = currentHost?.checkin ? new Date(currentHost.checkin * 1000) : null;
           const isRecent = checkinDate ? (Date.now() - checkinDate.getTime()) < 5 * 60 * 1000 : false;
           return (
