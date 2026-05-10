@@ -981,7 +981,7 @@ const HostTerminalPage = () => {
             <Play size={14} />
           </Button>
         </div>
-        <p className="text-[0.65rem] text-muted-foreground/60 mt-2.5 text-center">
+        <p className="text-[0.65rem] text-muted-foreground/60 mt-2.5 pl-5 max-w-4xl">
           {isDemoHost
             ? 'Demo terminal — only the "Isolate Host" predefined action is enabled.'
             : 'No session is created — each command is standalone. Full history is saved as Workflow Executions, with sessions stored locally in your browser.'}
