@@ -397,7 +397,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           '& p': { margin: 0 },
           '& pre, & code': { fontSize: '0.78rem' },
         }}>
-          <Markdown remarkPlugins={[remarkGfm]}>{displayLabel || ''}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(displayLabel)}</Markdown>
         </Box>
         <Tooltip title={`Duration: ${dur.toFixed(1)}s · ${itemStart ? new Date(itemStart * 1000).toLocaleString() : ''}`}>
           <Box sx={{ width: maxWidth, position: 'relative', height: 10, flexShrink: 0 }}>
@@ -508,7 +508,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           {questions.map((q, qi) => (
             <Box key={qi} sx={{ mt: 2 }}>
               <Box sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', mb: 1 }}>
-                <Markdown remarkPlugins={[remarkGfm]}>{q.question}</Markdown>
+                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(q.question)}</Markdown>
               </Box>
               <TextField
                 fullWidth
@@ -1530,7 +1530,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                           '& th, & td': { border: '1px solid hsl(var(--border))', px: 1, py: 0.5 },
                           '& hr': { border: 0, borderTop: '1px solid hsl(var(--border))', my: 1.5 },
                         }}>
-                          <Markdown remarkPlugins={[remarkGfm]}>{finishAnswer}</Markdown>
+                          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(finishAnswer)}</Markdown>
                         </Box>
                       ) : isRunning ? (
                         <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
