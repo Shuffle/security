@@ -554,7 +554,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const eid = raw?.execution_id;
     const auth = raw?.authorization;
     if (eid && auth) {
-      // We have a real workflow execution to follow
+      // Seed an EXECUTING stub so the poll effect starts immediately,
+      // then kick off the first fetch. The poller continues until terminal.
+      setExecution({ execution_id: eid, authorization: auth, status: 'EXECUTING' });
       getExecution(eid, auth);
       onRun?.({ input: text, success: true, executionId: eid });
     } else {
