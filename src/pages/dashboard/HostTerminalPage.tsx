@@ -265,9 +265,15 @@ const HostTerminalPage = () => {
             groupName,
             mode: modeStr,
             os: h.os || '',
+            arch: h.arch || '',
             checkin: h.checkin,
           }));
         });
+        // Register hostname+arch identity for each host so the storage key is
+        // stable across uuid-vs-hostname URLs and matches the mini popover.
+        for (const h of hosts) {
+          registerHostIdentity(h.uuid, { hostname: h.hostname, arch: h.arch });
+        }
         setAllHosts(hosts);
         // Fallback: if there's exactly one sensor group, use its Name when no
         // host match is found (mirrors MonitorDetailPage behavior).
