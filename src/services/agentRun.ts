@@ -292,13 +292,19 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     params,
   };
 
+  const { url: agentUrl, headers: agentHeaders } = resolveTarget('/api/v1/agent', {
+    apiKey: request.apiKey,
+    apiBaseUrl: request.apiBaseUrl,
+    orgId: request.orgId,
+  });
+
   try {
-    const response = await fetch(getApiUrl('/api/v1/agent'), {
+    const response = await fetch(agentUrl, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
+        ...agentHeaders,
       },
       body: JSON.stringify(payload),
     });
@@ -348,7 +354,11 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
         };
       }
       console.log(`[AgentRun] Got execution stub, polling for result: ${data.execution_id}`);
-      return pollExecutionResult(data.execution_id);
+      return pollExecutionResult(data.execution_id, {
+        apiKey: request.apiKey,
+        apiBaseUrl: request.apiBaseUrl,
+        orgId: request.orgId,
+      });
     }
 
     const content = parseAgentResponse(data);
