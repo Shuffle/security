@@ -12,6 +12,7 @@ import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirm
 import { fetchHostSupplements, mergeHost } from '@/lib/mergeMonitorHosts';
 import { isDemoActive } from '@/services/demoMode';
 import { DEMO_HOST_HOSTNAME } from '@/services/demoLiveEnvironment';
+import { parseHostUrlSegment } from '@/utils/hostUrlSegment';
 
 // ── OS icon (kept local — also used inline in the header) ────────────────────
 const OsIcon = ({ os, size = 14, className = '' }: { os: string; size?: number; className?: string }) => {
@@ -67,18 +68,26 @@ const MonitorDetailPage = () => {
 
       let envHost: SensorHost | null = null;
       let envGroupName = '';
-      const decodedId = id ? decodeURIComponent(id) : '';
-      const idLower = decodedId.toLowerCase().trim();
-      // Strip common domain suffixes for tolerant matching (matches list-page display behavior)
+      // URL segment is canonically `${hostname}:${arch}`. We resolve by
+      // hostname (with arch as tiebreaker), but still accept a raw uuid for
+      // backwards compat (uuid changes whenever the agent re-installs).
+      const parsed = parseHostUrlSegment(id);
+      const decodedId = parsed.raw;
+      const idLower = parsed.hostname.toLowerCase().trim();
       const stripDomain = (h: string) => h.toLowerCase().trim().replace(/\.(local|lan|home|internal|corp)$/i, '');
-      const idStripped = stripDomain(decodedId);
+      const idStripped = stripDomain(parsed.hostname);
+      const archHint = parsed.arch;
 
       for (const env of envs) {
         const hosts: SensorHost[] = Array.isArray(env.sensor_hosts) ? env.sensor_hosts : [];
-        const found = hosts.find((h: SensorHost) => {
+        const matchHostname = (h: SensorHost) => {
           const hn = (h.hostname || '').toLowerCase().trim();
-          return h.uuid === decodedId || hn === idLower || stripDomain(hn) === idStripped;
-        });
+          return hn === idLower || stripDomain(hn) === idStripped;
+        };
+        const found =
+          hosts.find(h => h.uuid === decodedId) ||
+          (archHint ? hosts.find(h => matchHostname(h) && String(h.arch || '').toLowerCase() === archHint) : undefined) ||
+          hosts.find(matchHostname);
         if (found) {
           envHost = found;
           envGroupName = env.Name || '';

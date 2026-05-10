@@ -9,6 +9,7 @@ import { CheckCircle2, ShieldX } from 'lucide-react';
 import type { ActionDebugEntry } from '@/hooks/useHostActions';
 import { HostActionChips, getActiveUser } from './hostActionDefinitions';
 import { ActionOutputView } from './ActionOutputView';
+import { hostUrlSegment } from '@/utils/hostUrlSegment';
 
 /**
  * Shared "Run Action" popover used in BOTH the host list view (VulnAssetsPage)
@@ -24,6 +25,8 @@ export interface HostActionPopoverHost {
   uuid: string;
   hostname: string;
   groupName: string;
+  /** Architecture (e.g. windows, linux, darwin) — used to disambiguate the URL segment */
+  arch?: string;
   /** Raw response_actions value, e.g. "full" or "controlled" */
   responseActions?: string;
   /** Full host record (for getActiveUser → Screenshot chip) */
@@ -160,7 +163,7 @@ export const HostActionPopover = ({
                   variant="ghost"
                   size="icon"
                   className="h-5 w-5 shrink-0"
-                  onClick={() => navigate(`/monitors/${host.uuid}/terminal`, { state: { hostname: host.hostname, groupName: host.groupName, mode: responseActionsMode || 'controlled' } })}
+                  onClick={() => navigate(`/monitors/${encodeURIComponent(hostUrlSegment(host))}/terminal`, { state: { hostname: host.hostname, groupName: host.groupName, mode: responseActionsMode || 'controlled' } })}
                 >
                   <Maximize2 size={10} />
                 </Button>

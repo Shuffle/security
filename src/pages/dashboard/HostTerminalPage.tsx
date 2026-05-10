@@ -22,6 +22,7 @@ import { fetchHostSupplements } from '@/lib/mergeMonitorHosts';
 import { HostActionChips, getActiveUser } from '@/components/monitors/hostActionDefinitions';
 import { ActionOutputView } from '@/components/monitors/ActionOutputView';
 import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
+import { hostUrlSegment, parseHostUrlSegment } from '@/utils/hostUrlSegment';
 
 interface HostOption {
   uuid: string;
@@ -184,40 +185,53 @@ const HostTerminalPage = () => {
   // Match by UUID first, then by hostname (with tolerant domain-suffix stripping)
   // so deep links like /monitors/FRIKKYS-MACBOOK-PRO/terminal still resolve.
   const stripDomain = (h: string) => h.toLowerCase().trim().replace(/\.(local|lan|home|internal|corp)$/i, '');
-  const idLower = (hostUuid || '').toLowerCase().trim();
-  const idStripped = stripDomain(hostUuid || '');
+  // URL segment is canonically `${hostname}:${arch}` (see hostUrlSegment).
+  // We parse it once and resolve by hostname (with arch as tiebreaker), but
+  // also keep the raw value working as a uuid for backwards compat.
+  const parsedSegment = parseHostUrlSegment(hostUuid);
+  const idLower = parsedSegment.hostname.toLowerCase().trim();
+  const idStripped = stripDomain(parsedSegment.hostname);
+  const archHint = parsedSegment.arch;
+  const matchHost = (h: HostOption) => {
+    const hn = (h.hostname || '').toLowerCase().trim();
+    return hn === idLower || stripDomain(h.hostname || '') === idStripped;
+  };
   const resolvedHost =
-    allHosts.find(h => h.uuid === hostUuid) ||
-    allHosts.find(h => (h.hostname || '').toLowerCase().trim() === idLower) ||
-    allHosts.find(h => stripDomain(h.hostname || '') === idStripped);
+    // Backwards compat: raw uuid in the URL (rare — agent uuid changes on reinstall)
+    allHosts.find(h => h.uuid === parsedSegment.raw) ||
+    // Hostname match with arch tiebreaker when supplied
+    (archHint
+      ? allHosts.find(h => matchHost(h) && String(h.arch || '').toLowerCase() === archHint)
+      : undefined) ||
+    allHosts.find(matchHost);
   const hostname =
     hostState?.hostname ||
     resolvedHost?.hostname ||
     datastoreResolvedHostname ||
-    (hostsLoaded ? (hostUuid || 'Unknown Host') : '');
+    (hostsLoaded ? (parsedSegment.hostname || 'Unknown Host') : '');
   const groupName = hostState?.groupName || resolvedHost?.groupName || singleEnvFallback || '';
   const mode = hostState?.mode || resolvedHost?.mode || 'full';
   const isFull = mode === 'full';
   const needsLoading = !hostState?.hostname && !hostsLoaded;
-  const hasResolvedHostname = Boolean(hostname && hostname !== 'Unknown Host' && hostname !== hostUuid);
+  const hasResolvedHostname = Boolean(hostname && hostname !== 'Unknown Host' && hostname !== parsedSegment.raw);
   const hostLookupFailed = hostsLoaded && datastoreLookupDone && !hasResolvedHostname;
   const missingSensorGroup = hostsLoaded && datastoreLookupDone && hasResolvedHostname && !groupName;
   const canRunActions = hasResolvedHostname && Boolean(groupName) && !hostLookupFailed && !missingSensorGroup;
   const resolutionErrorMessage = hostLookupFailed
-    ? `This terminal URL did not resolve to a monitor. We finished loading /getenvironments and the monitor datastores, but could not map ID ${hostUuid} to a hostname.`
+    ? `This terminal URL did not resolve to a monitor. We finished loading /getenvironments and the monitor datastores, but could not map ID ${parsedSegment.raw} to a hostname.`
     : missingSensorGroup
       ? `This monitor resolved as ${hostname}, but its environment Name was empty so no sensor_group could be sent.`
       : '';
   const displayHostname = hasResolvedHostname ? hostname : 'Unresolved monitor';
 
-  // Map this URL alias (uuid OR hostname) to the canonical hostname+arch key
-  // so reads/writes match the mini-popover regardless of how the host was
-  // addressed in the route.
+  // Map this URL alias (hostname[:arch] OR raw uuid) to the canonical
+  // hostname+arch storage key so reads/writes match the mini-popover
+  // regardless of how the host was addressed in the route.
   useEffect(() => {
-    if (hostUuid && hostname && hostname !== 'Unknown Host' && hostname !== hostUuid) {
-      registerHostIdentity(hostUuid, { hostname, arch: resolvedHost?.arch });
+    if (parsedSegment.raw && hostname && hostname !== 'Unknown Host') {
+      registerHostIdentity(parsedSegment.raw, { hostname, arch: resolvedHost?.arch || archHint });
     }
-  }, [hostUuid, hostname, resolvedHost?.arch]);
+  }, [parsedSegment.raw, hostname, resolvedHost?.arch, archHint]);
 
   // Demo terminal: when the URL points at a `demo-…` host (e.g.
   // /monitors/demo-host-fin-laptop-04/terminal) we lock the free-form
@@ -716,7 +730,7 @@ const HostTerminalPage = () => {
                       setActionHistory([]);
                       setCustomAction('');
                       setHistoryIndex(-1);
-                      navigate(`/monitors/${h.uuid}/terminal`, {
+                      navigate(`/monitors/${encodeURIComponent(hostUrlSegment(h))}/terminal`, {
                         state: { hostname: h.hostname, groupName: h.groupName, mode: h.mode },
                         replace: true,
                       });
