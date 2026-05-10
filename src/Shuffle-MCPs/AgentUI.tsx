@@ -34,6 +34,7 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CheckIcon from '@mui/icons-material/Check';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -416,7 +417,37 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, { index: number; value: string }>>({});
   const [continuationText, setContinuationText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [attachedImages, setAttachedImages] = useState<{ dataUrl: string; name: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const readImageAsDataUrl = (file: File): Promise<{ dataUrl: string; name: string } | null> =>
+    new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        resolve(typeof result === 'string' ? { dataUrl: result, name: file.name || 'Pasted image' } : null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+
+  const handleImagesSelected = async (files: FileList | File[] | null) => {
+    if (!files) return;
+    const arr = Array.from(files);
+    const nonImages = arr.some((f) => !f.type.startsWith('image/'));
+    if (nonImages) setError('Only image files can be attached.');
+    const results = await Promise.all(arr.map(readImageAsDataUrl));
+    const valid = results.filter((r): r is { dataUrl: string; name: string } => r !== null);
+    if (valid.length > 0) {
+      setAttachedImages((prev) => [...prev, ...valid]);
+      setError(null);
+    }
+  };
 
   const appsById = useMemo(() => {
     const m: Record<string, AgentUIApp> = {};
@@ -500,6 +531,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       input: text.trim(),
       ...(chosenApps.length === 1 ? { toolName: chosenApps[0].name } : {}),
       ...(chosenApps.length > 1 ? { toolNames: chosenApps.map((a) => a.name) } : {}),
+      ...(attachedImages.length > 0 ? { images: attachedImages.map((img) => {
+        const m = /^data:([^;]+);base64,(.*)$/.exec(img.dataUrl);
+        return m ? { mimeType: m[1], data: m[2], name: img.name } : { mimeType: 'image/png', data: img.dataUrl, name: img.name };
+      }) } : {}),
     });
 
     setAgentRequestLoading(false);
@@ -655,6 +690,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setError(null);
     setQuestionAnswers({});
     setContinuationText('');
+    setAttachedImages([]);
   };
 
   // ── Render ──
@@ -691,19 +727,41 @@ const AgentUI: React.FC<AgentUIProps> = ({
             <Box sx={{
               width: '100%',
               display: 'flex',
-              alignItems: 'flex-end',
+              flexDirection: 'column',
               gap: 1,
-              borderRadius: 999,
+              borderRadius: attachedImages.length > 0 ? 4 : 999,
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               px: 3,
               py: 1.75,
-              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease, border-radius 0.15s ease',
               '&:focus-within': {
                 borderColor: 'hsl(var(--primary))',
                 boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
               },
             }}>
+              {attachedImages.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  {attachedImages.map((img, idx) => (
+                    <Box key={`${img.name}-${idx}`} sx={{
+                      display: 'inline-flex', alignItems: 'center', gap: 1,
+                      p: 0.5, pr: 1, borderRadius: 1.5,
+                      border: '1px solid hsl(var(--border))',
+                      bgcolor: 'hsl(var(--background))',
+                      maxWidth: '100%',
+                    }}>
+                      <Box component="img" src={img.dataUrl} alt={img.name} sx={{ width: 32, height: 32, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--foreground))', maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {img.name}
+                      </Typography>
+                      <IconButton size="small" onClick={() => setAttachedImages((prev) => prev.filter((_, i) => i !== idx))} sx={{ p: 0.25, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' } }} aria-label="Remove attached image">
+                        <CloseIcon sx={{ fontSize: 12 }} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, width: '100%' }}>
               <InputBase
                 inputRef={inputRef}
                 autoFocus
@@ -715,6 +773,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 onChange={(e) => setActionInput(e.target.value)}
                 placeholder={placeholder}
                 onKeyDown={onKeyDown}
+                onPaste={(e) => {
+                  const items = e.clipboardData?.items;
+                  if (!items) return;
+                  const files: File[] = [];
+                  for (const item of Array.from(items)) {
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                      const file = item.getAsFile();
+                      if (file) files.push(file);
+                    }
+                  }
+                  if (files.length > 0) {
+                    e.preventDefault();
+                    handleImagesSelected(files);
+                  }
+                }}
                 disabled={agentRequestLoading}
                 sx={{
                   fontSize: '1rem',
@@ -722,6 +795,31 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7 },
                 }}
               />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  handleImagesSelected(e.target.files);
+                  if (e.target) e.target.value = '';
+                }}
+              />
+              <IconButton
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={agentRequestLoading}
+                title={attachedImages.length > 0 ? `Add image (${attachedImages.length} attached)` : 'Attach image'}
+                sx={{
+                  width: 36, height: 36,
+                  color: attachedImages.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  bgcolor: attachedImages.length > 0 ? 'hsla(var(--primary) / 0.1)' : 'transparent',
+                  '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
+                }}
+              >
+                <AttachFileIcon sx={{ fontSize: 18 }} />
+              </IconButton>
               <IconButton
                 type="submit"
                 disabled={actionInput.trim().length < 3 || agentRequestLoading}
@@ -735,6 +833,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               >
                 {agentRequestLoading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <PlayArrowRoundedIcon />}
               </IconButton>
+              </Box>
             </Box>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1 }}>
