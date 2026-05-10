@@ -52,6 +52,26 @@ import WarningIcon from '@mui/icons-material/Warning';
 import CloseIcon from '@mui/icons-material/Close';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
+
+// Normalize agent answer text so react-markdown renders it correctly:
+// - Decode literal escape sequences ("\n", "\t", "\r") that come back
+//   double-encoded in some JSON payloads.
+// - Strip surrounding quotes if the value is itself a JSON-encoded string.
+// - Trim leading/trailing whitespace.
+const normalizeMarkdown = (raw: unknown): string => {
+  if (raw == null) return '';
+  let s = typeof raw === 'string' ? raw : (() => {
+    try { return JSON.stringify(raw, null, 2); } catch { return String(raw); }
+  })();
+  // If the whole thing is a JSON-encoded string, decode it once.
+  if (s.length > 1 && s.startsWith('"') && s.endsWith('"')) {
+    try { s = JSON.parse(s); } catch { /* keep as-is */ }
+  }
+  // Convert literal "\n" / "\t" / "\r" sequences into real characters.
+  s = s.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+  return s.trim();
+};
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
@@ -377,7 +397,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           '& p': { margin: 0 },
           '& pre, & code': { fontSize: '0.78rem' },
         }}>
-          <Markdown remarkPlugins={[remarkGfm]}>{displayLabel || ''}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(displayLabel)}</Markdown>
         </Box>
         <Tooltip title={`Duration: ${dur.toFixed(1)}s · ${itemStart ? new Date(itemStart * 1000).toLocaleString() : ''}`}>
           <Box sx={{ width: maxWidth, position: 'relative', height: 10, flexShrink: 0 }}>
@@ -488,7 +508,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           {questions.map((q, qi) => (
             <Box key={qi} sx={{ mt: 2 }}>
               <Box sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', mb: 1 }}>
-                <Markdown remarkPlugins={[remarkGfm]}>{q.question}</Markdown>
+                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(q.question)}</Markdown>
               </Box>
               <TextField
                 fullWidth
@@ -1510,7 +1530,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                           '& th, & td': { border: '1px solid hsl(var(--border))', px: 1, py: 0.5 },
                           '& hr': { border: 0, borderTop: '1px solid hsl(var(--border))', my: 1.5 },
                         }}>
-                          <Markdown remarkPlugins={[remarkGfm]}>{finishAnswer}</Markdown>
+                          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(finishAnswer)}</Markdown>
                         </Box>
                       ) : isRunning ? (
                         <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
