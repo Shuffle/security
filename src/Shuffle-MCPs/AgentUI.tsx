@@ -465,6 +465,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
 }) => {
   const [actionInput, setActionInput] = useState(defaultInput);
   const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(apps ?? defaultApps ?? []);
+  // Apps the caller has authenticated — used to resolve icons by name and as
+  // suggestions in the picker. NOT auto-selected as `chosenApps`.
+  const [availableApps, setAvailableApps] = useState<AgentUIApp[]>([]);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
   const [execution, setExecution] = useState<ExecutionData | null>(null);
