@@ -796,13 +796,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     if (!autoLoadApps) return;
     if (apps || defaultApps) return;
-    if (!API_CONFIG.apiKey) return;
+    if (!hasApiKey) return;
     let cancelled = false;
     (async () => {
       try {
-        const resp = await fetch(getApiUrl('/api/v1/apps/authentication'), {
+        const resp = await fetch(resolveUrl('/api/v1/apps/authentication'), {
           credentials: 'include',
-          headers: { ...getAuthHeader() },
+          headers: { ...resolveHeaders() },
         });
         if (!resp.ok) return;
         const result = await resp.json();
