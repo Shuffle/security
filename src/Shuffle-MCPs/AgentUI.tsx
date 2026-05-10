@@ -267,12 +267,15 @@ interface TimelineRowProps {
   questionAnswers: Record<string, { index: number; value: string }>;
   setQuestionAnswers: React.Dispatch<React.SetStateAction<Record<string, { index: number; value: string }>>>;
   onSubmitQuestions: (decisionId: string, answers: Record<string, any>, isContinuation?: boolean) => void;
+  onRerunAgent: () => void;
+  onRerunDecision: (decision: any) => void;
   agentRequestLoading: boolean;
 }
 
 const TimelineRow: React.FC<TimelineRowProps> = ({
   item, index, open, onToggle, appsById, totalDuration, originalStartTime,
-  maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions, agentRequestLoading,
+  maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
+  onRerunAgent, onRerunDecision, agentRequestLoading,
 }) => {
   const validate = validateJson(item.details);
   const itemStart = item.start_time || 0;
