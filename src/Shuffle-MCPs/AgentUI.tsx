@@ -892,10 +892,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
               ))}
             </Box>
 
-            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
-              ⌘+Enter to send
-            </Typography>
-
             {error && (
               <Box sx={{
                 width: '100%', p: 1.5, borderRadius: 1.5,
