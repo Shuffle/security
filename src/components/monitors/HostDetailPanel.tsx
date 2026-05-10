@@ -594,7 +594,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
 
           const renderNode = (p: ProcessEntry, depth: number, flat = false): JSX.Element | null => {
             if (q && !isVisible(p)) return null;
-            const kids = (childrenMap.get(p.pid) || []).filter(k => !q || isVisible(k));
+            const kids = flat ? [] : (childrenMap.get(p.pid) || []).filter(k => !q || isVisible(k));
             const hasKids = kids.length > 0;
             const expanded = !collapsedProcs.has(p.pid) || !!q;
             const cmd = p.command_line || p.exe_path || `(pid ${p.pid})`;
