@@ -148,6 +148,7 @@ export const useHostActions = ({ onActionComplete }: UseHostActionsOptions = {})
       const persistEntry = {
         entryId: entry.entryId,
         actionName: entry.actionName,
+        commandText: entry.commandText,
         status: entry.status,
         startedAt: entry.startedAt,
         finishedAt: entry.finishedAt,
