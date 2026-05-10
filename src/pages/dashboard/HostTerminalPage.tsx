@@ -261,10 +261,8 @@ const HostTerminalPage = () => {
   // their `uuid` field. Avoids showing the raw UUID in the header.
   useEffect(() => {
     if (!hostsLoaded || !hostUuid) return;
-    if (hostState?.hostname || resolvedHost || datastoreResolvedHostname) {
-      setDatastoreLookupDone(true);
-      return;
-    }
+    // Always fetch supplements: even when env stubs already resolve the hostname
+    // we still need them to compute the active user (for the Screenshot chip).
     let cancelled = false;
     (async () => {
       try {
