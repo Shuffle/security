@@ -142,7 +142,7 @@ export const HostActionPopover = ({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        side={trigger === 'button' ? 'bottom' : 'left'}
+        side="left"
         collisionPadding={16}
         className="w-[34rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-auto p-0"
         onClick={e => e.stopPropagation()}
