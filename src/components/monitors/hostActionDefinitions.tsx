@@ -176,7 +176,11 @@ export const HostActionChips = ({
           if (customHandler && customHandler(a.id)) return;
           // Build the canonical actionId. The caller always sends with
           // isPredefined=true so the executor prepends "script:".
-          const actionId = needsUser && activeUser ? `${a.id} ${activeUser}` : a.id;
+          // Screenshot needs a trailing arg (username) to actually fire — fall back to "TEST"
+          // when no active user is detected so we never send a bare "script:screenshot".
+          const actionId = a.id === 'screenshot'
+            ? `${a.id} ${activeUser || 'TEST'}`
+            : (needsUser && activeUser ? `${a.id} ${activeUser}` : a.id);
           const displayName = needsUser && activeUser ? `Screenshot (${activeUser})` : a.name;
           onRun({ actionId, displayName, isPredefined: true });
         };
