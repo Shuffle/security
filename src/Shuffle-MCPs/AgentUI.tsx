@@ -71,12 +71,40 @@ export interface AgentUIProps {
   defaultApps?: AgentUIApp[];
   /** Hero title above the prompt. */
   title?: string;
+  /** Optional subtitle/description shown under the title. */
+  subtitle?: React.ReactNode;
   /** Placeholder shown in the empty prompt. */
   placeholder?: string;
+  /** Pre-fill the prompt with this text. */
+  defaultInput?: string;
+  /** Submit immediately on mount when `defaultInput` is provided. */
+  autoSubmit?: boolean;
   /** Hide the centered hero icon (compact mode). */
   hideHeroIcon?: boolean;
+  /** Replace the default AgentIcon with a custom node (e.g. brand logo). */
+  heroIcon?: React.ReactNode;
+  /** Pixel size of the hero icon container. Default 84. */
+  heroIconSize?: number;
   /** Maximum width of the centered card. */
   maxWidth?: number;
+  /** Compact mode: hides the hero icon, shrinks padding. */
+  compact?: boolean;
+  /** Hide the "Select Apps / MCPs" chip row entirely. */
+  hideAppPicker?: boolean;
+  /** Hide the paperclip image-attachment button. */
+  hideAttach?: boolean;
+  /** Label on the "Select Apps / MCPs" chip. */
+  appPickerLabel?: string;
+  /** Title on the AppSearchDrawer. */
+  appPickerTitle?: string;
+  /** Subtitle on the AppSearchDrawer. */
+  appPickerSubtitle?: string;
+  /** Tooltip on the submit button. Default: "⌘+Enter to send". */
+  submitTooltip?: string;
+  /** Custom icon for the submit button. */
+  submitIcon?: React.ReactNode;
+  /** Placeholder for the post-finish continuation field. */
+  continuationPlaceholder?: string;
   /** Read `?execution_id` & `?authorization` from window URL on mount. */
   readUrlParams?: boolean;
   /**
@@ -407,15 +435,29 @@ const DEFAULT_APPS: AgentUIApp[] = [
 const AgentUI: React.FC<AgentUIProps> = ({
   defaultApps = DEFAULT_APPS,
   title = 'What do you want to do?',
+  subtitle,
   placeholder = 'Describe a task, e.g. "Get my emails for today and summarise them"',
+  defaultInput = '',
+  autoSubmit = false,
   hideHeroIcon = false,
+  heroIcon,
+  heroIconSize = 84,
   maxWidth = 900,
+  compact = false,
+  hideAppPicker = false,
+  hideAttach = false,
+  appPickerLabel = 'Select Apps / MCPs',
+  appPickerTitle = 'Select Apps / MCPs',
+  appPickerSubtitle = 'Pick the tools the agent is allowed to use for this run',
+  submitTooltip = '⌘+Enter to send',
+  submitIcon,
+  continuationPlaceholder = 'Add more details to continue this task…',
   readUrlParams = true,
   executionId,
   authorization,
   onRun,
 }) => {
-  const [actionInput, setActionInput] = useState('');
+  const [actionInput, setActionInput] = useState(defaultInput);
   const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(defaultApps);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
@@ -593,7 +635,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
       onRun?.({ input: text, success: true, executionId: eid });
     }
-  }, [chosenApps, getExecution, onRun]);
+  }, [chosenApps, getExecution, onRun, attachedImages]);
+
+  // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
+  const autoSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (autoSubmit && defaultInput && !autoSubmittedRef.current && !executionId) {
+      autoSubmittedRef.current = true;
+      submitInput(defaultInput);
+    }
+  }, [autoSubmit, defaultInput, executionId, submitInput]);
 
   // ── Submit answers / continuation ──
   const submitQuestions = useCallback(async (
@@ -725,21 +776,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
           <Box
             component="form"
             onSubmit={(e) => { e.preventDefault(); submitInput(actionInput); }}
-            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, py: 4 }}
+            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compact ? 2 : 3, py: compact ? 2 : 4 }}
           >
-            {!hideHeroIcon && (
+            {!hideHeroIcon && !compact && (
               <Box sx={{
-                width: 84, height: 84, borderRadius: 3,
+                width: heroIconSize, height: heroIconSize, borderRadius: 3,
                 bgcolor: 'hsl(var(--card))',
                 border: '1px solid hsl(var(--border))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
               }}>
-                <AgentIcon size={56} />
+                {heroIcon ?? <AgentIcon size={Math.round(heroIconSize * 0.67)} />}
               </Box>
             )}
             <Typography component="h1" sx={{
-              fontSize: { xs: '1.75rem', md: '2.25rem' },
+              fontSize: compact ? { xs: '1.25rem', md: '1.5rem' } : { xs: '1.75rem', md: '2.25rem' },
               fontWeight: 600,
               color: 'hsl(var(--foreground))',
               textAlign: 'center',
@@ -747,6 +798,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
             }}>
               {title}
             </Typography>
+            {subtitle && (
+              <Typography sx={{
+                fontSize: '0.95rem',
+                color: 'hsl(var(--muted-foreground))',
+                textAlign: 'center',
+                mt: -1,
+                maxWidth: 600,
+              }}>
+                {subtitle}
+              </Typography>
+            )}
 
             <Box sx={{
               width: '100%',
@@ -830,6 +892,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   if (e.target) e.target.value = '';
                 }}
               />
+              {!hideAttach && (
               <IconButton
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -844,7 +907,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               >
                 <AttachFileIcon sx={{ fontSize: 18 }} />
               </IconButton>
-              <Tooltip title="⌘+Enter to send" placement="top" arrow>
+              )}
+              <Tooltip title={submitTooltip} placement="top" arrow>
                 <span>
                   <IconButton
                     type="submit"
@@ -857,13 +921,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       '&.Mui-disabled': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
                     }}
                   >
-                    {agentRequestLoading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <PlayArrowRoundedIcon />}
+                    {agentRequestLoading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : (submitIcon ?? <PlayArrowRoundedIcon />)}
                   </IconButton>
                 </span>
               </Tooltip>
               </Box>
             </Box>
 
+            {!hideAppPicker && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1 }}>
               <Box
                 component="button"
@@ -881,7 +946,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 }}
               >
                 <AddIcon sx={{ fontSize: 16 }} />
-                Select Apps / MCPs
+                {appPickerLabel}
               </Box>
               {chosenApps.map((app, i) => (
                 <Box
@@ -915,6 +980,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               ))}
             </Box>
+            )}
 
             {error && (
               <Box sx={{
@@ -1149,7 +1215,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     multiline
                     minRows={1}
                     maxRows={4}
-                    placeholder="Add more details to continue this task…"
+                    placeholder={continuationPlaceholder}
                     value={continuationText}
                     onChange={(e) => setContinuationText(e.target.value)}
                     disabled={agentRequestLoading}
@@ -1176,8 +1242,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
         <AppSearchDrawer
           open={appSearchOpen}
           onClose={() => setAppSearchOpen(false)}
-          title="Select Apps / MCPs"
-          subtitle="Pick the tools the agent is allowed to use for this run"
+          title={appPickerTitle}
+          subtitle={appPickerSubtitle}
           onQuickSelect={(app) => {
             setChosenApps((prev) =>
               prev.some((a) => a.name === app.name)
