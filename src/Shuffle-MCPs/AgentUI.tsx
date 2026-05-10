@@ -1016,7 +1016,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   }}
                 >
                   <Avatar
-                    src={app.icon || `https://shuffler.io/api/v1/apps/${app.id}/icon`}
+                    src={app.icon || undefined}
                     alt={app.name}
                     variant="rounded"
                     sx={{ width: 22, height: 22, bgcolor: 'transparent' }}
