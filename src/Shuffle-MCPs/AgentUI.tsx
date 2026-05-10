@@ -24,7 +24,7 @@ import {
   AvatarGroup,
   Box,
   Button,
-  ButtonGroup,
+  // ButtonGroup removed (replaced by chip tabs)
   Chip,
   CircularProgress,
   IconButton,
@@ -42,7 +42,7 @@ import HourglassDisabledIcon from '@mui/icons-material/HourglassDisabled';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
+// RestartAltIcon removed (replaced by chip tabs)
 import SendIcon from '@mui/icons-material/Send';
 import WarningIcon from '@mui/icons-material/Warning';
 import CloseIcon from '@mui/icons-material/Close';
@@ -671,6 +671,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // Seed an EXECUTING stub so the poll effect starts immediately,
       // then kick off the first fetch. The poller continues until terminal.
       setExecution({ execution_id: eid, authorization: auth, status: 'EXECUTING' });
+      // Reflect the new execution in the URL so the run is shareable/refreshable.
+      if (readUrlParams && typeof window !== 'undefined') {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('execution_id', eid);
+          url.searchParams.set('authorization', auth);
+          window.history.replaceState({}, '', url.toString());
+        } catch { /* noop */ }
+      }
       getExecution(eid, auth);
       onRun?.({ input: text, success: true, executionId: eid });
     } else {
@@ -689,7 +698,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
       onRun?.({ input: text, success: true, executionId: eid });
     }
-  }, [chosenApps, getExecution, onRun, attachedImages]);
+  }, [chosenApps, getExecution, onRun, attachedImages, readUrlParams]);
 
   // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
   const autoSubmittedRef = useRef(false);
@@ -814,18 +823,85 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
   };
 
-  const restart = () => {
-    setShowStarter(true);
-    setError(null);
-    setQuestionAnswers({});
-    setContinuationText('');
-    setAttachedImages([]);
+  // restart() removed — Start tab now toggles via goToTab() while preserving the execution.
+
+
+  // The three top-level "tabs": Start (the prompt form), Simple summary,
+  // and Detailed timeline. They're all available once an execution exists,
+  // so the user can flip back and forth without losing the run.
+  type TabKey = 'start' | 'simple' | 'detailed';
+  const activeTab: TabKey = showStarter ? 'start' : viewMode;
+  const hasExecution = !!execution?.execution_id;
+  const goToTab = (t: TabKey) => {
+    if (t === 'start') {
+      setShowStarter(true);
+    } else {
+      setShowStarter(false);
+      setViewMode(t);
+    }
   };
+
+  const TabBar: React.FC = () => (
+    <Box sx={{
+      display: 'flex', alignItems: 'center', gap: 1.5,
+      p: 1,
+      borderRadius: 999,
+      border: '1px solid hsl(var(--border))',
+      bgcolor: 'hsl(var(--card))',
+      width: 'fit-content',
+      alignSelf: 'flex-start',
+    }}>
+      <Box sx={{ display: 'inline-flex', gap: 0.25, p: 0.25, borderRadius: 999, bgcolor: 'hsl(var(--muted) / 0.6)' }}>
+        {(['start', 'simple', 'detailed'] as TabKey[]).map((t) => {
+          const active = activeTab === t;
+          const label = t === 'start' ? 'Start' : t === 'simple' ? 'Simple' : 'Detailed';
+          return (
+            <Box
+              key={t}
+              component="button"
+              type="button"
+              onClick={() => goToTab(t)}
+              sx={{
+                all: 'unset', cursor: 'pointer',
+                px: 1.75, py: 0.5,
+                borderRadius: 999,
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: active ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                bgcolor: active ? 'hsl(var(--primary))' : 'transparent',
+                transition: 'background 0.12s ease, color 0.12s ease',
+                '&:hover': active ? {} : { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
+              }}
+            >
+              {label}
+            </Box>
+          );
+        })}
+      </Box>
+      <Tooltip title="Reload execution data">
+        <span>
+          <IconButton
+            size="small"
+            onClick={() => execution?.execution_id && execution?.authorization && getExecution(execution.execution_id, execution.authorization)}
+            disabled={!hasExecution}
+            sx={{
+              width: 30, height: 30,
+              color: 'hsl(var(--muted-foreground))',
+              '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
+            }}
+          >
+            <RefreshIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Box>
+  );
 
   // ── Render ──
   return (
     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', pb: 4 }}>
       <Box sx={{ width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {hasExecution && <TabBar />}
         {showStarter ? (
           <Box
             component="form"
@@ -1048,7 +1124,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           </Box>
         ) : (
           <Box>
-            {/* Debug header */}
+            {/* Status row */}
             <Box sx={{
               display: 'flex', alignItems: 'center', gap: 2,
               p: 2,
@@ -1057,40 +1133,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               bgcolor: 'hsl(var(--card))',
               mb: 2,
             }}>
-              <ButtonGroup size="small">
-                <Button variant="outlined" startIcon={<RestartAltIcon />} onClick={restart}>
-                  Restart
-                </Button>
-                <Tooltip title="Reload execution data">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      onClick={() => execution?.execution_id && execution?.authorization && getExecution(execution.execution_id, execution.authorization)}
-                      disabled={!execution?.execution_id || !execution?.authorization}
-                    >
-                      <RefreshIcon fontSize="small" />
-                    </Button>
-                  </span>
-                </Tooltip>
-              </ButtonGroup>
-              <ButtonGroup size="small" sx={{ ml: 1 }}>
-                <Button
-                  variant={viewMode === 'simple' ? 'contained' : 'outlined'}
-                  onClick={() => setViewMode('simple')}
-                  sx={viewMode === 'simple' ? { bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)' } } : {}}
-                >
-                  Simple
-                </Button>
-                <Button
-                  variant={viewMode === 'detailed' ? 'contained' : 'outlined'}
-                  onClick={() => setViewMode('detailed')}
-                  sx={viewMode === 'detailed' ? { bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)' } } : {}}
-                >
-                  Detailed
-                </Button>
-              </ButtonGroup>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', fontWeight: 600 }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {agentData?.original_input || actionInput || 'Agent run'}
                 </Typography>
                 <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
