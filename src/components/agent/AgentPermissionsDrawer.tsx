@@ -217,6 +217,23 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
 
 
 
+  const handleImageSelected = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setRunError('Only image files can be attached.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAttachedImage({ dataUrl: reader.result, name: file.name || 'Pasted image' });
+        setRunError(null);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleRunAgent = async () => {
     if (!agentInput.trim() || isRunning) return;
     setIsRunning(true);
@@ -231,6 +248,7 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
       ...(selectedApps.length > 1 ? {
         toolNames: selectedApps.map(a => a.name),
       } : {}),
+      ...(attachedImage ? { image: attachedImage.dataUrl } : {}),
     });
 
     if (result.success) {
@@ -255,6 +273,7 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
     setAgentInput('');
     setActionRun(null);
     setRunError(null);
+    setAttachedImage(null);
   };
 
   return (
