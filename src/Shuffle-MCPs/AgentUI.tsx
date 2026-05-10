@@ -826,15 +826,84 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const restart = () => {
     setShowStarter(true);
     setError(null);
-    setQuestionAnswers({});
-    setContinuationText('');
-    setAttachedImages([]);
   };
+
+  // The three top-level "tabs": Start (the prompt form), Simple summary,
+  // and Detailed timeline. They're all available once an execution exists,
+  // so the user can flip back and forth without losing the run.
+  type TabKey = 'start' | 'simple' | 'detailed';
+  const activeTab: TabKey = showStarter ? 'start' : viewMode;
+  const hasExecution = !!execution?.execution_id;
+  const goToTab = (t: TabKey) => {
+    if (t === 'start') {
+      setShowStarter(true);
+    } else {
+      setShowStarter(false);
+      setViewMode(t);
+    }
+  };
+
+  const TabBar: React.FC = () => (
+    <Box sx={{
+      display: 'flex', alignItems: 'center', gap: 1.5,
+      p: 1,
+      borderRadius: 999,
+      border: '1px solid hsl(var(--border))',
+      bgcolor: 'hsl(var(--card))',
+      width: 'fit-content',
+      alignSelf: 'flex-start',
+    }}>
+      <Box sx={{ display: 'inline-flex', gap: 0.25, p: 0.25, borderRadius: 999, bgcolor: 'hsl(var(--muted) / 0.6)' }}>
+        {(['start', 'simple', 'detailed'] as TabKey[]).map((t) => {
+          const active = activeTab === t;
+          const label = t === 'start' ? 'Start' : t === 'simple' ? 'Simple' : 'Detailed';
+          return (
+            <Box
+              key={t}
+              component="button"
+              type="button"
+              onClick={() => goToTab(t)}
+              sx={{
+                all: 'unset', cursor: 'pointer',
+                px: 1.75, py: 0.5,
+                borderRadius: 999,
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: active ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                bgcolor: active ? 'hsl(var(--primary))' : 'transparent',
+                transition: 'background 0.12s ease, color 0.12s ease',
+                '&:hover': active ? {} : { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
+              }}
+            >
+              {label}
+            </Box>
+          );
+        })}
+      </Box>
+      <Tooltip title="Reload execution data">
+        <span>
+          <IconButton
+            size="small"
+            onClick={() => execution?.execution_id && execution?.authorization && getExecution(execution.execution_id, execution.authorization)}
+            disabled={!hasExecution}
+            sx={{
+              width: 30, height: 30,
+              color: 'hsl(var(--muted-foreground))',
+              '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
+            }}
+          >
+            <RefreshIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Box>
+  );
 
   // ── Render ──
   return (
     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', pb: 4 }}>
       <Box sx={{ width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {hasExecution && <TabBar />}
         {showStarter ? (
           <Box
             component="form"
