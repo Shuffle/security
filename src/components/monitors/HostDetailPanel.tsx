@@ -699,7 +699,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
                         if (flat.length === 0) {
                           return <tr><td colSpan={4} className="px-3 py-3 text-center text-muted-foreground italic">No matches</td></tr>;
                         }
-                        return flat.map(p => renderNode({ ...p, ppid: -1 } as ProcessEntry, 0));
+                        return flat.map(p => renderNode(p, 0, true));
                       }
                       const visibleRoots = roots.filter(r => !q || isVisible(r));
                       if (visibleRoots.length === 0) {
