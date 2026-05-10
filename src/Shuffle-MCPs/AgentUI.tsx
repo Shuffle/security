@@ -441,7 +441,9 @@ const DEFAULT_APPS: AgentUIApp[] = [
 ];
 
 const AgentUI: React.FC<AgentUIProps> = ({
-  defaultApps = DEFAULT_APPS,
+  apps,
+  defaultApps,
+  autoLoadApps = true,
   title = 'What do you want to do?',
   subtitle,
   placeholder = 'Describe a task, e.g. "Get my emails for today and summarise them"',
@@ -466,7 +468,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   onRun,
 }) => {
   const [actionInput, setActionInput] = useState(defaultInput);
-  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(defaultApps);
+  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(apps ?? defaultApps ?? []);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
   const [execution, setExecution] = useState<ExecutionData | null>(null);
