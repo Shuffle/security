@@ -690,6 +690,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setError(null);
     setQuestionAnswers({});
     setContinuationText('');
+    setAttachedImages([]);
   };
 
   // ── Render ──
