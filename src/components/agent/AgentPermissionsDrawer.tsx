@@ -330,7 +330,17 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
           }}
         >
           <Tab label="Run" icon={<Play size={14} />} iconPosition="start" sx={{ gap: 0.75 }} />
-          <Tab label="Permissions" icon={<ShieldCheck size={14} />} iconPosition="start" sx={{ gap: 0.75 }} />
+          <Tooltip title={isSupport ? '' : 'Coming soon'} arrow disableHoverListener={isSupport}>
+            <span>
+              <Tab
+                label="Permissions"
+                icon={<ShieldCheck size={14} />}
+                iconPosition="start"
+                disabled={!isSupport}
+                sx={{ gap: 0.75 }}
+              />
+            </span>
+          </Tooltip>
           <Tab
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
