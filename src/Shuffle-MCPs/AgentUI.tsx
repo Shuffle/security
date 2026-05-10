@@ -528,7 +528,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setAgentRequestLoading(true);
     setShowStarter(false);
     setExecution(null);
-    setAgentData({});
+    setAgentData({ original_input: text.trim() });
 
     const result = await runAgent({
       input: text.trim(),
