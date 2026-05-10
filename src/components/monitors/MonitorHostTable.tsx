@@ -391,9 +391,7 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
               actionSuccess: parsedRes.success,
               error: parsedRes.success ? undefined : (parsedRes.error || parsedRes.output || 'Action reported failure'),
             });
-            if (!parsedRes.success) {
-              toast.error('Action failed', { description: parsedRes.error || parsedRes.output || `"${actionName}" → ${hostname}` });
-            }
+            // Result + error are already surfaced in the action output panel — no toast needed.
             return;
           } catch {
             if (!pollingActiveRef.current.get(hostUuid)) return;
