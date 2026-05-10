@@ -698,7 +698,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
       onRun?.({ input: text, success: true, executionId: eid });
     }
-  }, [chosenApps, getExecution, onRun, attachedImages]);
+  }, [chosenApps, getExecution, onRun, attachedImages, readUrlParams]);
 
   // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
   const autoSubmittedRef = useRef(false);
