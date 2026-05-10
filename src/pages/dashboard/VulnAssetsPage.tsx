@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -453,6 +454,17 @@ const AuthenticatedVulnAssetsPage = () => {
 
   // Monitoring groups (from API)
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
+  // Register every host's hostname+arch identity so terminal_session_*
+  // keys are stable across the mini popover and the full terminal page.
+  useEffect(() => {
+    for (const g of groups) {
+      for (const h of g.hosts || []) {
+        const uuid = (h as any).uuid;
+        const hostname = (h as any).hostname;
+        if (uuid && hostname) registerHostIdentity(uuid, { hostname, arch: (h as any).arch });
+      }
+    }
+  }, [groups]);
   const [allEnvs, setAllEnvs] = useState<OrbEnvironment[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -481,7 +493,7 @@ const AuthenticatedVulnAssetsPage = () => {
     setActionHistoryMap(prev => {
       if ((prev.get(hostUuid) || []).length > 0) return prev;
       try {
-        const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
+        const stored = readStoredSession(hostUuid);
         if (Array.isArray(stored) && stored.length > 0) {
           const next = new Map(prev);
           next.set(hostUuid, stored.map((e: any, i: number) => ({
@@ -507,7 +519,7 @@ const AuthenticatedVulnAssetsPage = () => {
 
   const getCommandHistory = (hostUuid: string): string[] => {
     try {
-      const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
+      const stored = readStoredSession(hostUuid);
       // Fall back to old cmd_history_ key
       if (!Array.isArray(stored) || stored.length === 0) {
         const old = JSON.parse(localStorage.getItem(`cmd_history_${hostUuid}`) || '[]');
@@ -563,8 +575,8 @@ const AuthenticatedVulnAssetsPage = () => {
     });
     // Persist immediately so running commands survive refresh
     try {
-      const key = `terminal_session_${hostUuid}`;
-      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const key = terminalStorageKey(hostUuid);
+      const stored = readStoredSession(hostUuid);
       const persistEntry = {
         entryId: entry.entryId,
         actionName: entry.actionName,
@@ -594,8 +606,8 @@ const AuthenticatedVulnAssetsPage = () => {
       // Update the persisted entry in localStorage (was already added on push)
       if (latest.status === 'success' || latest.status === 'error') {
         try {
-          const key = `terminal_session_${hostUuid}`;
-          const stored = JSON.parse(localStorage.getItem(key) || '[]');
+          const key = terminalStorageKey(hostUuid);
+          const stored = readStoredSession(hostUuid);
           const idx = stored.findIndex((e: any) => e.entryId === latest.entryId);
           if (idx >= 0) {
             stored[idx] = { ...stored[idx], status: latest.status, finishedAt: latest.finishedAt, executionId: latest.executionId, authorization: latest.authorization };

@@ -26,6 +26,7 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { HostDetailPanel } from './HostDetailPanel';
 import { HostActionChips, getActiveUser as sharedGetActiveUser } from './hostActionDefinitions';
 import { DEMO_HOST_HOSTNAME } from '@/services/demoLiveEnvironment';
+import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
 
 // ── Helpers (identical to the originals on VulnAssetsPage) ─────────────────
 const OsIcon = ({ os, size = 14, className = '' }: { os?: string; size?: number; className?: string }) => {
@@ -141,6 +142,16 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const pollingActiveRef = useRef<Map<string, boolean>>(new Map());
 
+  // Register hostname+arch identity for every host so storage keys match
+  // those used by the full /monitors/:id/terminal page.
+  useEffect(() => {
+    for (const h of hosts) {
+      if (h.uuid && h.hostname) {
+        registerHostIdentity(h.uuid, { hostname: h.hostname, arch: h.arch });
+      }
+    }
+  }, [hosts]);
+
   // Broadcast a "demo object in view" signal whenever a demo-seeded host row
   // is currently expanded. The DemoTourDrawer listens to this and surfaces
   // the glowing "Re-open demo tour" pill so the user is not left wondering
@@ -198,7 +209,7 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
     setActionHistoryMap(prev => {
       if ((prev.get(hostUuid) || []).length > 0) return prev;
       try {
-        const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
+        const stored = readStoredSession(hostUuid);
         if (Array.isArray(stored) && stored.length > 0) {
           const next = new Map(prev);
           next.set(hostUuid, stored.map((e: any, i: number) => ({
@@ -235,8 +246,8 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
       return next;
     });
     try {
-      const key = `terminal_session_${hostUuid}`;
-      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const key = terminalStorageKey(hostUuid);
+      const stored = readStoredSession(hostUuid);
       stored.push({
         entryId: entry.entryId, actionName: entry.actionName, status: entry.status,
         startedAt: entry.startedAt, finishedAt: entry.finishedAt,
@@ -260,8 +271,8 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
       next.set(hostUuid, updated);
       if (latest.status === 'success' || latest.status === 'error') {
         try {
-          const key = `terminal_session_${hostUuid}`;
-          const stored = JSON.parse(localStorage.getItem(key) || '[]');
+          const key = terminalStorageKey(hostUuid);
+          const stored = readStoredSession(hostUuid);
           // Persist actionOutput + error so the full-screen terminal page shows
           // the same output rows as the inline popover (both share this key).
           const persistFields = {

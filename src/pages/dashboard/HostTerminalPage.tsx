@@ -20,6 +20,7 @@ import { DEFAULT_AGENT_PERMISSIONS } from '@/hooks/useAgentPermissions';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { fetchHostSupplements } from '@/lib/mergeMonitorHosts';
 import { HostActionChips, getActiveUser } from '@/components/monitors/hostActionDefinitions';
+import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
 
 interface HostOption {
   uuid: string;
@@ -27,6 +28,7 @@ interface HostOption {
   groupName: string;
   mode: string;
   os: string;
+  arch?: string;
   checkin?: number;
 }
 
@@ -62,7 +64,7 @@ type StoredEntry = {
   error?: string;
 };
 
-const HISTORY_KEY = (hostUuid: string) => `terminal_session_${hostUuid}`;
+const HISTORY_KEY = (hostUuid: string) => terminalStorageKey(hostUuid);
 const MAX_STORED = 50;
 const MAX_OUTPUT_CHARS = 20000;
 
@@ -72,9 +74,9 @@ const truncate = (s: string | undefined, n: number): string | undefined => {
 };
 
 const getStoredSession = (hostUuid: string): StoredEntry[] => {
-  try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY(hostUuid)) || '[]');
-  } catch { return []; }
+  // Read merged from canonical (hostname+arch) key + legacy uuid key so the
+  // mini-popover and full terminal page share the same history.
+  return readStoredSession(hostUuid) as StoredEntry[];
 };
 
 const saveSession = (hostUuid: string, entries: ActionDebugEntry[]) => {
@@ -198,6 +200,15 @@ const HostTerminalPage = () => {
       : '';
   const displayHostname = hasResolvedHostname ? hostname : 'Unresolved monitor';
 
+  // Map this URL alias (uuid OR hostname) to the canonical hostname+arch key
+  // so reads/writes match the mini-popover regardless of how the host was
+  // addressed in the route.
+  useEffect(() => {
+    if (hostUuid && hostname && hostname !== 'Unknown Host' && hostname !== hostUuid) {
+      registerHostIdentity(hostUuid, { hostname, arch: resolvedHost?.arch });
+    }
+  }, [hostUuid, hostname, resolvedHost?.arch]);
+
   // Demo terminal: when the URL points at a `demo-…` host (e.g.
   // /monitors/demo-host-fin-laptop-04/terminal) we lock the free-form
   // command input so the demo cannot be derailed by typing real shell
@@ -263,9 +274,15 @@ const HostTerminalPage = () => {
             groupName,
             mode: modeStr,
             os: h.os || '',
+            arch: h.arch || '',
             checkin: h.checkin,
           }));
         });
+        // Register hostname+arch identity for each host so the storage key is
+        // stable across uuid-vs-hostname URLs and matches the mini popover.
+        for (const h of hosts) {
+          registerHostIdentity(h.uuid, { hostname: h.hostname, arch: h.arch });
+        }
         setAllHosts(hosts);
         // Fallback: if there's exactly one sensor group, use its Name when no
         // host match is found (mirrors MonitorDetailPage behavior).

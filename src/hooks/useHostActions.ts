@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { terminalStorageKey, readStoredSession } from '@/utils/terminalStorageKey';
 
 /**
  * Shared hook for executing response actions on a sensor host.
@@ -79,7 +80,7 @@ export const useHostActions = ({ onActionComplete }: UseHostActionsOptions = {})
     setActionHistoryMap(prev => {
       if ((prev.get(hostUuid) || []).length > 0) return prev;
       try {
-        const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
+        const stored = readStoredSession(hostUuid);
         if (Array.isArray(stored) && stored.length > 0) {
           const next = new Map(prev);
           next.set(hostUuid, stored.map((e: any, i: number) => ({
@@ -105,7 +106,7 @@ export const useHostActions = ({ onActionComplete }: UseHostActionsOptions = {})
 
   const getCommandHistory = useCallback((hostUuid: string): string[] => {
     try {
-      const stored = JSON.parse(localStorage.getItem(`terminal_session_${hostUuid}`) || '[]');
+      const stored = readStoredSession(hostUuid);
       if (!Array.isArray(stored) || stored.length === 0) {
         const old = JSON.parse(localStorage.getItem(`cmd_history_${hostUuid}`) || '[]');
         if (Array.isArray(old) && old.length > 0) return old;
@@ -132,8 +133,8 @@ export const useHostActions = ({ onActionComplete }: UseHostActionsOptions = {})
       return next;
     });
     try {
-      const key = `terminal_session_${hostUuid}`;
-      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const key = terminalStorageKey(hostUuid);
+      const stored = readStoredSession(hostUuid);
       const persistEntry = {
         entryId: entry.entryId,
         actionName: entry.actionName,
@@ -163,8 +164,8 @@ export const useHostActions = ({ onActionComplete }: UseHostActionsOptions = {})
 
       if (latest.status === 'success' || latest.status === 'error') {
         try {
-          const key = `terminal_session_${hostUuid}`;
-          const stored = JSON.parse(localStorage.getItem(key) || '[]');
+          const key = terminalStorageKey(hostUuid);
+          const stored = readStoredSession(hostUuid);
           const sIdx = stored.findIndex((e: any) => e.entryId === latest.entryId);
           if (sIdx >= 0) {
             stored[sIdx] = { ...stored[sIdx], status: latest.status, finishedAt: latest.finishedAt, executionId: latest.executionId, authorization: latest.authorization };
