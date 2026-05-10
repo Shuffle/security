@@ -1012,10 +1012,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       decision_id: decisionId,
     });
     try {
-      const resp = await fetch(getApiUrl(`/api/v1/workflows/${wfId}/run?${params.toString()}`), {
+      const resp = await fetch(resolveUrl(`/api/v1/workflows/${wfId}/run?${params.toString()}`), {
         method: 'GET',
         credentials: 'include',
-        headers: { ...getAuthHeader() },
+        headers: { ...resolveHeaders() },
       });
       const json = await resp.json();
       if (json.success === false) {
