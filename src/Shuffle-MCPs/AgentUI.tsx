@@ -516,6 +516,54 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return m;
   }, [chosenApps]);
 
+  // Sync controlled `apps` prop into local state.
+  useEffect(() => {
+    if (apps) setChosenApps(apps);
+  }, [apps]);
+
+  // Auto-load the caller's authenticated apps when nothing was passed in
+  // and an API token is configured. Skipped when controlled or `defaultApps`
+  // were provided explicitly.
+  useEffect(() => {
+    if (!autoLoadApps) return;
+    if (apps || defaultApps) return;
+    if (!API_CONFIG.apiKey) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await fetch(getApiUrl('/api/v1/apps/authentication'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (!resp.ok) return;
+        const result = await resp.json();
+        const list = Array.isArray(result) ? result : (result?.data || []);
+        const seen = new Set<string>();
+        const loaded: AgentUIApp[] = [];
+        for (const entry of list) {
+          const app = entry?.app || entry;
+          const name: string | undefined = app?.name;
+          if (!name) continue;
+          const valid = entry?.active || entry?.validation?.valid || entry?.hasValidAuth;
+          if (valid === false) continue;
+          const key = name.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          loaded.push({
+            name,
+            id: app?.id || entry?.id,
+            icon: app?.large_image || app?.image_url || app?.image || entry?.bestImage || '',
+          });
+        }
+        if (!cancelled && loaded.length) setChosenApps(loaded);
+      } catch {
+        // silent — caller can still pick apps manually
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [autoLoadApps, apps, defaultApps]);
+
+
   // ── Fetch execution result (poll-friendly) ──
   const getExecution = useCallback(async (executionId: string, authorization: string) => {
     if (!executionId || !authorization) return;
