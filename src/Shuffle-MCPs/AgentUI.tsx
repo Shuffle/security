@@ -1321,20 +1321,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {/* Continuation form (after a finish decision) */}
             {finishDecisionId && (
               <Box sx={{ mt: 3 }}>
-                {finishAnswer && (
-                  <Box sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    border: '1px solid hsl(var(--border))',
-                    bgcolor: 'hsl(var(--background))',
-                    mb: 2,
-                    fontSize: '0.9rem',
-                    color: 'hsl(var(--foreground))',
-                    '& p': { margin: 0 },
-                  }}>
-                    <Markdown remarkPlugins={[remarkGfm]}>{finishAnswer}</Markdown>
-                  </Box>
-                )}
+                {/* Final answer is rendered above (Simple view / timeline finish row) — don't duplicate it here. */}
                 <Box
                   component="form"
                   onSubmit={(e) => {
