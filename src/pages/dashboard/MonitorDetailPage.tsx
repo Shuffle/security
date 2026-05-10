@@ -66,6 +66,8 @@ const MonitorDetailPage = () => {
       const data = await res.json();
       const envs = Array.isArray(data) ? data.filter((e: any) => !e.archived && e.sensor_group === true) : [];
 
+      let envHost: SensorHost | null = null;
+      let envGroupName = '';
       // URL segment is canonically `${hostname}:${arch}`. We resolve by
       // hostname (with arch as tiebreaker), but still accept a raw uuid for
       // backwards compat (uuid changes whenever the agent re-installs).
