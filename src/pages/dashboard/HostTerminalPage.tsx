@@ -957,7 +957,7 @@ const HostTerminalPage = () => {
             disabled={!canRunActions || isDemoHost}
             onKeyDown={e => {
               // Full ordered history, every entry (no dedup), most recent first
-              const history = [...actionHistory].reverse().map(e => e.actionName).filter(Boolean);
+              const history = [...actionHistory].reverse().map(e => e.commandText || e.actionName).filter(Boolean);
               if (e.key === 'Enter' && customAction.trim()) {
                 setHistoryIndex(-1);
                 executeHostAction(customAction.trim(), customAction.trim());
