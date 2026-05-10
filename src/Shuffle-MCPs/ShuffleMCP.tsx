@@ -63,7 +63,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<AlgoliaSearchApp[]>([]);
   const [privateApps, setPrivateApps] = useState<AlgoliaSearchApp[]>([]);
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'public' | 'private'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'public' | 'private' | 'authenticated'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -386,6 +386,10 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
       merged = results;
     } else if (sourceFilter === 'private') {
       merged = filteredPrivateApps;
+    } else if (sourceFilter === 'authenticated') {
+      const privateNames = new Set(filteredPrivateApps.map(a => norm(a.name)));
+      const publicOnly = results.filter(a => !privateNames.has(norm(a.name)));
+      merged = [...filteredPrivateApps, ...publicOnly].filter(isAppConfigured);
     } else {
       // 'all' — private apps first (your own tools win), then public, deduped by name
       const privateNames = new Set(filteredPrivateApps.map(a => norm(a.name)));
@@ -396,7 +400,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
     if (!pinnedApps || pinnedApps.length === 0) return merged;
     const pinnedNames = new Set(pinnedApps.map(a => norm(a.name)));
     return [...pinnedApps, ...merged.filter(a => !pinnedNames.has(norm(a.name)))];
-  }, [pinnedApps, results, filteredPrivateApps, sourceFilter]);
+  }, [pinnedApps, results, filteredPrivateApps, sourceFilter, isAppConfigured]);
 
   // Get grid columns style
   const getGridColumnsStyle = useMemo(() => {
@@ -550,6 +554,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               { key: 'all', label: 'All', count: results.length + filteredPrivateApps.length, title: 'All available apps — both the public catalog and your private apps.' },
               { key: 'public', label: 'Public', count: results.length, title: 'Public apps from the Shuffle catalog (powered by Algolia).' },
               { key: 'private', label: 'Private', count: filteredPrivateApps.length, title: 'Private apps are apps you have activated in your organization, or your own custom apps — not just from the public Algolia catalog.' },
+              { key: 'authenticated', label: 'Authenticated', count: [...filteredPrivateApps, ...results].filter((a, i, arr) => arr.findIndex(x => x.name?.toLowerCase() === a.name?.toLowerCase()) === i).filter(isAppConfigured).length, title: 'Apps you have authenticated and that are ready to use.' },
             ] as const).map(opt => (
               <Tooltip
                 key={opt.key}
