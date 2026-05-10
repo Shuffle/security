@@ -37,6 +37,7 @@ import OrganizationsPage from '@/pages/dashboard/OrganizationsPage';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
 import OrgPreferencesPage from '@/pages/dashboard/OrgPreferencesPage';
 import AgentActivityPage from '@/pages/dashboard/AgentActivityPage';
+import AgentsPage from '@/pages/dashboard/AgentsPage';
 import InfrastructurePage from '@/pages/dashboard/InfrastructurePage';
 import DataFlowDetailPage from '@/pages/dashboard/DataFlowDetailPage';
 import UsecasesPageRaw from '@/pages/dashboard/UsecasesPage';
