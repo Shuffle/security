@@ -81,7 +81,7 @@ const getStoredSession = (hostUuid: string): StoredEntry[] => {
 
 const saveSession = (hostUuid: string, entries: ActionDebugEntry[]) => {
   const toStore: StoredEntry[] = entries.map(e => ({
-    entryId: `${e.startedAt}-${e.entryId}`,
+    entryId: String(e.entryId),
     actionName: e.actionName,
     status: (e.status === 'success' || e.status === 'error') ? e.status : undefined,
     startedAt: e.startedAt,
