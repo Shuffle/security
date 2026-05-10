@@ -154,6 +154,7 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
   const [pendingDisableRce, setPendingDisableRce] = useState<null | { actionId: string; actionName: string; hostname: string; groupName: string; hostUuid: string; isPredefined: boolean }>(null);
   const [customAction, setCustomAction] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [openPopovers, setOpenPopovers] = useState<Set<string>>(new Set());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const pollingActiveRef = useRef<Map<string, boolean>>(new Map());
 
@@ -589,7 +590,18 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
                 {/* Actions popover */}
                 <div className="flex items-center justify-end gap-2.5" onClick={e => e.stopPropagation()}>
                   {responseActionsOn ? (
-                    <Popover onOpenChange={(open) => { if (open) hydrateHost(host.uuid); }}>
+                    <Popover
+                      open={openPopovers.has(host.uuid)}
+                      onOpenChange={(open) => {
+                        setOpenPopovers(prev => {
+                          const next = new Set(prev);
+                          if (open) next.add(host.uuid);
+                          else next.delete(host.uuid);
+                          return next;
+                        });
+                        if (open) hydrateHost(host.uuid);
+                      }}
+                    >
                       <PopoverTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary">
                           {actionExecuting.has(host.uuid) ? (
