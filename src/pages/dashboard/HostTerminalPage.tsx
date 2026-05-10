@@ -185,12 +185,25 @@ const HostTerminalPage = () => {
   // Match by UUID first, then by hostname (with tolerant domain-suffix stripping)
   // so deep links like /monitors/FRIKKYS-MACBOOK-PRO/terminal still resolve.
   const stripDomain = (h: string) => h.toLowerCase().trim().replace(/\.(local|lan|home|internal|corp)$/i, '');
-  const idLower = (hostUuid || '').toLowerCase().trim();
-  const idStripped = stripDomain(hostUuid || '');
+  // URL segment is canonically `${hostname}:${arch}` (see hostUrlSegment).
+  // We parse it once and resolve by hostname (with arch as tiebreaker), but
+  // also keep the raw value working as a uuid for backwards compat.
+  const parsedSegment = parseHostUrlSegment(hostUuid);
+  const idLower = parsedSegment.hostname.toLowerCase().trim();
+  const idStripped = stripDomain(parsedSegment.hostname);
+  const archHint = parsedSegment.arch;
+  const matchHost = (h: HostOption) => {
+    const hn = (h.hostname || '').toLowerCase().trim();
+    return hn === idLower || stripDomain(h.hostname || '') === idStripped;
+  };
   const resolvedHost =
-    allHosts.find(h => h.uuid === hostUuid) ||
-    allHosts.find(h => (h.hostname || '').toLowerCase().trim() === idLower) ||
-    allHosts.find(h => stripDomain(h.hostname || '') === idStripped);
+    // Backwards compat: raw uuid in the URL (rare — agent uuid changes on reinstall)
+    allHosts.find(h => h.uuid === parsedSegment.raw) ||
+    // Hostname match with arch tiebreaker when supplied
+    (archHint
+      ? allHosts.find(h => matchHost(h) && String(h.arch || '').toLowerCase() === archHint)
+      : undefined) ||
+    allHosts.find(matchHost);
   const hostname =
     hostState?.hostname ||
     resolvedHost?.hostname ||
