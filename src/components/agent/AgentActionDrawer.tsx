@@ -884,7 +884,7 @@ const AgentActionDrawer = ({ open, onClose, run, initialApp }: AgentActionDrawer
             <Box>
               <Box sx={{
                 display: 'flex',
-                alignItems: 'flex-end',
+                flexDirection: 'column',
                 gap: 1,
                 borderRadius: 2.5,
                 border: '1.5px solid hsl(var(--border))',
@@ -898,59 +898,155 @@ const AgentActionDrawer = ({ open, onClose, run, initialApp }: AgentActionDrawer
                   boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
                 },
               }}>
-                <InputBase
-                  inputRef={inputRef}
-                  autoFocus
-                  multiline
-                  maxRows={6}
-                  value={agentInput}
-                  onChange={(e) => setAgentInput(e.target.value)}
-                  placeholder={selectedApps.length === 1 ? `Ask ${selectedApps[0].name.replace(/_/g, ' ')} something…` : selectedApps.length > 1 ? `Ask ${selectedApps.length} apps something…` : 'What should the agent do?'}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      handleRunAgent();
-                    }
-                  }}
-                  fullWidth
-                  sx={{
-                    fontSize: '0.9rem',
-                    color: 'hsl(var(--foreground))',
-                    '& textarea::placeholder': {
-                      color: 'hsl(var(--muted-foreground))',
-                      opacity: 0.6,
-                    },
-                  }}
-                />
-                <Box
-                  component="button"
-                  onClick={handleRunAgent}
-                  disabled={!agentInput.trim() || isRunning}
-                  sx={{
-                    all: 'unset',
-                    display: 'flex',
+                {/* Image preview chip */}
+                {attachedImage && (
+                  <Box sx={{
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 34,
-                    height: 34,
-                    borderRadius: '10px',
-                    flexShrink: 0,
-                    cursor: agentInput.trim() && !isRunning ? 'pointer' : 'default',
-                    bgcolor: agentInput.trim() && !isRunning ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                    color: agentInput.trim() && !isRunning ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                    transition: 'all 0.15s ease',
-                    '&:hover': agentInput.trim() && !isRunning ? { filter: 'brightness(1.1)' } : {},
-                  }}
-                >
-                  {isRunning ? (
-                    <CircularProgress size={16} sx={{ color: 'inherit' }} />
-                  ) : (
-                    <PlayArrowRoundedIcon sx={{ fontSize: 20 }} />
-                  )}
+                    gap: 1,
+                    alignSelf: 'flex-start',
+                    p: 0.5,
+                    pr: 1,
+                    borderRadius: 1.5,
+                    border: '1px solid hsl(var(--border))',
+                    bgcolor: 'hsl(var(--background))',
+                    maxWidth: '100%',
+                  }}>
+                    <Box
+                      component="img"
+                      src={attachedImage.dataUrl}
+                      alt={attachedImage.name}
+                      sx={{ width: 32, height: 32, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }}
+                    />
+                    <Typography sx={{
+                      fontSize: '0.72rem',
+                      color: 'hsl(var(--foreground))',
+                      maxWidth: 200,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {attachedImage.name}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => setAttachedImage(null)}
+                      sx={{ p: 0.25, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' } }}
+                      aria-label="Remove attached image"
+                    >
+                      <XIcon size={12} />
+                    </IconButton>
+                  </Box>
+                )}
+
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
+                  <InputBase
+                    inputRef={inputRef}
+                    autoFocus
+                    multiline
+                    maxRows={6}
+                    value={agentInput}
+                    onChange={(e) => setAgentInput(e.target.value)}
+                    placeholder={selectedApps.length === 1 ? `Ask ${selectedApps[0].name.replace(/_/g, ' ')} something…` : selectedApps.length > 1 ? `Ask ${selectedApps.length} apps something…` : 'What should the agent do?'}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        handleRunAgent();
+                      }
+                    }}
+                    onPaste={(e) => {
+                      const items = e.clipboardData?.items;
+                      if (!items) return;
+                      for (const item of Array.from(items)) {
+                        if (item.kind === 'file' && item.type.startsWith('image/')) {
+                          const file = item.getAsFile();
+                          if (file) {
+                            e.preventDefault();
+                            handleImageSelected(file);
+                            return;
+                          }
+                        }
+                      }
+                    }}
+                    fullWidth
+                    sx={{
+                      fontSize: '0.9rem',
+                      color: 'hsl(var(--foreground))',
+                      '& textarea::placeholder': {
+                        color: 'hsl(var(--muted-foreground))',
+                        opacity: 0.6,
+                      },
+                    }}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      handleImageSelected(f);
+                      // Reset so selecting the same file again still fires onChange
+                      if (e.target) e.target.value = '';
+                    }}
+                  />
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isRunning}
+                    title={attachedImage ? 'Replace image' : 'Attach image'}
+                    sx={{
+                      all: 'unset',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 34,
+                      height: 34,
+                      borderRadius: '10px',
+                      flexShrink: 0,
+                      cursor: isRunning ? 'default' : 'pointer',
+                      color: attachedImage ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                      bgcolor: attachedImage ? 'hsla(var(--primary) / 0.1)' : 'transparent',
+                      transition: 'all 0.15s ease',
+                      '&:hover': isRunning ? {} : {
+                        color: 'hsl(var(--foreground))',
+                        bgcolor: 'hsl(var(--muted))',
+                      },
+                    }}
+                  >
+                    <Paperclip size={16} />
+                  </Box>
+                  <Box
+                    component="button"
+                    onClick={handleRunAgent}
+                    disabled={!agentInput.trim() || isRunning}
+                    sx={{
+                      all: 'unset',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 34,
+                      height: 34,
+                      borderRadius: '10px',
+                      flexShrink: 0,
+                      cursor: agentInput.trim() && !isRunning ? 'pointer' : 'default',
+                      bgcolor: agentInput.trim() && !isRunning ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                      color: agentInput.trim() && !isRunning ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                      transition: 'all 0.15s ease',
+                      '&:hover': agentInput.trim() && !isRunning ? { filter: 'brightness(1.1)' } : {},
+                    }}
+                  >
+                    {isRunning ? (
+                      <CircularProgress size={16} sx={{ color: 'inherit' }} />
+                    ) : (
+                      <PlayArrowRoundedIcon sx={{ fontSize: 20 }} />
+                    )}
+                  </Box>
                 </Box>
               </Box>
               <Typography sx={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', mt: 0.75 }}>
-                ⌘+Enter to send · JSON-RPC
+                ⌘+Enter to send · paste or attach an image · JSON-RPC
               </Typography>
             </Box>
 
