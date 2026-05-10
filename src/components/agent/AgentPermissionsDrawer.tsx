@@ -31,6 +31,8 @@ import {
   CheckCircle2,
   Settings2,
   Play,
+  Paperclip,
+  X,
 } from 'lucide-react';
 
 import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
@@ -80,6 +82,8 @@ const AgentPermissionsDrawer = ({ open, onClose, initialTab }: AgentPermissionsD
   const [selectedApps, setSelectedApps] = useState<{ name: string; icon: string; categories: string[] }[]>([]);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachedImage, setAttachedImage] = useState<{ dataUrl: string; name: string } | null>(null);
 
   // Agent tools state
   const [agentTools, setAgentTools] = useState<AgentTool[]>([]);
