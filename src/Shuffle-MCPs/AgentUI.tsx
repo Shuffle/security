@@ -830,7 +830,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
     })();
     return () => { cancelled = true; };
-  }, [autoLoadApps, apps, defaultApps]);
+  }, [autoLoadApps, apps, defaultApps, hasApiKey, resolveUrl, resolveHeaders]);
 
 
   // ── Fetch execution result (poll-friendly) ──
