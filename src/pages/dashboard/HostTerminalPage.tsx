@@ -465,6 +465,7 @@ const HostTerminalPage = () => {
       entryId: myId,
       hostUuid,
       actionName,
+      commandText: isPredefined ? `script:${actionId}` : actionId,
       hostname,
       status: 'sending',
       requestBody,
