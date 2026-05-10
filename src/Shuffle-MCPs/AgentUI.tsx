@@ -672,8 +672,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('simple');
   const [attachedImages, setAttachedImages] = useState<{ dataUrl: string; name: string }[]>([]);
   const [nowTick, setNowTick] = useState(() => Math.floor(Date.now() / 1000));
+  // Local fallback start timestamp captured the moment we first see an
+  // execution_id, so the "Agent is working… Xs" counter starts ticking
+  // immediately — even before the backend echoes `started_at` back to us.
+  const [localRunStart, setLocalRunStart] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset / capture the local run start whenever a new execution begins.
+  useEffect(() => {
+    if (execution?.execution_id) {
+      setLocalRunStart((prev) => prev ?? Math.floor(Date.now() / 1000));
+    } else {
+      setLocalRunStart(null);
+    }
+  }, [execution?.execution_id]);
 
   // Tick every second while a run is in progress so the Simple view duration
   // counts up live instead of being frozen at "1s".
@@ -1530,9 +1543,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   const rawStartedAt = agentData?.started_at || execution?.started_at || 0;
                   // Normalize: backend may return Unix milliseconds (UnixMillis) or seconds.
                   const startedAtSec = rawStartedAt > 1e12 ? Math.floor(rawStartedAt / 1000) : rawStartedAt;
+                  // Prefer the backend's started_at, but fall back to our local
+                  // capture so the counter always ticks from t=0 instead of
+                  // freezing at "1s" while we wait for the first poll response.
+                  const effectiveStart = startedAtSec || localRunStart || 0;
                   let durationSec: number | null = null;
-                  if (isRunning && startedAtSec) {
-                    durationSec = Math.max(0, nowTick - startedAtSec);
+                  if (isRunning && effectiveStart) {
+                    durationSec = Math.max(0, nowTick - effectiveStart);
                   } else if (totalDuration && totalDuration > 0) {
                     durationSec = Math.round(totalDuration);
                   }
