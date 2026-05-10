@@ -49,11 +49,9 @@ interface HostActionPopoverProps {
   getCommandHistory: (hostUuid: string) => string[];
 }
 
-const PREDEFINED_DISABLED = [
-  { id: 'isolate_host', name: 'Isolate Host' },
-  { id: 'disable_user', name: 'Disable User Accounts' },
-  { id: 'restart_now', name: 'Restart Endpoint' },
-];
+// Predefined chip set is now sourced from ./hostActionDefinitions so this
+// popover, MonitorHostTable, and HostTerminalPage all show the EXACT same
+// actions in the EXACT same order.
 
 export const HostActionPopover = ({
   host,
