@@ -67,7 +67,7 @@ const useLeftoverDemoCount = (active: boolean) => {
   });
 };
 
-export const DemoModeCard = () => {
+export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) => {
   const { active, isSeeding, isCleaning, stats, startDemo, openTour, cleanup } = useDemo();
   const { userInfo } = useAuth();
   const { data: workflows } = useWorkflows();
