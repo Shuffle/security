@@ -734,6 +734,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [showStarter, setShowStarter] = useState(true);
   const [openIndexes, setOpenIndexes] = useState<Set<number>>(new Set());
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, { index: number; value: string }>>({});
+  const [simpleSubmitAttempted, setSimpleSubmitAttempted] = useState(false);
   const [continuationText, setContinuationText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('simple');
