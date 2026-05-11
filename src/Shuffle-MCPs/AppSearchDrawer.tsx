@@ -3,7 +3,7 @@
  * Selecting an app opens the AppDetailDrawer for full configuration.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Drawer, Avatar, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { motion, AnimatePresence } from 'framer-motion';
