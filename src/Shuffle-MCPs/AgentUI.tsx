@@ -996,6 +996,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (eid && auth) {
       // Seed an EXECUTING stub so the poll effect starts immediately,
       // then kick off the first fetch. The poller continues until terminal.
+      activeExecutionIdRef.current = eid;
       setExecution({ execution_id: eid, authorization: auth, status: 'EXECUTING' });
       // Reflect the new execution in the URL so the run is shareable/refreshable.
       if (readUrlParams && typeof window !== 'undefined') {
