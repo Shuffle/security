@@ -75,8 +75,22 @@ const MAX_OUTPUT_CHARS = 20000;
 const IMAGE_PREFIXES = ['iVBORw0KGgo', '/9j/', 'R0lGOD', 'UklGR'];
 const looksLikeBase64Image = (s: string | undefined): boolean => {
   if (!s) return false;
-  const head = s.trim().slice(0, 16);
-  return IMAGE_PREFIXES.some(p => head.startsWith(p));
+  const trimmed = s.trim();
+  const head = trimmed.slice(0, 16);
+  if (IMAGE_PREFIXES.some(p => head.startsWith(p))) return true;
+  // JSON-wrapped image payloads (e.g. screenshot action returns
+  // `[{"image":"iVBORw0KGgo...", "cursor":...}]`). Truncating these
+  // mid-base64 would destroy the screenshot, so treat them as images.
+  if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && /"(?:image|image_base64|imageBase64|screenshot|screenshot_base64|png|jpeg|jpg|b64|base64|data)"\s*:\s*"(?:data:image\/[a-z+.-]+;base64,)?(?:iVBORw0KGgo|\/9j\/|R0lGOD|UklGR)/i.test(trimmed)) {
+    return true;
+  }
+  return false;
+};
+
+const TRUNCATION_MARKER = '…[truncated ';
+const isOutputTruncated = (s: string | undefined): boolean => {
+  if (!s) return false;
+  return s.includes(TRUNCATION_MARKER);
 };
 
 const truncate = (s: string | undefined, n: number): string | undefined => {
@@ -275,6 +289,9 @@ const HostTerminalPage = () => {
   const [loadingEntries, setLoadingEntries] = useState<Set<number>>(new Set());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const pollingActiveRef = useRef<Map<string, boolean>>(new Map());
+  // Tracks entries we've already auto-sideloaded full results for, so we don't
+  // re-fetch on every re-render when the user keeps a truncated entry expanded.
+  const autoSideloadedRef = useRef<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [pendingDisableRce, setPendingDisableRce] = useState<null | { actionId: string; actionName: string; isPredefined: boolean }>(null);
@@ -823,6 +840,7 @@ const HostTerminalPage = () => {
           const isExpanded = expandedEntries.has(entry.entryId);
           const isLoading = loadingEntries.has(entry.entryId);
           const canReload = !isRunning && !!entry.executionId && !!entry.authorization;
+          const isTruncated = isOutputTruncated(entry.actionOutput) || isOutputTruncated(entry.error);
           // historyIndex 0 = most recent (last entry), 1 = second-to-last, etc.
           const isHistorySelected = historyIndex >= 0 && i === (actionHistory.length - 1 - historyIndex);
 
@@ -834,7 +852,15 @@ const HostTerminalPage = () => {
                 onClick={() => {
                   if (isRunning) return;
                   if (hasOutput) {
+                    const willExpand = !isExpanded;
                     toggleExpanded(entry.entryId);
+                    // Auto-sideload the full result if what we have on disk is
+                    // truncated (e.g. a screenshot output that exceeded the
+                    // localStorage cap). One-shot per entry per session.
+                    if (willExpand && isTruncated && canReload && !autoSideloadedRef.current.has(entry.entryId)) {
+                      autoSideloadedRef.current.add(entry.entryId);
+                      fetchEntryResult(entry);
+                    }
                   } else if (canReload) {
                     fetchEntryResult(entry);
                   }
@@ -859,8 +885,8 @@ const HostTerminalPage = () => {
                 ) : (
                   <ShieldX size={14} className="text-destructive shrink-0" />
                 )}
-                {!hasOutput && canReload && !isLoading && (
-                  <RefreshCw size={12} className="text-muted-foreground shrink-0" />
+                {(!hasOutput || isTruncated) && canReload && !isLoading && (
+                  <RefreshCw size={12} className={isTruncated ? "text-primary shrink-0" : "text-muted-foreground shrink-0"} />
                 )}
                 <span className="text-xs text-muted-foreground font-mono shrink-0">
                   {new Date(entry.startedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
