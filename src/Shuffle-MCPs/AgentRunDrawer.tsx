@@ -27,6 +27,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import { Play, Server, ShieldCheck } from 'lucide-react';
 
