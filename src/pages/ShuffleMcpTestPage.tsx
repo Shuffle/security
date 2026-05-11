@@ -607,6 +607,29 @@ const [open, setOpen] = useState(false);
           <AppNamePicker value={actionsApp} onChange={setActionsApp} />
           <TryActionsDemo appName={actionsApp} />
         </DemoSection>
+
+        <Box id="agent-activity" sx={{ scrollMarginTop: 96 }}>
+          <DemoSection
+            title="8. Agent activity list"
+            description={<><code>&lt;AgentActivityList /&gt;</code> — past agent executions with search and status filters (All / Completed / Running / Failed). Click any row to open <code>&lt;AgentExecutionDrawer /&gt;</code> with the pre-loaded run.</>}
+            code={`import { useState } from 'react';
+import { AgentActivityList, AgentExecutionDrawer } from '@shuffleio/shuffle-mcps';
+import type { AgentRun } from '@shuffleio/shuffle-mcps';
+
+const [run, setRun] = useState<AgentRun | null>(null);
+
+<>
+  <AgentActivityList onRunClick={setRun} />
+  <AgentExecutionDrawer
+    open={run !== null}
+    onClose={() => setRun(null)}
+    run={run}
+  />
+</>`}
+          >
+            <AgentActivityList onRunClick={setSelectedRun} />
+          </DemoSection>
+        </Box>
       </Stack>
 
       <AppSearchDrawer
@@ -620,6 +643,12 @@ const [open, setOpen] = useState(false);
         open={detailApp !== null}
         onClose={() => setDetailApp(null)}
         appName={detailApp}
+      />
+
+      <AgentExecutionDrawer
+        open={selectedRun !== null}
+        onClose={() => setSelectedRun(null)}
+        run={selectedRun}
       />
     </Container>
     </>
