@@ -1832,7 +1832,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                               />
                             </Box>
                           ))}
-                          <Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Button
                               variant="contained"
                               size="small"
@@ -1845,6 +1845,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                             >
                               {agentRequestLoading ? <CircularProgress size={16} /> : 'Submit'}
                             </Button>
+                            {pendingAsk.run_details?.id && getFormUrl(pendingAsk.run_details.id) && (
+                              <Tooltip title="Answer in the Form UI" placement="right">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    const url = getFormUrl(pendingAsk.run_details!.id!);
+                                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                                  }}
+                                  sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
+                                >
+                                  <OpenInNewIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Box>
                         </Box>
                       ) : isRunning ? (
