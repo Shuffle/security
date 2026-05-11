@@ -14,6 +14,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import type { AlgoliaSearchApp } from './shuffle-mcp.helpers';
 
