@@ -9,6 +9,7 @@
  */
 
 import { Box, Drawer, IconButton, Tooltip, Typography } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 
 import AgentUI from './AgentUI';
