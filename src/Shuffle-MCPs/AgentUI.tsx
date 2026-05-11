@@ -571,19 +571,34 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               />
             </Box>
           ))}
-          <Button
-            variant="contained"
-            size="small"
-            sx={{ mt: 2 }}
-            disabled={!questionsAnswered || agentRequestLoading}
-            onClick={() => {
-              if (details?.run_details?.id) {
-                onSubmitQuestions(details.run_details.id, questionAnswers);
-              }
-            }}
-          >
-            {agentRequestLoading ? <CircularProgress size={16} /> : 'Submit'}
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={!questionsAnswered || agentRequestLoading}
+              onClick={() => {
+                if (details?.run_details?.id) {
+                  onSubmitQuestions(details.run_details.id, questionAnswers);
+                }
+              }}
+            >
+              {agentRequestLoading ? <CircularProgress size={16} /> : 'Submit'}
+            </Button>
+            {details?.run_details?.id && getFormUrl && getFormUrl(details.run_details.id) && (
+              <Tooltip title="Answer in the Form UI" placement="right">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    const url = getFormUrl(details.run_details!.id!);
+                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                  sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
+                >
+                  <OpenInNewIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         </Box>
       )}
 
