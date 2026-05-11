@@ -1137,6 +1137,7 @@ export const AppAuthCard = ({
             </IconButton>
           </Box>
         </CardContent>
+        )}
 
         <Collapse in={isExpanded}>
           <Box
