@@ -1906,6 +1906,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     onRerunAgent={rerunAgent}
                     onRerunDecision={rerunDecision}
                     agentRequestLoading={agentRequestLoading}
+                    getFormUrl={getFormUrl}
                   />
                 ))
               )}
