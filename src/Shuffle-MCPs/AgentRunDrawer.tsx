@@ -251,7 +251,7 @@ const AgentRunDrawer = ({
       )}
 
       {/* Body */}
-      <Box sx={{ flex: 1, overflowY: 'auto' }}>
+      <Box sx={[{ flex: 1, overflowY: 'auto' }, ...(Array.isArray(bodySx) ? bodySx : bodySx ? [bodySx] : [])]}>
         {safeActiveTab === 'run' && (
           <Box sx={{ px: 2, py: 2 }}>
             <AgentUI
