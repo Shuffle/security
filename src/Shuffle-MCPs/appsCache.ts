@@ -15,6 +15,8 @@
  * multi-region setups stay isolated.
  */
 
+import { API_CONFIG, getAuthHeader } from './api';
+
 export interface FetchAppsOptions {
   baseUrl: string;
   path?: string;
