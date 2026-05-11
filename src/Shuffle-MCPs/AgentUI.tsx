@@ -683,20 +683,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     if (execution?.execution_id) {
       setLocalRunStart((prev) => prev ?? Math.floor(Date.now() / 1000));
-    } else {
+    } else if (!agentRequestLoading) {
       setLocalRunStart(null);
     }
-  }, [execution?.execution_id]);
+  }, [execution?.execution_id, agentRequestLoading]);
 
   // Tick every second while a run is in progress so the Simple view duration
   // counts up live instead of being frozen at "1s".
   useEffect(() => {
     const status = (execution?.status || agentData?.status || '').toUpperCase();
     const TERMINAL = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
-    if (!execution?.execution_id || TERMINAL.includes(status)) return;
+    if (TERMINAL.includes(status)) return;
+    if (!execution?.execution_id && !agentRequestLoading && !localRunStart) return;
     const id = setInterval(() => setNowTick(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(id);
-  }, [execution?.execution_id, execution?.status, agentData?.status]);
+  }, [execution?.execution_id, execution?.status, agentData?.status, agentRequestLoading, localRunStart]);
 
   const readImageAsDataUrl = (file: File): Promise<{ dataUrl: string; name: string } | null> =>
     new Promise((resolve) => {
@@ -925,12 +926,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setAgentRequestLoading(true);
     setShowStarter(false);
     // Hard reset any prior run state so the new run starts from a clean slate.
+    const browserStart = Math.floor(Date.now() / 1000);
     setExecution(null);
     setAgentActionResult(null);
     setOpenIndexes(new Set());
     setQuestionAnswers({});
     setContinuationText('');
-    setLocalRunStart(null);
+    setNowTick(browserStart);
+    setLocalRunStart(browserStart);
     setAgentData({ original_input: text.trim() });
 
     const result = await runAgent({
@@ -954,6 +957,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (!result.success) {
       setError(result.error || 'Agent run failed.');
       setShowStarter(true);
+      setLocalRunStart(null);
       onRun?.({ input: text, success: false, error: result.error });
       return;
     }
