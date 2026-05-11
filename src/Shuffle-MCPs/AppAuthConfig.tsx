@@ -1106,7 +1106,8 @@ export const AppAuthCard = ({
                   />
                 </Tooltip>
               </>
-            )}
+            ))}
+            {!hideDocsLink && (
             <Tooltip title="View documentation">
               <IconButton
                 size="small"
