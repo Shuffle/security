@@ -462,6 +462,18 @@ For finer-grained overrides on `<ShuffleMCP />`, pass `customStyles` — every s
 />
 ```
 
+For the agent components (`<AgentUI />`, `<AgentRunDrawer />`, `<AgentExecutionDrawer />`, `<AgentActivityList />`), every entity in the layout is overridable via MUI `sx` props plus a `className` on the root. The slots are listed per-component in the tables above — typically `sx` (root), `paperSx` (drawer surface), `headerSx`, `tabsSx` / `toolbarSx`, `bodySx`, and `rowSx`. Each one accepts the standard `SxProps<Theme>` shape and is **merged on top of** the defaults, so you only specify what you want to change:
+
+```tsx
+<AgentRunDrawer
+  open={open}
+  onClose={() => setOpen(false)}
+  paperSx={{ background: 'hsl(var(--background))', boxShadow: 'none' }}
+  headerSx={{ py: 1.5 }}
+  tabsSx={{ '& .MuiTabs-indicator': { display: 'none' } }}
+/>
+```
+
 Full prop reference, framework setup (Next.js, Vue), styling slots, custom rendering, and publishing: [**LIBRARY.md**](./LIBRARY.md).
 
 ## Imperative handle
