@@ -507,6 +507,23 @@ const ShuffleMcpTestPage = () => {
         </DemoSection>
 
         <DemoSection
+          title="1b. Agent Run drawer"
+          description={<><code>&lt;AgentRunDrawer /&gt;</code> — right-side drawer hosting the same <code>AgentUI</code> in a compact tab. Permissions and Local LLM tabs are slot-driven, so the drawer is fully standalone (no host context required).</>}
+          code={`import { useState } from 'react';
+import { Button } from '@mui/material';
+import { AgentRunDrawer } from '@shuffleio/shuffle-mcps';
+
+const [open, setOpen] = useState(false);
+
+<>
+  <Button variant="contained" onClick={() => setOpen(true)}>Open Agent</Button>
+  <AgentRunDrawer open={open} onClose={() => setOpen(false)} />
+</>`}
+        >
+          <AgentRunDrawerDemo />
+        </DemoSection>
+
+        <DemoSection
           title="2. Inline search"
           description={<><code>&lt;ShuffleMCP /&gt;</code> — Algolia + private apps merged into one searchable list.</>}
           code={SNIPPET_INLINE_SEARCH}
