@@ -65,12 +65,15 @@ const AgentActivityPage = () => {
   } = useAgentActivity();
 
   const { enabledPermissions, totalPermissions } = useAgentPermissions();
+  const { userInfo } = useAuth();
+  const isSupport = userInfo?.support === true;
   const [permissionsOpen, setPermissionsOpen] = useState(false);
-  const [permissionsInitialTab, setPermissionsInitialTab] = useState(0);
+  const [permissionsInitialTab, setPermissionsInitialTab] = useState<AgentRunDrawerTab>('run');
   const [selectedRun, setSelectedRun] = useState<AgentRun | null>(null);
 
   const openDrawer = (tab: number) => {
-    setPermissionsInitialTab(tab);
+    const mapped: AgentRunDrawerTab = tab === 1 ? 'permissions' : tab === 2 ? 'localLLM' : 'run';
+    setPermissionsInitialTab(mapped);
     setPermissionsOpen(true);
   };
 
