@@ -117,17 +117,8 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
 
       if (dedupedIntegrations.length < 10) {
         try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 5000);
-          const appsResponse = await fetch(getApiUrl('/api/v1/apps'), {
-            credentials: 'include',
-            headers: { ...getAuthHeader() },
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-          if (appsResponse.ok) {
-            const appsData = await appsResponse.json();
-            if (Array.isArray(appsData)) {
+          const appsData = await fetchApps();
+          if (Array.isArray(appsData)) {
               const activatedApps = appsData.filter((app: any) => app.activated);
               const slotsRemaining = 10 - dedupedIntegrations.length;
               let added = 0;
