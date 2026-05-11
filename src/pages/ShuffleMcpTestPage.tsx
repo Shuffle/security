@@ -737,6 +737,13 @@ const ShuffleMcpTestPage = () => {
           title="1. Agent UI — start &amp; debug"
           description={<><code>&lt;AgentUI /&gt;</code> — modern hero "What do you want to do?" prompt with MCP/app chips, plus a live decision timeline for debugging in-flight runs. Resumes from <code>?execution_id&amp;authorization</code> URL params. <Box component="button" type="button" onClick={scrollToActivity} sx={{ all: 'unset', cursor: 'pointer', color: 'hsl(var(--primary))', '&:hover': { textDecoration: 'underline' } }}>View past executions ↓</Box></>}
           code={SNIPPET_AGENT_UI}
+          apis={[
+            { method: 'POST', path: '/api/v1/agent', description: 'Submit prompt + selected MCP/app chips' },
+            { method: 'GET', path: '/api/v1/streams/results', description: 'Live decision-by-decision timeline' },
+            { method: 'GET', path: '/api/v1/apps/authentication', description: 'Resolve user-authenticated apps for chips' },
+            { method: 'GET', path: '/api/v1/apps/:id/config', description: 'Enrich chip metadata (icon, categories)' },
+            { method: 'POST', path: '/api/v1/apps/agent/run', description: 'Rerun a previous decision' },
+          ]}
         >
           <AgentUI maxWidth={820} />
         </DemoSection>
