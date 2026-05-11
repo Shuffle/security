@@ -3,43 +3,34 @@
  * Shows real-time agent execution feed, stats, and activity overview
  */
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
 import {
   Box,
   Typography,
-  TextField,
-  InputAdornment,
   IconButton,
   Tooltip,
   Chip,
-  CircularProgress,
   Button,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { motion } from 'framer-motion';
 import { Settings, Play } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
 import { useAgentActivity } from '@/hooks/useAgentActivity';
-import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
 import AgentActivityStatsPanel from '@/components/agent/AgentActivityStats';
 
-import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
 import PermissionsPanel from '@/components/agent/PermissionsPanel';
 import LocalLLMConfig from '@/components/agent/LocalLLMConfig';
-import { AgentRunDrawer, type AgentRunDrawerTab } from '@/Shuffle-MCPs';
+import {
+  AgentRunDrawer,
+  type AgentRunDrawerTab,
+  AgentActivityList,
+  AgentExecutionDrawer,
+  type AgentRun,
+} from '@/Shuffle-MCPs';
 import { useAuth } from '@/context/AuthContext';
 import { useAgentPermissions } from '@/hooks/useAgentPermissions';
-import type { AgentRun } from '@/services/agentActivity';
 import { usePageMeta } from '@/hooks/usePageMeta';
-
-const STATUS_FILTERS = [
-  { label: 'All', value: '' },
-  { label: 'Completed', value: 'FINISHED' },
-  { label: 'Running', value: 'EXECUTING' },
-  { label: 'Failed', value: 'ABORTED' },
-];
 
 const AgentActivityPage = () => {
 
@@ -48,21 +39,7 @@ const AgentActivityPage = () => {
     description: 'Monitor AI agent runs, decisions, and automated incident response activity.',
     url: '/agent',
   });
-  const [searchParams] = useSearchParams();
-  const {
-    runs,
-    isLoading,
-    error,
-    hasMore,
-    stats,
-    statusFilter,
-    searchQuery,
-    setStatusFilter,
-    setSearchQuery,
-    loadMore,
-    refresh,
-    skippedCount,
-  } = useAgentActivity();
+  const { stats, refresh } = useAgentActivity();
 
   const { enabledPermissions, totalPermissions } = useAgentPermissions();
   const { userInfo } = useAuth();
@@ -77,13 +54,6 @@ const AgentActivityPage = () => {
     setPermissionsOpen(true);
   };
 
-  // Pre-fill search from URL query param (e.g. /agent?search=AbuseIPDB)
-  useEffect(() => {
-    const q = searchParams.get('search');
-    if (q && !searchQuery) {
-      setSearchQuery(q);
-    }
-  }, [searchParams]);
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
@@ -214,126 +184,13 @@ const AgentActivityPage = () => {
           </Box>
         </Box>
 
-            {/* Search & Filter bar */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-              <TextField
-                placeholder="Search results..."
-                size="small"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 18, color: 'hsl(var(--muted-foreground))' }} />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-                sx={{
-                  flex: 1,
-                  maxWidth: 280,
-                  minWidth: 160,
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'hsl(var(--card))',
-                    borderRadius: 1.5,
-                    fontSize: '0.85rem',
-                    height: 36,
-                    '& fieldset': { borderColor: 'hsl(var(--border))' },
-                    '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.3)' },
-                    '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
-                  },
-                  '& .MuiInputBase-input': { color: 'hsl(var(--foreground))' },
-                }}
-              />
-
-              {/* Status filter chips — always visible */}
-              {STATUS_FILTERS.map((f) => (
-                <Chip
-                  key={f.value}
-                  label={f.label}
-                  size="small"
-                  variant={statusFilter === f.value ? 'filled' : 'outlined'}
-                  onClick={() => setStatusFilter(f.value)}
-                  sx={{
-                    fontSize: '0.75rem',
-                    height: 28,
-                    borderColor: statusFilter === f.value ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                    bgcolor: statusFilter === f.value ? 'hsla(var(--primary) / 0.15)' : 'transparent',
-                    color: statusFilter === f.value ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                    '&:hover': { bgcolor: 'hsl(var(--muted))' },
-                  }}
-                />
-              ))}
-
-              {/* Skipped pseudo-filter — only render if there are any skipped runs */}
-              {skippedCount > 0 && (
-                <Chip
-                  label={`${skippedCount} Skipped`}
-                  size="small"
-                  variant={statusFilter === 'SKIPPED' ? 'filled' : 'outlined'}
-                  onClick={() => setStatusFilter(statusFilter === 'SKIPPED' ? '' : 'SKIPPED')}
-                  sx={{
-                    fontSize: '0.75rem',
-                    height: 28,
-                    borderStyle: 'dashed',
-                    borderColor: statusFilter === 'SKIPPED' ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                    bgcolor: statusFilter === 'SKIPPED' ? 'hsla(var(--primary) / 0.15)' : 'transparent',
-                    color: statusFilter === 'SKIPPED' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                    '&:hover': { bgcolor: 'hsl(var(--muted))' },
-                  }}
-                />
-              )}
-
-              {/* Inline loading indicator — visible when switching filters with existing results */}
-              {isLoading && runs.length > 0 && (
-                <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))', ml: 0.5 }} />
-              )}
-            </Box>
         </Box>
 
         {/* Content layout */}
         <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
-          {/* Left: Feed */}
+          {/* Left: Feed (sourced from Shuffle-MCPs lib) */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* Loading */}
-            {isLoading && runs.length === 0 ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                <CircularProgress size={28} sx={{ color: 'hsl(var(--primary))' }} />
-              </Box>
-            ) : error ? (
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography sx={{ color: 'hsl(var(--severity-critical))', fontSize: '0.9rem', mb: 1 }}>
-                  {error}
-                </Typography>
-                <Button size="small" onClick={refresh} sx={{ color: 'hsl(var(--primary))', textTransform: 'none' }}>
-                  Try again
-                </Button>
-              </Box>
-            ) : (
-              <>
-                <AgentActivityFeed runs={runs} onRunClick={(run) => setSelectedRun(run)} />
-                
-                {/* Load more */}
-                {hasMore && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    <Button
-                      size="small"
-                      onClick={loadMore}
-                      disabled={isLoading}
-                      sx={{
-                        color: 'hsl(var(--primary))',
-                        textTransform: 'none',
-                        fontSize: '0.8rem',
-                      }}
-                    >
-                      {isLoading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : null}
-                      Load more
-                    </Button>
-                  </Box>
-                )}
-              </>
-            )}
+            <AgentActivityList onRunClick={(run) => setSelectedRun(run)} />
           </Box>
 
           {/* Right: Stats */}
@@ -354,8 +211,8 @@ const AgentActivityPage = () => {
         localLLMSlot={<LocalLLMConfig />}
       />
 
-      {/* Action/view drawer for selected run */}
-      <AgentActionDrawer
+      {/* Execution view drawer (sourced from Shuffle-MCPs lib) */}
+      <AgentExecutionDrawer
         open={!!selectedRun}
         onClose={() => setSelectedRun(null)}
         run={selectedRun}

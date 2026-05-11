@@ -137,8 +137,7 @@ import { toast } from '@/lib/toast';
 import { isAIAssignee, deduplicateTasks, htmlToPlainText, decodeHtmlEntities, decodeIfBase64, deepMergeIncidents } from '@/lib/utils';
 import { useIncidentAgentRuns } from '@/hooks/useIncidentAgentRuns';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
-import AgentActivityFeed from '@/components/agent/AgentActivityFeed';
-import AgentActionDrawer from '@/components/agent/AgentActionDrawer';
+import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
 import { getRunTitle, getRunIconColor, formatDuration as formatAgentRunDuration, getTimeAgo as getAgentTimeAgo, STATUS_CONFIG as AGENT_STATUS_CONFIG } from '@/components/agent/AgentRunHeader';
 import { getFailureInfo as getAgentFailureInfo, hasOutputWarning as hasAgentOutputWarning } from '@/components/agent/AgentRunResultViewer';
 import { AlertTriangle as AlertTriangleIcon, Loader2 as Loader2Icon } from 'lucide-react';
@@ -9174,7 +9173,7 @@ const IncidentDetailPage = () => {
       </AlertDialog>
 
       {/* Agent execution drawer — opened when clicking an agent row in the timeline */}
-      <AgentActionDrawer
+      <AgentExecutionDrawer
         open={!!selectedAgentRun}
         onClose={() => setSelectedAgentRun(null)}
         run={selectedAgentRun}

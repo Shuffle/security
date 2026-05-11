@@ -179,6 +179,24 @@ export interface AgentUIProps {
   executionId?: string;
   /** Authorization token paired with `executionId`. */
   authorization?: string;
+  /**
+   * Pre-loaded execution payload. When provided, AgentUI skips the starter
+   * and renders Simple/Detailed views immediately — no `/streams/results`
+   * fetch, no `authorization` token required. Useful for embedding inside
+   * a list/drawer that already has the execution data in hand. If the run
+   * is still EXECUTING and an `authorization` is also present, polling
+   * continues normally.
+   */
+  initialExecution?: {
+    execution_id?: string;
+    authorization?: string;
+    status?: string;
+    started_at?: number | string;
+    completed_at?: number | string;
+    results?: any[];
+    workflow?: { id?: string; name?: string };
+    [k: string]: any;
+  };
   /** Called whenever a run finishes (success or failure). */
   onRun?: (info: { input: string; success: boolean; executionId?: string; error?: string }) => void;
   /**
@@ -726,6 +744,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   readUrlParams = true,
   executionId,
   authorization,
+  initialExecution,
   onRun,
   apiKey,
   apiBaseUrl,
@@ -1034,6 +1053,37 @@ const AgentUI: React.FC<AgentUIProps> = ({
       getExecution(eid, auth);
     }
   }, [readUrlParams, executionId, authorization, getExecution]);
+
+  // Attach to a pre-loaded execution (e.g. embedded inside a list/drawer
+  // that already has the run data). Skips the starter and seeds Simple/
+  // Detailed views directly — no `/streams/results` fetch, no
+  // `authorization` token required.
+  useEffect(() => {
+    if (!initialExecution || !initialExecution.execution_id) return;
+    setShowStarter(false);
+    activeExecutionIdRef.current = initialExecution.execution_id;
+    setExecution(initialExecution as ExecutionData);
+    let actionResult: any = null;
+    if (Array.isArray(initialExecution.results)) {
+      actionResult =
+        initialExecution.results.find((r: any) => r?.action?.app_name === 'AI Agent') ||
+        initialExecution.results[0];
+    } else {
+      actionResult = initialExecution;
+    }
+    setAgentActionResult(actionResult);
+    const v = validateJson(actionResult?.result);
+    if (v.valid) {
+      setAgentData({
+        ...v.result,
+        started_at: initialExecution.started_at,
+        completed_at: initialExecution.completed_at,
+        status: initialExecution.status,
+      });
+    }
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialExecution?.execution_id]);
 
   // Poll while running. Continue indefinitely until we see a terminal status
   // (FINISHED / FAILURE / ABORTED). We never give up on our own — long
