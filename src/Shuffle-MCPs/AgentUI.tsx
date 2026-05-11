@@ -892,11 +892,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (!a?.name) return;
       const slug = a.name.toLowerCase().replace(/[\s-]+/g, '_');
       if (!m[slug] || (!m[slug].icon && a.icon)) m[slug] = a;
+      if (a.id) {
+        if (!m[a.id] || (!m[a.id].icon && a.icon)) m[a.id] = a;
+      }
     };
     for (const a of chosenApps) add(a);
     for (const a of executionApps) add(a);
+    for (const [k, v] of Object.entries(resolvedToolApps)) {
+      if (!m[k] || (!m[k].icon && v.icon)) m[k] = v;
+      add(v);
+    }
     return m;
-  }, [chosenApps, executionApps]);
+  }, [chosenApps, executionApps, resolvedToolApps]);
 
   // Sync controlled `apps` prop into local state.
   useEffect(() => {
