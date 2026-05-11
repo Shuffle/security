@@ -974,6 +974,7 @@ export const AppAuthCard = ({
           maxWidth: '100%',
         }}
       >
+        {!hideHeader && (
         <CardContent
           onClick={onToggle}
           sx={{
