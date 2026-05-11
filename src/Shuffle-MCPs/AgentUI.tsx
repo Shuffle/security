@@ -1874,13 +1874,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Typography>
               </Box>
               <AvatarGroup max={6} sx={{ '& .MuiAvatar-root': { width: 28, height: 28, borderColor: 'hsl(var(--border))' } }}>
-                {chosenApps.map((app, i) => (
-                  <Tooltip key={i} title={app.name.replace(/_/g, ' ')}>
+                {(executionApps.length > 0 ? executionApps : chosenApps).map((app, i) => (
+                  <Tooltip key={i} title={(app.name || '').replace(/_/g, ' ')}>
                     <Avatar
                       src={app.icon || undefined}
                       alt={app.name}
                       variant="rounded"
-                      onClick={() => navigate(`/apps/${encodeURIComponent(app.name.toLowerCase().replace(/\s+/g, '_'))}`)}
+                      onClick={() => navigate(`/apps/${encodeURIComponent((app.name || '').toLowerCase().replace(/\s+/g, '_'))}`)}
                       sx={{
                         bgcolor: 'hsl(var(--muted))',
                         cursor: 'pointer',
