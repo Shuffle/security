@@ -10,7 +10,7 @@ import { fetchHostSupplements } from '@/lib/mergeMonitorHosts';
 import { getActiveUser, inferAgentPrivilege, type AgentPrivilege } from '@/components/monitors/hostActionDefinitions';
 import { registerHostIdentity, terminalStorageKey, readStoredSession } from '@/utils/terminalStorageKey';
 import { hostUrlSegment, parseHostUrlSegment } from '@/utils/hostUrlSegment';
-import { useHostActions, type ActionDebugEntry } from '@/hooks/useHostActions';
+import { useHostActions } from '@/hooks/useHostActions';
 import { HostTerminalView } from '@/components/monitors/HostTerminalView';
 import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirmDialog';
 
