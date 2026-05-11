@@ -30,6 +30,8 @@ import {
   useAppLookup,
 } from '@/Shuffle-MCPs';
 import type { AgentRun } from '@/Shuffle-MCPs';
+import PermissionsPanel from '@/components/agent/PermissionsPanel';
+import LocalLLMConfig from '@/components/agent/LocalLLMConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
