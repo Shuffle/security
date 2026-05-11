@@ -774,6 +774,11 @@ const [open, setOpen] = useState(false);
           title="2. Inline search"
           description={<><code>&lt;ShuffleMCP /&gt;</code> — Algolia + private apps merged into one searchable list.</>}
           code={SNIPPET_INLINE_SEARCH}
+          apis={[
+            { method: 'ALGOLIA', path: 'appsearch index', description: 'Public 3k+ app catalog (Algolia search)' },
+            { method: 'GET', path: '/api/v1/apps', description: 'User-private apps merged into results (when apiKey is set)' },
+            { method: 'GET', path: '/api/v1/apps/authentication', description: 'Status dots: validated / configured / inactive' },
+          ]}
         >
           <ShuffleMCP
             inline
