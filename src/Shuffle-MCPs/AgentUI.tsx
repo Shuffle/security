@@ -1756,22 +1756,25 @@ const AgentUI: React.FC<AgentUIProps> = ({
         {(['start', 'simple', 'detailed'] as TabKey[]).map((t) => {
           const active = activeTab === t;
           const label = t === 'start' ? 'Start' : t === 'simple' ? 'Simple' : 'Detailed';
+          const disabled = t === 'start' && disableStartTab;
           return (
             <Box
               key={t}
               component="button"
               type="button"
-              onClick={() => goToTab(t)}
+              onClick={() => { if (!disabled) goToTab(t); }}
+              disabled={disabled}
               sx={{
-                all: 'unset', cursor: 'pointer',
+                all: 'unset', cursor: disabled ? 'not-allowed' : 'pointer',
                 px: 1.75, py: 0.5,
                 borderRadius: 999,
                 fontSize: '0.8rem',
                 fontWeight: 600,
                 color: active ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
                 bgcolor: active ? 'hsl(var(--primary))' : 'transparent',
+                opacity: disabled ? 0.4 : 1,
                 transition: 'background 0.12s ease, color 0.12s ease',
-                '&:hover': active ? {} : { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
+                '&:hover': (active || disabled) ? {} : { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
               }}
             >
               {label}
