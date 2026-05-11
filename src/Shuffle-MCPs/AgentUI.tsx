@@ -775,6 +775,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Apps the caller has authenticated — used to resolve icons by name and as
   // suggestions in the picker. NOT auto-selected as `chosenApps`.
   const [availableApps, setAvailableApps] = useState<AgentUIApp[]>([]);
+  // Apps actually allowed for the current execution, derived from the agent's
+  // `allowed_actions` field (format: "app:<id>:<name>"). Falls back to
+  // `chosenApps` when the field is missing (legacy runs).
+  const [executionApps, setExecutionApps] = useState<AgentUIApp[]>([]);
   const [appSearchOpen, setAppSearchOpen] = useState(false);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
   const [execution, setExecution] = useState<ExecutionData | null>(null);
