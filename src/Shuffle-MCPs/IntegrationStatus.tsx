@@ -138,7 +138,6 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
                   added++;
                 }
               }
-            }
           }
         } catch (_) {
           // Non-critical, ignore
