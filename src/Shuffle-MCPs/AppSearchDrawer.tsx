@@ -123,6 +123,10 @@ interface AppSearchDrawerProps {
   connectionPathApps?: ConnectionPathApp[];
   /** Apps to pin at the top of the ShuffleMCP search results (deduped by name). */
   pinnedApps?: Array<{ name: string; image_url: string; categories?: string[]; objectID?: string }>;
+  /** Highlight (pulsing ring) the matching app card after `highlightDelayMs` */
+  highlightAppName?: string;
+  /** Delay before the highlight kicks in (default 5000ms) */
+  highlightDelayMs?: number;
 }
 
 export default function AppSearchDrawer({
@@ -141,9 +145,21 @@ export default function AppSearchDrawer({
   priorityCategory,
   connectionPathApps,
   pinnedApps,
+  highlightAppName,
+  highlightDelayMs = 5000,
 }: AppSearchDrawerProps) {
   const [detailAppName, setDetailAppName] = useState<string | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
+  const [highlightActive, setHighlightActive] = useState(false);
+
+  // Activate highlight only after the delay, so users get a chance to find
+  // the app on their own before we draw attention to it.
+  useEffect(() => {
+    setHighlightActive(false);
+    if (!open || !highlightAppName) return;
+    const t = setTimeout(() => setHighlightActive(true), highlightDelayMs);
+    return () => clearTimeout(t);
+  }, [open, highlightAppName, highlightDelayMs]);
 
   const handleClose = () => {
     setDetailAppName(null);
