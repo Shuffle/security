@@ -1054,6 +1054,37 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
   }, [readUrlParams, executionId, authorization, getExecution]);
 
+  // Attach to a pre-loaded execution (e.g. embedded inside a list/drawer
+  // that already has the run data). Skips the starter and seeds Simple/
+  // Detailed views directly — no `/streams/results` fetch, no
+  // `authorization` token required.
+  useEffect(() => {
+    if (!initialExecution || !initialExecution.execution_id) return;
+    setShowStarter(false);
+    activeExecutionIdRef.current = initialExecution.execution_id;
+    setExecution(initialExecution as ExecutionData);
+    let actionResult: any = null;
+    if (Array.isArray(initialExecution.results)) {
+      actionResult =
+        initialExecution.results.find((r: any) => r?.action?.app_name === 'AI Agent') ||
+        initialExecution.results[0];
+    } else {
+      actionResult = initialExecution;
+    }
+    setAgentActionResult(actionResult);
+    const v = validateJson(actionResult?.result);
+    if (v.valid) {
+      setAgentData({
+        ...v.result,
+        started_at: initialExecution.started_at,
+        completed_at: initialExecution.completed_at,
+        status: initialExecution.status,
+      });
+    }
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialExecution?.execution_id]);
+
   // Poll while running. Continue indefinitely until we see a terminal status
   // (FINISHED / FAILURE / ABORTED). We never give up on our own — long
   // executions just keep streaming results back.
