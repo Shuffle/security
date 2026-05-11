@@ -687,6 +687,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [localRunStart, setLocalRunStart] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Tracks the execution_id we currently want to display. Used to discard
+  // stale poll responses from a previous run after the user has started a
+  // new one (otherwise an in-flight fetch can repaint the old execution).
+  const activeExecutionIdRef = useRef<string | null>(null);
 
   // Reset / capture the local run start whenever a new execution begins.
   useEffect(() => {
