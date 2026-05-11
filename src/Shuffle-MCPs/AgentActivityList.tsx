@@ -261,6 +261,14 @@ export interface AgentActivityListProps {
   emptyTitle?: string;
   /** Empty-state subtitle. */
   emptySubtitle?: string;
+  /** Optional className forwarded to the root container. */
+  className?: string;
+  /** Style overrides merged into the root container sx. */
+  sx?: SxProps<Theme>;
+  /** Style overrides for the filter/search toolbar. */
+  toolbarSx?: SxProps<Theme>;
+  /** Style overrides for each individual run row. */
+  rowSx?: SxProps<Theme>;
 }
 
 const AgentActivityList = ({
@@ -273,6 +281,10 @@ const AgentActivityList = ({
   limit = 50,
   emptyTitle = 'No agent activity found',
   emptySubtitle = 'The agent has not performed any actions yet',
+  className,
+  sx,
+  toolbarSx,
+  rowSx,
 }: AgentActivityListProps) => {
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [cursor, setCursor] = useState('');
