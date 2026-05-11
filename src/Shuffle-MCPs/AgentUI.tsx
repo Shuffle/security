@@ -721,6 +721,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
     showStarter: true,
   });
 
+  // Mirror state into stateRef on every render so async callbacks can read the
+  // current values without taking them as dependencies.
+  stateRef.current.execution = execution;
+  stateRef.current.agentData = agentData;
+  stateRef.current.agentActionResult = agentActionResult;
+  stateRef.current.openIndexes = openIndexes;
+  stateRef.current.questionAnswers = questionAnswers;
+  stateRef.current.continuationText = continuationText;
+  stateRef.current.localRunStart = localRunStart;
+  stateRef.current.showStarter = showStarter;
+
   // Reset / capture the local run start whenever a new execution begins.
   useEffect(() => {
     if (execution?.execution_id) {
