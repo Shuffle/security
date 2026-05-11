@@ -381,7 +381,12 @@ const AgentRunDrawerDemo = () => {
       <Button variant="contained" onClick={() => setOpen(true)}>
         Open Agent drawer
       </Button>
-      <AgentRunDrawer open={open} onClose={() => setOpen(false)} />
+      <AgentRunDrawer
+        open={open}
+        onClose={() => setOpen(false)}
+        permissionsSlot={<PermissionsPanel compact />}
+        localLLMSlot={<LocalLLMConfig />}
+      />
     </Box>
   );
 };
