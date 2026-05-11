@@ -202,6 +202,8 @@ export interface AgentUIProps {
   };
   /** Called whenever a run finishes (success or failure). */
   onRun?: (info: { input: string; success: boolean; executionId?: string; error?: string }) => void;
+  /** Called whenever the active top-level view changes (start / simple / detailed). */
+  onViewChange?: (view: 'start' | 'simple' | 'detailed') => void;
   /**
    * Optional Shuffle API key. When provided, all `/api/v1/*` calls made by
    * this component (agent run, polling, app autoload, icon fallback) use it
