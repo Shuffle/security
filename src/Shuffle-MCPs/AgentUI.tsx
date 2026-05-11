@@ -744,6 +744,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   readUrlParams = true,
   executionId,
   authorization,
+  initialExecution,
   onRun,
   apiKey,
   apiBaseUrl,
