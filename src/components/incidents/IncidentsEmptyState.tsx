@@ -10,6 +10,7 @@ import { ValidatedIngestionApp } from '@/Shuffle-MCPs/ingestionDetection';
 import { IngestionSourceButton } from './IngestionSourceButton';
 import { WebhookIngestionButton, WebhookIngestionInfo } from './WebhookIngestionButton';
 import { useEntityText } from '@/hooks/useEntityLabel';
+import { DemoModeCard } from '@/components/demo/DemoModeCard';
 
 interface IncidentsEmptyStateProps {
   ingestionApps?: ValidatedIngestionApp[];
