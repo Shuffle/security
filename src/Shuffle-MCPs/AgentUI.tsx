@@ -306,12 +306,13 @@ interface TimelineRowProps {
   onRerunDecision: (decision: any) => void;
   agentRequestLoading: boolean;
   getFormUrl?: (decisionId: string) => string | null;
+  runFinished?: boolean;
 }
 
 const TimelineRow: React.FC<TimelineRowProps> = ({
   item, index, open, onToggle, appsById, totalDuration, originalStartTime,
   maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
-  onRerunAgent, onRerunDecision, agentRequestLoading, getFormUrl,
+  onRerunAgent, onRerunDecision, agentRequestLoading, getFormUrl, runFinished,
 }) => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const validate = validateJson(item.details);
