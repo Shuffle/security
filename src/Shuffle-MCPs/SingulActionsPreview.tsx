@@ -321,7 +321,7 @@ const SingulActionsPreview = ({
 
   const buildSnippet = useCallback(
     (action: SingulAction | null, l: SnippetLang) =>
-      l === 'python' ? buildSingulPython(appName, action) : buildSingulCurl(appName, action, curlOpts),
+      l === 'python' ? buildSingulPython(appName, action, curlOpts) : buildSingulCurl(appName, action, curlOpts),
     [appName, curlOpts],
   );
 
