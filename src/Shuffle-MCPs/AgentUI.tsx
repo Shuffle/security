@@ -1188,6 +1188,25 @@ const AgentUI: React.FC<AgentUIProps> = ({
     submitInput(input);
   }, [agentData, actionInput, submitInput]);
 
+  // Build a popout URL to answer the agent's question in the standalone Form UI.
+  // Mirrors the legacy AgentUI behavior so users can hand off to /forms/...
+  const getFormUrl = useCallback((decisionId: string): string | null => {
+    const wfId = (execution as any)?.workflow?.id;
+    const auth = execution?.authorization;
+    const execId = execution?.execution_id;
+    const sourceNode = agentActionResult?.action?.id;
+    if (!wfId || !auth || !execId || !sourceNode || !decisionId) return null;
+    const backend = apiBaseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const params = new URLSearchParams({
+      authorization: auth,
+      reference_execution: execId,
+      source_node: sourceNode,
+      decision_id: decisionId,
+      ...(backend ? { backend_url: backend } : {}),
+    });
+    return `/forms/${wfId}?${params.toString()}`;
+  }, [execution, agentActionResult, apiBaseUrl]);
+
   // ── Rerun a single decision (clears decisions after it on the backend) ──
   const rerunDecision = useCallback(async (decision: any) => {
     if (!execution?.execution_id) {
