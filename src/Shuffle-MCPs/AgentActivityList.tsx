@@ -140,9 +140,10 @@ const getRunSubtitle = (run: AgentRun): string => {
 interface RunRowProps {
   run: AgentRun;
   onClick: () => void;
+  sx?: SxProps<Theme>;
 }
 
-const AgentRunRow = ({ run, onClick }: RunRowProps) => {
+const AgentRunRow = ({ run, onClick, sx }: RunRowProps) => {
   const statusKey = (run.status || '').toUpperCase();
   const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
   const iconColor = getRunIconColor(run);
@@ -151,22 +152,25 @@ const AgentRunRow = ({ run, onClick }: RunRowProps) => {
   return (
     <Box
       onClick={onClick}
-      sx={{
-        borderRadius: 2,
-        border: '1px solid hsl(var(--border))',
-        bgcolor: 'hsl(var(--card))',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        px: 2.5,
-        py: 2,
-        cursor: 'pointer',
-        transition: 'background 0.15s ease, border-color 0.15s ease',
-        '&:hover': {
-          bgcolor: 'hsla(var(--muted) / 0.5)',
-          borderColor: 'hsl(var(--muted-foreground) / 0.3)',
+      sx={[
+        {
+          borderRadius: 2,
+          border: '1px solid hsl(var(--border))',
+          bgcolor: 'hsl(var(--card))',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          px: 2.5,
+          py: 2,
+          cursor: 'pointer',
+          transition: 'background 0.15s ease, border-color 0.15s ease',
+          '&:hover': {
+            bgcolor: 'hsla(var(--muted) / 0.5)',
+            borderColor: 'hsl(var(--muted-foreground) / 0.3)',
+          },
         },
-      }}
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
     >
       <Box
         sx={{
