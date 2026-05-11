@@ -520,7 +520,7 @@ const ShuffleMcpTestPage = () => {
       <Stack spacing={4}>
         <DemoSection
           title="1. Agent UI — start &amp; debug"
-          description={<><code>&lt;AgentUI /&gt;</code> — modern hero "What do you want to do?" prompt with MCP/app chips, plus a live decision timeline for debugging in-flight runs. Resumes from <code>?execution_id&amp;authorization</code> URL params.</>}
+          description={<><code>&lt;AgentUI /&gt;</code> — modern hero "What do you want to do?" prompt with MCP/app chips, plus a live decision timeline for debugging in-flight runs. Resumes from <code>?execution_id&amp;authorization</code> URL params. <Box component="button" type="button" onClick={scrollToActivity} sx={{ all: 'unset', cursor: 'pointer', color: 'hsl(var(--primary))', '&:hover': { textDecoration: 'underline' } }}>View past executions ↓</Box></>}
           code={SNIPPET_AGENT_UI}
         >
           <AgentUI maxWidth={820} />
@@ -528,7 +528,7 @@ const ShuffleMcpTestPage = () => {
 
         <DemoSection
           title="1b. Agent Run drawer"
-          description={<><code>&lt;AgentRunDrawer /&gt;</code> — right-side drawer hosting the same <code>AgentUI</code> in a compact tab. Permissions and Local LLM tabs are slot-driven, so the drawer is fully standalone (no host context required).</>}
+          description={<><code>&lt;AgentRunDrawer /&gt;</code> — right-side drawer hosting the same <code>AgentUI</code> in a compact tab. Permissions and Local LLM tabs are slot-driven, so the drawer is fully standalone (no host context required). <Box component="button" type="button" onClick={scrollToActivity} sx={{ all: 'unset', cursor: 'pointer', color: 'hsl(var(--primary))', '&:hover': { textDecoration: 'underline' } }}>View past executions ↓</Box></>}
           code={`import { useState } from 'react';
 import { Button } from '@mui/material';
 import { AgentRunDrawer } from '@shuffleio/shuffle-mcps';
