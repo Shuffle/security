@@ -298,7 +298,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   }, [performSearch, onSearchChange]);
 
   // Handle app selection
-  const selectApp = useCallback((app: AlgoliaSearchApp, event?: React.MouseEvent) => {
+  const selectApp = useCallback((app: AlgoliaSearchApp) => {
     const handoffToken = apiKey || authToken || '';
     const authUrl = `${apiBaseUrl}${appAuthPath}?app_id=${app.objectID}&auth=${handoffToken}&source=shuffle${orgId ? `&org_id=${encodeURIComponent(orgId)}` : ''}`;
 
@@ -313,7 +313,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
     } else {
       // If consumer wired up onAppSelected, defer entirely to them.
       if (onAppSelected) {
-        onAppSelected({ app, authUrl, ctrlKey: event?.ctrlKey, metaKey: event?.metaKey });
+        onAppSelected({ app, authUrl });
         if (!preventDefault) {
           window.open(authUrl, '_blank');
         }
@@ -416,7 +416,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
       return (
         <div
           key={app.objectID}
-          onClick={(e) => selectApp(app, e)}
+          onClick={() => selectApp(app)}
           onMouseEnter={() => setSelectedIndex(index)}
         >
           {renderItem(app, selected, () => selectApp(app), authState)}
@@ -435,7 +435,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
           ...customStyles.dropdownItem,
           ...(selected ? customStyles.selectedItem : {}),
         }}
-        onClick={(e) => selectApp(app, e)}
+        onClick={() => selectApp(app)}
       >
         <div className="singul-app-info" style={customStyles.appInfo}>
           {app.image_url && (

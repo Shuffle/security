@@ -33,8 +33,6 @@ export interface AlgoliaSearchApp {
 export interface AppSelectedEvent {
   app: AlgoliaSearchApp;
   authUrl: string;
-  ctrlKey?: boolean;
-  metaKey?: boolean;
 }
 
 export interface CustomStyles {
