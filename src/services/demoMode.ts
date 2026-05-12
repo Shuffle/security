@@ -77,6 +77,13 @@ export const getDemoStats = () => {
 const broadcastRefresh = (category: string) => {
   try {
     window.dispatchEvent(new CustomEvent('demo:refresh', { detail: { category } }));
+    if (category === DATASTORE_CATEGORIES.INCIDENTS) {
+      [600, 1800, 3500].forEach(delay => {
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('demo:refresh', { detail: { category } }));
+        }, delay);
+      });
+    }
   } catch { /* SSR / older browsers */ }
 };
 
@@ -388,6 +395,19 @@ const extractHost = (url: string): string | undefined => {
   try { return new URL(url).hostname || undefined; } catch { return undefined; }
 };
 
+const pickFallbackIocs = (): DemoIocOverrides => {
+  const out: DemoIocOverrides = {};
+  const ipKey = pickRandom(FALLBACK_IOC_IPS);
+  if (ipKey) out.attackerIp = ipKey;
+  const urlKey = pickRandom(FALLBACK_IOC_URLS);
+  if (urlKey) {
+    out.lureUrl = urlKey;
+    const host = extractHost(urlKey);
+    if (host) out.lureDomain = host;
+  }
+  return out;
+};
+
 /**
  * Pick a random IP from `ioc_ip` and a random URL from `ioc_url`.
  * If a category is empty (parser hasn't caught up yet), fall back to the
@@ -439,14 +459,18 @@ export const pickRandomIocs = async (): Promise<DemoIocOverrides> => {
 const resolveIocOverrides = async (): Promise<DemoIocOverrides> => {
   const cached = readIocOverrides();
   if (cached?.attackerIp && cached?.lureUrl && cached?.lureDomain) return cached;
-  // Wait for the live-environment bootstrap to populate `ioc_domain` so
-  // we pick a real indicator instead of the static fallback. Best-effort:
-  // if the poll times out, pickRandomIocs falls back to FALLBACK_IOC_*.
-  await awaitPendingIndicators();
-  const fresh = await pickRandomIocs();
+  // Never block incident creation on the async threat-feed parser. Step 4
+  // must always materialize immediately; live IOCs are best-effort only.
+  const fresh = pickFallbackIocs();
   // Merge with whatever was cached (in case only one half resolved earlier).
   const merged: DemoIocOverrides = { ...cached, ...fresh };
   if (merged.attackerIp || merged.lureDomain) writeIocOverrides(merged);
+  void awaitPendingIndicators().then(() => pickRandomIocs().then(live => {
+    const existing = readIocOverrides();
+    if (!existing?.attackerIp || !existing?.lureUrl || !existing?.lureDomain) {
+      writeIocOverrides({ ...merged, ...live });
+    }
+  }).catch(() => undefined));
   return merged;
 };
 
@@ -647,7 +671,15 @@ export const seedForStep = async (stepId: string): Promise<number> => {
         return false;
     }
   })();
-  if (seeded.includes(stepId) && !looksEmpty) return 0;
+  if (seeded.includes(stepId) && !looksEmpty) {
+    if (stepId !== 'incidents-list') return 0;
+    const present = await countDemoFocusIncidents();
+    if (present > 0) return 0;
+    writeSeededSteps(seeded.filter(s => s !== stepId));
+    const nextIdx = readIndex();
+    delete nextIdx[DATASTORE_CATEGORIES.INCIDENTS];
+    writeIndex(nextIdx);
+  }
 
   const seeder = STEP_SEEDERS[stepId];
   if (!seeder) return 0;
@@ -688,6 +720,14 @@ export const countDemoIncidents = async (): Promise<number> => {
         return parsed?.metadata?.extensions?.custom_attributes?.demo === true;
       } catch { return false; }
     }).length;
+  } catch { return 0; }
+};
+
+export const countDemoFocusIncidents = async (): Promise<number> => {
+  try {
+    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.INCIDENTS);
+    if (!res.success || !res.data) return 0;
+    return res.data.filter(item => isDemoFocusIncident(item.key, item.value)).length;
   } catch { return 0; }
 };
 
