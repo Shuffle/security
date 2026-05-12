@@ -552,7 +552,7 @@ export const STEP_SEEDERS: Record<string, () => Promise<number>> = {
     // The shared helper wipes both indexed keys AND any demo-tagged
     // incident on the server whose title matches — covering different
     // browsers / cleared storage / pipeline-renamed keys.
-    await wipeExistingDemoIncidents(isDemoFocusIncident);
+    await wipeExistingDemoIncidents(isDemoFocusIncident, { skipServerScan: true });
 
     // Try to pick real IOCs. If categories are empty (parser hasn't caught
     // up yet) the builder falls back to its static defaults.
