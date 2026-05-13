@@ -759,6 +759,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         const pretty = req.appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
         const slug = req.appName.toLowerCase().replace(/[\s-]+/g, '_');
         const appId = req.appId || appsById[req.appName]?.id || appsById[slug]?.id || null;
+        const icon = appsById[req.appName]?.icon || appsById[slug]?.icon || (appId ? appsById[appId]?.icon : '') || '';
         return (
           <Box sx={{ px: 4, pb: 2 }}>
             <Box sx={{
@@ -770,7 +771,20 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               border: '1px solid hsla(var(--severity-medium) / 0.3)',
               bgcolor: 'hsla(var(--severity-medium) / 0.08)',
             }}>
-              <LockIcon sx={{ color: 'hsl(var(--severity-medium))', fontSize: 20 }} />
+              <Avatar
+                src={icon || undefined}
+                alt={pretty}
+                variant="rounded"
+                sx={{
+                  width: 32, height: 32, borderRadius: 1,
+                  bgcolor: 'hsl(var(--muted))',
+                  color: 'hsl(var(--foreground))',
+                  fontSize: '0.85rem', fontWeight: 700,
+                  '& img': { objectFit: 'contain', p: 0.25 },
+                }}
+              >
+                {pretty.charAt(0)}
+              </Avatar>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                   {pretty} requires authentication
@@ -782,11 +796,32 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               <Button
                 variant="contained"
                 size="small"
-                startIcon={<LockIcon />}
+                startIcon={
+                  <Avatar
+                    src={icon || undefined}
+                    alt=""
+                    variant="rounded"
+                    sx={{
+                      width: 18, height: 18, borderRadius: 0.5,
+                      bgcolor: 'hsl(var(--background) / 0.4)',
+                      color: 'hsl(var(--background))',
+                      fontSize: '0.7rem', fontWeight: 700,
+                      '& img': { objectFit: 'contain' },
+                    }}
+                  >
+                    {pretty.charAt(0)}
+                  </Avatar>
+                }
                 disabled={!onAuthenticateApp}
                 onClick={(e) => {
                   e.stopPropagation();
                   onAuthenticateApp?.(req.appName, appId);
+                }}
+                sx={{
+                  height: 36, textTransform: 'none', fontWeight: 600,
+                  bgcolor: 'hsl(var(--foreground))',
+                  color: 'hsl(var(--background))',
+                  '&:hover': { bgcolor: 'hsl(var(--foreground) / 0.88)' },
                 }}
               >
                 Authenticate {pretty}
@@ -1050,7 +1085,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const pendingAuthApps = useMemo(() => {
     const decisions: any[] = (agentData?.decisions as any[]) || [];
     const seen = new Set<string>();
-    const out: { appName: string; appId: string | null }[] = [];
+    const out: { appName: string; appId: string | null; icon: string }[] = [];
     for (const d of decisions) {
       const req = extractAuthRequest(d);
       if (!req) continue;
@@ -1059,7 +1094,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (isAppAuthenticated(req.appName)) continue;
       seen.add(slug);
       const appId = req.appId || appsById[req.appName]?.id || appsById[slug]?.id || null;
-      out.push({ appName: req.appName, appId });
+      const icon = appsById[req.appName]?.icon || appsById[slug]?.icon || (appId ? appsById[appId]?.icon : '') || '';
+      out.push({ appName: req.appName, appId, icon });
     }
     return out;
   }, [agentData, appsById, isAppAuthenticated]);
@@ -2548,7 +2584,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                           {durationSec != null ? ` · ${durationSec}s` : ''}
                         </Typography>
                       </Box>
-                      {pendingAuthApps.map(({ appName, appId }) => {
+                      {pendingAuthApps.map(({ appName, appId, icon }) => {
                         const pretty = appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
                         return (
                           <Box
@@ -2563,7 +2599,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                               bgcolor: 'hsla(var(--severity-medium) / 0.08)',
                             }}
                           >
-                            <LockIcon sx={{ color: 'hsl(var(--severity-medium))', fontSize: 20 }} />
+                            <Avatar
+                              src={icon || undefined}
+                              alt={pretty}
+                              variant="rounded"
+                              sx={{
+                                width: 32, height: 32, borderRadius: 1,
+                                bgcolor: 'hsl(var(--muted))',
+                                color: 'hsl(var(--foreground))',
+                                fontSize: '0.85rem', fontWeight: 700,
+                                '& img': { objectFit: 'contain', p: 0.25 },
+                              }}
+                            >
+                              {pretty.charAt(0)}
+                            </Avatar>
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                                 {pretty} requires authentication
@@ -2575,8 +2624,29 @@ const AgentUI: React.FC<AgentUIProps> = ({
                             <Button
                               variant="contained"
                               size="small"
-                              startIcon={<LockIcon />}
+                              startIcon={
+                                <Avatar
+                                  src={icon || undefined}
+                                  alt=""
+                                  variant="rounded"
+                                  sx={{
+                                    width: 18, height: 18, borderRadius: 0.5,
+                                    bgcolor: 'hsl(var(--background) / 0.4)',
+                                    color: 'hsl(var(--background))',
+                                    fontSize: '0.7rem', fontWeight: 700,
+                                    '& img': { objectFit: 'contain' },
+                                  }}
+                                >
+                                  {pretty.charAt(0)}
+                                </Avatar>
+                              }
                               onClick={() => setAuthDrawerApp({ name: appName, id: appId })}
+                              sx={{
+                                height: 36, textTransform: 'none', fontWeight: 600,
+                                bgcolor: 'hsl(var(--foreground))',
+                                color: 'hsl(var(--background))',
+                                '&:hover': { bgcolor: 'hsl(var(--foreground) / 0.88)' },
+                              }}
                             >
                               Authenticate {pretty}
                             </Button>
