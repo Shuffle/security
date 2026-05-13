@@ -395,6 +395,55 @@ const extractHost = (url: string): string | undefined => {
   try { return new URL(url).hostname || undefined; } catch { return undefined; }
 };
 
+/** A datastore key is "printable" only if every char is a normal ASCII
+ *  printable. The threat-feeds parser sometimes stores indicator hashes /
+ *  binary IDs as keys — those decode into garbled UTF-8 (replacement
+ *  characters) and must NEVER be surfaced as a URL/IP in the demo. */
+const isPrintableAscii = (s: string): boolean =>
+  typeof s === 'string' && s.length > 0 && /^[\x20-\x7E]+$/.test(s);
+
+/** True when `s` looks like a real http(s) URL we can safely render. */
+const looksLikeUrl = (s: string | undefined): s is string => {
+  if (!s || !isPrintableAscii(s)) return false;
+  if (!/^https?:\/\//i.test(s)) return false;
+  try { return Boolean(new URL(s).hostname); } catch { return false; }
+};
+
+/** True when `s` looks like a plain IPv4/IPv6 (printable, no garbage). */
+const looksLikeIp = (s: string | undefined): s is string => {
+  if (!s || !isPrintableAscii(s)) return false;
+  // IPv4
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(s)) return true;
+  // Loose IPv6 — at least one colon, hex+colon only.
+  if (/^[0-9a-fA-F:]+$/.test(s) && s.includes(':')) return true;
+  return false;
+};
+
+/** Best-effort: pull a URL out of a STIX 2.1 indicator pattern stored in
+ *  the datastore item's value, e.g. `[url:value = 'http://evil/...']`. */
+const extractUrlFromStixValue = (value: unknown): string | undefined => {
+  try {
+    const obj = typeof value === 'string' ? JSON.parse(value) : value;
+    const pattern = (obj as { pattern?: unknown })?.pattern;
+    if (typeof pattern !== 'string') return undefined;
+    const m = pattern.match(/url:value\s*=\s*'([^']+)'/i)
+      || pattern.match(/url:value\s*=\s*"([^"]+)"/i);
+    return m && looksLikeUrl(m[1]) ? m[1] : undefined;
+  } catch { return undefined; }
+};
+
+/** Same idea for IPv4/IPv6 addresses inside a STIX pattern. */
+const extractIpFromStixValue = (value: unknown): string | undefined => {
+  try {
+    const obj = typeof value === 'string' ? JSON.parse(value) : value;
+    const pattern = (obj as { pattern?: unknown })?.pattern;
+    if (typeof pattern !== 'string') return undefined;
+    const m = pattern.match(/ipv[46]-addr:value\s*=\s*'([^']+)'/i)
+      || pattern.match(/ipv[46]-addr:value\s*=\s*"([^"]+)"/i);
+    return m && looksLikeIp(m[1]) ? m[1] : undefined;
+  } catch { return undefined; }
+};
+
 const pickFallbackIocs = (): DemoIocOverrides => {
   const out: DemoIocOverrides = {};
   const ipKey = pickRandom(FALLBACK_IOC_IPS);
@@ -418,10 +467,15 @@ export const pickRandomIocs = async (): Promise<DemoIocOverrides> => {
   const out: DemoIocOverrides = {};
   try {
     const ipRes = await getDatastoreByCategory(IOC_IP_CATEGORY);
-    const liveKeys = ipRes.success && ipRes.data
-      ? ipRes.data.map(i => i.key).filter(Boolean)
+    // Some threat-feed parsers store binary indicator IDs as keys, which
+    // decode into garbled UTF-8. Only accept items whose KEY is a real IP,
+    // or whose STIX value contains an extractable IPv4/IPv6.
+    const liveIps = ipRes.success && ipRes.data
+      ? ipRes.data
+          .map(i => looksLikeIp(i.key) ? i.key : extractIpFromStixValue((i as { value?: unknown }).value))
+          .filter((v): v is string => looksLikeIp(v))
       : [];
-    const ipKey = pickRandom(liveKeys.length > 0 ? liveKeys : FALLBACK_IOC_IPS);
+    const ipKey = pickRandom(liveIps.length > 0 ? liveIps : FALLBACK_IOC_IPS);
     if (ipKey) out.attackerIp = ipKey;
   } catch (err) {
     console.warn('[demo] pick ioc_ip failed', err);
@@ -430,10 +484,16 @@ export const pickRandomIocs = async (): Promise<DemoIocOverrides> => {
   }
   try {
     const urlRes = await getDatastoreByCategory(IOC_URL_CATEGORY);
-    const liveKeys = urlRes.success && urlRes.data
-      ? urlRes.data.map(i => i.key).filter(Boolean)
+    // Same defence as IPs: the key must be a printable URL, or we fall back
+    // to extracting the URL from the STIX 2.1 indicator pattern stored in
+    // the value. Anything else is rejected so we never render `4�}�7n�…`
+    // as a phishing lure.
+    const liveUrls = urlRes.success && urlRes.data
+      ? urlRes.data
+          .map(i => looksLikeUrl(i.key) ? i.key : extractUrlFromStixValue((i as { value?: unknown }).value))
+          .filter((v): v is string => looksLikeUrl(v))
       : [];
-    const urlKey = pickRandom(liveKeys.length > 0 ? liveKeys : FALLBACK_IOC_URLS);
+    const urlKey = pickRandom(liveUrls.length > 0 ? liveUrls : FALLBACK_IOC_URLS);
     if (urlKey) {
       out.lureUrl = urlKey;
       const host = extractHost(urlKey);
@@ -457,8 +517,19 @@ export const pickRandomIocs = async (): Promise<DemoIocOverrides> => {
  * a fresh pick if nothing is cached.
  */
 const resolveIocOverrides = async (): Promise<DemoIocOverrides> => {
-  const cached = readIocOverrides();
-  if (cached?.attackerIp && cached?.lureUrl && cached?.lureDomain) return cached;
+  const rawCached = readIocOverrides();
+  // Defensive: an earlier run may have cached a binary/garbled value before
+  // we added the printable-key validators. Drop any cached field that no
+  // longer passes validation so we never re-render a corrupt URL.
+  const cached: DemoIocOverrides | null = rawCached ? {
+    attackerIp: looksLikeIp(rawCached.attackerIp) ? rawCached.attackerIp : undefined,
+    lureUrl: looksLikeUrl(rawCached.lureUrl) ? rawCached.lureUrl : undefined,
+    lureDomain: rawCached.lureDomain && isPrintableAscii(rawCached.lureDomain) ? rawCached.lureDomain : undefined,
+  } : null;
+  if (cached?.attackerIp && cached?.lureUrl && cached?.lureDomain) {
+    if (JSON.stringify(cached) !== JSON.stringify(rawCached)) writeIocOverrides(cached);
+    return cached;
+  }
   // Never block incident creation on the async threat-feed parser. Step 4
   // must always materialize immediately; live IOCs are best-effort only.
   const fresh = pickFallbackIocs();
