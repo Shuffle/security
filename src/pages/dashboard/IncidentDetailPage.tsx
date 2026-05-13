@@ -140,6 +140,7 @@ import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
 import { getRunTitle, getRunIconColor, formatDuration as formatAgentRunDuration, getTimeAgo as getAgentTimeAgo, STATUS_CONFIG as AGENT_STATUS_CONFIG } from '@/components/agent/AgentRunHeader';
 import { getFailureInfo as getAgentFailureInfo, hasOutputWarning as hasAgentOutputWarning, diagnoseOutputWarning as diagnoseAgentOutputWarning } from '@/components/agent/AgentRunResultViewer';
+import AgentRunStatusBadge from '@/components/agent/AgentRunStatusBadge';
 import { AlertTriangle as AlertTriangleIcon, Loader2 as Loader2Icon } from 'lucide-react';
 import { Zap as ZapIcon } from 'lucide-react';
 import type { AgentRun } from '@/services/agentActivity';
