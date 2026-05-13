@@ -55,6 +55,16 @@ const AgentActivityPage = () => {
     setPermissionsOpen(true);
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('openPermissions') === '1') {
+      setPermissionsInitialTab('permissions');
+      setPermissionsOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('openPermissions');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
