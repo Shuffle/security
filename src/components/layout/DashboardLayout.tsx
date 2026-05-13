@@ -8,6 +8,7 @@ import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
 import AgentHandoffWatcher from '@/components/agent/AgentHandoffWatcher';
 import GlobalAgentDrawer from '@/components/agent/GlobalAgentDrawer';
 import { useAuth } from '@/context/AuthContext';
+import { loadAgentToolsFromDatastore } from '@/lib/agentTools';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -63,6 +64,14 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
       localStorage.setItem(SIDEBAR_STATE_KEY, String(sidebarCollapsed));
     }
   }, [sidebarCollapsed, isOnboarding]);
+
+  // Hydrate the agent-tools cache from the datastore once we have an active
+  // org. This keeps "Assigned tools" in sync across browsers/devices instead
+  // of being a per-browser localStorage list.
+  useEffect(() => {
+    if (!userInfo?.active_org?.id) return;
+    loadAgentToolsFromDatastore();
+  }, [userInfo?.active_org?.id]);
 
   return (
     <AppDetailProvider>
