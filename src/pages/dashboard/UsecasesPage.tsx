@@ -3211,41 +3211,73 @@ function UsecaseCard({
               Notify me
             </Button>
           ) : canToggle ? (
-            <Button
-              size="small"
-              variant={effectiveEnabled ? 'outlined' : 'contained'}
-              disableElevation
-              onClick={handleToggle}
-              disabled={toggling}
-              startIcon={
-                toggling ? (
-                  <CircularProgress size={12} sx={{ color: 'inherit' }} />
-                ) : effectiveEnabled ? (
-                  <PowerOff size={12} />
-                ) : (
-                  <Power size={12} />
-                )
+            <Tooltip
+              title={
+                !effectiveEnabled && !hasValidatedSource
+                  ? `No active ${sourceCat} integration is connected. Enabling will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
+                  : ''
               }
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                minHeight: 0,
-                py: 0.4,
-                px: 1,
-                bgcolor: effectiveEnabled ? 'transparent' : 'hsl(var(--primary))',
-                color: effectiveEnabled ? 'hsl(var(--foreground))' : 'hsl(var(--primary-foreground))',
-                borderColor: effectiveEnabled ? 'hsl(var(--border))' : 'transparent',
-                boxShadow: 'none',
-                '&:hover': {
-                  bgcolor: effectiveEnabled ? 'transparent' : 'hsl(var(--primary) / 0.9)',
-                  borderColor: effectiveEnabled ? 'hsl(var(--foreground) / 0.4)' : 'transparent',
-                  boxShadow: 'none',
-                },
-              }}
+              placement="top"
+              arrow
+              disableHoverListener={effectiveEnabled || hasValidatedSource}
+              disableFocusListener={effectiveEnabled || hasValidatedSource}
+              disableTouchListener={effectiveEnabled || hasValidatedSource}
             >
-              {effectiveEnabled ? 'Disable' : 'Enable'}
-            </Button>
+              <span onClick={(e) => e.stopPropagation()}>
+                <Button
+                  size="small"
+                  variant={effectiveEnabled ? 'outlined' : 'contained'}
+                  disableElevation
+                  onClick={handleToggle}
+                  disabled={toggling}
+                  startIcon={
+                    toggling ? (
+                      <CircularProgress size={12} sx={{ color: 'inherit' }} />
+                    ) : effectiveEnabled ? (
+                      <PowerOff size={12} />
+                    ) : (
+                      <Power size={12} />
+                    )
+                  }
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    minHeight: 0,
+                    py: 0.4,
+                    px: 1,
+                    bgcolor: effectiveEnabled
+                      ? 'transparent'
+                      : !hasValidatedSource
+                        ? 'hsl(var(--muted))'
+                        : 'hsl(var(--primary))',
+                    color: effectiveEnabled
+                      ? 'hsl(var(--foreground))'
+                      : !hasValidatedSource
+                        ? 'hsl(var(--muted-foreground))'
+                        : 'hsl(var(--primary-foreground))',
+                    borderColor: effectiveEnabled
+                      ? 'hsl(var(--border))'
+                      : !hasValidatedSource
+                        ? 'hsl(var(--border))'
+                        : 'transparent',
+                    borderStyle: !effectiveEnabled && !hasValidatedSource ? 'dashed' : 'solid',
+                    boxShadow: 'none',
+                    '&:hover': {
+                      bgcolor: effectiveEnabled
+                        ? 'transparent'
+                        : !hasValidatedSource
+                          ? 'hsl(var(--muted))'
+                          : 'hsl(var(--primary) / 0.9)',
+                      borderColor: effectiveEnabled ? 'hsl(var(--foreground) / 0.4)' : !hasValidatedSource ? 'hsl(var(--border))' : 'transparent',
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  {effectiveEnabled ? 'Disable' : 'Enable'}
+                </Button>
+              </span>
+            </Tooltip>
           ) : (
             <Button
               component={Link}
