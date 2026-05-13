@@ -517,22 +517,61 @@ const AgentRunResultViewer = ({ run }: AgentRunResultViewerProps) => {
               </Box>{' '}
               {diagnosis.remediation}
             </Typography>
-            {diagnosis.snippet && (
-              <Box sx={{
-                mt: 0.75,
-                p: 0.75,
-                borderRadius: 0.5,
-                bgcolor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                fontSize: '0.7rem',
-                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-                color: 'hsl(var(--muted-foreground))',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                maxHeight: 80,
-                overflow: 'auto',
-              }}>
-                {diagnosis.snippet}
+            {diagnosis.evidence && diagnosis.evidence.length > 0 && (
+              <Box sx={{ mt: 0.75 }}>
+                <Typography sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: 'hsl(var(--muted-foreground))',
+                  mb: 0.5,
+                }}>
+                  Where this was found
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {diagnosis.evidence.map((ev, idx) => (
+                    <Box
+                      key={`${ev.path}-${idx}`}
+                      sx={{
+                        p: 0.75,
+                        borderRadius: 0.5,
+                        bgcolor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                      }}
+                    >
+                      <Typography sx={{
+                        fontSize: '0.65rem',
+                        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+                        color: 'hsl(var(--severity-medium))',
+                        fontWeight: 600,
+                        mb: 0.25,
+                        wordBreak: 'break-all',
+                      }}>
+                        results[0].result.{ev.path || '(root)'}
+                      </Typography>
+                      <Typography sx={{
+                        fontSize: '0.7rem',
+                        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+                        color: 'hsl(var(--foreground))',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        maxHeight: 80,
+                        overflow: 'auto',
+                      }}>
+                        {ev.value}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+                <Typography sx={{
+                  fontSize: '0.65rem',
+                  color: 'hsl(var(--muted-foreground))',
+                  mt: 0.5,
+                  fontStyle: 'italic',
+                }}>
+                  Open the Debug section below to see the full response.
+                </Typography>
               </Box>
             )}
           </Box>
