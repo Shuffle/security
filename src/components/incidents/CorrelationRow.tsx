@@ -5,7 +5,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import IncidentCorrelationPreview from './IncidentCorrelationPreview';
 import CorrelationContextStrip from './CorrelationContextStrip';
-import { useIgnoredObservables } from '@/hooks/useIgnoredObservables';
 
 /**
  * Returns true when a datastore category represents a threat-intelligence
@@ -95,7 +94,11 @@ interface CorrelationRowProps {
   /** Current incident ID — references to it will be filtered out so the row only shows OTHER matches. */
   currentIncidentId?: string;
   /** Parent-owned ignored-observables controls so row rendering and page counts share one state source. */
-  ignoredObservables?: Pick<ReturnType<typeof useIgnoredObservables>, 'isValueIgnored' | 'ignore' | 'unignore'>;
+  ignoredObservables?: {
+    isValueIgnored: (value: string) => boolean;
+    ignore: (type: string, value: string, reason?: string) => Promise<boolean>;
+    unignore: (type: string, value: string) => Promise<boolean>;
+  };
   /** Highlight class (e.g. for timeline flash). */
   className?: string;
   /** Compact density variant for inline rendering inside observable rows. */
@@ -118,8 +121,11 @@ export const CorrelationRow = ({ correlation, currentIncidentId, ignoredObservab
 
   // Per-org "ignored observables" list — same datastore the Observables tab
   // uses, value-based so it filters correlations regardless of OCSF type.
-  const fallbackIgnoredObs = useIgnoredObservables();
-  const ignoredObs = ignoredObservables || fallbackIgnoredObs;
+  const ignoredObs = ignoredObservables || {
+    isValueIgnored: () => false,
+    ignore: async () => false,
+    unignore: async () => false,
+  };
   const isHidden = ignoredObs.isValueIgnored(correlation.key);
 
   // Group refs by category through the shared visibility filter so rendered
