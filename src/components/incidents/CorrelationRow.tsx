@@ -94,6 +94,8 @@ interface CorrelationRowProps {
   correlation: Correlation;
   /** Current incident ID — references to it will be filtered out so the row only shows OTHER matches. */
   currentIncidentId?: string;
+  /** Parent-owned ignored-observables controls so row rendering and page counts share one state source. */
+  ignoredObservables?: Pick<ReturnType<typeof useIgnoredObservables>, 'isValueIgnored' | 'ignore' | 'unignore'>;
   /** Highlight class (e.g. for timeline flash). */
   className?: string;
   /** Compact density variant for inline rendering inside observable rows. */
@@ -108,7 +110,7 @@ interface CorrelationRowProps {
  * the Correlations page: groups refs by datastore category, dims the current
  * incident, and renders incident chips as links.
  */
-export const CorrelationRow = ({ correlation, currentIncidentId, className, compact = false, focusedIncidentKey }: CorrelationRowProps) => {
+export const CorrelationRow = ({ correlation, currentIncidentId, ignoredObservables, className, compact = false, focusedIncidentKey }: CorrelationRowProps) => {
   // Pivot popover state — keyed by the incident key the user clicked so two
   // chips in the same row don't fight over the same anchor element.
   const [pivotAnchor, setPivotAnchor] = useState<{ el: HTMLElement; key: string; category: string } | null>(null);
@@ -116,7 +118,8 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
 
   // Per-org "ignored observables" list — same datastore the Observables tab
   // uses, value-based so it filters correlations regardless of OCSF type.
-  const ignoredObs = useIgnoredObservables();
+  const fallbackIgnoredObs = useIgnoredObservables();
+  const ignoredObs = ignoredObservables || fallbackIgnoredObs;
   const isHidden = ignoredObs.isValueIgnored(correlation.key);
 
   // Group refs by category through the shared visibility filter so rendered
