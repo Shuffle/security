@@ -7136,18 +7136,26 @@ const IncidentDetailPage = () => {
       <Box sx={isPublicView ? { pointerEvents: 'none', '& input, & textarea, & select, & button:not([data-public-ok])': { opacity: 0.7 } } : {}}>
       {activeTab === 1 && (
         /* Tasks Tab — uses the exact same kanban as the simplified view (/incidents-simple) */
-        <TaskKanbanBoard
-          tasks={visibleTasks}
-          onTasksChange={setTasks}
-          incidentId={id || 'new'}
-          currentUser={currentUsername || 'You'}
-        />
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
+          <TaskKanbanBoard
+            tasks={visibleTasks}
+            onTasksChange={setTasks}
+            incidentId={id || 'new'}
+            currentUser={currentUsername || 'You'}
+          />
+        </motion.div>
       )}
 
       {/* Details Tab — kept mounted (just hidden) when other tabs are active
           so local UI state inside it (e.g. EmailThreadPanel collapsed/expanded,
-          description view mode) survives a tab switch. */}
-      <Box sx={{ display: activeTab === 0 ? 'block' : 'none' }}>
+          description view mode) survives a tab switch. Animated via opacity
+          rather than remount so that state is preserved. */}
+      <motion.div
+        initial={false}
+        animate={{ opacity: activeTab === 0 ? 1 : 0, y: activeTab === 0 ? 0 : 6 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        style={{ display: activeTab === 0 ? 'block' : 'none' }}
+      >
       {(() => {
         const hasEmail = !!incident && isEmailContent(editedMessage || '', rawDescriptionHtml || '', incident.rawOCSF);
         const descriptionBody = (
