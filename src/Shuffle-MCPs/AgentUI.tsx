@@ -2358,13 +2358,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
               />
               {(() => {
                 const canSchedule = hasExecution && !scheduleDisabledReason;
+                const hintActive = Boolean(scheduleHint) && canSchedule;
                 const tip: React.ReactNode = scheduleDisabledReason
                   ? scheduleDisabledTooltip
-                  : hasExecution
-                    ? 'Schedule this prompt to run repeatedly on a cron schedule'
-                    : agentRequestLoading
-                      ? 'Scheduling unlocks once this run finishes successfully — you cannot schedule a prompt that has not completed yet.'
-                      : 'Scheduling is available after the prompt finishes a successful one-shot run. Submit it first, then come back here to set a cron schedule.';
+                  : hintActive
+                    ? `Detected schedule: ${scheduleHint!.label}. Click to review and save.`
+                    : hasExecution
+                      ? 'Schedule this prompt to run repeatedly on a cron schedule'
+                      : agentRequestLoading
+                        ? 'Scheduling unlocks once this run finishes successfully — you cannot schedule a prompt that has not completed yet.'
+                        : 'Scheduling is available after the prompt finishes a successful one-shot run. Submit it first, then come back here to set a cron schedule.';
                 return (
                   <Tooltip title={tip} placement="top" arrow>
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
@@ -2373,13 +2376,39 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         onClick={(e) => { if (canSchedule) setScheduleAnchor(e.currentTarget); }}
                         disabled={!canSchedule || agentRequestLoading}
                         sx={{
-                          width: 36, height: 36,
-                          color: 'hsl(var(--muted-foreground))',
-                          '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
+                          height: 36,
+                          minWidth: 36,
+                          px: hintActive ? 1.25 : 0,
+                          width: hintActive ? 'auto' : 36,
+                          borderRadius: hintActive ? 999 : '50%',
+                          gap: hintActive ? 0.75 : 0,
+                          color: hintActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                          bgcolor: hintActive ? 'hsl(var(--primary) / 0.12)' : 'transparent',
+                          border: hintActive ? '1px solid hsl(var(--primary) / 0.5)' : '1px solid transparent',
+                          '&:hover': hintActive
+                            ? { bgcolor: 'hsl(var(--primary) / 0.2)', color: 'hsl(var(--primary))' }
+                            : { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
                           '&.Mui-disabled': { opacity: 0.4, color: 'hsl(var(--muted-foreground))' },
+                          transition: 'all 160ms ease',
                         }}
                       >
                         <ScheduleIcon sx={{ fontSize: 18 }} />
+                        {hintActive && (
+                          <Box
+                            component="span"
+                            sx={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              lineHeight: 1,
+                              whiteSpace: 'nowrap',
+                              maxWidth: 180,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {scheduleHint!.label}
+                          </Box>
+                        )}
                       </IconButton>
                     </Box>
                   </Tooltip>
