@@ -1945,6 +1945,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // actual app/tool actions (nothing meaningful would run on a schedule).
   const { scheduleDisabledReasons } = useMemo(() => {
     const decisions: any[] = (agentData?.decisions as any[]) || [];
+    const runStatus = String(execution?.status || agentData?.status || '').toUpperCase();
+    const isNotFinished = runStatus !== '' && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(runStatus);
     const NON_ACTION_CATS = new Set(['finish', 'finalise', 'ask', 'agent', 'processing']);
     const NON_ACTION_ACTIONS = new Set(['finish', 'finalise', 'ask']);
     const finishCount = decisions.filter(
@@ -1995,6 +1997,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
       return hasAnswerField || status === 'FINISHED';
     });
     const reasons: string[] = [];
+    if (isNotFinished) {
+      reasons.push('The agent is not finished running.');
+    }
     if (hadContinuation) {
       reasons.push('This run needed a follow-up message to continue, so the one-shot prompt did not succeed on its own. Refine the prompt until it finishes in one go before scheduling.');
     }
@@ -2008,12 +2013,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       reasons.push('A question in this run was answered manually. Scheduled runs are unattended, so refine the prompt so the agent does not need to ask anything before scheduling.');
     }
     return { scheduleDisabledReasons: reasons };
-  }, [agentData]);
+  }, [agentData, execution?.status]);
   const scheduleDisabledReason = scheduleDisabledReasons[0] || '';
   const scheduleDisabledTooltip: React.ReactNode = scheduleDisabledReasons.length > 1 ? (
     <Box>
       <Box sx={{ fontWeight: 600, mb: 0.5 }}>Cannot schedule for {scheduleDisabledReasons.length} reasons:</Box>
-      <Box component="ul" sx={{ pl: 2, m: 0 }}>
+      <Box component="ol" sx={{ pl: 2.5, m: 0 }}>
         {scheduleDisabledReasons.map((r, i) => (
           <Box component="li" key={i} sx={{ mb: 0.25 }}>{r}</Box>
         ))}
