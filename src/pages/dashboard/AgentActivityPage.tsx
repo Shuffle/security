@@ -168,29 +168,22 @@ const AgentActivityPage = () => {
             >
               Run Agent
             </Button>
-            <Tooltip title="Coming soon">
-              <span>
-                <Button
-                  size="small"
-                  startIcon={<Settings size={14} />}
-                  disabled
-                  sx={{
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 1.5,
-                    color: 'hsl(var(--muted-foreground))',
-                    textTransform: 'none',
-                    fontSize: '0.8rem',
-                    px: 1.5,
-                    '&.Mui-disabled': {
-                      color: 'hsl(var(--muted-foreground) / 0.5)',
-                      borderColor: 'hsl(var(--border))',
-                    },
-                  }}
-                >
-                  Permissions
-                </Button>
-              </span>
-            </Tooltip>
+            <Button
+              size="small"
+              startIcon={<Settings size={14} />}
+              onClick={() => openDrawer(1)}
+              sx={{
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 1.5,
+                color: 'hsl(var(--muted-foreground))',
+                textTransform: 'none',
+                fontSize: '0.8rem',
+                px: 1.5,
+                '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
+              }}
+            >
+              Permissions
+            </Button>
           </Box>
         </Box>
 
