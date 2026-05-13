@@ -85,10 +85,10 @@ export const getEffectiveCorrelationCount = (
  * Returns only correlations that have at least one ref OTHER than the current
  * incident — useful for hiding noise from list counts and badges.
  */
-export const filterMeaningfulCorrelations = <T extends Pick<Correlation, 'ref'>>(
+export const filterMeaningfulCorrelations = <T extends Pick<Correlation, 'key' | 'ref'>>(
   correlations: T[],
   currentIncidentIdOrOptions?: string | CorrelationVisibilityOptions,
-): T[] => correlations.filter((c) => getEffectiveCorrelationCount(c as T & Pick<Correlation, 'key'>, currentIncidentIdOrOptions) > 0);
+): T[] => correlations.filter((c) => getEffectiveCorrelationCount(c, currentIncidentIdOrOptions) > 0);
 
 interface CorrelationRowProps {
   correlation: Correlation;
