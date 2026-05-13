@@ -7,10 +7,11 @@
  * is safe to mount unconditionally above other content.
  */
 
-import { Box, Typography } from '@mui/material';
-import { AlertTriangle, HelpCircle } from 'lucide-react';
+import { Box, Tooltip, Typography } from '@mui/material';
+import { AlertTriangle, ArrowUpRight, HelpCircle } from 'lucide-react';
 import {
   diagnoseOutputWarning,
+  extractDecisionIndex,
   getFailureInfo,
   hasOutputWarning,
   type DiagnosableRun,
@@ -20,6 +21,11 @@ interface Props {
   run: DiagnosableRun | null | undefined;
   /** Outer padding wrapper. Defaults to `{ px: 2.5, pb: 0.5 }`. */
   sx?: Record<string, unknown>;
+  /** When provided, the "Where this was found" evidence box becomes a button
+   *  that asks the host to jump to the underlying decision (e.g. switch to
+   *  the detailed timeline, expand that row, scroll to it). The decision
+   *  index is the original index in `agentData.decisions`. */
+  onJumpToEvidence?: (decisionIndex: number) => void;
 }
 
 const AgentRunDiagnosisBanner = ({ run, sx }: Props) => {
