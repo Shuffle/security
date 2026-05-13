@@ -2134,7 +2134,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               try {
                 if (onSchedule) {
                   await onSchedule({ cron, input: actionInput });
-                  toast({ title: 'Schedule saved', description: `Will run on \`${cron}\`` });
+                  toast({ title: 'Schedule saved', description: 'This prompt will now run on the selected schedule.' });
                 } else {
                   toast({ title: 'Scheduling not configured', description: 'No handler is wired up for scheduled runs in this view.', variant: 'destructive' });
                 }
