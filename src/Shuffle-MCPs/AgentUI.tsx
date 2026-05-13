@@ -2736,6 +2736,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       getFormUrl={getFormUrl}
                       runFinished={detailedRunFinished}
                       onAuthenticateApp={(name, id) => setAuthDrawerApp({ name, id })}
+                      isAppAuthenticated={isAppAuthenticated}
                     />
                   ))}
                   {detailedRunFinished && (
