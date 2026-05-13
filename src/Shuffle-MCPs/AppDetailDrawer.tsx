@@ -474,7 +474,7 @@ export default function AppDetailDrawer({
               hasAnyAuth={hasAnyAuth}
               isAuthenticated={isAuthenticated}
               categories={appInfo?.categories}
-              isActivated={onAddToCanvas ? null : isActivated}
+              isActivated={onAddToCanvas ? null : effectiveActivated}
               activateLoading={activateLoading}
               onActivateToggle={handleActivateToggle}
               onAdd={onAddToCanvas && appName ? () => {
