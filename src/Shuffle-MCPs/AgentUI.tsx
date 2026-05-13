@@ -1819,14 +1819,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
       const n = Number(t) || 0;
-      return n > 1e12 ? Math.floor(n / 1000) : n;
+      // Preserve sub-second precision so durations < 1s render as e.g. "0.8s"
+      // instead of being floored to 0.
+      return n > 1e12 ? n / 1000 : n;
     };
     const overallStatus = (execution?.status || agentData?.status || '').toUpperCase();
     const runIsFinished = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(overallStatus);
     const runEndSec = toSec(agentData?.completed_at || execution?.completed_at);
     // When the whole run has ended, cap any unfinished decisions at the run's
     // end time (or the latest known timestamp) so they stop counting up.
-    let fallbackEnd = Math.floor(Date.now() / 1000);
+    let fallbackEnd = Date.now() / 1000;
     if (runIsFinished) {
       let maxKnown = runEndSec || 0;
       for (const dec of agentData?.decisions || []) {
@@ -2745,7 +2747,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   if (isRunning && effectiveStart) {
                     durationSec = Math.max(0, nowTick - effectiveStart);
                   } else if (totalDuration && totalDuration > 0) {
-                    durationSec = Math.round(totalDuration);
+                    durationSec = totalDuration;
                   }
                   // Detect a pending ASK decision (agent waiting on a user answer)
                   const pendingAsk = (agentData?.decisions || []).slice().reverse().find((d) => {
@@ -2778,7 +2780,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         </Typography>
                         <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
                           {decisionCount} step{decisionCount === 1 ? '' : 's'}
-                          {durationSec != null ? ` · ${durationSec}s` : ''}
+                          {durationSec != null ? ` · ${durationSec.toFixed(1)}s` : ''}
                         </Typography>
                         <Box sx={{ flexGrow: 1 }} />
                         <Tooltip title="Rerun the agent with the same input">
