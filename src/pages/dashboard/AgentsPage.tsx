@@ -146,6 +146,7 @@ const AgentsPage = () => {
       name,
       description,
       start: actionId,
+      workflow_type: 'AGENT_SCHEDULE',
       actions: [action],
       triggers: [trigger],
       branches: [branch],
