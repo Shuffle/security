@@ -755,6 +755,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       {(() => {
         const req = extractAuthRequest(details);
         if (!req) return null;
+        if (isAppAuthenticated?.(req.appName)) return null;
         const pretty = req.appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
         const slug = req.appName.toLowerCase().replace(/[\s-]+/g, '_');
         const appId = req.appId || appsById[req.appName]?.id || appsById[slug]?.id || null;
