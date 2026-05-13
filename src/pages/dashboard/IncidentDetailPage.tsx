@@ -8741,6 +8741,7 @@ const IncidentDetailPage = () => {
             editable={false}
           />
         </Box>
+        </motion.div>
       )}
 
       {activeTab === 5 && (
