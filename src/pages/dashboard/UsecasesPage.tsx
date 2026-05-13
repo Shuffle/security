@@ -1752,6 +1752,10 @@ function UsecaseDetailContent({
   const [toggling, setToggling] = useState(false);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const effectiveEnabled = optimisticEnabled !== null ? optimisticEnabled : isEnabled;
+  // App-search drawer state — mirrors the alluvial diagram's "+" buttons so
+  // users can force-add a Source or Destination tool from this view too.
+  const [addToolFor, setAddToolFor] = useState<null | { side: 'source' | 'destination'; categoryId: string }>(null);
+  const [integrationsRefreshKey, setIntegrationsRefreshKey] = useState(0);
   // Mirror the card's "Coming soon" gate so the detail page does not show a
   // live "Enable" button for usecases that are not yet wired up server-side.
   const isComingSoon = !!flow && !ACTIVE_USECASE_IDS.includes(flow.id);
