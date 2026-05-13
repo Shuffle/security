@@ -1755,6 +1755,68 @@ const AgentUI: React.FC<AgentUIProps> = ({
     submitInput(input);
   }, [agentData, actionInput, submitInput]);
 
+  // ── Abort the currently running agent execution ──
+  // If the agent has not produced an execution_id yet (i.e. the initial
+  // /run request is still in flight or failed silently), we simply discard
+  // the in-flight UI state and bounce the user back to the Start tab so
+  // they can try again. Once an execution_id exists, we ask the backend to
+  // abort the workflow execution; the existing poll loop will then pick up
+  // the ABORTED status on its next tick.
+  const abortAgent = useCallback(async () => {
+    const execId = execution?.execution_id;
+    const auth = execution?.authorization;
+    const wfId = (execution as any)?.workflow?.id;
+
+    // Helper: wipe local run state and return to the Start tab.
+    const resetToStart = () => {
+      activeExecutionIdRef.current = null;
+      setExecution(null);
+      setAgentData({});
+      setAgentRequestLoading(false);
+      setShowStarter(true);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('agentView');
+        next.delete('execution_id');
+        next.delete('authorization');
+        return next;
+      }, { replace: true });
+    };
+
+    // Agent never produced an execution — nothing to abort server-side.
+    if (!execId || !wfId) {
+      resetToStart();
+      toast({ title: 'Run aborted', description: 'The agent had not started yet — reset to Start.' });
+      return;
+    }
+
+    try {
+      const resp = await fetch(
+        resolveUrl(`/api/v1/workflows/${wfId}/executions/${execId}/abort`),
+        {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            ...resolveHeaders(),
+            ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+          },
+        },
+      );
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        toast({ title: 'Abort failed', description: txt || `HTTP ${resp.status}`, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
+      // Nudge the poll loop to refresh sooner so the UI reflects the change.
+      setTimeout(() => getExecution(execId, auth!), 500);
+      setTimeout(() => getExecution(execId, auth!), 2500);
+    } catch (err) {
+      toast({ title: 'Network error', description: String(err), variant: 'destructive' });
+    }
+  }, [execution, resolveUrl, resolveHeaders, getExecution, setSearchParams]);
+
+
   // Build a popout URL to answer the agent's question in the standalone Form UI.
   // Mirrors the legacy AgentUI behavior so users can hand off to /forms/...
   const getFormUrl = useCallback((decisionId: string): string | null => {
