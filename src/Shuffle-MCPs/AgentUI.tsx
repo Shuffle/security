@@ -2709,6 +2709,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   Status: {execution?.status || agentData?.status || '—'} · {execution?.execution_id?.slice(0, 8) || ''}
                 </Typography>
               </Box>
+              {(() => {
+                const topStatus = String(execution?.status || agentData?.status || '').toUpperCase();
+                const topRunning = !!(execution?.execution_id || agentRequestLoading) && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(topStatus);
+                return topRunning ? (
+                  <Tooltip title={execution?.execution_id ? 'Abort this execution' : 'Cancel and return to Start'}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={abortAgent}
+                        sx={{
+                          color: 'hsl(var(--muted-foreground))',
+                          '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted))' },
+                        }}
+                      >
+                        <StopCircleIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                ) : null;
+              })()}
               <Tooltip title="Rerun the agent with the same input">
                 <span>
                   <IconButton
