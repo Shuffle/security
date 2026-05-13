@@ -27,10 +27,11 @@ import {
   Drawer,
   IconButton,
 } from '@mui/material';
-import { Search, ArrowRight, ArrowLeft, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink, Flame, PlayCircle, BookOpen, LayoutGrid, Server, Shield, MessageSquare, Mail, Crosshair, HardDrive, KeyRound, Cloud, Sparkles } from 'lucide-react';
+import { Search, ArrowRight, ArrowLeft, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink, Flame, PlayCircle, BookOpen, LayoutGrid, Server, Shield, MessageSquare, Mail, Crosshair, HardDrive, KeyRound, Cloud, Sparkles, Plus } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import shuffleSecurityIcon from '@/assets/shuffle-icon.png';
 import UsecaseAlluvialDiagram from '@/components/usecases/UsecaseAlluvialDiagram';
+import AppSearchDrawer from '@/Shuffle-MCPs/AppSearchDrawer';
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
 export type FlowPhase = 'ingest' | 'response' | 'correlation';
@@ -1751,6 +1752,10 @@ function UsecaseDetailContent({
   const [toggling, setToggling] = useState(false);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const effectiveEnabled = optimisticEnabled !== null ? optimisticEnabled : isEnabled;
+  // App-search drawer state — mirrors the alluvial diagram's "+" buttons so
+  // users can force-add a Source or Destination tool from this view too.
+  const [addToolFor, setAddToolFor] = useState<null | { side: 'source' | 'destination'; categoryId: string }>(null);
+  const [integrationsRefreshKey, setIntegrationsRefreshKey] = useState(0);
   // Mirror the card's "Coming soon" gate so the detail page does not show a
   // live "Enable" button for usecases that are not yet wired up server-side.
   const isComingSoon = !!flow && !ACTIVE_USECASE_IDS.includes(flow.id);
@@ -2181,10 +2186,37 @@ function UsecaseDetailContent({
                   </Box>
                 </Box>
               </Box>
-              <Typography sx={{ fontSize: '0.64rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
-                Your Tools
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                <Typography sx={{ fontSize: '0.64rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Your Tools
+                </Typography>
+                <Tooltip title={`Add ${endpoint.meta?.label || endpoint.title} tool`} placement="top" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => setAddToolFor({
+                      side: endpoint.title === 'Source' ? 'source' : 'destination',
+                      categoryId: endpoint.categoryId,
+                    })}
+                    sx={{
+                      width: 18,
+                      height: 18,
+                      p: 0,
+                      border: '1px dashed hsla(var(--muted-foreground) / 0.4)',
+                      color: 'hsl(var(--muted-foreground))',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary))',
+                        bgcolor: 'hsla(var(--primary) / 0.08)',
+                      },
+                    }}
+                  >
+                    <Plus size={11} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
               <IntegrationStatusLite
+                key={`${endpoint.categoryId}-${integrationsRefreshKey}`}
                 filterApps={appNamesWithShuffle}
                 isResolving={!categoryAppsResolved}
                 syntheticApps={synthetic}
@@ -2286,6 +2318,21 @@ function UsecaseDetailContent({
           ) : <Box />}
         </Box>
       )}
+
+      {/* Force-add a tool for the Source / Destination category. Mirrors
+          the alluvial diagram's "+" buttons so this view stays in sync. */}
+      <AppSearchDrawer
+        open={addToolFor !== null}
+        onClose={() => {
+          setAddToolFor(null);
+          // Force IntegrationStatusLite to re-fetch so a newly authenticated
+          // app shows up immediately under Your Tools.
+          setIntegrationsRefreshKey((k) => k + 1);
+        }}
+        title={`Add ${addToolFor ? categoryLabel(addToolFor.categoryId) : ''} Tool`}
+        subtitle="Search and authenticate an integration"
+        priorityCategory={addToolFor?.categoryId}
+      />
     </Box>
   );
 }
