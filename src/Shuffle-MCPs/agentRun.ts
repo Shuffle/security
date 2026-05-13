@@ -309,6 +309,7 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
         ...agentHeaders,
       },
       body: JSON.stringify(payload),
+      signal: request.signal,
     });
 
     const rawText = await response.text();
