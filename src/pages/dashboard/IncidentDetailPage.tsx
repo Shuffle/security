@@ -1448,6 +1448,11 @@ const IncidentDetailPage = () => {
   // Merge by correlation key, unioning `ref` lists and taking the max
   // `amount` so a value-hit never reduces a richer datastore-hit. Filter
   // out entries the user has chosen to ignore.
+  const correlationVisibilityOptions = useMemo(() => ({
+    currentIncidentId: id,
+    isValueIgnored: ignoredObs.isValueIgnored,
+  }), [id, ignoredObs.isValueIgnored]);
+
   const visibleCorrelations = useMemo(() => {
     const merged = new Map<string, { key: string; amount: number; ref: string[] }>();
     const add = (c: { key: string; amount: number; ref: string[] }) => {
@@ -1465,8 +1470,8 @@ const IncidentDetailPage = () => {
     };
     correlations.forEach(add);
     Object.values(obsCorrelations).forEach(entry => (entry?.data || []).forEach(add));
-    return Array.from(merged.values()).filter(c => !ignoredObs.isValueIgnored(c.key));
-  }, [correlations, obsCorrelations, ignoredObs]);
+    return filterMeaningfulCorrelations(Array.from(merged.values()), correlationVisibilityOptions);
+  }, [correlations, obsCorrelations, correlationVisibilityOptions]);
 
   // ---------------------------------------------------------------------
   // Merge candidate suggestions
@@ -7974,9 +7979,9 @@ const IncidentDetailPage = () => {
               const k = `${o.type}::${o.value}`;
               const c = obsCorrelations[k];
               if (!c?.data?.length) return 0;
-              const meaningful = filterMeaningfulCorrelations(c.data, id);
+              const meaningful = filterMeaningfulCorrelations(c.data, correlationVisibilityOptions);
               return meaningful.reduce(
-                (sum, x) => sum + getEffectiveCorrelationCount(x, id),
+                (sum, x) => sum + getEffectiveCorrelationCount(x, correlationVisibilityOptions),
                 0,
               );
             };
@@ -8158,14 +8163,14 @@ const IncidentDetailPage = () => {
                           if (corr?.loading) return <CircularProgress size={14} sx={{ mx: 0.5 }} />;
                           if (!corr?.data?.length) return null;
                           // Only count correlations with refs OTHER than the current incident.
-                          const meaningful = filterMeaningfulCorrelations(corr.data, id);
+                          const meaningful = filterMeaningfulCorrelations(corr.data, correlationVisibilityOptions);
                           if (meaningful.length === 0) return null;
                           // Total number of OTHER references across all meaningful
                           // correlations — this is the count the user actually
                           // cares about (e.g. "5 other incidents share this
                           // observable"), not the number of distinct keys.
                           const totalRefs = meaningful.reduce(
-                            (sum, c) => sum + getEffectiveCorrelationCount(c, id),
+                            (sum, c) => sum + getEffectiveCorrelationCount(c, correlationVisibilityOptions),
                             0,
                           );
                           // Highlight the badge in red when ANY correlation
@@ -8372,7 +8377,7 @@ const IncidentDetailPage = () => {
                               );
                             }
                             // Drop correlations whose only ref is the current incident itself.
-                            const meaningfulCorr = filterMeaningfulCorrelations(corr.data, id);
+                            const meaningfulCorr = filterMeaningfulCorrelations(corr.data, correlationVisibilityOptions);
                             if (meaningfulCorr.length === 0) {
                               return (
                                 <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -8411,6 +8416,7 @@ const IncidentDetailPage = () => {
                                       key={c.key || ci}
                                       correlation={c}
                                       currentIncidentId={id}
+                                      ignoredObservables={ignoredObs}
                                       compact
                                     />
                                   ))}
@@ -8487,7 +8493,7 @@ const IncidentDetailPage = () => {
               const value = valueParts.join('::');
               // Reuse the same filtering logic as the inline view so the popover
               // never shows correlations whose only ref is the current incident.
-              const meaningful = filterMeaningfulCorrelations(corr?.data || [], id);
+              const meaningful = filterMeaningfulCorrelations(corr?.data || [], correlationVisibilityOptions);
               return (
                 <Box sx={{ p: 2 }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
@@ -8499,6 +8505,7 @@ const IncidentDetailPage = () => {
                         key={c.key || i}
                         correlation={c}
                         currentIncidentId={id}
+                        ignoredObservables={ignoredObs}
                         compact
                       />
                     ))}
@@ -8593,6 +8600,7 @@ const IncidentDetailPage = () => {
                     key={corr.key || idx}
                     correlation={corr}
                     currentIncidentId={id}
+                    ignoredObservables={ignoredObs}
                     focusedIncidentKey={focusedReferrerIncidentKey}
                     className={flashedCorrelationKey === corr.key ? 'incident-new-flash' : undefined}
                   />

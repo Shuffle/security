@@ -5,7 +5,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import IncidentCorrelationPreview from './IncidentCorrelationPreview';
 import CorrelationContextStrip from './CorrelationContextStrip';
-import { useIgnoredObservables } from '@/hooks/useIgnoredObservables';
 
 /**
  * Returns true when a datastore category represents a threat-intelligence
@@ -37,48 +36,69 @@ export interface Correlation {
   ref: string[];
 }
 
+interface CorrelationVisibilityOptions {
+  currentIncidentId?: string;
+  isValueIgnored?: (value: string) => boolean;
+}
+
+export const getVisibleCorrelationRefs = (
+  correlation: Pick<Correlation, 'key' | 'ref'>,
+  options: CorrelationVisibilityOptions = {},
+): Array<{ category: string; key: string }> => {
+  if (!correlation?.ref?.length) return [];
+  if (options.isValueIgnored?.(String(correlation.key || ''))) return [];
+  const currentIncidentId = options.currentIncidentId?.toLowerCase();
+
+  return correlation.ref.reduce<Array<{ category: string; key: string }>>((acc, r) => {
+    const [category, key] = r.split('|');
+    if (!category || !key) return acc;
+    if (category.toLowerCase() === 'ignored-observables') return acc;
+    if (
+      category === 'shuffle-security_incidents' &&
+      currentIncidentId &&
+      key.toLowerCase() === currentIncidentId
+    ) {
+      return acc;
+    }
+    acc.push({ category, key });
+    return acc;
+  }, []);
+};
+
 /**
  * Count the effective correlation refs after filtering out the current incident.
  * Mirrors the filtering logic inside CorrelationRow so callers can show accurate
  * "X correlations" counts without including self-references.
  */
 export const getEffectiveCorrelationCount = (
-  correlation: Pick<Correlation, 'ref'>,
-  currentIncidentId?: string,
-): number => {
-  if (!correlation?.ref?.length) return 0;
-  let count = 0;
-  for (const r of correlation.ref) {
-    const [category, key] = r.split('|');
-    if (!category || !key) continue;
-    // Refs from the per-org `ignored-observables` datastore should not count
-    // as a correlation match — keep this in sync with CorrelationRow render.
-    if (category.toLowerCase() === 'ignored-observables') continue;
-    if (
-      category === 'shuffle-security_incidents' &&
-      currentIncidentId &&
-      key.toLowerCase() === currentIncidentId.toLowerCase()
-    ) {
-      continue;
-    }
-    count += 1;
-  }
-  return count;
-};
+  correlation: Pick<Correlation, 'key' | 'ref'>,
+  currentIncidentIdOrOptions?: string | CorrelationVisibilityOptions,
+): number => getVisibleCorrelationRefs(
+  correlation,
+  typeof currentIncidentIdOrOptions === 'string'
+    ? { currentIncidentId: currentIncidentIdOrOptions }
+    : currentIncidentIdOrOptions,
+).length;
 
 /**
  * Returns only correlations that have at least one ref OTHER than the current
  * incident — useful for hiding noise from list counts and badges.
  */
-export const filterMeaningfulCorrelations = <T extends Pick<Correlation, 'ref'>>(
+export const filterMeaningfulCorrelations = <T extends Pick<Correlation, 'key' | 'ref'>>(
   correlations: T[],
-  currentIncidentId?: string,
-): T[] => correlations.filter((c) => getEffectiveCorrelationCount(c, currentIncidentId) > 0);
+  currentIncidentIdOrOptions?: string | CorrelationVisibilityOptions,
+): T[] => correlations.filter((c) => getEffectiveCorrelationCount(c, currentIncidentIdOrOptions) > 0);
 
 interface CorrelationRowProps {
   correlation: Correlation;
   /** Current incident ID — references to it will be filtered out so the row only shows OTHER matches. */
   currentIncidentId?: string;
+  /** Parent-owned ignored-observables controls so row rendering and page counts share one state source. */
+  ignoredObservables?: {
+    isValueIgnored: (value: string) => boolean;
+    ignore: (type: string, value: string, reason?: string) => Promise<boolean>;
+    unignore: (type: string, value: string) => Promise<boolean>;
+  };
   /** Highlight class (e.g. for timeline flash). */
   className?: string;
   /** Compact density variant for inline rendering inside observable rows. */
@@ -93,7 +113,7 @@ interface CorrelationRowProps {
  * the Correlations page: groups refs by datastore category, dims the current
  * incident, and renders incident chips as links.
  */
-export const CorrelationRow = ({ correlation, currentIncidentId, className, compact = false, focusedIncidentKey }: CorrelationRowProps) => {
+export const CorrelationRow = ({ correlation, currentIncidentId, ignoredObservables, className, compact = false, focusedIncidentKey }: CorrelationRowProps) => {
   // Pivot popover state — keyed by the incident key the user clicked so two
   // chips in the same row don't fight over the same anchor element.
   const [pivotAnchor, setPivotAnchor] = useState<{ el: HTMLElement; key: string; category: string } | null>(null);
@@ -101,20 +121,17 @@ export const CorrelationRow = ({ correlation, currentIncidentId, className, comp
 
   // Per-org "ignored observables" list — same datastore the Observables tab
   // uses, value-based so it filters correlations regardless of OCSF type.
-  const ignoredObs = useIgnoredObservables();
+  const ignoredObs = ignoredObservables || {
+    isValueIgnored: () => false,
+    ignore: async () => false,
+    unignore: async () => false,
+  };
   const isHidden = ignoredObs.isValueIgnored(correlation.key);
 
-  // Group refs by category, excluding the current incident itself and any
-  // refs coming from the per-org `ignored-observables` datastore — those are
-  // user-suppressed entries and should not count as a correlation match.
+  // Group refs by category through the shared visibility filter so rendered
+  // rows, badges, headers, and timeline pills all agree on what counts.
   const refsByCategory: Record<string, string[]> = {};
-  correlation.ref.forEach((r) => {
-    const [category, key] = r.split('|');
-    if (!category || !key) return;
-    if (category.toLowerCase() === 'ignored-observables') return;
-    if (category === 'shuffle-security_incidents' && currentIncidentId && key.toLowerCase() === currentIncidentId.toLowerCase()) {
-      return;
-    }
+  getVisibleCorrelationRefs(correlation, { currentIncidentId, isValueIgnored: ignoredObs.isValueIgnored }).forEach(({ category, key }) => {
     if (!refsByCategory[category]) refsByCategory[category] = [];
     refsByCategory[category].push(key);
   });
