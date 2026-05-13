@@ -1229,6 +1229,103 @@ const IncidentDetailPage = () => {
   const enrichmentStatus = useEnrichmentStatus();
   const assignEscalateStatus = useAssignEscalateStatus();
 
+  // ── Inline enrichment CTA visibility ───────────────────────────────────
+  // Surface the same "Automatic observable extraction is not yet fully
+  // enabled" CTA used on the Observables tab inside the Timeline / chat
+  // area whenever the user is most likely to notice things being "missing":
+  //   1. The incident is fresh (created within the last 3 minutes), so the
+  //      first wave of observables / correlations would normally still be
+  //      streaming in.
+  //   2. A comment was posted in the last 30 seconds — fresh chat = fresh
+  //      expectations of automated follow-up.
+  //   3. The user is currently typing in the comment input — they should
+  //      always be able to enable enrichment without leaving the incident.
+  const FRESH_INCIDENT_CTA_MS = 3 * 60 * 1000;
+  const FRESH_COMMENT_CTA_MS = 30 * 1000;
+  const lastManualCommentTs = useMemo(() => {
+    let max = 0;
+    for (const item of activity || []) {
+      const ts = normalizeToMs((item as { timestamp?: number | string }).timestamp);
+      if (ts > max) max = ts;
+    }
+    return max;
+  }, [activity]);
+  const incidentAgeMs = incident?.createdTs ? nowTick - normalizeToMs(incident.createdTs) : Infinity;
+  const lastCommentAgeMs = lastManualCommentTs ? nowTick - lastManualCommentTs : Infinity;
+  const isTypingComment = newComment.trim().length > 0;
+  const showEnrichmentInlineCTA =
+    !enrichmentStatus.isLoading
+    && !enrichmentStatus.active
+    && (
+      isTypingComment
+      || incidentAgeMs < FRESH_INCIDENT_CTA_MS
+      || lastCommentAgeMs < FRESH_COMMENT_CTA_MS
+    );
+  // Keep nowTick advancing while a time-based window is in play so the
+  // banner auto-hides without requiring a re-render from elsewhere.
+  useEffect(() => {
+    if (enrichmentStatus.active || enrichmentStatus.isLoading) return;
+    const incidentWindowOpen = incidentAgeMs < FRESH_INCIDENT_CTA_MS;
+    const commentWindowOpen = lastCommentAgeMs < FRESH_COMMENT_CTA_MS;
+    if (!incidentWindowOpen && !commentWindowOpen) return;
+    const id = window.setInterval(() => setNowTick(Date.now()), 5000);
+    return () => window.clearInterval(id);
+  }, [enrichmentStatus.active, enrichmentStatus.isLoading, incidentAgeMs, lastCommentAgeMs, FRESH_INCIDENT_CTA_MS, FRESH_COMMENT_CTA_MS]);
+
+  const renderEnrichmentInlineCTA = () => (
+    <Box sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1.5,
+      mx: 2,
+      mt: 2,
+      px: 1.5,
+      py: 1,
+      borderRadius: 1.5,
+      bgcolor: 'rgba(251, 146, 60, 0.08)',
+      border: '1px solid rgba(251, 146, 60, 0.18)',
+    }}>
+      <Typography variant="caption" sx={{ color: '#fb923c', fontWeight: 500, flex: 1, lineHeight: 1.3 }}>
+        Automatic observable extraction is not yet fully enabled — observables and correlations may be missing from this incident.
+      </Typography>
+      <Tooltip
+        title={
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5 }}>
+            {enrichmentStatus.checks.map((c) => (
+              <Box key={c.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <CheckCircleIcon sx={{ fontSize: 13, color: c.active ? 'hsl(var(--severity-low))' : 'hsl(var(--destructive))' }} />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{c.label}</Typography>
+              </Box>
+            ))}
+          </Box>
+        }
+        arrow
+      >
+        <Button
+          size="small"
+          variant="contained"
+          disabled={enrichmentStatus.isEnabling}
+          onClick={enrichmentStatus.enable}
+          sx={{
+            textTransform: 'none',
+            fontSize: '0.72rem',
+            fontWeight: 600,
+            height: 26,
+            minWidth: 70,
+            bgcolor: '#fb923c',
+            color: '#fff',
+            boxShadow: 'none',
+            '&:hover': { bgcolor: '#f97316', boxShadow: 'none' },
+            '&.Mui-disabled': { bgcolor: 'rgba(251, 146, 60, 0.4)', color: '#fff' },
+          }}
+        >
+          {enrichmentStatus.isEnabling ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Enable'}
+        </Button>
+      </Tooltip>
+    </Box>
+  );
+
+
   const incidentFileRef = useMemo(() => {
     const raw = incident?.rawOCSF;
     if (!raw?.shuffle_translation_file) return null;
@@ -3815,6 +3912,11 @@ const IncidentDetailPage = () => {
           </Box>
         </Box>
       )}
+      {/* Inline enrichment CTA — mirrors the Observables-tab banner so users
+          can enable automatic extraction without leaving the timeline. Shown
+          while the incident is fresh, just after a comment, or while the
+          user is typing a new comment. */}
+      {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
       {/* Comment Input */}
       <Box sx={{ p: 2, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
