@@ -44,6 +44,10 @@ export interface AgentExecutionDrawerProps {
   headerSx?: SxProps<Theme>;
   /** Style overrides for the body container that wraps the embedded AgentUI. */
   bodySx?: SxProps<Theme>;
+  /** Optional content rendered at the top of the body, before the embedded
+   *  AgentUI. Use this to inject a shared "Needs attention" / failure
+   *  diagnosis banner so the drawer mirrors the timeline status pill. */
+  topBanner?: React.ReactNode;
 }
 
 const AgentExecutionDrawer = ({
@@ -58,6 +62,7 @@ const AgentExecutionDrawer = ({
   paperSx,
   headerSx,
   bodySx,
+  topBanner,
 }: AgentExecutionDrawerProps) => {
   const statusKey = (run?.status || '').toUpperCase();
   const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
@@ -199,6 +204,7 @@ const AgentExecutionDrawer = ({
 
       {/* Body — embedded AgentUI seeded with the pre-loaded run */}
       <Box sx={[{ flex: 1, overflowY: 'auto', pt: 3 }, ...(Array.isArray(bodySx) ? bodySx : bodySx ? [bodySx] : [])]}>
+        {topBanner}
         {run ? (
           <AgentUI
             key={run.execution_id}

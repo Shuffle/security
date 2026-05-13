@@ -30,6 +30,7 @@ import {
 } from '@/Shuffle-MCPs';
 
 import { useAgentPermissions } from '@/hooks/useAgentPermissions';
+import AgentRunDiagnosisBanner from '@/components/agent/AgentRunDiagnosisBanner';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 const AgentActivityPage = () => {
@@ -209,6 +210,7 @@ const AgentActivityPage = () => {
         open={!!selectedRun}
         onClose={() => setSelectedRun(null)}
         run={selectedRun}
+        topBanner={<AgentRunDiagnosisBanner run={selectedRun} />}
       />
     </motion.div>
   );
