@@ -1803,6 +1803,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const auth = execution?.authorization;
     const wfId = (execution as any)?.workflow?.id;
 
+    // Bump the run-generation counter and abort any in-flight POST /agent
+    // request immediately. This guarantees a slow initial request that
+    // resolves AFTER the user clicks "Cancel" cannot repaint the UI or
+    // swap tabs back to the run view.
+    runGenerationRef.current += 1;
+    try { runAbortRef.current?.abort(); } catch { /* noop */ }
+    runAbortRef.current = null;
+
     // Helper: wipe local run state and return to the Start tab.
     const resetToStart = () => {
       activeExecutionIdRef.current = null;
