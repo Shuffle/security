@@ -2015,6 +2015,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
     return { scheduleDisabledReasons: reasons };
   }, [agentData, execution?.status]);
+
+  // Detect natural-language scheduling intent in the prompt (e.g. "daily at 6 am",
+  // "next monday at 2am", "every 15 minutes"). Used to highlight the Schedule
+  // button and pre-seed the cron picker.
+  const scheduleHint = useMemo(() => parseScheduleHint(actionInput), [actionInput]);
+  // Track which hint we last auto-applied so we never overwrite a manual pick.
+  const lastAppliedHintRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!scheduleHint) return;
+    if (scheduleAnchor) return; // never override while popover is open
+    if (lastAppliedHintRef.current === scheduleHint.cron) return;
+    setScheduleCron(scheduleHint.cron);
+    lastAppliedHintRef.current = scheduleHint.cron;
+  }, [scheduleHint, scheduleAnchor]);
   const scheduleDisabledReason = scheduleDisabledReasons[0] || '';
   const scheduleDisabledTooltip: React.ReactNode = scheduleDisabledReasons.length > 1 ? (
     <Box>
