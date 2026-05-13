@@ -2066,27 +2066,19 @@ function UsecaseDetailContent({
                         px: 1.25,
                         bgcolor: effectiveEnabled
                           ? 'transparent'
-                          : !hasValidatedSource
-                            ? 'hsl(var(--muted))'
-                            : 'hsl(var(--primary, 24 100% 50%))',
+                          : 'hsl(var(--primary, 24 100% 50%))',
                         color: effectiveEnabled
                           ? 'hsl(var(--foreground))'
-                          : !hasValidatedSource
-                            ? 'hsl(var(--muted-foreground))'
-                            : 'hsl(var(--primary-foreground, 0 0% 100%))',
+                          : 'hsl(var(--primary-foreground, 0 0% 100%))',
                         border: effectiveEnabled
                           ? '1px solid hsl(var(--border))'
-                          : !hasValidatedSource
-                            ? '1px dashed hsl(var(--border))'
-                            : '1px solid transparent',
+                          : '1px solid transparent',
                         boxShadow: 'none',
                         '&:hover': {
                           bgcolor: effectiveEnabled
                             ? 'transparent'
-                            : !hasValidatedSource
-                              ? 'hsl(var(--muted))'
-                              : 'hsla(24, 100%, 50%, 0.9)',
-                          borderColor: effectiveEnabled ? 'hsl(var(--foreground) / 0.4)' : !hasValidatedSource ? 'hsl(var(--border))' : 'transparent',
+                            : 'hsla(24, 100%, 50%, 0.9)',
+                          borderColor: effectiveEnabled ? 'hsl(var(--foreground) / 0.4)' : 'transparent',
                           boxShadow: 'none',
                         },
                       }}
