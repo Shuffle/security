@@ -2318,6 +2318,21 @@ function UsecaseDetailContent({
           ) : <Box />}
         </Box>
       )}
+
+      {/* Force-add a tool for the Source / Destination category. Mirrors
+          the alluvial diagram's "+" buttons so this view stays in sync. */}
+      <AppSearchDrawer
+        open={addToolFor !== null}
+        onClose={() => {
+          setAddToolFor(null);
+          // Force IntegrationStatusLite to re-fetch so a newly authenticated
+          // app shows up immediately under Your Tools.
+          setIntegrationsRefreshKey((k) => k + 1);
+        }}
+        title={`Add ${addToolFor ? categoryLabel(addToolFor.categoryId) : ''} Tool`}
+        subtitle="Search and authenticate an integration"
+        priorityCategory={addToolFor?.categoryId}
+      />
     </Box>
   );
 }
