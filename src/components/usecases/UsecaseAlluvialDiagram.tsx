@@ -1158,8 +1158,7 @@ export default function UsecaseAlluvialDiagram({
 
   return (
     <Box sx={{ width: '100%', overflow: 'hidden' }}>
-      {/* Shuffle Pipelines highlight for SIEM usecases */}
-      {isSiemSource && <ShufflePipelinesBanner />}
+
 
       <Box sx={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
         <svg
@@ -1434,7 +1433,7 @@ export default function UsecaseAlluvialDiagram({
         })()}
         title={`Add ${searchOpen === 'left' ? (sourceLabel) : (targetMeta?.label || targetCategory)} Tool`}
         subtitle="Search and authenticate an integration"
-        showPipelinesBanner={isSiemSource && searchOpen === 'left'}
+        
         priorityCategory={searchOpen === 'left' ? (highlightCategory || sourceCategory) : targetCategory}
         connectionPathApps={(() => {
           const apps = searchOpen === 'left' ? sourceApps : targetApps;
