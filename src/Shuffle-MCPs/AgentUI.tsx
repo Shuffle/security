@@ -710,6 +710,72 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         </Box>
       )}
 
+      {/* App authentication required banner — surfaces when the upstream
+          tool returned `action: "app_authentication"` so the user can
+          configure credentials inline without leaving the agent run. */}
+      {open && (() => {
+        const rawResp = (details?.run_details as any)?.raw_response;
+        let parsedRaw: any = null;
+        if (rawResp) {
+          if (typeof rawResp === 'string') {
+            try { parsedRaw = JSON.parse(rawResp); } catch { parsedRaw = null; }
+          } else if (typeof rawResp === 'object') {
+            parsedRaw = rawResp;
+          }
+        }
+        const needsAuth = parsedRaw && (parsedRaw.action === 'app_authentication' || parsedRaw.app_authentication === true);
+        if (!needsAuth) return null;
+        // Resolve app name from raw_response, decision.tool, or decision.fields.
+        let appName: string | undefined =
+          parsedRaw.app || parsedRaw.app_name || parsedRaw.appname;
+        if (!appName && typeof details?.tool === 'string') {
+          const t = details.tool;
+          appName = t.startsWith('app:') ? (t.split(':')[2] || t) : t;
+        }
+        if (!appName) {
+          const f = (details?.fields || []).find((x: any) => x?.key === 'app' || x?.key === 'app_name');
+          if (f?.value) appName = f.value;
+        }
+        if (!appName) return null;
+        const pretty = appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        const appId = appsById[appName]?.id || appsById[appName.toLowerCase()]?.id || null;
+        return (
+          <Box sx={{ px: 4, pb: 2 }}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              p: 1.5,
+              borderRadius: 1.5,
+              border: '1px solid hsla(var(--severity-medium) / 0.3)',
+              bgcolor: 'hsla(var(--severity-medium) / 0.08)',
+            }}>
+              <LockIcon sx={{ color: 'hsl(var(--severity-medium))', fontSize: 20 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                  {pretty} requires authentication
+                </Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                  Connect your {pretty} account so the agent can complete this step, then rerun the decision.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<LockIcon />}
+                disabled={!onAuthenticateApp}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAuthenticateApp?.(appName!, appId);
+                }}
+              >
+                Authenticate {pretty}
+              </Button>
+            </Box>
+          </Box>
+        );
+      })()}
+
       {/* Raw JSON */}
       {open && (
         <Box sx={{ px: 4, pb: 2 }}>
