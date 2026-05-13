@@ -434,14 +434,6 @@ export default function AppDetailDrawer({
           </Typography>
         </Box>
         <IconButton
-          component="a"
-          href={`/apps/${encodeURIComponent(appName || '')}`}
-          size="small"
-          sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--foreground))' } }}
-        >
-          <OpenInNewIcon fontSize="small" />
-        </IconButton>
-        <IconButton
           size="small"
           onClick={handleClose}
           sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--foreground))' } }}
