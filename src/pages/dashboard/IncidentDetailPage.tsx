@@ -5574,12 +5574,14 @@ const IncidentDetailPage = () => {
             <>
               <span>Processing using the tools</span>
               <Tooltip
-                title={enabledAgentTools.map(formatToolName).join(', ')}
+                title={`${enabledAgentTools.map(formatToolName).join(', ')} — click to manage`}
                 arrow
                 disableInteractive
               >
                 <Box
-                  component="span"
+                  component={Link}
+                  to="/agent?openPermissions=1"
+                  onClick={(e) => e.stopPropagation()}
                   sx={{
                     fontWeight: 600,
                     color: 'rgba(236, 81, 124, 0.95)',
@@ -5587,6 +5589,13 @@ const IncidentDetailPage = () => {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     maxWidth: 220,
+                    textDecoration: 'none',
+                    borderBottom: '1px dashed rgba(236, 81, 124, 0.5)',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      color: 'rgba(236, 81, 124, 1)',
+                      borderBottomColor: 'rgba(236, 81, 124, 0.9)',
+                    },
                   }}
                 >
                   {toolsSummary}
@@ -5598,7 +5607,7 @@ const IncidentDetailPage = () => {
               <span>AI Agent has no tools —</span>
               <Box
                 component={Link}
-                to="/incidents/response-actions"
+                to="/agent?openPermissions=1"
                 onClick={(e) => e.stopPropagation()}
                 sx={{
                   fontWeight: 600,
@@ -5611,7 +5620,7 @@ const IncidentDetailPage = () => {
                   },
                 }}
               >
-                Configure tools
+                Assign default tools
               </Box>
             </>
           )}
