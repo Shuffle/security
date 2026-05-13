@@ -8492,7 +8492,7 @@ const IncidentDetailPage = () => {
         </motion.div>
       )}
 
-      {activeTab === 3 && (
+      {activeTab === 3 && (<motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
         /* Correlations Tab */
         <Box sx={{
           bgcolor: 'hsl(var(--card))', 
