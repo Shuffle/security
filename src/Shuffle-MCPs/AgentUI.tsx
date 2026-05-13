@@ -1050,7 +1050,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const pendingAuthApps = useMemo(() => {
     const decisions: any[] = (agentData?.decisions as any[]) || [];
     const seen = new Set<string>();
-    const out: { appName: string; appId: string | null }[] = [];
+    const out: { appName: string; appId: string | null; icon: string }[] = [];
     for (const d of decisions) {
       const req = extractAuthRequest(d);
       if (!req) continue;
@@ -1059,7 +1059,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (isAppAuthenticated(req.appName)) continue;
       seen.add(slug);
       const appId = req.appId || appsById[req.appName]?.id || appsById[slug]?.id || null;
-      out.push({ appName: req.appName, appId });
+      const icon = appsById[req.appName]?.icon || appsById[slug]?.icon || (appId ? appsById[appId]?.icon : '') || '';
+      out.push({ appName: req.appName, appId, icon });
     }
     return out;
   }, [agentData, appsById, isAppAuthenticated]);
