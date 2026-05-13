@@ -2152,7 +2152,6 @@ function UsecaseDetailContent({
             );
           })}
         </Box>
-        )}
       </Box>
       )}
 
