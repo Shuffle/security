@@ -21,6 +21,7 @@
   <!-- Product pages (authenticated, listed for discovery) -->
   <url><loc>https://security.shuffler.io/dashboard</loc><lastmod>2026-05-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://security.shuffler.io/incidents</loc><lastmod>2026-05-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://security.shuffler.io/incidents-simple</loc><lastmod>2026-05-05</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
   <url><loc>https://security.shuffler.io/alerts</loc><lastmod>2026-05-05</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
   <url><loc>https://security.shuffler.io/cases</loc><lastmod>2026-05-05</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
   <url><loc>https://security.shuffler.io/tickets</loc><lastmod>2026-05-05</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
@@ -48,9 +49,6 @@
   <url><loc>https://security.shuffler.io/monitors/response</loc><lastmod>2026-05-05</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://security.shuffler.io/assets</loc><lastmod>2026-05-05</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://security.shuffler.io/vulnerabilities</loc><lastmod>2026-05-05</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://security.shuffler.io/software</loc><lastmod>2026-05-05</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://security.shuffler.io/packages</loc><lastmod>2026-05-05</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
-
   <!-- Admin / Org / Settings -->
   <url><loc>https://security.shuffler.io/users</loc><lastmod>2026-05-05</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://security.shuffler.io/admin</loc><lastmod>2026-05-05</lastmod><changefreq>weekly</changefreq><priority>0.4</priority></url>
