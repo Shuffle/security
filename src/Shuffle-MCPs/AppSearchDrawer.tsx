@@ -11,7 +11,7 @@ import { ShuffleMCP, AppDetailDrawer } from '@/Shuffle-MCPs';
 import type { AppSelectedEvent } from '@/Shuffle-MCPs';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import { ShufflePipelinesBanner } from '@/Shuffle-MCPs/ShufflePipelinesBanner';
-import { IntegrationStatus } from '@/Shuffle-MCPs/IntegrationStatus';
+
 
 // Singul styles — compact dark theme
 const singulStyles = {
