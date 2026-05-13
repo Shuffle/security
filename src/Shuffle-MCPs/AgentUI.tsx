@@ -747,35 +747,16 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         </Box>
       )}
 
-      {/* App authentication required banner — surfaces when the upstream
-          tool returned `action: "app_authentication"` so the user can
-          configure credentials inline without leaving the agent run. */}
-      {open && (() => {
-        const rawResp = (details?.run_details as any)?.raw_response;
-        let parsedRaw: any = null;
-        if (rawResp) {
-          if (typeof rawResp === 'string') {
-            try { parsedRaw = JSON.parse(rawResp); } catch { parsedRaw = null; }
-          } else if (typeof rawResp === 'object') {
-            parsedRaw = rawResp;
-          }
-        }
-        const needsAuth = parsedRaw && (parsedRaw.action === 'app_authentication' || parsedRaw.app_authentication === true);
-        if (!needsAuth) return null;
-        // Resolve app name from raw_response, decision.tool, or decision.fields.
-        let appName: string | undefined =
-          parsedRaw.app || parsedRaw.app_name || parsedRaw.appname;
-        if (!appName && typeof details?.tool === 'string') {
-          const t = details.tool;
-          appName = t.startsWith('app:') ? (t.split(':')[2] || t) : t;
-        }
-        if (!appName) {
-          const f = (details?.fields || []).find((x: any) => x?.key === 'app' || x?.key === 'app_name');
-          if (f?.value) appName = f.value;
-        }
-        if (!appName) return null;
-        const pretty = appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-        const appId = appsById[appName]?.id || appsById[appName.toLowerCase()]?.id || null;
+      {/* App authentication required banner — surfaces whenever the upstream
+          tool returned `action: "app_authentication"`. Always visible
+          (regardless of expand state) so users do not have to click into
+          a failed step to discover that auth is missing. */}
+      {(() => {
+        const req = extractAuthRequest(details);
+        if (!req) return null;
+        const pretty = req.appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        const slug = req.appName.toLowerCase().replace(/[\s-]+/g, '_');
+        const appId = req.appId || appsById[req.appName]?.id || appsById[slug]?.id || null;
         return (
           <Box sx={{ px: 4, pb: 2 }}>
             <Box sx={{
@@ -803,7 +784,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                 disabled={!onAuthenticateApp}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onAuthenticateApp?.(appName!, appId);
+                  onAuthenticateApp?.(req.appName, appId);
                 }}
               >
                 Authenticate {pretty}
