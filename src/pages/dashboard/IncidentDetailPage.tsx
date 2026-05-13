@@ -8710,6 +8710,7 @@ const IncidentDetailPage = () => {
             onValidationChange={setRawJsonValid}
           />
         </Box>
+        </motion.div>
       )}
 
       {activeTab === 6 && unmappedOriginal && (
