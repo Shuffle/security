@@ -204,6 +204,7 @@ const AgentExecutionDrawer = ({
 
       {/* Body — embedded AgentUI seeded with the pre-loaded run */}
       <Box sx={[{ flex: 1, overflowY: 'auto', pt: 3 }, ...(Array.isArray(bodySx) ? bodySx : bodySx ? [bodySx] : [])]}>
+        {topBanner}
         {run ? (
           <AgentUI
             key={run.execution_id}
