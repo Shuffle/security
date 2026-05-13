@@ -153,6 +153,11 @@ const AssignedToolsSection = ({
 }: Props) => {
   const [tools, setTools] = useState<string[]>(() => getAgentTools(agent, actionType));
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Same drawer the global INTEGRATIONS strip uses, so clicking an
+  // assigned-tool pill opens the catalog detail page for that app
+  // instead of doing nothing — matching the behaviour from elsewhere
+  // in the app.
+  const appDetail = useAppDetailOptional();
 
   useEffect(() => {
     const refresh = () => setTools(getAgentTools(agent, actionType));
