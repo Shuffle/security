@@ -270,11 +270,11 @@ const AssignedToolsSection = ({
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
               {tools.map((t) => (
                 <ToolPill
-                  key={t}
-                  name={t}
-                  icon={icons[t]}
-                  onRemove={() => removeAgentTool(t, agent, actionType)}
-                  onOpen={appDetail ? () => appDetail.openApp(t) : undefined}
+                  key={t.id || t.name}
+                  name={t.name}
+                  icon={icons[t.name]}
+                  onRemove={() => removeAgentTool(t.id || t.name, agent, actionType)}
+                  onOpen={appDetail ? () => appDetail.openApp(t.name) : undefined}
                 />
               ))}
             </Box>
