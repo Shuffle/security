@@ -7706,7 +7706,7 @@ const IncidentDetailPage = () => {
         </Box>
         );
       })()}
-      </Box>
+      </motion.div>
 
       {activeTab === 2 && (
         /* Observables Tab */
