@@ -8,6 +8,7 @@ import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
 import AgentHandoffWatcher from '@/components/agent/AgentHandoffWatcher';
 import GlobalAgentDrawer from '@/components/agent/GlobalAgentDrawer';
 import { useAuth } from '@/context/AuthContext';
+import { loadAgentToolsFromDatastore } from '@/lib/agentTools';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
