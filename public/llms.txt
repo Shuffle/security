@@ -1,0 +1,52 @@
+# Shuffle Security
+
+> Open source alert and case management for security teams. Frontend for the Shuffle Core API with AI agents, OCSF-aligned incidents, detections, and 3,000+ integrations.
+
+Shuffle Security consolidates alerts and cases as Incidents (OCSF 2005), runs AI agents for triage and response, and integrates with the Shuffle automation platform.
+
+## Pages
+
+- [Home](/): Product overview and entry point.
+- [Apps](/apps): Catalog of 3,000+ security integrations.
+- [Shuffle MCP demo](/shuffle-mcp-demo): Live MCP server demo.
+- [Docs](/docs): Documentation index.
+- [Getting started](/docs/getting-started): Initial setup guide.
+- [Setup](/docs/setup): Configuration reference.
+
+## Product
+
+- [Dashboard](/dashboard): Overview and setup guide.
+- [Incidents](/incidents): OCSF 2005 incident management.
+- [Alerts](/alerts): Raw alert stream.
+- [Cases](/cases): Investigation cases.
+- [Tickets](/tickets): Ticket queue.
+- [Jobs](/jobs): Background job runs.
+- [Templates](/templates): Reusable response templates.
+- [Agent](/agent): AI agent activity and approvals.
+- [Infrastructure](/infrastructure): Workflow and automation infrastructure.
+- [Usecases](/usecases): Pre-built security use cases.
+
+## Detection
+
+- [Detection](/detection): Detection overview.
+- [Sigma rules](/detection/sigma): Sigma rule editor and AI generation.
+- [Pipelines](/detection/pipelines): Tenzir detection pipelines.
+- [MITRE ATT&CK](/detection/mitre): MITRE coverage dashboard.
+- [IOC types](/detection/ioc-types): IOC type configuration.
+- [Threat feeds](/detection/threat-feeds): MISP and threat feed sources.
+
+## Assets
+
+- [Monitors](/monitors): Host monitors and sensors.
+- [Assets](/assets): OCSF 6002 asset inventory.
+- [Vulnerabilities](/vulnerabilities): Vulnerability management.
+
+## Optional
+
+- [Login](/login): Sign in.
+- [Register](/register): Create an account.
+- [Onboarding](/onboarding): First-run setup wizard.
+- [Settings](/settings): Account settings.
+- [Preferences](/preferences): Workspace preferences.
+- [Organizations](/organizations): Organization management.
+- [Users](/users): User administration.
