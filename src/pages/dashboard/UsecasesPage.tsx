@@ -2973,6 +2973,7 @@ function UsecasesPageInner() {
             const drawerFlow = drawerFlowId ? usecases.find(u => u.id === drawerFlowId) : null;
             const drawerEnabled = drawerFlow ? isFlowVisuallyEnabled(drawerFlow) : false;
             const drawerCanToggle = isAuthenticated && !!drawerFlow?.automationLabel;
+            const drawerHasValidatedSource = drawerFlow ? validatedCategories.has(drawerFlow.source) : true;
             return (
               <UsecaseDetailContent
                 flowId={drawerFlowId ?? undefined}
@@ -2983,6 +2984,7 @@ function UsecasesPageInner() {
                 isEnabled={drawerEnabled}
                 canToggle={drawerCanToggle}
                 isAuthenticated={isAuthenticated}
+                hasValidatedSource={drawerHasValidatedSource}
                 onToggled={handleUsecaseWorkflowGenerated}
                 workflows={workflows}
               />
