@@ -128,8 +128,9 @@ const ThemedApp = () => {
         closeOnClick
         pauseOnHover
         draggable
-        style={{ width: 420 }}
-        toastStyle={{ width: 420 }}
+        icon
+        hideProgressBar={false}
+        style={{ width: 'auto', maxWidth: 420 }}
       />
       <AuthProvider>
         <BrowserRouter>
