@@ -388,6 +388,9 @@ interface TimelineRowProps {
   runFinished?: boolean;
   onAuthenticateApp?: (appName: string, appId?: string | null) => void;
   isAppAuthenticated?: (appName: string) => boolean;
+  /** When true, briefly draw attention to this row + its output. Used after
+   *  a "jump to evidence" click from the diagnosis banner. */
+  highlight?: boolean;
 }
 
 const TimelineRow: React.FC<TimelineRowProps> = ({
