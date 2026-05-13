@@ -20,6 +20,7 @@ import {
   formatToolName,
   getAgentTools,
   removeAgentTool,
+  type ToolRef,
 } from '@/lib/agentTools';
 
 interface Props {
