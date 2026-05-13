@@ -8416,6 +8416,7 @@ const IncidentDetailPage = () => {
                                       key={c.key || ci}
                                       correlation={c}
                                       currentIncidentId={id}
+                                      ignoredObservables={ignoredObs}
                                       compact
                                     />
                                   ))}
@@ -8504,6 +8505,7 @@ const IncidentDetailPage = () => {
                         key={c.key || i}
                         correlation={c}
                         currentIncidentId={id}
+                        ignoredObservables={ignoredObs}
                         compact
                       />
                     ))}
@@ -8598,6 +8600,7 @@ const IncidentDetailPage = () => {
                     key={corr.key || idx}
                     correlation={corr}
                     currentIncidentId={id}
+                    ignoredObservables={ignoredObs}
                     focusedIncidentKey={focusedReferrerIncidentKey}
                     className={flashedCorrelationKey === corr.key ? 'incident-new-flash' : undefined}
                   />
