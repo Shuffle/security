@@ -813,9 +813,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                   height: 36, textTransform: 'none', fontWeight: 600,
                   bgcolor: 'transparent',
                   color: 'hsl(var(--foreground))',
-                  border: '1px solid hsl(var(--border))',
+                  border: '1px solid hsl(var(--severity-medium))',
+                  borderColor: 'hsl(var(--severity-medium))',
                   boxShadow: 'none',
-                  '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--foreground) / 0.4)', boxShadow: 'none' },
+                  '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--severity-medium))', boxShadow: 'none' },
                 }}
               >
                 Authenticate {pretty}
@@ -2751,9 +2752,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                                 height: 36, textTransform: 'none', fontWeight: 600,
                                 bgcolor: 'transparent',
                                 color: 'hsl(var(--foreground))',
-                                border: '1px solid hsl(var(--border))',
+                                border: '1px solid hsl(var(--severity-medium))',
+                                borderColor: 'hsl(var(--severity-medium))',
                                 boxShadow: 'none',
-                                '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--foreground) / 0.4)', boxShadow: 'none' },
+                                '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--severity-medium))', boxShadow: 'none' },
                               }}
                             >
                               Authenticate {pretty}
