@@ -606,20 +606,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               </Tooltip>
             </>
           )}
-          {item.type === 'agent' && (
-            <Tooltip title="Rerun the agent with the same input">
-              <span>
-                <IconButton
-                  size="small"
-                  disabled={agentRequestLoading}
-                  onClick={onRerunAgent}
-                  sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
-                >
-                  <RestartAltIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          )}
+          {item.type === 'agent' && null}
           {item.type === 'decision' && (() => {
             const action = details?.action;
             const cat = item.category;
