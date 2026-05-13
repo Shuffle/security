@@ -2248,8 +2248,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               />
               {(() => {
                 const canSchedule = hasExecution && !scheduleDisabledReason;
-                const tip = scheduleDisabledReason
-                  ? scheduleDisabledReason
+                const tip: React.ReactNode = scheduleDisabledReason
+                  ? scheduleDisabledTooltip
                   : hasExecution
                     ? 'Schedule this prompt to run repeatedly on a cron schedule'
                     : agentRequestLoading
