@@ -1065,6 +1065,10 @@ const toast = {
     if (typeof window !== 'undefined') console.error('[toast]', msg);
     sonnerToast.error(msg, opts);
   },
+  warning: (msg: string, opts?: { duration?: number; description?: string }) => {
+    if (typeof window !== 'undefined') console.warn('[toast]', msg);
+    sonnerToast.warning(msg, opts);
+  },
 };
 
 // ============================================================================
