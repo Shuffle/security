@@ -52,6 +52,8 @@ export interface AgentRunRequest {
   apiKey?: string;
   apiBaseUrl?: string;
   orgId?: string;
+  /** Optional AbortSignal so callers can cancel the in-flight request. */
+  signal?: AbortSignal;
 }
 
 /** Build URL + headers honouring optional per-call overrides. */
