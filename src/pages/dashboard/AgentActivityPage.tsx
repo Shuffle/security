@@ -29,7 +29,7 @@ import {
   AgentExecutionDrawer,
   type AgentRun,
 } from '@/Shuffle-MCPs';
-import { useAuth } from '@/context/AuthContext';
+
 import { useAgentPermissions } from '@/hooks/useAgentPermissions';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
