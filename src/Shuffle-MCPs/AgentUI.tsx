@@ -2771,6 +2771,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
             );
           }}
         />
+
+        <AppDetailDrawer
+          open={!!authDrawerApp}
+          onClose={() => setAuthDrawerApp(null)}
+          appName={authDrawerApp?.name || null}
+          appId={authDrawerApp?.id || null}
+          activeOrgId={orgId || null}
+        />
       </Box>
     </Box>
   );
