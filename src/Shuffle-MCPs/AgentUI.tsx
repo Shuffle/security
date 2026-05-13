@@ -2060,6 +2060,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       bgcolor: 'hsl(var(--card))',
       width: 'fit-content',
       alignSelf: 'center',
+      position: 'sticky',
+      top: 8,
+      zIndex: 5,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
     }}>
       <Box sx={{ display: 'inline-flex', gap: 0.25, p: 0.25, borderRadius: 999, bgcolor: 'hsl(var(--muted) / 0.6)' }}>
         {(['start', 'simple', 'detailed'] as TabKey[]).map((t) => {
