@@ -325,12 +325,19 @@ function highlightSnippet(code: string, lang: SnippetLang): string {
 
 const SingulActionsPreview = ({
   appName,
+  appIcon,
   categories,
   activeOrgId,
+  onAuthenticate,
 }: {
   appName: string;
+  appIcon?: string;
   categories?: string[];
   activeOrgId?: string | null;
+  /** Optional click handler invoked when the user presses the
+   *  "Authenticate {App}" button surfaced after an
+   *  `action: "app_authentication"` response. */
+  onAuthenticate?: (appName: string) => void;
 }) => {
   const defaultCategory = useMemo(() => pickDefaultCategory(categories), [categories]);
   const actions = ALL_ACTIONS;
