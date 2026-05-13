@@ -14,7 +14,7 @@
  * dimension of relevance. A correlated incident from yesterday at Critical
  * severity is materially different from one from 8 months ago at Low.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Chip, CircularProgress, Tooltip } from '@mui/material';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import { getDatastoreItem } from '@/Shuffle-MCPs/datastore';
@@ -105,12 +105,18 @@ const extractPreview = (raw: unknown): { title?: string; severity?: string; when
 };
 
 export const CorrelationContextStrip = ({ incidentKeys, category = 'shuffle-security_incidents', compact = false }: CorrelationContextStripProps) => {
-  const [previews, setPreviews] = useState<RefPreview[]>(() => incidentKeys.map(k => ({ key: k, loading: true })));
+  // Stabilize keys array — parents pass a fresh array each render, which
+  // otherwise retriggers the fetch effect every tick (caused the
+  // "no longer exists" row to flicker / re-poll constantly).
+  const keysSignature = incidentKeys.join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableKeys = useMemo(() => incidentKeys.slice(), [keysSignature]);
+  const [previews, setPreviews] = useState<RefPreview[]>(() => stableKeys.map(k => ({ key: k, loading: true })));
 
   useEffect(() => {
     let cancelled = false;
-    setPreviews(incidentKeys.map(k => ({ key: k, loading: true })));
-    incidentKeys.forEach(async (key) => {
+    setPreviews(stableKeys.map(k => ({ key: k, loading: true })));
+    stableKeys.forEach(async (key) => {
       try {
         const result = await getDatastoreItem(key, category);
         if (cancelled) return;
@@ -135,7 +141,7 @@ export const CorrelationContextStrip = ({ incidentKeys, category = 'shuffle-secu
       }
     });
     return () => { cancelled = true; };
-  }, [incidentKeys, category]);
+  }, [stableKeys, category]);
 
   if (incidentKeys.length === 0) return null;
 
