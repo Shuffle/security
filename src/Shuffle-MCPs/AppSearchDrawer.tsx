@@ -241,13 +241,6 @@ export default function AppSearchDrawer({
         <Box sx={{ flex: 1, boxSizing: 'border-box', overflow: 'hidden', p: 3, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {showPipelinesBanner && <ShufflePipelinesBanner />}
 
-          {/* Your Apps — reuse IntegrationStatus */}
-          {API_CONFIG.apiKey && (
-            <Box sx={{ mb: 2.5 }}>
-              <IntegrationStatus collapsed={false} showAll hideAddButton priorityCategory={priorityCategory} />
-            </Box>
-          )}
-
           {/* Connection path apps — shown first */}
           {connectionPathApps && connectionPathApps.length > 0 && (
             <Box sx={{ mb: 2.5 }}>
