@@ -57,9 +57,9 @@ const getDefaultIOCTypes = (): IOCType[] =>
 const IOCTypesPage = () => {
 
   usePageMeta({
-    title: 'IOC types',
-    description: 'Configure indicator of compromise (IOC) types and enrichment priorities.',
-    url: '/incidents/ioc-types',
+    title: 'Observables',
+    description: 'Configure observable / indicator of compromise (IOC) types and enrichment priorities.',
+    url: '/incidents/observables',
   });
   const enrichmentStatus = useEnrichmentStatus();
   const { items, isLoading, error, fetchItems, addItem, removeItem } = useDatastore({ category: CATEGORY });
