@@ -398,8 +398,6 @@ const AgentActivityList = ({
     }
   }, [workflowFilter, selectedAgentWorkflow, apiKey, apiBaseUrl, orgId, onEditWorkflow]);
 
-    }
-  }, [workflowFilter, apiKey, apiBaseUrl, orgId, onTryWorkflow]);
 
   const confirmStop = useCallback(async () => {
     if (!workflowFilter) return;
