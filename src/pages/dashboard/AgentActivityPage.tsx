@@ -33,7 +33,7 @@ import { useAgentPermissions } from '@/hooks/useAgentPermissions';
 import AgentRunDiagnosisBanner from '@/components/agent/AgentRunDiagnosisBanner';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useScheduleAgentRun } from '@/hooks/useScheduleAgentRun';
-import { toast } from '@/Shuffle-MCPs/toast';
+import type { AgentUIProps } from '@/Shuffle-MCPs';
 
 const AgentActivityPage = () => {
 
