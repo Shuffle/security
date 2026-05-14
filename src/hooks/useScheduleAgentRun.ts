@@ -45,14 +45,11 @@ export interface ScheduleAgentRunArgs {
   onStep?: (event: ScheduleStepEvent) => void;
 }
 
-const buildToolName = (apps: Array<{ name: string; id?: string }>): string => {
+const buildAppNameValue = (apps: Array<{ name: string }>): string => {
   if (!apps || apps.length === 0) return '';
   return apps
     .filter((a) => !!a?.name)
-    .map((a) => {
-      const slug = a.name.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
-      return a.id ? `app:${a.id}:${slug}` : slug;
-    })
+    .map((a) => a.name)
     .join(',');
 };
 
