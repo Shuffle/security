@@ -14,6 +14,8 @@ import {
   Chip,
   CircularProgress,
   InputAdornment,
+  MenuItem,
+  Select,
   TextField,
   Tooltip,
   Typography,
@@ -35,7 +37,9 @@ import {
 
 import {
   searchAgentActivity,
+  listAgentScheduleWorkflows,
   type AgentRun,
+  type AgentScheduleWorkflow,
 } from './agentActivity';
 
 // ── Status / icon helpers ────────────────────────────────────────────────────
@@ -301,6 +305,8 @@ const AgentActivityList = ({
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [agentWorkflows, setAgentWorkflows] = useState<AgentScheduleWorkflow[]>([]);
+  const [workflowFilter, setWorkflowFilter] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const updateSearchQuery = useCallback((q: string) => {
@@ -325,6 +331,7 @@ const AgentActivityList = ({
           apiKey,
           apiBaseUrl,
           orgId,
+          workflowId: workflowFilter || 'AGENT',
         });
         if (result.success) {
           setRuns((prev) => (append ? [...prev, ...result.runs] : result.runs));
@@ -339,13 +346,22 @@ const AgentActivityList = ({
         setIsLoading(false);
       }
     },
-    [statusFilter, limit, apiKey, apiBaseUrl, orgId],
+    [statusFilter, limit, apiKey, apiBaseUrl, orgId, workflowFilter],
   );
 
   useEffect(() => {
     fetchRuns(false, '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, apiKey, apiBaseUrl, orgId]);
+  }, [statusFilter, apiKey, apiBaseUrl, orgId, workflowFilter]);
+
+  // Load the agentic workflow list (workflow_type = AGENT_SCHEDULE) once.
+  useEffect(() => {
+    let cancelled = false;
+    listAgentScheduleWorkflows({ apiKey, apiBaseUrl, orgId })
+      .then((items) => { if (!cancelled) setAgentWorkflows(items); })
+      .catch(() => { /* non-fatal — dropdown stays "All" only */ });
+    return () => { cancelled = true; };
+  }, [apiKey, apiBaseUrl, orgId]);
 
   const loadMore = useCallback(() => {
     if (cursor && !isLoading) fetchRuns(true, cursor);
@@ -427,6 +443,48 @@ const AgentActivityList = ({
                 }}
               />
             ))}
+          <Select
+            size="small"
+            value={workflowFilter}
+            onChange={(e) => setWorkflowFilter(String(e.target.value))}
+            displayEmpty
+            renderValue={(val) => {
+              if (!val) return 'All agentic workflows';
+              const wf = agentWorkflows.find((w) => w.id === val);
+              return wf?.name || 'Selected workflow';
+            }}
+            sx={{
+              height: 28,
+              minWidth: 200,
+              maxWidth: 260,
+              fontSize: '0.75rem',
+              bgcolor: 'hsl(var(--card))',
+              color: 'hsl(var(--foreground))',
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--muted-foreground) / 0.3)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--primary))' },
+              '& .MuiSelect-select': { py: 0.5 },
+            }}
+            MenuProps={{
+              slotProps: {
+                paper: {
+                  sx: {
+                    bgcolor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                    maxHeight: 320,
+                  },
+                },
+              },
+            }}
+          >
+            <MenuItem value="" sx={{ fontSize: '0.8rem' }}>All agentic workflows</MenuItem>
+            {agentWorkflows.map((w) => (
+              <MenuItem key={w.id} value={w.id} sx={{ fontSize: '0.8rem' }}>
+                {w.name}
+              </MenuItem>
+            ))}
+          </Select>
           {isLoading && runs.length > 0 && (
             <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))', ml: 0.5 }} />
           )}

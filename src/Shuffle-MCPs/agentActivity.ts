@@ -78,6 +78,8 @@ export interface AgentActivityParams {
   apiBaseUrl?: string;
   /** Optional Shuffle Org ID — sent as the `Org-Id` header. */
   orgId?: string;
+  /** Workflow ID to search. Defaults to the synthetic 'AGENT' grouping. */
+  workflowId?: string;
 }
 
 const resolveUrl = (path: string, baseUrl?: string): string =>
@@ -92,7 +94,7 @@ const resolveHeaders = (apiKey?: string, orgId?: string): Record<string, string>
 };
 
 /**
- * Search agent workflow executions (workflow_id = "AGENT").
+ * Search agent workflow executions (workflow_id = "AGENT" by default).
  */
 export const searchAgentActivity = async (
   params: AgentActivityParams = {}
@@ -107,10 +109,11 @@ export const searchAgentActivity = async (
     apiKey,
     apiBaseUrl,
     orgId,
+    workflowId = 'AGENT',
   } = params;
 
   const payload = {
-    workflow_id: 'AGENT',
+    workflow_id: workflowId,
     cursor,
     limit,
     status,
@@ -139,6 +142,35 @@ export const searchAgentActivity = async (
     runs: data.runs || [],
     cursor: data.cursor || '',
   };
+};
+
+export interface AgentScheduleWorkflow {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+/**
+ * List workflows of type AGENT_SCHEDULE — used to populate the agentic
+ * workflow dropdown in the activity list.
+ */
+export const listAgentScheduleWorkflows = async (
+  params: { apiKey?: string; apiBaseUrl?: string; orgId?: string } = {},
+): Promise<AgentScheduleWorkflow[]> => {
+  const { apiKey, apiBaseUrl, orgId } = params;
+  const response = await fetch(resolveUrl('/api/v1/workflows', apiBaseUrl), {
+    method: 'GET',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...resolveHeaders(apiKey, orgId) },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch workflows: ${response.statusText}`);
+  }
+  const data = await response.json();
+  const list: any[] = Array.isArray(data) ? data : (data?.workflows || []);
+  return list
+    .filter((w) => w && w.workflow_type === 'AGENT_SCHEDULE')
+    .map((w) => ({ id: w.id || w._id, name: w.name || 'Untitled', description: w.description }));
 };
 
 // Re-export so consumers can read base config if needed.
