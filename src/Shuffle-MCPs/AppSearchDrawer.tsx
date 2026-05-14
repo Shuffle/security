@@ -426,8 +426,9 @@ export default function AppSearchDrawer({
                   hitsPerPage={12}
                   showDescription={false}
                   showCategories={true}
-                  showCheckbox={false}
-                  multiSelect={false}
+                  showCheckbox={multiSelect}
+                  multiSelect={multiSelect}
+                  selectedApps={multiSelect ? projectedSelectedApps : undefined}
                   preventDefault={true}
                   onAppSelected={handleAppSelected}
                   pinnedApps={pinnedApps?.map(p => ({
