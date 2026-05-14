@@ -1020,25 +1020,30 @@ const AgentUI: React.FC<AgentUIProps> = ({
   stateRef.current.localRunStart = localRunStart;
   stateRef.current.showStarter = showStarter;
 
-  // Reset / capture the local run start whenever a new execution begins.
+  // Reset / capture the local run start. Seed as soon as the user submits
+  // (so the counter ticks from t=0 even before /agent returns), and keep it
+  // pinned until the run is cleared. Without this, the "0s/1s" counter
+  // freezes because the backend's `started_at` keeps catching up to `now`
+  // on every poll.
   useEffect(() => {
-    if (execution?.execution_id) {
+    if (execution?.execution_id || agentRequestLoading) {
       setLocalRunStart((prev) => prev ?? Math.floor(Date.now() / 1000));
-    } else if (!agentRequestLoading) {
+    } else {
       setLocalRunStart(null);
     }
   }, [execution?.execution_id, agentRequestLoading]);
 
-  // Tick every second while a run is in progress so the Simple view duration
-  // counts up live instead of being frozen at "1s".
+  // Tick every second while anything run-related is in flight. Deps are
+  // intentionally minimal so the interval is NOT torn down and recreated on
+  // every poll response — that was making the "Xs" counter look frozen at 1s.
   useEffect(() => {
     const status = (execution?.status || agentData?.status || '').toUpperCase();
     const TERMINAL = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
     if (TERMINAL.includes(status)) return;
-    if (!execution?.execution_id && !agentRequestLoading && !localRunStart) return;
     const id = setInterval(() => setNowTick(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(id);
-  }, [execution?.execution_id, execution?.status, agentData?.status, agentRequestLoading, localRunStart]);
+  }, [execution?.status, agentData?.status]);
+
 
   const readImageAsDataUrl = (file: File): Promise<{ dataUrl: string; name: string } | null> =>
     new Promise((resolve) => {
