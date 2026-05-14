@@ -438,7 +438,7 @@ const AgentActivityList = ({
           <CircularProgress size={28} sx={{ color: 'hsl(var(--primary))' }} />
         </Box>
       ) : error ? (
-        <Box sx={{ textAlign: 'center', py: 6 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', py: 6 }}>
           <AlertCircle size={28} style={{ color: 'hsl(var(--severity-critical, 0 72% 55%))', marginBottom: 8 }} />
           <Typography
             sx={{ color: 'hsl(var(--severity-critical, 0 72% 55%))', fontSize: '0.9rem', mb: 1 }}
