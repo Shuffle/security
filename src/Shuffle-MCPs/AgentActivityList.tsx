@@ -47,7 +47,7 @@ import {
   type AgentRun,
   type AgentScheduleWorkflow,
 } from './agentActivity';
-import { Pencil, Play, StopCircle } from 'lucide-react';
+import { Pencil, StopCircle } from 'lucide-react';
 
 // ── Status / icon helpers ────────────────────────────────────────────────────
 
