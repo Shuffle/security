@@ -127,7 +127,17 @@ interface AppSearchDrawerProps {
   highlightAppName?: string;
   /** Delay before the highlight kicks in (default 5000ms) */
   highlightDelayMs?: number;
+  /** Enable multi-select: clicking apps toggles them in/out of the selection,
+   *  drawer stays open, and the picker shows checkboxes + a primary-bordered
+   *  highlight on already-chosen rows. */
+  multiSelect?: boolean;
+  /** Currently chosen apps (used to highlight rows in multi-select mode).
+   *  Match is by objectID first, then by normalized name. */
+  selectedApps?: Array<{ name: string; id?: string | null; icon?: string }>;
+  /** Fires whenever the selection changes in multi-select mode. */
+  onSelectionChange?: (apps: Array<{ name: string; id: string | null; icon: string; categories: string[] }>) => void;
 }
+
 
 export default function AppSearchDrawer({
   open,
