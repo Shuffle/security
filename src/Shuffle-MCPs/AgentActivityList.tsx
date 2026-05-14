@@ -466,12 +466,14 @@ const AgentActivityList = ({
               '& .MuiSelect-select': { py: 0.5 },
             }}
             MenuProps={{
-              PaperProps: {
-                sx: {
-                  bgcolor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  color: 'hsl(var(--foreground))',
-                  maxHeight: 320,
+              slotProps: {
+                paper: {
+                  sx: {
+                    bgcolor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                    maxHeight: 320,
+                  },
                 },
               },
             }}
