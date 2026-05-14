@@ -3048,19 +3048,42 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
               <Tooltip title={submitTooltip} placement="top" arrow>
                 <span>
-                  <IconButton
-                    type="submit"
-                    disabled={actionInput.trim().length < 6 || agentRequestLoading}
-                    sx={{
-                      width: 36, height: 36,
-                      bgcolor: actionInput.trim().length >= 3 ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                      color: actionInput.trim().length >= 3 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                      '&:hover': actionInput.trim().length >= 3 ? { filter: 'brightness(1.1)', bgcolor: 'hsl(var(--primary))' } : {},
-                      '&.Mui-disabled': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
-                    }}
-                  >
-                    {agentRequestLoading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : (submitIcon ?? <PlayArrowRoundedIcon />)}
-                  </IconButton>
+                  {submitLabel ? (
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={actionInput.trim().length < 6 || agentRequestLoading}
+                      startIcon={agentRequestLoading ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : null}
+                      sx={{
+                        height: 36,
+                        px: 2,
+                        textTransform: 'none',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        boxShadow: 'none',
+                        bgcolor: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary-foreground))',
+                        '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)', boxShadow: 'none' },
+                        '&.Mui-disabled': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
+                      }}
+                    >
+                      {submitLabel}
+                    </Button>
+                  ) : (
+                    <IconButton
+                      type="submit"
+                      disabled={actionInput.trim().length < 6 || agentRequestLoading}
+                      sx={{
+                        width: 36, height: 36,
+                        bgcolor: actionInput.trim().length >= 3 ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                        color: actionInput.trim().length >= 3 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                        '&:hover': actionInput.trim().length >= 3 ? { filter: 'brightness(1.1)', bgcolor: 'hsl(var(--primary))' } : {},
+                        '&.Mui-disabled': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
+                      }}
+                    >
+                      {agentRequestLoading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : (submitIcon ?? <PlayArrowRoundedIcon />)}
+                    </IconButton>
+                  )}
                 </span>
               </Tooltip>
               </Box>
