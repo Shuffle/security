@@ -316,7 +316,63 @@ const AgentActivityList = ({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [agentWorkflows, setAgentWorkflows] = useState<AgentScheduleWorkflow[]>([]);
   const [workflowFilter, setWorkflowFilter] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [stopOpen, setStopOpen] = useState(false);
+  const [stopLoading, setStopLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const selectedAgentWorkflow = agentWorkflows.find((w) => w.id === workflowFilter) || null;
+
+  const openEditPrompt = useCallback(async () => {
+    if (!workflowFilter) return;
+    setEditOpen(true);
+    setEditError(null);
+    setEditPrompt('');
+    setEditLoading(true);
+    try {
+      const { prompt } = await getAgentSchedulePrompt(workflowFilter, { apiKey, apiBaseUrl, orgId });
+      setEditPrompt(prompt);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : 'Failed to load prompt');
+    } finally {
+      setEditLoading(false);
+    }
+  }, [workflowFilter, apiKey, apiBaseUrl, orgId]);
+
+  const savePrompt = useCallback(async () => {
+    if (!workflowFilter) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      await updateAgentSchedulePrompt(workflowFilter, editPrompt, { apiKey, apiBaseUrl, orgId });
+      setEditOpen(false);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : 'Failed to save prompt');
+    } finally {
+      setEditSaving(false);
+    }
+  }, [workflowFilter, editPrompt, apiKey, apiBaseUrl, orgId]);
+
+  const confirmStop = useCallback(async () => {
+    if (!workflowFilter) return;
+    setStopLoading(true);
+    try {
+      await stopAgentSchedule(workflowFilter, { apiKey, apiBaseUrl, orgId });
+      setStopOpen(false);
+      // Refresh workflow list and clear the filter so list goes back to "All".
+      const items = await listAgentScheduleWorkflows({ apiKey, apiBaseUrl, orgId });
+      setAgentWorkflows(items);
+      setWorkflowFilter('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to stop schedule');
+    } finally {
+      setStopLoading(false);
+    }
+  }, [workflowFilter, apiKey, apiBaseUrl, orgId]);
 
   const updateSearchQuery = useCallback((q: string) => {
     setSearchQuery(q);
