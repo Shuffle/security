@@ -2907,7 +2907,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         </Typography>
                         <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
                           {decisionCount} step{decisionCount === 1 ? '' : 's'}
-                          {durationSec != null ? ` · ${durationSec.toFixed(2)}s` : ''}
+                          {durationSec != null ? ` · ${Math.round(durationSec)}s` : ''}
                         </Typography>
                         <Box sx={{ flexGrow: 1 }} />
                       </Box>
