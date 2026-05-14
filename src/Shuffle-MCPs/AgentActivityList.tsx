@@ -37,7 +37,9 @@ import {
 
 import {
   searchAgentActivity,
+  listAgentScheduleWorkflows,
   type AgentRun,
+  type AgentScheduleWorkflow,
 } from './agentActivity';
 
 // ── Status / icon helpers ────────────────────────────────────────────────────
