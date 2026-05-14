@@ -2047,7 +2047,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       prevEnd = dec.end_time || decStart;
     }
     items.push(...processingRows);
-    items.sort((a, b) => (a.start_time || 0) - (b.start_time || 0));
+    sortItems(items);
 
     const start = items.reduce((acc, it) => Math.min(acc, it.start_time || acc), Infinity);
     const end = items.reduce((acc, it) => Math.max(acc, it.end_time || acc), 0);
