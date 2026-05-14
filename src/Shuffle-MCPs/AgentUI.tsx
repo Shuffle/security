@@ -2783,7 +2783,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Tooltip>
                 ) : null;
               })()}
-              <Tooltip title="Rerun the agent with the same input">
+              <Tooltip title="Go back to Start with the same prompt and tools pre-filled">
                 <span>
                   <IconButton
                     size="small"
