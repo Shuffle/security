@@ -2494,16 +2494,169 @@ const AgentUI: React.FC<AgentUIProps> = ({
             )}
           </Box>
         )}
+        {/* Structured recurrence builder (Google Calendar style) */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+          <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
+            Repeat every
+          </Typography>
+          <TextField
+            size="small"
+            type="number"
+            value={schedInterval}
+            onChange={(e) => { cronManualOverrideRef.current = false; setSchedInterval(Math.max(1, Number(e.target.value) || 1)); }}
+            inputProps={{ min: 1, max: 999, style: { padding: '6px 8px', width: 48, textAlign: 'center', fontSize: '0.8rem' } }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'hsl(var(--muted))',
+                color: 'hsl(var(--foreground))',
+                '& fieldset': { borderColor: 'hsl(var(--border))' },
+                '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+              },
+            }}
+          />
+          <Select
+            size="small"
+            value={schedFreq}
+            onChange={(e) => { cronManualOverrideRef.current = false; setSchedFreq(e.target.value as SchedFreq); }}
+            sx={{
+              flex: 1,
+              fontSize: '0.8rem',
+              bgcolor: 'hsl(var(--muted))',
+              color: 'hsl(var(--foreground))',
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--primary))' },
+              '& .MuiSelect-icon': { color: 'hsl(var(--muted-foreground))' },
+              '& .MuiSelect-select': { py: '6px' },
+            }}
+            MenuProps={{ PaperProps: { sx: { bgcolor: 'hsl(var(--popover))', color: 'hsl(var(--foreground))', border: '1px solid hsl(var(--border))' } } }}
+          >
+            <MenuItem value="minutes" sx={{ fontSize: '0.8rem' }}>{schedInterval === 1 ? 'minute' : 'minutes'}</MenuItem>
+            <MenuItem value="hours" sx={{ fontSize: '0.8rem' }}>{schedInterval === 1 ? 'hour' : 'hours'}</MenuItem>
+            <MenuItem value="days" sx={{ fontSize: '0.8rem' }}>{schedInterval === 1 ? 'day' : 'days'}</MenuItem>
+            <MenuItem value="weeks" sx={{ fontSize: '0.8rem' }}>{schedInterval === 1 ? 'week' : 'weeks'}</MenuItem>
+            <MenuItem value="months" sx={{ fontSize: '0.8rem' }}>{schedInterval === 1 ? 'month' : 'months'}</MenuItem>
+          </Select>
+        </Box>
+
+        {(schedFreq === 'days' || schedFreq === 'weeks' || schedFreq === 'months') && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+            <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
+              At
+            </Typography>
+            <TextField
+              size="small"
+              type="time"
+              value={`${String(schedHour).padStart(2, '0')}:${String(schedMinute).padStart(2, '0')}`}
+              onChange={(e) => {
+                cronManualOverrideRef.current = false;
+                const [hh, mm] = (e.target.value || '09:00').split(':').map(Number);
+                setSchedHour(Number.isFinite(hh) ? hh : 9);
+                setSchedMinute(Number.isFinite(mm) ? mm : 0);
+              }}
+              inputProps={{ style: { padding: '6px 8px', fontSize: '0.8rem' } }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'hsl(var(--muted))',
+                  color: 'hsl(var(--foreground))',
+                  '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                },
+              }}
+            />
+          </Box>
+        )}
+
+        {schedFreq === 'weeks' && (
+          <Box sx={{ mb: 1.25 }}>
+            <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mb: 0.75 }}>
+              Repeat on
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              {(['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const).map((label, i) => {
+                const active = schedWeekdays.has(i);
+                return (
+                  <Box
+                    key={i}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      cronManualOverrideRef.current = false;
+                      setSchedWeekdays((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(i)) next.delete(i); else next.add(i);
+                        return next;
+                      });
+                    }}
+                    sx={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      userSelect: 'none',
+                      bgcolor: active ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                      color: active ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+                      border: '1px solid',
+                      borderColor: active ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                      transition: 'background-color 120ms',
+                      '&:hover': { bgcolor: active ? 'hsl(var(--primary))' : 'hsl(var(--muted) / 0.7)' },
+                    }}
+                  >
+                    {label}
+                  </Box>
+                );
+              })}
+            </Box>
+            {schedInterval > 1 && (
+              <Typography sx={{ fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))', mt: 0.75 }}>
+                Cron does not support every {schedInterval} weeks natively — this will run weekly on the selected days.
+              </Typography>
+            )}
+          </Box>
+        )}
+
+        {schedFreq === 'months' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+            <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
+              On day
+            </Typography>
+            <TextField
+              size="small"
+              type="number"
+              value={schedDayOfMonth}
+              onChange={(e) => { cronManualOverrideRef.current = false; setSchedDayOfMonth(Math.max(1, Math.min(31, Number(e.target.value) || 1))); }}
+              inputProps={{ min: 1, max: 31, style: { padding: '6px 8px', width: 56, textAlign: 'center', fontSize: '0.8rem' } }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'hsl(var(--muted))',
+                  color: 'hsl(var(--foreground))',
+                  '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                },
+              }}
+            />
+            <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))' }}>
+              of the month
+            </Typography>
+          </Box>
+        )}
+
+        <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', mt: 0.5, mb: 0.5 }}>
+          Quick presets
+        </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
           {([
-            ['Every 5 min', '*/5 * * * *'],
             ['Every 15 min', '*/15 * * * *'],
-            ['Every 30 min', '*/30 * * * *'],
             ['Hourly', '0 * * * *'],
-            ['Every 4 hours', '0 */4 * * *'],
-            ['Every 12 hours', '0 */12 * * *'],
             ['Daily 9am', '0 9 * * *'],
-            ['Daily midnight', '0 0 * * *'],
             ['Weekdays 9am', '0 9 * * 1-5'],
             ['Weekly Mon', '0 9 * * 1'],
             ['Monthly 1st', '0 9 1 * *'],
@@ -2512,7 +2665,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               key={expr}
               label={label}
               size="small"
-              onClick={() => setScheduleCron(expr)}
+              onClick={() => { cronManualOverrideRef.current = true; setScheduleCron(expr); }}
               sx={{
                 fontSize: '0.7rem',
                 bgcolor: scheduleCron === expr ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--muted))',
@@ -2522,6 +2675,46 @@ const AgentUI: React.FC<AgentUIProps> = ({
               }}
             />
           ))}
+        </Box>
+
+        <Box sx={{ mt: 1.25 }}>
+          <Box
+            role="button"
+            tabIndex={0}
+            onClick={() => setSchedAdvancedOpen((v) => !v)}
+            sx={{
+              fontSize: '0.7rem',
+              color: 'hsl(var(--muted-foreground))',
+              cursor: 'pointer',
+              userSelect: 'none',
+              '&:hover': { color: 'hsl(var(--foreground))' },
+            }}
+          >
+            {schedAdvancedOpen ? '▾' : '▸'} Advanced — edit cron expression
+          </Box>
+          {schedAdvancedOpen && (
+            <TextField
+              size="small"
+              fullWidth
+              value={scheduleCron}
+              onChange={(e) => { cronManualOverrideRef.current = true; setScheduleCron(e.target.value); }}
+              placeholder="0 9 * * 1-5"
+              inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.78rem', padding: '6px 8px' } }}
+              sx={{
+                mt: 0.75,
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'hsl(var(--muted))',
+                  color: 'hsl(var(--foreground))',
+                  '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                },
+              }}
+            />
+          )}
+          <Typography sx={{ fontSize: '0.68rem', fontFamily: 'monospace', color: 'hsl(var(--muted-foreground))', mt: 0.75 }}>
+            cron: {scheduleCron || '—'}
+          </Typography>
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
           <Button
