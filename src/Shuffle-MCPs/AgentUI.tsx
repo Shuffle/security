@@ -2855,7 +2855,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         {showStarter ? (
           <Box
             component="form"
-            onSubmit={(e) => { e.preventDefault(); submitInput(actionInput); }}
+            onSubmit={(e) => { e.preventDefault(); handlePrimarySubmit(); }}
             sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compact ? 2 : 3, py: compact ? 2 : 4 }}
           >
             {!hideHeroIcon && !compact && (
