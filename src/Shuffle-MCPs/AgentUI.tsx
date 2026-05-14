@@ -233,7 +233,7 @@ export interface AgentUIProps {
   onSchedule?: (info: {
     cron: string;
     input: string;
-    apps?: string[];
+    apps?: Array<{ name: string; id?: string; icon?: string }>;
     onStep?: (event: { id: 'name' | 'workflow' | 'schedule'; state: 'active' | 'done' | 'error'; detail?: string }) => void;
   }) => void | Promise<void>;
   /**
