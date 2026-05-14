@@ -428,7 +428,7 @@ const AgentActivityList = ({
     setEditSaving(true);
     setEditError(null);
     try {
-      const apps = editApps.split(',').map((s) => s.trim()).filter(Boolean);
+      const apps = editApps.map((a) => String(a.name || '').trim()).filter(Boolean);
       await updateAgentScheduleConfig(workflowFilter, { prompt: editPrompt, apps }, { apiKey, apiBaseUrl, orgId });
       setEditOpen(false);
     } catch (e) {
