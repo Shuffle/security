@@ -1971,13 +1971,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
     let finishAns = '';
     for (const dec of agentData?.decisions || []) {
       const rd = dec.run_details || {};
+      const decStartSec = toSec(rd.started_at);
+      const decEndSec = toSec(rd.completed_at);
+      // Only fall back to "now"/run-end when we actually know when the
+      // decision started — otherwise the bar would stretch from epoch 0
+      // to now and look like a full-width row.
+      const startTime = decStartSec || 0;
+      const endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
       items.push({
         label: dec.action,
         type: 'decision',
         category: dec.category,
         status: rd.status,
-        start_time: toSec(rd.started_at) || 0,
-        end_time: toSec(rd.completed_at) || fallbackEnd,
+        start_time: startTime,
+        end_time: endTime,
         details: dec,
       });
       if (dec.action === 'finish' || dec.category === 'finish' || dec.details?.action === 'finalise' || dec.action === 'finalise') {
