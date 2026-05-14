@@ -133,30 +133,12 @@ export const extractDecisionIndex = (path: string | undefined | null): number | 
   return Number.isFinite(n) ? n : null;
 };
 
-/** Detect if the output content hints at an error/failure even if the run status is "finished". */
+/** Detect if the output content hints at an error/failure even if the run
+ *  status is "finished". Only returns true when `diagnoseOutputWarning`
+ *  would produce a concrete, actionable diagnosis — never on vague keyword
+ *  matches alone. */
 export const hasOutputWarning = (run: DiagnosableRun): boolean => {
-  const { parsed } = parseRunResult(run);
-  if (!parsed || typeof parsed !== 'object') return false;
-  if (parsed.success === false) return true;
-
-  const scope = getDiagnosableScope(parsed);
-  if (!scope) return false;
-  const haystack = JSON.stringify(scope).toLowerCase();
-  if (!haystack) return false;
-
-  const errorPatterns = [
-    'error',
-    'failed',
-    'failure',
-    'exception',
-    'timed out',
-    'timeout',
-    'unauthorized',
-    'forbidden',
-    'not found',
-    'could not',
-  ];
-  return errorPatterns.some((p) => haystack.includes(p));
+  return diagnoseOutputWarning(run) !== null;
 };
 
 // ---------------------------------------------------------------------------
