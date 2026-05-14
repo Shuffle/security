@@ -673,7 +673,7 @@ export const AppAuthCard = ({
                     const authUrl = `https://shuffler.io/appauth?app_id=${app.objectID}&source=shuffle`;
                     const popup = window.open(authUrl, '_blank', 'width=600,height=700');
                     if (!onRefreshAuth) return;
-                    const baselineCount = entries.length;
+                    const baselineCount = (apiAuthEntries || []).length;
                     const startedAt = Date.now();
                     const MAX_MS = 5 * 60 * 1000; // 5 minutes
                     let stopped = false;
@@ -685,13 +685,7 @@ export const AppAuthCard = ({
                     };
                     const tick = async () => {
                       try { await onRefreshAuth(); } catch {}
-                      // Stop as soon as a new auth entry for this app shows up
-                      try {
-                        const fresh = (entries || []).filter(
-                          (e) => (e.app?.name || '').toLowerCase() === (app.name || '').toLowerCase()
-                        );
-                        if (fresh.length > baselineCount) stop();
-                      } catch {}
+                      if ((apiAuthEntries || []).length > baselineCount) stop();
                       if (Date.now() - startedAt > MAX_MS) stop();
                     };
                     // Fire immediately, then every 2s regardless of popup state
