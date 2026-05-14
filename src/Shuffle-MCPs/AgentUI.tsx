@@ -523,13 +523,18 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           {isProcessing ? (
             <Box sx={{ width: 22 }} />
           ) : toolApp?.icon ? (
-            <Avatar src={toolApp.icon} sx={{ width: 22, height: 22, bgcolor: 'transparent' }} variant="rounded" />
+            <Tooltip title={(toolApp.name || '').replace(/_/g, ' ')} arrow>
+              <Avatar src={toolApp.icon} sx={{ width: 22, height: 22, bgcolor: 'transparent' }} variant="rounded" />
+            </Tooltip>
           ) : item.category === 'finalise' || details?.action === 'finish' ? (
-            <CheckIcon sx={{ color: STATUS_COLORS.finished, fontSize: 18 }} />
+            <Tooltip title="Final answer" arrow>
+              <CheckIcon sx={{ color: STATUS_COLORS.finished, fontSize: 18 }} />
+            </Tooltip>
           ) : (
             <Box sx={{ width: 22 }} />
           )}
         </Box>
+
         <Chip
           label={displayType}
           size="small"
