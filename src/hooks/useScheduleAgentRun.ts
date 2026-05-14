@@ -41,9 +41,20 @@ export interface ScheduleStepEvent {
 export interface ScheduleAgentRunArgs {
   cron: string;
   input: string;
-  apps?: string[];
+  apps?: Array<{ name: string; id?: string; icon?: string }>;
   onStep?: (event: ScheduleStepEvent) => void;
 }
+
+const buildToolName = (apps: Array<{ name: string; id?: string }>): string => {
+  if (!apps || apps.length === 0) return '';
+  return apps
+    .filter((a) => !!a?.name)
+    .map((a) => {
+      const slug = a.name.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+      return a.id ? `app:${a.id}:${slug}` : slug;
+    })
+    .join(',');
+};
 
 export const useScheduleAgentRun = () => {
   return useCallback(async ({ cron, input, apps, onStep }: ScheduleAgentRunArgs) => {
@@ -158,10 +169,10 @@ export const useScheduleAgentRun = () => {
       type: 'ACTION',
       parameters: [
         {
-          name: 'app_name',
-          value: (apps && apps.length > 0 ? apps.map((a) => String(a || '').trim()).filter(Boolean).join(',') : ''),
+          name: 'tool_name',
+          value: buildToolName(apps || []),
           required: true,
-          description: 'The name of the app to run the LLM query against',
+          description: 'Comma-separated list of tools (e.g. app:<objectID>:<slug>) the agent is allowed to use.',
         },
         {
           name: 'input',

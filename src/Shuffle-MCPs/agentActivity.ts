@@ -212,21 +212,35 @@ export const getAgentSchedulePrompt = async (
 };
 
 /** Read the AI Agent prompt + selected app names from a scheduled agent
- *  workflow. Apps are parsed from the AI Agent action's `app_name`
- *  parameter (comma-separated). */
+ *  workflow. Apps are parsed from the AI Agent action's `tool_name`
+ *  parameter (comma-separated, format `app:<objectID>:<slug>` or `<slug>`),
+ *  with a fallback to the legacy `app_name` parameter. */
 export const getAgentScheduleConfig = async (
   workflowId: string,
   params: { apiKey?: string; apiBaseUrl?: string; orgId?: string } = {},
-): Promise<{ workflow: any; prompt: string; apps: string[] }> => {
+): Promise<{ workflow: any; prompt: string; apps: Array<{ name: string; id?: string }> }> => {
   const workflow = await getWorkflow(workflowId, params);
   const found = findAgentInputParam(workflow);
   const prompt = String(found?.param?.value || '');
   const action = found?.action;
-  const appNameParam: any = (action?.parameters || []).find((x: any) => x?.name === 'app_name');
-  const apps = String(appNameParam?.value || '')
+  const actionParams: any[] = action?.parameters || [];
+  const toolNameParam = actionParams.find((x) => x?.name === 'tool_name');
+  const appNameParam = actionParams.find((x) => x?.name === 'app_name');
+  const raw = String(toolNameParam?.value || appNameParam?.value || '');
+  const apps = raw
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((entry) => {
+      // Format: `app:<objectID>:<slug>` or just `<slug>`/`<name>`.
+      if (entry.startsWith('app:')) {
+        const parts = entry.split(':');
+        const id = parts[1] || undefined;
+        const slug = parts.slice(2).join(':') || '';
+        return { name: slug || entry, id };
+      }
+      return { name: entry };
+    });
   return { workflow, prompt, apps };
 };
 
@@ -252,12 +266,13 @@ export const updateAgentSchedulePrompt = async (
   if (!res.ok) throw new Error(`Failed to update workflow: ${res.statusText}`);
 };
 
-/** Update both the prompt and the selected app names on a scheduled agent
- *  workflow. The `apps` array is joined with commas and written verbatim
- *  to the AI Agent action's `app_name` parameter. */
+/** Update both the prompt and the selected apps on a scheduled agent
+ *  workflow. The `apps` array is encoded as `app:<id>:<slug>` (or `<slug>`
+ *  when no id is known) and written verbatim to the AI Agent action's
+ *  `tool_name` parameter. */
 export const updateAgentScheduleConfig = async (
   workflowId: string,
-  config: { prompt: string; apps: string[] },
+  config: { prompt: string; apps: Array<{ name: string; id?: string }> },
   params: { apiKey?: string; apiBaseUrl?: string; orgId?: string } = {},
 ): Promise<void> => {
   const { apiKey, apiBaseUrl, orgId } = params;
@@ -266,15 +281,29 @@ export const updateAgentScheduleConfig = async (
   if (!found) throw new Error('No AI Agent action found on this workflow');
   found.param.value = config.prompt;
   const action = found.action;
-  const appsValue = (config.apps || []).map((s) => String(s || '').trim()).filter(Boolean).join(',');
+  const toolValue = (config.apps || [])
+    .filter((a) => !!a?.name)
+    .map((a) => {
+      const slug = a.name.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+      return a.id ? `app:${a.id}:${slug}` : slug;
+    })
+    .join(',');
   const params_: any[] = action.parameters || [];
-  const appNameParam = params_.find((x) => x?.name === 'app_name');
-  if (appNameParam) {
-    appNameParam.value = appsValue;
+  const toolNameParam = params_.find((x) => x?.name === 'tool_name');
+  if (toolNameParam) {
+    toolNameParam.value = toolValue;
   } else {
-    params_.push({ name: 'app_name', value: appsValue, required: true, description: 'The name of the app to run the LLM query against' });
+    params_.push({
+      name: 'tool_name',
+      value: toolValue,
+      required: true,
+      description: 'Comma-separated list of tools (e.g. app:<objectID>:<slug>) the agent is allowed to use.',
+    });
     action.parameters = params_;
   }
+  // Clear any legacy `app_name` so the two parameters cannot drift apart.
+  const appNameParam = params_.find((x) => x?.name === 'app_name');
+  if (appNameParam) appNameParam.value = '';
   const res = await fetch(resolveUrl(`/api/v1/workflows/${workflowId}`, apiBaseUrl), {
     method: 'PUT',
     credentials: 'include',
