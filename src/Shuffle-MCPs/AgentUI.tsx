@@ -1834,7 +1834,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (json.success === false) {
         toast({ title: 'Failed to submit', description: json.reason || 'Try again later.', variant: 'destructive' });
       } else {
-        toast({ title: 'Submitted', description: 'Agent will continue shortly.' });
+        // No success toast — the UI updates inline.
         setQuestionAnswers({});
         setContinuationText('');
         setTimeout(() => {
