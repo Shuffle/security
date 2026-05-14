@@ -33,15 +33,6 @@ const AgentsPage = () => {
     [scheduleAgentRun],
   );
 
-  const handleTryWorkflow = useCallback(({ prompt, apps }: { prompt: string; apps: string[] }) => {
-    setEditing(null);
-    setPrefill((prev) => ({
-      input: prompt,
-      apps: apps.map((name) => ({ name })),
-      key: prev.key + 1,
-    }));
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
 
   const handleEditWorkflow = useCallback(({ workflowId, name, prompt, apps }: { workflowId: string; name: string; prompt: string; apps: string[] }) => {
     setEditing({ workflowId, name });
