@@ -2845,8 +2845,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
           </Button>
         </Box>
       </Popover>
-    </Box>
   );
+
 
   // ── Render ──
   return (
