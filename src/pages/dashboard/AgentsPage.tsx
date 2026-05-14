@@ -117,10 +117,16 @@ const AgentsPage = () => {
         },
         {
           name: 'input',
-          value: `${input}\n\n$exec`,
+          value: `${input}\n\nReturn ONLY the final result requested above as raw plain text. Do not include explanations, reasoning steps, preamble, markdown formatting, code fences, or JSON wrapping unless the user explicitly asked for that exact format. If the request implies a list, return one item per line.\n\n$exec`,
           required: true,
           multiline: true,
           description: 'The input data for the LLM query',
+        },
+        {
+          name: 'output_format',
+          value: 'raw',
+          required: false,
+          description: 'Return raw text output instead of JSON',
         },
       ],
       isStartNode: true,
