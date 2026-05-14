@@ -404,9 +404,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const validate = validateJson(item.details);
   const itemStart = item.start_time || 0;
   const itemEnd = item.end_time || itemStart;
-  const dur = Math.max(0, itemEnd - itemStart);
-  const offset = totalDuration > 0 ? ((itemStart - originalStartTime) / totalDuration) * maxWidth : 0;
-  const width = totalDuration > 0 ? Math.max(4, (dur / totalDuration) * maxWidth) : 0;
+  const hasTiming = itemStart > 0 && itemEnd >= itemStart;
+  const dur = hasTiming ? Math.max(0, itemEnd - itemStart) : 0;
+  const offset = totalDuration > 0 && hasTiming ? ((itemStart - originalStartTime) / totalDuration) * maxWidth : 0;
+  const width = totalDuration > 0 && hasTiming ? Math.max(4, (dur / totalDuration) * maxWidth) : 0;
 
   // Adapt label based on action/category
   let displayType = item.type as string;
@@ -542,7 +543,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         }}>
           <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(displayLabel)}</Markdown>
         </Box>
-        <Tooltip title={`Duration: ${dur.toFixed(2)}s · ${itemStart ? new Date(itemStart * 1000).toLocaleString() : ''}`}>
+        <Tooltip title={hasTiming ? `Duration: ${dur < 1 ? dur.toFixed(2) : Math.round(dur)}s · ${new Date(itemStart * 1000).toLocaleString()}` : 'No timing data'}>
           <Box sx={{ width: maxWidth, position: 'relative', height: 10, flexShrink: 0 }}>
             {dur > 0 && (
               <Box sx={{
@@ -559,7 +560,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         </Tooltip>
         <Box sx={{ width: 60, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
-          {dur > 0 ? `${dur.toFixed(2)}s` : ''}
+          {dur > 0 ? `${dur < 1 ? dur.toFixed(2) : Math.round(dur)}s` : ''}
         </Box>
         {/* Per-row actions: Approve/Deny, Rerun */}
         <Box
@@ -1971,13 +1972,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
     let finishAns = '';
     for (const dec of agentData?.decisions || []) {
       const rd = dec.run_details || {};
+      const decStartSec = toSec(rd.started_at);
+      const decEndSec = toSec(rd.completed_at);
+      // Only fall back to "now"/run-end when we actually know when the
+      // decision started — otherwise the bar would stretch from epoch 0
+      // to now and look like a full-width row.
+      const startTime = decStartSec || 0;
+      const endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
       items.push({
         label: dec.action,
         type: 'decision',
         category: dec.category,
         status: rd.status,
-        start_time: toSec(rd.started_at) || 0,
-        end_time: toSec(rd.completed_at) || fallbackEnd,
+        start_time: startTime,
+        end_time: endTime,
         details: dec,
       });
       if (dec.action === 'finish' || dec.category === 'finish' || dec.details?.action === 'finalise' || dec.action === 'finalise') {
