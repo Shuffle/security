@@ -937,6 +937,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   submitIcon,
   submitOverride,
   submitLabel,
+  disableSchedule,
+  disableScheduleTooltip,
   continuationPlaceholder = 'Add more details to continue this task…',
   readUrlParams = true,
   executionId,
