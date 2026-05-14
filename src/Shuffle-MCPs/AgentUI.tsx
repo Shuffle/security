@@ -219,7 +219,11 @@ export interface AgentUIProps {
    * current prompt. When omitted, a toast is shown indicating scheduling is
    * not wired up in this embed.
    */
-  onSchedule?: (info: { cron: string; input: string }) => void | Promise<void>;
+  onSchedule?: (info: {
+    cron: string;
+    input: string;
+    onStep?: (event: { id: 'name' | 'workflow' | 'schedule'; state: 'active' | 'done' | 'error'; detail?: string }) => void;
+  }) => void | Promise<void>;
   /**
    * Optional Shuffle API key. When provided, all `/api/v1/*` calls made by
    * this component (agent run, polling, app autoload, icon fallback) use it
