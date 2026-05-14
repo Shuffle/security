@@ -41,11 +41,12 @@ export interface ScheduleStepEvent {
 export interface ScheduleAgentRunArgs {
   cron: string;
   input: string;
+  apps?: string[];
   onStep?: (event: ScheduleStepEvent) => void;
 }
 
 export const useScheduleAgentRun = () => {
-  return useCallback(async ({ cron, input, onStep }: ScheduleAgentRunArgs) => {
+  return useCallback(async ({ cron, input, apps, onStep }: ScheduleAgentRunArgs) => {
     const step = (id: ScheduleStepId, state: ScheduleStepState, detail?: string) => {
       try { onStep?.({ id, state, detail }); } catch { /* ignore */ }
     };
@@ -158,13 +159,13 @@ export const useScheduleAgentRun = () => {
       parameters: [
         {
           name: 'app_name',
-          value: 'Shuffle AI',
+          value: (apps && apps.length > 0 ? apps.map((a) => String(a || '').trim()).filter(Boolean).join(',') : ''),
           required: true,
           description: 'The name of the app to run the LLM query against',
         },
         {
           name: 'input',
-          value: `${input}\n\nReturn ONLY the final result requested above as raw plain text. Do not include explanations, reasoning steps, preamble, markdown formatting, code fences, or JSON wrapping unless the user explicitly asked for that exact format. If the request implies a list, return one item per line.\n\n$exec`,
+          value: input,
           required: true,
           multiline: true,
           description: 'The input data for the LLM query',

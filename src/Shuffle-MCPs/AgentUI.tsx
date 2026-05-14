@@ -222,6 +222,7 @@ export interface AgentUIProps {
   onSchedule?: (info: {
     cron: string;
     input: string;
+    apps?: string[];
     onStep?: (event: { id: 'name' | 'workflow' | 'schedule'; state: 'active' | 'done' | 'error'; detail?: string }) => void;
   }) => void | Promise<void>;
   /**
@@ -2786,6 +2787,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   await onSchedule({
                     cron,
                     input: actionInput || '',
+                    apps: chosenApps.map((a) => a?.name).filter((n): n is string => !!n),
                     onStep: (ev) => {
                       setScheduleSteps((prev) => prev.map((p) => p.id === ev.id ? { ...p, state: ev.state, detail: ev.detail } : p));
                     },
