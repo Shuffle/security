@@ -30,34 +30,45 @@ const uuid = (): string => {
   });
 };
 
+export type ScheduleStepId = 'name' | 'workflow' | 'schedule';
+export type ScheduleStepState = 'active' | 'done' | 'error';
+export interface ScheduleStepEvent {
+  id: ScheduleStepId;
+  state: ScheduleStepState;
+  detail?: string;
+}
+
 export interface ScheduleAgentRunArgs {
   cron: string;
   input: string;
+  onStep?: (event: ScheduleStepEvent) => void;
 }
 
 export const useScheduleAgentRun = () => {
-  return useCallback(async ({ cron, input }: ScheduleAgentRunArgs) => {
-    // 1. Short name + description.
+  return useCallback(async ({ cron, input, onStep }: ScheduleAgentRunArgs) => {
+    const step = (id: ScheduleStepId, state: ScheduleStepState, detail?: string) => {
+      try { onStep?.({ id, state, detail }); } catch { /* ignore */ }
+    };
+
+    // 1. Short name + description (raw text response, parsed locally).
+    step('name', 'active');
     let name = 'Scheduled Agent Run';
     let description = (input || '').slice(0, 140);
     try {
       const { success, result } = await askAI({
-        query: `Generate a SHORT workflow name and a one-sentence description for the following scheduled AI Agent prompt. Respond ONLY as JSON in this exact shape, no markdown: {"name":"<max 6 words>","description":"<max 20 words>"}.\n\nPrompt:\n${input}`,
-        outputFormat: 'json',
+        query: `Generate a SHORT workflow name (max 6 words) and a one-sentence description (max 20 words) for the following scheduled AI Agent prompt.\n\nReturn ONLY two lines of raw plain text in this EXACT format, with no markdown, no code fences, no JSON, no extra commentary:\nName: <the name>\nDescription: <the description>\n\nPrompt:\n${input}`,
+        outputFormat: 'raw',
       });
       if (success && result) {
-        const cleaned = result.replace(/^```[^\n]*\n?/i, '').replace(/\n?```$/i, '').trim();
-        try {
-          const parsed = JSON.parse(cleaned);
-          if (parsed?.name) name = String(parsed.name).slice(0, 80);
-          if (parsed?.description) description = String(parsed.description).slice(0, 240);
-        } catch {
-          /* fall through to defaults */
-        }
+        const nameMatch = result.match(/^\s*Name\s*:\s*(.+?)\s*$/im);
+        const descMatch = result.match(/^\s*Description\s*:\s*(.+?)\s*$/im);
+        if (nameMatch?.[1]) name = nameMatch[1].replace(/^["']|["']$/g, '').slice(0, 80);
+        if (descMatch?.[1]) description = descMatch[1].replace(/^["']|["']$/g, '').slice(0, 240);
       }
     } catch (e) {
       console.warn('[schedule] AI name generation failed, using fallback', e);
     }
+    step('name', 'done', name);
 
     // 2. Create the workflow.
     const createRes = await fetch(getApiUrl('/api/v1/workflows'), {
