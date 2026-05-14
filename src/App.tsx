@@ -4,7 +4,26 @@ import { Navigate } from 'react-router-dom';
 import { AppDetailProvider } from '@/Shuffle-MCPs/AppDetailContext';
 import { setToastImpl } from '@/Shuffle-MCPs/toast';
 import { toast as hostToast } from '@/lib/toast';
-setToastImpl((arg) => hostToast(arg as string));
+setToastImpl((arg, opts) => {
+  // Bridge MCP-lib toast shape ({ title, description, variant }) onto the
+  // host react-toastify wrapper. Plain strings pass through.
+  if (typeof arg === 'string') {
+    hostToast(arg, opts as any);
+    return;
+  }
+  const { title, description, variant } = (arg ?? {}) as {
+    title?: string;
+    description?: string;
+    variant?: string;
+  };
+  const message = title || description || '';
+  const mergedOpts = { description: title ? description : undefined, ...(opts || {}) };
+  if (variant === 'destructive' || variant === 'error') hostToast.error(message, mergedOpts as any);
+  else if (variant === 'warning') hostToast.warning(message, mergedOpts as any);
+  else if (variant === 'success') hostToast.success(message, mergedOpts as any);
+  else if (variant === 'info') hostToast.info(message, mergedOpts as any);
+  else hostToast(message, mergedOpts as any);
+});
 import { trackReferralParams, initAnalytics } from '@/lib/analytics';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
