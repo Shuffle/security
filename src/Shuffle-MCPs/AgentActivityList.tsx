@@ -305,6 +305,8 @@ const AgentActivityList = ({
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [agentWorkflows, setAgentWorkflows] = useState<AgentScheduleWorkflow[]>([]);
+  const [workflowFilter, setWorkflowFilter] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const updateSearchQuery = useCallback((q: string) => {
