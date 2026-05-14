@@ -2165,10 +2165,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
       return next;
     });
 
+  const handlePrimarySubmit = useCallback(() => {
+    if (submitOverride) {
+      submitOverride({ input: actionInput, apps: chosenApps });
+    } else {
+      submitInput(actionInput);
+    }
+  }, [submitOverride, actionInput, chosenApps, submitInput]);
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
-      submitInput(actionInput);
+      handlePrimarySubmit();
     }
   };
 
