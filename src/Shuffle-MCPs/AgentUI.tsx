@@ -1554,6 +1554,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
       });
     }
     setError(null);
+
+    // Sideloaded executions from the listing endpoint sometimes ship a
+    // placeholder result body like `{ success: false, reason: "Result too
+    // large to handle ...", extra: "replace" }` instead of the real agent
+    // output. Detect that and re-fetch the full payload directly from
+    // /api/v1/streams/results so the timeline renders properly.
+    const needsReplace = (() => {
+      const r = v.valid ? v.result : null;
+      if (!r || typeof r !== 'object') return false;
+      if (r.success === false && typeof r.reason === 'string' && /too large/i.test(r.reason)) return true;
+      if (r.extra === 'replace') return true;
+      return false;
+    })();
+    if (needsReplace && initialExecution.authorization && initialExecution.execution_id) {
+      getExecution(initialExecution.execution_id, initialExecution.authorization);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialExecution?.execution_id]);
 
