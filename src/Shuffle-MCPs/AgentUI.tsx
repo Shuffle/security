@@ -560,7 +560,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         </Tooltip>
         <Box sx={{ width: 60, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
-          {dur > 0 ? `${dur < 1 ? dur.toFixed(2) : Math.round(dur)}s` : ''}
+          {dur > 0 ? `${dur.toFixed(2)}s` : ''}
         </Box>
         {/* Per-row actions: Approve/Deny, Rerun */}
         <Box
