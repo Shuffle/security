@@ -982,6 +982,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [scheduleAnchor, setScheduleAnchor] = useState<HTMLElement | null>(null);
   const [scheduleCron, setScheduleCron] = useState('0 * * * *');
   const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleSteps, setScheduleSteps] = useState<Array<{ id: 'name' | 'workflow' | 'schedule'; state: 'pending' | 'active' | 'done' | 'error'; detail?: string }>>([
+    { id: 'name', state: 'pending' },
+    { id: 'workflow', state: 'pending' },
+    { id: 'schedule', state: 'pending' },
+  ]);
   // Structured recurrence controls (Google-Calendar style). These compile
   // down to a 5-field cron expression in `scheduleCron`. The advanced cron
   // text field at the bottom of the popover lets power users override.
