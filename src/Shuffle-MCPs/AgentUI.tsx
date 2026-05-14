@@ -990,6 +990,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // "Cancel and go to Start" cannot repaint the UI or swap tabs back.
   const runAbortRef = useRef<AbortController | null>(null);
   const runGenerationRef = useRef(0);
+  // Sticky flag set when the user manually clicks the "Start" tab while a run
+  // is loaded. Prevents downstream effects (URL sync, initialExecution attach,
+  // etc.) from flipping back to Simple/Detailed when a poll response lands.
+  // Cleared the moment the user actually submits a new run.
+  const userPickedStartRef = useRef(false);
   // Mirror of state used inside async callbacks (e.g. submitInput) so we can
   // snapshot prior values for rollback without making the callback re-render
   // on every state change.
