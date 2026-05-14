@@ -667,6 +667,25 @@ const AgentActivityList = ({
           >
             Edit prompt
           </Button>
+          {onTryWorkflow && (
+            <Button
+              size="small"
+              startIcon={<Play size={14} />}
+              onClick={handleTryWorkflow}
+              sx={{
+                height: 36,
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 1.5,
+                color: 'hsl(var(--foreground))',
+                textTransform: 'none',
+                fontSize: '0.8rem',
+                px: 1.5,
+                '&:hover': { bgcolor: 'hsl(var(--muted))' },
+              }}
+            >
+              Try it
+            </Button>
+          )}
           <Button
             size="small"
             startIcon={<StopCircle size={14} />}
