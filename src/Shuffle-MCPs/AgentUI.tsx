@@ -2864,6 +2864,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         ]}
       >
         {showRunSwitcher && tabBar}
+        {schedulePopover}
         {showStarter ? (
           <Box
             component="form"
