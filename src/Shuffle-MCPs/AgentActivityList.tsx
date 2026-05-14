@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Avatar,
   Box,
   Button,
   Chip,
@@ -17,6 +18,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   InputAdornment,
   MenuItem,
   Select,
@@ -26,6 +28,9 @@ import {
 } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import AppSearchDrawer from './AppSearchDrawer';
 import {
   Activity,
   AlertCircle,
