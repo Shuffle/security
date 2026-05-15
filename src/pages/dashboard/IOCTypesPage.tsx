@@ -585,6 +585,61 @@ const IOCTypesPage = () => {
                     // Types in category
                     ...typesInCategory.map((type) => (
                       <TableRow key={type.name} hover sx={{ opacity: type.enabled ? 1 : 0.5 }}>
+                        <TableCell sx={{ width: 150, py: 0.5 }}>
+                          {type.enabled ? (() => {
+                            const count = observableCounts ? observableCounts[type.name] : undefined;
+                            const showSpinner = countsLoading && count === undefined;
+                            const value = count ?? 0;
+                            const isDeleting = deletingType === type.name;
+                            const datastoreUrl = `https://shuffler.io/admin?tab=datastore&category=ioc_${encodeURIComponent(type.name)}`;
+                            return (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Tooltip title={`Open datastore "ioc_${type.name}" on shuffler.io`} arrow>
+                                  <Link
+                                    href={datastoreUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    underline="none"
+                                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+                                  >
+                                    <Chip
+                                      label={showSpinner ? '…' : value.toLocaleString()}
+                                      size="small"
+                                      variant="outlined"
+                                      icon={<OpenInNewIcon sx={{ fontSize: 12, ml: '6px !important' }} />}
+                                      clickable
+                                      sx={{
+                                        fontVariantNumeric: 'tabular-nums',
+                                        fontWeight: 600,
+                                        height: 22,
+                                        borderColor: value > 0 ? 'hsl(var(--primary) / 0.5)' : 'hsl(var(--border))',
+                                        color: value > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                                        '& .MuiChip-icon': { color: 'inherit' },
+                                      }}
+                                    />
+                                  </Link>
+                                </Tooltip>
+                                <Tooltip title={value > 0 ? `Delete all ${value.toLocaleString()} observable(s) of type "${type.name}"` : 'No observables to delete'} arrow>
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      disabled={value === 0 || isDeleting}
+                                      onClick={() => handleDeleteAllForType(type.name)}
+                                      sx={{ p: 0.25 }}
+                                    >
+                                      {isDeleting
+                                        ? <CircularProgress size={14} sx={{ color: 'error.main' }} />
+                                        : <DeleteIcon sx={{ fontSize: 16 }} />}
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              </Box>
+                            );
+                          })() : (
+                            <Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>—</Typography>
+                          )}
+                        </TableCell>
                         <TableCell sx={{ py: 0.5 }}>
                           <Switch
                             size="small"
@@ -614,31 +669,6 @@ const IOCTypesPage = () => {
                               color: getCategoryInfo(type.category || 'other').color,
                             }} 
                           />
-                        </TableCell>
-                        <TableCell align="right" sx={{ width: 110 }}>
-                          {type.enabled ? (() => {
-                            const count = observableCounts ? observableCounts[type.name] : undefined;
-                            const showSpinner = countsLoading && count === undefined;
-                            const value = count ?? 0;
-                            return (
-                              <Tooltip title={`Items in datastore category "ioc_${type.name}"`} arrow>
-                                <Chip
-                                  label={showSpinner ? '…' : value.toLocaleString()}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{
-                                    fontVariantNumeric: 'tabular-nums',
-                                    fontWeight: 600,
-                                    height: 22,
-                                    borderColor: value > 0 ? 'hsl(var(--primary) / 0.5)' : 'hsl(var(--border))',
-                                    color: value > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                                  }}
-                                />
-                              </Tooltip>
-                            );
-                          })() : (
-                            <Typography component="span" sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>—</Typography>
-                          )}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
