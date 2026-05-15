@@ -744,8 +744,25 @@ const resolveIocOverrides = async (): Promise<DemoIocOverrides> => {
     return cached;
   }
 
-  // Never block incident creation on the async threat-feed parser. Step 4
-  // must always materialize immediately; live IOCs are best-effort only.
+  // Try a LIVE pick first with a short timeout — the datastore usually has
+  // entries ready (the audit shows 100 accepted on each category) and the
+  // user-visible cost of waiting ~1.5s is much lower than the cost of
+  // stamping `demoFallback: true` on an incident that didn't need it.
+  try {
+    const live = await Promise.race<DemoIocOverrides | null>([
+      pickRandomIocs(),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 1500)),
+    ]);
+    if (live && !live.usedFallback && live.attackerIp && live.lureUrl && live.lureDomain) {
+      writeIocOverrides(live);
+      return live;
+    }
+  } catch (err) {
+    console.warn('[demo] synchronous live IOC pick failed, falling back', err);
+  }
+
+  // Live pick timed out or returned a fallback — use the static pool so
+  // incident creation isn't blocked further.
   const fresh = pickFallbackIocs();
   // Merge with whatever was cached (in case only one half resolved earlier).
   const merged: DemoIocOverrides = { ...cached, ...fresh };
