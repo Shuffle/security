@@ -3681,7 +3681,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
               const detailedIsRunning = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
               const detailedRunFinished = !detailedIsRunning;
-              const detailedLimitReached = !!limitDiagnosis;
+              
               return (
             <Box sx={{
               borderRadius: 2,
