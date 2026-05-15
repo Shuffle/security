@@ -336,9 +336,9 @@ export const checkEnrichmentStatus = (
   const hasEnrichEnabled = !!enrichAutomation?.enabled;
 
   const checks: EnrichmentStatusCheck[] = [
-    { label: 'Threat feeds', active: hasThreatFeeds },
-    { label: 'IOC extraction', active: hasIOCExtraction },
-    { label: 'Enrich automation', active: hasEnrichEnabled },
+    { label: 'Threat feeds', active: hasThreatFeeds, detail: hasThreatFeeds ? `Workflow "${THREAT_FEEDS_WORKFLOW}" found with background_processing=true.` : `Workflow "${THREAT_FEEDS_WORKFLOW}" missing or background_processing!=true.` },
+    { label: 'IOC extraction', active: hasIOCExtraction, detail: hasIOCExtraction ? `Workflow "${IOC_EXTRACTION_WORKFLOW}" found with background_processing=true.` : `Workflow "${IOC_EXTRACTION_WORKFLOW}" missing or background_processing!=true.` },
+    { label: 'Enrich automation', active: hasEnrichEnabled, detail: hasEnrichEnabled ? `Enrich automation enabled on "${DATASTORE_CATEGORIES.INCIDENTS}".` : `Enrich automation missing or disabled on "${DATASTORE_CATEGORIES.INCIDENTS}".` },
   ];
 
   return {
