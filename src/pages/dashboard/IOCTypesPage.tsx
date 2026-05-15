@@ -613,11 +613,19 @@ const IOCTypesPage = () => {
                                   variant="outlined"
                                   icon={<OpenInNewIcon sx={{ fontSize: 12, ml: '6px !important' }} />}
                                   label={showSpinner ? '…' : value.toLocaleString()}
-                                  onDelete={value > 0 && !isDeleting ? () => handleDeleteAllForType(type.name) : undefined}
+                                  onDelete={value > 0 && !isDeleting ? (e: any) => {
+                                    e?.preventDefault?.();
+                                    e?.stopPropagation?.();
+                                    handleDeleteAllForType(type.name);
+                                  } : undefined}
                                   deleteIcon={
                                     isDeleting
                                       ? <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
-                                      : <DeleteIcon sx={{ fontSize: 14 }} />
+                                      : <DeleteIcon
+                                          sx={{ fontSize: 14 }}
+                                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                        />
                                   }
                                   sx={{
                                     fontVariantNumeric: 'tabular-nums',
