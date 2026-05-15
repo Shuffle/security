@@ -519,87 +519,9 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
   }
 };
 
-// Collapsible Section Component
-const Section = forwardRef<HTMLDivElement, { 
-  title: string; 
-  icon: React.ElementType; 
-  children: React.ReactNode; 
-  defaultOpen?: boolean;
-  badge?: string | number;
-  /** Optional localStorage key to persist the open/closed state across
-   *  navigation. Users typically follow a consistent workflow per incident
-   *  page, so e.g. "always show Description" should stick. */
-  storageKey?: string;
-}>(({ 
-  title, 
-  icon: Icon, 
-  children, 
-  defaultOpen = true,
-  badge,
-  storageKey,
-}, ref) => {
-  const [open, setOpen] = useState(() => {
-    if (!storageKey || typeof window === 'undefined') return defaultOpen;
-    try {
-      const v = localStorage.getItem(storageKey);
-      if (v === '1') return true;
-      if (v === '0') return false;
-    } catch { /* ignore */ }
-    return defaultOpen;
-  });
-  useEffect(() => {
-    if (!storageKey) return;
-    try { localStorage.setItem(storageKey, open ? '1' : '0'); } catch { /* ignore */ }
-  }, [open, storageKey]);
-  
-  return (
-    <Box ref={ref} sx={{ 
-      bgcolor: 'hsl(var(--card))', 
-      borderRadius: 2, 
-      border: '1px solid hsl(var(--border))',
-      overflow: 'hidden',
-    }}>
-      <Box 
-        onClick={() => setOpen(!open)}
-        sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1.5, 
-          px: 2.5, 
-          py: 2,
-          cursor: 'pointer',
-          '&:hover': { bgcolor: 'hsl(var(--muted))' },
-        }}
-      >
-        <Icon sx={{ fontSize: 20, color: 'text.secondary' }} />
-        <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600 }}>
-          {title}
-        </Typography>
-        {badge !== undefined && (
-          <Chip 
-            label={badge} 
-            size="small" 
-            variant="outlined"
-            sx={{ 
-              height: 20, 
-              fontSize: '0.7rem',
-              bgcolor: 'transparent',
-              color: '#ff6600',
-              borderColor: 'rgba(255, 102, 0, 0.4)',
-            }} 
-          />
-        )}
-        {open ? <ExpandLessIcon sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon sx={{ color: 'text.secondary' }} />}
-      </Box>
-      <Collapse in={open}>
-        <Box sx={{ px: 2.5, pb: 2.5 }}>
-          {children}
-        </Box>
-      </Collapse>
-    </Box>
-  );
-});
-Section.displayName = 'Section';
+// Canonical collapsible panel — see src/components/incidents/IncidentSection.tsx.
+// Aliased as `Section` so existing call sites keep working.
+const Section = IncidentSection;
 
 const IncidentDetailPage = () => {
 
