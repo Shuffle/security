@@ -5913,6 +5913,18 @@ const IncidentDetailPage = () => {
         </Box>
       )}
 
+      {/* Support-only audit explaining why a fallback IOC was used. */}
+      <DemoFallbackAuditBanner
+        visible={
+          !isPublicView
+          && (userInfo?.support === true || searchParams.get('support') === '1')
+          && (
+            searchParams.get('demo-fallback') === 'true'
+            || !!incident?.rawOCSF?.metadata?.extensions?.custom_attributes?.demoFallback
+          )
+        }
+      />
+
       {/* Possible duplicates / merge suggestions banner — surfaces past
           incidents that share observables, correlations, or known IOCs with
           the one being viewed. Hidden in the public/read-only view. */}
