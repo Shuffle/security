@@ -100,6 +100,7 @@ const toIncident = (item: RawInc): { key: string; value: OCSFIncidentFinding } =
         extensions: {
           custom_attributes: {
             ...(demoMeta(findingUid).extensions.custom_attributes),
+            ...(item.usedFallback ? { demoFallback: true } : {}),
           },
         },
       },
