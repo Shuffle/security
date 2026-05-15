@@ -36,7 +36,7 @@ import {
   extractWorkflowAppNames,
 } from '@/Shuffle-MCPs/ingestionDetection';
 import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
-import { getDatastoreByCategory, setDatastoreItems, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
+import { getDatastoreByCategory, setDatastoreItems, deleteDatastoreItems, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 // Canonical seeders + workflow generator — SAME functions used by the
 // Threat Feeds page, IOC Types page, and the onboarding AutomationConfig.
 // Keeping a single source of truth means changes there propagate to demo
@@ -293,24 +293,74 @@ const runThreatFeedsWorkflow = async (): Promise<void> => {
 };
 
 /**
- * Initialize Threat Feeds defaults — but ONLY if the user has not already
- * customised the list. Delegates to the canonical `seedDefaultThreatFeeds`
- * so the write itself is identical to the Threat Feeds page reset button.
+ * Snapshot of a datastore category — captured before we overwrite it with
+ * defaults so we can restore the user's custom config afterwards.
  *
- * Does NOT run the enablement workflow — the caller (Stage B) does that
- * explicitly so we keep the dependency order clear.
+ * `items` is the raw list returned by /list_cache (key + parsed value).
+ * An empty array means the user had nothing configured — in that case the
+ * defaults stay in place after the workflow run.
  */
-const initThreatFeedsDefaults = async (): Promise<void> => {
+type DatastoreSnapshot = { items: Array<{ key: string; value: unknown }> };
+
+const snapshotCategory = async (category: string): Promise<DatastoreSnapshot> => {
   try {
-    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS);
-    const alreadySeeded = res.success && res.data && res.data.length > 0;
-    // Respect the user's existing configuration — never overwrite their
-    // custom feeds just because demo mode started.
-    if (alreadySeeded) return;
+    const res = await getDatastoreByCategory(category);
+    if (!res.success || !res.data) return { items: [] };
+    const items = res.data.map(it => {
+      let value: unknown = it.value;
+      if (typeof it.value === 'string') {
+        try { value = JSON.parse(it.value); } catch { /* keep raw string */ }
+      }
+      return { key: it.key, value };
+    });
+    return { items };
+  } catch {
+    return { items: [] };
+  }
+};
+
+/**
+ * Restore a previously-captured snapshot. Deletes everything currently in
+ * the category (which at this point is the freshly-seeded defaults) and
+ * writes the original user items back. No-op when the snapshot is empty —
+ * we leave the defaults in place so the user is not worse off than before.
+ */
+const restoreSnapshot = async (
+  category: string,
+  snapshot: DatastoreSnapshot,
+): Promise<void> => {
+  if (snapshot.items.length === 0) return;
+  try {
+    const current = await getDatastoreByCategory(category);
+    const currentKeys = current.success && current.data ? current.data.map(it => it.key) : [];
+    if (currentKeys.length > 0) {
+      await deleteDatastoreItems(currentKeys, category);
+    }
+    await setDatastoreItems(
+      snapshot.items.map(({ key, value }) => ({ key, value: value as string | object })),
+      category,
+    );
+  } catch (err) {
+    console.warn(`[demo] restore snapshot failed for ${category}`, err);
+  }
+};
+
+/**
+ * Snapshot Threat Feeds (so we can restore the user's config later) and
+ * unconditionally reset to defaults — same write the Threat Feeds page
+ * "Reset to Defaults" performs. The reset is required because the demo
+ * needs the curated default feeds active for IOC enrichment to work; the
+ * snapshot ensures we put the user's config back once the workflow has
+ * populated indicators.
+ */
+const initThreatFeedsDefaults = async (): Promise<DatastoreSnapshot> => {
+  const snapshot = await snapshotCategory(DATASTORE_CATEGORIES.THREAT_FEEDS);
+  try {
     await seedDefaultThreatFeeds();
   } catch (err) {
-    console.warn('[demo] threat feeds init failed', err);
+    console.warn('[demo] threat feeds reset failed', err);
   }
+  return snapshot;
 };
 
 /**
@@ -413,21 +463,19 @@ const initDemoMonitorHost = async (): Promise<void> => {
 };
 
 /**
- * Initialize IOC Types defaults — but ONLY if the user has not already
- * customised the list. Delegates to the canonical `seedDefaultIOCTypes`
- * so the write itself is identical to the IOC Types page reset and the
- * /incidents auto-init in lib/initDefaults.ts.
+ * Snapshot Observable Regexes (IOC Types) and unconditionally reset them
+ * to the canonical defaults — same write the IOC Types page "Reset to
+ * Defaults" performs. The snapshot is restored after the Threat Feeds
+ * workflow has run so a customised regex set is preserved.
  */
-const initIOCTypesDefaults = async (): Promise<void> => {
+const initIOCTypesDefaults = async (): Promise<DatastoreSnapshot> => {
+  const snapshot = await snapshotCategory(DATASTORE_CATEGORIES.IOCS);
   try {
-    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS);
-    // Respect the user's existing configuration — never overwrite their
-    // custom IOC types just because demo mode started.
-    if (res.success && res.data && res.data.length > 0) return;
     await seedDefaultIOCTypes();
   } catch (err) {
-    console.warn('[demo] IOC types init failed', err);
+    console.warn('[demo] IOC types reset failed', err);
   }
+  return snapshot;
 };
 
 /** Seed a "Security Analyst" agent persona into the agents datastore. */
@@ -544,13 +592,16 @@ export interface LiveDemoEnvironmentResult {
  * UI to wait on it.
  */
 export const enableLiveDemoEnvironment = (): LiveDemoEnvironmentResult => {
-  // Stage A — defaults that the workflow + indicator polling depend on.
-  const stageA = Promise.allSettled([
-    initIOCTypesDefaults(),
-    initThreatFeedsDefaults(),
-  ]);
+  // Stage A — snapshot the user's existing Threat Feeds + Observable
+  // Regexes (so we can restore them later) and force-reset both to the
+  // canonical defaults the demo needs.
+  const iocTypesSnapshotP = initIOCTypesDefaults();
+  const threatFeedsSnapshotP = initThreatFeedsDefaults();
+  const stageA = Promise.allSettled([iocTypesSnapshotP, threatFeedsSnapshotP]);
 
-  // Independent steps — fire alongside Stage A.
+  // Independent steps — fire alongside Stage A. generateOnboardingWorkflows
+  // is what creates the threat-intel usecase workflows (incl. "Enable
+  // Threat feeds") that Stage B then executes.
   const independent = Promise.allSettled([
     generateOnboardingWorkflows(),
     initDemoMonitorHost(),
@@ -558,16 +609,26 @@ export const enableLiveDemoEnvironment = (): LiveDemoEnvironmentResult => {
     initAgentPermissionsDefaults(),
   ]);
 
-  // Stage B — only run the Threat Feeds workflow once defaults are in place.
-  // generateOnboardingWorkflows (in `independent`) is what actually creates
-  // the "Enable Threat feeds" workflow row, so we wait on both before
-  // looking it up + executing it.
+  // Stage B — run the Threat Feeds workflow once defaults are in place
+  // and the workflow row has been generated.
   const stageB = Promise.all([stageA, independent]).then(() => runThreatFeedsWorkflow());
+
+  // Stage B' — once the workflow has populated indicators, restore the
+  // user's original Threat Feeds + Observable Regex configs (if any).
+  // Empty snapshots are no-ops so the defaults we just seeded stay put
+  // for users who had nothing configured.
+  const restored = stageB.then(async () => {
+    const [iocSnap, feedsSnap] = await Promise.all([iocTypesSnapshotP, threatFeedsSnapshotP]);
+    await Promise.allSettled([
+      restoreSnapshot(DATASTORE_CATEGORIES.IOCS, iocSnap),
+      restoreSnapshot(DATASTORE_CATEGORIES.THREAT_FEEDS, feedsSnap),
+    ]);
+  });
 
   // Stage C — poll `ioc_domain` until an indicator exists. Resolves false
   // on timeout so callers can fall back gracefully.
   const indicatorReady = stageB.then(() => waitForFirstIndicatorUrl());
 
-  const ready = stageB.then(() => undefined);
+  const ready = restored.then(() => undefined);
   return { ready, indicatorReady };
 };
