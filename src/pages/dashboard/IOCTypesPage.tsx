@@ -288,6 +288,7 @@ const IOCTypesPage = () => {
   const { data: observableCounts, isLoading: countsLoading } = useObservableCounts(enabledNames);
   const queryClient = useQueryClient();
   const [deletingType, setDeletingType] = useState<string | null>(null);
+  const [deletingProgress, setDeletingProgress] = useState<number>(0);
 
   /**
    * Delete every observable in the `ioc_<typeName>` datastore category.
