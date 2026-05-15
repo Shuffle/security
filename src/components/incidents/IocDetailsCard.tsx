@@ -82,6 +82,14 @@ interface IocDetailsCardProps {
  */
 export const IocDetailsCard = ({ correlations, compact = false }: IocDetailsCardProps) => {
   const [items, setItems] = useState<Array<{ category: string; key: string; stix?: ParsedStix; raw?: string; loading: boolean; error?: string }>>([]);
+  const [feeds, setFeeds] = useState<ThreatFeed[]>(threatFeedsCache || []);
+
+  useEffect(() => {
+    if (threatFeedsCache) { setFeeds(threatFeedsCache); return; }
+    let cancelled = false;
+    loadThreatFeeds().then((f) => { if (!cancelled) setFeeds(f); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Collect unique IOC (category, key) pairs across all correlations.
   const iocRefs = (() => {
