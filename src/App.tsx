@@ -159,6 +159,7 @@ const ThemedApp = () => {
           <DemoTourDrawer />
           <DemoSpotlight />
           <DemoCompletionWatcher />
+          <DemoResumePill />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/apps" element={<AppsPage />} />
