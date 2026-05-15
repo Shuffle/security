@@ -564,7 +564,32 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setDrawerOpen(false);
     setActive(false);
     try { localStorage.removeItem('shuffle_demo_active'); } catch { /* ignore */ }
+    // If they reached the final step, treat the demo as finished and stop
+    // showing the resume pill.
+    if (isOnFinalStep) {
+      try { localStorage.removeItem('shuffle_demo_started'); } catch { /* ignore */ }
+      try { localStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
+      setWasStarted(false);
+      setResumeDismissed(false);
+    }
   }, [step]);
+
+  const resumeTour = useCallback(() => {
+    setActive(true);
+    setDrawerOpen(true);
+    setMinimized(false);
+    setResumeDismissed(false);
+    try { localStorage.setItem('shuffle_demo_active', 'true'); } catch { /* ignore */ }
+    try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
+    try { localStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
+    setAttentionPulse(p => p + 1);
+    navigateForStep(step);
+  }, [navigateForStep, step]);
+
+  const dismissResumePrompt = useCallback(() => {
+    setResumeDismissed(true);
+    try { localStorage.setItem('shuffle_demo_resume_dismissed', 'true'); } catch { /* ignore */ }
+  }, []);
 
   const isStepUnlocked = useCallback((s: TourStep | undefined): boolean => {
     if (!s) return true;
