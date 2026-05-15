@@ -2584,7 +2584,12 @@ const IncidentDetailPage = () => {
     ].filter(Boolean));
 
     toFetch.forEach(async (obs) => {
-      const obsKey = `${obs.type}::${obs.value}`;
+      // Normalize to lowercase so case-only duplicates (e.g. an email-body
+      // URL with capital letters vs. the backend-lowercased enrichment of
+      // the same URL) share a single correlations entry, and so the lookup
+      // hits IOC datastore keys which are stored lowercased.
+      const lowerValue = String(obs.value || '').toLowerCase();
+      const obsKey = `${String(obs.type || '').toLowerCase()}::${lowerValue}`;
       // Skip if already fetched (with data or empty) or currently loading
       if (obsCorrelations[obsKey] !== undefined) return;
 
@@ -2602,7 +2607,7 @@ const IncidentDetailPage = () => {
           headers: { 'Content-Type': 'application/json', ...getAuthHeader(), ...crossOrgHeaders },
           body: JSON.stringify({
             type: 'value',
-            key: obs.value,
+            key: lowerValue,
           }),
         });
         clearTimeout(timeout);
@@ -2625,7 +2630,8 @@ const IncidentDetailPage = () => {
   // the user can poke at it without leaving the row.
   const refetchObsCorrelation = useCallback(async (obs: { type: string; value: string }) => {
     if (!obs?.value) return;
-    const obsKey = `${obs.type}::${obs.value}`;
+    const lowerValue = String(obs.value || '').toLowerCase();
+    const obsKey = `${String(obs.type || '').toLowerCase()}::${lowerValue}`;
     const noiseKeys = new Set([
       'new', 'in_progress', 'resolved', 'escalated', 'closed', 'open', 'pending',
       'critical', 'high', 'medium', 'low', 'informational', 'info', 'warning', 'error',
@@ -2638,7 +2644,7 @@ const IncidentDetailPage = () => {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader(), ...crossOrgHeaders },
-        body: JSON.stringify({ type: 'value', key: obs.value }),
+        body: JSON.stringify({ type: 'value', key: lowerValue }),
       });
       if (resp.ok) {
         const data = await resp.json();
@@ -8200,8 +8206,8 @@ const IncidentDetailPage = () => {
                         </Typography>
                         {/* Correlation badge */}
                         {(() => {
-                          const obsKey = `${obs.type}::${obs.value}`;
-                          const corr = obsCorrelations[obsKey];
+                           const obsKey = `${String(obs.type || '').toLowerCase()}::${String(obs.value || '').toLowerCase()}`;
+                           const corr = obsCorrelations[obsKey];
                           if (corr?.loading) return <CircularProgress size={14} sx={{ mx: 0.5 }} />;
                           if (!corr?.data?.length) return null;
                           // Only count correlations with refs OTHER than the current incident.
@@ -8339,7 +8345,8 @@ const IncidentDetailPage = () => {
                           </Box>
                           {/* Inline correlations */}
                           {(() => {
-                            const obsKey = `${obs.type}::${obs.value}`;
+                            const lowerValue = String(obs.value || '').toLowerCase();
+                            const obsKey = `${String(obs.type || '').toLowerCase()}::${lowerValue}`;
                             const corr = obsCorrelations[obsKey];
                             // Trigger fetch if not yet loaded
                             if (!corr && obs.value) {
@@ -8355,7 +8362,7 @@ const IncidentDetailPage = () => {
                                   method: 'POST',
                                   credentials: 'include',
                                   headers: { 'Content-Type': 'application/json', ...getAuthHeader(), ...crossOrgHeaders },
-                                  body: JSON.stringify({ type: 'value', key: obs.value }),
+                                  body: JSON.stringify({ type: 'value', key: lowerValue }),
                                 }).then(async r => {
                                   if (r.ok) {
                                     const data = await r.json();
