@@ -7877,11 +7877,11 @@ const IncidentDetailPage = () => {
                     placeholder="Enter observable value..."
                     fullWidth
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddObservable())}
-                    sx={inputSx}
+                    sx={{ ...inputSx, '& .MuiOutlinedInput-root': { ...(inputSx as any)['& .MuiOutlinedInput-root'], height: 36 } }}
                     error={!!regexWarning}
                     helperText={regexWarning || undefined}
                   />
-                  <IconButton onClick={handleAddObservable} disabled={!newObservableValue.trim()} sx={{ bgcolor: 'rgba(255,255,255,0.05)', alignSelf: regexWarning ? 'flex-start' : 'center', mt: regexWarning ? '4px' : 0 }}>
+                  <IconButton onClick={handleAddObservable} disabled={!newObservableValue.trim()} sx={{ width: 36, height: 36, bgcolor: 'rgba(255,255,255,0.05)', alignSelf: regexWarning ? 'flex-start' : 'center', mt: regexWarning ? '4px' : 0 }}>
                     <AddIcon />
                   </IconButton>
                 </>
