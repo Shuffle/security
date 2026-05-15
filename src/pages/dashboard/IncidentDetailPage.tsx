@@ -125,6 +125,7 @@ import { normalizeStatus } from '@/config/incidentConfig';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
 import { MergeIncidentDialog } from '@/components/incidents/MergeIncidentDialog';
 import { MergeCandidatesBanner } from '@/components/incidents/MergeCandidatesBanner';
+import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
 import { buildAgentContextBlock, stripAgentContextBlock } from '@/utils/agentContextBlock';
