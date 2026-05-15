@@ -33,7 +33,7 @@ const AGENTS_CATEGORY = 'shuffle-security_agents';
 // are raw IPs / URLs; values are STIX 2.1 indicators. We pick from `ioc_url`
 // (rather than `ioc_domain`) because URL feeds tend to carry richer, more
 // reliably-typed entries — the host portion gives us the lure domain too.
-const IOC_IP_CATEGORY = 'ioc_ip';
+const IOC_IP_CATEGORY = 'ioc_ipv4';
 const IOC_URL_CATEGORY = 'ioc_url';
 // Stash the IOC overrides chosen at step 1 so the Wazuh follow-up reuses
 // the exact same IP + URL (correlations rely on byte-identical values).

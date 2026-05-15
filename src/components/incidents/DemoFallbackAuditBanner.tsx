@@ -144,7 +144,7 @@ export const DemoFallbackAuditBanner = ({ visible }: { visible: boolean }) => {
           </Typography>
           {audit ? (
             <>
-              <Bucket title="IP candidates" bucket={audit.ip} category="ioc_ip" />
+              <Bucket title="IP candidates" bucket={audit.ip} category="ioc_ipv4" />
               <Bucket title="URL candidates" bucket={audit.url} category="ioc_url" />
             </>
           ) : (
