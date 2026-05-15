@@ -45,6 +45,7 @@ import { DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { toast } from '@/lib/toast';
 import ThreatIntelAutomationBanner from '@/components/incidents/ThreatIntelAutomationBanner';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useObservableCounts } from '@/hooks/useObservableCounts';
 
 const CATEGORY = DATASTORE_CATEGORIES.IOCS;
 
