@@ -398,24 +398,6 @@ const StatusIcon: React.FC<{ status?: string }> = ({ status }) => {
   );
 };
 
-const AgentLimitWarning: React.FC<{ diagnosis: OutputDiagnosis }> = ({ diagnosis }) => (
-  <Box sx={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    px: 1.25,
-    py: 0.75,
-    borderRadius: 1,
-    border: '1px solid hsl(var(--severity-medium) / 0.35)',
-    bgcolor: 'hsl(var(--severity-medium) / 0.08)',
-  }}>
-    <WarningIcon sx={{ color: 'hsl(var(--severity-medium))', fontSize: 16, flexShrink: 0 }} />
-    <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', lineHeight: 1.4 }}>
-      <Box component="span" sx={{ fontWeight: 600 }}>{diagnosis.title}.</Box>{' '}
-      <Box component="span" sx={{ color: 'hsl(var(--muted-foreground))' }}>{diagnosis.remediation}</Box>
-    </Typography>
-  </Box>
-);
 
 
 interface TimelineRowProps {
