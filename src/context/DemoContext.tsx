@@ -385,6 +385,12 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [hasDemoIncidents, setHasDemoIncidents] = useState(false);
   const [attentionPulse, setAttentionPulse] = useState(0);
   const [hoveredGoalSelector, setHoveredGoalSelector] = useState<string | null>(null);
+  const [wasStarted, setWasStarted] = useState<boolean>(() => {
+    try { return localStorage.getItem('shuffle_demo_started') === 'true'; } catch { return false; }
+  });
+  const [resumeDismissed, setResumeDismissed] = useState<boolean>(() => {
+    try { return localStorage.getItem('shuffle_demo_resume_dismissed') === 'true'; } catch { return false; }
+  });
 
   // GA dedupe: each step view fires at most once per session, each completion
   // fires at most once per step. Refs survive re-renders without retriggering.
