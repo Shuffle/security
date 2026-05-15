@@ -2,8 +2,56 @@ import { useEffect, useState } from 'react';
 import { Box, Typography, Chip, CircularProgress, Link as MuiLink, Tooltip } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { getDatastoreItem } from '@/Shuffle-MCPs/datastore';
+import { getDatastoreItem, getDatastoreByCategory, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { isIocCategory, type Correlation } from './CorrelationRow';
+import type { ThreatFeed } from '@/hooks/useThreatFeeds';
+
+/** In-memory cache of threat feeds (id+url+name) so we resolve a friendly
+ *  feed name for IOC references without re-hitting the datastore for every
+ *  popover render. Loaded lazily on first use. */
+let threatFeedsCache: ThreatFeed[] | null = null;
+let threatFeedsPromise: Promise<ThreatFeed[]> | null = null;
+const loadThreatFeeds = async (): Promise<ThreatFeed[]> => {
+  if (threatFeedsCache) return threatFeedsCache;
+  if (threatFeedsPromise) return threatFeedsPromise;
+  threatFeedsPromise = (async () => {
+    try {
+      const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS);
+      const items = (res?.items || []).map((it: { key: string; value: string }) => {
+        try { return JSON.parse(it.value) as ThreatFeed; } catch { return null; }
+      }).filter(Boolean) as ThreatFeed[];
+      threatFeedsCache = items;
+      return items;
+    } catch {
+      threatFeedsCache = [];
+      return [];
+    }
+  })();
+  return threatFeedsPromise;
+};
+
+/** Resolve a human-readable feed name for a STIX external_reference. We
+ *  prefer (in order): an exact URL match in the user's threat-feed list,
+ *  the reference's own description, the source_name, the URL hostname,
+ *  and finally a generic fallback. This ensures generic source_name values
+ *  like "threatfeed" are upgraded to the actual feed name where possible. */
+const resolveFeedLabel = (
+  ref: { source_name?: string; url?: string; description?: string },
+  feeds: ThreatFeed[],
+): string => {
+  if (ref.url) {
+    const match = feeds.find(f => f.url && f.url === ref.url);
+    if (match?.name) return match.name;
+  }
+  const generic = !ref.source_name || /^threat[\s_-]?feed$/i.test(ref.source_name);
+  if (generic && ref.description) return ref.description;
+  if (ref.source_name && !generic) return ref.source_name;
+  if (ref.description) return ref.description;
+  if (ref.url) {
+    try { return new URL(ref.url).hostname; } catch { return ref.url; }
+  }
+  return ref.source_name || 'reference';
+};
 
 interface ParsedStix {
   type?: string;
