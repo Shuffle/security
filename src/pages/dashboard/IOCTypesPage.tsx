@@ -515,7 +515,7 @@ const IOCTypesPage = () => {
                   return [
                     // Category header row
                     <TableRow key={`header-${category.id}`} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }}>
-                      <TableCell colSpan={Object.keys(testResults).length > 0 ? 7 : 6} sx={{ py: 1 }}>
+                      <TableCell colSpan={Object.keys(testResults).length > 0 ? 8 : 7} sx={{ py: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: category.color }} />
                           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: category.color }}>
