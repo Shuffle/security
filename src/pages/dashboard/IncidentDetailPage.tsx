@@ -101,6 +101,7 @@ import { useSubOrgs } from '@/hooks/useSubOrgs';
 import { useCustomFields, CustomField } from '@/hooks/useCustomFields';
 import { useIOCTypes } from '@/hooks/useIOCTypes';
 import { ObservableTypeSelector } from '@/components/incidents/ObservableTypeSelector';
+import { ObservableLookupMenu } from '@/components/incidents/ObservableLookupMenu';
 import { useCaseTemplates, CaseTemplate } from '@/hooks/useCaseTemplates';
 import { 
   ActivityItem,
