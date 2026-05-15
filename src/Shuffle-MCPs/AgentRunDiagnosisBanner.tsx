@@ -101,153 +101,154 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
     if (canJump) onJumpToEvidence!(jumpDecisionIndex!);
   };
 
+  const showTokenCtas = diagnosis?.kind === 'token_limit';
+
   return (
     <Box sx={{ px: 2.5, pb: 0.5, ...(sx || {}) }}>
       <Box
-        {...(canJump
-          ? {
-              role: 'button' as const,
-              tabIndex: 0,
-              onClick: handleJump,
-              onKeyDown: (e: React.KeyboardEvent) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleJump();
-                }
-              },
-            }
-          : {})}
         sx={{
           display: 'flex',
-          alignItems: 'center',
-          gap: 1,
+          flexDirection: 'column',
+          gap: 0.75,
           px: 1.25,
-          py: 0.5,
+          py: 0.75,
           borderRadius: 2,
           bgcolor: `hsla(var(--severity-${tone}) / 0.06)`,
           border: `1px solid hsla(var(--severity-${tone}) / 0.18)`,
-          cursor: canJump ? 'pointer' : 'default',
-          transition: 'background 0.15s ease, border-color 0.15s ease',
-          ...(canJump && {
-            '&:hover': {
-              bgcolor: `hsla(var(--severity-${tone}) / 0.1)`,
-              borderColor: `hsla(var(--severity-${tone}) / 0.35)`,
-            },
-            '&:focus-visible': {
-              outline: 'none',
-              borderColor: `hsl(var(--severity-${tone}))`,
-              boxShadow: `0 0 0 2px hsla(var(--severity-${tone}) / 0.25)`,
-            },
-          }),
         }}
       >
-        <Icon
-          size={13}
-          style={{ color: `hsl(var(--severity-${tone}))`, flexShrink: 0 }}
-        />
-        <Typography
+        <Box
+          {...(canJump
+            ? {
+                role: 'button' as const,
+                tabIndex: 0,
+                onClick: handleJump,
+                onKeyDown: (e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleJump();
+                  }
+                },
+              }
+            : {})}
           sx={{
-            flex: 1,
-            minWidth: 0,
-            fontSize: '0.74rem',
-            color: 'hsl(var(--foreground))',
-            lineHeight: 1.4,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-          title={message}
-        >
-          {message}
-        </Typography>
-        {diagnosis?.kind === 'token_limit' && (
-          <>
-            <Tooltip title="Configure your own LLM vendor (OpenAI-compatible endpoint)" placement="top" arrow>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Settings2 size={12} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.dispatchEvent(
-                    new CustomEvent('agent-drawer-open', { detail: { tab: 'localLLM' } }),
-                  );
-                }}
-                sx={{
-                  flexShrink: 0,
-                  textTransform: 'none',
-                  fontSize: '0.7rem',
-                  py: 0.1,
-                  px: 0.75,
-                  minHeight: 22,
-                  lineHeight: 1.2,
-                  borderColor: `hsla(var(--severity-${tone}) / 0.4)`,
-                  color: 'hsl(var(--foreground))',
-                  '&:hover': {
-                    borderColor: `hsl(var(--severity-${tone}))`,
-                    bgcolor: `hsla(var(--severity-${tone}) / 0.08)`,
-                  },
-                }}
-              >
-                Use your own LLM
-              </Button>
-            </Tooltip>
-            <Tooltip title="Contact Shuffle Support to get more tokens" placement="top" arrow>
-              <Button
-                size="small"
-                variant="outlined"
-                endIcon={<ExternalLink size={12} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open('https://shuffler.io/contact?category=Support', '_blank', 'noopener,noreferrer');
-                }}
-                sx={{
-                  flexShrink: 0,
-                  textTransform: 'none',
-                  fontSize: '0.7rem',
-                  py: 0.1,
-                  px: 0.75,
-                  minHeight: 22,
-                  lineHeight: 1.2,
-                  borderColor: `hsla(var(--severity-${tone}) / 0.4)`,
-                  color: 'hsl(var(--foreground))',
-                  '&:hover': {
-                    borderColor: `hsl(var(--severity-${tone}))`,
-                    bgcolor: `hsla(var(--severity-${tone}) / 0.08)`,
-                  },
-                }}
-              >
-                Get more tokens
-              </Button>
-            </Tooltip>
-          </>
-        )}
-        {canJump && (
-          <Tooltip title={`Open Decision #${(jumpDecisionIndex ?? 0) + 1} in detailed timeline`} placement="top" arrow>
-            <ArrowUpRight
-              size={13}
-              style={{ color: `hsl(var(--severity-${tone}))`, flexShrink: 0 }}
-            />
-          </Tooltip>
-        )}
-        <Tooltip title="Dismiss for this execution" placement="top" arrow>
-          <IconButton
-            size="small"
-            onClick={handleDismiss}
-            sx={{
-              p: 0.25,
-              ml: 0.25,
-              color: 'hsl(var(--muted-foreground))',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            cursor: canJump ? 'pointer' : 'default',
+            borderRadius: 1,
+            transition: 'background 0.15s ease',
+            ...(canJump && {
               '&:hover': {
-                color: 'hsl(var(--foreground))',
-                bgcolor: 'hsla(var(--foreground) / 0.06)',
+                bgcolor: `hsla(var(--severity-${tone}) / 0.08)`,
               },
+              '&:focus-visible': {
+                outline: 'none',
+                boxShadow: `0 0 0 2px hsla(var(--severity-${tone}) / 0.25)`,
+              },
+            }),
+          }}
+        >
+          <Icon
+            size={13}
+            style={{ color: `hsl(var(--severity-${tone}))`, flexShrink: 0 }}
+          />
+          <Typography
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: '0.74rem',
+              color: 'hsl(var(--foreground))',
+              lineHeight: 1.4,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
-            aria-label="Dismiss diagnosis"
+            title={message}
           >
-            <X size={12} />
-          </IconButton>
-        </Tooltip>
+            {message}
+          </Typography>
+          {canJump && (
+            <Tooltip title={`Open Decision #${(jumpDecisionIndex ?? 0) + 1} in detailed timeline`} placement="top" arrow>
+              <ArrowUpRight
+                size={13}
+                style={{ color: `hsl(var(--severity-${tone}))`, flexShrink: 0 }}
+              />
+            </Tooltip>
+          )}
+          <Tooltip title="Dismiss for this execution" placement="top" arrow>
+            <IconButton
+              size="small"
+              onClick={handleDismiss}
+              sx={{
+                p: 0.25,
+                ml: 0.25,
+                color: 'hsl(var(--muted-foreground))',
+                '&:hover': {
+                  color: 'hsl(var(--foreground))',
+                  bgcolor: 'hsla(var(--foreground) / 0.06)',
+                },
+              }}
+              aria-label="Dismiss diagnosis"
+            >
+              <X size={12} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        {showTokenCtas && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, pl: 2.5, pt: 0.25 }}>
+            <Button
+              size="small"
+              variant="contained"
+              disableElevation
+              startIcon={<Settings2 size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.dispatchEvent(
+                  new CustomEvent('agent-drawer-open', { detail: { tab: 'localLLM' } }),
+                );
+              }}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                height: 32,
+                px: 1.5,
+                bgcolor: `hsl(var(--severity-${tone}))`,
+                color: 'hsl(var(--background))',
+                '&:hover': {
+                  bgcolor: `hsla(var(--severity-${tone}) / 0.88)`,
+                },
+              }}
+            >
+              Use your own LLM vendor
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              endIcon={<ExternalLink size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open('https://shuffler.io/contact?category=Support', '_blank', 'noopener,noreferrer');
+              }}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                height: 32,
+                px: 1.5,
+                borderColor: `hsla(var(--severity-${tone}) / 0.5)`,
+                color: 'hsl(var(--foreground))',
+                '&:hover': {
+                  borderColor: `hsl(var(--severity-${tone}))`,
+                  bgcolor: `hsla(var(--severity-${tone}) / 0.08)`,
+                },
+              }}
+            >
+              Get more tokens from Shuffle
+            </Button>
+          </Box>
+        )}
       </Box>
     </Box>
   );
