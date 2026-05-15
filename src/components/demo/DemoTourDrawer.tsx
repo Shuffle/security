@@ -1106,6 +1106,7 @@ export const DemoTourDrawer = () => {
                   }
                   arrow
                   disableHoverListener={!locked}
+                  slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}
                 >
                   <span style={{ flex: 1.4, display: 'flex', position: 'relative' }}>
                     {/* Celebration ring — pulses out from the Next button the moment the gate clears */}
