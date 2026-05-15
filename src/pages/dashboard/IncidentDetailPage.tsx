@@ -529,7 +529,7 @@ const IncidentDetailPage = () => {
   });
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { plural: entityPlural, singular: entitySingular, basePath: entityBasePath } = useEntityLabel();
   const t = useEntityText();
   const taskStatuses = useTaskStatuses();
