@@ -273,6 +273,7 @@ export const DemoTourDrawer = () => {
           title="You are viewing fake demo data. Click to re-open the demo tour."
           arrow
           placement="left"
+          slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}
         >
           <Box
             onClick={openTour}
@@ -379,7 +380,7 @@ export const DemoTourDrawer = () => {
             touchAction: 'none',
           }}
         >
-          <Tooltip title={`${current.title} — click to expand`} arrow placement="left">
+          <Tooltip title={`${current.title} — click to expand`} arrow placement="left" slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
             <Box
               onClick={restoreTour}
               role="button"
@@ -576,17 +577,17 @@ export const DemoTourDrawer = () => {
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: isBottom ? 0 : 'auto' }}>
-                <Tooltip title={isBottom ? 'Dock to right' : 'Dock to bottom'} arrow slotProps={{ popper: { sx: { zIndex: 10000 } } }}>
+                <Tooltip title={isBottom ? 'Dock to right' : 'Dock to bottom'} arrow slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
                   <IconButton onClick={toggleDock} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                     {isBottom ? <PanelRight size={15} /> : <PanelBottom size={15} />}
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Minimize" arrow slotProps={{ popper: { sx: { zIndex: 10000 } } }}>
+                <Tooltip title="Minimize" arrow slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
                   <IconButton onClick={minimizeTour} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                     <Minus size={16} />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Close demo mode" arrow slotProps={{ popper: { sx: { zIndex: 10000 } } }}>
+                <Tooltip title="Close demo mode" arrow slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
                   <IconButton onClick={closeTour} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                     <X size={16} />
                   </IconButton>
@@ -1105,6 +1106,7 @@ export const DemoTourDrawer = () => {
                   }
                   arrow
                   disableHoverListener={!locked}
+                  slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}
                 >
                   <span style={{ flex: 1.4, display: 'flex', position: 'relative' }}>
                     {/* Celebration ring — pulses out from the Next button the moment the gate clears */}
