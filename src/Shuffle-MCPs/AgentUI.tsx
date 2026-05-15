@@ -3450,22 +3450,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     }
                   }
                   const pendingAnswered = pendingQuestions.every((q) => questionAnswers[q.question]?.value);
-                  const isLimitReached = !!limitDiagnosis;
 
                   return (
                     <>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         {isRunning ? (
                           <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))' }} />
-                        ) : isLimitReached ? (
-                          <WarningIcon sx={{ fontSize: 18, color: 'hsl(var(--severity-medium))' }} />
                         ) : status === 'FINISHED' ? (
                           <CheckCircleIcon sx={{ fontSize: 18, color: 'hsl(142 70% 45%)' }} />
                         ) : (
                           <ErrorIcon sx={{ fontSize: 18, color: 'hsl(var(--destructive))' }} />
                         )}
                         <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                          {isRunning ? 'Agent is working…' : isLimitReached ? 'Run stopped — limit reached' : status === 'FINISHED' ? 'Run finished' : `Run ${status.toLowerCase()}`}
+                          {isRunning ? 'Agent is working…' : status === 'FINISHED' ? 'Run finished' : `Run ${status.toLowerCase()}`}
                         </Typography>
                         <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
                           {decisionCount} step{decisionCount === 1 ? '' : 's'}
