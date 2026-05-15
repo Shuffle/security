@@ -122,7 +122,7 @@ import { toast } from '@/Shuffle-MCPs/toast';
 import { runAgent } from '@/Shuffle-MCPs/agentRun';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/AgentRunDiagnosisBanner';
-import { diagnoseOutputWarning, type OutputDiagnosis } from '@/Shuffle-MCPs/agentDiagnosis';
+
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -398,24 +398,6 @@ const StatusIcon: React.FC<{ status?: string }> = ({ status }) => {
   );
 };
 
-const AgentLimitWarning: React.FC<{ diagnosis: OutputDiagnosis }> = ({ diagnosis }) => (
-  <Box sx={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    px: 1.25,
-    py: 0.75,
-    borderRadius: 1,
-    border: '1px solid hsl(var(--severity-medium) / 0.35)',
-    bgcolor: 'hsl(var(--severity-medium) / 0.08)',
-  }}>
-    <WarningIcon sx={{ color: 'hsl(var(--severity-medium))', fontSize: 16, flexShrink: 0 }} />
-    <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--foreground))', lineHeight: 1.4 }}>
-      <Box component="span" sx={{ fontWeight: 600 }}>{diagnosis.title}.</Box>{' '}
-      <Box component="span" sx={{ color: 'hsl(var(--muted-foreground))' }}>{diagnosis.remediation}</Box>
-    </Typography>
-  </Box>
-);
 
 
 interface TimelineRowProps {
@@ -2182,11 +2164,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at]);
 
-  const limitDiagnosis = useMemo(() => {
-    const diagnosis = diagnoseOutputWarning(agentData as any);
-    return diagnosis?.kind === 'token_limit' ? diagnosis : null;
-  }, [agentData]);
-
 
   const toggleOpen = (i: number) =>
     setOpenIndexes((prev) => {
@@ -3473,22 +3450,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     }
                   }
                   const pendingAnswered = pendingQuestions.every((q) => questionAnswers[q.question]?.value);
-                  const isLimitReached = !!limitDiagnosis;
 
                   return (
                     <>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         {isRunning ? (
                           <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))' }} />
-                        ) : isLimitReached ? (
-                          <WarningIcon sx={{ fontSize: 18, color: 'hsl(var(--severity-medium))' }} />
                         ) : status === 'FINISHED' ? (
                           <CheckCircleIcon sx={{ fontSize: 18, color: 'hsl(142 70% 45%)' }} />
                         ) : (
                           <ErrorIcon sx={{ fontSize: 18, color: 'hsl(var(--destructive))' }} />
                         )}
                         <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                          {isRunning ? 'Agent is working…' : isLimitReached ? 'Run stopped — limit reached' : status === 'FINISHED' ? 'Run finished' : `Run ${status.toLowerCase()}`}
+                          {isRunning ? 'Agent is working…' : status === 'FINISHED' ? 'Run finished' : `Run ${status.toLowerCase()}`}
                         </Typography>
                         <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
                           {decisionCount} step{decisionCount === 1 ? '' : 's'}
@@ -3549,9 +3523,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                           </Box>
                         );
                       })}
-                      {limitDiagnosis ? (
-                        <AgentLimitWarning diagnosis={limitDiagnosis} />
-                      ) : finishAnswer ? (
+                      {finishAnswer ? (
                         <Box sx={{
                           p: 2, borderRadius: 1.5,
                           border: '1px solid hsl(var(--border))',
@@ -3709,7 +3681,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
               const detailedIsRunning = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
               const detailedRunFinished = !detailedIsRunning;
-              const detailedLimitReached = !!limitDiagnosis;
+              
               return (
             <Box sx={{
               borderRadius: 2,
@@ -3758,20 +3730,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       bgcolor: 'hsl(var(--muted) / 0.2)',
                     }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        {detailedLimitReached ? (
-                          <WarningIcon sx={{ fontSize: 18, color: 'hsl(var(--severity-medium))' }} />
-                        ) : detailedStatus === 'FINISHED' ? (
+                        {detailedStatus === 'FINISHED' ? (
                           <CheckCircleIcon sx={{ fontSize: 18, color: 'hsl(142 70% 45%)' }} />
                         ) : (
                           <ErrorIcon sx={{ fontSize: 18, color: 'hsl(var(--destructive))' }} />
                         )}
                         <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                          {detailedLimitReached ? 'Run stopped — limit reached' : detailedStatus === 'FINISHED' ? 'Run finished' : `Run ${detailedStatus.toLowerCase()}`}
+                          {detailedStatus === 'FINISHED' ? 'Run finished' : `Run ${detailedStatus.toLowerCase()}`}
                         </Typography>
                       </Box>
-                      {limitDiagnosis ? (
-                        <AgentLimitWarning diagnosis={limitDiagnosis} />
-                      ) : finishAnswer && (
+                      {finishAnswer && (
                         <Box sx={{
                           p: 2, borderRadius: 1.5,
                           border: '1px solid hsl(var(--border))',
