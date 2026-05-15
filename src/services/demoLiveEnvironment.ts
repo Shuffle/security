@@ -592,13 +592,16 @@ export interface LiveDemoEnvironmentResult {
  * UI to wait on it.
  */
 export const enableLiveDemoEnvironment = (): LiveDemoEnvironmentResult => {
-  // Stage A — defaults that the workflow + indicator polling depend on.
-  const stageA = Promise.allSettled([
-    initIOCTypesDefaults(),
-    initThreatFeedsDefaults(),
-  ]);
+  // Stage A — snapshot the user's existing Threat Feeds + Observable
+  // Regexes (so we can restore them later) and force-reset both to the
+  // canonical defaults the demo needs.
+  const iocTypesSnapshotP = initIOCTypesDefaults();
+  const threatFeedsSnapshotP = initThreatFeedsDefaults();
+  const stageA = Promise.allSettled([iocTypesSnapshotP, threatFeedsSnapshotP]);
 
-  // Independent steps — fire alongside Stage A.
+  // Independent steps — fire alongside Stage A. generateOnboardingWorkflows
+  // is what creates the threat-intel usecase workflows (incl. "Enable
+  // Threat feeds") that Stage B then executes.
   const independent = Promise.allSettled([
     generateOnboardingWorkflows(),
     initDemoMonitorHost(),
@@ -606,16 +609,26 @@ export const enableLiveDemoEnvironment = (): LiveDemoEnvironmentResult => {
     initAgentPermissionsDefaults(),
   ]);
 
-  // Stage B — only run the Threat Feeds workflow once defaults are in place.
-  // generateOnboardingWorkflows (in `independent`) is what actually creates
-  // the "Enable Threat feeds" workflow row, so we wait on both before
-  // looking it up + executing it.
+  // Stage B — run the Threat Feeds workflow once defaults are in place
+  // and the workflow row has been generated.
   const stageB = Promise.all([stageA, independent]).then(() => runThreatFeedsWorkflow());
+
+  // Stage B' — once the workflow has populated indicators, restore the
+  // user's original Threat Feeds + Observable Regex configs (if any).
+  // Empty snapshots are no-ops so the defaults we just seeded stay put
+  // for users who had nothing configured.
+  const restored = stageB.then(async () => {
+    const [iocSnap, feedsSnap] = await Promise.all([iocTypesSnapshotP, threatFeedsSnapshotP]);
+    await Promise.allSettled([
+      restoreSnapshot(DATASTORE_CATEGORIES.IOCS, iocSnap),
+      restoreSnapshot(DATASTORE_CATEGORIES.THREAT_FEEDS, feedsSnap),
+    ]);
+  });
 
   // Stage C — poll `ioc_domain` until an indicator exists. Resolves false
   // on timeout so callers can fall back gracefully.
   const indicatorReady = stageB.then(() => waitForFirstIndicatorUrl());
 
-  const ready = stageB.then(() => undefined);
+  const ready = restored.then(() => undefined);
   return { ready, indicatorReady };
 };
