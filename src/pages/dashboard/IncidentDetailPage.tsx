@@ -7877,11 +7877,11 @@ const IncidentDetailPage = () => {
                     placeholder="Enter observable value..."
                     fullWidth
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddObservable())}
-                    sx={inputSx}
+                    sx={{ ...inputSx, '& .MuiOutlinedInput-root': { ...(inputSx as any)['& .MuiOutlinedInput-root'], height: 36 } }}
                     error={!!regexWarning}
                     helperText={regexWarning || undefined}
                   />
-                  <IconButton onClick={handleAddObservable} disabled={!newObservableValue.trim()} sx={{ bgcolor: 'rgba(255,255,255,0.05)', alignSelf: regexWarning ? 'flex-start' : 'center', mt: regexWarning ? '4px' : 0 }}>
+                  <IconButton onClick={handleAddObservable} disabled={!newObservableValue.trim()} sx={{ width: 36, height: 36, bgcolor: 'rgba(255,255,255,0.05)', alignSelf: regexWarning ? 'flex-start' : 'center', mt: regexWarning ? '4px' : 0 }}>
                     <AddIcon />
                   </IconButton>
                 </>
@@ -7896,7 +7896,7 @@ const IncidentDetailPage = () => {
               value={obsFilterText}
               onChange={(e) => setObsFilterText(e.target.value)}
               placeholder="Search observables..."
-              sx={{ ...inputSx, minWidth: 160, flex: 1, maxWidth: 280 }}
+              sx={{ ...inputSx, minWidth: 160, flex: 1, maxWidth: 280, '& .MuiOutlinedInput-root': { ...(inputSx as any)['& .MuiOutlinedInput-root'], height: 36 } }}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} />,
               }}
@@ -7917,6 +7917,7 @@ const IncidentDetailPage = () => {
                   size="small"
                   sx={{
                     minWidth: 120,
+                    height: 36,
                     fontSize: '0.8rem',
                     bgcolor: 'hsl(var(--input))',
                     '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
@@ -7940,6 +7941,7 @@ const IncidentDetailPage = () => {
               size="small"
               sx={{
                 minWidth: 110,
+                height: 36,
                 fontSize: '0.75rem',
                 bgcolor: 'hsl(var(--input))',
                 '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },

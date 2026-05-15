@@ -215,6 +215,7 @@ export const TaskKanbanBoard = ({
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleAddTask();
           }}
+          sx={{ '& .MuiOutlinedInput-root': { height: 36 } }}
         />
         <Button
           variant={newTaskTitle.trim() ? 'contained' : 'outlined'}
