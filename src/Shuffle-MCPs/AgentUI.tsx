@@ -3386,8 +3386,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {/* Shared diagnosis banner — same component used by drawers and
                 incident pages, so the user sees identical reasoning here. */}
             <AgentRunDiagnosisBanner
-              run={execution}
+              run={execution?.results?.length ? execution : agentData}
               sx={{ px: 0, pb: 0, mb: 2 }}
+              executionId={execution?.execution_id}
               onJumpToEvidence={(decisionIndex) => {
                 // Locate the timeline row for the offending decision and
                 // expand + scroll to it on the detailed view, regardless of
