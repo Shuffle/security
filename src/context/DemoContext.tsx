@@ -675,6 +675,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       viewedStepsRef.current = new Set();
       completedStepsGARef.current = new Set();
       refreshStats();
+      // Bust the dashboard's leftover-demo-count cache so the "Clean up demo
+      // data (N)" button immediately reflects the new state instead of
+      // showing a stale count for up to 60s.
+      queryClient.invalidateQueries({ queryKey: ['demo-card', 'leftover-demo-count'] });
       if (res.success) {
         toast.success(`Removed ${res.deleted} demo item${res.deleted === 1 ? '' : 's'}.`);
       } else {
