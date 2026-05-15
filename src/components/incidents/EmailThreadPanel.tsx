@@ -873,7 +873,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     </Box>
   );
 
-  if (!poppedOut) return panel;
+  if (!poppedOut) return inlinePanel;
 
   // Popped out: render an inline placeholder so the user can see where the
   // thread "lives", and the real panel as a draggable floating window via
