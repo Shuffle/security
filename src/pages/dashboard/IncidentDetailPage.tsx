@@ -1239,6 +1239,7 @@ const IncidentDetailPage = () => {
 
   const enrichmentStatus = useEnrichmentStatus();
   const assignEscalateStatus = useAssignEscalateStatus();
+  const isSupportUser = useIsSupport();
 
   // ── Inline enrichment CTA visibility ───────────────────────────────────
   // Surface the same "Automatic observable extraction is not yet fully
