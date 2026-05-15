@@ -1006,38 +1006,26 @@ export const AppAuthCard = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
-            {app.image_url ? (
-              <Box
-                component="img"
-                src={app.image_url}
-                alt={app.name}
-                sx={{
-                  width: { xs: 40, sm: 48 },
-                  height: { xs: 40, sm: 48 },
-                  borderRadius: 2,
-                  objectFit: 'contain',
-                  backgroundColor: 'hsl(var(--muted) / 0.5)',
-                  p: 1,
-                  flexShrink: 0,
-                }}
+            <Box
+              sx={{
+                width: { xs: 40, sm: 48 },
+                height: { xs: 40, sm: 48 },
+                borderRadius: 2,
+                backgroundColor: 'hsl(var(--muted) / 0.5)',
+                p: 1,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <AppFallbackIcon
+                name={app.name}
+                imageUrl={app.image_url}
+                size={32}
+                style={{ borderRadius: 6 }}
               />
-            ) : (
-              <Box
-                sx={{
-                  width: { xs: 40, sm: 48 },
-                  height: { xs: 40, sm: 48 },
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'hsl(var(--muted) / 0.5)',
-                  borderRadius: 2,
-                  fontSize: '1.5rem',
-                  flexShrink: 0,
-                }}
-              >
-                🔗
-              </Box>
-            )}
+            </Box>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography 
                 sx={{ 
