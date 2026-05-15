@@ -244,7 +244,7 @@ If you do not complete this step, your account will be temporarily suspended.
 Thank you,
 IT Support Team`,
     severity_id: 4, severity: 'High', status_id: 1, status: 'New',
-    product: { name: 'outlook_office365' },
+    product: { name: resolveEmailSourceProduct() },
     first_seen_time: minsAgo(0),
     types: ['phishing'],
     observables: [
