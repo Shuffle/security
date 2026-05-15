@@ -579,8 +579,9 @@ const pickFallbackIocs = (): DemoIocOverrides => {
   if (ipKey) out.attackerIp = ipKey;
   const urlKey = pickRandom(FALLBACK_IOC_URLS);
   if (urlKey) {
-    out.lureUrl = urlKey;
-    const host = extractHost(urlKey);
+    const tagged = tagFallbackUrl(urlKey);
+    out.lureUrl = tagged;
+    const host = extractHost(tagged);
     if (host) out.lureDomain = host;
   }
   return out;
