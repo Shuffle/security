@@ -509,8 +509,8 @@ const IncidentsPage = () => {
    // locked even though both apps are visibly present in the Ingest bar.
    useEffect(() => {
      if (!demoActive) return;
-     const hasOutlook = demoInjectedApps.some(a => /outlook|office365/i.test(a.name));
-     if (hasOutlook) markStepCompleted('add-outlook:outlook');
+     const hasEmail = demoInjectedApps.some(a => /outlook|office365|gmail/i.test(a.name));
+     if (hasEmail) markStepCompleted('add-outlook:outlook');
    }, [demoActive, demoInjectedApps, markStepCompleted]);
 
    // Demo step #3 ("ingest-webhook"): the "Enable the AI Agent automation"
