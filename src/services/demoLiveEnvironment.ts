@@ -463,21 +463,19 @@ const initDemoMonitorHost = async (): Promise<void> => {
 };
 
 /**
- * Initialize IOC Types defaults — but ONLY if the user has not already
- * customised the list. Delegates to the canonical `seedDefaultIOCTypes`
- * so the write itself is identical to the IOC Types page reset and the
- * /incidents auto-init in lib/initDefaults.ts.
+ * Snapshot Observable Regexes (IOC Types) and unconditionally reset them
+ * to the canonical defaults — same write the IOC Types page "Reset to
+ * Defaults" performs. The snapshot is restored after the Threat Feeds
+ * workflow has run so a customised regex set is preserved.
  */
-const initIOCTypesDefaults = async (): Promise<void> => {
+const initIOCTypesDefaults = async (): Promise<DatastoreSnapshot> => {
+  const snapshot = await snapshotCategory(DATASTORE_CATEGORIES.IOCS);
   try {
-    const res = await getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS);
-    // Respect the user's existing configuration — never overwrite their
-    // custom IOC types just because demo mode started.
-    if (res.success && res.data && res.data.length > 0) return;
     await seedDefaultIOCTypes();
   } catch (err) {
-    console.warn('[demo] IOC types init failed', err);
+    console.warn('[demo] IOC types reset failed', err);
   }
+  return snapshot;
 };
 
 /** Seed a "Security Analyst" agent persona into the agents datastore. */
