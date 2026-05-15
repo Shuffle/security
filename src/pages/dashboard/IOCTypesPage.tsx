@@ -562,11 +562,6 @@ const IOCTypesPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: 150 }}>
-                    <Tooltip title="Open the underlying ioc_<type> datastore on shuffler.io in a new tab. Trash icon deletes every observable of this type." arrow>
-                      <span>IOCs</span>
-                    </Tooltip>
-                  </TableCell>
                   <TableCell sx={{ width: 60 }}>Enabled</TableCell>
                   <TableCell>Name</TableCell>
                   <TableCell>Category</TableCell>
@@ -574,6 +569,11 @@ const IOCTypesPage = () => {
                   <TableCell>Description</TableCell>
                   {Object.keys(testResults).length > 0 && <TableCell>Test</TableCell>}
                   <TableCell align="right">Actions</TableCell>
+                  <TableCell align="right" sx={{ width: 150 }}>
+                    <Tooltip title="Open the underlying ioc_<type> datastore on shuffler.io in a new tab. Trash icon deletes every observable of this type." arrow>
+                      <span>IOCs</span>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
