@@ -220,9 +220,25 @@ const trimEvidenceValue = (v: string, max = 180): string => {
   return cleaned.length <= max ? cleaned : `${cleaned.slice(0, max).trim()}…`;
 };
 
+const TOKEN_LIMIT_PATTERN = /\b(ai[_\s-]*token[_\s-]*limit|token[_\s-]*limit|limit[_\s-]*is[_\s-]*reached|limit[_\s-]*reached|context[_\s-]*limit|maximum[_\s-]*context|context[_\s-]*length|too[_\s-]*many[_\s-]*tokens|exceeds?[_\s-]*(the[_\s-]*)?(token|context))\b/;
+
 export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | null => {
   const { parsed, raw } = parseRunResult(run);
-  if (!parsed || typeof parsed !== 'object') return null;
+  if (!parsed || typeof parsed !== 'object') {
+    if (raw && TOKEN_LIMIT_PATTERN.test(raw.toLowerCase())) {
+      return {
+        kind: 'token_limit',
+        title: 'AI token limit reached',
+        explanation:
+          'The agent stopped because the prompt, context, and generated output exceeded the configured AI token limit.',
+        remediation:
+          'Reduce the input size or connected context and re-run, or connect an API vendor/self-hosted model with a higher limit.',
+        snippet: trimEvidenceValue(raw),
+        evidence: [{ path: '(root)', value: trimEvidenceValue(raw) }],
+      };
+    }
+    return null;
+  }
 
   const scope = getDiagnosableScope(parsed);
   if (!scope) return null;
@@ -362,10 +378,10 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
   }
 
   if (
-    /\b(ai[_\s-]*token[_\s-]*limit|token[_\s-]*limit|limit[_\s-]*is[_\s-]*reached|limit[_\s-]*reached|context[_\s-]*limit|maximum[_\s-]*context|context[_\s-]*length|too[_\s-]*many[_\s-]*tokens|exceeds?[_\s-]*(the[_\s-]*)?(token|context))\b/.test(lower)
+    TOKEN_LIMIT_PATTERN.test(lower)
   ) {
     const ev = findEvidenceByRegex(
-      /ai[_\s-]*token[_\s-]*limit|token[_\s-]*limit|limit[_\s-]*is[_\s-]*reached|limit[_\s-]*reached|context[_\s-]*limit|maximum[_\s-]*context|context[_\s-]*length|too[_\s-]*many[_\s-]*tokens|exceeds?[_\s-]*(the[_\s-]*)?(token|context)/
+      TOKEN_LIMIT_PATTERN
     );
     return {
       kind: 'token_limit',
