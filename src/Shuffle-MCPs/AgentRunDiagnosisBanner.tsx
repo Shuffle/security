@@ -10,8 +10,8 @@
  * has already dismissed the banner for this execution id.
  */
 
-import { Box, IconButton, Tooltip, Typography } from '@mui/material';
-import { AlertTriangle, ArrowUpRight, HelpCircle, X } from 'lucide-react';
+import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
+import { AlertTriangle, ArrowUpRight, ExternalLink, HelpCircle, Settings2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
   diagnoseOutputWarning,
