@@ -14,6 +14,7 @@
  *  AgentUI's internal ExecutionData. */
 export interface DiagnosableRun {
   status?: string;
+  result?: string;
   results?: Array<{ result?: string } | any> | null;
 }
 
@@ -57,7 +58,14 @@ const deepParseJsonStrings = (obj: any, depth = 0): any => {
 export const parseRunResult = (
   run: DiagnosableRun
 ): { raw: string | null; parsed: any | null } => {
-  const firstResult = run.results?.[0]?.result;
+  const nestedResult = run.results?.[0]?.result;
+  const directResult = (run as any).result;
+  const firstResult =
+    typeof nestedResult === 'string' && nestedResult.trim()
+      ? nestedResult
+      : typeof directResult === 'string' && directResult.trim()
+        ? directResult
+        : nestedResult;
   if (!firstResult) {
     const directPayload = run as any;
     if (
