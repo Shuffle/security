@@ -7917,6 +7917,7 @@ const IncidentDetailPage = () => {
                   size="small"
                   sx={{
                     minWidth: 120,
+                    height: 36,
                     fontSize: '0.8rem',
                     bgcolor: 'hsl(var(--input))',
                     '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
