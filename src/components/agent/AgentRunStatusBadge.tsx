@@ -44,6 +44,9 @@ export interface AgentRunStatusBadgeProps {
   statusCfg?: { label: string; color: string };
   /** Compact mode — slightly smaller font/padding for dense lists. */
   compact?: boolean;
+  /** Cap for the warning pill width — used in narrow contexts (e.g. the
+   *  Timeline sidebar) where the default 280px overflows the column. */
+  maxWidth?: number;
 }
 
 const stripHttp = (title: string) => title.replace(/\s*\(HTTP \d+\)/i, '');
