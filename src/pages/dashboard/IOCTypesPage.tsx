@@ -305,25 +305,38 @@ const IOCTypesPage = () => {
     setDeletingType(typeName);
     try {
       const { getDatastoreByCategory, deleteDatastoreItems } = await import('@/Shuffle-MCPs/datastore');
-      // Interleave: fetch a page, delete it, then fetch the next. Deletes
-      // shrink the dataset, so we always re-fetch from the start (no cursor)
-      // until a page comes back empty. Hard ceiling guards pathological cases.
+      // Interleave: fetch a page, delete it, then fetch again. Track keys we've
+      // already attempted so eventual-consistency on the list endpoint (which
+      // can return just-deleted items for a moment) doesn't make us think the
+      // dataset is empty when there's still more to come.
       let totalDeleted = 0;
       let totalFailed = 0;
-      for (let i = 0; i < 200; i++) {
+      const attempted = new Set<string>();
+      let emptyStreak = 0;
+      for (let i = 0; i < 500; i++) {
         const res = await getDatastoreByCategory(category, undefined, 100);
         if (!res.success) throw new Error(res.error || 'Failed to list observables');
         const items = (res.data || []) as Array<{ key?: string; Key?: string }>;
         const keys: string[] = [];
         for (const it of items) {
           const k = it?.key ?? it?.Key;
-          if (typeof k === 'string' && k) keys.push(k);
+          if (typeof k === 'string' && k && !attempted.has(k)) {
+            keys.push(k);
+            attempted.add(k);
+          }
         }
-        if (keys.length === 0) break;
+        if (keys.length === 0) {
+          // Could be truly empty, or eventual consistency still serving stale
+          // data. Retry a couple of times before declaring done.
+          emptyStreak += 1;
+          if (emptyStreak >= 3) break;
+          await new Promise(r => setTimeout(r, 600));
+          continue;
+        }
+        emptyStreak = 0;
         const result = await deleteDatastoreItems(keys, category);
         totalDeleted += result.deleted;
         totalFailed += result.failed.length;
-        if (result.deleted === 0) break; // avoid infinite loop if deletes silently fail
       }
       if (totalDeleted === 0 && totalFailed === 0) {
         toast.success(`No items to delete in "${category}".`);
