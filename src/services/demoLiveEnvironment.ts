@@ -337,7 +337,7 @@ const restoreSnapshot = async (
       await deleteDatastoreItems(currentKeys, category);
     }
     await setDatastoreItems(
-      snapshot.items.map(({ key, value }) => ({ key, value })),
+      snapshot.items.map(({ key, value }) => ({ key, value: value as string | object })),
       category,
     );
   } catch (err) {
