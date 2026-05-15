@@ -3188,7 +3188,7 @@ const IncidentDetailPage = () => {
       },
     };
     await addItem(incident.id, updatedOCSF);
-    toast.success('Comment added');
+    // No success toast — the new comment renders immediately in the timeline.
     // Demo Mode signal — lets the tour mark "ask the agent" as complete.
     try { window.dispatchEvent(new CustomEvent('demo:incident-comment-sent')); } catch { /* no-op */ }
 
