@@ -2584,7 +2584,12 @@ const IncidentDetailPage = () => {
     ].filter(Boolean));
 
     toFetch.forEach(async (obs) => {
-      const obsKey = `${obs.type}::${obs.value}`;
+      // Normalize to lowercase so case-only duplicates (e.g. an email-body
+      // URL with capital letters vs. the backend-lowercased enrichment of
+      // the same URL) share a single correlations entry, and so the lookup
+      // hits IOC datastore keys which are stored lowercased.
+      const lowerValue = String(obs.value || '').toLowerCase();
+      const obsKey = `${String(obs.type || '').toLowerCase()}::${lowerValue}`;
       // Skip if already fetched (with data or empty) or currently loading
       if (obsCorrelations[obsKey] !== undefined) return;
 
@@ -2602,7 +2607,7 @@ const IncidentDetailPage = () => {
           headers: { 'Content-Type': 'application/json', ...getAuthHeader(), ...crossOrgHeaders },
           body: JSON.stringify({
             type: 'value',
-            key: obs.value,
+            key: lowerValue,
           }),
         });
         clearTimeout(timeout);
