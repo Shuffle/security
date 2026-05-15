@@ -114,7 +114,7 @@ const buildTooltip = (
   return 'The agent completed but the output suggests it may need a human to review or assist. Click for details.';
 };
 
-const AgentRunStatusBadge = ({ run, skip, statusCfg, compact = false }: AgentRunStatusBadgeProps) => {
+const AgentRunStatusBadge = ({ run, skip, statusCfg, compact = false, maxWidth = 280 }: AgentRunStatusBadgeProps) => {
   const status = run.status?.toUpperCase() || '';
   const isFailed = status === 'FAILED' || status === 'ABORTED';
   const isRunning = status === 'EXECUTING' || status === 'RUNNING';
