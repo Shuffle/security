@@ -4085,7 +4085,7 @@ const IncidentDetailPage = () => {
             triggered it — see renderIndicatorCheckPlaceholder() inside renderThread().
             Standardised to match the "AI Agent processing" pill so loaders attach
             to the message they relate to instead of floating at the top. */}
-        {renderTimelineFeedItems()}
+        {renderTimelineFeedItems(variant)}
       </Box>
       
     </>
@@ -4093,7 +4093,7 @@ const IncidentDetailPage = () => {
 
   // Builder for the unified timeline items (revisions + agent runs + comments).
   // Returns an array of JSX nodes (or a single empty-state node).
-  const renderTimelineFeedItems = () => {
+  const renderTimelineFeedItems = (variant: 'sidebar' | 'inline' = 'sidebar') => {
     type StepKind = 'task-created' | 'task-completed' | 'task-status-changed' | 'observable-added' | 'correlation-found' | 'incident-created';
     type TimelineItem =
       | { type: 'revision'; timestamp: number; data: any; idx: number; parsedCurrent: any; parsedPrevious: any | null }
@@ -4981,9 +4981,15 @@ const IncidentDetailPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', color: pillColor, flexShrink: 0 }}>
               {isIocPill ? <WarningAmberIcon sx={{ fontSize: 12 }} /> : cfg.icon}
             </Box>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: pillColor, whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {item.label}
-            </Typography>
+            {/* The "Observable" word is redundant — the type chip (URL/IP/…)
+                and the IOC badge already convey what this row is. Only render
+                the label for non-observable steps that still benefit from a
+                short text marker. */}
+            {item.label && item.kind !== 'observable-added' && (
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: pillColor, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {item.label}
+              </Typography>
+            )}
             {isIocPill && (
               <Typography
                 sx={{
@@ -4999,10 +5005,13 @@ const IncidentDetailPage = () => {
                   border: '1px solid hsl(var(--destructive) / 0.4)',
                 }}
               >
-                Known IOC
+                IOC
               </Typography>
             )}
-            {isIocPill && isClickable && (
+            {/* "Ask agent →" is only useful when there is room for it. The
+                sidebar timeline is too narrow and the affordance overflows
+                onto the type chip — only show it in the wide inline view. */}
+            {isIocPill && isClickable && variant === 'inline' && (
               <Box
                 sx={{
                   display: 'flex',
