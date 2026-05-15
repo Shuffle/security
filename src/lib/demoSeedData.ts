@@ -167,6 +167,8 @@ export interface DemoIocOverrides {
   lureDomain?: string;
   /** Full lure URL — ideally a key pulled from the `ioc_url` datastore category. */
   lureUrl?: string;
+  /** True when one or more of the IOCs above came from the static fallback pool instead of the live `ioc_*` datastore categories. Surfaces on the incident via `metadata.extensions.custom_attributes.demoFallback` and ultimately as `?demo-fallback=true` in the URL. */
+  usedFallback?: boolean;
 }
 
 /**
