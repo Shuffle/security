@@ -54,18 +54,26 @@ const deepParseJsonStrings = (obj: any, depth = 0): any => {
   return obj;
 };
 
-/** Try to parse the result JSON from results[0].result, unwrapping AGENT-type executions. */
+const pickResultPayload = (run: DiagnosableRun): string | null => {
+  const results = Array.isArray(run.results) ? run.results : [];
+  const agentResult = results.find((r: any) => {
+    const appName = String(r?.action?.app_name || r?.action?.label || '').toLowerCase();
+    const appId = String(r?.action?.app_id || '').toLowerCase();
+    return appId === 'shuffle_agent' || appName.includes('ai agent');
+  });
+  const payload = agentResult?.result || results.find((r: any) => typeof r?.result === 'string' && r.result.trim())?.result || (run as any).result;
+  if (typeof payload === 'string') return payload;
+  if (payload && typeof payload === 'object') {
+    try { return JSON.stringify(payload); } catch { return null; }
+  }
+  return null;
+};
+
+/** Try to parse the agent result JSON, unwrapping AGENT-type executions. */
 export const parseRunResult = (
   run: DiagnosableRun
 ): { raw: string | null; parsed: any | null } => {
-  const nestedResult = run.results?.[0]?.result;
-  const directResult = (run as any).result;
-  const firstResult =
-    typeof nestedResult === 'string' && nestedResult.trim()
-      ? nestedResult
-      : typeof directResult === 'string' && directResult.trim()
-        ? directResult
-        : nestedResult;
+  const firstResult = pickResultPayload(run);
   if (!firstResult) {
     const directPayload = run as any;
     if (
