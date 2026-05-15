@@ -259,6 +259,7 @@ IT Support Team`,
       { type: 'domain', value: lureDomain },
       { type: 'ip', value: attackerIp },
     ],
+    usedFallback: overrides.usedFallback,
   });
 };
 
