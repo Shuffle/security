@@ -1050,7 +1050,13 @@ const OnboardingPage = () => {
                     return (
                       <>
                         <Box sx={{ mb: 3, ml: -2 }}>
-                          <IntegrationStatus collapsed={false} iconSize={30} showAll hideAddButton />
+                          <IntegrationStatus
+                            collapsed={false}
+                            iconSize={30}
+                            showAll
+                            hideAddButton
+                            extraApps={appsForAuth.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url }))}
+                          />
                         </Box>
                         <AppAuthConfig
                           apps={appsForAuth}
