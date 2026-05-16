@@ -199,7 +199,7 @@ export const TaskKanbanBoard = ({
           gap: 1,
           mb: 2,
           p: 1.5,
-          bgcolor: 'hsl(var(--card))',
+          bgcolor: 'transparent',
           border: '1px solid hsl(var(--border))',
           borderRadius: 2,
         }}
@@ -283,7 +283,7 @@ export const TaskKanbanBoard = ({
               }}
               onDrop={() => handleDropToLane(lane.key, dropIndex)}
               sx={{
-                bgcolor: 'hsl(var(--card))',
+                bgcolor: 'transparent',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: 2,
                 p: 1.5,
