@@ -875,8 +875,11 @@ const DEV_BACKEND = 'https://tunnel.schemaless.org';
 const PROD_BACKEND = 'https://shuffler.io';
 
 const resolveApiBaseUrl = () => {
-  const envUrl =
-    typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SHUFFLE_API_URL;
+  let envUrl: string | undefined;
+  try {
+    // Wrapped in try/catch so cjs builds (where import.meta is empty) don't error.
+    envUrl = (import.meta as any)?.env?.VITE_SHUFFLE_API_URL;
+  } catch { /* no-op */ }
   if (envUrl) return envUrl;
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
