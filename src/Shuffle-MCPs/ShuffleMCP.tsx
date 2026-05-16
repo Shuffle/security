@@ -67,6 +67,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [privateApps, setPrivateApps] = useState<AlgoliaSearchApp[]>([]);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'public' | 'private' | 'authenticated'>('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState<{ rateLimited: boolean; message: string } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [internalSelectedApps, setInternalSelectedApps] = useState<AlgoliaSearchApp[]>(selectedApps);
@@ -254,13 +255,23 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
 
       const hits = (searchResult.hits as AlgoliaSearchApp[]).map(h => ({ ...h, source: 'public' as const }));
       setResults(hits);
+      setSearchError(null);
       // Open dropdown if we got Algolia hits OR we have private apps to show
       setIsOpen(hits.length > 0 || privateApps.length > 0);
       setSelectedIndex(-1);
-    } catch (error) {
+    } catch (error: any) {
       // Algolia rate-limit (429) or network error: don't blank out the dropdown
       // if we still have private apps to show from /api/v1/apps.
       console.error('Search failed:', error);
+      const status: number | undefined = error?.status ?? error?.statusCode ?? error?.response?.status;
+      const rawMessage: string = String(error?.message || error?.name || '');
+      const rateLimited = status === 429 || /429|rate.?limit|too many requests/i.test(rawMessage);
+      setSearchError({
+        rateLimited,
+        message: rateLimited
+          ? 'Search is temporarily rate limited by Algolia. Please wait a moment and try again.'
+          : 'Search is temporarily unavailable. Please try again in a moment.',
+      });
       setResults([]);
       setIsOpen(privateApps.length > 0);
     } finally {
@@ -621,7 +632,14 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               </>
             ) : query.trim() ? (
               <div className="singul-empty-state" style={customStyles.emptyState}>
-                {renderEmptyState ? (
+                {searchError ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', color: searchError.rateLimited ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))' }}>
+                    <strong style={{ fontSize: 13 }}>
+                      {searchError.rateLimited ? 'Algolia rate limit reached (429)' : 'Search unavailable'}
+                    </strong>
+                    <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{searchError.message}</span>
+                  </div>
+                ) : renderEmptyState ? (
                   renderEmptyState()
                 ) : (
                   <>No integrations match "{query}". Try searching for a different app or category.</>
@@ -629,7 +647,16 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               </div>
             ) : (
               <div className="singul-empty-state" style={customStyles.emptyState}>
-                Start typing to search integrations...
+                {searchError ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', color: searchError.rateLimited ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))' }}>
+                    <strong style={{ fontSize: 13 }}>
+                      {searchError.rateLimited ? 'Algolia rate limit reached (429)' : 'Search unavailable'}
+                    </strong>
+                    <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{searchError.message}</span>
+                  </div>
+                ) : (
+                  <>Start typing to search integrations...</>
+                )}
               </div>
             )}
           </div>
@@ -649,7 +676,14 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               displayResults.map((app, index) => renderAppItem(app, index))
             ) : (
               <div className="singul-empty-state" style={customStyles.emptyState}>
-                {renderEmptyState ? (
+                {searchError ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', color: searchError.rateLimited ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))' }}>
+                    <strong style={{ fontSize: 13 }}>
+                      {searchError.rateLimited ? 'Algolia rate limit reached (429)' : 'Search unavailable'}
+                    </strong>
+                    <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{searchError.message}</span>
+                  </div>
+                ) : renderEmptyState ? (
                   renderEmptyState()
                 ) : (
                   <>No apps found for "{query}"</>
