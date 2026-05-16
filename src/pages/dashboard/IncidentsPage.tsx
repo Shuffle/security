@@ -2501,7 +2501,7 @@ const IncidentsPage = () => {
 
 
       {/* Floating Filter Bar - sticky */}
-      <Card sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'hsl(var(--card))' }}>
+      <Card sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'transparent', border: '1px solid hsl(var(--border))', boxShadow: 'none', backdropFilter: 'blur(8px)' }}>
         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
           <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
             {/* Select all checkbox - always visible */}
@@ -3004,7 +3004,7 @@ const IncidentsPage = () => {
             px: 1.5, 
             py: 1, 
             borderRadius: 2, 
-            backgroundColor: 'hsl(var(--card))', 
+            backgroundColor: 'transparent', 
             border: '1px solid', 
             borderColor: (dateFrom || dateTo) ? 'rgba(99, 102, 241, 0.4)' : 'hsl(var(--border))',
             transition: 'border-color 0.2s ease',
@@ -3145,7 +3145,7 @@ const IncidentsPage = () => {
                 px: 2,
                 py: 1.5,
                 borderRadius: 2,
-                backgroundColor: showIrrelevant ? 'rgba(107, 114, 128, 0.15)' : 'hsl(var(--card))',
+                backgroundColor: showIrrelevant ? 'rgba(107, 114, 128, 0.15)' : 'transparent',
                 border: '1px solid',
                 borderColor: showIrrelevant ? 'rgba(107, 114, 128, 0.4)' : 'hsl(var(--border))',
                 cursor: 'pointer',
