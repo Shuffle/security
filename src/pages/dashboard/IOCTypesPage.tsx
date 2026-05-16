@@ -478,7 +478,7 @@ const IOCTypesPage = () => {
       </Box>
 
       {/* Regex Tester Bar */}
-      <Card sx={{ mb: 2, p: 1.5 }}>
+      <Card elevation={0} sx={{ mb: 2, p: 1.5, bgcolor: 'transparent', backgroundImage: 'none', border: '1px solid hsl(var(--border))' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
             Test patterns:
