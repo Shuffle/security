@@ -94,6 +94,7 @@ import VulnerabilityDetailPage from '@/pages/dashboard/VulnerabilityDetailPage';
 
 import AppsPage from '@/pages/AppsPage';
 import ShuffleMcpTestPage from '@/pages/ShuffleMcpTestPage';
+import ShuffleCoreTestPage from '@/pages/ShuffleCoreTestPage';
 import NotFound from './pages/NotFound';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { DemoProvider } from '@/context/DemoContext';
@@ -171,6 +172,7 @@ const ThemedApp = () => {
             <Route path="/docs/:slug" element={<DocsPage />} />
             {/* Public library demo — works whether logged in or not */}
             <Route path="/shuffle-mcp-demo" element={<ShuffleMcpTestPage />} />
+            <Route path="/shuffle-core-demo" element={<ShuffleCoreTestPage />} />
             {/* Onboarding with sidebar (collapsed by default) */}
             <Route
               element={
