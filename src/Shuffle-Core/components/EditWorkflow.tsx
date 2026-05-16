@@ -734,53 +734,8 @@ const EditWorkflow = (props) => {
 							disabled={name.length === 0 || submitLoading === true}
 							onClick={() => {
 								setSubmitLoading(true)
-
-								// Loop inputfields
-								var validfields = []
-								for (var i = 0; i < inputQuestions.length; i++) {
-									if (inputQuestions[i].deleted === true) {
-										continue
-									}
-
-									if (inputQuestions[i].value.length === 0) {
-										continue
-									}
-
-									validfields.push(inputQuestions[i])
-								}
-
-								innerWorkflow.input_questions = validfields
-
-								if (innerWorkflow.form_control === undefined || innerWorkflow.form_control === null) {
-									innerWorkflow.form_control = {}
-								}
-
-								innerWorkflow.form_control.input_markdown = inputMarkdown
-								innerWorkflow.form_control.output_yields = selectedYieldActions
-								innerWorkflow.form_control.form_width = formWidth
-								innerWorkflow.form_control.cleanup_actions = selectedCleanupActions
-
-								innerWorkflow.name = name
-								innerWorkflow.description = description
-
-								if (newWorkflowTags.length > 0) {
-									innerWorkflow.tags = newWorkflowTags
-								} else {
-									innerWorkflow.tags = []
-								}
-
-								if (selectedUsecases.length > 0) {
-									innerWorkflow.usecase_ids = selectedUsecases
-								} else {
-									innerWorkflow.usecase_ids = []
-								}
-
-								if (dueDate > 0) {
-									innerWorkflow.due_date = new Date(`${dueDate["$y"]}-${dueDate["$M"] + 1}-${dueDate["$D"]}`).getTime() / 1000
-								}
-
-								// Clone so parent's useEffect([workflow]) actually fires.
-								const nextWorkflow2 = { ...innerWorkflow }
+								const nextWorkflow2 = buildWorkflowForSave()
+								setInnerWorkflow(nextWorkflow2)
 								if (saveWorkflow !== undefined) {
 									saveWorkflow(nextWorkflow2)
 
