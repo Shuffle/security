@@ -632,7 +632,14 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               </>
             ) : query.trim() ? (
               <div className="singul-empty-state" style={customStyles.emptyState}>
-                {renderEmptyState ? (
+                {searchError ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', color: searchError.rateLimited ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))' }}>
+                    <strong style={{ fontSize: 13 }}>
+                      {searchError.rateLimited ? 'Algolia rate limit reached (429)' : 'Search unavailable'}
+                    </strong>
+                    <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{searchError.message}</span>
+                  </div>
+                ) : renderEmptyState ? (
                   renderEmptyState()
                 ) : (
                   <>No integrations match "{query}". Try searching for a different app or category.</>
@@ -640,7 +647,16 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               </div>
             ) : (
               <div className="singul-empty-state" style={customStyles.emptyState}>
-                Start typing to search integrations...
+                {searchError ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', color: searchError.rateLimited ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))' }}>
+                    <strong style={{ fontSize: 13 }}>
+                      {searchError.rateLimited ? 'Algolia rate limit reached (429)' : 'Search unavailable'}
+                    </strong>
+                    <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{searchError.message}</span>
+                  </div>
+                ) : (
+                  <>Start typing to search integrations...</>
+                )}
               </div>
             )}
           </div>
