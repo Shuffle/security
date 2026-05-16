@@ -1605,11 +1605,11 @@ const FormInput = (defaultprops: any) => {
 							{organization?.length > 0 &&
 								<Typography
 									style={{
-										marginTop: 8,
-										marginBottom: 6,
+										marginTop: 0,
+										marginBottom: 10,
 										textAlign: "center",
-										fontSize: 12,
-										letterSpacing: "0.08em",
+										fontSize: 11,
+										letterSpacing: "0.14em",
 										textTransform: "uppercase",
 										fontWeight: 600,
 										color: "hsl(var(--muted-foreground))",
@@ -1623,19 +1623,35 @@ const FormInput = (defaultprops: any) => {
 							}
 
 							{answer !== undefined && answer !== null ? null :
-								<Typography
-									style={{
-										marginTop: 4,
-										marginBottom: 24,
-										textAlign: "center",
-										fontSize: 24,
-										fontWeight: 600,
-										lineHeight: 1.25,
-										color: "hsl(var(--foreground))",
-									}}
-								>
-									{workflow.name}
-								</Typography>
+								<>
+									<Typography
+										style={{
+											marginTop: 0,
+											marginBottom: 8,
+											textAlign: "center",
+											fontSize: 28,
+											fontWeight: 700,
+											lineHeight: 1.2,
+											letterSpacing: "-0.01em",
+											color: "hsl(var(--foreground))",
+										}}
+									>
+										{workflow.name}
+									</Typography>
+									<Typography
+										style={{
+											textAlign: "center",
+											marginBottom: 28,
+											fontSize: 14,
+											color: "hsl(var(--muted-foreground))",
+											lineHeight: 1.5,
+										}}
+									>
+										{workflow?.description?.length > 0
+											? workflow.description
+											: "Provide the details below to trigger this workflow."}
+									</Typography>
+								</>
 							}
 
 							{disabledButtons && message.length > 0 ? null :
