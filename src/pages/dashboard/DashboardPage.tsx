@@ -1121,7 +1121,7 @@ const DashboardPage = () => {
               py: 4,
               borderRadius: 2,
               border: '1px solid hsl(var(--border))',
-              backgroundColor: 'hsl(var(--card))',
+              backgroundColor: 'transparent',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
