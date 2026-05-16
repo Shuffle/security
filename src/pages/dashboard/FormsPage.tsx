@@ -16,11 +16,11 @@ import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import FormInput from '@/Shuffle-Core/FormInput';
 
 const FormsPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { userInfo, isAuthenticated } = useAuth();
   return (
     <FormInput
       globalUrl={API_CONFIG.baseUrl}
-      userdata={user || {}}
+      userdata={userInfo || {}}
       isLoaded={true}
       isLoggedIn={!!isAuthenticated}
       setIsLoggedIn={() => {}}
