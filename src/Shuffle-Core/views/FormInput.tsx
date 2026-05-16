@@ -49,7 +49,7 @@ import {
   Error as ErrorIcon,
   Pause as PauseIcon, 
 } from '@mui/icons-material';
-import { Context } from "./FormInputStubs";
+
 
 const hrefStyle = {
 	color: "white", 
@@ -201,7 +201,7 @@ const FormInput = (defaultprops: any) => {
 
 	const getWorkflows = () => {
 		const url = `${backendUrl}/api/v1/workflows`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "GET",
 			headers: {
 				"Content-Type": "application/json",
@@ -232,7 +232,7 @@ const FormInput = (defaultprops: any) => {
 
 	const loadForms = (orgId) => {
 		const url = `${backendUrl}/api/v1/orgs/${orgId}/forms`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "GET",
 			headers: {
 				"Content-Type": "application/json",
@@ -265,7 +265,7 @@ const FormInput = (defaultprops: any) => {
 
 	const saveWorkflow = (workflow) => {
 		const url = `${backendUrl}/api/v1/workflows/${workflow.id}`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "PUT",
 			headers: {
 				"Content-Type": "application/json",
@@ -294,7 +294,7 @@ const FormInput = (defaultprops: any) => {
 	}
 
 	const getApps = () => {
-		fetch(backendUrl+ "/api/v1/apps", {
+		shuffleFetch(backendUrl+ "/api/v1/apps", {
 		  method: "GET",
 		  headers: {
 			"Content-Type": "application/json",
@@ -480,7 +480,7 @@ const FormInput = (defaultprops: any) => {
 		}
 
 		// IF there is an execution argument, we should use it
-		fetch(url, fetchBody)
+		shuffleFetch(url, fetchBody)
 		.then((response) => {
 			if (response.status !== 200 && response.status !== 201) {
 
@@ -595,7 +595,7 @@ const FormInput = (defaultprops: any) => {
 	const loadInputWorkflowData = (workflow_id, inputWorkflow) => {
 
 		const url = `${backendUrl}/api/v1/workflows/${workflow_id}/run`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -823,7 +823,7 @@ const FormInput = (defaultprops: any) => {
   		setRealtimeMarkdown("")
 
 		const url = `${backendUrl}/api/v1/workflows/${workflow_id}`
-		fetch(url, {
+		shuffleFetch(url, {
 		  method: "GET",
 		  headers: {
 			"Content-Type": "application/json",
@@ -985,7 +985,7 @@ const FormInput = (defaultprops: any) => {
 	getWorkflows() 
 	loadForms(orgId)
 
-    fetch(url, {
+    shuffleFetch(url, {
       method: "GET",
       credentials: "include",
       headers: {
@@ -1043,7 +1043,7 @@ const FormInput = (defaultprops: any) => {
 			return
 		}
 
-		fetch(backendUrl + "/api/v1/streams/results", {
+		shuffleFetch(backendUrl + "/api/v1/streams/results", {
 		  method: "POST",
 		  headers: {
 			"Content-Type": "application/json",
