@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion, LayoutGroup } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/Shuffle-Core/lib/utils";
 
 /**
  * SegmentedControl
