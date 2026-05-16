@@ -12,8 +12,8 @@ import { validateJson, collapseField, GetIconInfo } from "./FormInputStubs";
 import EditWorkflow from "./FormInputStubs";
 import { toast } from "react-toastify" 
 
-import { useInterval } from "react-powerhooks";
-import { isMobile } from "react-device-detect";
+import { useInterval } from "./FormInputStubs";
+import { isMobile } from "./FormInputStubs";
 import Markdown from "react-markdown";
 import { getTheme } from "./FormInputStubs";
 const rehypeRaw: any = undefined;
