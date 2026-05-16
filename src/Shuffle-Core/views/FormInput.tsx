@@ -852,7 +852,8 @@ const FormInput = (defaultprops: any) => {
       .then((responseJson) => {
 		if (responseJson.success === false) {
 			if (workflow_id !== execution_id) { 
-				toast.warn("Failed getting the workflow. Please contact support@shuffler.io if this persists.")
+				toast.warn("Form not found. Redirecting to forms list.")
+				navigate("/forms")
 			}
 			return
 		}
