@@ -676,7 +676,14 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               displayResults.map((app, index) => renderAppItem(app, index))
             ) : (
               <div className="singul-empty-state" style={customStyles.emptyState}>
-                {renderEmptyState ? (
+                {searchError ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', color: searchError.rateLimited ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))' }}>
+                    <strong style={{ fontSize: 13 }}>
+                      {searchError.rateLimited ? 'Algolia rate limit reached (429)' : 'Search unavailable'}
+                    </strong>
+                    <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{searchError.message}</span>
+                  </div>
+                ) : renderEmptyState ? (
                   renderEmptyState()
                 ) : (
                   <>No apps found for "{query}"</>
