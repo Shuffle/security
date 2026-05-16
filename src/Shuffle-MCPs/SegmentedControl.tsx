@@ -1,6 +1,8 @@
 import * as React from "react";
 import { motion, LayoutGroup } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
 /**
  * SegmentedControl
