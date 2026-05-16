@@ -222,7 +222,7 @@ const EditWorkflow = (props) => {
 					}
 
 					if (selectedUsecases === []) {
-						selectedUsecases = responseJson.usecase_ids
+						setSelectedUsecases(responseJson.usecase_ids)
 					}
 
 					innerWorkflow.id = responseJson.id
