@@ -273,6 +273,7 @@ const FormInput = (defaultprops: any) => {
 
 	const saveWorkflow = (workflow) => {
 		const url = `${backendUrl}/api/v1/workflows/${workflow.id}`
+		console.log("[saveWorkflow] PUT form_control:", workflow?.form_control)
 		shuffleFetch(url, {
 			method: "PUT",
 			headers: {
@@ -284,16 +285,21 @@ const FormInput = (defaultprops: any) => {
 		})
 		.then((response) => {
 			if (response.status !== 200) {
-				console.log("Status not 200 for workflows :O!");
+				console.log("Status not 200 for workflows :O!", response.status);
+				toast.error(`Failed saving workflow (HTTP ${response.status}). Form settings may not be persisted.`)
 			}
 
 			return response.json();
 		})
 		.then((responseJson) => {
-			if (responseJson.success === false) {
-				toast.error("Failed saving workflow. Please try again.")
+			if (responseJson?.success === false) {
+				toast.error("Failed saving workflow: " + (responseJson?.reason || "unknown"))
+				return
 			}
-			//toast.success("Saved workflow")
+			console.log("[saveWorkflow] response:", responseJson)
+			// Re-fetch from the server so we can confirm what was actually persisted
+			// (the PUT response typically only returns {success:true}, not the saved object).
+			getWorkflow(workflow.id, selectedNode)
 		})
 		.catch((error) => {
 			toast.error("Save workflow error: " + error)
