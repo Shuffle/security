@@ -20,7 +20,7 @@ const getComponents = (mode: 'light' | 'dark') => {
   const cardBg = isDark
     ? 'linear-gradient(145deg, #262626 0%, #1f1f1f 100%)'
     : 'linear-gradient(145deg, #ffffff 0%, #f8f8f8 100%)';
-  const drawerBg = isDark ? '#181818' : '#f5f5f5';
+  const drawerBg = isDark ? 'hsl(var(--sidebar-background))' : 'hsl(var(--sidebar-background))';
   const tooltipBg = isDark ? '#111111' : '#ffffff';
   const tooltipColor = isDark ? '#ffffff' : '#1a1a1a';
   const tableHeadBg = isDark ? 'rgba(33, 33, 33, 0.5)' : 'rgba(245, 245, 245, 0.8)';
@@ -57,7 +57,7 @@ const getComponents = (mode: 'light' | 'dark') => {
       styleOverrides: { root: { backgroundColor: appBarBg, backdropFilter: 'blur(12px)' } },
     },
     MuiDrawer: {
-      styleOverrides: { paper: { backgroundColor: drawerBg, borderRight: `1px solid ${border}` } },
+      styleOverrides: { paper: { backgroundColor: drawerBg, borderRight: '1px solid hsl(var(--sidebar-border))' } },
     },
     MuiDialog: {
       styleOverrides: { paper: { backgroundImage: cardBg, border: `1px solid ${border}` } },
