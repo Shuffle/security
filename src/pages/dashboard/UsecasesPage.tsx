@@ -2414,6 +2414,24 @@ function UsecasesPageInner() {
   // Resolve a slug/label from the URL to a flow id once usecases load (and
   // whenever the URL segment changes). Match is permissive so deep-links keep
   // working even when the backend renames or reformats the usecase.
+  // Legacy/shareable query form: /usecases?selected_object=SIEM+alerts →
+  // redirect to the canonical /usecases/:slug URL so the rest of the page
+  // logic only needs to handle one shape.
+  useEffect(() => {
+    if (routeParams.flowId) return;
+    const selected = searchParams.get('selected_object');
+    if (!selected) return;
+    const slug = slugify(selected);
+    if (!slug) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('selected_object');
+    const qs = next.toString();
+    navigate(
+      { pathname: `/usecases/${slug}`, search: qs ? `?${qs}` : '' },
+      { replace: true },
+    );
+  }, [routeParams.flowId, searchParams, navigate]);
+
   useEffect(() => {
     if (!drawerLabel) {
       setDrawerFlowIdState(null);
