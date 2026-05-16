@@ -14,6 +14,11 @@ import { Link as RouterLink } from 'react-router-dom';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { fetchAuthenticatedApps } from '@/Shuffle-MCPs/authenticatedApps';
 import { fetchAppsViaApiConfig as fetchApps } from '@/Shuffle-MCPs/appsCache';
+import { getDatastoreItem } from '@/Shuffle-MCPs/datastore';
+
+// Onboarding datastore (must stay in sync with OnboardingPage)
+const ONBOARDING_CONFIG_CATEGORY = 'shuffle-security_onboarding';
+const SELECTED_TOOLS_KEY = 'selected_tools';
 import { deduplicateAuthApps, backfillAppImages, type AuthAppEntry } from '@/Shuffle-MCPs/auth-utils';
 import { useAppDetailOptional } from '@/Shuffle-MCPs/AppDetailContext';
 import { SIEM_PATTERNS, CASES_PATTERNS, EDR_PATTERNS, EMAIL_APP_PATTERNS } from '@/Shuffle-MCPs/ingestionDetection';
