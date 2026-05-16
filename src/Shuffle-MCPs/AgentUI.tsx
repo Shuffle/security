@@ -114,6 +114,7 @@ const deepParseJsonStrings = (obj: any, depth = 0): any => {
   return obj;
 };
 
+import { motion, LayoutGroup } from 'framer-motion';
 import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
 import AppSearchDrawer from '@/Shuffle-MCPs/AppSearchDrawer';
 import AppDetailDrawer from '@/Shuffle-MCPs/AppDetailDrawer';
