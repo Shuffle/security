@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import { getTheme, Context } from "./stubs";
 
-interface RecentWorkflowProps {
+export interface RecentWorkflowProps {
   workflow: any;
   onclickHandler?: () => void;
   leftNavOpen?: boolean;

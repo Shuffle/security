@@ -53,7 +53,7 @@ interface AppNode {
   isEnabled?: boolean;
 }
 
-interface UsecaseAlluvialDiagramProps {
+export interface UsecaseAlluvialDiagramProps {
   /** Source tool category ID (e.g. 'siem') */
   sourceCategory: string;
   /** Target tool category ID (e.g. 'case_management') */
