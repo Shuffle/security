@@ -4,20 +4,15 @@
 /* eslint-disable react/no-multi-comp */
 import React, {useState, useEffect, useContext} from 'react';
 
-import { ReactJson } from "./FormInputStubs";
-import { green, yellow, red, grey } from "./FormInputStubs";
-import { CodeHandler, Img, OuterLink } from "./FormInputStubs";
+import { ReactJson, green, yellow, red, grey, CodeHandler, Img, OuterLink, validateJson, collapseField, GetIconInfo, useInterval, getTheme, Context } from "../components/stubs";
+import { isMobile } from "react-device-detect";
 import { useNavigate, Link, useParams } from "react-router-dom";
-import { validateJson, collapseField, GetIconInfo } from "./FormInputStubs";
-import EditWorkflow from "./FormInputStubs";
-import { toast } from "react-toastify" 
-
-import { useInterval } from "./FormInputStubs";
-import { isMobile } from "./FormInputStubs";
+import EditWorkflow from "../components/EditWorkflow";
+import RecentWorkflow from "../components/RecentWorkflow";
+import { toast } from "react-toastify";
 import Markdown from "react-markdown";
-import { getTheme } from "./FormInputStubs";
+import { shuffleFetch } from "../api";
 const rehypeRaw: any = undefined;
-import { RecentWorkflow } from "./FormInputStubs";
 
 import {
   	Tooltip,
