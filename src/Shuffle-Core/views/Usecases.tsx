@@ -877,8 +877,9 @@ const PROD_BACKEND = 'https://shuffler.io';
 const resolveApiBaseUrl = () => {
   let envUrl: string | undefined;
   try {
-    // Wrapped in try/catch so cjs builds (where import.meta is empty) don't error.
-    envUrl = (import.meta as any)?.env?.VITE_SHUFFLE_API_URL;
+    // Indirect access avoids esbuild's cjs `import.meta` warning while still
+    // picking up the env var in esm builds / Vite hosts.
+    envUrl = (new Function('try { return import.meta.env?.VITE_SHUFFLE_API_URL } catch { return undefined }')()) as string | undefined;
   } catch { /* no-op */ }
   if (envUrl) return envUrl;
   if (typeof window !== 'undefined') {
