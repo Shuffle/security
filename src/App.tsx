@@ -240,6 +240,8 @@ const ThemedApp = () => {
               <Route path="/software/*" element={<EntityReferencePage type="software" />} />
               <Route path="/packages/*" element={<EntityReferencePage type="package" />} />
               <Route path="/assets" element={<SupportOnly><AssetsPage /></SupportOnly>} />
+              <Route path="/workflows" element={<WorkflowsNotSupportedPage />} />
+              <Route path="/workflows/:id" element={<WorkflowsNotSupportedPage />} />
             </Route>
 
             {/* App detail & usecase detail: uses sidebar when authenticated, standalone when guest */}
