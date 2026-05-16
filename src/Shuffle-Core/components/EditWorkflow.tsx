@@ -1612,6 +1612,7 @@ const EditWorkflow = (props) => {
 											style={{ width: 500, }}
 											value={Array.isArray(selectedYieldActions) && selectedYieldActions.length === 0 ? ["none"] : selectedYieldActions}
 											renderValue={(selected) => selected.join(', ')}
+											MenuProps={selectMenuProps}
 											onChange={(event) => {
 												console.log("Value: ", event.target.value)
 												if (event.target.value.length > 0) {
