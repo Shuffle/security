@@ -49,6 +49,7 @@ import {
 } from './agentActivity';
 import { diagnoseOutputWarning } from './agentDiagnosis';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 
 // ── Status / icon helpers ────────────────────────────────────────────────────
 
@@ -589,27 +590,15 @@ const AgentActivityList = ({
               }}
             />
           )}
-          {showStatusChips &&
-            STATUS_FILTERS.map((f) => (
-              <Chip
-                key={f.value}
-                label={f.label}
-                size="small"
-                variant={statusFilter === f.value ? 'filled' : 'outlined'}
-                onClick={() => setStatusFilter(f.value)}
-                sx={{
-                  fontSize: '0.75rem',
-                  height: 28,
-                  borderColor:
-                    statusFilter === f.value ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                  bgcolor:
-                    statusFilter === f.value ? 'hsla(var(--primary) / 0.15)' : 'transparent',
-                  color:
-                    statusFilter === f.value ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  '&:hover': { bgcolor: 'hsl(var(--muted))' },
-                }}
-              />
-            ))}
+          {showStatusChips && (
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Filter by status"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
+            />
+          )}
           {isLoading && runs.length > 0 && (
             <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))', ml: 0.5 }} />
           )}

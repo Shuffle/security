@@ -24,11 +24,10 @@ import {
   InputAdornment,
   MenuItem,
   Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
   Switch,
   Link,
 } from '@mui/material';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useDatastore } from '@/hooks/useDatastore';
@@ -451,34 +450,15 @@ const IOCTypesPage = () => {
       </Box>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
         {/* TODO Filter Toggle */}
-        <ToggleButtonGroup
+        <SegmentedControl
+          ariaLabel="Filter IOC types"
           value={filterMode}
-          exclusive
-          onChange={(_, val) => val && setFilterMode(val)}
-          size="small"
-          sx={{ height: 36 }}
-        >
-          <ToggleButton value="all" sx={{ px: 2, textTransform: 'none', height: 36 }}>
-            All
-          </ToggleButton>
-          <ToggleButton
-            value="todo"
-            sx={{
-              px: 2,
-              textTransform: 'none',
-              gap: 0.5,
-              height: 36,
-              '&.Mui-selected': {
-                bgcolor: 'rgba(245, 158, 11, 0.15)',
-                color: '#f59e0b',
-                '&:hover': { bgcolor: 'rgba(245, 158, 11, 0.25)' },
-              },
-            }}
-          >
-            <BuildIcon size={16} />
-            TODO ({todoCount})
-          </ToggleButton>
-        </ToggleButtonGroup>
+          onChange={(v) => setFilterMode(v as typeof filterMode)}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'todo', label: 'TODO', count: todoCount },
+          ]}
+        />
 
         <TextField
           size="small"
