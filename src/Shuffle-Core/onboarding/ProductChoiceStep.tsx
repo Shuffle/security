@@ -33,10 +33,10 @@ export const ProductChoiceStep = ({ onSelectCore, onSelectSecurity }: ProductCho
               <AgentIcon size={40} />
             </div>
             <h2 className="mb-1 text-lg font-semibold text-foreground">
-              Incidents and host monitoring
+              Automated incident and vulnerability management
             </h2>
             <p className="mb-4 flex-1 text-sm text-muted-foreground">
-              Shuffle Security. A modern SOC platform. Connect data sources, enrich alerts, manage incidents and let AI agents do the heavy lifting.
+              Shuffle Security handles the heavy lifting across incidents, hosts and vulnerabilities. You stay in control, because every automation is a workflow you can inspect and edit.
             </p>
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
               Continue with Shuffle Security
