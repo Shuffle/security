@@ -28,6 +28,11 @@ export default defineConfig({
     'react-router-dom',
     'react-router',
     'react-ga4',
+    'react-device-detect',
+    'mui-chips-input',
+    'react-toastify',
+    'dayjs',
+    /^dayjs\//,
     /^@shuffleio\//,
   ],
   loader: {
