@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   Box,
   List,
@@ -104,6 +104,7 @@ const sortOrgsWithHierarchy = (orgs: Array<{ id: string; name: string; creator_o
 
 export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { userInfo, setActiveOrg, logout } = useAuth();
   const { theme: currentTheme, setTheme } = useTheme();
   const { plural: entityPlural, basePath: entityBasePath } = useEntityPreference();
@@ -386,6 +387,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
               if (!e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 setToolMenuAnchor(null);
+                navigate('/');
               }
             }}
           >
