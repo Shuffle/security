@@ -987,15 +987,17 @@ const OnboardingPage = () => {
 
                   {steps[activeStep]?.key === 'sources' && (
                     <>
-                      <Box sx={{ mb: 3, ml: -2 }}>
-                        <IntegrationStatus
-                          collapsed={false}
-                          iconSize={30}
-                          showAll
-                          hideAddButton
-                          extraApps={selectedApps.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url }))}
-                        />
-                      </Box>
+                      {(selectedApps.length > 0 || authenticatedApps.some(a => a.active)) && (
+                        <Box sx={{ mb: 3, ml: -2 }}>
+                          <IntegrationStatus
+                            collapsed={false}
+                            iconSize={30}
+                            showAll
+                            hideAddButton
+                            extraApps={selectedApps.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url }))}
+                          />
+                        </Box>
+                      )}
                       <UnifiedSourceSetup
                         selectedApps={selectedApps}
                         onAppsChange={setSelectedApps}
@@ -1049,15 +1051,17 @@ const OnboardingPage = () => {
                           }, []);
                     return (
                       <>
-                        <Box sx={{ mb: 3, ml: -2 }}>
-                          <IntegrationStatus
-                            collapsed={false}
-                            iconSize={30}
-                            showAll
-                            hideAddButton
-                            extraApps={appsForAuth.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url }))}
-                          />
-                        </Box>
+                        {appsForAuth.length > 0 && (
+                          <Box sx={{ mb: 3, ml: -2 }}>
+                            <IntegrationStatus
+                              collapsed={false}
+                              iconSize={30}
+                              showAll
+                              hideAddButton
+                              extraApps={appsForAuth.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url }))}
+                            />
+                          </Box>
+                        )}
                         <AppAuthConfig
                           apps={appsForAuth}
                           authStates={authStates}
