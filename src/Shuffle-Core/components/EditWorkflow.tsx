@@ -1379,20 +1379,7 @@ const EditWorkflow = (props) => {
 											value={Array.isArray(selectedCleanupActions) && selectedCleanupActions.length === 0 ? ["none"] : selectedCleanupActions}
 											renderValue={(selected) => renderActionSelectValue(selected, "No cleanup yet")}
 											MenuProps={selectMenuProps}
-											onChange={(event) => {
-												if (event.target.value.length > 0) {
-													if (event.target.value.includes("none")) {
-														setSelectedCleanupActions([])
-														return
-													}
-												}
-
-												const newvalue = event?.target?.value
-												if (newvalue === undefined || newvalue === null) {
-												} else {
-													setSelectedCleanupActions(newvalue)
-												}
-											}}
+											onChange={(event) => handleActionMultiSelectChange(event, setSelectedCleanupActions)}
 										>
 											<MenuItem value="none">
 												<Checkbox checked={selectedCleanupActions.length === 0} />
@@ -1633,21 +1620,7 @@ const EditWorkflow = (props) => {
 											value={Array.isArray(selectedYieldActions) && selectedYieldActions.length === 0 ? ["none"] : selectedYieldActions}
 											renderValue={(selected) => renderActionSelectValue(selected, "No Returns")}
 											MenuProps={selectMenuProps}
-											onChange={(event) => {
-												console.log("Value: ", event.target.value)
-												if (event.target.value.length > 0) {
-													if (event.target.value.includes("none")) {
-														setSelectedYieldActions([])
-														return
-													}
-												}
-
-												const newvalue = event?.target?.value
-												if (newvalue === undefined || newvalue === null) {
-												} else {
-													setSelectedYieldActions(newvalue)
-												}
-											}}
+											onChange={(event) => handleActionMultiSelectChange(event, setSelectedYieldActions)}
 										>
 											<MenuItem value="none">
 												<Checkbox checked={selectedYieldActions.length === 0} />
