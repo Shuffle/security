@@ -62,7 +62,7 @@ export type { ResolvedApp } from './resolveApp';
 export { IntegrationStatus, refreshAllIntegrationStatus } from './IntegrationStatus';
 export { useAppAuth } from './useAppAuth';
 export { AppDetailProvider, useAppDetail } from './AppDetailContext';
-export { API_CONFIG, getApiUrl, getAuthHeader } from './api';
+export { API_CONFIG, getApiUrl, getAuthHeader, isCloud, isOnprem, isCloudDomain } from './api';
 export { setToastImpl, toast } from './toast';
 export type {
   AlgoliaSearchApp,
