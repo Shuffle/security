@@ -93,11 +93,56 @@ const ALL_STEPS = [
   { key: 'automate', label: 'Automate', icon: <RocketLaunchIcon />, path: '/onboarding/automate' },
 ];
 
-const OnboardingPage = () => {
+const OnboardingFlow = ({
+  product = 'security',
+  coreRedirectUrl = 'https://shuffler.io/welcome',
+  securityRedirectUrl = 'https://security.shuffler.io/onboarding',
+  apiBaseUrl,
+  showProductChoice = true,
+}: OnboardingFlowProps = {}) => {
+
+  // Apply API base URL override before any requests fire
+  useEffect(() => {
+    if (apiBaseUrl) {
+      try {
+        // Mutate the shared API_CONFIG so all Shuffle-MCPs helpers route to the right host
+        (API_CONFIG as { baseUrl: string }).baseUrl = apiBaseUrl;
+      } catch { /* ignore */ }
+    }
+  }, [apiBaseUrl]);
+
+  // Product picker state (Shuffle Core vs Shuffle Security)
+  const readStoredProduct = (): OnboardingProduct | null => {
+    try {
+      const v = localStorage.getItem(PRODUCT_CHOICE_STORAGE_KEY);
+      return v === 'core' || v === 'security' ? v : null;
+    } catch { return null; }
+  };
+  const [productChosen, setProductChosen] = useState<boolean>(() => {
+    if (!showProductChoice) return true;
+    return readStoredProduct() === product;
+  });
+
+  const handlePickSecurity = () => {
+    try { localStorage.setItem(PRODUCT_CHOICE_STORAGE_KEY, 'security'); } catch { /* ignore */ }
+    if (product === 'security') {
+      setProductChosen(true);
+    } else {
+      window.location.href = securityRedirectUrl;
+    }
+  };
+  const handlePickCore = () => {
+    try { localStorage.setItem(PRODUCT_CHOICE_STORAGE_KEY, 'core'); } catch { /* ignore */ }
+    if (product === 'core') {
+      setProductChosen(true);
+    } else {
+      window.location.href = coreRedirectUrl;
+    }
+  };
 
   usePageMeta({
     title: 'Onboarding',
-    description: 'Set up your Shuffle Security workspace. Connect data sources, authenticate apps, and enable automation.',
+    description: 'Set up your Shuffle workspace. Connect data sources, authenticate apps, and enable automation.',
     url: '/onboarding',
   });
   const navigate = useNavigate();
