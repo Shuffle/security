@@ -3004,7 +3004,7 @@ const IncidentsPage = () => {
             px: 1.5, 
             py: 1, 
             borderRadius: 2, 
-            backgroundColor: 'hsl(var(--card))', 
+            backgroundColor: 'transparent', 
             border: '1px solid', 
             borderColor: (dateFrom || dateTo) ? 'rgba(99, 102, 241, 0.4)' : 'hsl(var(--border))',
             transition: 'border-color 0.2s ease',
