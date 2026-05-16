@@ -82,7 +82,7 @@ const FormInput = (defaultprops: any) => {
   const [realtimeMarkdown, setRealtimeMarkdown] = React.useState("")
   const [forms, setForms] = React.useState([])
   const [workflows, setWorkflows] = React.useState([])
-  const [boxWidth, setBoxWidth] = React.useState(500)
+  const [boxWidth, setBoxWidth] = React.useState(560)
   const [inputQuestions, setInputQuestions] = React.useState([])
   const [agentic, setAgentic] = React.useState(false)
 
@@ -144,14 +144,15 @@ const FormInput = (defaultprops: any) => {
 	// as a heavy filled panel.
 	const boxStyle: React.CSSProperties = {
 		color: "hsl(var(--foreground))",
-		backgroundColor: "transparent",
+		backgroundColor: "hsl(var(--card) / 0.4)",
 		backgroundImage: "none",
 		border: "1px solid hsl(var(--border))",
-		padding: "28px 32px 36px 32px",
-		borderRadius: 12,
+		padding: "40px 44px 36px 44px",
+		borderRadius: 16,
 		minHeight: 360,
 		position: "relative",
-		boxShadow: "none",
+		boxShadow: "0 1px 0 hsl(var(--border) / 0.4)",
+		backdropFilter: "blur(6px)",
 	}
 
     const params = useParams();
@@ -1604,11 +1605,11 @@ const FormInput = (defaultprops: any) => {
 							{organization?.length > 0 &&
 								<Typography
 									style={{
-										marginTop: 8,
-										marginBottom: 6,
+										marginTop: 0,
+										marginBottom: 10,
 										textAlign: "center",
-										fontSize: 12,
-										letterSpacing: "0.08em",
+										fontSize: 11,
+										letterSpacing: "0.14em",
 										textTransform: "uppercase",
 										fontWeight: 600,
 										color: "hsl(var(--muted-foreground))",
@@ -1622,19 +1623,35 @@ const FormInput = (defaultprops: any) => {
 							}
 
 							{answer !== undefined && answer !== null ? null :
-								<Typography
-									style={{
-										marginTop: 4,
-										marginBottom: 24,
-										textAlign: "center",
-										fontSize: 24,
-										fontWeight: 600,
-										lineHeight: 1.25,
-										color: "hsl(var(--foreground))",
-									}}
-								>
-									{workflow.name}
-								</Typography>
+								<>
+									<Typography
+										style={{
+											marginTop: 0,
+											marginBottom: 8,
+											textAlign: "center",
+											fontSize: 28,
+											fontWeight: 700,
+											lineHeight: 1.2,
+											letterSpacing: "-0.01em",
+											color: "hsl(var(--foreground))",
+										}}
+									>
+										{workflow.name}
+									</Typography>
+									<Typography
+										style={{
+											textAlign: "center",
+											marginBottom: 28,
+											fontSize: 14,
+											color: "hsl(var(--muted-foreground))",
+											lineHeight: 1.5,
+										}}
+									>
+										{workflow?.description?.length > 0
+											? workflow.description
+											: "Provide the details below to trigger this workflow."}
+									</Typography>
+								</>
 							}
 
 							{disabledButtons && message.length > 0 ? null :
@@ -1750,10 +1767,12 @@ const FormInput = (defaultprops: any) => {
 								<div style={{marginBottom: 4}}>
 									<Typography
 										style={{
-											fontSize: 13,
-											fontWeight: 500,
-											color: "hsl(var(--foreground))",
-											marginBottom: 6,
+											fontSize: 12,
+											fontWeight: 600,
+											letterSpacing: "0.06em",
+											textTransform: "uppercase",
+											color: "hsl(var(--muted-foreground))",
+											marginBottom: 8,
 										}}
 									>
 										{foundSourcenode !== undefined && foundSourcenode !== null
@@ -1765,32 +1784,53 @@ const FormInput = (defaultprops: any) => {
 										disabled={executionRunning}
 										color="primary"
 										multiline
-										minRows={3}
-										maxRows={8}
+										minRows={4}
+										maxRows={10}
 										type="text"
 										autoComplete="off"
 										fullWidth
-										placeholder="Enter a value to pass into the workflow"
+										placeholder="Paste JSON, text, or any value to pass into the workflow…"
 										id="runtime-argument"
 										variant="outlined"
 										sx={{
 											"& .MuiOutlinedInput-root": {
-												backgroundColor: "hsl(var(--background))",
-												borderRadius: "8px",
+												backgroundColor: "hsl(var(--background) / 0.6)",
+												borderRadius: "10px",
 												fontSize: 14,
+												lineHeight: 1.55,
 												color: "hsl(var(--foreground))",
+												padding: "12px 14px",
+												transition: "border-color .15s ease, box-shadow .15s ease",
+											},
+											"& .MuiOutlinedInput-input::placeholder": {
+												color: "hsl(var(--muted-foreground))",
+												opacity: 1,
 											},
 											"& .MuiOutlinedInput-notchedOutline": {
 												borderColor: "hsl(var(--border))",
 											},
 											"&:hover .MuiOutlinedInput-notchedOutline": {
-												borderColor: "hsl(var(--ring))",
+												borderColor: "hsl(var(--border))",
+											},
+											"& .Mui-focused .MuiOutlinedInput-notchedOutline, & .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+												borderColor: "hsl(var(--primary))",
+												borderWidth: "1px",
+												boxShadow: "0 0 0 3px hsl(var(--primary) / 0.15)",
 											},
 										}}
 										onChange={(e) => {
 											setExecutionArgument(e.target.value)
 										}}
 									/>
+									<Typography
+										style={{
+											marginTop: 8,
+											fontSize: 12,
+											color: "hsl(var(--muted-foreground))",
+										}}
+									>
+										This value is forwarded to the workflow as the execution argument.
+									</Typography>
 								</div>
 							
 						}
@@ -1927,7 +1967,7 @@ const FormInput = (defaultprops: any) => {
 									: null}
 								</span>
 							:
-							<div style={{display: "flex", marginTop: 20}}>
+							<div style={{display: "flex", marginTop: 28}}>
 								<Button 
 									variant={executionData.result !== undefined && executionData.result !== null && executionData.result.length > 0 ? "outlined" : "contained"}
 									type="submit" 
@@ -1935,21 +1975,36 @@ const FormInput = (defaultprops: any) => {
 									fullWidth 
 									disableElevation
 									disabled={!handleValidateForm(executionArgument) || executionLoading}
-									style={{
+									sx={{
 										textTransform: "none",
-										height: 36,
-										borderRadius: 8,
+										height: 44,
+										borderRadius: "10px",
 										fontWeight: 600,
-										fontSize: 14,
+										fontSize: 15,
+										letterSpacing: "0.01em",
+										backgroundColor: "hsl(var(--primary))",
+										color: "hsl(var(--primary-foreground))",
+										boxShadow: "0 6px 18px hsl(var(--primary) / 0.25)",
+										transition: "transform .12s ease, box-shadow .12s ease, background-color .12s ease",
+										"&:hover": {
+											backgroundColor: "hsl(var(--primary) / 0.92)",
+											boxShadow: "0 8px 22px hsl(var(--primary) / 0.32)",
+											transform: "translateY(-1px)",
+										},
+										"&.Mui-disabled": {
+											backgroundColor: "hsl(var(--muted))",
+											color: "hsl(var(--muted-foreground))",
+											boxShadow: "none",
+										},
 									}}
 								>
 									{executionLoading ? 
-										<CircularProgress color="secondary" style={{color: "white",}} /> 
+										<CircularProgress size={20} style={{color: "hsl(var(--primary-foreground))"}} /> 
 									: executionData.result !== undefined && executionData.result !== null && executionData.result.length > 0 ? 
 										"Run Again" 
 									: executionData?.status === "WAITING" ? 
 										"Submit answers"
-									: "Submit"}
+									: "Run workflow"}
 							</Button> 				
 							</div>
 						}
