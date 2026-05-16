@@ -944,7 +944,7 @@ const FormInput = (defaultprops: any) => {
 
 					if (validate?.result?.information !== undefined && validate?.result?.information !== null) {
 						console.log("Success! Not checking again.")
-						setWorkflowQuestion(validate?.result?.information)
+						setWorkflowQuestion(typeof validate?.result?.information === "string" ? validate.result.information : "")
 					} else {
 						console.log("No information found for questions?: ", validate.result)
 
