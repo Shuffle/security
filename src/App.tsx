@@ -60,6 +60,7 @@ import AgentsPage from '@/pages/dashboard/AgentsPage';
 import InfrastructurePage from '@/pages/dashboard/InfrastructurePage';
 import DataFlowDetailPage from '@/pages/dashboard/DataFlowDetailPage';
 import UsecasesPageRaw from '@/pages/dashboard/UsecasesPage';
+import FormsPage from '@/pages/dashboard/FormsPage';
 import { useAuth as useAppAuth } from '@/context/AuthContext';
 
 // Bridge AuthContext -> UsecasesPage so the in-page "Get started free" CTA
