@@ -944,7 +944,7 @@ const FormInput = (defaultprops: any) => {
 
 					if (validate?.result?.information !== undefined && validate?.result?.information !== null) {
 						console.log("Success! Not checking again.")
-						setWorkflowQuestion(validate?.result?.information)
+						setWorkflowQuestion(typeof validate?.result?.information === "string" ? validate.result.information : "")
 					} else {
 						console.log("No information found for questions?: ", validate.result)
 
@@ -1246,7 +1246,7 @@ const FormInput = (defaultprops: any) => {
 
 			if (result.status !== "WAITING") {
 				if (parsedresult.information !== undefined && parsedresult.information !== null && parsedresult.information.length > 0) {
-					setWorkflowQuestion(parsedresult.information)
+					setWorkflowQuestion(typeof parsedresult.information === "string" ? parsedresult.information : "")
 				}
 
 				if (parsedresult.click_info !== undefined && parsedresult.click_info !== null) {
@@ -1561,29 +1561,42 @@ const FormInput = (defaultprops: any) => {
 					</div>
 				: 
 				<div>
-					{workflowQuestion !== "" || (workflow?.form_control?.input_markdown !== undefined && workflow?.form_control?.input_markdown !== null && workflow?.form_control?.input_markdown.length > 0) ? 
-						<div style={{marginBottom: 20, }}>
-							<Markdown
-							  components={{
-								iframe: IframeWrapper,
-								img: ImgWrapper,
-								code: CodeHandler,
-								a: OuterLink,
-							  }}
-							  id="markdown_wrapper"
-							  escapeHtml={false}
-							  style={{
-								maxWidth: "100%", minWidth: "100%", 
-							  }}
-							  rehypePlugins={[rehypeRaw]}
-							>
-							  {workflowQuestion !== "" ? workflowQuestion : realtimeMarkdown !== undefined && realtimeMarkdown !== null && realtimeMarkdown.length > 0 ? realtimeMarkdown : workflow?.form_control?.input_markdown}
-		    				</Markdown>
-						</div> 
-					: null}
+					{(() => {
+						// react-markdown v9 throws "Expected usable value, not `undefined`"
+						// if children is undefined/null. workflowQuestion can be set to
+						// `undefined` by API parsing paths, so coerce defensively.
+						const md =
+							(typeof workflowQuestion === "string" && workflowQuestion.length > 0)
+								? workflowQuestion
+								: (typeof realtimeMarkdown === "string" && realtimeMarkdown.length > 0)
+									? realtimeMarkdown
+									: (typeof workflow?.form_control?.input_markdown === "string" && workflow.form_control.input_markdown.length > 0)
+										? workflow.form_control.input_markdown
+										: ""
+						return md.length > 0 ? (
+							<div style={{marginBottom: 20, }}>
+								<Markdown
+								  components={{
+									iframe: IframeWrapper,
+									img: ImgWrapper,
+									code: CodeHandler,
+									a: OuterLink,
+								  }}
+								  id="markdown_wrapper"
+								  escapeHtml={false}
+								  style={{
+									maxWidth: "100%", minWidth: "100%",
+								  }}
+								  rehypePlugins={[rehypeRaw]}
+								>
+								  {md}
+			    				</Markdown>
+							</div>
+						) : null
+					})()}
 
       				<form onSubmit={(e) => {onSubmit(e)}} style={{margin: "25px 0px 15px 0px",}}>
-						{workflowQuestion !== "" || (workflow?.form_control?.input_markdown !== undefined && workflow?.form_control?.input_markdown !== null && workflow?.form_control?.input_markdown.length > 0) ? null : 
+						{(typeof workflowQuestion === "string" && workflowQuestion.length > 0) || (typeof workflow?.form_control?.input_markdown === "string" && workflow.form_control.input_markdown.length > 0) ? null : 
 						<div>
 							{/*
 							<img
