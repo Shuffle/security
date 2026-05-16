@@ -1262,6 +1262,7 @@ const OnboardingFlow = ({
           </Box>
         </Container>
       </Box>
+      )}
     </Box>
   );
 };
