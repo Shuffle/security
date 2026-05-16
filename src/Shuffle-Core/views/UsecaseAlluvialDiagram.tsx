@@ -21,7 +21,7 @@ import {
   ExternalLink as OpenInNewIcon
 } from 'lucide-react';
 import { AppSearchDrawer } from '@shuffleio/shuffle-mcps';
-import { useAppDetail } from '@shuffleio/shuffle-mcps';
+import { useAppDetailOptional } from '@shuffleio/shuffle-mcps';
 import { getApiUrl, getAuthHeader } from '@shuffleio/shuffle-mcps';
 import { deduplicateAuthApps, backfillAppImages, type AuthAppEntry } from '../auth-utils';
 import {
@@ -616,9 +616,9 @@ export default function UsecaseAlluvialDiagram({
 }: UsecaseAlluvialDiagramProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   // isLoggedIn comes from props (host injects); defaults to false.
-  const appDetailCtx = useAppDetail();
+  const appDetailCtx = useAppDetailOptional();
   const handleVisitApp = useCallback((appName: string) => {
-    appDetailCtx.openApp(appName);
+    appDetailCtx?.openApp(appName);
   }, [appDetailCtx]);
   const [allApps, setAllApps] = useState<AppNode[]>([]);
   const [ingestAppNames, setIngestAppNames] = useState<Set<string> | null>(null);
