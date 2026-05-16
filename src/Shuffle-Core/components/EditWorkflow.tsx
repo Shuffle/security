@@ -279,7 +279,7 @@ const EditWorkflow = (props) => {
 					minHeight: "400px",
 					//minWidth: isMobile ? "90%" : newWorkflow === true ? 1000 : 550,
 					//maxWidth: isMobile ? "90%" : newWorkflow === true ? 1000 : 550,
-		    		borderRadius: theme.palette.DialogStyle.borderRadius,
+		    		borderRadius: `${theme.palette.DialogStyle.borderRadius}px 0 0 ${theme.palette.DialogStyle.borderRadius}px`,
 		    		backgroundColor: themeMode === "dark" ? "black" :  theme?.palette?.DialogStyle?.backgroundColor,
 				},
 			}}
