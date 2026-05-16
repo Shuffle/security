@@ -915,46 +915,42 @@ const OnboardingFlow = ({
         }}
       />
 
-      {/* Fixed Header with Step Indicator */}
+      {/* Floating Step Indicator pill */}
       <Box
         sx={{
           position: 'fixed',
-          top: 0,
+          top: 16,
           left: 0,
           right: 0,
           zIndex: 100,
-          backgroundColor: 'hsl(var(--background) / 0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid hsl(var(--border))',
-          py: 3,
+          display: 'flex',
+          justifyContent: 'center',
+          pointerEvents: 'none',
         }}
       >
-        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-          {/* Step Indicator — pill */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <SegmentedControl
-              size="md"
-              variant="filled"
-              ariaLabel="Onboarding steps"
-              layoutId="onboarding-steps"
-              value={steps[activeStep]?.key ?? steps[0].key}
-              onChange={(key) => setActiveStepKey(key)}
-              options={steps.map((step, index): SegmentedItem => ({
-                value: step.key,
-                label: (
-                  <span className="inline-flex items-center gap-1.5">
-                    {index < activeStep
-                      ? <CheckCircleOutlineIcon size={14} />
-                      : React.isValidElement(step.icon)
-                        ? React.cloneElement(step.icon as React.ReactElement, { size: 14 })
-                        : step.icon}
-                    <span className="hidden md:inline">{step.label}</span>
-                  </span>
-                ),
-              }))}
-            />
-          </Box>
-        </Container>
+        <Box sx={{ pointerEvents: 'auto' }}>
+          <SegmentedControl
+            size="md"
+            variant="filled"
+            ariaLabel="Onboarding steps"
+            layoutId="onboarding-steps"
+            value={steps[activeStep]?.key ?? steps[0].key}
+            onChange={(key) => setActiveStepKey(key)}
+            options={steps.map((step, index): SegmentedItem => ({
+              value: step.key,
+              label: (
+                <span className="inline-flex items-center gap-1.5">
+                  {index < activeStep
+                    ? <CheckCircleOutlineIcon size={14} />
+                    : React.isValidElement(step.icon)
+                      ? React.cloneElement(step.icon as React.ReactElement, { size: 14 })
+                      : step.icon}
+                  <span className="hidden md:inline">{step.label}</span>
+                </span>
+              ),
+            }))}
+          />
+        </Box>
       </Box>
 
       {/* Scrollable Content Area */}
