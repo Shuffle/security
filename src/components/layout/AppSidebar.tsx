@@ -24,7 +24,7 @@ import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as Wa
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { SHUFFLE_AUTOMATION_URL } from '@/Shuffle-MCPs/api';
-import { IntegrationStatus } from '@/Shuffle-MCPs/IntegrationStatus';
+// IntegrationStatus removed from sidebar; it now lives only on relevant pages (e.g. /onboarding/sources, infrastructure).
 import { SidebarSearchDialog } from './SidebarSearchDialog';
 
 import { useEntityPreference, useSidebarTabs } from '@/hooks/useEntityLabel';
