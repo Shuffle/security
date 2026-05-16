@@ -43,6 +43,27 @@ const shuffleCoreTheme = createTheme({
         },
       },
     },
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          color: "inherit",
+          "&.MuiTypography-colorTextSecondary": { color: "hsl(var(--muted-foreground))" },
+        },
+      },
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: { borderColor: "hsl(var(--border))" },
+      },
+    },
+    MuiCheckbox: {
+      styleOverrides: {
+        root: {
+          color: "hsl(var(--muted-foreground))",
+          "&.Mui-checked": { color: "hsl(var(--primary))" },
+        },
+      },
+    },
     MuiOutlinedInput: {
       defaultProps: { size: "small" },
       styleOverrides: {
