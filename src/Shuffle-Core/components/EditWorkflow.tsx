@@ -414,15 +414,13 @@ const EditWorkflow = (props) => {
 			}}
 			PaperProps={{
 				sx: {
-					color: "hsl(var(--sidebar-foreground))",
+				color: "hsl(var(--foreground))",
 					minWidth: isMobile ? "90%" : "650px",
 					maxWidth: isMobile ? "90%" : "650px",
 					minHeight: "400px",
-					//minWidth: isMobile ? "90%" : newWorkflow === true ? 1000 : 550,
-					//maxWidth: isMobile ? "90%" : newWorkflow === true ? 1000 : 550,
 		    		borderRadius: "8px 0 0 8px",
-		    		backgroundColor: "hsl(var(--sidebar-background))",
-		    		borderLeft: "1px solid hsl(var(--sidebar-border))",
+		    		backgroundColor: "hsl(var(--background))",
+		    		borderLeft: "1px solid hsl(var(--border))",
 				},
 			}}
 		>
