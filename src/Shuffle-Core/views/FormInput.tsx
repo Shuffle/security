@@ -139,12 +139,15 @@ const FormInput = (defaultprops: any) => {
 		paddingBottom: 250,
 	}
 
+	// Transparent card surface — matches the rest of the dashboard (see
+	// /incidents/:id) so the form blends into the page instead of floating
+	// as a heavy filled panel.
 	const boxStyle: React.CSSProperties = {
 		color: "hsl(var(--foreground))",
-		backgroundColor: "hsl(var(--card))",
+		backgroundColor: "transparent",
 		backgroundImage: "none",
 		border: "1px solid hsl(var(--border))",
-		padding: "32px 40px 40px 40px",
+		padding: "28px 32px 36px 32px",
 		borderRadius: 12,
 		minHeight: 360,
 		position: "relative",
@@ -1972,126 +1975,200 @@ const FormInput = (defaultprops: any) => {
 
 			<Dialog
 			  open={sharingOpen}
-			  onClose={() => {
-				setSharingOpen(false);
-			  }}
+			  onClose={() => { setSharingOpen(false); }}
 			  PaperProps={{
-				style: {
-				  color: "white",
-				  minWidth: isMobile ? "90%" : 500,
-				  maxWidth: isMobile ? "90%" : 500,
-				  minHeight: 400,
-				  maxHeight: 400, 
-				  padding: 25, 
-				  borderRadius: theme.palette?.borderRadius,
-				  //minWidth: isMobile ? "90%" : newWorkflow === true ? 1000 : 550,
-				  //maxWidth: isMobile ? "90%" : newWorkflow === true ? 1000 : 550,
+				sx: {
+				  minWidth: isMobile ? "90%" : 520,
+				  maxWidth: isMobile ? "90%" : 520,
+				  bgcolor: "hsl(var(--card))",
+				  color: "hsl(var(--foreground))",
+				  border: "1px solid hsl(var(--border))",
+				  borderRadius: 2,
+				  boxShadow: "0 20px 60px -20px hsl(var(--background) / 0.6)",
+				  p: 0,
 				},
 			  }}
 			>
-			  	<DialogTitle style={{padding: 30, paddingLeft: 20, paddingBottom: 0, zIndex: 1000,}}>
-					Form Sharing Options for '{workflow.name}'
+			  	<DialogTitle sx={{
+					px: 3,
+					pt: 2.5,
+					pb: 1.5,
+					fontSize: "1rem",
+					fontWeight: 600,
+					color: "hsl(var(--foreground))",
+					borderBottom: "1px solid hsl(var(--border))",
+				}}>
+					Form sharing
+					<Typography sx={{
+						fontSize: "0.78rem",
+						color: "hsl(var(--muted-foreground))",
+						fontWeight: 400,
+						mt: 0.5,
+					}}>
+						{workflow.name}
+					</Typography>
 			  	</DialogTitle>
-        		<DialogContent style={{marginTop: 20,}}>
-					<Typography variant="body1">
-						<b>General Access</b>
+        		<DialogContent sx={{ px: 3, pt: 2.5, pb: 3 }}>
+					<Typography sx={{
+						fontSize: "0.82rem",
+						fontWeight: 600,
+						color: "hsl(var(--foreground))",
+						mb: 0.5,
+					}}>
+						General access
 					</Typography>
 
-					<Typography variant="body2" color="textSecondary">
-						Form sharing and workflow sharing are not the same. By sharing a form, you are enabling anyone with the link to fill out the form AND run the workflow. They will NOT have access to seeing workflow details. By default, anyone with access to an organization can use a form.
+					<Typography sx={{
+						fontSize: "0.78rem",
+						color: "hsl(var(--muted-foreground))",
+						lineHeight: 1.5,
+					}}>
+						Form sharing and workflow sharing are not the same. By sharing a form,
+						you are enabling anyone with the link to fill out the form and run the
+						workflow. They will not have access to the workflow details. By default,
+						anyone in the organization can use a form.
 					</Typography>
 
-					<div />
 					{workflow !== undefined && workflow !== null && workflow.sharing !== undefined && workflow.sharing !== null ?
 						<Select
 							fullWidth
-							style={{marginTop: 25, }}
 							value={workflow.sharing === "" ? "private" : workflow.sharing}
 							onChange={(e) => {
-								console.log("SHARING: ", e.target.value)
-
 								workflow.sharing = e.target.value
 								setWorkflow(workflow)
-								saveWorkflow(workflow) 
+								saveWorkflow(workflow)
 								setUpdate(Math.random())
-
 								toast("Form sharing updated.")
 							}}
+							sx={{
+								mt: 2.5,
+								height: 38,
+								color: "hsl(var(--foreground))",
+								backgroundColor: "hsl(var(--background))",
+								borderRadius: 1.25,
+								fontSize: "0.85rem",
+								"& .MuiOutlinedInput-notchedOutline": {
+									borderColor: "hsl(var(--border))",
+								},
+								"&:hover .MuiOutlinedInput-notchedOutline": {
+									borderColor: "hsl(var(--border))",
+								},
+							}}
 						>
-							<MenuItem 
-								value={"private"}
-							>
-								Organization only
-							</MenuItem>
-							<Divider  />
-							<MenuItem 
-								value={"form"}
-							>
-								Anyone with the link
-							</MenuItem>
+							<MenuItem value={"private"}>Organization only</MenuItem>
+							<Divider />
+							<MenuItem value={"form"}>Anyone with the link</MenuItem>
 						</Select>
 					: null}
 				</DialogContent>
 			</Dialog>
 
 			{isLoggedIn && userdata?.active_org?.id === workflow?.org_id || userdata?.support === true ?
-				<div style={{position: "fixed", top: 10, right: 20, }}>
-
+				<div style={{
+					position: "fixed",
+					top: 16,
+					right: 20,
+					display: "flex",
+					alignItems: "center",
+					gap: 8,
+					zIndex: 1100,
+				}}>
+					{/* Ghost / outline action — visit the underlying workflow */}
 					<Button
 						disabled={workflow.id === undefined || workflow.id === null}
-						variant={"outlined"}
-						color={"secondary"}
-						style={{
-							marginRight: 10, 
+						onClick={() => { window.open(`/workflows/${workflow.id}`, "_blank") }}
+						sx={{
+							height: 36,
+							px: 1.75,
+							gap: 0.75,
 							textTransform: "none",
-						}}
-						onClick={() => {
-							window.open(`/workflows/${workflow.id}`, "_blank")
+							fontSize: "0.82rem",
+							fontWeight: 500,
+							color: "hsl(var(--foreground))",
+							backgroundColor: "transparent",
+							border: "1px solid hsl(var(--border))",
+							borderRadius: 1.25,
+							boxShadow: "none",
+							"&:hover": {
+								backgroundColor: "hsl(var(--muted) / 0.5)",
+								borderColor: "hsl(var(--border))",
+							},
+							"&.Mui-disabled": {
+								color: "hsl(var(--muted-foreground))",
+								borderColor: "hsl(var(--border))",
+								opacity: 0.5,
+							},
 						}}
 					>
-						<OpenInNewIcon style={{marginRight: 5, }}/>
-						Workflow	
+						<OpenInNewIcon size={14} />
+						Workflow
 					</Button>
 
+					{/* Neutral / secondary action — share toggle */}
 					<Button
 						disabled={workflow.id === undefined || workflow.id === null}
-						variant={workflow.sharing === "form" ? "outlined" : "contained"}
-						color={"secondary"}
-						style={{
-							marginRight: 10, 
+						onClick={() => { setSharingOpen(true) }}
+						sx={{
+							height: 36,
+							px: 1.75,
+							gap: 0.75,
 							textTransform: "none",
-						}}
-						onClick={() => {
-							setSharingOpen(true)
+							fontSize: "0.82rem",
+							fontWeight: 500,
+							color: "hsl(var(--foreground))",
+							backgroundColor: "hsl(var(--muted))",
+							border: "1px solid hsl(var(--border))",
+							borderRadius: 1.25,
+							boxShadow: "none",
+							"&:hover": {
+								backgroundColor: "hsl(var(--muted) / 0.75)",
+								boxShadow: "none",
+							},
+							"&.Mui-disabled": {
+								color: "hsl(var(--muted-foreground))",
+								backgroundColor: "hsl(var(--muted) / 0.4)",
+								borderColor: "hsl(var(--border))",
+								opacity: 0.6,
+							},
 						}}
 					>
-						{workflow.sharing === "form" ?
-							<LockOpenIcon style={{marginRight: 5, }} /> 
-							:
-							<LockIcon style={{marginRight: 5, }} /> 
-						}
-
-						{workflow.sharing === "form" ?
-							"Unshare"
-							:
-							"Share"
-						}
+						{workflow.sharing === "form"
+							? <LockOpenIcon size={14} />
+							: <LockIcon size={14} />}
+						{workflow.sharing === "form" ? "Unshare" : "Share"}
 					</Button>
 
+					{/* Primary action — orange brand button */}
 					<Button
 						disabled={workflow.id === undefined || workflow.id === null}
-						variant={"contained"}
-						color={"primary"}
-						style={{
+						onClick={() => { setEditWorkflowModalOpen(true) }}
+						sx={{
+							height: 36,
+							px: 1.75,
+							gap: 0.75,
 							textTransform: "none",
-						}}
-						onClick={() => {
-							setEditWorkflowModalOpen(true)
+							fontSize: "0.82rem",
+							fontWeight: 600,
+							color: "hsl(var(--primary-foreground))",
+							backgroundColor: "hsl(var(--primary))",
+							border: "1px solid hsl(var(--primary))",
+							borderRadius: 1.25,
+							boxShadow: "none",
+							"&:hover": {
+								backgroundColor: "hsl(var(--primary) / 0.9)",
+								boxShadow: "none",
+							},
+							"&.Mui-disabled": {
+								color: "hsl(var(--primary-foreground))",
+								backgroundColor: "hsl(var(--primary) / 0.4)",
+								borderColor: "transparent",
+							},
 						}}
 					>
-						<EditIcon style={{marginRight: 5, }} /> Edit Form 
+						<EditIcon size={14} />
+						Edit Form
 					</Button>
-				</div> 
+				</div>
 			: null}
 
       		{basedata}
