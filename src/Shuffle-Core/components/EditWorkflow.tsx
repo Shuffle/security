@@ -349,7 +349,6 @@ const EditWorkflow = (props) => {
 			alignItems: "center",
 		},
 	}
-	const normalizeSelectValues = (value: any) => Array.isArray(value) ? value : String(value || "").split(",").filter(Boolean)
 	const getActionLabel = (actionId: string) => workflow?.actions?.find((action) => action.id === actionId)?.label || actionId
 	const stripNoneValue = (value: any) => {
 		const rawValue = normalizeSelectValues(value)
@@ -360,10 +359,10 @@ const EditWorkflow = (props) => {
 		return selectedIds.length === 0 ? <span style={{ color: "hsl(var(--muted-foreground))" }}>{emptyLabel}</span> : selectedIds.map(getActionLabel).join(", ")
 	}
 	const handleActionMultiSelectChange = (event: any, setter: any) => {
-		setter(stripNoneValue(event?.target?.value))
+		setter([...stripNoneValue(event?.target?.value)])
 	}
 	const getActionSelectValue = (selectedActions: any) => {
-		const selectedIds = normalizeSelectValues(selectedActions).filter((value) => value !== "none")
+		const selectedIds = normalizeActionIds(selectedActions)
 		return selectedIds.length === 0 ? ["none"] : selectedIds
 	}
 
