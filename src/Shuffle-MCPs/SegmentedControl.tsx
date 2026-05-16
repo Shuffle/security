@@ -1,8 +1,9 @@
 import * as React from "react";
 import { motion, LayoutGroup } from "framer-motion";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
+// Local tiny classnames helper to avoid pulling clsx/tailwind-merge into
+// the library bundle (they aren't declared as peer deps).
+const cn = (...inputs: Array<string | false | null | undefined>) =>
+  inputs.filter(Boolean).join(" ");
 
 /**
  * SegmentedControl
