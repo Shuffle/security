@@ -81,9 +81,6 @@ const EditWorkflow = (props) => {
 	const [_, setUpdate] = React.useState(""); // Used for rendering, don't remove
 	const {themeMode, brandColor} = useContext(Context)
 	const theme = getTheme(themeMode, brandColor)
-	const standardTextFieldInputProps = {
-		style: { color: "hsl(var(--foreground))" },
-	}
 	const [submitLoading, setSubmitLoading] = React.useState(false);
 	const [aiGenerateLoading, setAiGenerateLoading] = React.useState(false);
 	const [showMoreClicked, setShowMoreClicked] = React.useState(isEditing !== false ? true : false);
@@ -392,7 +389,6 @@ const EditWorkflow = (props) => {
 			</DialogTitle>
 			<FormControl>
 				<div style={{ 
-					borderTop: theme.palette.defaultBorder, 
 					width: 600, 
 					position: "fixed", 
 					right: 20, 
