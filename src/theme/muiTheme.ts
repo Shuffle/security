@@ -14,35 +14,32 @@ const getCommon = () => ({
   shape: { borderRadius: 8 },
 });
 
-const getComponents = (mode: 'light' | 'dark') => {
-  const isDark = mode === 'dark';
-  const border = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
-  const cardBg = isDark
-    ? 'linear-gradient(145deg, #262626 0%, #1f1f1f 100%)'
-    : 'linear-gradient(145deg, #ffffff 0%, #f8f8f8 100%)';
-  const drawerBg = isDark ? '#181818' : '#f5f5f5';
-  const tooltipBg = isDark ? '#111111' : '#ffffff';
-  const tooltipColor = isDark ? '#ffffff' : '#1a1a1a';
-  const tableHeadBg = isDark ? 'rgba(33, 33, 33, 0.5)' : 'rgba(245, 245, 245, 0.8)';
-  const appBarBg = isDark ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+const getComponents = (_mode: 'light' | 'dark') => {
+  const border = 'hsl(var(--border))';
+  const cardBg = 'var(--gradient-card)';
+  const drawerBg = 'hsl(var(--sidebar-background))';
+  const tooltipBg = 'hsl(var(--popover))';
+  const tooltipColor = 'hsl(var(--popover-foreground))';
+  const tableHeadBg = 'hsl(var(--muted) / 0.5)';
+  const appBarBg = 'hsl(var(--background) / 0.9)';
 
   return {
     MuiButton: {
       styleOverrides: {
         root: { borderRadius: 8, padding: '10px 24px', fontWeight: 600 },
         containedPrimary: {
-          background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
-          boxShadow: '0 4px 14px rgba(255, 102, 0, 0.25)',
+          background: 'var(--gradient-accent)',
+          boxShadow: '0 4px 14px hsl(var(--primary) / 0.25)',
           '&:hover': {
-            background: 'linear-gradient(135deg, #FF8533 0%, #FF9955 100%)',
-            boxShadow: '0 6px 20px rgba(255, 102, 0, 0.35)',
+            background: 'var(--gradient-accent)',
+            boxShadow: '0 6px 20px hsl(var(--primary) / 0.35)',
           },
         },
         outlined: {
-          borderColor: 'rgba(255, 102, 0, 0.5)',
+          borderColor: 'hsl(var(--primary) / 0.5)',
           '&:hover': {
-            borderColor: '#FF6600',
-            backgroundColor: 'rgba(255, 102, 0, 0.08)',
+            borderColor: 'hsl(var(--primary))',
+            backgroundColor: 'hsl(var(--primary) / 0.08)',
           },
         },
       },
@@ -57,7 +54,7 @@ const getComponents = (mode: 'light' | 'dark') => {
       styleOverrides: { root: { backgroundColor: appBarBg, backdropFilter: 'blur(12px)' } },
     },
     MuiDrawer: {
-      styleOverrides: { paper: { backgroundColor: drawerBg, borderRight: `1px solid ${border}` } },
+      styleOverrides: { paper: { backgroundColor: drawerBg, borderRight: '1px solid hsl(var(--sidebar-border))' } },
     },
     MuiDialog: {
       styleOverrides: { paper: { backgroundImage: cardBg, border: `1px solid ${border}` } },
@@ -90,7 +87,7 @@ const getComponents = (mode: 'light' | 'dark') => {
         tooltip: {
           backgroundColor: tooltipBg,
           color: tooltipColor,
-          border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+          border: '1px solid hsl(var(--border))',
           fontSize: '0.75rem',
           maxWidth: 280,
         },
@@ -101,27 +98,26 @@ const getComponents = (mode: 'light' | 'dark') => {
 };
 
 export const createMuiTheme = (mode: 'light' | 'dark') => {
-  const isDark = mode === 'dark';
   return createTheme({
     ...getCommon(),
     palette: {
       mode,
-      primary: { main: '#FF6600', light: '#FF8533', dark: '#CC5200', contrastText: '#ffffff' },
-      secondary: { main: '#64748b', light: '#94a3b8', dark: '#475569' },
-      error: { main: '#ef4444', light: '#f87171', dark: '#dc2626' },
-      warning: { main: '#f59e0b', light: '#fbbf24', dark: '#d97706' },
-      success: { main: '#22c55e', light: '#4ade80', dark: '#16a34a' },
-      info: { main: '#3b82f6', light: '#60a5fa', dark: '#2563eb' },
+      primary: { main: 'hsl(var(--primary))', light: 'hsl(var(--primary-glow))', dark: 'hsl(var(--primary))', contrastText: 'hsl(var(--primary-foreground))' },
+      secondary: { main: 'hsl(var(--secondary))', light: 'hsl(var(--muted))', dark: 'hsl(var(--secondary))', contrastText: 'hsl(var(--secondary-foreground))' },
+      error: { main: 'hsl(var(--destructive))', light: 'hsl(var(--destructive))', dark: 'hsl(var(--destructive))', contrastText: 'hsl(var(--destructive-foreground))' },
+      warning: { main: 'hsl(var(--severity-medium))', light: 'hsl(var(--severity-medium))', dark: 'hsl(var(--severity-medium))', contrastText: 'hsl(var(--foreground))' },
+      success: { main: 'hsl(var(--severity-low))', light: 'hsl(var(--severity-low))', dark: 'hsl(var(--severity-low))', contrastText: 'hsl(var(--foreground))' },
+      info: { main: 'hsl(var(--severity-info))', light: 'hsl(var(--severity-info))', dark: 'hsl(var(--severity-info))', contrastText: 'hsl(var(--foreground))' },
       background: {
-        default: isDark ? '#1a1a1a' : '#fafafa',
-        paper: isDark ? '#212121' : '#ffffff',
+        default: 'hsl(var(--background))',
+        paper: 'hsl(var(--card))',
       },
       text: {
-        primary: isDark ? '#ffffff' : '#1a1a1a',
-        secondary: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
-        disabled: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+        primary: 'hsl(var(--foreground))',
+        secondary: 'hsl(var(--muted-foreground))',
+        disabled: 'hsl(var(--muted-foreground))',
       },
-      divider: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+      divider: 'hsl(var(--border))',
     },
     components: getComponents(mode),
   });
