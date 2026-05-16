@@ -14,6 +14,11 @@ import { Link as RouterLink } from 'react-router-dom';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { fetchAuthenticatedApps } from '@/Shuffle-MCPs/authenticatedApps';
 import { fetchAppsViaApiConfig as fetchApps } from '@/Shuffle-MCPs/appsCache';
+import { getDatastoreItem } from '@/Shuffle-MCPs/datastore';
+
+// Onboarding datastore (must stay in sync with OnboardingPage)
+const ONBOARDING_CONFIG_CATEGORY = 'shuffle-security_onboarding';
+const SELECTED_TOOLS_KEY = 'selected_tools';
 import { deduplicateAuthApps, backfillAppImages, type AuthAppEntry } from '@/Shuffle-MCPs/auth-utils';
 import { useAppDetailOptional } from '@/Shuffle-MCPs/AppDetailContext';
 import { SIEM_PATTERNS, CASES_PATTERNS, EDR_PATTERNS, EMAIL_APP_PATTERNS } from '@/Shuffle-MCPs/ingestionDetection';
@@ -73,19 +78,29 @@ export const refreshAllIntegrationStatus = () => {
 
 export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps, showAll, hideAddButton, hideHeader, priorityCategory, extraApps }: IntegrationStatusProps) => {
   const [allIntegrations, setAllIntegrations] = useState<Integration[]>([]);
+  const [onboardingApps, setOnboardingApps] = useState<{ id: string; name: string; icon?: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const appDetail = useAppDetailOptional();
 
-  // Merge in any extra (pending/selected) apps not already present
+  // Merge in any extra (pending/selected) apps not already present.
+  // Combines explicit `extraApps` prop (live in-memory selections from the
+  // onboarding wizard) with apps persisted in the shuffle-security_onboarding
+  // datastore so every IntegrationStatus instance — regardless of where it is
+  // mounted — shows the same set of enabled / pending apps.
   const mergedIntegrations = (() => {
-    if (!extraApps || extraApps.length === 0) return allIntegrations;
+    const pending = [...(extraApps || []), ...onboardingApps];
+    if (pending.length === 0) return allIntegrations;
     const existing = new Set(allIntegrations.map(i => i.name.toLowerCase()));
-    const extras: Integration[] = extraApps
-      .filter(e => e.name && !existing.has(e.name.toLowerCase()))
-      .map(e => ({
+    const seenExtra = new Set<string>();
+    const extras: Integration[] = [];
+    for (const e of pending) {
+      const key = (e.name || '').toLowerCase();
+      if (!key || existing.has(key) || seenExtra.has(key)) continue;
+      seenExtra.add(key);
+      extras.push({
         id: e.id || e.name,
         name: e.name,
         icon: e.icon || '',
@@ -93,7 +108,8 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
         hasValidAuth: false,
         authInstances: [],
         isActiveOnly: true,
-      }));
+      });
+    }
     return [...allIntegrations, ...extras];
   })();
 
@@ -190,17 +206,50 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
     }
   }, [priorityCategory]);
 
+  // Load apps selected in the onboarding wizard (persisted to datastore).
+  // This keeps every IntegrationStatus instance in sync with /onboarding/sources
+  // without each parent having to plumb extraApps down manually.
+  const fetchOnboardingApps = useCallback(async () => {
+    try {
+      const resp = await getDatastoreItem(SELECTED_TOOLS_KEY, ONBOARDING_CONFIG_CATEGORY);
+      if (!resp?.success || !resp.item?.value) {
+        setOnboardingApps([]);
+        return;
+      }
+      const raw = typeof resp.item.value === 'string' ? JSON.parse(resp.item.value) : resp.item.value;
+      if (!Array.isArray(raw)) {
+        setOnboardingApps([]);
+        return;
+      }
+      setOnboardingApps(
+        raw
+          .map((a: any) => ({
+            id: a?.objectID || a?.id || a?.name,
+            name: a?.name,
+            icon: a?.image_url || a?.large_image || '',
+          }))
+          .filter((a: any) => a.name)
+      );
+    } catch (_) {
+      setOnboardingApps([]);
+    }
+  }, []);
+
   // Fetch on mount
   useEffect(() => {
     fetchIntegrations();
-  }, [fetchIntegrations]);
+    fetchOnboardingApps();
+  }, [fetchIntegrations, fetchOnboardingApps]);
 
   // Re-fetch whenever any integration auth changes globally
   useEffect(() => {
-    const handler = () => fetchIntegrations();
+    const handler = () => {
+      fetchIntegrations();
+      fetchOnboardingApps();
+    };
     window.addEventListener('integrations-changed', handler);
     return () => window.removeEventListener('integrations-changed', handler);
-  }, [fetchIntegrations]);
+  }, [fetchIntegrations, fetchOnboardingApps]);
 
   const getStatusColor = (integration: Integration) => {
     if (integration.isActiveOnly) return 'hsl(var(--destructive))';
