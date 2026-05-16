@@ -22,6 +22,9 @@
       ],
       "@shuffleio/shuffle-mcps": [
         "./src/Shuffle-MCPs/index.ts"
+      ],
+      "@shuffleio/shuffle-core": [
+        "./src/Shuffle-Core/index.tsx"
       ]
     },
     "skipLibCheck": true,
