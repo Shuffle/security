@@ -89,6 +89,12 @@ const EditWorkflow = (props) => {
 	const [_, setUpdate] = React.useState(""); // Used for rendering, don't remove
 	const {themeMode, brandColor} = useContext(Context)
 	const theme = getTheme(themeMode, brandColor)
+	function cloneArray(value) {
+		return Array.isArray(value) ? JSON.parse(JSON.stringify(value)) : []
+	}
+	function getWorkflowFormWidthValue(targetWorkflow, fallbackWidth = 500) {
+		return targetWorkflow?.form_control?.form_width !== undefined && targetWorkflow?.form_control?.form_width !== null ? targetWorkflow.form_control.form_width : (fallbackWidth === undefined || fallbackWidth === null ? 500 : fallbackWidth)
+	}
 	const [submitLoading, setSubmitLoading] = React.useState(false);
 	const [aiGenerateLoading, setAiGenerateLoading] = React.useState(false);
 	const [showMoreClicked, setShowMoreClicked] = React.useState(isEditing !== false ? true : false);
@@ -110,7 +116,7 @@ const EditWorkflow = (props) => {
 	const [selectedYieldActions, setSelectedYieldActions] = React.useState(workflow?.form_control?.output_yields !== undefined && workflow?.form_control?.output_yields !== null ? JSON.parse(JSON.stringify(workflow?.form_control?.output_yields)) : [])
 	const [selectedCleanupActions, setSelectedCleanupActions] = React.useState(workflow?.form_control?.cleanup_actions !== undefined && workflow?.form_control?.cleanup_actions !== null ? JSON.parse(JSON.stringify(workflow?.form_control?.cleanup_actions)) : [])
 
-	const [formWidth, setFormWidth] = React.useState(boxWidth === undefined || boxWidth === null ? 500 : boxWidth)
+	const [formWidth, setFormWidth] = React.useState(getWorkflowFormWidthValue(workflow, boxWidth))
 	
 	// Flowchart upload states
 	const [uploadedImage, setUploadedImage] = React.useState(null)
@@ -124,6 +130,25 @@ const EditWorkflow = (props) => {
 			setBoxWidth(formWidth)
 		}
 	}, [formWidth])
+
+	useEffect(() => {
+		if (modalOpen !== true) {
+			return
+		}
+
+		const nextWorkflow = workflow || {}
+		setInnerWorkflow(nextWorkflow)
+		setNewWorkflowTags(cloneArray(nextWorkflow.tags))
+		setDescription(nextWorkflow.description !== undefined ? nextWorkflow.description : "")
+		setSelectedUsecases(cloneArray(nextWorkflow.usecase_ids))
+		setName(nextWorkflow.name !== undefined ? nextWorkflow.name : "")
+		setDueDate(nextWorkflow.due_date !== undefined && nextWorkflow.due_date !== null && nextWorkflow.due_date !== 0 ? dayjs(nextWorkflow.due_date * 1000) : dayjs().subtract(1, 'day'))
+		setInputQuestions(cloneArray(nextWorkflow.input_questions))
+		setInputMarkdown(nextWorkflow?.form_control?.input_markdown !== undefined && nextWorkflow?.form_control?.input_markdown !== null ? nextWorkflow.form_control.input_markdown : "")
+		setSelectedYieldActions(cloneArray(nextWorkflow?.form_control?.output_yields))
+		setSelectedCleanupActions(cloneArray(nextWorkflow?.form_control?.cleanup_actions))
+		setFormWidth(getWorkflowFormWidthValue(nextWorkflow, boxWidth))
+	}, [modalOpen, workflow?.id])
 
 	// Handle file upload and base64 conversion
 	const handleImageUpload = (file) => {
