@@ -56,9 +56,8 @@ const SNIPPET_PRODUCT_CHOICE = `import { ProductChoiceStep } from '@shuffleio/sh
 
 // Just the "Which Shuffle are you using?" picker step.
 <ProductChoiceStep
-  onSelect={(product) => console.log('picked', product)}
-  coreRedirectUrl="https://shuffler.io/onboarding"
-  securityRedirectUrl="https://security.shuffler.io/onboarding"
+  onSelectCore={() => window.location.assign('https://shuffler.io/onboarding')}
+  onSelectSecurity={() => window.location.assign('https://security.shuffler.io/onboarding')}
 />`;
 
 const SNIPPET_FORM_INPUT = `import { FormInput } from '@shuffleio/shuffle-core';
