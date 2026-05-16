@@ -78,19 +78,29 @@ export const refreshAllIntegrationStatus = () => {
 
 export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize = 26, onDisable, disabledApps, showAll, hideAddButton, hideHeader, priorityCategory, extraApps }: IntegrationStatusProps) => {
   const [allIntegrations, setAllIntegrations] = useState<Integration[]>([]);
+  const [onboardingApps, setOnboardingApps] = useState<{ id: string; name: string; icon?: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const appDetail = useAppDetailOptional();
 
-  // Merge in any extra (pending/selected) apps not already present
+  // Merge in any extra (pending/selected) apps not already present.
+  // Combines explicit `extraApps` prop (live in-memory selections from the
+  // onboarding wizard) with apps persisted in the shuffle-security_onboarding
+  // datastore so every IntegrationStatus instance — regardless of where it is
+  // mounted — shows the same set of enabled / pending apps.
   const mergedIntegrations = (() => {
-    if (!extraApps || extraApps.length === 0) return allIntegrations;
+    const pending = [...(extraApps || []), ...onboardingApps];
+    if (pending.length === 0) return allIntegrations;
     const existing = new Set(allIntegrations.map(i => i.name.toLowerCase()));
-    const extras: Integration[] = extraApps
-      .filter(e => e.name && !existing.has(e.name.toLowerCase()))
-      .map(e => ({
+    const seenExtra = new Set<string>();
+    const extras: Integration[] = [];
+    for (const e of pending) {
+      const key = (e.name || '').toLowerCase();
+      if (!key || existing.has(key) || seenExtra.has(key)) continue;
+      seenExtra.add(key);
+      extras.push({
         id: e.id || e.name,
         name: e.name,
         icon: e.icon || '',
@@ -98,7 +108,8 @@ export const IntegrationStatus = ({ collapsed, filterApps, onAddClick, iconSize 
         hasValidAuth: false,
         authInstances: [],
         isActiveOnly: true,
-      }));
+      });
+    }
     return [...allIntegrations, ...extras];
   })();
 
