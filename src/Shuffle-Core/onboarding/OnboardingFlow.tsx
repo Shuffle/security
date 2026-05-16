@@ -1,5 +1,5 @@
 import { ArrowRight as ArrowForwardIcon, ArrowLeft as ArrowBackIcon, CheckCircle as CheckCircleOutlineIcon, Hand as WavingHandIcon, Link as LinkIcon, Key as VpnKeyIcon, Rocket as RocketLaunchIcon, Sparkles as SparklesIcon } from 'lucide-react';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Box, Container, Typography, Button, Stack } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -124,7 +124,7 @@ const OnboardingFlow = ({
   apiBaseUrl,
   showProductChoice = true,
   onStartDemo,
-  demoRedirectUrl = 'https://security.shuffler.io/dashboard?demo=true',
+  demoRedirectUrl = 'https://security.shuffler.io/onboarding/product?demo=true',
 }: OnboardingFlowProps = {}) => {
 
   // Apply API base URL override before any requests fire
@@ -181,6 +181,24 @@ const OnboardingFlow = ({
   });
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Autostart demo mode when arriving on /onboarding/product?demo=true (e.g.
+  // from the Shuffle Core "See it immediately" button). Fires once.
+  const demoAutostartRef = useRef(false);
+  useEffect(() => {
+    if (demoAutostartRef.current) return;
+    if (product !== 'security' || !onStartDemo) return;
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    if (!search.includes('demo=true')) return;
+    demoAutostartRef.current = true;
+    onStartDemo();
+    // Strip the param so refreshes don't re-trigger it.
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('demo');
+      window.history.replaceState({}, '', url.toString());
+    } catch { /* ignore */ }
+  }, [product, onStartDemo, location.pathname]);
   
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
   const [selectedApps, setSelectedApps] = useState<AlgoliaSearchApp[]>([]);
