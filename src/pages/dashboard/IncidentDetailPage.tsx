@@ -8010,11 +8010,12 @@ const IncidentDetailPage = () => {
                         gap: mismatch ? 0.5 : 0,
                         p: 1.5,
                         borderRadius: 1,
-                        bgcolor: 'hsl(var(--input))',
-                        border: mismatch ? '1px solid rgba(251, 146, 60, 0.3)' : isExpanded ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--border-subtle))',
+                        bgcolor: 'transparent',
+                        backgroundImage: 'none',
+                        border: mismatch ? '1px solid hsl(var(--warning, 38 92% 50%) / 0.35)' : isExpanded ? '1px solid hsl(var(--primary) / 0.35)' : '1px solid hsl(var(--border))',
                         opacity: isThisIgnored ? 0.55 : 1,
-                        transition: 'border-color 0.15s ease, opacity 0.15s ease',
-                        '&:hover': { borderColor: 'hsl(var(--primary) / 0.2)', opacity: isThisIgnored ? 0.85 : 1 },
+                        transition: 'border-color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease',
+                        '&:hover': { bgcolor: 'hsl(var(--muted) / 0.25)', borderColor: 'hsl(var(--primary) / 0.25)', opacity: isThisIgnored ? 0.85 : 1 },
                       }}
                     >
                       <Box
@@ -8035,8 +8036,8 @@ const IncidentDetailPage = () => {
                             fontSize: '0.7rem',
                             textTransform: 'uppercase',
                             bgcolor: 'transparent',
-                            borderColor: mismatch ? 'rgba(251, 146, 60, 0.4)' : 'hsl(var(--primary) / 0.4)',
-                            color: mismatch ? '#fb923c' : 'hsl(var(--primary))',
+                            borderColor: mismatch ? 'hsl(var(--warning, 38 92% 50%) / 0.45)' : 'hsl(var(--primary) / 0.4)',
+                            color: mismatch ? 'hsl(var(--warning, 38 92% 50%))' : 'hsl(var(--primary))',
                           }}
                         />
                         <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
@@ -8083,11 +8084,11 @@ const IncidentDetailPage = () => {
                                   fontWeight: 700,
                                   cursor: 'pointer',
                                   bgcolor: iocHit ? 'hsl(var(--destructive) / 0.1)' : 'transparent',
-                                  borderColor: iocHit ? 'hsl(var(--destructive) / 0.5)' : 'rgba(59, 130, 246, 0.4)',
-                                  color: iocHit ? 'hsl(var(--destructive))' : '#3b82f6',
+                                  borderColor: iocHit ? 'hsl(var(--destructive) / 0.5)' : 'hsl(var(--primary) / 0.4)',
+                                  color: iocHit ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
                                   '& .MuiChip-icon': { ml: 0.5, mr: -0.25 },
                                   '&:hover': {
-                                    bgcolor: iocHit ? 'hsl(var(--destructive) / 0.16)' : 'rgba(59, 130, 246, 0.08)',
+                                     bgcolor: iocHit ? 'hsl(var(--destructive) / 0.16)' : 'hsl(var(--primary) / 0.08)',
                                   },
                                 }}
                               />
