@@ -304,14 +304,16 @@ const EditWorkflow = (props) => {
 	}
 	const normalizeSelectValues = (value: any) => Array.isArray(value) ? value : String(value || "").split(",").filter(Boolean)
 	const getActionLabel = (actionId: string) => workflow?.actions?.find((action) => action.id === actionId)?.label || actionId
+	const stripNoneValue = (value: any) => {
+		const rawValue = normalizeSelectValues(value)
+		return rawValue[rawValue.length - 1] === "none" ? [] : rawValue.filter((item) => item !== "none")
+	}
 	const renderActionSelectValue = (selected: any, emptyLabel: string) => {
-		const selectedIds = normalizeSelectValues(selected).filter((value) => value !== "none")
+		const selectedIds = stripNoneValue(selected)
 		return selectedIds.length === 0 ? <span style={{ color: "hsl(var(--muted-foreground))" }}>{emptyLabel}</span> : selectedIds.map(getActionLabel).join(", ")
 	}
 	const handleActionMultiSelectChange = (event: any, setter: any) => {
-		const rawValue = normalizeSelectValues(event?.target?.value)
-		const nextValue = rawValue[rawValue.length - 1] === "none" ? [] : rawValue.filter((value) => value !== "none")
-		setter(nextValue)
+		setter(stripNoneValue(event?.target?.value))
 	}
 
 	return (
