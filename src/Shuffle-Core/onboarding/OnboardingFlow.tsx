@@ -209,7 +209,14 @@ const OnboardingFlow = ({
   // Derive active step KEY from URL (stable, not index-based)
   const getKeyFromPath = (pathname: string) => pathToKey[pathname] || steps[0]?.key || 'sources';
 
-  const [activeStepKey, setActiveStepKey] = useState(() => getKeyFromPath(location.pathname));
+  const [activeStepKey, setActiveStepKey] = useState(() => {
+    // If we are on the bare /onboarding root and product hasn't been chosen yet,
+    // land on the product picker (step 1) rather than welcome/sources.
+    if (location.pathname === '/onboarding' && showProductChoice && !productChosen) {
+      return 'product';
+    }
+    return getKeyFromPath(location.pathname);
+  });
 
   // Derived index for rendering (computed, never set directly)
   const activeStep = useMemo(() => {
