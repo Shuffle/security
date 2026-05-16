@@ -1246,7 +1246,7 @@ const FormInput = (defaultprops: any) => {
 
 			if (result.status !== "WAITING") {
 				if (parsedresult.information !== undefined && parsedresult.information !== null && parsedresult.information.length > 0) {
-					setWorkflowQuestion(parsedresult.information)
+					setWorkflowQuestion(typeof parsedresult.information === "string" ? parsedresult.information : "")
 				}
 
 				if (parsedresult.click_info !== undefined && parsedresult.click_info !== null) {
