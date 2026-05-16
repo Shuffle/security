@@ -3214,7 +3214,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       {app.name.replace(/_/g, ' ')}
                     </Typography>
                     {needsAuth && (
-                      <WarningIcon size={14} color={'hsl(var(--severity-medium))'} style={{mr: 0.25}} />
+                      <WarningIcon size={14} color={'hsl(var(--severity-medium))'} style={{ marginRight: 2 }} />
                     )}
                     <IconButton
                       size="small"
