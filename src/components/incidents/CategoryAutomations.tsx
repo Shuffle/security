@@ -165,7 +165,7 @@ export const CategoryAutomations: React.FC<CategoryAutomationsProps> = ({
                     </Typography>
                     <Chip
                       size="small"
-                      icon={<TriggerIcon sx={{ fontSize: '12px !important', color: `${trigger.color} !important` }} />}
+                      icon={<TriggerIcon size={12} style={{ color: trigger.color }} />}
                       label={trigger.label}
                       sx={{
                         height: 18,
