@@ -1218,9 +1218,9 @@ const EditWorkflow = (props) => {
 												placeholder="github/com/shuffle/workflowbackup "
 												defaultValue={innerWorkflow.backup_config === undefined || innerWorkflow.backup_config.upload_repo === undefined || innerWorkflow.backup_config.upload_repo === null || innerWorkflow.backup_config.upload_repo === "" ? "" : innerWorkflow.backup_config.upload_repo}
 												onChange={(e) => {
-													//setUploadRepo(e.target.value);
-													innerWorkflow.backup_config.upload_repo = e.target.value
-													setInnerWorkflow(innerWorkflow)
+													updateInnerWorkflow((next) => {
+														next.backup_config = { ...(next.backup_config || {}), upload_repo: e.target.value }
+													})
 												}}
 												InputProps={{
 													classes: {
@@ -1252,8 +1252,9 @@ const EditWorkflow = (props) => {
 												placeholder="The branch to use (default: master)"
 												defaultValue={innerWorkflow.backup_config === undefined || innerWorkflow.backup_config.upload_branch === undefined || innerWorkflow.backup_config.upload_branch === null || innerWorkflow.backup_config.upload_branch === "" ? "" : innerWorkflow.backup_config.upload_branch}
 												onChange={(e) => {
-													innerWorkflow.backup_config.upload_branch = e.target.value
-													setInnerWorkflow(innerWorkflow)
+													updateInnerWorkflow((next) => {
+														next.backup_config = { ...(next.backup_config || {}), upload_branch: e.target.value }
+													})
 												}}
 												InputProps={{
 													classes: {
@@ -1287,8 +1288,9 @@ const EditWorkflow = (props) => {
 												placeholder="Username to use"
 												defaultValue={innerWorkflow.backup_config === undefined || innerWorkflow.backup_config.upload_username === undefined || innerWorkflow.backup_config.upload_username === null || innerWorkflow.backup_config.upload_username === "" ? "" : innerWorkflow.backup_config.upload_username}
 												onChange={(e) => {
-													innerWorkflow.backup_config.upload_username = e.target.value
-													setInnerWorkflow(innerWorkflow)
+													updateInnerWorkflow((next) => {
+														next.backup_config = { ...(next.backup_config || {}), upload_username: e.target.value }
+													})
 												}}
 												InputProps={{
 													classes: {
@@ -1320,8 +1322,9 @@ const EditWorkflow = (props) => {
 												placeholder="Your API token. Required."
 												defaultValue={innerWorkflow.backup_config === undefined || innerWorkflow.backup_config.upload_token === undefined || innerWorkflow.backup_config.upload_token === null || innerWorkflow.backup_config.upload_token === "" ? "" : innerWorkflow.backup_config.upload_token}
 												onChange={(e) => {
-													innerWorkflow.backup_config.upload_token = e.target.value
-													setInnerWorkflow(innerWorkflow)
+													updateInnerWorkflow((next) => {
+														next.backup_config = { ...(next.backup_config || {}), upload_token: e.target.value }
+													})
 												}}
 												InputProps={{
 													classes: {
