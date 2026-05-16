@@ -255,13 +255,23 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
 
       const hits = (searchResult.hits as AlgoliaSearchApp[]).map(h => ({ ...h, source: 'public' as const }));
       setResults(hits);
+      setSearchError(null);
       // Open dropdown if we got Algolia hits OR we have private apps to show
       setIsOpen(hits.length > 0 || privateApps.length > 0);
       setSelectedIndex(-1);
-    } catch (error) {
+    } catch (error: any) {
       // Algolia rate-limit (429) or network error: don't blank out the dropdown
       // if we still have private apps to show from /api/v1/apps.
       console.error('Search failed:', error);
+      const status: number | undefined = error?.status ?? error?.statusCode ?? error?.response?.status;
+      const rawMessage: string = String(error?.message || error?.name || '');
+      const rateLimited = status === 429 || /429|rate.?limit|too many requests/i.test(rawMessage);
+      setSearchError({
+        rateLimited,
+        message: rateLimited
+          ? 'Search is temporarily rate limited by Algolia. Please wait a moment and try again.'
+          : 'Search is temporarily unavailable. Please try again in a moment.',
+      });
       setResults([]);
       setIsOpen(privateApps.length > 0);
     } finally {
