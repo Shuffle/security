@@ -3,6 +3,8 @@
 React surfaces extracted from the Shuffle Security app — the Usecases
 explorer, workflow editor entry points, and shared form controls.
 
+**Live demo:** [security.shuffler.io/shuffle-core-demo](https://security.shuffler.io/shuffle-core-demo) — every exported component rendered with its source snippet.
+
 This package starts with the **Usecases** explorer (the entire `/usecases` and
 `/usecases/:flowId` experience) and will grow to cover form control next.
 
