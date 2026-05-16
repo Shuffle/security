@@ -86,6 +86,7 @@ import DashboardPage from '@/pages/dashboard/DashboardPage';
 import VulnerabilitiesPage from '@/pages/dashboard/VulnerabilitiesPage';
 import VulnAssetsPage from '@/pages/dashboard/VulnAssetsPage';
 import AssetsPage from '@/pages/dashboard/AssetsPage';
+import WorkflowsNotSupportedPage from '@/pages/dashboard/WorkflowsNotSupportedPage';
 import HostTerminalPage from '@/pages/dashboard/HostTerminalPage';
 import MonitorDetailPage from '@/pages/dashboard/MonitorDetailPage';
 import EntityReferencePage from '@/pages/dashboard/EntityReferencePage';
