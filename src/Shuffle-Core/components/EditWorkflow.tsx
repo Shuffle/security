@@ -156,6 +156,7 @@ const EditWorkflow = (props) => {
 			nextWorkflow.due_date = new Date(`${dueDate["$y"]}-${dueDate["$M"] + 1}-${dueDate["$D"]}`).getTime() / 1000
 		}
 
+		setWorkflow(nextWorkflow)
 		return nextWorkflow
 	}
 	
