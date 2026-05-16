@@ -82,7 +82,7 @@ const FormInput = (defaultprops: any) => {
   const [realtimeMarkdown, setRealtimeMarkdown] = React.useState("")
   const [forms, setForms] = React.useState([])
   const [workflows, setWorkflows] = React.useState([])
-  const [boxWidth, setBoxWidth] = React.useState(500)
+  const [boxWidth, setBoxWidth] = React.useState(560)
   const [inputQuestions, setInputQuestions] = React.useState([])
   const [agentic, setAgentic] = React.useState(false)
 
