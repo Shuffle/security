@@ -86,6 +86,7 @@ export function SegmentedControl<V extends string = string>({
             <button
               key={opt.value}
               type="button"
+              data-tour={opt.dataTour}
               role="tab"
               aria-selected={active}
               title={opt.title}
