@@ -25,8 +25,10 @@ import {
 import type {
   AlgoliaSearchApp,
   AppAuthState,
-  AuthStatus,
 } from '@shuffleio/shuffle-mcps';
+// AuthStatus is locally defined — the published @shuffleio/shuffle-mcps may
+// lag behind and not re-export it yet, so import from the colocated source.
+import type { AuthStatus } from './ToolAuthentication';
 import { AutomationConfig, EnrichmentState } from './AutomationConfig';
 import { trackOnboardingStep, trackPredefinedEvent, GA_EVENTS } from '@/Shuffle-Core/lib/analytics';
 import { usePageMeta } from '@/Shuffle-Core/hooks/usePageMeta';
@@ -1033,13 +1035,14 @@ const OnboardingFlow = ({
                     <>
                       {(selectedApps.length > 0 || authenticatedApps.some(a => a.active)) && (
                         <Box sx={{ mb: 3, ml: -2 }}>
-                          <IntegrationStatus
-                            collapsed={false}
-                            iconSize={30}
-                            showAll
-                            hideAddButton
-                            extraApps={selectedApps.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url }))}
-                          />
+                          {/* extraApps is not yet typed in the published shuffle-mcps; cast to bypass. */}
+                          {React.createElement(IntegrationStatus as any, {
+                            collapsed: false,
+                            iconSize: 30,
+                            showAll: true,
+                            hideAddButton: true,
+                            extraApps: selectedApps.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url })),
+                          })}
                         </Box>
                       )}
                       <UnifiedSourceSetup
@@ -1097,13 +1100,13 @@ const OnboardingFlow = ({
                       <>
                         {appsForAuth.length > 0 && (
                           <Box sx={{ mb: 3, ml: -2 }}>
-                            <IntegrationStatus
-                              collapsed={false}
-                              iconSize={30}
-                              showAll
-                              hideAddButton
-                              extraApps={appsForAuth.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url }))}
-                            />
+                            {React.createElement(IntegrationStatus as any, {
+                              collapsed: false,
+                              iconSize: 30,
+                              showAll: true,
+                              hideAddButton: true,
+                              extraApps: appsForAuth.map(a => ({ id: a.objectID, name: a.name, icon: a.image_url })),
+                            })}
                           </Box>
                         )}
                         <AppAuthConfig
