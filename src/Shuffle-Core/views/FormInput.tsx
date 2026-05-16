@@ -1457,7 +1457,7 @@ const FormInput = (defaultprops: any) => {
 								  backgroundColor: theme.palette.inputColor,
 								}}
 							  	onClick={() => {
-									window.location.href = `/forms/${data.id}`
+									navigate(`/forms/${data.id}`)
 								}}
 								value={data}
 							  >
