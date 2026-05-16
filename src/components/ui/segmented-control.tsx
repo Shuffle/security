@@ -19,6 +19,7 @@ export interface SegmentedOption<V extends string = string> {
   count?: number;
   title?: string;
   disabled?: boolean;
+  dataTour?: string;
 }
 
 export interface SegmentedControlProps<V extends string = string> {
