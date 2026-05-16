@@ -1,20 +1,18 @@
 // @ts-nocheck
 /**
- * Local stubs for FormInput.tsx (ported from RunWorkflow.jsx).
+ * Shared stubs / utilities used by FormInput.tsx and EditWorkflow.tsx.
  *
- * These replace internal Shuffle Core modules that are NOT yet ported into
- * this library. Behavior may differ from production:
- *  - EditWorkflow:   no-op modal (cannot create/edit workflows here)
- *  - RecentWorkflow: not rendered (recent workflows list missing)
- *  - ReactJson:      replaced by <pre> JSON dump (no expand/collapse UI)
- *  - rehypeRaw:      undefined (raw HTML inside markdown will be escaped)
- *  - GetIconInfo:    returns null (app icons may not show)
- *  - collapseField:  identity function (no field collapsing)
+ * These were originally Shuffle Core internal modules that are NOT (yet)
+ * ported into this library. Behavior may differ from production:
+ *  - ReactJson:        replaced by <pre> JSON dump (no expand/collapse UI)
+ *  - rehypeRaw:        undefined (raw HTML inside markdown will be escaped)
+ *  - GetIconInfo:      returns null (app icons may not show in some lists)
+ *  - collapseField:    identity (no field collapsing)
  *  - AngularWorkflow colors: simple HSL semantic fallbacks
- *  - Docs helpers (CodeHandler/Img/OuterLink): minimal HTML fallbacks
- *  - Context:        only exposes themeMode/brandColor/supportEmail defaults
- *  - useInterval:    minimal { start, stop } shim
- *  - isMobile:       basic UA sniff
+ *  - CodeHandler/Img/OuterLink: minimal HTML fallbacks for react-markdown
+ *  - Context:          only exposes themeMode/brandColor/supportEmail defaults
+ *  - useInterval:      minimal { start, stop } shim (react-powerhooks compatible)
+ *  - getTheme:         shadcn-style HSL semantic fallbacks
  */
 import React from "react";
 
@@ -23,7 +21,7 @@ export const yellow = "hsl(45 90% 55%)";
 export const red = "hsl(0 75% 55%)";
 export const grey = "hsl(0 0% 60%)";
 
-export const CodeHandler = ({ value, language }: any) => (
+export const CodeHandler = ({ value }: any) => (
   <pre style={{ background: "hsl(var(--muted))", padding: 12, borderRadius: 6, overflow: "auto" }}>
     <code>{String(value ?? "")}</code>
   </pre>
@@ -35,27 +33,15 @@ export const OuterLink = ({ href, children, ...rest }: any) => (
 
 export const validateJson = (input: any) => {
   try {
-    if (typeof input === "string") {
-      const parsed = JSON.parse(input);
-      return { valid: true, result: parsed };
-    }
+    if (typeof input === "string") return { valid: true, result: JSON.parse(input) };
     return { valid: true, result: input };
-  } catch (e) {
+  } catch {
     return { valid: false, result: input };
   }
 };
 
 export const collapseField = (value: any) => value;
-
 export const GetIconInfo = (_app: any) => null;
-
-const EditWorkflow: React.FC<any> = ({ modalOpen }) => {
-  if (!modalOpen) return null;
-  return null; // Stub: workflow editor not available in this library
-};
-export default EditWorkflow;
-
-export const RecentWorkflow: React.FC<any> = () => null;
 
 export const ReactJson: React.FC<any> = (props) => (
   <pre
@@ -82,7 +68,6 @@ export const Context = React.createContext<any>({
   supportEmail: "support@shuffler.io",
 });
 
-// react-powerhooks useInterval shim
 export const useInterval = ({ duration, callback }: { duration: number; callback: () => void }) => {
   const ref = React.useRef<any>(null);
   const start = React.useCallback(() => {
@@ -96,11 +81,6 @@ export const useInterval = ({ duration, callback }: { duration: number; callback
   return { start, stop };
 };
 
-export const isMobile =
-  typeof navigator !== "undefined" &&
-  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
-
-// theme.jsx stub
 export const getTheme = (themeMode: string = "dark", brandColor: string = "#FF6600") => ({
   palette: {
     mode: themeMode,
@@ -110,6 +90,7 @@ export const getTheme = (themeMode: string = "dark", brandColor: string = "#FF66
     surfaceColor: "hsl(var(--card))",
     backgroundColor: "hsl(var(--background))",
     textColor: "hsl(var(--foreground))",
+    hoverColor: "hsl(var(--accent))",
     borderRadius: 8,
     defaultImage: "",
     jsonTheme: "monokai",
@@ -117,10 +98,34 @@ export const getTheme = (themeMode: string = "dark", brandColor: string = "#FF66
     jsonIconStyle: "circle",
     jsonCollapseStringsAfterLength: 100,
     textFieldStyle: {},
+    DialogStyle: {
+      color: "hsl(var(--foreground))",
+      backgroundColor: "hsl(var(--card))",
+      borderRadius: 8,
+    },
   },
 });
 
-// ReactDOM.unstable_batchedUpdates fallback for React 18
-export const ReactDOMShim = {
-  unstable_batchedUpdates: (fn: () => void) => fn(),
-};
+/**
+ * EditWorkflow-specific stubs for sub-components not (yet) ported into
+ * Shuffle-Core. They render a minimal placeholder so the surrounding UI keeps
+ * working. Replace with real ports when needed.
+ */
+export const UsecaseSearch: React.FC<any> = () => (
+  <div style={{ padding: 12, border: "1px dashed hsl(var(--border))", borderRadius: 6, color: "hsl(var(--muted-foreground))", fontSize: 12 }}>
+    UsecaseSearch is not available in Shuffle-Core (stub).
+  </div>
+);
+
+export const WorkflowGrid: React.FC<any> = () => (
+  <div style={{ padding: 12, border: "1px dashed hsl(var(--border))", borderRadius: 6, color: "hsl(var(--muted-foreground))", fontSize: 12 }}>
+    WorkflowGrid is not available in Shuffle-Core (stub).
+  </div>
+);
+
+export const WorkflowTemplatePopup: React.FC<any> = () => null;
+
+export const WorkflowValidationTimeline: React.FC<any> = () => null;
+
+/** Stub of MUI v4 useStyles({ notchedOutline }) result. */
+export const useStyles = () => ({ notchedOutline: "" });

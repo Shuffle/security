@@ -4,20 +4,15 @@
 /* eslint-disable react/no-multi-comp */
 import React, {useState, useEffect, useContext} from 'react';
 
-import { ReactJson } from "./FormInputStubs";
-import { green, yellow, red, grey } from "./FormInputStubs";
-import { CodeHandler, Img, OuterLink } from "./FormInputStubs";
+import { ReactJson, green, yellow, red, grey, CodeHandler, Img, OuterLink, validateJson, collapseField, GetIconInfo, useInterval, getTheme, Context } from "../components/stubs";
+import { isMobile } from "react-device-detect";
 import { useNavigate, Link, useParams } from "react-router-dom";
-import { validateJson, collapseField, GetIconInfo } from "./FormInputStubs";
-import EditWorkflow from "./FormInputStubs";
-import { toast } from "react-toastify" 
-
-import { useInterval } from "./FormInputStubs";
-import { isMobile } from "./FormInputStubs";
+import EditWorkflow from "../components/EditWorkflow";
+import RecentWorkflow from "../components/RecentWorkflow";
+import { toast } from "react-toastify";
 import Markdown from "react-markdown";
-import { getTheme } from "./FormInputStubs";
+import { shuffleFetch } from "../api";
 const rehypeRaw: any = undefined;
-import { RecentWorkflow } from "./FormInputStubs";
 
 import {
   	Tooltip,
@@ -54,7 +49,7 @@ import {
   Error as ErrorIcon,
   Pause as PauseIcon, 
 } from '@mui/icons-material';
-import { Context } from "./FormInputStubs";
+
 
 const hrefStyle = {
 	color: "white", 
@@ -206,7 +201,7 @@ const FormInput = (defaultprops: any) => {
 
 	const getWorkflows = () => {
 		const url = `${backendUrl}/api/v1/workflows`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "GET",
 			headers: {
 				"Content-Type": "application/json",
@@ -237,7 +232,7 @@ const FormInput = (defaultprops: any) => {
 
 	const loadForms = (orgId) => {
 		const url = `${backendUrl}/api/v1/orgs/${orgId}/forms`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "GET",
 			headers: {
 				"Content-Type": "application/json",
@@ -270,7 +265,7 @@ const FormInput = (defaultprops: any) => {
 
 	const saveWorkflow = (workflow) => {
 		const url = `${backendUrl}/api/v1/workflows/${workflow.id}`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "PUT",
 			headers: {
 				"Content-Type": "application/json",
@@ -299,7 +294,7 @@ const FormInput = (defaultprops: any) => {
 	}
 
 	const getApps = () => {
-		fetch(backendUrl+ "/api/v1/apps", {
+		shuffleFetch(backendUrl+ "/api/v1/apps", {
 		  method: "GET",
 		  headers: {
 			"Content-Type": "application/json",
@@ -485,7 +480,7 @@ const FormInput = (defaultprops: any) => {
 		}
 
 		// IF there is an execution argument, we should use it
-		fetch(url, fetchBody)
+		shuffleFetch(url, fetchBody)
 		.then((response) => {
 			if (response.status !== 200 && response.status !== 201) {
 
@@ -600,7 +595,7 @@ const FormInput = (defaultprops: any) => {
 	const loadInputWorkflowData = (workflow_id, inputWorkflow) => {
 
 		const url = `${backendUrl}/api/v1/workflows/${workflow_id}/run`
-		fetch(url, {
+		shuffleFetch(url, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -828,7 +823,7 @@ const FormInput = (defaultprops: any) => {
   		setRealtimeMarkdown("")
 
 		const url = `${backendUrl}/api/v1/workflows/${workflow_id}`
-		fetch(url, {
+		shuffleFetch(url, {
 		  method: "GET",
 		  headers: {
 			"Content-Type": "application/json",
@@ -990,7 +985,7 @@ const FormInput = (defaultprops: any) => {
 	getWorkflows() 
 	loadForms(orgId)
 
-    fetch(url, {
+    shuffleFetch(url, {
       method: "GET",
       credentials: "include",
       headers: {
@@ -1048,7 +1043,7 @@ const FormInput = (defaultprops: any) => {
 			return
 		}
 
-		fetch(backendUrl + "/api/v1/streams/results", {
+		shuffleFetch(backendUrl + "/api/v1/streams/results", {
 		  method: "POST",
 		  headers: {
 			"Content-Type": "application/json",
@@ -1333,7 +1328,28 @@ const FormInput = (defaultprops: any) => {
 						</Typography>
 						<FormList />
 					</div>
-					: 
+					:
+					!isLoggedIn ?
+					<div>
+						<Typography variant="h4" style={{marginTop: 125, marginBottom: 25, }}>
+							Log in to view your forms
+						</Typography>
+						<Typography variant="body1" color="textSecondary" style={{marginBottom: 20, }}>
+							You need to be logged in to see the forms available in your organization.
+						</Typography>
+						<Button
+							variant="contained"
+							color="primary"
+							onClick={() => {
+								const next = encodeURIComponent(window.location.pathname + window.location.search)
+								navigate(`/login?view=${next}`)
+							}}
+							style={{ textTransform: "none" }}
+						>
+							Log in
+						</Button>
+					</div>
+					:
 					<div>
 						<Typography variant="h4" style={{marginTop: 125, marginBottom: 25, }}>
 							No Forms Found
