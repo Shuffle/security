@@ -875,8 +875,12 @@ const DEV_BACKEND = 'https://tunnel.schemaless.org';
 const PROD_BACKEND = 'https://shuffler.io';
 
 const resolveApiBaseUrl = () => {
-  const envUrl =
-    typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SHUFFLE_API_URL;
+  let envUrl: string | undefined;
+  try {
+    // Indirect access avoids esbuild's cjs `import.meta` warning while still
+    // picking up the env var in esm builds / Vite hosts.
+    envUrl = (new Function('try { return import.meta.env?.VITE_SHUFFLE_API_URL } catch { return undefined }')()) as string | undefined;
+  } catch { /* no-op */ }
   if (envUrl) return envUrl;
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
