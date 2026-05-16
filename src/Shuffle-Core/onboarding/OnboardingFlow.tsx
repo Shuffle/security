@@ -853,6 +853,15 @@ const OnboardingFlow = ({
     (app) => authStates[app.objectID]?.status === 'connected'
   ).length;
 
+  if (!productChosen) {
+    return (
+      <ProductChoiceStep
+        onSelectCore={handlePickCore}
+        onSelectSecurity={handlePickSecurity}
+      />
+    );
+  }
+
   return (
     <Box
       sx={{
