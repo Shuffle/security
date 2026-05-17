@@ -94,6 +94,7 @@ const FormInput = (defaultprops: any) => {
   const decisionId = searchParams.get("decision_id") // ONLY for agentic workflows
   const backendUrl = searchParams.get("backend_url") || globalUrl
 
+  const initializedQuestionsForWorkflowId = React.useRef(null)
   useEffect(() => {
 	  if (workflow === undefined || workflow === null || Object.keys(workflow).length === 0) {
 		  return
@@ -103,11 +104,19 @@ const FormInput = (defaultprops: any) => {
 		  return
 	  }
 
+	  // Only initialize input questions once per workflow id. Re-initializing on
+	  // every workflow object change (e.g. poll updates) wipes the user's typed
+	  // values and snaps the form back to the default view.
+	  if (initializedQuestionsForWorkflowId.current === workflow.id) {
+		  return
+	  }
+
 	  // Checks if it's a user input-node based or not 
 	  if ((answer !== undefined && answer !== null) || (foundSourcenode !== undefined && foundSourcenode !== null)) { 
 	  } else {
 		  setInputQuestions(workflow.input_questions)
 		  setUpdate(Math.random())
+		  initializedQuestionsForWorkflowId.current = workflow.id
 	  }
   }, [workflow])
 
