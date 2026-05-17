@@ -94,6 +94,7 @@ const FormInput = (defaultprops: any) => {
   const decisionId = searchParams.get("decision_id") // ONLY for agentic workflows
   const backendUrl = searchParams.get("backend_url") || globalUrl
 
+  const initializedQuestionsForWorkflowId = React.useRef(null)
   useEffect(() => {
 	  if (workflow === undefined || workflow === null || Object.keys(workflow).length === 0) {
 		  return
@@ -103,11 +104,19 @@ const FormInput = (defaultprops: any) => {
 		  return
 	  }
 
+	  // Only initialize input questions once per workflow id. Re-initializing on
+	  // every workflow object change (e.g. poll updates) wipes the user's typed
+	  // values and snaps the form back to the default view.
+	  if (initializedQuestionsForWorkflowId.current === workflow.id) {
+		  return
+	  }
+
 	  // Checks if it's a user input-node based or not 
 	  if ((answer !== undefined && answer !== null) || (foundSourcenode !== undefined && foundSourcenode !== null)) { 
 	  } else {
 		  setInputQuestions(workflow.input_questions)
 		  setUpdate(Math.random())
+		  initializedQuestionsForWorkflowId.current = workflow.id
 	  }
   }, [workflow])
 
@@ -1088,8 +1097,16 @@ const FormInput = (defaultprops: any) => {
 
 			if (execution_id !== undefined && execution_id !== null && authorization !== undefined && authorization !== null && execution_id.length > 0 && authorization.length > 0 && responseJson.workflow !== undefined && responseJson.workflow !== null) {
 				console.log("IN here 2")
-				setupSourcenode(responseJson.workflow, sourceNode) 
-				setWorkflow(responseJson.workflow)
+				// Only hydrate the workflow on the first poll. Re-setting it on
+				// every tick wipes the user's typed input field values and makes
+				// the form snap back to its "default" state after submitting.
+				setWorkflow((prev) => {
+					if (prev && prev.id && prev.id === responseJson.workflow.id) {
+						return prev
+					}
+					setupSourcenode(responseJson.workflow, sourceNode)
+					return responseJson.workflow
+				})
 
 				//const decisionId = searchParams.get("decision_id") // ONLY for agentic workflows
 				// Check for decision_id in url
