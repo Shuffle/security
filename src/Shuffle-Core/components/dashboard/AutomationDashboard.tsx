@@ -139,6 +139,18 @@ export const AutomationDashboard = ({
   const successRate = total > 0 ? Math.round((totalSuccess / total) * 100) : 0;
   const failRate = total > 0 ? 100 - successRate : 0;
 
+  // Count of notifications whose created_at falls within the selected range.
+  // `created_at` may arrive as seconds or milliseconds — normalise to ms.
+  const notificationCount = useMemo(() => {
+    const cutoff = Date.now() - rangeDays * 86400_000;
+    return notifications.filter((n: any) => {
+      const raw = Number(n?.created_at) || 0;
+      if (!raw) return false;
+      const ms = raw < 1e12 ? raw * 1000 : raw;
+      return ms >= cutoff;
+    }).length;
+  }, [notifications, rangeDays]);
+
   // Per-month aggregated counts for the bottom bar chart.
   const monthData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -211,10 +223,10 @@ export const AutomationDashboard = ({
         <Box sx={{ ...cardSx, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box>
             <Typography sx={{ fontSize: '2rem', fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.1 }}>
-              {totalFailed}
+              {notificationCount}
             </Typography>
             <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', mt: 0.5 }}>
-              Total errors
+              Notifications
             </Typography>
           </Box>
           <AlertCircle size={22} style={{ color: 'hsl(var(--severity-high))' }} />
