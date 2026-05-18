@@ -29,6 +29,7 @@ import {
 import { motion } from 'framer-motion';
 import { useThreatFeeds, ThreatFeed, DEFAULT_THREAT_FEEDS } from '@/hooks/useThreatFeeds';
 import { useIOCTypes } from '@/hooks/useIOCTypes';
+import { useObservableCounts } from '@/hooks/useObservableCounts';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
 import { toast } from '@/lib/toast';
 import ThreatIntelAutomationBanner from '@/components/incidents/ThreatIntelAutomationBanner';
