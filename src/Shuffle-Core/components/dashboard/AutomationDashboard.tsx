@@ -361,14 +361,16 @@ export const AutomationDashboard = ({
               </Select>
             </FormControl>
           )}
-          <Box sx={{ alignSelf: 'flex-end' }}>
-            <SegmentedControl
-              ariaLabel="Mode"
-              value={mode}
-              onChange={(v) => setMode(v as ModeKind)}
-              options={[{ value: 'workflows', label: 'Workflows' }, { value: 'apps', label: 'Apps' }]}
-            />
-          </Box>
+          {!isModeControlled && (
+            <Box sx={{ alignSelf: 'flex-end' }}>
+              <SegmentedControl
+                ariaLabel="Mode"
+                value={mode}
+                onChange={(v) => setMode(v as ModeKind)}
+                options={[{ value: 'workflows', label: 'Workflows' }, { value: 'apps', label: 'Apps' }]}
+              />
+            </Box>
+          )}
           {!isGranControlled && (
             <Box sx={{ alignSelf: 'flex-end' }}>
               <SegmentedControl
