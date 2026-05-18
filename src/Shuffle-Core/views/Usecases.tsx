@@ -2132,6 +2132,8 @@ function UsecaseDetailContent({
         </Box>
       </Box>
 
+      <UsecaseOutcomeSectionForFlow flow={flow} sourceCategoryLabel={sourceCat?.label} />
+
       {showConnectionPath && (
       <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
         <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5 }}>
