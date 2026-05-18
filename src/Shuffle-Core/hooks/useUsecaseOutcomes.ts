@@ -353,6 +353,21 @@ function emptyOutcome(kind: OutcomeKind, reason: UsecaseOutcome['emptyReason']):
   };
 }
 
+function attachIcons(outcome: UsecaseOutcome, iconByName: Record<string, string>): UsecaseOutcome {
+  if (!outcome.breakdown.length) return outcome;
+  const enrich = (entries: OutcomeBreakdownEntry[]) =>
+    entries.map((e) => {
+      if (e.iconUrl) return e;
+      const url = iconByName[String(e.key).toLowerCase()] || iconByName[String(e.label).toLowerCase()];
+      return url ? { ...e, iconUrl: url } : e;
+    });
+  return {
+    ...outcome,
+    breakdown: enrich(outcome.breakdown),
+    secondary: outcome.secondary ? { ...outcome.secondary, entries: enrich(outcome.secondary.entries) } : outcome.secondary,
+  };
+}
+
 function deriveOutcome(usecase: UsecaseShape, bundle: OutcomeBundle): UsecaseOutcome {
   const kind = resolveOutcomeKind(usecase);
   if (kind === 'none') return emptyOutcome('none', 'no_data_yet');
@@ -391,7 +406,7 @@ function deriveOutcome(usecase: UsecaseShape, bundle: OutcomeBundle): UsecaseOut
   if (notEnabled && outcome.isEmpty) {
     outcome.emptyReason = 'not_enabled';
   }
-  return outcome;
+  return attachIcons(outcome, bundle.iconByName);
 }
 
 export function useUsecaseOutcomes(usecases: UsecaseShape[] | undefined) {
