@@ -455,7 +455,7 @@ const PricingPage = ({
               variant="h5"
               sx={{ fontWeight: "bold", maxWidth: "200px", pl: 4 }}
             >
-              Got Other Questions?
+              Got other Questions?
             </Typography>
             <Box
               style={{
