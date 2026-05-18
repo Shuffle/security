@@ -476,7 +476,7 @@ export const AutomationDashboard = ({
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }} {...activityDrag.chartProps}>
                   <defs>
                     <linearGradient id="auto-grad-success" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={NEON.green} stopOpacity={0.55} />
@@ -493,6 +493,9 @@ export const AutomationDashboard = ({
                   <RechartsTooltip content={<TooltipContent />} cursor={{ stroke: NEON.violet, strokeOpacity: 0.3, strokeWidth: 1 }} />
                   <Area type="monotone" dataKey="success" stroke={NEON.green} strokeWidth={2} fill="url(#auto-grad-success)" name="Successful" isAnimationActive={false} />
                   <Area type="monotone" dataKey="failed" stroke={NEON.red} strokeWidth={2} fill="url(#auto-grad-failed)" name="Failed" isAnimationActive={false} />
+                  {activityDrag.refArea && (
+                    <ReferenceArea x1={activityDrag.refArea.x1} x2={activityDrag.refArea.x2} stroke="hsl(var(--primary))" strokeOpacity={0.4} fill="hsl(var(--primary))" fillOpacity={0.12} />
+                  )}
                 </AreaChart>
               </ResponsiveContainer>
             )}
