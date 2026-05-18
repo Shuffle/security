@@ -1066,16 +1066,31 @@ const DashboardPage = () => {
                 ]}
               />
             );
+            const rangeFilter = (
+              <FormControl size="small" sx={{ minWidth: 130 }}>
+                <InputLabel>Last</InputLabel>
+                <Select label="Last" value={dashboardDays} onChange={(e) => setDashboardDays(String(e.target.value))}>
+                  {AUTOMATION_RANGE_OPTIONS.map(o => (
+                    <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            );
             return dashboardTab === 'automation' ? (
-              <AutomationDashboard headerLeft={dashboardTabs} />
+              <AutomationDashboard
+                headerLeft={dashboardTabs}
+                days={dashboardDays}
+                onDaysChange={setDashboardDays}
+              />
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', minHeight: 36 }}>
                     {dashboardTabs}
                   </Box>
-                  {/* Filter slot — Security Operations has no filters today. */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                    {rangeFilter}
+                  </Box>
                 </Box>
                 <DashboardOverview
                   incidents={overviewIncidents}
