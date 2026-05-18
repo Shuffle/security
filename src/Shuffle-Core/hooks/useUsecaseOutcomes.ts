@@ -19,6 +19,7 @@ import { resolveOutcomeKind, OUTCOME_PRIMARY_LABEL, type UsecaseOutcome, type Ou
 
 const INCIDENTS_CATEGORY = 'shuffle-security_incidents';
 const VULNS_CATEGORY = 'shuffle-security_vulnerabilities';
+const SENSORS_CATEGORY = 'shuffle-security_sensors';
 const IOC_TYPES = ['ipv4_addr', 'domain', 'sha256', 'email_addr', 'url'];
 
 interface UsecaseShape {
