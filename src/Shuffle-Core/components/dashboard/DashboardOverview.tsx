@@ -29,6 +29,7 @@ import {
 import { format, subDays, startOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { NEON, TooltipContent, KpiTile, Panel, EmptyState, buildBuckets, buildBucketsBetween, bucketIndexOf, useChartRangeDrag, ReferenceArea, type Granularity } from './_shared';
+import { ChartShimmer } from './ChartShimmer';
 
 import type { ShuffleCoreHostProps } from '../../types/host-props';
 
@@ -239,7 +240,7 @@ export const DashboardOverview = ({
         >
           <Box sx={{ height: 260 }}>
             {incidentsLoading ? (
-              <Skeleton variant="rounded" height={260} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
+              <ChartShimmer height={260} variant="area" label="Loading incident activity" />
             ) : trendHasData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...trendDrag.chartProps}>
@@ -281,7 +282,7 @@ export const DashboardOverview = ({
         <Panel title="Detection Coverage" accent={NEON.cyan} delay={0.25}>
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 240 }}>
             {monitorsLoading ? (
-              <Skeleton variant="circular" width={160} height={160} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
+              <ChartShimmer height={220} variant="radial" label="Loading coverage" />
             ) : monitorTotal > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={220}>
@@ -380,7 +381,7 @@ export const DashboardOverview = ({
       >
         <Box sx={{ height: 200 }}>
           {vulnLoading ? (
-            <Skeleton variant="rounded" height={200} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
+            <ChartShimmer height={200} variant="bars" label="Loading vulnerabilities" />
           ) : vulnTotal > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={vulnData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
