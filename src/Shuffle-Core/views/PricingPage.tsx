@@ -483,9 +483,11 @@ const PricingPage = ({
               </Typography>
               <Button
                 variant="text"
-                component={Link}
+                component="a"
                 disableRipple
-                to="/contact?category=contact"
+                href="https://shuffler.io/contact?category=contact"
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
                   color: "#ff8544",
                   textTransform: "none",
