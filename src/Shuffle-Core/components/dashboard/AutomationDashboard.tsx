@@ -425,6 +425,10 @@ export const AutomationDashboard = ({
           label="Notifications"
           isLoading={loading}
           delay={0}
+          onClick={() => {
+            const el = document.getElementById('agent-notifications');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
         />
         <KpiTile
           icon={Workflow}
@@ -433,6 +437,7 @@ export const AutomationDashboard = ({
           label={`Successful ${isApps ? 'App' : 'Workflow'} Runs`}
           isLoading={loading}
           delay={0.05}
+          onClick={() => window.open('https://shuffler.io/workflows/debug', '_blank', 'noopener,noreferrer')}
         />
         <KpiTile
           icon={Zap}
@@ -441,6 +446,7 @@ export const AutomationDashboard = ({
           label={`Failed ${isApps ? 'App' : 'Workflow'} Runs`}
           isLoading={loading}
           delay={0.1}
+          onClick={() => window.open('https://shuffler.io/workflows/debug', '_blank', 'noopener,noreferrer')}
         />
         <KpiTile
           icon={Activity}
@@ -449,6 +455,7 @@ export const AutomationDashboard = ({
           label="Success rate"
           isLoading={loading}
           delay={0.15}
+          onClick={() => window.open('https://shuffler.io/workflows/debug', '_blank', 'noopener,noreferrer')}
         />
       </Box>
 
