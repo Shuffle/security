@@ -345,10 +345,34 @@ export const AutomationDashboard = ({
 
       {/* Bottom bar chart — custom stat from /api/v1/stats */}
       <Box sx={cardSx}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, gap: 2, flexWrap: 'wrap' }}>
-          <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-            {selectedStat || 'Custom Stat'} ({statSeries.length})
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2, gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                Custom Stats
+              </Typography>
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  px: 0.75,
+                  py: 0.2,
+                  borderRadius: 0.75,
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsl(var(--primary) / 0.4)',
+                  bgcolor: 'hsl(var(--primary) / 0.08)',
+                }}
+              >
+                Track anything
+              </Box>
+            </Box>
+            <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.45 }}>
+              Count anything across your tenant with a custom key — usage, runs, errors, tokens, business events. Increment from any workflow and it shows up here.
+            </Typography>
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <FormControl size="small" sx={{ minWidth: 220 }}>
               <InputLabel>Find your Stat</InputLabel>
@@ -365,11 +389,25 @@ export const AutomationDashboard = ({
                 ))}
               </Select>
             </FormControl>
-            <IconButton size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-              <ExternalLink size={14} />
-            </IconButton>
+            <MuiTooltip title="View Custom Stats API docs">
+              <IconButton
+                size="small"
+                component="a"
+                href="https://shuffler.io/docs/API#count-stats-for-custom-key"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ color: 'hsl(var(--muted-foreground))' }}
+              >
+                <ExternalLink size={14} />
+              </IconButton>
+            </MuiTooltip>
           </Box>
         </Box>
+        {selectedStat && (
+          <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mb: 1.5 }}>
+            Showing <Box component="span" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>{selectedStat}</Box> · {statSeries.length} data points
+          </Typography>
+        )}
         <Box sx={{ height: 320, position: 'relative' }}>
           {statLoading ? (
             <Skeleton variant="rounded" height={320} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
