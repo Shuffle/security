@@ -287,8 +287,13 @@ export const AutomationDashboard = ({
   }, [stats]);
 
   useEffect(() => {
-    if (!selectedStat && statKeys.length) setSelectedStat(statKeys[0]);
-  }, [statKeys, selectedStat]);
+    if (!statKeys.length) return;
+    if (selectedStat && statKeys.includes(selectedStat)) return;
+    const firstWithData = statKeys.find(k =>
+      filtered.reduce((sum, d) => sum + valueForStat(d, k), 0) > 0
+    );
+    setSelectedStat(firstWithData || statKeys[0]);
+  }, [statKeys, selectedStat, filtered]);
 
   const valueForStat = (d: any, key: string): number => {
     const bare = key.startsWith('total_') ? key.slice(6) : key;
