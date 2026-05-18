@@ -18,7 +18,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Minus, Info, Cloud as CloudLucide, Server as ServerLucide, Check as CheckLucide } from "lucide-react";
+import { Plus, Minus, Info, Cloud as CloudLucide, Server as ServerLucide, Check as CheckLucide, MessageCircle, Mail as MailLucide, MessagesSquare } from "lucide-react";
 import ReactGA from "react-ga4";
 import ReactMarkdown from "react-markdown";
 import { openSourcePlan, pricingPlansData, featuresData } from "../views/pricingData.js";
