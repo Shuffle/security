@@ -128,8 +128,9 @@ const PricingPage = ({
     };
 
     const plans = selectedDeployment === "Self-Hosted" 
-      ? [processedOpenSourcePlan, pricingPlans[2]] // Open Source + Enterprise
+      ? [processedOpenSourcePlan, pricingPlans[1], pricingPlans[2]] // Open Source + Standard + Enterprise
       : pricingPlans; // Starter + Scale + Enterprise for Cloud
+
     
     // Add deploymentOptions to Enterprise plan for the features section toggle
     return plans.map(plan => {
@@ -148,8 +149,9 @@ const PricingPage = ({
     if (selectedDeployment === "Self-Hosted") {
       // For Self-Hosted, show only Open Source and Enterprise
       return feature.includedIn.filter(item => 
-        item.plan === "Open Source" || item.plan === "Enterprise"
+        item.plan === "Open Source" || item.plan === "Standard" || item.plan === "Enterprise"
       );
+
     } else {
       // For Cloud, show all plans (Starter, Scale, Enterprise)
       return feature.includedIn.filter(item => 
