@@ -30,7 +30,7 @@ import type {
 // lag behind and not re-export it yet, so import from the colocated source.
 import type { AuthStatus } from './ToolAuthentication';
 import { AutomationConfig, EnrichmentState } from './AutomationConfig';
-import { trackOnboardingStep, trackPredefinedEvent, GA_EVENTS } from '@/Shuffle-Core/lib/analytics';
+import { trackOnboardingStep, trackPredefinedEvent, trackEvent, GA_EVENTS } from '@/Shuffle-Core/lib/analytics';
 import { usePageMeta } from '@/Shuffle-Core/hooks/usePageMeta';
 import { ProductChoiceStep } from './ProductChoiceStep';
 import { SegmentedControl, type SegmentedItem } from '@/Shuffle-Core/components/ui/segmented-control';
