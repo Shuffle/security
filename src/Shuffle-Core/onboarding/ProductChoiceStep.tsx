@@ -1,5 +1,12 @@
-import { ArrowRight, PlayCircle } from 'lucide-react';
+import { ArrowRight, PlayCircle, Globe } from 'lucide-react';
 import { AgentIcon } from '@shuffleio/shuffle-mcps';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
 
 interface ProductChoiceStepProps {
@@ -79,6 +86,29 @@ export const ProductChoiceStep = ({ onSelectCore, onSelectSecurity, onStartDemo 
             </button>
           </div>
         )}
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <label className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Region
+          </label>
+          <Select value="eu" disabled>
+            <SelectTrigger className="h-9 w-[260px]">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="eu">Europe — shuffler.io</SelectItem>
+              <SelectItem value="us">United States — us.shuffler.io</SelectItem>
+              <SelectItem value="ca">Canada — ca.shuffler.io</SelectItem>
+              <SelectItem value="onprem">Self-hosted / On-prem</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Region switching is coming soon.
+          </p>
+        </div>
       </div>
     </div>
   );
