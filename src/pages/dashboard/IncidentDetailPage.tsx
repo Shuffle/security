@@ -2172,7 +2172,7 @@ const IncidentDetailPage = () => {
     setEditedLabels(reParsed.labels || []);
     setActivity(reParsed.activity || []);
 
-    setOcsfFallbackInfo({ revisionTimestamp: ocsfBaseTs, overlaidFieldCount });
+    setOcsfFallbackInfo({ revisionTimestamp: newestRevisionTs, overlaidFieldCount });
   }, [loading, incident, revisionsLoaded, revisions]);
 
 
