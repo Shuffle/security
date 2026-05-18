@@ -380,7 +380,7 @@ export const DashboardOverview = ({
       >
         <Box sx={{ height: 200 }}>
           {vulnLoading ? (
-            <Skeleton variant="rounded" height={200} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
+            <ChartShimmer height={200} variant="bars" label="Loading vulnerabilities" />
           ) : vulnTotal > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={vulnData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
