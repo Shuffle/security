@@ -89,6 +89,8 @@ export const AutomationDashboard = ({
   globalUrl,
   userdata,
   headerLeft,
+  days: daysProp,
+  onDaysChange,
 }: AutomationDashboardProps) => {
   const orgId = orgIdProp ?? userdata?.active_org?.id ?? null;
   const _name = (displayName || userdata?.username || '').split('@')[0] || 'there';
@@ -99,9 +101,16 @@ export const AutomationDashboard = ({
   const [selectedStat, setSelectedStat] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [days, setDays] = useState<string>('30');
+  const isDaysControlled = daysProp !== undefined;
+  const [daysInternal, setDaysInternal] = useState<string>('30');
+  const days = isDaysControlled ? (daysProp as string) : daysInternal;
+  const setDays = (v: string) => {
+    if (onDaysChange) onDaysChange(v);
+    if (!isDaysControlled) setDaysInternal(v);
+  };
   const [mode, setMode] = useState<ModeKind>('workflows');
   const [gran, setGran] = useState<GranKind>('daily');
+
 
   const buildUrl = (path: string) =>
     globalUrl ? `${globalUrl.replace(/\/$/, '')}${path}` : getApiUrl(path);
