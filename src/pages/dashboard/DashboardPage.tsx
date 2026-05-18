@@ -556,6 +556,9 @@ const DashboardPage = () => {
     try { return ((localStorage.getItem('shuffle_dashboard_mode') as 'workflows' | 'apps') || 'workflows'); } catch { return 'workflows'; }
   });
   useEffect(() => { try { localStorage.setItem('shuffle_dashboard_mode', dashboardMode); } catch {} }, [dashboardMode]);
+  // Ephemeral custom date range — set when the user click-drags on a chart to
+  // zoom in. Cleared via the × on the "Last" select. Not persisted on purpose.
+  const [dashboardCustomRange, setDashboardCustomRange] = useState<{ fromMs: number; toMs: number } | null>(null);
   // Bumped by the shared refresh button — Automation watches this, Security re-fetches via handleDashboardRefresh.
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
 
