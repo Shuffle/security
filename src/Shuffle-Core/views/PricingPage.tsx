@@ -2373,7 +2373,7 @@ const PricingPage = ({
               paddingTop: 20,
               zIndex: 5,
               marginLeft: -1.5,
-              backgroundColor: "transparent",
+              backgroundColor: "#1a1a1a",
               display: "flex",
               flexDirection: "row",
               alignItems: "flex-end",
