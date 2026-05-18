@@ -1263,7 +1263,7 @@ const PricingPage = ({
                 if (newValue === "Self-Hosted") {
                   setSelectedPlan("open source");
                 } else {
-                  setSelectedPlan("starter");
+                  setSelectedPlan("scale");
                 }
                 if(isCloud){
                   ReactGA.event({
