@@ -67,63 +67,13 @@ const PricingPage = ({
   }, []);
 
   const CloudIcon = ({ selected }) => (
-    <svg 
-      width="18" 
-      height="18" 
-      viewBox="0 0 22 17" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ color: selected ? "#222" : "#fff" }}
-    >
-      <path 
-        d="M16.4558 6.625H15.3106C14.9706 5.26656 14.268 4.03374 13.2827 3.06662C12.2974 2.0995 11.0688 1.43687 9.73662 1.15401C8.40444 0.871151 7.02206 0.979413 5.74655 1.46649C4.47104 1.95357 3.35355 2.79994 2.52106 3.90942C1.68857 5.0189 1.17446 6.34701 1.03715 7.74283C0.89984 9.13865 1.14483 10.5462 1.74429 11.8056C2.34375 13.065 3.27364 14.1256 4.4283 14.8671C5.58295 15.6085 6.91607 16.001 8.27618 16H16.4558C17.661 16 18.8168 15.5061 19.669 14.6271C20.5212 13.748 21 12.5557 21 11.3125C21 10.0693 20.5212 8.87701 19.669 7.99794C18.8168 7.11886 17.661 6.625 16.4558 6.625Z" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-    </svg>
+    <CloudLucide size={18} strokeWidth={1.5} color={selected ? "#222" : "#fff"} />
   );
 
   const SelfHostedIcon = ({ selected }) => (
-    <svg 
-      width="18" 
-      height="18" 
-      viewBox="0 0 18 18" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ color: selected ? "#222" : "#fff" }}
-    >
-      <path 
-        d="M15.4 1H2.6C1.71634 1 1 1.71634 1 2.6V5.8C1 6.68366 1.71634 7.4 2.6 7.4H15.4C16.2837 7.4 17 6.68366 17 5.8V2.6C17 1.71634 16.2837 1 15.4 1Z" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-      <path 
-        d="M15.4 10.5996H2.6C1.71634 10.5996 1 11.316 1 12.1996V15.3996C1 16.2833 1.71634 16.9996 2.6 16.9996H15.4C16.2837 16.9996 17 16.2833 17 15.3996V12.1996C17 11.316 16.2837 10.5996 15.4 10.5996Z" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-      <path 
-        d="M4.20001 4.2002H4.20801" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-      <path 
-        d="M4.20001 13.7998H4.20801" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-    </svg>
+    <ServerLucide size={18} strokeWidth={1.5} color={selected ? "#222" : "#fff"} />
   );
+
 
   // Handle billing cycle change
   const handleBillingCycleChange = (event, newValue) => {
