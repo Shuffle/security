@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { format, subDays, startOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { NEON, TooltipContent, KpiTile, Panel, EmptyState } from './_shared';
+import { NEON, TooltipContent, KpiTile, Panel, EmptyState, buildBuckets, bucketIndexOf, type Granularity } from './_shared';
 
 import type { ShuffleCoreHostProps } from '../../types/host-props';
 
@@ -46,6 +46,10 @@ interface OverviewProps extends ShuffleCoreHostProps {
   monitorHostCount: number | null;
   runningSensorCount: number | null;
   monitorsLoading?: boolean;
+  /** Time-range in days for the incident trend chart. Defaults to 30. */
+  days?: number;
+  /** Bucketing granularity for the incident trend chart. Defaults to 'daily'. */
+  gran?: Granularity;
 }
 
 const STATUS_COLORS = {
@@ -62,6 +66,8 @@ export const DashboardOverview = ({
   monitorHostCount,
   runningSensorCount,
   monitorsLoading,
+  days = 30,
+  gran = 'daily',
   // Standard Shuffle-Core host props — accepted for API consistency across
   // components mounted in multiple places. Not currently consumed because this
   // surface is purely presentational over host-supplied data.
@@ -103,24 +109,19 @@ export const DashboardOverview = ({
   }, [incidents]);
 
   const trendData = useMemo(() => {
-    const buckets: { date: string; ms: number; New: number; 'In Progress': number; Resolved: number }[] = [];
-    const today = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const d = startOfDay(subDays(today, i));
-      buckets.push({ date: format(d, 'MMM d'), ms: d.getTime(), New: 0, 'In Progress': 0, Resolved: 0 });
-    }
+    const buckets = buildBuckets(days, gran);
+    const rows = buckets.map(b => ({ date: b.label, New: 0, 'In Progress': 0, Resolved: 0 }));
     for (const inc of incidents) {
       if (!inc.createdTs) continue;
-      const dayMs = startOfDay(new Date(inc.createdTs)).getTime();
-      const b = buckets.find(x => x.ms === dayMs);
-      if (!b) continue;
+      const idx = bucketIndexOf(buckets, inc.createdTs);
+      if (idx < 0) continue;
       const s = (inc.status || '').toLowerCase().replace(/[_\s]+/g, '');
-      if (s === 'resolved' || s === 'closed') b.Resolved++;
-      else if (s === 'inprogress') b['In Progress']++;
-      else b.New++;
+      if (s === 'resolved' || s === 'closed') rows[idx].Resolved++;
+      else if (s === 'inprogress') rows[idx]['In Progress']++;
+      else rows[idx].New++;
     }
-    return buckets;
-  }, [incidents]);
+    return rows;
+  }, [incidents, days, gran]);
 
   const trendHasData = trendData.some(d => d.New || d['In Progress'] || d.Resolved);
 
@@ -255,7 +256,7 @@ export const DashboardOverview = ({
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <EmptyState text="No incident activity in the last 30 days" ctaLabel="Set up incident ingestion" onCta={() => navigate('/incidents?highlight=ingest')} />
+              <EmptyState text={`No incident activity in the last ${days} days`} ctaLabel="Set up incident ingestion" onCta={() => navigate('/incidents?highlight=ingest')} />
             )}
           </Box>
         </Panel>
