@@ -51,6 +51,10 @@ export interface AutomationDashboardProps extends ShuffleCoreHostProps {
   refreshKey?: number;
   /** When provided, hides the internal refresh button (parent owns it). */
   hideRefresh?: boolean;
+  /** Custom date range — when set, overrides `days` and is used for bucketing. */
+  customRange?: { fromMs: number; toMs: number } | null;
+  /** Called when the user click-drags on a chart to pick a range. */
+  onRangeSelect?: (fromMs: number, toMs: number) => void;
 }
 
 /** Time-range options shared with parents that render the Last filter themselves. */
