@@ -638,7 +638,7 @@ const PricingPage = ({
                 }}
               >
                 <AccordionSummary
-                  expandIcon={expandedIndex === index ? <Remove /> : <Add />}
+                  expandIcon={expandedIndex === index ? <Minus size={18} color="#fff" /> : <Plus size={18} color="#fff" />}
                   aria-controls={`faq-content-${index}`}
                   id={`faq-header-${index}`}
                   onClick={() =>
