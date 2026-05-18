@@ -30,7 +30,7 @@ import type {
 // lag behind and not re-export it yet, so import from the colocated source.
 import type { AuthStatus } from './ToolAuthentication';
 import { AutomationConfig, EnrichmentState } from './AutomationConfig';
-import { trackOnboardingStep, trackPredefinedEvent, GA_EVENTS } from '@/Shuffle-Core/lib/analytics';
+import { trackOnboardingStep, trackPredefinedEvent, trackEvent, GA_EVENTS } from '@/Shuffle-Core/lib/analytics';
 import { usePageMeta } from '@/Shuffle-Core/hooks/usePageMeta';
 import { ProductChoiceStep } from './ProductChoiceStep';
 import { SegmentedControl, type SegmentedItem } from '@/Shuffle-Core/components/ui/segmented-control';
@@ -199,7 +199,30 @@ const OnboardingFlow = ({
       window.history.replaceState({}, '', url.toString());
     } catch { /* ignore */ }
   }, [product, onStartDemo, location.pathname]);
-  
+
+  // ---- Onboarding funnel tracking ----
+  // Fire ONBOARDING_START exactly once per browser session so we can measure
+  // top-of-funnel reach independently of which step the user lands on.
+  const onboardingStartedAtRef = useRef<number>(Date.now());
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('shuffle_onboarding_start_fired') === '1') return;
+      sessionStorage.setItem('shuffle_onboarding_start_fired', '1');
+    } catch { /* ignore */ }
+    onboardingStartedAtRef.current = Date.now();
+    trackPredefinedEvent(GA_EVENTS.ONBOARDING_START, product, undefined, {
+      product,
+      entry_path: location.pathname,
+    });
+  }, []);
+
+  // Refs used by the step-change / abandonment effects declared further down
+  // (after `steps` / `activeStepKey` exist).
+  const lastStepKeyRef = useRef<string | null>(null);
+  const stepEnteredAtRef = useRef<number>(Date.now());
+  const onboardingCompletedRef = useRef(false);
+
+
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
   const [selectedApps, setSelectedApps] = useState<AlgoliaSearchApp[]>([]);
   const [searchQuery, setSearchQuery] = useState('email');
@@ -275,10 +298,57 @@ const OnboardingFlow = ({
     return idx >= 0 ? idx : 0;
   }, [activeStepKey, steps]);
 
+  // Fire ONBOARDING_STEP on EVERY step change (direct URL / back button too).
+  useEffect(() => {
+    const stepDef = steps.find(s => s.key === activeStepKey);
+    if (!stepDef) return;
+    const now = Date.now();
+    const prevKey = lastStepKeyRef.current;
+    const msOnPrev = prevKey ? now - stepEnteredAtRef.current : 0;
+    const stepIndex = steps.findIndex(s => s.key === activeStepKey);
+    trackPredefinedEvent(GA_EVENTS.ONBOARDING_STEP, stepDef.key, stepIndex, {
+      step_key: stepDef.key,
+      step_label: stepDef.label,
+      step_index: stepIndex,
+      from_step: prevKey,
+      ms_on_prev_step: msOnPrev,
+      ms_since_start: now - onboardingStartedAtRef.current,
+      product,
+    });
+    lastStepKeyRef.current = activeStepKey;
+    stepEnteredAtRef.current = now;
+  }, [activeStepKey, steps, product]);
+
+  // Abandonment on unload.
+  useEffect(() => {
+    const handler = () => {
+      if (onboardingCompletedRef.current) return;
+      const stepDef = steps.find(s => s.key === activeStepKey);
+      if (!stepDef) return;
+      const stepIndex = steps.findIndex(s => s.key === activeStepKey);
+      trackEvent({
+        category: 'onboarding',
+        action: 'onboarding_abandon',
+        label: stepDef.key,
+        value: stepIndex,
+        custom: {
+          step_key: stepDef.key,
+          step_index: stepIndex,
+          ms_on_step: Date.now() - stepEnteredAtRef.current,
+          ms_since_start: Date.now() - onboardingStartedAtRef.current,
+          product,
+        },
+      });
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [activeStepKey, steps, product]);
+
   // When embedded outside the /onboarding route tree (e.g. the standalone
   // /shuffle-core-demo showcase page), do NOT hijack the URL. The flow
   // should render in-place without redirecting the host route.
   const isOnboardingRoute = location.pathname === '/onboarding' || location.pathname.startsWith('/onboarding/');
+
 
   // Single useEffect: sync URL ↔ step key without circular fighting
   useEffect(() => {
@@ -355,6 +425,24 @@ const OnboardingFlow = ({
       .then(() => refreshAllIntegrationStatus())
       .catch(error => console.error('Failed to persist selected tools:', error));
   }, [selectedToolsLoaded, selectedApps]);
+
+  // Track tool additions (one event per new app) so we can see what users pick
+  // and which combinations correlate with finishing onboarding.
+  const trackedToolsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!selectedToolsLoaded) return;
+    selectedApps.forEach(app => {
+      const id = app.objectID || app.name;
+      if (!id || trackedToolsRef.current.has(id)) return;
+      trackedToolsRef.current.add(id);
+      trackPredefinedEvent(GA_EVENTS.TOOL_SELECTED, app.name, undefined, {
+        app_id: app.objectID,
+        app_name: app.name,
+        total_selected: selectedApps.length,
+        product,
+      });
+    });
+  }, [selectedApps, selectedToolsLoaded, product]);
 
   // Fetch authenticated apps from API
   const fetchAuthenticatedApps = useCallback(async () => {
@@ -443,7 +531,13 @@ const OnboardingFlow = ({
         (app) => authStates[app.objectID]?.status === 'connected'
       );
       localStorage.setItem('connected_integrations', JSON.stringify(connectedApps));
-      trackPredefinedEvent(GA_EVENTS.ONBOARDING_COMPLETE, undefined, connectedApps.length);
+      onboardingCompletedRef.current = true;
+      trackPredefinedEvent(GA_EVENTS.ONBOARDING_COMPLETE, product, connectedApps.length, {
+        product,
+        connected_apps: connectedApps.length,
+        selected_apps: selectedApps.length,
+        ms_since_start: Date.now() - onboardingStartedAtRef.current,
+      });
 
       // Generate the ingestion workflow and webhook workflow in parallel
       const appNames = selectedApps.map(app => app.name).join(',');
@@ -1058,6 +1152,7 @@ const OnboardingFlow = ({
                     <WelcomeStep
                       selectedChallenge={selectedChallenge}
                       onSelect={(challengeId) => {
+                        trackPredefinedEvent(GA_EVENTS.CHALLENGE_SELECTED, challengeId, undefined, { challenge: challengeId, product });
                         setSelectedChallenge(challengeId);
                         // Auto-advance to next step after selection
                         setTimeout(() => {
