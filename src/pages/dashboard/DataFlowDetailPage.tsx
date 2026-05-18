@@ -121,10 +121,24 @@ const ConnectionEndpoint = ({
             {category?.label || 'Unknown'}
           </Typography>
           {categoryDetails && (
-            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }} noWrap>
+            <Typography
+              sx={{
+                fontSize: '0.7rem',
+                color: 'hsl(var(--muted-foreground))',
+                lineHeight: 1.4,
+                mt: 0.25,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minHeight: 'calc(0.7rem * 1.4 * 2)',
+              }}
+            >
               {categoryDetails.description.split('—')[0].trim()}
             </Typography>
           )}
+
         </Box>
       </Box>
 
