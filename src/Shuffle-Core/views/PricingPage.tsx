@@ -2655,6 +2655,9 @@ const PricingPage = ({
                     >
                       {plan.type === "Scale"
                         ? `$${getPrice(32) * (scaleValue / 10)}`
+                        : (plan.type === "Standard" ||
+                            (plan.type === "Enterprise" && selectedDeployment === "Cloud"))
+                        ? `Starts from ${plan.title}/month`
                         : plan.title}
                     </Typography>
 
