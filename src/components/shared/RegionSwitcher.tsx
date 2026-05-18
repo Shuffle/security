@@ -12,10 +12,10 @@ import { cn } from '@/lib/utils';
 export type RegionCode = 'us' | 'eu2' | 'ca' | 'uk' | 'aus';
 
 export const REGION_OPTIONS: { value: RegionCode; label: string; flag: string; url: string }[] = [
+  { value: 'uk', label: 'UK', flag: '🇬🇧', url: 'shuffler.io' },
   { value: 'us', label: 'US', flag: '🇺🇸', url: 'us.shuffler.io' },
   { value: 'eu2', label: 'EU-2', flag: '🇪🇺', url: 'eu2.shuffler.io' },
   { value: 'ca', label: 'CA', flag: '🇨🇦', url: 'ca.shuffler.io' },
-  { value: 'uk', label: 'UK', flag: '🇬🇧', url: 'shuffler.io' },
   { value: 'aus', label: 'AUS (test)', flag: '🇦🇺', url: 'aus.shuffler.io' },
 ];
 
