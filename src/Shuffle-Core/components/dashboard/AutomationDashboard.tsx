@@ -89,10 +89,7 @@ export const AutomationDashboard = ({
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [statKeys, setStatKeys] = useState<string[]>([]);
   const [selectedStat, setSelectedStat] = useState<string>('');
-  const [statSeries, setStatSeries] = useState<Array<{ date: string; value: number }>>([]);
-  const [statLoading, setStatLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [days, setDays] = useState<string>('30');
@@ -106,16 +103,12 @@ export const AutomationDashboard = ({
     if (serverside || !isLoaded || !isLoggedIn || !orgId) { setLoading(false); return; }
     silent ? setRefreshing(true) : setLoading(true);
     try {
-      const [statsRes, notifRes, statListRes] = await Promise.all([
+      const [statsRes, notifRes] = await Promise.all([
         fetch(buildUrl(`/api/v1/orgs/${orgId}/stats`), {
           credentials: 'include',
           headers: { ...getAuthHeader() },
         }),
         fetch(buildUrl(`/api/v1/notifications`), {
-          credentials: 'include',
-          headers: { ...getAuthHeader() },
-        }),
-        fetch(buildUrl(`/api/v1/stats`), {
           credentials: 'include',
           headers: { ...getAuthHeader() },
         }),
@@ -125,57 +118,12 @@ export const AutomationDashboard = ({
         const nd = await notifRes.json();
         setNotifications(Array.isArray(nd) ? nd : (nd.notifications || []));
       }
-      if (statListRes.ok) {
-        const sd = await statListRes.json();
-        // Tolerate multiple shapes: string[], {stats:[...]}, {key:value}.
-        let keys: string[] = [];
-        const raw = Array.isArray(sd) ? sd : (sd?.stats ?? sd?.keys ?? sd);
-        if (Array.isArray(raw)) {
-          keys = raw.map((x: any) => typeof x === 'string' ? x : (x?.name || x?.key || x?.id)).filter(Boolean);
-        } else if (raw && typeof raw === 'object') {
-          keys = Object.keys(raw);
-        }
-        keys = Array.from(new Set(keys)).sort();
-        setStatKeys(keys);
-        setSelectedStat(prev => prev || keys[0] || '');
-      }
     } catch { /* noop */ } finally {
       setLoading(false); setRefreshing(false);
     }
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [orgId, isLoaded, isLoggedIn, globalUrl]);
-
-  // Fetch the selected custom stat series whenever the key or range changes.
-  useEffect(() => {
-    if (serverside || !isLoaded || !isLoggedIn || !selectedStat) return;
-    let cancelled = false;
-    setStatLoading(true);
-    fetch(buildUrl(`/api/v1/stats/${encodeURIComponent(selectedStat)}?days=${days}`), {
-      credentials: 'include',
-      headers: { ...getAuthHeader() },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (cancelled || !d) { setStatSeries([]); return; }
-        // Normalise into [{date, value}]. Accept several common shapes.
-        const raw = Array.isArray(d) ? d
-          : d.additions ?? d.data ?? d.values ?? d.daily_statistics ?? d.series ?? [];
-        const series = (Array.isArray(raw) ? raw : []).map((item: any) => {
-          const date = item?.date || item?.day || item?.timestamp || item?.t || '';
-          const value = Number(
-            item?.value ?? item?.count ?? item?.total ?? item?.amount ?? item?.v ?? 0
-          ) || 0;
-          return { date: String(date).slice(0, 10), value };
-        }).filter(p => p.date);
-        series.sort((a, b) => a.date.localeCompare(b.date));
-        setStatSeries(series);
-      })
-      .catch(() => { if (!cancelled) setStatSeries([]); })
-      .finally(() => { if (!cancelled) setStatLoading(false); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line
-  }, [selectedStat, days, isLoaded, isLoggedIn, globalUrl]);
 
   const daily = stats?.daily_statistics || [];
   const rangeDays = parseInt(days, 10);
