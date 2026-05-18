@@ -80,6 +80,31 @@ const greeting = () => {
   return 'Good evening';
 };
 
+/** Strip leading `total_`, replace underscores with spaces, sentence-case. */
+const prettyStatLabel = (key: string): string => {
+  const bare = key.startsWith('total_') ? key.slice(6) : key;
+  const spaced = bare.replace(/_/g, ' ').trim();
+  if (!spaced) return key;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+};
+
+/** Compact number formatter (1.2k, 3.4M). */
+const formatCompact = (n: number): string => {
+  if (!Number.isFinite(n)) return '0';
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(abs >= 10_000_000 ? 0 : 1).replace(/\.0$/, '') + 'M';
+  if (abs >= 1_000) return (n / 1_000).toFixed(abs >= 10_000 ? 0 : 1).replace(/\.0$/, '') + 'k';
+  return String(Math.round(n));
+};
+
+/** Magnitude-based color tier for custom-stat counts. */
+const statColor = (n: number): string => {
+  if (!n) return 'hsl(var(--muted-foreground))';
+  if (n >= 1_000_000) return NEON.red;
+  if (n >= 100_000) return NEON.amber;
+  return NEON.green;
+};
+
 export const AutomationDashboard = ({
   orgId: orgIdProp,
   displayName,
@@ -186,35 +211,59 @@ export const AutomationDashboard = ({
    * Custom stat keys come from two places in /api/v1/orgs/{orgId}/stats:
    *   1. Top-level `total_*` keys (map to the matching field in daily entries)
    *   2. `additions[].key` across the org-level + daily-level additions arrays
+   *
+   * We dedupe on the canonical key (with `total_` stripped) so the user does
+   * not see e.g. both "Workflow executions" and "Total workflow executions".
+   * Preference order: top-level `total_*` > addition key.
    */
   const statKeys = useMemo(() => {
     if (!stats) return [] as string[];
-    const totals = Object.keys(stats).filter(k => k.startsWith('total_'));
-    const additionKeys = new Set<string>();
-    (stats.additions || []).forEach(a => a?.key && additionKeys.add(a.key));
+    const map = new Map<string, string>(); // canonical -> rawKey
+    Object.keys(stats)
+      .filter(k => k.startsWith('total_'))
+      .forEach(k => {
+        const canon = k.slice(6);
+        if (!map.has(canon)) map.set(canon, k);
+      });
+    const addAddition = (k?: string) => {
+      if (!k) return;
+      const canon = k.startsWith('total_') ? k.slice(6) : k;
+      if (!map.has(canon)) map.set(canon, k);
+    };
+    (stats.additions || []).forEach(a => addAddition(a?.key));
     (stats.daily_statistics || []).forEach(d =>
-      (d.additions || []).forEach(a => a?.key && additionKeys.add(a.key))
+      (d.additions || []).forEach(a => addAddition(a?.key))
     );
-    return Array.from(new Set([...totals, ...Array.from(additionKeys)])).sort();
+    return Array.from(map.values()).sort((a, b) =>
+      prettyStatLabel(a).localeCompare(prettyStatLabel(b))
+    );
   }, [stats]);
 
   useEffect(() => {
     if (!selectedStat && statKeys.length) setSelectedStat(statKeys[0]);
   }, [statKeys, selectedStat]);
 
+  const valueForStat = (d: any, key: string): number => {
+    const bare = key.startsWith('total_') ? key.slice(6) : key;
+    if (d[bare] != null) return Number(d[bare]) || 0;
+    if (d[key] != null) return Number(d[key]) || 0;
+    const hit = (d.additions || []).find((a: Addition) => a?.key === key || a?.key === bare);
+    return hit ? Number(hit.value) || 0 : 0;
+  };
+
   const statSeries = useMemo(() => {
     if (!selectedStat) return [] as Array<{ date: string; value: number }>;
-    const fromTotal = selectedStat.startsWith('total_') ? selectedStat.slice(6) : null;
-    return filtered.map(d => {
-      let value = 0;
-      if (fromTotal && d[fromTotal] != null) value = Number(d[fromTotal]) || 0;
-      else {
-        const hit = (d.additions || []).find(a => a?.key === selectedStat);
-        value = hit ? Number(hit.value) || 0 : 0;
-      }
-      return { date: d.date.slice(5, 10), value };
-    });
+    return filtered.map(d => ({ date: d.date.slice(5, 10), value: valueForStat(d, selectedStat) }));
   }, [filtered, selectedStat]);
+
+  /** Aggregate value per stat key across the currently-filtered date range. */
+  const statTotals = useMemo(() => {
+    const out: Record<string, number> = {};
+    statKeys.forEach(k => {
+      out[k] = filtered.reduce((sum, d) => sum + valueForStat(d, k), 0);
+    });
+    return out;
+  }, [statKeys, filtered]);
 
 
   if (loading) {
@@ -380,19 +429,52 @@ export const AutomationDashboard = ({
         accent={NEON.violet}
         delay={0.3}
         action={
-          <FormControl size="small" sx={{ minWidth: 220 }}>
+          <FormControl size="small" sx={{ minWidth: 260 }}>
+            <InputLabel sx={{ color: NEON.violet }}>Find your stat</InputLabel>
             <Select
               displayEmpty
+              label="Find your stat"
               value={selectedStat}
               onChange={(e) => setSelectedStat(String(e.target.value))}
-              renderValue={(v) => (v as string) || 'Select stat'}
+              renderValue={(v) => (v ? prettyStatLabel(v as string) : 'Select stat')}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    maxHeight: 420,
+                    bgcolor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    '& .MuiMenuItem-root': { py: 1, px: 1.5 },
+                  },
+                },
+              }}
             >
               {statKeys.length === 0 && (
                 <MenuItem value="" disabled>No stats available</MenuItem>
               )}
-              {statKeys.map(k => (
-                <MenuItem key={k} value={k}>{k}</MenuItem>
-              ))}
+              {statKeys.map(k => {
+                const total = statTotals[k] || 0;
+                return (
+                  <MenuItem key={k} value={k}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                      <Typography
+                        sx={{
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: statColor(total),
+                          minWidth: 56,
+                          textAlign: 'left',
+                        }}
+                      >
+                        {formatCompact(total)}
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, color: 'hsl(var(--foreground))' }}>
+                        {prettyStatLabel(k)}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
         }
@@ -405,7 +487,7 @@ export const AutomationDashboard = ({
               onCta={() => window.open('https://shuffler.io/docs/API#count-stats-for-custom-key', '_blank', 'noopener,noreferrer')}
             />
           ) : statSeries.every(p => p.value === 0) ? (
-            <EmptyState text={`No values for "${selectedStat}" in the last ${days} days`} />
+            <EmptyState text={`No values for "${prettyStatLabel(selectedStat)}" in the last ${days} days`} />
                     ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statSeries} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -419,7 +501,7 @@ export const AutomationDashboard = ({
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={32} />
                 <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
                 <RechartsTooltip content={<TooltipContent />} cursor={{ fill: 'hsl(var(--muted) / 0.15)' }} />
-                <Bar dataKey="value" name={selectedStat || 'value'} radius={[6, 6, 0, 0]} maxBarSize={64} fill="url(#auto-bar-fill)" />
+                <Bar dataKey="value" name={selectedStat ? prettyStatLabel(selectedStat) : 'value'} radius={[6, 6, 0, 0]} maxBarSize={64} fill="url(#auto-bar-fill)" />
               </BarChart>
             </ResponsiveContainer>
           )}
