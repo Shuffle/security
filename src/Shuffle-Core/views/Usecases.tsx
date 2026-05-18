@@ -1782,6 +1782,12 @@ function UsecaseDetailContent({
   // users can force-add a Source or Destination tool from this view too.
   const [addToolFor, setAddToolFor] = useState<null | { side: 'source' | 'destination'; categoryId: string }>(null);
   const [integrationsRefreshKey, setIntegrationsRefreshKey] = useState(0);
+  // Per-side tool detail state: `hoveredTool` is the transient preview shown
+  // while the cursor is over an icon; `pinnedTool` is the sticky selection
+  // after a click (clicking the same icon again clears it).
+  type ToolSideState = { source: IntegrationItem | null; destination: IntegrationItem | null };
+  const [hoveredTool, setHoveredTool] = useState<ToolSideState>({ source: null, destination: null });
+  const [pinnedTool, setPinnedTool] = useState<ToolSideState>({ source: null, destination: null });
   // Mirror the card's "Coming soon" gate so the detail page does not show a
   // live "Enable" button for usecases that are not yet wired up server-side.
   const isComingSoon = !!flow && !ACTIVE_USECASE_IDS.includes(flow.id);
