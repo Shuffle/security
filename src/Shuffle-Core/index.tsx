@@ -23,6 +23,8 @@ import UsecaseAlluvialDiagramRaw from './views/UsecaseAlluvialDiagram';
 import FormInputRaw from './views/FormInput';
 import EditWorkflowRaw from './components/EditWorkflow';
 import RecentWorkflowRaw from './components/RecentWorkflow';
+import AutomationDashboardRaw from './components/dashboard/AutomationDashboard';
+import DashboardOverviewRaw from './components/dashboard/DashboardOverview';
 
 const withTheme = <P extends object>(Inner: React.ComponentType<P>, displayName: string) => {
   const Wrapped: React.FC<P> = (props) => (
