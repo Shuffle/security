@@ -513,7 +513,13 @@ const OnboardingFlow = ({
         (app) => authStates[app.objectID]?.status === 'connected'
       );
       localStorage.setItem('connected_integrations', JSON.stringify(connectedApps));
-      trackPredefinedEvent(GA_EVENTS.ONBOARDING_COMPLETE, undefined, connectedApps.length);
+      onboardingCompletedRef.current = true;
+      trackPredefinedEvent(GA_EVENTS.ONBOARDING_COMPLETE, product, connectedApps.length, {
+        product,
+        connected_apps: connectedApps.length,
+        selected_apps: selectedApps.length,
+        ms_since_start: Date.now() - onboardingStartedAtRef.current,
+      });
 
       // Generate the ingestion workflow and webhook workflow in parallel
       const appNames = selectedApps.map(app => app.name).join(',');
