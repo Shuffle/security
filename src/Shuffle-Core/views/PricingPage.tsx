@@ -18,7 +18,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Minus, Info, Cloud as CloudLucide, Server as ServerLucide, Check as CheckLucide } from "lucide-react";
+import { Plus, Minus, Info, Cloud as CloudLucide, Server as ServerLucide, Check as CheckLucide, MessageCircle, Mail as MailLucide, MessagesSquare } from "lucide-react";
 import ReactGA from "react-ga4";
 import ReactMarkdown from "react-markdown";
 import { openSourcePlan, pricingPlansData, featuresData } from "../views/pricingData.js";
@@ -455,7 +455,7 @@ const PricingPage = ({
               variant="h5"
               sx={{ fontWeight: "bold", maxWidth: "200px", pl: 4 }}
             >
-              Got Other Questions?
+              Got other Questions?
             </Typography>
             <Box
               style={{
@@ -505,11 +505,7 @@ const PricingPage = ({
                   }
                 }}
               >
-                <img
-                  src="/icons/liveChat.svg"
-                  alt="chat"
-                  style={{ width: "18px", height: "18px" }}
-                />
+                <MessageCircle size={18} strokeWidth={1.8} aria-label="chat" />
                 Send us a message
               </Button>
               <Button
@@ -545,11 +541,7 @@ const PricingPage = ({
                   }
                 }}
               >
-                <img
-                  src="/icons/mail.svg"
-                  alt="chat"
-                  style={{ width: "18px", height: "18px" }}
-                />
+                <MailLucide size={18} strokeWidth={1.8} aria-label="mail" />
                 support@shuffler.io
               </Button>
 
@@ -585,11 +577,7 @@ const PricingPage = ({
                   },
                 }}
               >
-                <img
-                  src="icons/discordWhite.svg"
-                  alt="chat"
-                  style={{ width: "18px", height: "18px" }}
-                />
+                <MessagesSquare size={18} strokeWidth={1.8} aria-label="discord" />
                 Join our Discord
               </Button>
             </Box>
