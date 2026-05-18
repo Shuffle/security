@@ -46,6 +46,10 @@ interface OverviewProps extends ShuffleCoreHostProps {
   monitorHostCount: number | null;
   runningSensorCount: number | null;
   monitorsLoading?: boolean;
+  /** Time-range in days for the incident trend chart. Defaults to 30. */
+  days?: number;
+  /** Bucketing granularity for the incident trend chart. Defaults to 'daily'. */
+  gran?: Granularity;
 }
 
 const STATUS_COLORS = {
