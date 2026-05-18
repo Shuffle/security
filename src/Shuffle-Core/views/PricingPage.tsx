@@ -1705,6 +1705,52 @@ const PricingPage = ({
                       )}
                     </div>
 
+                    {plan.type === "Scale" ? (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2, mb: 1.5 }}>
+                        <Button
+                          variant="outlined"
+                          fullWidth
+                          disableRipple
+                          onClick={plan.buttonAction}
+                          sx={{
+                            py: 1.2,
+                            borderRadius: "8px",
+                            textTransform: "none",
+                            fontSize: { xs: "12px", sm: "14px" },
+                            color: "#ffffff",
+                            border: "1.5px solid #ff8544",
+                            background: isLoggedIn ? "rgba(255, 255, 255, 0.05)" : "transparent",
+                            boxShadow: "none",
+                            "&:hover": {
+                              background: "rgba(255, 133, 68, 0.1)",
+                              borderColor: "#ff8544",
+                              boxShadow: "none",
+                            },
+                            cursor: isLoggedIn ? "default" : "pointer",
+                          }}
+                        >
+                          {plan.buttonText}
+                        </Button>
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          disableRipple
+                          onClick={plan.secondaryButtonAction}
+                          sx={{
+                            py: 1.2,
+                            borderRadius: "8px",
+                            textTransform: "none",
+                            fontSize: { xs: "12px", sm: "14px" },
+                            color: "#1A1A1A",
+                            background: "#FF8544",
+                            boxShadow: "none",
+                            "&:hover": { background: "#FF955C", boxShadow: "none" },
+                          }}
+                        >
+                          {plan.secondaryButtonText}
+                        </Button>
+                      </Box>
+                    ) : (
                     <Button
                       variant="contained"
                       fullWidth
@@ -1773,6 +1819,7 @@ const PricingPage = ({
                     >
                       {plan.buttonText}
                     </Button>
+                    )}
 
                     <Divider sx={{ my: 1.5 }} />
 
