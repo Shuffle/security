@@ -517,7 +517,7 @@ const PricingPage = ({
                   }
                 }}
               >
-                <MessageCircle size={18} strokeWidth={1.8} aria-label="chat" />
+                <MessageCircle size={18} strokeWidth={1.8} color="#ffffff" aria-label="chat" />
                 Send us a message
               </Button>
               <Button
@@ -553,7 +553,7 @@ const PricingPage = ({
                   }
                 }}
               >
-                <MailLucide size={18} strokeWidth={1.8} aria-label="mail" />
+                <MailLucide size={18} strokeWidth={1.8} color="#ffffff" aria-label="mail" />
                 support@shuffler.io
               </Button>
 
@@ -589,7 +589,7 @@ const PricingPage = ({
                   },
                 }}
               >
-                <MessagesSquare size={18} strokeWidth={1.8} aria-label="discord" />
+                <MessagesSquare size={18} strokeWidth={1.8} color="#ffffff" aria-label="discord" />
                 Join our Discord
               </Button>
             </Box>
