@@ -2506,7 +2506,11 @@ const PricingPage = ({
                     <TextField
                       type="number"
                       value={calcMonitors}
-                      onChange={(e) => setCalcMonitors(Math.max(0, Number(e.target.value)))}
+                      onChange={(e) => {
+                        const stripped = e.target.value.replace(/^0+(?=\d)/, "");
+                        if (stripped !== e.target.value) e.target.value = stripped;
+                        setCalcMonitors(Math.max(0, Number(stripped)));
+                      }}
                       fullWidth
                       size="small"
                       inputProps={{ min: 0, step: 5 }}
