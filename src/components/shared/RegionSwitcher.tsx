@@ -1,4 +1,4 @@
-import { Globe, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import {
   Select,
   SelectContent,
