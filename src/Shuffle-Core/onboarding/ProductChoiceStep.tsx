@@ -11,7 +11,7 @@ interface ProductChoiceStepProps {
   regionSwitcher?: ReactNode;
 }
 
-export const ProductChoiceStep = ({ onSelectCore, onSelectSecurity, onStartDemo }: ProductChoiceStepProps) => {
+export const ProductChoiceStep = ({ onSelectCore, onSelectSecurity, onStartDemo, regionSwitcher }: ProductChoiceStepProps) => {
   return (
     <div className="w-full flex justify-center px-6 py-8">
       <div className="w-full max-w-4xl">
