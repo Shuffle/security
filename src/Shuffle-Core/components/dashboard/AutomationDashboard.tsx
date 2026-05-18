@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Box, Typography, Skeleton, IconButton, Tooltip as MuiTooltip,
-  Select, MenuItem, FormControl, InputLabel,
+  Select, MenuItem, FormControl, InputLabel, Autocomplete, TextField,
 } from '@mui/material';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
