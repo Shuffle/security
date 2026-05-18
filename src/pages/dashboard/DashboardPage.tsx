@@ -1142,6 +1142,8 @@ const DashboardPage = () => {
                   onDaysChange={setDashboardDays}
                   gran={dashboardGran}
                   onGranChange={setDashboardGran}
+                  mode={dashboardMode}
+                  onModeChange={setDashboardMode}
                   refreshKey={dashboardRefreshKey}
                   hideRefresh
                 />
