@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Box, Typography, Skeleton, IconButton, Tooltip as MuiTooltip,
-  Select, MenuItem, FormControl, InputLabel,
+  Select, MenuItem, FormControl, InputLabel, Autocomplete, TextField,
 } from '@mui/material';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -98,7 +98,9 @@ const greeting = () => {
 
 /** Strip leading `total_`, replace underscores with spaces, sentence-case. */
 const prettyStatLabel = (key: string): string => {
-  const bare = key.startsWith('total_') ? key.slice(6) : key;
+  let bare = key;
+  if (bare.startsWith('total_')) bare = bare.slice(6);
+  if (bare.toLowerCase().startsWith('categorylabel_')) bare = bare.slice('categorylabel_'.length);
   const spaced = bare.replace(/_/g, ' ').trim();
   if (!spaced) return key;
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
@@ -510,31 +512,35 @@ export const AutomationDashboard = ({
         delay={0.3}
         action={
           <FormControl size="small" sx={{ minWidth: 260 }}>
-            <InputLabel sx={{ color: NEON.violet }}>Find your stat</InputLabel>
-            <Select
-              displayEmpty
-              label="Find your stat"
-              value={selectedStat}
-              onChange={(e) => pickSelectedStat(String(e.target.value))}
-              renderValue={(v) => (v ? prettyStatLabel(v as string) : 'Select stat')}
-              MenuProps={{
-                PaperProps: {
+            <Autocomplete
+              size="small"
+              options={statKeys}
+              value={selectedStat || null}
+              onChange={(_, v) => pickSelectedStat(v || '')}
+              getOptionLabel={(k) => prettyStatLabel(k)}
+              isOptionEqualToValue={(a, b) => a === b}
+              noOptionsText={statKeys.length === 0 ? 'No stats available' : 'No matches'}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Find your stat"
+                  placeholder="Type to search..."
+                  InputLabelProps={{ sx: { color: NEON.violet } }}
+                />
+              )}
+              componentsProps={{
+                paper: {
                   sx: {
-                    maxHeight: 420,
                     bgcolor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
-                    '& .MuiMenuItem-root': { py: 1, px: 1.5 },
                   },
                 },
               }}
-            >
-              {statKeys.length === 0 && (
-                <MenuItem value="" disabled>No stats available</MenuItem>
-              )}
-              {statKeys.map(k => {
+              ListboxProps={{ sx: { maxHeight: 420 } }}
+              renderOption={(props, k) => {
                 const total = statTotals[k] || 0;
                 return (
-                  <MenuItem key={k} value={k}>
+                  <li {...props} key={k}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
                       <Typography
                         sx={{
@@ -552,10 +558,10 @@ export const AutomationDashboard = ({
                         {prettyStatLabel(k)}
                       </Typography>
                     </Box>
-                  </MenuItem>
+                  </li>
                 );
-              })}
-            </Select>
+              }}
+            />
           </FormControl>
         }
       >
