@@ -199,6 +199,74 @@ const OnboardingFlow = ({
       window.history.replaceState({}, '', url.toString());
     } catch { /* ignore */ }
   }, [product, onStartDemo, location.pathname]);
+
+  // ---- Onboarding funnel tracking ----
+  // Fire ONBOARDING_START exactly once per browser session so we can measure
+  // top-of-funnel reach independently of which step the user lands on.
+  const onboardingStartedAtRef = useRef<number>(Date.now());
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('shuffle_onboarding_start_fired') === '1') return;
+      sessionStorage.setItem('shuffle_onboarding_start_fired', '1');
+    } catch { /* ignore */ }
+    onboardingStartedAtRef.current = Date.now();
+    trackPredefinedEvent(GA_EVENTS.ONBOARDING_START, product, undefined, {
+      product,
+      entry_path: location.pathname,
+    });
+  }, []);
+
+  // Fire ONBOARDING_STEP on EVERY step change (incl. direct URL access / back
+  // button), with `value` = ms spent on the previous step. This is what powers
+  // the "how far, how fast" funnel in GA.
+  const lastStepKeyRef = useRef<string | null>(null);
+  const stepEnteredAtRef = useRef<number>(Date.now());
+  useEffect(() => {
+    const stepDef = steps.find(s => s.key === activeStepKey);
+    if (!stepDef) return;
+    const now = Date.now();
+    const prevKey = lastStepKeyRef.current;
+    const msOnPrev = prevKey ? now - stepEnteredAtRef.current : 0;
+    const stepIndex = steps.findIndex(s => s.key === activeStepKey);
+    trackPredefinedEvent(
+      GA_EVENTS.ONBOARDING_STEP,
+      stepDef.key,
+      stepIndex,
+      {
+        step_key: stepDef.key,
+        step_label: stepDef.label,
+        step_index: stepIndex,
+        from_step: prevKey,
+        ms_on_prev_step: msOnPrev,
+        ms_since_start: now - onboardingStartedAtRef.current,
+        product,
+      },
+    );
+    lastStepKeyRef.current = activeStepKey;
+    stepEnteredAtRef.current = now;
+  }, [activeStepKey, steps, product]);
+
+  // Abandonment: when the user leaves the page without completing onboarding,
+  // emit a final event with the last step + total time so we can measure drop-off.
+  const onboardingCompletedRef = useRef(false);
+  useEffect(() => {
+    const handler = () => {
+      if (onboardingCompletedRef.current) return;
+      const stepDef = steps.find(s => s.key === activeStepKey);
+      if (!stepDef) return;
+      const stepIndex = steps.findIndex(s => s.key === activeStepKey);
+      trackEventBeacon('onboarding', 'onboarding_abandon', stepDef.key, stepIndex, {
+        step_key: stepDef.key,
+        step_index: stepIndex,
+        ms_on_step: Date.now() - stepEnteredAtRef.current,
+        ms_since_start: Date.now() - onboardingStartedAtRef.current,
+        product,
+      });
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [activeStepKey, steps, product]);
+
   
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
   const [selectedApps, setSelectedApps] = useState<AlgoliaSearchApp[]>([]);
