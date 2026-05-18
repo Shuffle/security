@@ -293,8 +293,13 @@ export const AutomationDashboard = ({
 
   const statSeries = useMemo(() => {
     if (!selectedStat) return [] as Array<{ date: string; value: number }>;
-    return filtered.map(d => ({ date: d.date.slice(5, 10), value: valueForStat(d, selectedStat) }));
-  }, [filtered, selectedStat]);
+    const acc = new Array(buckets.length).fill(0);
+    for (const d of filtered) {
+      const idx = bucketIndexOf(buckets, new Date(d.date).getTime());
+      if (idx >= 0) acc[idx] += valueForStat(d, selectedStat);
+    }
+    return buckets.map((b, i) => ({ date: b.label, value: acc[i] }));
+  }, [filtered, selectedStat, buckets]);
 
   /** Aggregate value per stat key across the currently-filtered date range. */
   const statTotals = useMemo(() => {
