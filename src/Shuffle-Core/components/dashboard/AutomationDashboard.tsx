@@ -71,12 +71,7 @@ interface StatsResponse {
 type ModeKind = 'workflows' | 'apps';
 type GranKind = 'daily' | 'monthly';
 
-const RANGE_OPTIONS = [
-  { value: '7', label: '7 days' },
-  { value: '30', label: '30 days' },
-  { value: '90', label: '90 days' },
-  { value: '365', label: '12 months' },
-];
+const RANGE_OPTIONS = AUTOMATION_RANGE_OPTIONS;
 
 const greeting = () => {
   const h = new Date().getHours();
