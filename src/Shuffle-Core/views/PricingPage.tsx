@@ -1790,7 +1790,7 @@ const PricingPage = ({
                         borderColor:
                           plan.type.toLowerCase() === "enterprise"
                             ? "transparent"
-                            : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source"
+                            : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source" || plan.type.toLowerCase() === "standard"
                             ? "transparent"
                             : isLoggedIn
                             ? "#c5c5c5"
@@ -1798,7 +1798,7 @@ const PricingPage = ({
                         background:
                           plan.type.toLowerCase() === "enterprise"
                             ? "#2BC07E"
-                            : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source"
+                            : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source" || plan.type.toLowerCase() === "standard"
                             ? "#FF8544"
                             : isLoggedIn
                             ? "rgba(255, 255, 255, 0.1)"
@@ -1808,7 +1808,7 @@ const PricingPage = ({
                           background:
                             plan.type.toLowerCase() === "enterprise"
                               ? "#3FDF98"
-                              : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source"
+                              : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source" || plan.type.toLowerCase() === "standard"
                               ? "#FF955C"
                               : isLoggedIn
                               ? "rgba(255, 255, 255, 0.1)"
@@ -1816,7 +1816,7 @@ const PricingPage = ({
                           borderColor:
                             plan.type.toLowerCase() === "enterprise"
                               ? "#3FDF98"
-                              : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source"
+                              : plan.type.toLowerCase() === "scale" || plan.type.toLowerCase() === "open source" || plan.type.toLowerCase() === "standard"
                               ? "transparent"
                               : isLoggedIn
                               ? "#c5c5c5"
