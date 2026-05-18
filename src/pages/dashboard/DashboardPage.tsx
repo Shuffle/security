@@ -1094,13 +1094,15 @@ const DashboardPage = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <Box sx={{ alignSelf: 'flex-end' }}>
+                <Box sx={{ alignSelf: 'flex-end', opacity: dashboardTab === 'security' ? 0.5 : 1, pointerEvents: dashboardTab === 'security' ? 'none' : 'auto' }}>
                   <SegmentedControl
                     ariaLabel="Mode"
                     value={dashboardMode}
                     onChange={(v) => setDashboardMode(v as 'workflows' | 'apps')}
-                    disabled={dashboardTab === 'security'}
-                    options={[{ value: 'workflows', label: 'Workflows' }, { value: 'apps', label: 'Apps' }]}
+                    options={[
+                      { value: 'workflows', label: 'Workflows', disabled: dashboardTab === 'security' },
+                      { value: 'apps', label: 'Apps', disabled: dashboardTab === 'security' },
+                    ]}
                   />
                 </Box>
                 <Box sx={{ alignSelf: 'flex-end' }}>
