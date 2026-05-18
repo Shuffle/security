@@ -52,7 +52,7 @@ export const RegionSwitcher = ({
           )}
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-[9999]">
           {REGION_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               <span className="flex items-center gap-2">
