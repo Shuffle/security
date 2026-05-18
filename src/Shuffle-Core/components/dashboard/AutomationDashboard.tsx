@@ -479,7 +479,7 @@ export const AutomationDashboard = ({
               displayEmpty
               label="Find your stat"
               value={selectedStat}
-              onChange={(e) => setSelectedStat(String(e.target.value))}
+              onChange={(e) => pickSelectedStat(String(e.target.value))}
               renderValue={(v) => (v ? prettyStatLabel(v as string) : 'Select stat')}
               MenuProps={{
                 PaperProps: {
