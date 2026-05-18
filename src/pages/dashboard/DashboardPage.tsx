@@ -1137,6 +1137,8 @@ const DashboardPage = () => {
                   monitorHostCount={hostMonitorCount}
                   runningSensorCount={runningSensorCount}
                   monitorsLoading={hasHostMonitor === null}
+                  days={parseInt(dashboardDays, 10) || 30}
+                  gran={dashboardGran}
                 />
               </Box>
             );
