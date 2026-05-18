@@ -1,5 +1,12 @@
-import { ArrowRight, PlayCircle } from 'lucide-react';
+import { ArrowRight, PlayCircle, Globe } from 'lucide-react';
 import { AgentIcon } from '@shuffleio/shuffle-mcps';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
 
 interface ProductChoiceStepProps {
