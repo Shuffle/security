@@ -276,6 +276,61 @@ const ThreatFeedsPage = () => {
         </Typography>
       </Card>
 
+      {/* IOC stats — totals per IOC category collected from active feeds */}
+      {feeds.length > 0 && (
+        <Card sx={{ mb: 2, p: 2, border: '1px solid hsl(var(--border))', bgcolor: 'transparent' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5, mb: topIocs.length > 0 ? 1.5 : 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+              <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.08em', fontWeight: 700 }}>
+                IOCs collected
+              </Typography>
+              {countsLoading ? (
+                <CircularProgress size={14} />
+              ) : (
+                <Typography sx={{ fontSize: '1.15rem', fontWeight: 700, color: 'hsl(var(--primary))' }}>
+                  {totalIocs.toLocaleString()}
+                </Typography>
+              )}
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                across {topIocs.length || trackedIocNames.length} categories
+              </Typography>
+            </Box>
+          </Box>
+          {topIocs.length > 0 ? (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {topIocs.map(([name, count]) => (
+                <Tooltip key={name} title={`Datastore category: ioc_${name}`} arrow>
+                  <Chip
+                    label={
+                      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                        <Box component="span" sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>
+                          {name}
+                        </Box>
+                        <Box component="span" sx={{ fontWeight: 700, color: 'hsl(var(--primary))' }}>
+                          {count.toLocaleString()}
+                        </Box>
+                      </Box>
+                    }
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      height: 24,
+                      borderColor: 'hsl(var(--primary) / 0.35)',
+                      bgcolor: 'hsl(var(--primary) / 0.06)',
+                      '& .MuiChip-label': { px: 1 },
+                    }}
+                  />
+                </Tooltip>
+              ))}
+            </Box>
+          ) : !countsLoading && (
+            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+              No IOCs collected yet — enable feeds and let the Threat Intel automation run.
+            </Typography>
+          )}
+        </Card>
+      )}
+
       <Card elevation={0} sx={{ bgcolor: 'transparent', backgroundImage: 'none', border: '1px solid hsl(var(--border))' }}>
         <CardContent sx={{ p: 0 }}>
           <TableContainer>
