@@ -1237,11 +1237,11 @@ const PricingPage = ({
               </>
             ) : (
               <>
-                <ToggleButton value="starter" aria-label="starter">
-                  Starter
+                <ToggleButton value="scale" aria-label="starter-scale">
+                  Starter + Scale
                 </ToggleButton>
-                <ToggleButton value="scale" aria-label="scale">
-                  Scale
+                <ToggleButton value="standard" aria-label="standard">
+                  Standard
                 </ToggleButton>
                 <ToggleButton value="enterprise" aria-label="enterprise">
                   Enterprise
