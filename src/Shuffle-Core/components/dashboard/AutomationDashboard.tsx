@@ -570,7 +570,7 @@ export const AutomationDashboard = ({
             <EmptyState text={`No values for "${prettyStatLabel(selectedStat)}" in the last ${days} days`} />
                     ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={statSeries} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+              <BarChart data={statSeries} margin={{ top: 8, right: 8, left: -20, bottom: 0 }} {...statsDrag.chartProps}>
                 <defs>
                   <linearGradient id="auto-bar-fill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={NEON.violet} stopOpacity={1} />
@@ -582,6 +582,9 @@ export const AutomationDashboard = ({
                 <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
                 <RechartsTooltip content={<TooltipContent />} cursor={{ fill: 'hsl(var(--muted) / 0.15)' }} />
                 <Bar dataKey="value" name={selectedStat ? prettyStatLabel(selectedStat) : 'value'} radius={[6, 6, 0, 0]} maxBarSize={64} fill="url(#auto-bar-fill)" />
+                {statsDrag.refArea && (
+                  <ReferenceArea x1={statsDrag.refArea.x1} x2={statsDrag.refArea.x2} stroke="hsl(var(--primary))" strokeOpacity={0.4} fill="hsl(var(--primary))" fillOpacity={0.12} />
+                )}
               </BarChart>
             </ResponsiveContainer>
           )}
