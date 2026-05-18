@@ -359,56 +359,33 @@ export const AutomationDashboard = ({
         accent={NEON.violet}
         delay={0.3}
         action={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Find your Stat</InputLabel>
-              <Select
-                label="Find your Stat"
-                value={selectedStat}
-                onChange={(e) => setSelectedStat(String(e.target.value))}
-              >
-                {statKeys.length === 0 && (
-                  <MenuItem value="" disabled>No stats available</MenuItem>
-                )}
-                {statKeys.map(k => (
-                  <MenuItem key={k} value={k}>{k}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <MuiTooltip title="View Custom Stats API docs">
-              <IconButton
-                size="small"
-                component="a"
-                href="https://shuffler.io/docs/API#count-stats-for-custom-key"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ color: 'hsl(var(--muted-foreground))' }}
-              >
-                <ExternalLink size={14} />
-              </IconButton>
-            </MuiTooltip>
-          </Box>
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <Select
+              displayEmpty
+              value={selectedStat}
+              onChange={(e) => setSelectedStat(String(e.target.value))}
+              renderValue={(v) => (v as string) || 'Select stat'}
+            >
+              {statKeys.length === 0 && (
+                <MenuItem value="" disabled>No stats available</MenuItem>
+              )}
+              {statKeys.map(k => (
+                <MenuItem key={k} value={k}>{k}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         }
       >
-        <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mb: 1.5, mt: -1 }}>
-          Count anything across your tenant with a custom key — usage, runs, errors, tokens, business events. Increment from any workflow and it shows up here.
-        </Typography>
-        <Box sx={{ height: 280 }}>
-          {statLoading ? (
-            <Skeleton variant="rounded" height={280} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
-          ) : statKeys.length <= 2 ? (
+        <Box sx={{ height: 260 }}>
+          {statKeys.length === 0 ? (
             <EmptyState
-              text="No custom stats yet — start tracking any counter from your workflows and it shows up here."
+              text="No custom stats yet — increment any key from a workflow and it shows up here."
               ctaLabel="View Custom Stats API"
               onCta={() => window.open('https://shuffler.io/docs/API#count-stats-for-custom-key', '_blank', 'noopener,noreferrer')}
             />
-          ) : statSeries.length <= 2 ? (
-            <EmptyState
-              text={selectedStat ? `Not enough data points for "${selectedStat}" in this range` : 'Select a stat to view data'}
-              ctaLabel="View Custom Stats API"
-              onCta={() => window.open('https://shuffler.io/docs/API#count-stats-for-custom-key', '_blank', 'noopener,noreferrer')}
-            />
-          ) : (
+          ) : statSeries.every(p => p.value === 0) ? (
+            <EmptyState text={`No values for "${selectedStat}" in the last ${days} days`} />
+                    ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statSeries} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <defs>
