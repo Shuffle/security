@@ -52,9 +52,6 @@
     "lucide-react": ">=0.300.0",
     "react-router-dom": ">=6"
   },
-  "peerDependenciesMeta": {
-    "react-router-dom": { "optional": true }
-  },
   "dependencies": {
     "algoliasearch": "^5.0.0",
     "framer-motion": "^11.0.0",
