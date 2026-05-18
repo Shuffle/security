@@ -10,7 +10,7 @@
  * Standalone port (no host AuthContext / shadcn). Pass `orgId` + optional
  * `displayName`. API helpers come from `../../api` (Shuffle-Core).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Box, Typography, Skeleton, IconButton, Tooltip as MuiTooltip,
   Select, MenuItem, FormControl, InputLabel,
