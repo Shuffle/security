@@ -280,6 +280,34 @@ const parseRevisionValue = (raw: unknown): any | null => {
   return null;
 };
 
+const stableRevisionValueString = (raw: unknown): string => {
+  const normalize = (value: any): any => {
+    if (Array.isArray(value)) return value.map(normalize);
+    if (value && typeof value === 'object') {
+      return Object.keys(value).sort().reduce((acc, key) => {
+        acc[key] = normalize(value[key]);
+        return acc;
+      }, {} as Record<string, any>);
+    }
+    return value;
+  };
+
+  const parsed = parseRevisionValue(raw);
+  try {
+    return JSON.stringify(normalize(parsed ?? raw));
+  } catch {
+    return String(raw ?? '');
+  }
+};
+
+const cheapHash = (s: string): string => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  }
+  return h.toString(36);
+};
+
 
 // Strict check: only return string if it has meaningful non-whitespace content
 // Also rejects raw JSON objects/arrays that shouldn't be displayed as text
