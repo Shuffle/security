@@ -553,7 +553,7 @@ const PricingPage = ({
                   }
                 }}
               >
-                <MailLucide size={18} strokeWidth={1.8} aria-label="mail" />
+                <MailLucide size={18} strokeWidth={1.8} color="#ffffff" aria-label="mail" />
                 support@shuffler.io
               </Button>
 
