@@ -77,6 +77,7 @@ export const AutomationDashboard = ({
   const name = (displayName || userdata?.username || '').split('@')[0] || 'there';
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [days, setDays] = useState<string>('30');
@@ -90,11 +91,21 @@ export const AutomationDashboard = ({
     if (serverside || !isLoaded || !isLoggedIn || !orgId) { setLoading(false); return; }
     silent ? setRefreshing(true) : setLoading(true);
     try {
-      const res = await fetch(buildUrl(`/api/v1/orgs/${orgId}/stats`), {
-        credentials: 'include',
-        headers: { ...getAuthHeader() },
-      });
-      if (res.ok) setStats(await res.json());
+      const [statsRes, notifRes] = await Promise.all([
+        fetch(buildUrl(`/api/v1/orgs/${orgId}/stats`), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        }),
+        fetch(buildUrl(`/api/v1/notifications`), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        }),
+      ]);
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (notifRes.ok) {
+        const nd = await notifRes.json();
+        setNotifications(Array.isArray(nd) ? nd : (nd.notifications || []));
+      }
     } catch { /* noop */ } finally {
       setLoading(false); setRefreshing(false);
     }
