@@ -324,19 +324,23 @@ export const AutomationDashboard = ({
               options={[{ value: 'workflows', label: 'Workflows' }, { value: 'apps', label: 'Apps' }]}
             />
           </Box>
-          <Box sx={{ alignSelf: 'flex-end' }}>
-            <SegmentedControl
-              ariaLabel="Granularity"
-              value={gran}
-              onChange={(v) => setGran(v as GranKind)}
-              options={[{ value: 'daily', label: 'Daily' }, { value: 'monthly', label: 'Monthly' }]}
-            />
-          </Box>
-          <MuiTooltip title="Refresh">
-            <IconButton size="small" onClick={() => load(true)} sx={{ color: 'hsl(var(--muted-foreground))', alignSelf: 'flex-end' }}>
-              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-            </IconButton>
-          </MuiTooltip>
+          {!isGranControlled && (
+            <Box sx={{ alignSelf: 'flex-end' }}>
+              <SegmentedControl
+                ariaLabel="Granularity"
+                value={gran}
+                onChange={(v) => setGran(v as GranKind)}
+                options={[{ value: 'daily', label: 'Daily' }, { value: 'monthly', label: 'Monthly' }]}
+              />
+            </Box>
+          )}
+          {!hideRefresh && (
+            <MuiTooltip title="Refresh">
+              <IconButton size="small" onClick={() => load(true)} sx={{ color: 'hsl(var(--muted-foreground))', alignSelf: 'flex-end' }}>
+                <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+              </IconButton>
+            </MuiTooltip>
+          )}
         </Box>
       </Box>
 
