@@ -149,8 +149,9 @@ const PricingPage = ({
     if (selectedDeployment === "Self-Hosted") {
       // For Self-Hosted, show only Open Source and Enterprise
       return feature.includedIn.filter(item => 
-        item.plan === "Open Source" || item.plan === "Enterprise"
+        item.plan === "Open Source" || item.plan === "Standard" || item.plan === "Enterprise"
       );
+
     } else {
       // For Cloud, show all plans (Starter, Scale, Enterprise)
       return feature.includedIn.filter(item => 
