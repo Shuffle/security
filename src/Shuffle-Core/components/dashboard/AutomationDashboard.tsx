@@ -135,7 +135,14 @@ export const AutomationDashboard = ({
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [selectedStat, setSelectedStat] = useState<string>('');
+  const [selectedStat, setSelectedStat] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    try { return localStorage.getItem('shuffle-automation-custom-stat') || ''; } catch { return ''; }
+  });
+  const pickSelectedStat = useCallback((key: string) => {
+    setSelectedStat(key);
+    try { localStorage.setItem('shuffle-automation-custom-stat', key); } catch {}
+  }, []);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const isDaysControlled = daysProp !== undefined;
