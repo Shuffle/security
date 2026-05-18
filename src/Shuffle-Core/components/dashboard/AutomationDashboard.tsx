@@ -18,11 +18,13 @@ import {
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, BarChart, Bar, RadialBarChart, RadialBar,
-  PolarAngleAxis,
+  PolarAngleAxis, Cell,
 } from 'recharts';
-import { AlertCircle, CheckCircle, RefreshCw, ExternalLink } from 'lucide-react';
+import { AlertCircle, CheckCircle, RefreshCw, ExternalLink, Zap, Workflow, Activity } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { SegmentedControl } from '../ui/segmented-control';
 import { getApiUrl, getAuthHeader } from '../../api';
+import { NEON, TooltipContent, KpiTile, Panel, EmptyState } from './_shared';
 
 import type { ShuffleCoreHostProps } from '../../types/host-props';
 
