@@ -235,12 +235,14 @@ export const AutomationDashboard = ({
           {headerLeft}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 130 }}>
-            <InputLabel>Last</InputLabel>
-            <Select label="Last" value={days} onChange={(e) => setDays(String(e.target.value))}>
-              {RANGE_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-            </Select>
-          </FormControl>
+          {!isDaysControlled && (
+            <FormControl size="small" sx={{ minWidth: 130 }}>
+              <InputLabel>Last</InputLabel>
+              <Select label="Last" value={days} onChange={(e) => setDays(String(e.target.value))}>
+                {RANGE_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+          )}
           <Box sx={{ alignSelf: 'flex-end' }}>
             <SegmentedControl
               ariaLabel="Mode"
