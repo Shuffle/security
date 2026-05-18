@@ -373,20 +373,38 @@ const ThreatFeedsPage = () => {
                     </TableCell>
                     <TableCell>
                       {feed.type ? (
-                        <Chip
-                          label={feed.type}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            height: 20,
-                            fontSize: '0.7rem',
-                            fontFamily: 'JetBrains Mono, monospace',
-                            borderColor: 'hsl(var(--primary) / 0.4)',
-                            color: 'hsl(var(--primary))',
-                            bgcolor: 'hsl(var(--primary) / 0.06)',
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                          <Chip
+                            label={feed.type}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.7rem',
+                              fontFamily: 'JetBrains Mono, monospace',
+                              borderColor: 'hsl(var(--primary) / 0.4)',
+                              color: 'hsl(var(--primary))',
+                              bgcolor: 'hsl(var(--primary) / 0.06)',
+                              '& .MuiChip-label': { px: 0.75 },
+                            }}
+                          />
+                          {typeof iocCounts[feed.type] === 'number' && (
+                            <Tooltip title={`Total IOCs in ioc_${feed.type}`} arrow>
+                              <Chip
+                                label={iocCounts[feed.type].toLocaleString()}
+                                size="small"
+                                sx={{
+                                  height: 20,
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  bgcolor: iocCounts[feed.type] > 0 ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--muted))',
+                                  color: iocCounts[feed.type] > 0 ? 'hsl(var(--severity-low))' : 'text.secondary',
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
+                              />
+                            </Tooltip>
+                          )}
+                        </Box>
                       ) : (
                         <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
                           auto
