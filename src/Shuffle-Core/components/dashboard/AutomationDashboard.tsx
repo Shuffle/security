@@ -130,6 +130,8 @@ export const AutomationDashboard = ({
   onDaysChange,
   gran: granProp,
   onGranChange,
+  mode: modeProp,
+  onModeChange,
   refreshKey,
   hideRefresh,
 }: AutomationDashboardProps) => {
