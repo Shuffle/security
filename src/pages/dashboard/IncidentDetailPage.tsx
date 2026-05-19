@@ -90,6 +90,13 @@ import { MergeCandidatesBanner } from '@/components/incidents/MergeCandidatesBan
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
+import {
+  ROUTING_DATASTORE_CATEGORY,
+  type RoutingRule,
+  ACTION_TYPE_LABELS,
+} from '@/components/settings/IncidentRoutingEditor';
+import { evaluateRoutingRules, type IncidentEvaluationContext } from '@/utils/routingRuleEvaluator';
+import { GitBranch as CallSplitIcon } from 'lucide-react';
 import { buildAgentContextBlock, stripAgentContextBlock } from '@/utils/agentContextBlock';
 import { MentionText } from '@/components/incidents/MentionText';
 import CollapsibleContent from '@/components/incidents/CollapsibleContent';
