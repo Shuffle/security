@@ -12,7 +12,33 @@ import { useEffect, useState } from 'react';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 
 const PADDING = 8;
-const Z_BASE = 1290; // just below the drawer (1300)
+// Default fallback z-index when the target lives in a plain stacking context.
+// Intentionally low so the spotlight sits *above the page* but *below* app
+// chrome like sidebars, popovers, dropdowns, drawers and modals (which all
+// live at >= 1100). The actual z-index used at render time is computed from
+// the target's own ancestor stacking contexts — see `computeTargetZIndex`.
+const Z_FALLBACK = 5;
+// Hard ceiling so a runaway ancestor z-index can never make the spotlight
+// punch through actual modal surfaces (MUI Modal/Drawer = 1300).
+const Z_CEILING = 1290;
+
+/**
+ * Walk up the target's ancestors and return the highest numeric z-index
+ * found on any element in its stacking-context chain. This lets the
+ * spotlight render *just above* the target's own layer without covering
+ * unrelated chrome that happens to render later in the DOM.
+ */
+const computeTargetZIndex = (el: HTMLElement | null): number => {
+  if (!el) return Z_FALLBACK;
+  let max = 0;
+  let node: HTMLElement | null = el;
+  while (node && node !== document.body) {
+    const z = parseInt(window.getComputedStyle(node).zIndex, 10);
+    if (!Number.isNaN(z) && z > max) max = z;
+    node = node.parentElement;
+  }
+  return Math.min(Math.max(max + 1, Z_FALLBACK), Z_CEILING);
+};
 
 export const DemoSpotlight = () => {
   const { drawerOpen, step, currentStepUnlocked, completedSteps, hasDemoIncidents, isOnIncidentDetail, hoveredGoalSelector } = useDemo();
