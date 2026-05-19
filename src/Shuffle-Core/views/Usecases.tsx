@@ -1503,11 +1503,11 @@ function IntegrationStatusLite({
     (async () => {
       try {
         const [authRes, appsRes] = await Promise.all([
-          fetch(apiUrl('/api/v1/apps/authentication'), {
+          fetchAppsCached(apiUrl('/api/v1/apps/authentication'), {
             credentials: 'include',
             headers: { ...authHeader() },
           }),
-          fetch(apiUrl('/api/v1/apps'), {
+          fetchAppsCached(apiUrl('/api/v1/apps'), {
             credentials: 'include',
             headers: { ...authHeader() },
           }).catch(() => null),
