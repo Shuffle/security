@@ -53,7 +53,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
 import { useDemo } from '@/context/DemoContext';
 import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
-import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
+import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem, deleteDatastoreItem, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
 import type { GenerateReportInput } from '@/services/incidentReports';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
@@ -866,6 +866,9 @@ const IncidentDetailPage = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [mergePreselectedId, setMergePreselectedId] = useState<string | undefined>(undefined);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [moveTargetOrgId, setMoveTargetOrgId] = useState<string>('');
+  const [isMoving, setIsMoving] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
@@ -7124,6 +7127,23 @@ const IncidentDetailPage = () => {
                   </MenuItem>
                 </span>
               </Tooltip>
+              {/* Move to Tenant */}
+              <Tooltip title={isSaving ? 'Saving in progress — please wait' : ''} placement="left" disableHoverListener={!isSaving}>
+                <span>
+                  <MenuItem
+                    disabled={isSaving}
+                    sx={{ width: '100%' }}
+                    onClick={() => {
+                      setActionsMenuAnchor(null);
+                      setMoveTargetOrgId('');
+                      setShowMoveDialog(true);
+                    }}
+                  >
+                    <ForwardIcon size={16} style={{ marginRight: '8px' }} />
+                    Move to Tenant…
+                  </MenuItem>
+                </span>
+              </Tooltip>
               {!isResolved && <Divider />}
               {!isResolved && (
                 <Tooltip title={isSaving ? 'Saving in progress — please wait' : ''} placement="left" disableHoverListener={!isSaving}>
@@ -9290,6 +9310,114 @@ const IncidentDetailPage = () => {
         }}
       />
 
+      {/* Move to Tenant Dialog — copies the incident into the chosen tenant
+          then deletes it from the current one, and navigates to the new one. */}
+      <Dialog
+        open={showMoveDialog}
+        onClose={() => { if (!isMoving) setShowMoveDialog(false); }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' } }}
+      >
+        <DialogTitle sx={{ color: 'hsl(var(--foreground))' }}>Move to Tenant</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 2 }}>
+            This will copy the incident into the selected tenant, delete it from the current one, and take you there.
+          </Typography>
+          {(() => {
+            const sourceOrgId = crossOrgId || userInfo?.active_org?.id || '';
+            const candidates: { id: string; name: string }[] = [];
+            if (parentOrg && parentOrg.id !== sourceOrgId) candidates.push({ id: parentOrg.id, name: parentOrg.name || parentOrg.id });
+            for (const so of subOrgs) {
+              if (so.id !== sourceOrgId) candidates.push({ id: so.id, name: so.name || so.id });
+            }
+            const activeId = userInfo?.active_org?.id;
+            if (activeId && activeId !== sourceOrgId && !candidates.find(c => c.id === activeId)) {
+              candidates.unshift({ id: activeId, name: userInfo?.active_org?.name || activeId });
+            }
+            if (candidates.length === 0) {
+              return (
+                <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                  No other tenants available.
+                </Typography>
+              );
+            }
+            return (
+              <FormControl fullWidth size="small">
+                <InputLabel id="move-tenant-label">Target tenant</InputLabel>
+                <Select
+                  labelId="move-tenant-label"
+                  label="Target tenant"
+                  value={moveTargetOrgId}
+                  onChange={(e) => setMoveTargetOrgId(String(e.target.value))}
+                  MenuProps={{ PaperProps: { sx: { zIndex: 9999 } } }}
+                >
+                  {candidates.map(c => (
+                    <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            );
+          })()}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
+            <Button
+              onClick={() => setShowMoveDialog(false)}
+              disabled={isMoving}
+              sx={{ textTransform: 'none', color: 'hsl(var(--muted-foreground))' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              disabled={!moveTargetOrgId || isMoving || !incident?.id}
+              onClick={async () => {
+                if (!incident?.id || !moveTargetOrgId) return;
+                const sourceOrgId = crossOrgId || userInfo?.active_org?.id;
+                if (!sourceOrgId) { toast.error('Could not determine source tenant'); return; }
+                if (sourceOrgId === moveTargetOrgId) { toast.error('Source and target tenants are the same'); return; }
+                setIsMoving(true);
+                try {
+                  const fresh = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, sourceOrgId);
+                  let value: unknown = null;
+                  if (fresh?.success && fresh.item?.value) {
+                    try {
+                      value = typeof fresh.item.value === 'string' ? JSON.parse(fresh.item.value) : fresh.item.value;
+                    } catch { value = fresh.item.value; }
+                  }
+                  if (!value) value = incident.rawOCSF || incident;
+
+                  const writeRes = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId);
+                  if (!writeRes.success) throw new Error(writeRes.error || 'Failed to write incident to target tenant');
+                  const delRes = await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, sourceOrgId);
+                  if (!delRes.success) {
+                    try { await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId); } catch { /* ignore rollback failure */ }
+                    throw new Error(delRes.error || 'Failed to delete incident from source tenant');
+                  }
+                  toast.success('Incident moved');
+                  setShowMoveDialog(false);
+                  const activeId = userInfo?.active_org?.id;
+                  const newKey = moveTargetOrgId === activeId ? incident.id : `${moveTargetOrgId}::${incident.id}`;
+                  navigate(`${entityBasePath}/${newKey}`, { replace: true });
+                } catch (err: any) {
+                  console.error('[MoveTenant] failed', err);
+                  toast.error(err?.message || 'Move failed');
+                } finally {
+                  setIsMoving(false);
+                }
+              }}
+              sx={{
+                textTransform: 'none',
+                bgcolor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+              }}
+            >
+              {isMoving ? 'Moving…' : 'Move'}
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
       {/* Threat Intel App Search Drawer */}
       <AppSearchDrawer
         open={showThreatIntelDrawer}
@@ -9299,6 +9427,7 @@ const IncidentDetailPage = () => {
         subtitle="Enable and authenticate an app to run IOC lookups"
         priorityCategory="Threat Intel"
       />
+
 
       {/* Forwarding / Email Tools App Search Drawer */}
       <AppSearchDrawer
