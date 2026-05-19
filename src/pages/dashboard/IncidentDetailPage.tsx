@@ -4299,6 +4299,28 @@ const IncidentDetailPage = () => {
       });
     }
 
+    // Routing rule matches — synthetic step pills anchored to incident creation
+    // so they appear at the bottom of the (newest-first) timeline. Rides along
+    // with the Agent filter since routing decisions are automation events.
+    if (isFilterActive('agent') && routingMatches.length > 0) {
+      const ts = incident?.createdTs ? normalizeToMs(incident.createdTs) : Date.now();
+      routingMatches.forEach((m, i) => {
+        const firstAction = m.rule.actions[0];
+        const actionLabel = firstAction
+          ? `${ACTION_TYPE_LABELS[firstAction.type] || firstAction.type}${firstAction.value ? `: ${firstAction.value}` : ''}`
+          : 'no action';
+        const more = m.rule.actions.length > 1 ? ` (+${m.rule.actions.length - 1} more)` : '';
+        items.push({
+          type: 'step',
+          kind: 'routing-matched',
+          // Stagger by 1ms so multiple matches keep a stable order.
+          timestamp: ts + i,
+          id: `step-routing-${m.rule.id}`,
+          label: `Routing rule matched: ${m.rule.name}`,
+          detail: `${actionLabel}${more}`,
+        });
+      });
+
     if (isFilterActive('manual')) {
       activity.forEach((item) => {
         items.push({ type: 'manual', timestamp: normalizeToMs(item.timestamp), data: item });
