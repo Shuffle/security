@@ -6821,6 +6821,9 @@ const IncidentDetailPage = () => {
                 </Box>
               )}
             </Popover>
+            </Box>
+            {/* Top row group (Refresh + Actions menu). */}
+            <Box sx={{ order: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
 
             <Tooltip title="Refresh">
               <IconButton 
