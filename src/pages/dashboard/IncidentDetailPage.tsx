@@ -869,26 +869,32 @@ const IncidentDetailPage = () => {
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
-  // Timeline filter — multi-select. Each key can be toggled independently;
-  // all are enabled by default. Persisted to localStorage so the same set
-  // is restored across page loads. Substep filters (`tasks`, `observables`,
-  // `correlations`) split the legacy "steps" bucket so each artefact type
-  // can be hidden individually.
+  // Timeline filter — multi-select. Each key can be toggled independently.
+  // Defaults: everything EXCEPT "Changes" (revisions). Revisions are noisy
+  // diffs that most users don't want to see by default — the synthetic
+  // "Incident created" step below is rendered unconditionally so the
+  // creation marker is never hidden by this default. Persisted to
+  // localStorage so the same set is restored across page loads. Substep
+  // filters (`tasks`, `observables`, `correlations`) split the legacy
+  // "steps" bucket so each artefact type can be hidden individually.
   type TimelineFilterKey = 'revisions' | 'agent' | 'manual' | 'tasks' | 'observables' | 'correlations';
   const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'manual', 'tasks', 'observables', 'correlations'];
-  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters';
+  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'manual', 'tasks', 'observables', 'correlations'];
+  // Bumped when the default set changes so existing localStorage entries
+  // re-default rather than persist the old "all on" baseline.
+  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v2';
   const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
-    if (typeof window === 'undefined') return new Set(ALL_TIMELINE_FILTERS);
+    if (typeof window === 'undefined') return new Set(DEFAULT_TIMELINE_FILTERS);
     try {
       const raw = localStorage.getItem(TIMELINE_FILTER_STORAGE_KEY);
-      if (!raw) return new Set(ALL_TIMELINE_FILTERS);
+      if (!raw) return new Set(DEFAULT_TIMELINE_FILTERS);
       const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Set(ALL_TIMELINE_FILTERS);
+      if (!Array.isArray(arr)) return new Set(DEFAULT_TIMELINE_FILTERS);
       const valid = arr.filter((k): k is TimelineFilterKey => ALL_TIMELINE_FILTERS.includes(k));
       // Empty set is allowed — user explicitly hid everything.
       return new Set(valid);
     } catch {
-      return new Set(ALL_TIMELINE_FILTERS);
+      return new Set(DEFAULT_TIMELINE_FILTERS);
     }
   });
   useEffect(() => {
