@@ -113,6 +113,8 @@ export const DemoSpotlight = () => {
   // to see *that* goal, even if the step is already unlocked).
   const suppressForUnlock = currentStepUnlocked && !isOptionalTarget && !isHoverOverride;
 
+  const [targetZ, setTargetZ] = useState<number>(Z_FALLBACK);
+
   // Find + track the target element. Polls because the DOM may load async.
   useEffect(() => {
     if (!drawerOpen || !selector || suppressForUnlock || modalOpen) {
@@ -139,6 +141,8 @@ export const DemoSpotlight = () => {
             }
             return r;
           });
+          const z = computeTargetZIndex(el);
+          setTargetZ(prev => (prev === z ? prev : z));
         } else {
           setRect(null);
         }
