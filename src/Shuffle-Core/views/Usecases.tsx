@@ -1640,13 +1640,6 @@ function IntegrationStatusLite({
           onMouseEnter={() => onHover?.(integration)}
           onMouseLeave={() => onHover?.(null)}
           onClick={(e) => {
-            // Hardcoded: Shuffle Security is the platform itself — clicking
-            // its icon jumps straight to /incidents instead of opening the
-            // per-app popover (no auth/enable affordances apply to it).
-            if (integration.id === 'shuffle-security') {
-              if (typeof window !== 'undefined') window.location.href = '/incidents';
-              return;
-            }
             setPopoverFor({ el: e.currentTarget as HTMLElement, item: integration });
             onSelect?.(integration);
           }}
@@ -1803,7 +1796,40 @@ function IntegrationStatusLite({
           },
         }}
       >
-        {item && (
+        {item && item.id === 'shuffle-security' && (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', fontSize: '0.8rem' }}>
+                Shuffle Security
+              </Typography>
+            </Box>
+            <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', mb: 1 }}>
+              The Shuffle Security platform itself — incidents land here.
+            </Typography>
+            <Button
+              size="small"
+              startIcon={<ExternalLink size={14} />}
+              onClick={() => {
+                setPopoverFor(null);
+                if (typeof window !== 'undefined') window.location.href = '/incidents';
+              }}
+              sx={{
+                justifyContent: 'flex-start',
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                color: 'hsl(var(--foreground))',
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                width: '100%',
+                '&:hover': { bgcolor: 'hsl(var(--muted))' },
+              }}
+            >
+              Open Incidents
+            </Button>
+          </>
+        )}
+        {item && item.id !== 'shuffle-security' && (
           <>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, flexWrap: 'wrap' }}>
               <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', textTransform: 'capitalize', fontSize: '0.8rem' }}>
