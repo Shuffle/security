@@ -1574,7 +1574,7 @@ function IntegrationStatusLite({
     return <CircularProgress size={20} sx={{ color: 'hsl(var(--muted-foreground))' }} />;
   }
 
-  if (visible.length === 0) {
+  if (visible.length === 0 && !onAddApp) {
     return (
       <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', px: 1, py: 0.75 }}>
         No apps selected
