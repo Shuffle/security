@@ -9388,6 +9388,26 @@ const IncidentDetailPage = () => {
 
                   const writeRes = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId);
                   if (!writeRes.success) throw new Error(writeRes.error || 'Failed to write incident to target tenant');
+
+                  // Verify the write landed and is readable in the target
+                  // tenant BEFORE deleting from the source. Some backends are
+                  // eventually consistent, so retry a few times before giving
+                  // up to avoid losing the incident on a transient miss.
+                  let verified = false;
+                  for (let attempt = 0; attempt < 5 && !verified; attempt++) {
+                    if (attempt > 0) await new Promise(r => setTimeout(r, 400));
+                    try {
+                      const check = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId);
+                      if (check?.success && check.item?.value) verified = true;
+                    } catch { /* retry */ }
+                  }
+                  if (!verified) {
+                    // Roll back so we don't end up with a half-move that
+                    // duplicates the incident in two places.
+                    try { await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId); } catch { /* ignore rollback failure */ }
+                    throw new Error('Could not verify the incident landed in the target tenant — source kept intact');
+                  }
+
                   const delRes = await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, sourceOrgId);
                   if (!delRes.success) {
                     try { await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId); } catch { /* ignore rollback failure */ }
