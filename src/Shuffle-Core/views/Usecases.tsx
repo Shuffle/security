@@ -1432,6 +1432,9 @@ function IntegrationStatusLite({
   onHover,
   onSelect,
   selectedId,
+  usecaseEnabledNames,
+  onUsecaseAppToggle,
+  usecaseLabel,
 }: {
   filterApps?: string[];
   singleLine?: boolean;
@@ -1449,12 +1452,20 @@ function IntegrationStatusLite({
   onSelect?: (item: IntegrationItem) => void;
   /** Item id currently pinned by the parent (renders a stronger outline). */
   selectedId?: string;
+  /** Normalized app names currently active in the parent usecase workflow.
+   *  When provided, the popover shows Enable/Disable for the current usecase. */
+  usecaseEnabledNames?: Set<string>;
+  /** Toggle handler invoked when the user enables/disables an app for this usecase. */
+  onUsecaseAppToggle?: (appName: string, enabled: boolean) => Promise<void> | void;
+  /** Short label for the parent usecase, shown in the popover (e.g. "Email reports"). */
+  usecaseLabel?: string;
 }) {
   const { apiUrl, authHeader } = useApi();
   const appDetail = useAppDetailOptional();
   const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [popoverFor, setPopoverFor] = useState<{ el: HTMLElement; item: IntegrationItem } | null>(null);
+  const [togglingName, setTogglingName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
