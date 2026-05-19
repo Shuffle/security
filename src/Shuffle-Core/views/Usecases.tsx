@@ -1581,7 +1581,10 @@ function IntegrationStatusLite({
         <Box
           onMouseEnter={() => onHover?.(integration)}
           onMouseLeave={() => onHover?.(null)}
-          onClick={onSelect ? () => onSelect(integration) : undefined}
+          onClick={() => {
+            if (appDetail && integration.name) appDetail.openApp(integration.name);
+            onSelect?.(integration);
+          }}
           sx={{
             position: 'relative',
             width: 32,
