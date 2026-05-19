@@ -2076,7 +2076,7 @@ const IncidentsPage = () => {
                 '& .automation-section-ingest': {
                   zIndex: 10,
                   bgcolor: 'hsl(var(--muted))',
-                  clipPath: 'inset(-20px -500px -20px 0px)',
+                  clipPath: 'inset(-20px 0px -20px -500px)',
                 },
                 '& .automation-section-forward .automation-section-title': {
                   opacity: 0,
