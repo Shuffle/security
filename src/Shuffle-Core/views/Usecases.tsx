@@ -2721,7 +2721,10 @@ function UsecaseDetailContent({
 
       {flow.automationArea === 'notifications'
         ? <NotificationsOutcomeBlock />
-        : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
+        : flow.label === 'IOC feeds'
+          ? <IocFeedsOutcomeBlock />
+          : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
+
 
 
       {showConnectionPath && (
