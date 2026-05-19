@@ -4267,17 +4267,16 @@ const IncidentDetailPage = () => {
       });
     }
 
-    // Synthetic "Incident created" step — guarantees the timeline always
-    // shows when the incident was created, even before any revision has
-    // been written (e.g., a freshly created manual incident). Suppressed
-    // when revisions exist because the oldest revision already renders as
-    // "Incident created".
-    if (revisions.length === 0 && incident?.createdTs) {
+    // Synthetic "Incident created" step — ALWAYS shown so users see when the
+    // incident was created regardless of which timeline filters are active.
+    // Suppressed only when the Changes filter is on AND revisions exist,
+    // because in that case the oldest revision already renders as
+    // "Incident created" via the revision render path (avoiding duplication).
+    const oldestRevisionCoversCreation =
+      isFilterActive('revisions') && revisions.length > 0;
+    if (!oldestRevisionCoversCreation && incident?.createdTs) {
       const createdTs = normalizeToMs(incident.createdTs);
-      // The synthetic "Incident created" marker rides along with the
-      // Changes filter (since it conceptually represents the very first
-      // change to the incident).
-      if (createdTs > 0 && isFilterActive('revisions')) {
+      if (createdTs > 0) {
         const sourceLabel = incident.source ? ` from ${incident.source}` : '';
         items.push({
           type: 'step',
