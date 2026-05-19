@@ -1591,6 +1591,58 @@ const IncidentDetailPage = () => {
     return found ? { name: found.name, image: found.image } : null;
   }, [crossOrgId, subOrgs, parentOrg]);
 
+  // ── Routing rule matches (powers both the preview banner AND timeline pills) ──
+  // Rules live on the PARENT org's `shuffle-security_routing` datastore; on a
+  // parent we fall back to the active org id. The result is also injected as
+  // synthetic "routing-matched" steps in the unified timeline so users can see
+  // at a glance which rules would fire — without scrolling up to the banner.
+  const routingRulesOrgId = parentOrg?.id || userInfo?.active_org?.id;
+  const { items: routingRuleItems, fetchItems: fetchRoutingRules } = useDatastore({
+    category: ROUTING_DATASTORE_CATEGORY,
+    orgId: routingRulesOrgId,
+  });
+  useEffect(() => {
+    if (routingRulesOrgId) fetchRoutingRules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routingRulesOrgId]);
+  const routingRules: RoutingRule[] = useMemo(() => {
+    const out: RoutingRule[] = [];
+    for (const it of routingRuleItems) {
+      try {
+        const v = typeof it.value === 'string' ? JSON.parse(it.value) : it.value;
+        if (v && typeof v === 'object') {
+          const actions = Array.isArray(v.actions) ? v.actions : (v.action ? [v.action] : []);
+          out.push({
+            id: v.id || it.key,
+            name: v.name || 'Untitled rule',
+            enabled: v.enabled !== false,
+            priority: Number.isFinite(v.priority) ? v.priority : 100,
+            matchMode: v.matchMode === 'any' ? 'any' : 'all',
+            conditions: Array.isArray(v.conditions) ? v.conditions : [],
+            actions,
+          });
+        }
+      } catch { /* skip malformed */ }
+    }
+    return out;
+  }, [routingRuleItems]);
+  const routingContext: IncidentEvaluationContext = useMemo(() => ({
+    title: editedTitle || incident?.title,
+    description: editedMessage,
+    source: incident?.source,
+    severity: editedSeverity,
+    status: editedStatus,
+    labels: editedLabels,
+    observables: editedObservables,
+    stakeholders: editedStakeholders,
+    rawOCSF: incident?.rawOCSF,
+  }), [editedTitle, editedMessage, editedSeverity, editedStatus, editedLabels, editedObservables, editedStakeholders, incident]);
+  const routingMatches = useMemo(
+    () => evaluateRoutingRules(routingContext, routingRules),
+    [routingContext, routingRules]
+  );
+
+
   // Detect which other orgs share the same incident key
   // Primary source: shared_orgs query param from the list page (most reliable)
   // Fallback: probe each org via get_cache
