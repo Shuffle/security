@@ -2204,6 +2204,121 @@ function IocFeedsOutcomeBlock() {
   return <UsecaseOutcomeSection outcome={outcome} />;
 }
 
+// Assign & Escalate usecase — graphs executions of the matched workflow over
+// the last ~30 days using /api/v2/workflows/{id}/executions `timeline` field.
+function AssignEscalateOutcomeBlock({ flow, workflows }: { flow: Usecase; workflows: WorkflowSummary[] }) {
+  const { apiUrl, authHeader } = useApi();
+  const [timeline, setTimeline] = useState<{ key: string; data: number }[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const matchedWorkflowId = useMemo(() => {
+    const matched = findWorkflowsForUsecase(flow, workflows);
+    return matched.find((w) => !!w.id)?.id || null;
+  }, [flow, workflows]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!matchedWorkflowId) {
+      setTimeline([]);
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          apiUrl(`/api/v2/workflows/${matchedWorkflowId}/executions`),
+          { credentials: 'include', headers: { ...authHeader() } },
+        );
+        if (!res.ok) { if (!cancelled) setTimeline([]); return; }
+        const data = await res.json();
+        const tl: any[] = Array.isArray(data?.timeline) ? data.timeline : [];
+        if (!cancelled) {
+          setTimeline(tl.map((p) => ({
+            key: String(p?.key ?? ''),
+            data: typeof p?.data === 'number' ? p.data : 0,
+          })));
+        }
+      } catch {
+        if (!cancelled) setTimeline([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [apiUrl, authHeader, matchedWorkflowId]);
+
+  const FG = 'hsl(var(--foreground))';
+  const MUTED = 'hsl(var(--muted-foreground))';
+  const PRIMARY = 'hsl(var(--primary))';
+  const BORDER = 'hsl(var(--border))';
+  const CARD = 'hsl(var(--card))';
+
+  const points = timeline || [];
+  const total = points.reduce((s, p) => s + p.data, 0);
+  const max = Math.max(1, ...points.map((p) => p.data));
+  const windowDays = points.length || 30;
+
+  if (!matchedWorkflowId && !loading) {
+    return (
+      <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6, mb: 1 }}>
+          Outcome · last 30 days
+        </Typography>
+        <Typography sx={{ fontSize: '0.85rem', color: MUTED }}>
+          No data yet — automation not enabled
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+          Outcome · last {windowDays} days
+        </Typography>
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
+        <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: PRIMARY, lineHeight: 1 }}>
+          {total.toLocaleString()}
+        </Typography>
+        <Typography sx={{ fontSize: '0.9rem', color: FG }}>
+          workflow executions
+        </Typography>
+      </Box>
+      {points.length > 0 && (
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: 80 }}>
+            {points.map((p, i) => {
+              const h = p.data > 0 ? Math.max(2, (p.data / max) * 100) : 2;
+              return (
+                <Tooltip key={`${p.key}-${i}`} title={`${p.key}: ${p.data}`} placement="top" arrow>
+                  <Box
+                    sx={{
+                      flex: 1,
+                      height: `${h}%`,
+                      minWidth: 4,
+                      borderRadius: '2px 2px 0 0',
+                      bgcolor: p.data > 0 ? PRIMARY : BORDER,
+                      transition: 'background-color 0.15s',
+                      '&:hover': { bgcolor: p.data > 0 ? PRIMARY : MUTED },
+                    }}
+                  />
+                </Tooltip>
+              );
+            })}
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.75 }}>
+            <Typography sx={{ fontSize: '0.68rem', color: MUTED }}>{points[0]?.key}</Typography>
+            <Typography sx={{ fontSize: '0.68rem', color: MUTED }}>{points[points.length - 1]?.key}</Typography>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 
 
 
@@ -2723,7 +2838,9 @@ function UsecaseDetailContent({
         ? <NotificationsOutcomeBlock />
         : flow.label === 'IOC feeds'
           ? <IocFeedsOutcomeBlock />
-          : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
+          : flow.id === 'case_management_assign_escalate_1'
+            ? <AssignEscalateOutcomeBlock flow={flow} workflows={workflows} />
+            : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
 
 
 
