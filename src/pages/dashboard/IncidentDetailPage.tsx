@@ -4242,39 +4242,34 @@ const IncidentDetailPage = () => {
       } catch { return null; }
     });
 
-    if (isFilterActive('revisions')) {
-      revisions.forEach((rev, idx) => {
-        // For the "Incident created" item (the oldest revision), prefer the
-        // incident's true creation timestamp instead of the revision's `edited`
-        // field. The first stored revision is often written *after* the user's
-        // first comment (the comment triggers the save), so its `edited` time
-        // can be later than that comment's `Date.now()` — which would
-        // incorrectly push the first comment below "Incident created" in the
-        // newest-first feed. Anchoring to `incident.createdTs` keeps creation
-        // at the bottom of the timeline where it belongs.
-        const isOldest = idx === revisions.length - 1;
-        const ts = isOldest && incident?.createdTs
-          ? normalizeToMs(incident.createdTs)
-          : normalizeToMs(rev.edited ?? rev.created);
-        items.push({
-          type: 'revision',
-          timestamp: ts,
-          data: rev,
-          idx,
-          parsedCurrent: parsedRevisions[idx],
-          parsedPrevious: idx < revisions.length - 1 ? parsedRevisions[idx + 1] : null,
-        });
+    // Revisions: when the Changes filter is on, render all revisions.
+    // When it's off, we still always render the OLDEST revision as the
+    // "Incident created" full-height card so users get the full creation
+    // context (title, source, click-to-open email/description) regardless
+    // of filter state.
+    const revisionsFilterOn = isFilterActive('revisions');
+    revisions.forEach((rev, idx) => {
+      const isOldest = idx === revisions.length - 1;
+      if (!revisionsFilterOn && !isOldest) return;
+      // For the "Incident created" item (the oldest revision), prefer the
+      // incident's true creation timestamp instead of the revision's `edited`
+      // field (see note above about comment ordering).
+      const ts = isOldest && incident?.createdTs
+        ? normalizeToMs(incident.createdTs)
+        : normalizeToMs(rev.edited ?? rev.created);
+      items.push({
+        type: 'revision',
+        timestamp: ts,
+        data: rev,
+        idx,
+        parsedCurrent: parsedRevisions[idx],
+        parsedPrevious: idx < revisions.length - 1 ? parsedRevisions[idx + 1] : null,
       });
-    }
+    });
 
-    // Synthetic "Incident created" step — ALWAYS shown so users see when the
-    // incident was created regardless of which timeline filters are active.
-    // Suppressed only when the Changes filter is on AND revisions exist,
-    // because in that case the oldest revision already renders as
-    // "Incident created" via the revision render path (avoiding duplication).
-    const oldestRevisionCoversCreation =
-      isFilterActive('revisions') && revisions.length > 0;
-    if (!oldestRevisionCoversCreation && incident?.createdTs) {
+    // Synthetic "Incident created" step — fallback only when there are NO
+    // revisions to render the full creation card from.
+    if (revisions.length === 0 && incident?.createdTs) {
       const createdTs = normalizeToMs(incident.createdTs);
       if (createdTs > 0) {
         const sourceLabel = incident.source ? ` from ${incident.source}` : '';
@@ -4288,6 +4283,7 @@ const IncidentDetailPage = () => {
         });
       }
     }
+
 
     if (isFilterActive('agent')) {
       // Skipped runs (workflow-level decision_string.success === false) are
@@ -4713,19 +4709,17 @@ const IncidentDetailPage = () => {
           <Box
             key={itemKey}
             onClick={showAsCreation ? () => {
-              // The "Incident created" entry points to the email evidence
-              // when this incident is an email-sourced one. Scroll to the
-              // EmailThreadPanel and expand it if it's currently collapsed.
-              const el = document.querySelector('[data-tour="incident-email-thread"]') as HTMLElement | null;
+              // The "Incident created" entry opens the source evidence:
+              // Email Thread panel for email-sourced incidents, otherwise
+              // the Description panel. Scroll into view and expand it if
+              // currently collapsed.
+              const el =
+                (document.querySelector('[data-tour="incident-email-thread"]') as HTMLElement | null)
+                || (document.querySelector('[data-tour="incident-description"]') as HTMLElement | null);
               if (!el) return;
               el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              // The header is the first interactive child — click it to
-              // toggle expansion if the panel is currently collapsed. We
-              // detect collapsed state by absence of the inner border on
-              // the header (matches the panel's existing logic).
               const header = el.querySelector(':scope > div') as HTMLElement | null;
               if (header && header.getBoundingClientRect().height > 0) {
-                // Only auto-expand if collapsed (no sibling content rendered yet).
                 const expanded = el.children.length > 1;
                 if (!expanded) header.click();
               }
