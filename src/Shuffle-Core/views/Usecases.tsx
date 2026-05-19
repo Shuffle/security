@@ -1584,8 +1584,8 @@ function IntegrationStatusLite({
         <Box
           onMouseEnter={() => onHover?.(integration)}
           onMouseLeave={() => onHover?.(null)}
-          onClick={() => {
-            if (appDetail && integration.name) appDetail.openApp(integration.name);
+          onClick={(e) => {
+            setPopoverFor({ el: e.currentTarget as HTMLElement, item: integration });
             onSelect?.(integration);
           }}
           sx={{
