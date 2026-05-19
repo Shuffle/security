@@ -1346,17 +1346,16 @@ const FormInput = (defaultprops: any) => {
 					}
 
 					return (
-						<div key={formIndex} style={{marginBottom: 10, }}>
-							<RecentWorkflow 
-								workflow={form}
-								onclickHandler={() => {
-									navigate(`/forms/${form.id}`)
-									getWorkflow(form.id, sourceNode) 
-									setExplorerUi(false)
-								}}
-								currentWorkflowId={workflow.id}
-							/>
-						</div>
+						<RecentWorkflow
+							key={formIndex}
+							workflow={form}
+							onclickHandler={() => {
+								navigate(`/forms/${form.id}`)
+								getWorkflow(form.id, sourceNode)
+								setExplorerUi(false)
+							}}
+							currentWorkflowId={workflow.id}
+						/>
 					)
 				})}
 			</div>
