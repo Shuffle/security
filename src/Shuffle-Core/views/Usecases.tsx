@@ -2838,7 +2838,9 @@ function UsecaseDetailContent({
         ? <NotificationsOutcomeBlock />
         : flow.label === 'IOC feeds'
           ? <IocFeedsOutcomeBlock />
-          : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
+          : flow.id === 'case_management_assign_escalate_1'
+            ? <AssignEscalateOutcomeBlock flow={flow} workflows={workflows} />
+            : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
 
 
 
