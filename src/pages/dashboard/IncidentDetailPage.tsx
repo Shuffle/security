@@ -8794,7 +8794,10 @@ const IncidentDetailPage = () => {
                     const result = await setDatastoreItem(incident.id, parsed, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
                     if (result.success) {
                       toast.success('Raw data saved');
+                      setSelectedRevisionIdx(null);
+                      setRawJsonText(JSON.stringify(parsed, null, 2));
                       loadIncident(false);
+                      loadRevisions();
                     } else {
                       toast.error(result.error || 'Failed to save');
                     }
