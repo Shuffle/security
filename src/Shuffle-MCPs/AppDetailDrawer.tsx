@@ -140,7 +140,10 @@ export default function AppDetailDrawer({
   activeOrgId,
 }: AppDetailDrawerProps) {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
-  const [appLoading, setAppLoading] = useState(false);
+  // Start in loading state so the skeleton paints on the very first frame
+  // after the drawer mounts/opens — avoids a flash of empty/partial content
+  // before the open-effect kicks in and flips this to true.
+  const [appLoading, setAppLoading] = useState(true);
   const [isActivated, setIsActivated] = useState<boolean | null>(null);
   const [activatedAppId, setActivatedAppId] = useState<string | null>(null);
   const [activateLoading, setActivateLoading] = useState(false);
