@@ -2397,7 +2397,6 @@ function UsecaseDetailContent({
           />
         ) : (
         <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-          {(() => null)()}
           {[
             { title: 'Source', meta: sourceCat, details: sourceDetails, categoryId: flow.source, appNames: categoryAppNames[flow.source] || [] },
             { title: 'Destination', meta: targetCat, details: targetDetails, categoryId: flow.target, appNames: categoryAppNames[flow.target] || [] },
