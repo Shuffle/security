@@ -3212,6 +3212,13 @@ function UsecaseCard({
     e.preventDefault();
     if (!flow.automationLabel || toggling) return;
     const willBeEnabled = !effectiveEnabled;
+    // When enabling from the list, hand off to the parent so the detail
+    // drawer opens and the user can watch the workflow materialize.
+    if (willBeEnabled && onEnable) {
+      onEnable();
+      return;
+    }
+    const willBeEnabled = !effectiveEnabled;
     if (willBeEnabled && !hasValidatedSource) {
       toast.warning(`No active ${sourceCat} integration`, {
         description: `Enabling ${flow.label} will not do anything until you connect and validate a ${sourceCat} tool. The workflow has no input to react to and may be disabled again automatically.`,
