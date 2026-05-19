@@ -1616,6 +1616,13 @@ function IntegrationStatusLite({
           onMouseEnter={() => onHover?.(integration)}
           onMouseLeave={() => onHover?.(null)}
           onClick={(e) => {
+            // Hardcoded: Shuffle Security is the platform itself — clicking
+            // its icon jumps straight to /incidents instead of opening the
+            // per-app popover (no auth/enable affordances apply to it).
+            if (integration.id === 'shuffle-security') {
+              if (typeof window !== 'undefined') window.location.href = '/incidents';
+              return;
+            }
             setPopoverFor({ el: e.currentTarget as HTMLElement, item: integration });
             onSelect?.(integration);
           }}
@@ -2783,8 +2790,10 @@ function UsecaseDetailContent({
                   id: 'shuffle-security',
                   name: 'Shuffle Security',
                   icon: shuffleSecurityIcon,
-                  validated: true,
-                  active: true,
+                  // Reflect the parent flow's live enabled state so the right
+                  // side lights up green only when this usecase is actually on.
+                  validated: !!effectiveEnabled,
+                  active: !!effectiveEnabled,
                 }]
               : undefined;
             const side: 'source' | 'destination' = endpoint.title === 'Source' ? 'source' : 'destination';
