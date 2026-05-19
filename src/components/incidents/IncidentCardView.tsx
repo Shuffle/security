@@ -552,7 +552,7 @@ export const IncidentCardView = ({
                         />
                       </Tooltip>
                     )}
-                    <StatusIcon size={16} color={statusInfo.color} />
+                    
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -626,13 +626,13 @@ export const IncidentCardView = ({
                           onFilterChange?.('assignee', incident.assignee || '');
                         }}
                         sx={{
-                          backgroundColor: 'hsl(var(--primary) / 0.12)',
-                          color: 'hsl(var(--primary))',
+                          backgroundColor: 'hsl(var(--muted) / 0.5)',
+                          color: 'hsl(var(--muted-foreground))',
                           fontWeight: 500,
                           fontSize: '0.65rem',
                           height: 22,
                           cursor: 'pointer',
-                          '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.22)' },
+                          '&:hover': { backgroundColor: 'hsl(var(--muted))' },
                         }}
                       />
                     </>
@@ -714,15 +714,15 @@ export const IncidentCardView = ({
                                e.preventDefault();
                                onFilterChange?.('tag', label);
                              }}
-                             sx={{
-                               backgroundColor: 'hsl(var(--severity-info) / 0.12)',
-                               color: 'hsl(var(--severity-info))',
-                               fontWeight: 500,
-                               fontSize: '0.65rem',
-                               height: 22,
-                               cursor: 'pointer',
-                               '&:hover': { backgroundColor: 'hsl(var(--severity-info) / 0.22)' },
-                             }}
+                              sx={{
+                                backgroundColor: 'hsl(var(--muted) / 0.5)',
+                                color: 'hsl(var(--muted-foreground))',
+                                fontWeight: 500,
+                                fontSize: '0.65rem',
+                                height: 22,
+                                cursor: 'pointer',
+                                '&:hover': { backgroundColor: 'hsl(var(--muted))' },
+                              }}
                            />
                          ))}
                          {visibleLabels.length > 3 && (
@@ -730,13 +730,13 @@ export const IncidentCardView = ({
                              <Chip
                                label={`+${visibleLabels.length - 3}`}
                                size="small"
-                               sx={{
-                                 backgroundColor: 'hsl(var(--severity-info) / 0.08)',
-                                 color: 'hsl(var(--severity-info))',
-                                 fontWeight: 500,
-                                 fontSize: '0.65rem',
-                                 height: 22,
-                               }}
+                                sx={{
+                                  backgroundColor: 'hsl(var(--muted) / 0.3)',
+                                  color: 'hsl(var(--muted-foreground))',
+                                  fontWeight: 500,
+                                  fontSize: '0.65rem',
+                                  height: 22,
+                                }}
                              />
                            </Tooltip>
                          )}
