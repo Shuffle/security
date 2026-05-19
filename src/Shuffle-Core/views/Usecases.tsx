@@ -3551,6 +3551,7 @@ function UsecaseCard({
   isAuthenticated = true,
   hasValidatedSource = true,
   onToggled,
+  workflows = [],
   onClick,
   onEnable,
 }: {
@@ -3563,6 +3564,7 @@ function UsecaseCard({
   isAuthenticated?: boolean;
   hasValidatedSource?: boolean;
   onToggled?: (label: string, enabled: boolean) => void;
+  workflows?: WorkflowSummary[];
   onClick: () => void;
   /** Optional parent handler — when provided, clicking the card's Enable
    *  button delegates to this instead of toggling inline. The list view uses
