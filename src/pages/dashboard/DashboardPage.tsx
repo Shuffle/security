@@ -1217,7 +1217,14 @@ const DashboardPage = () => {
         </Box>
       )}
       <Box id="agent-notifications" sx={{ order: 3, scrollMarginTop: 80 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box
+          onClick={() => setAgentNotificationsCollapsed(c => !c)}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1,
+            mb: agentNotificationsCollapsed ? 0 : 2,
+            cursor: 'pointer', userSelect: 'none',
+          }}
+        >
           <AlertTriangle size={18} style={{ color: 'hsl(var(--severity-high))' }} />
           <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
             Agent Notifications
@@ -1235,7 +1242,19 @@ const DashboardPage = () => {
               }}
             />
           )}
+          <Box sx={{ flex: 1 }} />
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); setAgentNotificationsCollapsed(c => !c); }}
+            sx={{ color: 'hsl(var(--muted-foreground))' }}
+            aria-label={agentNotificationsCollapsed ? 'Expand agent notifications' : 'Collapse agent notifications'}
+          >
+            {agentNotificationsCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+          </IconButton>
         </Box>
+
+        <Collapse in={!agentNotificationsCollapsed} timeout="auto" unmountOnExit>
+
 
         {/* Filter chips */}
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
