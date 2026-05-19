@@ -2396,6 +2396,67 @@ function UsecaseDetailContent({
             isLoggedIn={isAuthenticated}
           />
         ) : (
+        (() => {
+          // Per-usecase per-app enable/disable: read which apps the linked
+          // workflow currently uses, and provide a toggle that re-posts the
+          // full app_name list to /workflows/generate (same contract as the
+          // /incidents Ingest popover so the two stay in sync).
+          const linkedForApps = findWorkflowsForUsecase(flow, workflows);
+          const enabledNamesSet = new Set<string>();
+          for (const wf of linkedForApps) {
+            const names = extractWorkflowAppNames(wf);
+            names.forEach((n) => enabledNamesSet.add(n));
+          }
+          const handleUsecaseAppToggle = async (appName: string, enabled: boolean) => {
+            if (!flow.automationLabel) {
+              toast.error('This usecase is not toggleable yet');
+              return;
+            }
+            const next = new Set(Array.from(enabledNamesSet));
+            const key = normalizeAppName(appName);
+            if (enabled) next.add(key); else next.delete(key);
+            const activeNames: string[] = [];
+            const seen = new Set<string>();
+            // Preserve original casing from auth/apps catalog where possible
+            // by walking the integrations list visible in the strip.
+            const catalog: string[] = [
+              ...((categoryAppNames[flow.source] || []) as string[]),
+              ...((categoryAppNames[flow.target] || []) as string[]),
+            ];
+            for (const n of catalog) {
+              const k = normalizeAppName(n);
+              if (next.has(k) && !seen.has(k)) { activeNames.push(n); seen.add(k); }
+            }
+            // Make sure the just-enabled app is in the list even if it isn't
+            // in the local catalog snapshot.
+            if (enabled && !seen.has(key)) activeNames.push(appName);
+            try {
+              const body: Record<string, string> = { label: flow.automationLabel };
+              if (flow.automationCategory) body.category = flow.automationCategory;
+              if (activeNames.length > 0) body.app_name = activeNames.join(',');
+              else body.action_name = 'remove';
+              const res = await fetch(apiUrl('/api/v2/workflows/generate'), {
+                method: 'POST',
+                credentials: 'include',
+                headers: { ...authHeader(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+              let parsed: any = null;
+              try { parsed = await res.json(); } catch { /* ignore */ }
+              const ok = res.ok && parsed?.success !== false;
+              if (!ok) throw new Error(parsed?.reason || `Request failed (${res.status})`);
+              toast.success(enabled
+                ? `${appName} enabled for ${flow.label}`
+                : `${appName} disabled for ${flow.label}`);
+              setIntegrationsRefreshKey((k2) => k2 + 1);
+              onToggled?.(flow.automationLabel, activeNames.length > 0);
+            } catch (err: any) {
+              toast.error(`Failed to ${enabled ? 'enable' : 'disable'} ${appName}`, {
+                description: err?.message || 'The backend rejected the request.',
+              });
+            }
+          };
+          return (
         <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
           {[
             { title: 'Source', meta: sourceCat, details: sourceDetails, categoryId: flow.source, appNames: categoryAppNames[flow.source] || [] },
