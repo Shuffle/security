@@ -3156,6 +3156,8 @@ function UsecasesPageInner() {
                 hasValidatedSource={drawerHasValidatedSource}
                 onToggled={handleUsecaseWorkflowGenerated}
                 workflows={workflows}
+                autoEnable={autoEnableFlowId !== null && autoEnableFlowId === drawerFlowId}
+                onAutoEnableConsumed={() => setAutoEnableFlowId(null)}
               />
             );
           })()}
