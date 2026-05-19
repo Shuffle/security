@@ -1364,6 +1364,7 @@ const DashboardPage = () => {
           )}
           </>
         )}
+        </Collapse>
       </Box>
 
       {/* ── Setup Checklist ──────────────────────────────────────────────────── */}
