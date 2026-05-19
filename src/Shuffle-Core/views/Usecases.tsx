@@ -3612,15 +3612,47 @@ function UsecaseCard({
     setToggling(true);
     setOptimisticEnabled(willBeEnabled);
     try {
+      // Same logic as UsecaseDetailContent.handleToggle: when disabling, the
+      // backing workflow may be shared with sibling usecases (SIEM / EDR /
+      // Email all share "Ingest Tickets"). Strip only this usecase's source
+      // apps and re-post the remainder instead of nuking the workflow.
+      const requestBody: Record<string, string> = { label: flow.automationLabel };
+      if (flow.automationCategory) requestBody.category = flow.automationCategory;
+      if (!willBeEnabled) {
+        const sourceToIngest: Record<string, string> = {
+          email: 'email', edr: 'edr', siem: 'siem', case_management: 'cases',
+        };
+        const thisCat = sourceToIngest[flow.source];
+        const linked = findWorkflowsForUsecase(flow, workflows);
+        const currentNames: string[] = [];
+        const seen = new Set<string>();
+        for (const wf of linked) {
+          for (const action of (wf.actions || [])) {
+            const candidates: string[] = [];
+            if (action.app_name) candidates.push(action.app_name);
+            if (Array.isArray(action.parameters)) {
+              for (const p of action.parameters) {
+                if (p?.name === 'app_name' && p.value) candidates.push(p.value);
+              }
+            }
+            for (const n of candidates) {
+              const k = normalizeAppName(n);
+              if (!seen.has(k)) { currentNames.push(n); seen.add(k); }
+            }
+          }
+        }
+        const remaining = currentNames.filter((n) => {
+          const cat = getIngestionCategory(n);
+          return thisCat ? cat !== thisCat : true;
+        });
+        if (remaining.length > 0) requestBody.app_name = remaining.join(',');
+        else requestBody.action_name = 'remove';
+      }
       const res = await fetch(apiUrl('/api/v2/workflows/generate'), {
         method: 'POST',
         credentials: 'include',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          label: flow.automationLabel,
-          ...(flow.automationCategory ? { category: flow.automationCategory } : {}),
-          ...(willBeEnabled ? {} : { action_name: 'remove' }),
-        }),
+        body: JSON.stringify(requestBody),
       });
       let body: any = null;
       try { body = await res.json(); } catch { /* ignore */ }
