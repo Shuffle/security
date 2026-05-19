@@ -3058,6 +3058,10 @@ function UsecasesPageInner() {
                 hasValidatedSource={validatedCategories.has(flow.source)}
                 onToggled={handleUsecaseWorkflowGenerated}
                 onClick={() => setDrawerFlowId(flow.id)}
+                onEnable={() => {
+                  setAutoEnableFlowId(flow.id);
+                  setDrawerFlowId(flow.id);
+                }}
               />
             ))}
           </Box>
