@@ -1828,7 +1828,6 @@ const ACTIVE_USECASE_IDS = [
   'edr_case_management_1',
   'email_case_management_1',
   'threat_intel_case_management_1',
-  'asset_management_case_management_vuln_1',
   'case_management_cases_forward_1',
   'case_management_asset_management_monitors_1',
   'case_management_assign_escalate_1',
