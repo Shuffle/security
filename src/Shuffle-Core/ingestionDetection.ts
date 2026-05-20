@@ -94,19 +94,20 @@ export function extractWorkflowAppNames(workflow: any): Set<string> {
   const names = new Set<string>();
   if (!workflow?.actions || !Array.isArray(workflow.actions)) return names;
 
+  const add = (raw: unknown) => {
+    if (typeof raw !== 'string' || !raw) return;
+    const n = normalizeAppName(raw);
+    if (!n || IGNORED_WORKFLOW_APP_NAMES.has(n)) return;
+    names.add(n);
+  };
+
   for (const action of workflow.actions) {
-    if (action.app_name) {
-      names.add(normalizeAppName(action.app_name));
-    }
-    if (action.app_id) {
-      names.add(normalizeAppName(action.app_id));
-    }
+    add(action?.app_name);
+    add(action?.app_id);
     // Handle Singul-type actions with nested app_name in parameters
-    if (action.parameters) {
+    if (action?.parameters && Array.isArray(action.parameters)) {
       for (const param of action.parameters) {
-        if (param.name === 'app_name' && param.value) {
-          names.add(normalizeAppName(param.value));
-        }
+        if (param?.name === 'app_name') add(param?.value);
       }
     }
   }
