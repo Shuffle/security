@@ -34,6 +34,7 @@ import {
   RefreshCw as RefreshIcon,
   RotateCcw as RestartAltIcon,
   Clock as ScheduleIcon,
+  Settings as SettingsIcon,
   Send as SendIcon,
   CircleStop as StopCircleIcon,
   ThumbsDown as ThumbDownIcon,
