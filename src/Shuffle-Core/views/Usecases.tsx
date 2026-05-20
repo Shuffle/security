@@ -2785,6 +2785,43 @@ function UsecaseDetailContent({
     }
   }, [isEnabled, optimisticEnabled]);
 
+  // For the Notifications usecase, the linked workflow is referenced by the
+  // org's `defaults.notification_workflow` UUID rather than by tag/name, so
+  // findWorkflowsForUsecase() never picks it up. Fetch it explicitly so we
+  // can surface it in the Linked Workflows list below.
+  const [notificationWorkflow, setNotificationWorkflow] = useState<WorkflowSummary | null>(null);
+  useEffect(() => {
+    if (flow?.id !== 'case_management_communication_1') {
+      setNotificationWorkflow(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const info = localStorage.getItem('shuffle_user_info');
+        const orgId = info ? JSON.parse(info)?.active_org?.id : null;
+        if (!orgId) return;
+        const orgRes = await fetch(apiUrl(`/api/v1/orgs/${orgId}`), {
+          credentials: 'include', headers: { ...authHeader() },
+        });
+        if (!orgRes.ok) return;
+        const orgData = await orgRes.json();
+        const wfId = orgData?.defaults?.notification_workflow;
+        if (!wfId || typeof wfId !== 'string') return;
+        const existing = workflows.find((w) => w.id === wfId);
+        if (existing) { if (!cancelled) setNotificationWorkflow(existing); return; }
+        const wfRes = await fetch(apiUrl(`/api/v1/workflows/${wfId}`), {
+          credentials: 'include', headers: { ...authHeader() },
+        });
+        if (!wfRes.ok) return;
+        const wf = await wfRes.json();
+        if (!cancelled && wf?.id) setNotificationWorkflow(wf as WorkflowSummary);
+      } catch { /* keep previous */ }
+    })();
+    return () => { cancelled = true; };
+  }, [flow?.id, apiUrl, authHeader, workflows]);
+
+
   const handleToggle = async () => {
     if (!flow?.automationLabel || toggling) return;
     const willBeEnabled = !effectiveEnabled;
