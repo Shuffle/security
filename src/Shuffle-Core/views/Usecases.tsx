@@ -36,6 +36,8 @@ import { AppSearchDrawer, useAppDetailOptional } from '@shuffleio/shuffle-mcps';
 import { extractWorkflowAppNames, normalizeAppName, getIngestionCategory } from '@/Shuffle-MCPs/ingestionDetection';
 import { useUsecaseOutcomes } from '../hooks/useUsecaseOutcomes';
 import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
+import { resolveOutcomeKind } from '../lib/outcomes';
+import { getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
 export type FlowPhase = 'ingest' | 'response' | 'correlation';
@@ -2109,6 +2111,101 @@ function FlowOutcomeBlock({ flow, sourceCategoryLabel }: { flow: Usecase; source
   return <UsecaseOutcomeSection outcome={getOutcome(flow.id)} sourceCategoryLabel={sourceCategoryLabel} sourceId={flow.source} loading={isLoading} />;
 }
 
+// Enrichments usecase — paginates through the incidents datastore via cursor
+// and counts incidents whose payload contains an "enrichments" key (top-level
+// or nested). The /incidents page uses the same getDatastoreByCategory +
+// cursor loop, so the number here matches what the user would see if they
+// scrolled the full list themselves.
+function EnrichmentsOutcomeBlock({ flow }: { flow: Usecase }) {
+  const [loading, setLoading] = useState(true);
+  const [enrichedCount, setEnrichedCount] = useState(0);
+  const [totalScanned, setTotalScanned] = useState(0);
+  const [perTool, setPerTool] = useState<{ key: string; label: string; value: number }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hasEnrichmentKey = (value: any): boolean => {
+      if (!value || typeof value !== 'object') return false;
+      const stack: any[] = [value];
+      let depth = 0;
+      while (stack.length && depth < 2000) {
+        const node = stack.pop();
+        depth += 1;
+        if (!node || typeof node !== 'object') continue;
+        for (const k of Object.keys(node)) {
+          if (/enrichment/i.test(k)) {
+            const v = (node as any)[k];
+            if (Array.isArray(v)) { if (v.length > 0) return true; }
+            else if (v && typeof v === 'object') { if (Object.keys(v).length > 0) return true; }
+            else if (v != null && v !== '' && v !== false) return true;
+          }
+          const child = (node as any)[k];
+          if (child && typeof child === 'object') stack.push(child);
+        }
+      }
+      return false;
+    };
+    const extractProduct = (value: any): string | undefined => {
+      const p = value?.metadata?.product?.name
+        || value?.metadata?.product?.vendor_name
+        || value?.finding_info?.product?.name
+        || value?.product?.name
+        || value?.source
+        || value?.src_tool;
+      return typeof p === 'string' && p.trim() ? p.trim() : undefined;
+    };
+
+    (async () => {
+      setLoading(true);
+      let cursor: string | undefined;
+      let scanned = 0;
+      let enriched = 0;
+      const counts = new Map<string, number>();
+      // Hard cap pages so we never hammer the API; 30 × 50 = 1,500 incidents
+      // is plenty for an outcome metric and matches what /incidents pulls.
+      for (let page = 0; page < 30; page += 1) {
+        const res = await getDatastoreByCategory('shuffle-security_incidents', cursor);
+        if (cancelled) return;
+        const items = res.data || [];
+        for (const item of items) {
+          scanned += 1;
+          let parsed: any = null;
+          try { parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value; } catch { parsed = null; }
+          if (hasEnrichmentKey(parsed)) {
+            enriched += 1;
+            const product = extractProduct(parsed) || 'unknown';
+            counts.set(product, (counts.get(product) || 0) + 1);
+          }
+        }
+        if (!res.cursor || items.length === 0) break;
+        cursor = res.cursor;
+      }
+      if (cancelled) return;
+      const breakdown = Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([k, v]) => ({ key: k, label: k, value: v }));
+      setEnrichedCount(enriched);
+      setTotalScanned(scanned);
+      setPerTool(breakdown);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const outcome = {
+    kind: 'enrichments_run' as const,
+    primary: { value: enrichedCount, label: 'incidents with enrichments' },
+    breakdown: perTool,
+    extraMetrics: [{ label: `of ${totalScanned} scanned`, value: enrichedCount }],
+    windowDays: 30 as const,
+    isEmpty: !loading && enrichedCount === 0,
+    emptyReason: enrichedCount === 0 ? (totalScanned === 0 ? 'no_data_yet' as const : 'no_data_yet' as const) : undefined,
+  };
+
+  return <UsecaseOutcomeSection outcome={outcome} loading={loading} sourceId={flow.source} />;
+}
+
 // Notifications usecase — fetches open/read counts from the API and renders
 // them as a synthetic outcome inside the standard Outcome block.
 function NotificationsOutcomeBlock() {
@@ -2908,7 +3005,9 @@ function UsecaseDetailContent({
           ? <IocFeedsOutcomeBlock />
           : flow.id === 'case_management_assign_escalate_1'
             ? <AssignEscalateOutcomeBlock flow={flow} workflows={workflows} />
-            : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
+            : resolveOutcomeKind(flow) === 'enrichments_run'
+              ? <EnrichmentsOutcomeBlock flow={flow} />
+              : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
 
 
 
