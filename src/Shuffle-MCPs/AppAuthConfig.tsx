@@ -1889,8 +1889,7 @@ export const AppAuthCard = ({
                       {saving ? 'Saving authentication...' : 'Testing connection...'}
                     </Typography>
                   </Box>
-                ) : null}
-                {!loading && !saving && authState.status !== 'testing' && (error ? (
+                ) : error ? (
                   <Alert
                     severity="error"
                     sx={{
