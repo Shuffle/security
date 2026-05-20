@@ -441,7 +441,7 @@ export function UsecaseOutcomeSection({
             >
               {cta.label} →
             </Box>
-            {isSupport && (
+            {isSupport && audit === 'broken' && (
               <Tooltip title={`${auditMeta.desc} (${cta.href})`} arrow>
                 <Box sx={{
                   mt: 0.75,
