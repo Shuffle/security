@@ -167,15 +167,53 @@ const LocalLLMConfig = ({ compact, hasOpenAIAuth }: LocalLLMConfigProps) => {
   }, [openaiEntries, authState.status, refreshAuth]);
 
   // Detect which preset matches the currently entered URL (so the dropdown
-  // reflects an existing saved value).
+  // reflects an existing saved value). Defaults to "Shuffle AI" when no
+  // user-configured auth or URL is present.
+  const hasOpenAIEntries = openaiEntries.length > 0;
   const effectivePreset = useMemo(() => {
     if (selectedPreset) return selectedPreset;
+    if (!currentUrl && !hasOpenAIEntries) return SHUFFLE_AI_PRESET;
     if (!currentUrl) return '';
     const match = ENDPOINT_PRESETS.find((p) => p.url && p.url === currentUrl);
     return match ? match.label : CUSTOM_PRESET;
-  }, [selectedPreset, currentUrl]);
+  }, [selectedPreset, currentUrl, hasOpenAIEntries]);
+
+  const [confirmShuffleAIOpen, setConfirmShuffleAIOpen] = useState(false);
+
+  const applyShuffleAI = async () => {
+    // Remove every OpenAI auth entry so Shuffle's hosted AI takes over.
+    let deletedAny = false;
+    for (const entry of openaiEntries) {
+      if (!entry.id) continue;
+      try {
+        const resp = await fetch(getApiUrl(`/api/v1/apps/authentication/${entry.id}`), {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (resp.ok) deletedAny = true;
+      } catch (err) {
+        console.error('[LocalLLMConfig] Failed to delete OpenAI auth when switching to Shuffle AI:', err);
+      }
+    }
+    handleAuthChange(OPENAI_APP_ID, {});
+    setSelectedPreset(SHUFFLE_AI_PRESET);
+    setCustomUrl('');
+    if (deletedAny) {
+      await refreshAuth();
+      refreshAllIntegrationStatus();
+    }
+  };
 
   const handlePresetChange = (label: string) => {
+    if (label === SHUFFLE_AI_PRESET) {
+      if (hasOpenAIEntries) {
+        setConfirmShuffleAIOpen(true);
+        return;
+      }
+      void applyShuffleAI();
+      return;
+    }
     setSelectedPreset(label);
     const preset = ENDPOINT_PRESETS.find((p) => p.label === label);
     if (!preset) return;
@@ -191,6 +229,8 @@ const LocalLLMConfig = ({ compact, hasOpenAIAuth }: LocalLLMConfigProps) => {
     setCustomUrl(value);
     handleAuthChange(OPENAI_APP_ID, { ...authState.credentials, url: value });
   };
+
+  const isShuffleAI = effectivePreset === SHUFFLE_AI_PRESET;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
