@@ -134,6 +134,15 @@ const RedirectIncidentsSimple = () => {
   return <Navigate to={`/incidents/${id}${search}`} replace />;
 };
 
+/** Redirect /articles, /blog (and their /:name children) to shuffler.io with the same path. */
+const ShufflerExternalRedirect = () => {
+  if (typeof window !== 'undefined') {
+    const { pathname, search, hash } = window.location;
+    window.location.replace(`https://shuffler.io${pathname}${search}${hash}`);
+  }
+  return null;
+};
+
 const queryClient = new QueryClient();
 
 /** Inner app that reads theme context */
@@ -166,6 +175,10 @@ const ThemedApp = () => {
           <DemoCompletionWatcher />
           <DemoResumePill />
           <Routes>
+            <Route path="/articles" element={<ShufflerExternalRedirect />} />
+            <Route path="/articles/:name" element={<ShufflerExternalRedirect />} />
+            <Route path="/blog" element={<ShufflerExternalRedirect />} />
+            <Route path="/blog/:name" element={<ShufflerExternalRedirect />} />
             <Route path="/" element={<Index />} />
             <Route path="/apps" element={<AppsPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
