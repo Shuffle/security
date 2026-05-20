@@ -899,6 +899,15 @@ export const AppAuthCard = ({
               helperText={fieldErrors[fieldKey] || param.description}
               fullWidth
               size="small"
+              autoComplete={isSecretField ? 'new-password' : 'off'}
+              inputProps={{
+                autoComplete: isSecretField ? 'new-password' : 'off',
+                'data-1p-ignore': true,
+                'data-lpignore': 'true',
+                'data-form-type': 'other',
+                spellCheck: false,
+              }}
+              name={`auth-${fieldKey}-${app.objectID}`}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: isSecretField ? 'hsl(var(--primary) / 0.06)' : 'hsl(var(--muted))',
