@@ -290,39 +290,58 @@ export function UsecaseOutcomeSection({
                   .replace(/\b\w/g, (c) => c.toUpperCase());
                 return (
                   <Box key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 160 }}>
-                      <Box
-                        sx={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
-                          overflow: 'hidden',
-                          flexShrink: 0,
-                          bgcolor: '#ffffff',
-                          border: `1px solid ${BORDER}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {entry.iconUrl ? (
+                    {(() => {
+                      const iocCategory = iocCategoryByKey?.[entry.key];
+                      const label = (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 160 }}>
                           <Box
-                            component="img"
-                            src={entry.iconUrl}
-                            alt={pretty}
-                            loading="lazy"
-                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#333' }}>
-                            {pretty.slice(0, 1)}
+                            sx={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: '50%',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                              bgcolor: '#ffffff',
+                              border: `1px solid ${BORDER}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {entry.iconUrl ? (
+                              <Box
+                                component="img"
+                                src={entry.iconUrl}
+                                alt={pretty}
+                                loading="lazy"
+                                sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#333' }}>
+                                {pretty.slice(0, 1)}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Typography sx={{ fontSize: '0.82rem', color: FG }}>
+                            {pretty}
                           </Typography>
-                        )}
-                      </Box>
-                      <Typography sx={{ fontSize: '0.82rem', color: FG }}>
-                        {pretty}
-                      </Typography>
-                    </Box>
+                        </Box>
+                      );
+                      if (iocCategory) {
+                        return (
+                          <Box
+                            component="a"
+                            href={`https://shuffler.io/admin?tab=datastore&category=${encodeURIComponent(iocCategory)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ textDecoration: 'none', '&:hover': { opacity: 0.85 } }}
+                          >
+                            {label}
+                          </Box>
+                        );
+                      }
+                      return label;
+                    })()}
                     <Box sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: BORDER, overflow: 'hidden' }}>
                       <Box sx={{ height: '100%', width: `${share}%`, bgcolor: PRIMARY }} />
                     </Box>
