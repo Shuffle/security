@@ -2157,6 +2157,7 @@ const ACTIVE_USECASE_IDS = [
   'email_case_management_1',
   'threat_intel_case_management_1',
   'case_management_cases_forward_1',
+  'case_management_communication_1',
   'case_management_asset_management_monitors_1',
   'case_management_assign_escalate_1',
   'threat_intel_network_1',
