@@ -63,7 +63,11 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   onAppSelected,
   onSelectionChange,
   onSearchChange,
+  globalUrl,
 }, ref) => {
+  // Forward host-injected globalUrl into the runtime so all internal fetches
+  // honor the host backend.
+  useSyncHostBaseUrl(globalUrl);
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<AlgoliaSearchApp[]>([]);
   const [privateApps, setPrivateApps] = useState<AlgoliaSearchApp[]>([]);
