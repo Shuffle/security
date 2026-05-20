@@ -1659,7 +1659,9 @@ function IntegrationStatusLite({
     return (
       <Tooltip
         key={integration.id}
-        title={`${integration.name}${integration.validated ? ' (validated)' : integration.active ? ' (configured)' : ' (not configured)'}`}
+        title={integration.id === 'shuffle-security'
+          ? `${integration.name}${integration.active ? ' (active)' : ''}`
+          : `${integration.name}${integration.validated ? ' (validated)' : integration.active ? ' (configured)' : ' (not configured)'}`}
         placement="top"
         arrow
       >
