@@ -3252,8 +3252,8 @@ function UsecaseDetailContent({
                 usecaseEnabledNames={enabledNamesSet}
                 onUsecaseAppToggle={flow.automationLabel ? handleUsecaseAppToggle : undefined}
                 usecaseLabel={flow.label}
-                onAddApp={() => setAddToolFor({ side, categoryId: endpoint.categoryId })}
-                addAppLabel={`Add ${endpoint.meta?.label || endpoint.title} tool`}
+                onAddApp={isCases ? undefined : () => setAddToolFor({ side, categoryId: endpoint.categoryId })}
+                addAppLabel={isCases ? undefined : `Add ${endpoint.meta?.label || endpoint.title} tool`}
                 extraTile={renderEndpointSlot && flow ? renderEndpointSlot({ flowId: flow.id, flowLabel: flow.label, side }) : undefined}
               />
             </Box>
