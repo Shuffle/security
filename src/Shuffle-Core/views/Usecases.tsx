@@ -3005,7 +3005,9 @@ function UsecaseDetailContent({
           ? <IocFeedsOutcomeBlock />
           : flow.id === 'case_management_assign_escalate_1'
             ? <AssignEscalateOutcomeBlock flow={flow} workflows={workflows} />
-            : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
+            : resolveOutcomeKind(flow) === 'enrichments_run'
+              ? <EnrichmentsOutcomeBlock flow={flow} />
+              : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
 
 
 
