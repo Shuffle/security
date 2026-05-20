@@ -11,6 +11,11 @@
  * source of truth for "Shuffle Core does not depend on Shuffle-MCPs".
  */
 
+import { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
+
+// Install the global fetch breaker as soon as api.ts is imported. Idempotent.
+installFetchBreaker();
+
 const DEV_BACKEND = 'https://tunnel.schemaless.org';
 const PROD_BACKEND = 'https://shuffler.io';
 
