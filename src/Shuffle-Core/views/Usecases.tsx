@@ -3172,6 +3172,24 @@ function UsecaseDetailContent({
         </Button>
       )}
 
+      {showImage && flow.referenceImage && (
+        <Box
+          component="img"
+          src={flow.referenceImage}
+          alt={`${flow.label} reference`}
+          loading="lazy"
+          sx={{
+            display: 'block',
+            width: '100%',
+            maxHeight: 280,
+            objectFit: 'cover',
+            borderRadius: 2,
+            border: CARD_BORDER,
+            mb: 3,
+          }}
+        />
+      )}
+
       {!isAuthenticated && (
         <Box
           sx={{
