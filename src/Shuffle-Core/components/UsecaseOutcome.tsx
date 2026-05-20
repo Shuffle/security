@@ -242,6 +242,7 @@ export function UsecaseOutcomeSection({
   iocCategoryByKey,
   loading,
 }: UsecaseOutcomeSectionProps) {
+  const isSupport = useIsSupport();
   if (!outcome || outcome.kind === 'none') return null;
 
   const windowDays = outcome.windowDays;
