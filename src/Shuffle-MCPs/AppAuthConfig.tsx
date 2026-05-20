@@ -900,19 +900,21 @@ export const AppAuthCard = ({
               fullWidth
               size="small"
               autoComplete="off"
-              inputProps={{
-                autoComplete: 'off',
-                autoCorrect: 'off',
-                autoCapitalize: 'off',
-                'data-1p-ignore': true,
-                'data-lpignore': 'true',
-                'data-bwignore': 'true',
-                'data-form-type': 'other',
-                spellCheck: false,
-                readOnly: true,
-                onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-                  e.target.removeAttribute('readonly');
-                },
+              slotProps={{
+                htmlInput: {
+                  autoComplete: 'off',
+                  autoCorrect: 'off',
+                  autoCapitalize: 'off',
+                  'data-1p-ignore': true,
+                  'data-lpignore': 'true',
+                  'data-bwignore': 'true',
+                  'data-form-type': 'other',
+                  spellCheck: false,
+                  readOnly: true,
+                  onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
+                    e.target.removeAttribute('readonly');
+                  },
+                } as any,
               }}
               name={`auth-${fieldKey}-${app.objectID}-${Math.random().toString(36).slice(2, 8)}`}
               sx={{
