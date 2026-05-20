@@ -3771,20 +3771,6 @@ function UsecaseDetailContent({
         </Box>
       )}
 
-      {!hidePrevNext && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 2 }}>
-          {prevFlow ? (
-            <Button onClick={() => goToUsecase(prevFlow.id)} startIcon={<ArrowLeft size={14} />} sx={{ textTransform: 'none', color: MUTED }}>
-              {prevFlow.label}
-            </Button>
-          ) : <Box />}
-          {nextFlow ? (
-            <Button onClick={() => goToUsecase(nextFlow.id)} endIcon={<ArrowRight size={14} />} sx={{ textTransform: 'none', color: MUTED }}>
-              {nextFlow.label}
-            </Button>
-          ) : <Box />}
-        </Box>
-      )}
 
       {/* Force-add a tool for the Source / Destination category. Mirrors
           the alluvial diagram's "+" buttons so this view stays in sync. */}
@@ -4709,35 +4695,23 @@ function UsecasesPageInner() {
           backgroundColor: '#1a1a1a',
           bgcolor: 'hsl(var(--background, 0 0% 10%))',
         }}>
-          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', letterSpacing: '0.06em' }}>
-            Automation
-          </Typography>
+          <Box />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {drawerFlowId && (
-              <Button
-                onClick={() => {
-                  const id = drawerFlowId;
-                  const name = usecases.find(u => u.id === id)?.label || id || '';
-                  const slug = slugify(name);
-                  // Navigate to the details route. Do NOT call setDrawerFlowId(null)
-                  // — that helper navigates to /usecases and would clobber this nav,
-                  // and clearing the state nulls the flow the details view needs.
-                  navigate(`/usecases/${slug}/details`);
-                }}
-                endIcon={<ExternalLink size={14} />}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: 'hsl(var(--primary))',
-                  border: '1px solid hsla(var(--primary) / 0.3)',
-                  bgcolor: 'hsla(var(--primary) / 0.06)',
-                  px: 1.5,
-                  '&:hover': { bgcolor: 'hsla(var(--primary) / 0.12)', borderColor: 'hsl(var(--primary))' },
-                }}
-              >
-                Open full page
-              </Button>
+              <Tooltip title="Open full page" placement="top" arrow>
+                <IconButton
+                  onClick={() => {
+                    const id = drawerFlowId;
+                    const name = usecases.find(u => u.id === id)?.label || id || '';
+                    const slug = slugify(name);
+                    navigate(`/usecases/${slug}/details`);
+                  }}
+                  size="small"
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  <ExternalLink size={16} />
+                </IconButton>
+              </Tooltip>
             )}
             <IconButton onClick={() => setDrawerFlowId(null)} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
               <X size={18} />
