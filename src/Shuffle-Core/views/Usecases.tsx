@@ -4530,20 +4530,34 @@ function UsecasesPageInner() {
               }
             </Typography>
           </Box>
-          <Chip
-            label={showAllAsSupport ? 'View as user' : 'View as support'}
-            size="small"
-            onClick={() => setShowAllAsSupport(!showAllAsSupport)}
-            sx={{
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.7rem',
-              bgcolor: showAllAsSupport ? 'hsl(var(--primary) / 0.15)' : 'hsl(45 93% 47% / 0.2)',
-              color: showAllAsSupport ? 'hsl(var(--primary))' : 'hsl(45 93% 47%)',
-              '&:hover': { bgcolor: showAllAsSupport ? 'hsl(var(--primary) / 0.25)' : 'hsl(45 93% 47% / 0.3)' },
-            }}
-          />
-        </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Chip
+              label={showUsecaseImages ? 'Images: on' : 'Images: off'}
+              size="small"
+              onClick={() => setShowUsecaseImages((v) => !v)}
+              sx={{
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                bgcolor: showUsecaseImages ? 'hsl(var(--primary) / 0.15)' : 'hsl(0 0% 50% / 0.18)',
+                color: showUsecaseImages ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                '&:hover': { bgcolor: showUsecaseImages ? 'hsl(var(--primary) / 0.25)' : 'hsl(0 0% 50% / 0.28)' },
+              }}
+            />
+            <Chip
+              label={showAllAsSupport ? 'View as user' : 'View as support'}
+              size="small"
+              onClick={() => setShowAllAsSupport(!showAllAsSupport)}
+              sx={{
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                bgcolor: showAllAsSupport ? 'hsl(var(--primary) / 0.15)' : 'hsl(45 93% 47% / 0.2)',
+                color: showAllAsSupport ? 'hsl(var(--primary))' : 'hsl(45 93% 47%)',
+                '&:hover': { bgcolor: showAllAsSupport ? 'hsl(var(--primary) / 0.25)' : 'hsl(45 93% 47% / 0.3)' },
+              }}
+            />
+          </Box>
       ) : (
         <Box sx={{
           mb: 3,
