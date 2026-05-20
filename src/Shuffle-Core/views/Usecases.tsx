@@ -3597,7 +3597,7 @@ function UsecaseDetailContent({
             const sourceComingSoon = endpoint.title === 'Source'
               && SOURCE_COMING_SOON_FLOW_IDS.has(flow.id);
             const handleSourceComingSoon = (_appName: string) => {
-              toast.info('Coming soon', {
+              toast.warning('Coming soon', {
                 description: `${flow.label} does not yet support wiring up ${endpoint.meta?.label || 'source'} tools as triggers. The workflow runs on Shuffle's built-in pipeline.`,
                 duration: 6000,
               });
