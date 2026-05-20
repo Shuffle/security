@@ -559,7 +559,7 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationArea: 'correlation',
   },
   {
-    id: 'asset_management_case_management_vuln_1', phase: 'correlation', source: 'asset_management', target: 'case_management',
+    id: 'asset_management_case_management_vuln_1', phase: 'ingest', source: 'asset_management', target: 'case_management',
     label: 'Vulnerability Correlation',
     tags: ['Context', 'Correlation', 'Vulnerability'],
     description: 'Correlate known vulnerabilities (CVEs, misconfigurations, missing patches) on affected assets with active incidents — surfacing exploitable weaknesses that elevate risk and guide containment priorities.',
@@ -569,6 +569,19 @@ export const DEFAULT_USECASES: Usecase[] = [
       label: 'Configure Vulnerabilities',
       href: '/vulnerabilities',
       description: 'Open the vulnerability inventory to ingest CVEs from your scanners.',
+    },
+  },
+  {
+    id: 'asset_management_case_management_vuln_response_1', phase: 'response', source: 'asset_management', target: 'case_management',
+    label: 'Vulnerability Response', animated: true,
+    tags: ['Response', 'Vulnerability', 'Remediation'],
+    description: 'Automatically open remediation tasks, patch tickets, or compensating-control workflows for vulnerabilities discovered during incident investigation — closing the loop between detection and fix.',
+    agenticDescription: 'An agent triages each confirmed exploitable CVE on an affected host, opens a remediation ticket with owner and SLA, applies a compensating control where possible, and tracks the fix back to the originating incident.',
+    automationArea: 'response',
+    customAction: {
+      label: 'Configure Vulnerabilities',
+      href: '/vulnerabilities',
+      description: 'Open the vulnerability inventory to wire up remediation workflows.',
     },
   },
   {
