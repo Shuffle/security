@@ -3482,19 +3482,43 @@ function UsecaseDetailContent({
 
       {(() => {
         const linkedWorkflows = findWorkflowsForUsecase(flow, workflows);
-        if (linkedWorkflows.length === 0) return null;
+        // The three ingest-to-case_management flows share the "Forward Tickets"
+        // workflow on the destination side. Surface it here as informational
+        // context — enabling a destination tool on these usecases does NOT
+        // toggle Forward Tickets, but it is the workflow that does the actual
+        // forwarding, so showing it makes the wiring obvious.
+        const SHOWS_FORWARD_TICKETS = new Set([
+          'siem_case_management_1',
+          'edr_case_management_1',
+          'email_case_management_1',
+        ]);
+        const forwardTicketsWorkflows = SHOWS_FORWARD_TICKETS.has(flow.id)
+          ? findWorkflowsForUsecase(
+              { automationLabel: 'Forward Tickets', automationArea: undefined as any },
+              workflows,
+            ).filter((wf) => !linkedWorkflows.some((lw) => lw.id === wf.id))
+          : [];
+        const allLinked = [...linkedWorkflows, ...forwardTicketsWorkflows];
+        if (allLinked.length === 0) return null;
+        const labelHint = forwardTicketsWorkflows.length > 0 && flow.automationLabel
+          ? `Matched on "${flow.automationLabel}" and "Forward Tickets"`
+          : flow.automationLabel
+            ? `Matched on label "${flow.automationLabel}"`
+            : 'Matched on label "Forward Tickets"';
         return (
           <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, gap: 2, flexWrap: 'wrap' }}>
               <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Linked Workflows ({linkedWorkflows.length})
+                Linked Workflows ({allLinked.length})
               </Typography>
               <Typography sx={{ fontSize: '0.72rem', color: MUTED }}>
-                Matched on label "{flow.automationLabel}"
+                {labelHint}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {linkedWorkflows.map((wf) => (
+              {allLinked.map((wf) => {
+                const isForwardingContext = forwardTicketsWorkflows.some((f) => f.id === wf.id);
+                return (
                 <Box
                   key={wf.id}
                   component="a"
@@ -3521,10 +3545,16 @@ function UsecaseDetailContent({
                     <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {wf.name || 'Untitled workflow'}
                     </Typography>
+                    {isForwardingContext && (
+                      <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: MUTED, px: 0.75, py: 0.15, borderRadius: 0.75, border: CARD_BORDER, flexShrink: 0 }}>
+                        Forwarding context
+                      </Typography>
+                    )}
                   </Box>
                   <ExternalLink size={13} style={{ color: MUTED, flexShrink: 0 }} />
                 </Box>
-              ))}
+                );
+              })}
             </Box>
           </Box>
         );
