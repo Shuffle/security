@@ -134,14 +134,69 @@ function Sparkline({ trendPct }: { trendPct?: number }) {
 export interface UsecaseOutcomeSectionProps {
   outcome: UsecaseOutcome | undefined;
   sourceCategoryLabel?: string;
-  /** Optional "What to do next" CTA link target. */
+  /** Source category id (e.g. "edr", "siem") — used to deep-link
+   *  `/incidents?filter=<source>` from the CTA. */
+  sourceId?: string;
+  /** Optional explicit CTA (overrides the kind-derived default). */
   nextActionHref?: string;
   nextActionLabel?: string;
+  /** For iocs_managed flows: when known, the specific datastore categories
+   *  (e.g. ["ioc_ipv4_addr", "ioc_domain"]) so each breakdown row links to
+   *  its own admin datastore page. */
+  iocCategoryByKey?: Record<string, string>;
   /** When true, render a loader inside the Outcome card instead of the
    *  empty-state / metric content. Used while async lookups are still
    *  resolving so users see progress until the number is final. */
   loading?: boolean;
 }
+
+/** Derive a default CTA for an outcome when the caller didn't supply one. */
+function deriveCta(
+  outcome: UsecaseOutcome,
+  sourceId?: string,
+): { href: string; label: string; external?: boolean } | null {
+  const isDisabled = outcome.emptyReason === 'not_enabled';
+  switch (outcome.kind) {
+    case 'incidents_ingested': {
+      const q = sourceId ? `?filter=${encodeURIComponent(sourceId)}` : '';
+      return {
+        href: `/incidents${q}`,
+        label: isDisabled ? 'Preview where these incidents will appear' : 'View incidents',
+      };
+    }
+    case 'enrichments_run': {
+      const q = sourceId ? `?filter=${encodeURIComponent(sourceId)}` : '';
+      return {
+        href: `/incidents${q}`,
+        label: isDisabled ? 'See where enrichments will show up' : 'View enriched incidents',
+      };
+    }
+    case 'vulns_tracked':
+      return {
+        href: '/vulnerabilities',
+        label: isDisabled ? 'See where vulnerabilities will appear' : 'View vulnerabilities',
+      };
+    case 'iocs_managed':
+      return {
+        href: 'https://shuffler.io/admin?tab=datastore',
+        label: isDisabled ? 'Open observables datastore' : 'Manage observables',
+        external: true,
+      };
+    case 'responses_executed':
+      return {
+        href: '/automations',
+        label: isDisabled ? 'Configure response actions' : 'View response automations',
+      };
+    case 'comms_sent':
+      return {
+        href: '/notifications',
+        label: isDisabled ? 'See where notifications will appear' : 'View notifications',
+      };
+    default:
+      return null;
+  }
+}
+
 
 export function UsecaseOutcomeSection({
   outcome,
