@@ -38,6 +38,7 @@ import {
 import AgentIcon from './AgentIcon';
 import AgentUI, { type AgentUIProps } from './AgentUI';
 import type { ShuffleHostProps } from './host-props';
+import { useSyncHostBaseUrl } from './useSyncHostBaseUrl';
 
 export type AgentRunDrawerTab = 'run' | 'permissions' | 'localLLM';
 
