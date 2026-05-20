@@ -1350,6 +1350,9 @@ function buildBackendUsecases(cats: ApiUsecaseCategory[]) {
   }
   for (const local of DEFAULT_USECASES) {
     if (matched.has(local.id)) continue;
+    // Merge local-only usecases into the rendered list. Support users see a
+    // "local only" drift badge so we can converge the catalogs over time.
+    usecases.push(local);
     drifts.push({ usecaseId: local.id, drifts: ['local_only'], localValue: local });
   }
   return { usecases, drifts };
