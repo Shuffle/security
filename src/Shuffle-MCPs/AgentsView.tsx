@@ -133,6 +133,7 @@ const AgentsView = ({ onSchedule, maxWidth = 820, globalUrl, isLoaded, isLoggedI
         open={selectedRun !== null}
         onClose={() => setSelectedRun(null)}
         run={selectedRun}
+        apiBaseUrl={globalUrl}
         onSchedule={onSchedule}
       />
     </Box>
