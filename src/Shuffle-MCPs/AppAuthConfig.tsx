@@ -213,6 +213,8 @@ export const AppAuthCard = ({
   hideHeader,
   hideStatusChips,
   hideDocsLink,
+  hideUrlFields,
+  borderless,
 }: AppAuthCardProps) => {
   // Helper to get best default auth: prioritize validated, otherwise last entry
   const getBestDefaultAuth = (entries: ApiAuthEntry[]): string => {
