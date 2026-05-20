@@ -963,19 +963,19 @@ export const AppAuthCard = ({
       if (error) return false;
     }
     
-    // Check required parameters are filled
+    // Check parameters are filled — every visible (non-URL when hidden) parameter must have a value
     if (auth?.parameters && auth.parameters.length > 0) {
-      for (let i = 0; i < auth.parameters.length; i++) {
-        const param = auth.parameters[i];
-        const fieldKey = param.id || param.name || `param_${i}`;
-        if (param.required && !localCredentials[fieldKey]?.trim()) return false;
-      }
-      // At least one parameter must have a value
-      const hasAnyValue = auth.parameters.some((param, index) => {
-        const fieldKey = param.id || param.name || `param_${index}`;
-        return localCredentials[fieldKey]?.trim();
+      const visibleParams = auth.parameters.filter((param) => {
+        if (!hideUrlFields) return true;
+        const n = (param.name || param.id || '').toLowerCase();
+        return !(n.includes('url') || n.includes('endpoint') || n.includes('host'));
       });
-      if (!hasAnyValue) return false;
+      for (let i = 0; i < visibleParams.length; i++) {
+        const param = visibleParams[i];
+        const fieldKey = param.id || param.name || `param_${auth.parameters.indexOf(param)}`;
+        if (!localCredentials[fieldKey]?.trim()) return false;
+      }
+      if (visibleParams.length === 0) return false;
     }
     // Apps without parameters don't need validation - they work without auth
     
