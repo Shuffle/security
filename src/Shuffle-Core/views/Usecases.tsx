@@ -445,6 +445,21 @@ const MULTI_DEST_FLOW_IDS = new Set<string>([
   'case_management_cases_forward_1', // Forward Tickets
 ]);
 
+// Usecases whose Source apps cannot be wired up yet — clicking the toggle
+// on any source app surfaces a "Coming soon" toast instead of mutating the
+// workflow. The Enrichment usecase runs entirely off Shuffle's built-in
+// "Realtime IOC extraction" workflow and does not (yet) accept external
+// threat-intel sources as triggers.
+const SOURCE_COMING_SOON_FLOW_IDS = new Set<string>([
+  'threat_intel_case_management_1', // Enrichment
+]);
+
+// Usecases whose Destination is exclusively Shuffle Security — hide all
+// third-party destination apps and the "Add tool" affordance.
+const DESTINATION_SHUFFLE_ONLY_FLOW_IDS = new Set<string>([
+  'threat_intel_case_management_1', // Enrichment
+]);
+
 // ── Default usecases (migrated from InfrastructurePage DATA_FLOWS) ─────────────
 
 export const DEFAULT_USECASES: Usecase[] = [
