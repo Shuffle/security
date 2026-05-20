@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuth } from '@/context/AuthContext';
 
@@ -7,17 +8,27 @@ import { useAuth } from '@/context/AuthContext';
  *
  * Appears after a short delay so quick page loads do not flash a spinner,
  * then escalates the wording once the wait gets long (typical of bad
- * connections or backend hiccups). Visible on every route — wherever the
- * user lands, they get a clear "we are still loading" signal instead of a
- * blank/stuck screen.
+ * connections or backend hiccups). Suppressed on public/marketing routes
+ * that do not require a logged-in session — there is no point telling a
+ * visitor we are "checking login" when login is not needed to view the page.
  */
+const PUBLIC_PATH_PREFIXES = ['/usecases', '/features', '/docs'];
+const PUBLIC_EXACT_PATHS = new Set(['/']);
+
+const isPublicRoute = (pathname: string): boolean => {
+  if (PUBLIC_EXACT_PATHS.has(pathname)) return true;
+  return PUBLIC_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+};
+
 const GlobalLoadingOverlay = () => {
   const { isLoading } = useAuth();
+  const location = useLocation();
+  const suppressed = isPublicRoute(location.pathname);
   const [show, setShow] = useState(false);
   const [elapsedTier, setElapsedTier] = useState(0); // 0=initial, 1=>4s, 2=>10s
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading || suppressed) {
       setShow(false);
       setElapsedTier(0);
       return;
@@ -30,9 +41,9 @@ const GlobalLoadingOverlay = () => {
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
-  }, [isLoading]);
+  }, [isLoading, suppressed]);
 
-  if (!isLoading || !show) return null;
+  if (!isLoading || !show || suppressed) return null;
 
   const primary =
     elapsedTier === 0
