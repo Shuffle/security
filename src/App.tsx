@@ -167,6 +167,7 @@ const ThemedApp = () => {
         style={{ width: 'auto', maxWidth: 420 }}
       />
       <AuthProvider>
+        <GlobalLoadingOverlay />
         <BrowserRouter>
           <ScrollToTop />
           <DemoProvider>
