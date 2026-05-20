@@ -1,9 +1,5 @@
 import * as React from "react";
 import { motion, LayoutGroup } from "framer-motion";
-// Local tiny classnames helper to avoid pulling clsx/tailwind-merge into
-// the library bundle (they aren't declared as peer deps).
-const cn = (...inputs: Array<string | false | null | undefined>) =>
-  inputs.filter(Boolean).join(" ");
 
 /**
  * SegmentedControl
@@ -13,8 +9,13 @@ const cn = (...inputs: Array<string | false | null | undefined>) =>
  * (`type: 'action'`) — actions just fire onClick and never become "active".
  * A vertical divider can be inserted with `{ type: 'divider' }`.
  *
- * Use this anywhere we need filter tabs (All • Public • Private) or a
- * mixed pill like Start • Simple • Detailed | Reload Schedule.
+ * IMPORTANT: This component is part of the Shuffle-MCPs library and MUST
+ * work on host apps that do NOT have Tailwind installed. All styling is
+ * therefore inline and only relies on shadcn-style HSL CSS custom
+ * properties (`--foreground`, `--muted`, `--muted-foreground`, `--border`,
+ * `--ring`). The companion `shuffle-mcp.css` file ships with `:where(:root)`
+ * fallbacks for these tokens so the control still renders correctly when
+ * the host hasn't defined them.
  */
 
 export type SegmentedItem<V extends string = string> =
@@ -62,18 +63,46 @@ export interface SegmentedControlProps<V extends string = string> {
   layoutId?: string;
 }
 
-const sizeClasses = {
+type SizeTokens = {
+  containerPadding: string;
+  fontSize: string;
+  itemPaddingY: string;
+  itemPaddingX: string;
+  itemGap: string;
+  countMin: string;
+  countH: string;
+  countPx: string;
+  countFs: string;
+  dividerH: string;
+  dividerMx: string;
+};
+
+const SIZE: Record<"sm" | "md", SizeTokens> = {
   sm: {
-    container: "p-0.5 text-[11px]",
-    item: "px-2.5 py-1 gap-1.5",
-    count: "min-w-[16px] h-[16px] px-1 text-[10px]",
-    divider: "h-4 mx-0.5",
+    containerPadding: "2px",
+    fontSize: "11px",
+    itemPaddingY: "4px",
+    itemPaddingX: "10px",
+    itemGap: "6px",
+    countMin: "16px",
+    countH: "16px",
+    countPx: "4px",
+    countFs: "10px",
+    dividerH: "16px",
+    dividerMx: "2px",
   },
   md: {
-    container: "p-1 text-xs",
-    item: "px-3 py-1.5 gap-1.5",
-    count: "min-w-[18px] h-[18px] px-1.5 text-[10px]",
-    divider: "h-5 mx-1",
+    containerPadding: "4px",
+    fontSize: "12px",
+    itemPaddingY: "6px",
+    itemPaddingX: "12px",
+    itemGap: "6px",
+    countMin: "18px",
+    countH: "18px",
+    countPx: "6px",
+    countFs: "10px",
+    dividerH: "20px",
+    dividerMx: "4px",
   },
 };
 
@@ -99,21 +128,31 @@ export function SegmentedControl<V extends string = string>({
 }: SegmentedControlProps<V>) {
   const autoId = useUniqueId("segmented");
   const groupId = layoutId ?? autoId;
-  const s = sizeClasses[size];
+  const s = SIZE[size];
 
   return (
     <LayoutGroup id={groupId}>
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className={cn(
-          "inline-flex items-center gap-0.5 rounded-full",
-          variant === "outline"
-            ? "border border-border bg-transparent"
-            : "border border-transparent bg-muted/40",
-          s.container,
-          className,
-        )}
+        className={className}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "2px",
+          borderRadius: 9999,
+          padding: s.containerPadding,
+          fontSize: s.fontSize,
+          lineHeight: 1,
+          border:
+            variant === "outline"
+              ? "1px solid hsl(var(--border))"
+              : "1px solid transparent",
+          background:
+            variant === "outline"
+              ? "transparent"
+              : "hsl(var(--muted) / 0.4)",
+        }}
       >
         {options.map((opt, i) => {
           if (opt.type === "divider") {
@@ -121,7 +160,13 @@ export function SegmentedControl<V extends string = string>({
               <span
                 key={opt.key ?? `divider-${i}`}
                 aria-hidden
-                className={cn("w-px bg-border self-center", s.divider)}
+                style={{
+                  width: 1,
+                  height: s.dividerH,
+                  margin: `0 ${s.dividerMx}`,
+                  background: "hsl(var(--border))",
+                  alignSelf: "center",
+                }}
               />
             );
           }
@@ -144,21 +189,50 @@ export function SegmentedControl<V extends string = string>({
                 if (isAction) opt.onClick();
                 else onChange(opt.value);
               }}
-              className={cn(
-                "relative inline-flex items-center rounded-full font-medium",
-                "transition-colors duration-300",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                s.item,
-                active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-                opt.disabled && "opacity-50 cursor-not-allowed",
-              )}
+              style={{
+                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: s.itemGap,
+                padding: `${s.itemPaddingY} ${s.itemPaddingX}`,
+                borderRadius: 9999,
+                fontWeight: 500,
+                fontSize: s.fontSize,
+                lineHeight: 1,
+                background: "transparent",
+                border: "none",
+                cursor: opt.disabled ? "not-allowed" : "pointer",
+                color: active
+                  ? "hsl(var(--foreground))"
+                  : "hsl(var(--muted-foreground))",
+                opacity: opt.disabled ? 0.5 : 1,
+                transition: "color 200ms ease",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+              onMouseEnter={(e) => {
+                if (!active && !opt.disabled) {
+                  (e.currentTarget as HTMLButtonElement).style.color =
+                    "hsl(var(--foreground))";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active && !opt.disabled) {
+                  (e.currentTarget as HTMLButtonElement).style.color =
+                    "hsl(var(--muted-foreground))";
+                }
+              }}
             >
               {active && (
                 <motion.span
                   layoutId={`${groupId}-pill`}
-                  className="absolute inset-0 rounded-full bg-muted border border-border"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 9999,
+                    background: "hsl(var(--muted))",
+                    border: "1px solid hsl(var(--border))",
+                  }}
                   initial={false}
                   transition={{
                     type: "spring",
@@ -167,18 +241,38 @@ export function SegmentedControl<V extends string = string>({
                   }}
                 />
               )}
-              <span className="relative z-10 inline-flex items-center gap-1.5">
+              <span
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: s.itemGap,
+                }}
+              >
                 {opt.label}
               </span>
               {!isAction && typeof opt.count === "number" && (
                 <span
-                  className={cn(
-                    "relative z-10 inline-flex items-center justify-center rounded-md font-semibold tabular-nums border border-border/60",
-                    s.count,
-                    active
-                      ? "bg-transparent text-foreground"
-                      : "bg-transparent text-muted-foreground",
-                  )}
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: s.countMin,
+                    height: s.countH,
+                    padding: `0 ${s.countPx}`,
+                    fontSize: s.countFs,
+                    fontWeight: 600,
+                    fontVariantNumeric: "tabular-nums",
+                    borderRadius: 6,
+                    border: "1px solid hsl(var(--border) / 0.6)",
+                    color: active
+                      ? "hsl(var(--foreground))"
+                      : "hsl(var(--muted-foreground))",
+                    background: "transparent",
+                  }}
                 >
                   {opt.count}
                 </span>

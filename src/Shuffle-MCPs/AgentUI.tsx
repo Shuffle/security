@@ -183,6 +183,17 @@ export interface AgentUIProps {
   appPickerTitle?: string;
   /** Subtitle on the AppSearchDrawer. */
   appPickerSubtitle?: string;
+  /**
+   * Handler for the "Choose LLM" chip. When provided, takes full ownership
+   * of the click. When omitted, AgentUI dispatches a window
+   * `agent-drawer-open` CustomEvent — that's what the bundled
+   * `AgentRunDrawer` listens for. On hosts that don't mount the drawer,
+   * provide this prop to wire your own LLM picker (or set it to a no-op
+   * to hide the chip's intent entirely).
+   */
+  onChooseLLM?: () => void;
+  /** Hide the "Choose LLM" chip entirely. */
+  hideChooseLLM?: boolean;
   /** Tooltip on the submit button. Default: "⌘+Enter to send". */
   submitTooltip?: string;
   /** Custom icon for the submit button. */
@@ -959,6 +970,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   appPickerLabel = 'Select Apps',
   appPickerTitle = 'Select Apps',
   appPickerSubtitle = 'Pick the tools the agent is allowed to use for this run',
+  onChooseLLM,
+  hideChooseLLM = false,
   submitTooltip = '⌘+Enter to send',
   submitIcon,
   submitOverride,
@@ -3123,14 +3136,36 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 bgcolor: 'hsl(var(--card))',
                 maxWidth: '100%',
               }}>
+                {!hideChooseLLM && (
                 <Tooltip title="Configure the local LLM used for this agent">
                   <Box
                     component="button"
                     type="button"
                     onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        window.dispatchEvent(
-                          new CustomEvent('agent-drawer-open', { detail: { tab: 'localLLM' } }),
+                      // Host-provided handler wins. Otherwise dispatch the
+                      // legacy window event for in-app usage where the
+                      // bundled AgentRunDrawer listens. If nothing
+                      // listens, log a clear warning so embedders know
+                      // they need to wire `onChooseLLM`.
+                      if (onChooseLLM) {
+                        onChooseLLM();
+                        return;
+                      }
+                      if (typeof window === 'undefined') return;
+                      const evt = new CustomEvent('agent-drawer-open', {
+                        detail: { tab: 'localLLM' },
+                        cancelable: true,
+                      });
+                      const handled = window.dispatchEvent(evt);
+                      // No listener will preventDefault, but we can detect
+                      // missing host wiring via a global flag the bundled
+                      // drawer sets when mounted.
+                      if (handled && !(window as any).__shuffleAgentDrawerMounted) {
+                        // eslint-disable-next-line no-console
+                        console.warn(
+                          '[AgentUI] "Choose LLM" was clicked but no host handler is wired. ' +
+                          'Pass an `onChooseLLM` prop, mount the bundled `AgentRunDrawer`, ' +
+                          'or set `hideChooseLLM` to remove the chip.',
                         );
                       }
                     }}
@@ -3150,6 +3185,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     Choose LLM
                   </Box>
                 </Tooltip>
+                )}
                 <Tooltip title={agentRequestLoading ? 'Locked while the agent is running' : ''}>
                   <Box
                     component="button"

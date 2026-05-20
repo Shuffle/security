@@ -31,9 +31,19 @@ export interface AgentsViewProps extends ShuffleHostProps {
   onSchedule: NonNullable<AgentUIProps['onSchedule']>;
   /** Override max content width of the inner stack. Defaults to 820. */
   maxWidth?: number;
+  /**
+   * Optional handler for the "Choose LLM" chip. Forwarded to the embedded
+   * AgentUI. When omitted, AgentUI dispatches its legacy window event
+   * (handled by the bundled AgentRunDrawer in Shuffle Security). On other
+   * hosts, pass this prop to wire your own LLM picker — or set
+   * `hideChooseLLM` to remove the chip entirely.
+   */
+  onChooseLLM?: () => void;
+  /** Hide the "Choose LLM" chip in the embedded AgentUI. */
+  hideChooseLLM?: boolean;
 }
 
-const AgentsView = ({ onSchedule, maxWidth = 820, globalUrl, isLoaded, isLoggedIn, userdata, serverside }: AgentsViewProps) => {
+const AgentsView = ({ onSchedule, maxWidth = 820, onChooseLLM, hideChooseLLM, globalUrl, isLoaded, isLoggedIn, userdata, serverside }: AgentsViewProps) => {
   useSyncHostBaseUrl(globalUrl);
   const [selectedRun, setSelectedRun] = useState<AgentRun | null>(null);
   const [agentView, setAgentView] = useState<'start' | 'simple' | 'detailed'>('start');
@@ -79,8 +89,8 @@ const AgentsView = ({ onSchedule, maxWidth = 820, globalUrl, isLoaded, isLoggedI
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', width: '100%', px: { xs: 2, md: 4 }, pt: '5vh', pb: 6 }}>
-      <Stack spacing={6} sx={{ maxWidth, mx: 'auto' }}>
+    <Box sx={{ minHeight: '100%', width: '100%', px: { xs: 2, md: 4 }, pt: { xs: 3, md: '5vh' }, pb: 6, boxSizing: 'border-box' }}>
+      <Stack spacing={6} sx={{ maxWidth, mx: 'auto', width: '100%' }}>
         {editing && (
           <Box
             sx={{
@@ -112,6 +122,8 @@ const AgentsView = ({ onSchedule, maxWidth = 820, globalUrl, isLoaded, isLoggedI
           apiBaseUrl={globalUrl}
           onViewChange={setAgentView}
           onSchedule={onSchedule}
+          onChooseLLM={onChooseLLM}
+          hideChooseLLM={hideChooseLLM}
           defaultInput={prefill.input}
           defaultApps={prefill.apps.length > 0 ? prefill.apps : undefined}
           submitOverride={editing ? handleSaveEdit : undefined}
@@ -121,7 +133,7 @@ const AgentsView = ({ onSchedule, maxWidth = 820, globalUrl, isLoaded, isLoggedI
           disableScheduleTooltip={editing ? 'Scheduling is disabled while editing an existing schedule' : undefined}
         />
         {agentView === 'start' && (
-          <Box sx={{ pt: '12vh' }}>
+          <Box sx={{ pt: { xs: 4, md: '8vh' } }}>
             <AgentActivityList
               apiBaseUrl={globalUrl}
               onRunClick={setSelectedRun}

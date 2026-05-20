@@ -113,6 +113,17 @@ const AgentRunDrawer = ({
     prevOpenRef.current = open;
   }, [open, initialTab]);
 
+  // Advertise to AgentUI that a host-mounted "Choose LLM" listener exists.
+  // AgentUI uses this flag to decide whether to log a wiring warning when
+  // its window-event fallback fires with no handler on the other end.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    (window as any).__shuffleAgentDrawerMounted = ((window as any).__shuffleAgentDrawerMounted || 0) + 1;
+    return () => {
+      (window as any).__shuffleAgentDrawerMounted = Math.max(0, ((window as any).__shuffleAgentDrawerMounted || 1) - 1);
+    };
+  }, []);
+
   const visibleTabs = TAB_ORDER.filter((t) => {
     if (t === 'run') return true;
     if (t === 'permissions') return !!permissionsSlot;
