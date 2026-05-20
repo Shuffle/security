@@ -4125,6 +4125,12 @@ function UsecasesPageInner() {
       if (flow.id === 'case_management_communication_1') {
         return notificationWorkflowReady;
       }
+      // Assign & Escalate is self-contained on the Cases category — driven
+      // solely by whether the "Assign & Escalate" workflow exists, with no
+      // separate source-tool requirement.
+      if (flow.id === 'case_management_assign_escalate_1') {
+        return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
+      }
       if (!flow.automationLabel) return false;
       if (!enabledLabels.has(flow.automationLabel)) return false;
       if (!validatedCategories.has(flow.source)) return false;
