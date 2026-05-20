@@ -3117,7 +3117,7 @@ function UsecaseDetailContent({
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-                    <Zap size={14} style={{ color: PRIMARY, flexShrink: 0 }} />
+                    <Zap size={14} style={{ color: MUTED, flexShrink: 0 }} />
                     <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {wf.name || 'Untitled workflow'}
                     </Typography>
