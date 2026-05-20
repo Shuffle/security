@@ -3894,6 +3894,18 @@ function UsecasesPageInner() {
   const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
   const isSupport = userInfo?.support === true;
   const [showAllAsSupport, setShowAllAsSupport] = useState(false);
+  // Support-only toggle: render `referenceImage` previews on cards and at the
+  // top of the detail view. Persisted so support users can hide them once and
+  // forget. Default on so a freshly-authored image surfaces immediately.
+  const [showUsecaseImages, setShowUsecaseImages] = useState<boolean>(() => {
+    try { return localStorage.getItem('shuffle-usecase-images') !== 'false'; }
+    catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('shuffle-usecase-images', showUsecaseImages ? 'true' : 'false'); }
+    catch { /* ignore */ }
+  }, [showUsecaseImages]);
+  const imagesVisible = isSupport && showUsecaseImages;
   const [searchParams, setSearchParams] = useSearchParams();
   const routeParams = useParams<{ flowId?: string }>();
   const [trustedWorkflowStates, setTrustedWorkflowStates] = useState<Record<string, boolean>>({});
