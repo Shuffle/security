@@ -3567,12 +3567,17 @@ function UsecaseDetailContent({
             // tile — hiding other case-management apps that would otherwise clutter
             // the source side of the flow.
             const sourceIsShuffleOnly = endpoint.title === 'Source' && endpoint.categoryId === 'case_management';
-            const appNamesWithShuffle = sourceIsShuffleOnly
+            // Some usecases (e.g. Enrichment) run entirely on a built-in Shuffle
+            // workflow — the destination has no third-party apps to wire up,
+            // only the Shuffle Security platform itself.
+            const destIsShuffleOnly = endpoint.title === 'Destination'
+              && DESTINATION_SHUFFLE_ONLY_FLOW_IDS.has(flow.id);
+            const appNamesWithShuffle = sourceIsShuffleOnly || destIsShuffleOnly
               ? ['Shuffle Security']
               : showShuffle
                 ? ['Shuffle Security', ...endpoint.appNames.filter((n) => n.toLowerCase() !== 'shuffle security')]
                 : endpoint.appNames;
-            const synthetic = showShuffle
+            const synthetic = (showShuffle || destIsShuffleOnly)
               ? [{
                   id: 'shuffle-security',
                   name: 'Shuffle Security',
@@ -3586,6 +3591,17 @@ function UsecaseDetailContent({
             // `isCases` gates "Add tool" behaviour — for multi-dest we always
             // want the add button enabled regardless of underlying category id.
             const isCases = endpoint.categoryId === 'case_management';
+            // Source side of a "coming soon" usecase: intercept toggles so we
+            // surface a clear message instead of silently failing or wiring up
+            // an unsupported source app.
+            const sourceComingSoon = endpoint.title === 'Source'
+              && SOURCE_COMING_SOON_FLOW_IDS.has(flow.id);
+            const handleSourceComingSoon = (_appName: string) => {
+              toast.info('Coming soon', {
+                description: `${flow.label} does not yet support wiring up ${endpoint.meta?.label || 'source'} tools as triggers. The workflow runs on Shuffle's built-in pipeline.`,
+                duration: 6000,
+              });
+            };
 
             return (
             <Box key={endpoint.title} sx={{ flex: 1, minWidth: 0 }}>
