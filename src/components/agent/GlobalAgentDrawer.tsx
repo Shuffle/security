@@ -91,6 +91,7 @@ const GlobalAgentDrawer = () => {
       open={open}
       onClose={() => setOpen(false)}
       initialTab={initialTab}
+      globalUrl={API_CONFIG.baseUrl}
       permissionsSlot={<PermissionsPanel compact />}
       localLLMSlot={<LocalLLMConfig />}
       agentUIProps={{ onSchedule: handleSchedule }}
