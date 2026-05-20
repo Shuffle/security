@@ -19,6 +19,7 @@ import type { AgentRun } from './agentActivity';
 import type { AgentUIApp, AgentUIProps } from './AgentUI';
 import { updateAgentScheduleConfig } from './agentActivity';
 import { toast } from './toast';
+import type { ShuffleHostProps } from './host-props';
 
 export interface AgentsViewProps extends ShuffleHostProps {
   /**
