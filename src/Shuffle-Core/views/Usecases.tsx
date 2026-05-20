@@ -3242,6 +3242,12 @@ export interface UsecasesPageProps {
    * or `'light'` to lock it.
    */
   theme?: 'light' | 'dark' | 'system';
+  /**
+   * Optional host slot rendered next to the Source/Destination title in
+   * the usecase detail view. Use it to inject host-owned controls such as
+   * the Webhook ingestion button without duplicating its implementation.
+   */
+  renderEndpointSlot?: (params: { flowId: string; flowLabel: string; side: 'source' | 'destination' }) => React.ReactNode;
 }
 
 function UsecasesPageInner() {
