@@ -1350,9 +1350,27 @@ const LOCAL_ROUTE_MAP = (() => {
 
 function getMatchingLocal(api: ApiUsecase, matched: Set<string>): Usecase | undefined {
   const candidates = [getApiSource(api), ...(ROUTE_ALIASES[getApiSource(api)] || [])];
+  const apiNameSlug = slugify(api.name || '');
+  // Prefer a label-exact match first so multiple locals sharing the same
+  // source→target route (e.g. case_management→case_management has Incident
+  // Routing, Forward Tickets, Assign & Escalate, …) don't get assigned to
+  // the wrong local just because they share a route.
+  if (apiNameSlug) {
+    for (const src of candidates) {
+      const locals = LOCAL_ROUTE_MAP.get(`${src}→${getApiTarget(api)}`) || [];
+      const byLabel = locals.find(
+        (l) => !matched.has(l.id) && slugify(l.label) === apiNameSlug
+      );
+      if (byLabel) return byLabel;
+    }
+  }
   for (const src of candidates) {
     const locals = LOCAL_ROUTE_MAP.get(`${src}→${getApiTarget(api)}`) || [];
-    const unmatched = locals.find((l) => !matched.has(l.id));
+    // Skip locals that have a customAction (configuration-only usecases like
+    // Incident Routing) — they should never be claimed by a name-mismatched
+    // API entry on the same route, otherwise the wrong card inherits its id
+    // and the configuration slot mounts on the wrong usecase.
+    const unmatched = locals.find((l) => !matched.has(l.id) && !l.customAction);
     if (unmatched) return unmatched;
   }
   return undefined;
