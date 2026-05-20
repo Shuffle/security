@@ -58,6 +58,8 @@ const getDefaultBaseUrl = (): string => {
 
 let _regionUrl: string | null = null;
 let _trackedOrgId: string | null = null;
+// Host-injected base URL (highest priority — set via setHostBaseUrl).
+let _hostBaseUrl: string | null = null;
 
 const isShufflerSubdomain = (url: string): boolean => {
   try {
@@ -81,8 +83,28 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
 export const resetRegionUrl = () => { _regionUrl = null; };
 export const getTrackedOrgId = (): string | null => _trackedOrgId;
 
+/**
+ * Host override — call from a top-level Shuffle-Core component (or via
+ * `useSyncHostBaseUrl`) with `globalUrl` from `ShuffleHostProps`. Beats region
+ * URL and default for ALL fetches that go through `getApiUrl()`.
+ */
+export const setHostBaseUrl = (url: string | undefined | null) => {
+  const next = url ? url.replace(/\/+$/, '') : null;
+  if (next === _hostBaseUrl) return;
+  _hostBaseUrl = next;
+  if (next) {
+    try { registerProtectedOrigin(next); } catch { /* noop */ }
+  }
+};
+
+export const getHostBaseUrl = (): string | null => _hostBaseUrl;
+
 export const API_CONFIG = {
-  get baseUrl(): string { return _regionUrl || getDefaultBaseUrl(); },
+  get baseUrl(): string {
+    const url = _hostBaseUrl || _regionUrl || getDefaultBaseUrl();
+    try { registerProtectedOrigin(url); } catch { /* noop */ }
+    return url;
+  },
   version: 'v1',
   get apiKey(): string | null {
     try { return typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_api_key') : null; } catch { return null; }
