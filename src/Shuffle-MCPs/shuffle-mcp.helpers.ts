@@ -93,7 +93,7 @@ export interface AppAuthentication {
   };
 }
 
-export interface ShuffleMCPProps {
+export interface ShuffleMCPProps extends ShuffleHostProps {
   /**
    * Shuffle API key. Used as the `Authorization: Bearer` header on every
    * request the component makes (`/api/v1/apps/authentication`,
