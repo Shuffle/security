@@ -511,7 +511,7 @@ export const DEFAULT_USECASES: Usecase[] = [
     tags: ['Intel', 'Correlation', 'Context'],
     description: 'Threat intelligence enriches cases with reputation scores, malware families, threat actor attribution, and related IOCs — giving analysts immediate context.',
     agenticDescription: 'An agent autonomously enriches all observables in a case, maps findings to MITRE ATT&CK, identifies related campaigns, and updates case severity and recommended playbook based on findings.',
-    automationLabel: 'Enable Threat feeds_webhook',
+    automationLabel: 'Realtime IOC extraction',
     automationCategory: 'cases',
     automationArea: 'threat_intel',
   },
