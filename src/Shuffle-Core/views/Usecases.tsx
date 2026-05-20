@@ -994,6 +994,7 @@ const DEFAULT_CONFIG: UsecasesPageConfig = {
   externalIsAuthenticated: false,
   isLoaded: true,
   renderEndpointSlot: undefined,
+  renderUsecaseDetailSlot: undefined,
 };
 
 const UsecasesPageConfigContext = React.createContext<UsecasesPageConfig>(DEFAULT_CONFIG);
