@@ -34,6 +34,7 @@ export interface AgentsViewProps extends ShuffleHostProps {
 }
 
 const AgentsView = ({ onSchedule, maxWidth = 820, globalUrl, isLoaded, isLoggedIn, userdata, serverside }: AgentsViewProps) => {
+  useSyncHostBaseUrl(globalUrl);
   const [selectedRun, setSelectedRun] = useState<AgentRun | null>(null);
   const [agentView, setAgentView] = useState<'start' | 'simple' | 'detailed'>('start');
   const [prefill, setPrefill] = useState<{ input: string; apps: AgentUIApp[]; key: number }>({
