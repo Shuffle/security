@@ -1515,7 +1515,11 @@ interface IntegrationItem {
 // instead of each firing their own. TTL is short so a manual refresh
 // (integrationsRefreshKey bump) still gets fresh data within ~5s, but a
 // burst of mounts within that window collapses to one network request.
-const APPS_TTL_MS = 5000;
+// Long enough that navigating from /usecases to /usecases/:id reuses the
+// in-flight or already-resolved response instead of refetching apps from
+// scratch. Mutations (enable/disable, add tool) call invalidateAppsCache()
+// explicitly, so a longer TTL never serves stale data after a user action.
+const APPS_TTL_MS = 60_000;
 type CacheEntry = { ts: number; promise: Promise<Response> };
 const _appsFetchCache = new Map<string, CacheEntry>();
 function fetchAppsCached(url: string, init: RequestInit): Promise<Response> {
@@ -3053,8 +3057,8 @@ function UsecaseDetailContent({
     const fetchApps = async () => {
       try {
         const [authRes, appsRes] = await Promise.all([
-          fetch(apiUrl('/api/v1/apps/authentication'), { credentials: 'include', headers: { ...authHeader() } }),
-          fetch(apiUrl('/api/v1/apps'), { credentials: 'include', headers: { ...authHeader() } }),
+          fetchAppsCached(apiUrl('/api/v1/apps/authentication'), { credentials: 'include', headers: { ...authHeader() } }),
+          fetchAppsCached(apiUrl('/api/v1/apps'), { credentials: 'include', headers: { ...authHeader() } }),
         ]);
 
         const mapped: Record<string, Set<string>> = {};
@@ -4009,7 +4013,7 @@ function UsecasesPageInner() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(apiUrl('/api/v1/apps/authentication'), {
+        const res = await fetchAppsCached(apiUrl('/api/v1/apps/authentication'), {
           credentials: 'include',
           headers: { ...authHeader() },
         });
