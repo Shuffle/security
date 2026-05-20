@@ -3516,7 +3516,9 @@ function UsecaseDetailContent({
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {linkedWorkflows.map((wf) => (
+              {allLinked.map((wf) => {
+                const isForwardingContext = forwardTicketsWorkflows.some((f) => f.id === wf.id);
+                return (
                 <Box
                   key={wf.id}
                   component="a"
@@ -3543,10 +3545,16 @@ function UsecaseDetailContent({
                     <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {wf.name || 'Untitled workflow'}
                     </Typography>
+                    {isForwardingContext && (
+                      <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: MUTED, px: 0.75, py: 0.15, borderRadius: 0.75, border: CARD_BORDER, flexShrink: 0 }}>
+                        Forwarding context
+                      </Typography>
+                    )}
                   </Box>
                   <ExternalLink size={13} style={{ color: MUTED, flexShrink: 0 }} />
                 </Box>
-              ))}
+                );
+              })}
             </Box>
           </Box>
         );
