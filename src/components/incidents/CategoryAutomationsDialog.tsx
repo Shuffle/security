@@ -26,6 +26,7 @@ import { toast } from '@/lib/toast';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import PopupTextEditor from '@/components/shared/PopupTextEditor';
 import AppSearchDrawer from '@/Shuffle-MCPs/AppSearchDrawer';
+import AiAgentPromptsEditor from '@/Shuffle-MCPs/AiAgentPromptsEditor';
 import { useAuthenticatedApps } from '@/hooks/useAuthenticatedApps';
 import { Tooltip } from '@mui/material';
 
