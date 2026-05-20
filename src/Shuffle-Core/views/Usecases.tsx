@@ -3992,7 +3992,7 @@ function UsecasesPageInner() {
       }
       return false;
     },
-    [enabledLabels, validatedCategories, workflows, aiAgentAutomationActive],
+    [enabledLabels, validatedCategories, workflows, aiAgentAutomationActive, monitorsDeployedCount],
   );
 
 
