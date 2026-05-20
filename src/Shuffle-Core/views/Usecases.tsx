@@ -694,7 +694,7 @@ export const DEFAULT_USECASES: Usecase[] = [
   },
   {
     id: 'case_management_asset_management_monitors_1', phase: 'response', source: 'case_management', target: 'asset_management',
-    label: 'Add Monitors', animated: true,
+    label: 'Add Host-Monitors', animated: true,
     tags: ['Response', 'Monitoring', 'Endpoint'],
     description: 'Deploy host monitors to endpoints for real-time telemetry collection, compliance checks, and on-demand response action execution. Monitors enable direct interaction with hosts during investigations and continuous visibility into endpoint state.',
     agenticDescription: 'An agent identifies hosts missing monitor coverage, generates the appropriate deployment command for each platform, tracks rollout status, and verifies telemetry is flowing back into the platform after install.',
@@ -3882,6 +3882,16 @@ function UsecasesPageInner() {
     return set;
   }, [trustedWorkflowStates, workflowEnabledLabels]);
 
+  // Page-level outcomes bundle — used to drive presence-based enable signals
+  // (e.g. "Add Host-Monitors" lights up as Enabled when ≥2 host monitors are
+  // actually deployed, regardless of whether a workflow exists).
+  const { getOutcome: getPageOutcome } = useUsecaseOutcomes(usecases);
+  const monitorsDeployedCount = (() => {
+    const o = getPageOutcome('case_management_asset_management_monitors_1');
+    const v = o?.extraMetrics?.[0]?.value;
+    return typeof v === 'number' ? v : 0;
+  })();
+
   // Categories (e.g. 'siem', 'edr', 'email') for which the user has at least
   // one *authenticated* / validated source-tool installed. We use this to gate
   // the visual "Enabled" state on cards: a workflow can be generated server-
@@ -3956,6 +3966,11 @@ function UsecasesPageInner() {
     (flow: Usecase): boolean => {
       // Agent Response is driven by the category automation, not a workflow.
       if (flow.id === 'case_management_agent_response_1') return aiAgentAutomationActive;
+      // Add Host-Monitors is presence-driven: as soon as ≥2 host monitors are
+      // deployed, treat it as enabled — there is no separate workflow to gate.
+      if (flow.id === 'case_management_asset_management_monitors_1') {
+        return monitorsDeployedCount >= 2;
+      }
       if (!flow.automationLabel) return false;
       if (!enabledLabels.has(flow.automationLabel)) return false;
       if (!validatedCategories.has(flow.source)) return false;
@@ -3977,7 +3992,7 @@ function UsecasesPageInner() {
       }
       return false;
     },
-    [enabledLabels, validatedCategories, workflows, aiAgentAutomationActive],
+    [enabledLabels, validatedCategories, workflows, aiAgentAutomationActive, monitorsDeployedCount],
   );
 
 
