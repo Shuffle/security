@@ -3640,6 +3640,11 @@ export interface UsecasesPageProps {
    * the Webhook ingestion button without duplicating its implementation.
    */
   renderEndpointSlot?: (params: { flowId: string; flowLabel: string; side: 'source' | 'destination' }) => React.ReactNode;
+  /**
+   * Optional host slot rendered above the Outcome block in the detail view.
+   * Use it to inject a full configuration UI (e.g. Incident Routing editor).
+   */
+  renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string }) => React.ReactNode;
 }
 
 function UsecasesPageInner() {
