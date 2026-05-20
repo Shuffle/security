@@ -23,6 +23,7 @@ import {
 import { AppSearchDrawer } from '@shuffleio/shuffle-mcps';
 import { useAppDetailOptional } from '@shuffleio/shuffle-mcps';
 import { getApiUrl, getAuthHeader } from '@shuffleio/shuffle-mcps';
+import type { ShuffleCoreHostProps } from '../types/host-props';
 import { deduplicateAuthApps, backfillAppImages, type AuthAppEntry } from '../auth-utils';
 import {
   SIEM_PATTERNS,
@@ -53,7 +54,7 @@ interface AppNode {
   isEnabled?: boolean;
 }
 
-export interface UsecaseAlluvialDiagramProps {
+export interface UsecaseAlluvialDiagramProps extends ShuffleCoreHostProps {
   /** Source tool category ID (e.g. 'siem') */
   sourceCategory: string;
   /** Target tool category ID (e.g. 'case_management') */
@@ -63,12 +64,6 @@ export interface UsecaseAlluvialDiagramProps {
    * and apps matching this category get a visual highlight.
    */
   highlightCategory?: string;
-  /**
-   * Whether the host considers the current user authenticated. Used to gate
-   * authenticated-only API calls. Defaults to `false` so the library is safe
-   * to render in unauthenticated contexts.
-   */
-  isLoggedIn?: boolean;
 }
 
 // ── Pattern matchers ───────────────────────────────────────────────────────────
