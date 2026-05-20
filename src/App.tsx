@@ -166,6 +166,10 @@ const ThemedApp = () => {
           <DemoCompletionWatcher />
           <DemoResumePill />
           <Routes>
+            <Route path="/articles" element={<ShufflerExternalRedirect />} />
+            <Route path="/articles/:name" element={<ShufflerExternalRedirect />} />
+            <Route path="/blog" element={<ShufflerExternalRedirect />} />
+            <Route path="/blog/:name" element={<ShufflerExternalRedirect />} />
             <Route path="/" element={<Index />} />
             <Route path="/apps" element={<AppsPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
