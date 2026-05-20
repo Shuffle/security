@@ -2092,7 +2092,6 @@ function IntegrationStatusLite({
         fontSize: '0.6rem',
         fontWeight: 700,
         color: 'hsl(var(--muted-foreground))',
-        textTransform: 'uppercase',
         letterSpacing: '0.06em',
         mb: 0.5,
       }}
@@ -2297,7 +2296,7 @@ function AiIncidentHandlingPromptsBlock() {
   if (loading) {
     return (
       <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6, mb: 1 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: 0.6, mb: 1 }}>
           AI Agent prompts
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
@@ -2311,7 +2310,7 @@ function AiIncidentHandlingPromptsBlock() {
   if (!enabled) {
     return (
       <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6, mb: 1 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: 0.6, mb: 1 }}>
           AI Agent prompts
         </Typography>
         <Typography sx={{ fontSize: '0.85rem', color: MUTED, mb: 1.5 }}>
@@ -2333,7 +2332,7 @@ function AiIncidentHandlingPromptsBlock() {
   return (
     <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, gap: 1, flexWrap: 'wrap' }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: 0.6 }}>
           AI Agent prompts · {prompts.length} active
         </Typography>
         <Button
@@ -2657,7 +2656,7 @@ function AssignEscalateOutcomeBlock({ flow, workflows }: { flow: Usecase; workfl
   if (loading) {
     return (
       <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6, mb: 1 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: 0.6, mb: 1 }}>
           Outcome · last 30 days
         </Typography>
         <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1.25 }}>
@@ -2673,7 +2672,7 @@ function AssignEscalateOutcomeBlock({ flow, workflows }: { flow: Usecase; workfl
   if (!matchedWorkflowId) {
     return (
       <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6, mb: 1 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: 0.6, mb: 1 }}>
           Outcome · last 30 days
         </Typography>
         <Typography sx={{ fontSize: '0.85rem', color: MUTED }}>
@@ -2686,7 +2685,7 @@ function AssignEscalateOutcomeBlock({ flow, workflows }: { flow: Usecase; workfl
   return (
     <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${BORDER}`, bgcolor: CARD, mb: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: 0.6 }}>
           Outcome · last {windowDays} days
         </Typography>
       </Box>
@@ -3606,7 +3605,7 @@ function UsecaseDetailContent({
             return (
             <Box key={endpoint.title} sx={{ flex: 1, minWidth: 0 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1.25 }}>
-                <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em' }}>
                   {endpoint.title}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
@@ -3625,7 +3624,7 @@ function UsecaseDetailContent({
                   }}>
                     {endpoint.meta?.icon}
                   </Box>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: accent(endpoint.meta?.color), textTransform: 'uppercase', letterSpacing: '0.02em', flexShrink: 0 }}>
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: FG, letterSpacing: '0.02em', flexShrink: 0 }}>
                     {endpoint.title === 'Source' && endpoint.categoryId === 'case_management' ? 'Shuffle' : (endpoint.meta?.label || 'Unknown')}
                   </Typography>
                   {endpoint.details ? (
@@ -3709,7 +3708,7 @@ function UsecaseDetailContent({
         return (
           <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, gap: 2, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.06em' }}>
                 Linked Workflows ({allLinked.length})
               </Typography>
               <Typography sx={{ fontSize: '0.72rem', color: MUTED }}>
@@ -3763,7 +3762,7 @@ function UsecaseDetailContent({
 
       {((showImage && flow.referenceImage) || flow.video || flow.blogpost) && (
         <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
-          <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5 }}>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.06em', mb: 1.5 }}>
             Resources
           </Typography>
           {showImage && flow.referenceImage && (
@@ -4517,7 +4516,6 @@ function UsecasesPageInner() {
               color: 'hsl(var(--muted-foreground))',
               fontSize: '0.7rem',
               fontWeight: 600,
-              textTransform: 'uppercase',
               letterSpacing: '0.05em',
               mb: 1,
               px: 1,
@@ -4725,7 +4723,7 @@ function UsecasesPageInner() {
           backgroundColor: '#1a1a1a',
           bgcolor: 'hsl(var(--background, 0 0% 10%))',
         }}>
-          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', letterSpacing: '0.06em' }}>
             Automation
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
