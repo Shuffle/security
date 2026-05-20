@@ -183,6 +183,17 @@ export interface AgentUIProps {
   appPickerTitle?: string;
   /** Subtitle on the AppSearchDrawer. */
   appPickerSubtitle?: string;
+  /**
+   * Handler for the "Choose LLM" chip. When provided, takes full ownership
+   * of the click. When omitted, AgentUI dispatches a window
+   * `agent-drawer-open` CustomEvent — that's what the bundled
+   * `AgentRunDrawer` listens for. On hosts that don't mount the drawer,
+   * provide this prop to wire your own LLM picker (or set it to a no-op
+   * to hide the chip's intent entirely).
+   */
+  onChooseLLM?: () => void;
+  /** Hide the "Choose LLM" chip entirely. */
+  hideChooseLLM?: boolean;
   /** Tooltip on the submit button. Default: "⌘+Enter to send". */
   submitTooltip?: string;
   /** Custom icon for the submit button. */
