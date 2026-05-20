@@ -496,11 +496,11 @@ export function UsecaseOutcomeBadge({ outcome }: UsecaseOutcomeBadgeProps) {
           px: 0.75,
           py: 0.25,
           borderRadius: 1,
-          bgcolor: 'hsla(24, 100%, 50%, 0.15)',
-          border: `1px solid ${PRIMARY}`,
+          bgcolor: 'hsl(var(--muted, 0 0% 20%))',
+          border: `1px solid ${BORDER}`,
           fontSize: '0.68rem',
           fontWeight: 700,
-          color: PRIMARY,
+          color: FG,
           lineHeight: 1.2,
         }}
       >
