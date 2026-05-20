@@ -52,7 +52,7 @@ export const UsageBar: React.FC<UsageBarProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
           <Typography
             sx={{
-              fontSize: '0.7rem',
+              fontSize: '12.8px',
               fontWeight: 500,
               color: 'hsl(var(--muted-foreground))',
               lineHeight: 1.2,
@@ -68,7 +68,7 @@ export const UsageBar: React.FC<UsageBarProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
-                  fontSize: '0.65rem',
+                  fontSize: '12.8px',
                   fontWeight: 600,
                   color: accent,
                   textDecoration: 'none',
@@ -80,7 +80,7 @@ export const UsageBar: React.FC<UsageBarProps> = ({
             )}
             <Typography
               sx={{
-                fontSize: '0.65rem',
+                fontSize: '12.8px',
                 fontWeight: 500,
                 color: accent,
                 whiteSpace: 'nowrap',
