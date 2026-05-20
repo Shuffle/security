@@ -1833,7 +1833,7 @@ export const AppAuthCard = ({
                     </Typography>
                   </Alert>
                 )}
-                <Typography variant="subtitle2" sx={{ color: 'hsl(var(--primary))', fontWeight: 600, mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, mb: 2 }}>
                   {apiAuthEntries.length === 0 ? 'Configure Authentication' : 'Add New Authentication'}
                 </Typography>
                 
