@@ -2980,9 +2980,6 @@ function UsecaseDetailContent({
 
       <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
-          <Box sx={{ width: 52, height: 52, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: accentBg(sourceCat?.color, 0.12), color: accent(sourceCat?.color), flexShrink: 0 }}>
-            {sourceCat?.icon || <ArrowRight size={22} />}
-          </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
               <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: FG, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
