@@ -134,6 +134,15 @@ const RedirectIncidentsSimple = () => {
   return <Navigate to={`/incidents/${id}${search}`} replace />;
 };
 
+/** Redirect /articles, /blog (and their /:name children) to shuffler.io with the same path. */
+const ShufflerExternalRedirect = () => {
+  if (typeof window !== 'undefined') {
+    const { pathname, search, hash } = window.location;
+    window.location.replace(`https://shuffler.io${pathname}${search}${hash}`);
+  }
+  return null;
+};
+
 const queryClient = new QueryClient();
 
 /** Inner app that reads theme context */
