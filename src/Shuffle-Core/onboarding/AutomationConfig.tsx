@@ -235,8 +235,9 @@ interface SourceChipProps {
 }
 
 const SourceChip = ({ label, apps, activeCount, totalCount, hasAnyActive, optionId, isToolEnabled }: SourceChipProps) => {
-  const hasAny = apps.length > 0;
-  const activeApps = apps.filter(app => isToolEnabled(optionId, app.id));
+  const safeApps = (apps || []).filter((a): a is NonNullable<typeof a> => !!a && !!a.name);
+  const hasAny = safeApps.length > 0;
+  const activeApps = safeApps.filter(app => isToolEnabled(optionId, app.id));
   
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.75, borderRadius: 2,
