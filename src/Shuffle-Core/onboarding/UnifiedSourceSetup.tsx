@@ -28,6 +28,7 @@ import type {
   AlgoliaSearchApp,
   ShuffleMCPHandle,
   IngestionCategory,
+  ShuffleHostProps,
 } from '@shuffleio/shuffle-mcps';
 
 /** Fire-and-forget activate call for a newly selected app. Refreshes the
@@ -147,7 +148,7 @@ const singulStyles = {
 
 // ─── CategorySection ────────────────────────────────────────────────────────
 
-interface CategorySectionProps {
+interface CategorySectionProps extends ShuffleHostProps {
   category: typeof CATEGORIES[number];
   stepIndex: number;
   totalSteps: number;
@@ -169,6 +170,11 @@ const CategorySection = ({
   isOpen,
   onToggleOpen,
   sectionRef,
+  globalUrl,
+  userdata,
+  isLoaded,
+  isLoggedIn,
+  serverside,
 }: CategorySectionProps) => {
   const singulRef = useRef<ShuffleMCPHandle>(null);
   const [singulKey, setSingulKey] = useState(0);
@@ -371,6 +377,11 @@ const CategorySection = ({
             <ShuffleMCP
               key={singulKey}
               ref={singulRef}
+              globalUrl={globalUrl}
+              userdata={userdata}
+              isLoaded={isLoaded}
+              isLoggedIn={isLoggedIn}
+              serverside={serverside}
               apiKey={API_CONFIG.apiKey || undefined}
               apiBaseUrl={API_CONFIG.baseUrl}
               placeholder={`Search ${category.label.toLowerCase()} integrations...`}
@@ -397,7 +408,7 @@ const CategorySection = ({
 
 // ─── UnifiedSourceSetup ─────────────────────────────────────────────────────
 
-interface UnifiedSourceSetupProps {
+interface UnifiedSourceSetupProps extends ShuffleHostProps {
   selectedApps: AlgoliaSearchApp[];
   onAppsChange: (apps: AlgoliaSearchApp[]) => void;
 }
@@ -405,6 +416,11 @@ interface UnifiedSourceSetupProps {
 export const UnifiedSourceSetup = ({
   selectedApps,
   onAppsChange,
+  globalUrl,
+  userdata,
+  isLoaded,
+  isLoggedIn,
+  serverside,
 }: UnifiedSourceSetupProps) => {
   // Only one category open at a time (accordion)
   const [openCategory, setOpenCategory] = useState<string | null>(null);
@@ -498,6 +514,11 @@ export const UnifiedSourceSetup = ({
             selectedApps={categorizedApps[category.id]}
             allSelectedApps={selectedApps}
             onAppsChange={handleAppsChange}
+            globalUrl={globalUrl}
+            userdata={userdata}
+            isLoaded={isLoaded}
+            isLoggedIn={isLoggedIn}
+            serverside={serverside}
             isOpen={openCategory === category.id}
             onToggleOpen={() => toggleCategory(category.id)}
             sectionRef={(el) => { sectionRefs.current[category.id] = el; }}

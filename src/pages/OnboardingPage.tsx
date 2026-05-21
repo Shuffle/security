@@ -1,5 +1,7 @@
 import { OnboardingFlow } from '@/Shuffle-Core/onboarding/OnboardingFlow';
 import { useDemo } from '@/context/DemoContext';
+import { useAuth } from '@/context/AuthContext';
+import { API_CONFIG } from '@/Shuffle-MCPs/api';
 
 /**
  * Shuffle Security wrapper around the shared Shuffle-Core onboarding flow.
@@ -8,9 +10,14 @@ import { useDemo } from '@/context/DemoContext';
  */
 const OnboardingPage = () => {
   const { startDemo } = useDemo();
+  const { isAuthenticated, isLoading, userInfo } = useAuth();
   return (
     <OnboardingFlow
       product="security"
+      isLoaded={!isLoading}
+      isLoggedIn={isAuthenticated}
+      userdata={userInfo}
+      globalUrl={API_CONFIG.baseUrl}
       coreRedirectUrl="https://shuffler.io/welcome"
       securityRedirectUrl="https://security.shuffler.io/onboarding"
       // We are already inside Shuffle Security — kick off the demo drawer in
