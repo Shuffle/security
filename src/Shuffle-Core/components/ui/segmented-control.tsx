@@ -1,6 +1,5 @@
 import * as React from "react";
 import { motion, LayoutGroup } from "framer-motion";
-import { cn } from "@/Shuffle-Core/lib/utils";
 
 /**
  * SegmentedControl
@@ -61,16 +60,16 @@ export interface SegmentedControlProps<V extends string = string> {
 
 const sizeClasses = {
   sm: {
-    container: "p-0.5 text-[11px]",
-    item: "px-2.5 py-1 gap-1.5",
-    count: "min-w-[16px] h-[16px] px-1 text-[10px]",
-    divider: "h-4 mx-0.5",
+    container: { padding: 2, fontSize: 11 },
+    item: { padding: "4px 10px", gap: 6 },
+    count: { minWidth: 16, height: 16, padding: "0 4px", fontSize: 10 },
+    divider: { height: 16, margin: "0 2px" },
   },
   md: {
-    container: "p-1 text-xs",
-    item: "px-3 py-1.5 gap-1.5",
-    count: "min-w-[18px] h-[18px] px-1.5 text-[10px]",
-    divider: "h-5 mx-1",
+    container: { padding: 4, fontSize: 12 },
+    item: { padding: "6px 12px", gap: 6 },
+    count: { minWidth: 18, height: 18, padding: "0 6px", fontSize: 10 },
+    divider: { height: 20, margin: "0 4px" },
   },
 };
 
@@ -98,19 +97,24 @@ export function SegmentedControl<V extends string = string>({
   const groupId = layoutId ?? autoId;
   const s = sizeClasses[size];
 
+  const trackStyle: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 2,
+    borderRadius: 999,
+    border: variant === "outline" ? "1px solid hsl(var(--border))" : "1px solid transparent",
+    backgroundColor: variant === "outline" ? "transparent" : "hsl(var(--muted) / 0.4)",
+    color: "hsl(var(--muted-foreground))",
+    ...s.container,
+  };
+
   return (
     <LayoutGroup id={groupId}>
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className={cn(
-          "inline-flex items-center gap-0.5 rounded-full",
-          variant === "outline"
-            ? "border border-border bg-transparent"
-            : "border border-transparent bg-muted/40",
-          s.container,
-          className,
-        )}
+        className={className}
+        style={trackStyle}
       >
         {options.map((opt, i) => {
           if (opt.type === "divider") {
@@ -118,7 +122,7 @@ export function SegmentedControl<V extends string = string>({
               <span
                 key={opt.key ?? `divider-${i}`}
                 aria-hidden
-                className={cn("w-px bg-border self-center", s.divider)}
+                style={{ width: 1, alignSelf: "center", backgroundColor: "hsl(var(--border))", ...s.divider }}
               />
             );
           }
@@ -141,21 +145,38 @@ export function SegmentedControl<V extends string = string>({
                 if (isAction) opt.onClick();
                 else onChange(opt.value);
               }}
-              className={cn(
-                "relative inline-flex items-center rounded-full font-medium",
-                "transition-colors duration-300",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                s.item,
-                active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-                opt.disabled && "opacity-50 cursor-not-allowed",
-              )}
+              style={{
+                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                border: 0,
+                borderRadius: 999,
+                background: "transparent",
+                color: active ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))",
+                font: "inherit",
+                fontWeight: 500,
+                cursor: opt.disabled ? "not-allowed" : "pointer",
+                opacity: opt.disabled ? 0.5 : 1,
+                transition: "color 300ms ease",
+                ...s.item,
+              }}
+              onMouseEnter={(event) => {
+                if (!active && !opt.disabled) event.currentTarget.style.color = "hsl(var(--foreground))";
+              }}
+              onMouseLeave={(event) => {
+                if (!active) event.currentTarget.style.color = "hsl(var(--muted-foreground))";
+              }}
             >
               {active && (
                 <motion.span
                   layoutId={`${groupId}-pill`}
-                  className="absolute inset-0 rounded-full bg-muted border border-border"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 999,
+                    backgroundColor: "hsl(var(--muted))",
+                    border: "1px solid hsl(var(--border))",
+                  }}
                   initial={false}
                   transition={{
                     type: "spring",
@@ -164,18 +185,25 @@ export function SegmentedControl<V extends string = string>({
                   }}
                 />
               )}
-              <span className="relative z-10 inline-flex items-center gap-1.5">
+              <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: 6 }}>
                 {opt.label}
               </span>
               {!isAction && typeof opt.count === "number" && (
                 <span
-                  className={cn(
-                    "relative z-10 inline-flex items-center justify-center rounded-md font-semibold tabular-nums border border-border/60",
-                    s.count,
-                    active
-                      ? "bg-transparent text-foreground"
-                      : "bg-transparent text-muted-foreground",
-                  )}
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 6,
+                    border: "1px solid hsl(var(--border) / 0.6)",
+                    background: "transparent",
+                    color: active ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))",
+                    fontWeight: 600,
+                    fontVariantNumeric: "tabular-nums",
+                    ...s.count,
+                  }}
                 >
                   {opt.count}
                 </span>
