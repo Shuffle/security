@@ -10,11 +10,12 @@
  * list, execution drawer, schedule edit save — is handled internally.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import AgentUI from './AgentUI';
 import AgentActivityList from './AgentActivityList';
 import AgentExecutionDrawer from './AgentExecutionDrawer';
+import AgentRunDrawer, { type AgentRunDrawerTab } from './AgentRunDrawer';
 import type { AgentRun } from './agentActivity';
 import type { AgentUIApp, AgentUIProps } from './AgentUI';
 import { updateAgentScheduleConfig } from './agentActivity';
