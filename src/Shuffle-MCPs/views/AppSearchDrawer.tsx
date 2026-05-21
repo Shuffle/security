@@ -173,6 +173,19 @@ export default function AppSearchDrawer({
   const [detailAppName, setDetailAppName] = useState<string | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [highlightActive, setHighlightActive] = useState(false);
+  // Defer mounting the heavy <ShuffleMCP> (Algolia) widget so the Drawer
+  // slide-in paints immediately. Without this, clicking "Select Apps" feels
+  // laggy because the search widget initializes on the same frame the drawer
+  // tries to open.
+  const [bodyReady, setBodyReady] = useState(false);
+  useEffect(() => {
+    if (!open) { setBodyReady(false); return; }
+    const raf = requestAnimationFrame(() => {
+      // Wait one more frame so the drawer animation actually starts first.
+      requestAnimationFrame(() => setBodyReady(true));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
 
   // Activate highlight only after the delay, so users get a chance to find
   // the app on their own before we draw attention to it.
@@ -182,6 +195,7 @@ export default function AppSearchDrawer({
     const t = setTimeout(() => setHighlightActive(true), highlightDelayMs);
     return () => clearTimeout(t);
   }, [open, highlightAppName, highlightDelayMs]);
+
 
   const handleClose = () => {
     setDetailAppName(null);
@@ -435,55 +449,90 @@ export default function AppSearchDrawer({
                 transition={{ duration: 0.2 }}
                 style={{ height: '100%', minHeight: 0 }}
               >
-                <ShuffleMCP
-                  apiKey={API_CONFIG.apiKey || undefined}
-                  apiBaseUrl={globalUrl || API_CONFIG.baseUrl}
-                  globalUrl={globalUrl}
-                  theme={theme}
-                  colorMode={colorMode}
-                  placeholder={initialQuery ? `Search ${initialQuery} integrations...` : 'Search integrations...'}
-                  layout="grid"
-                  gridColumns={2}
-                  inline={true}
-                  initialFilterQuery={initialQuery}
-                  hitsPerPage={12}
-                  showDescription={false}
-                  showCategories={true}
-                  showCheckbox={multiSelect}
-                  multiSelect={multiSelect}
-                  selectedApps={multiSelect ? projectedSelectedApps : undefined}
-                  disableAutoSelectValidatedApps={multiSelect}
-                  preventDefault={true}
-                  onAppSelected={handleAppSelected}
-                  onSelectionChange={multiSelect ? (next) => {
-                    onSelectionChange?.(next.map((app) => ({
-                      name: app.name,
-                      id: app.objectID || null,
-                      icon: app.image_url || '',
-                      categories: app.categories || [],
-                    })));
-                  } : undefined}
-                  pinnedApps={pinnedApps?.map(p => ({
-                    name: p.name,
-                    image_url: p.image_url,
-                    categories: p.categories || [],
-                    objectID: p.objectID || `pinned-${p.name}`,
-                    description: '',
-                    creator: '',
-                    app_version: '1.0.0',
-                    time_edited: 0,
-                    generated: false,
-                    invalid: false,
-                    priority: 0,
-                    actions: 0,
-                    tags: [],
-                    accessible_by: [],
-                    action_labels: [],
-                    triggers: [],
-                    verified: true,
-                  }))}
-                  customStyles={singulStyles}
-                />
+                {bodyReady ? (
+                  <ShuffleMCP
+                    apiKey={API_CONFIG.apiKey || undefined}
+                    apiBaseUrl={globalUrl || API_CONFIG.baseUrl}
+                    globalUrl={globalUrl}
+                    theme={theme}
+                    colorMode={colorMode}
+                    placeholder={initialQuery ? `Search ${initialQuery} integrations...` : 'Search integrations...'}
+                    layout="grid"
+                    gridColumns={2}
+                    inline={true}
+                    initialFilterQuery={initialQuery}
+                    hitsPerPage={12}
+                    showDescription={false}
+                    showCategories={true}
+                    showCheckbox={multiSelect}
+                    multiSelect={multiSelect}
+                    selectedApps={multiSelect ? projectedSelectedApps : undefined}
+                    disableAutoSelectValidatedApps={multiSelect}
+                    preventDefault={true}
+                    onAppSelected={handleAppSelected}
+                    onSelectionChange={multiSelect ? (next) => {
+                      onSelectionChange?.(next.map((app) => ({
+                        name: app.name,
+                        id: app.objectID || null,
+                        icon: app.image_url || '',
+                        categories: app.categories || [],
+                      })));
+                    } : undefined}
+                    pinnedApps={pinnedApps?.map(p => ({
+                      name: p.name,
+                      image_url: p.image_url,
+                      categories: p.categories || [],
+                      objectID: p.objectID || `pinned-${p.name}`,
+                      description: '',
+                      creator: '',
+                      app_version: '1.0.0',
+                      time_edited: 0,
+                      generated: false,
+                      invalid: false,
+                      priority: 0,
+                      actions: 0,
+                      tags: [],
+                      accessible_by: [],
+                      action_labels: [],
+                      triggers: [],
+                      verified: true,
+                    }))}
+                    customStyles={singulStyles}
+                  />
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%' }}>
+                    {/* Search input skeleton */}
+                    <Box sx={{
+                      height: 44,
+                      borderRadius: '12px',
+                      border: '1px solid hsl(var(--border))',
+                      backgroundColor: 'hsl(var(--background-elevated))',
+                    }} />
+                    {/* Grid skeleton */}
+                    <Box sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: '12px',
+                      mt: 1,
+                    }}>
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <Box key={i} sx={{
+                          height: 88,
+                          borderRadius: '12px',
+                          backgroundColor: 'hsl(var(--input))',
+                          border: '1px solid hsl(var(--border))',
+                          opacity: 0.6,
+                          animation: 'shufflePulse 1.4s ease-in-out infinite',
+                          animationDelay: `${i * 60}ms`,
+                          '@keyframes shufflePulse': {
+                            '0%, 100%': { opacity: 0.35 },
+                            '50%': { opacity: 0.7 },
+                          },
+                        }} />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
               </motion.div>
             </AnimatePresence>
           </Box>
@@ -499,6 +548,7 @@ export default function AppSearchDrawer({
           setDetailAppId(null);
           if (name) onDetailClose?.(name);
         }}
+
         appName={detailAppName}
         appId={detailAppId}
         anchor={anchor}
