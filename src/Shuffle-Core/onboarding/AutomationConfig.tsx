@@ -83,6 +83,12 @@ interface ConnectedApp {
   hasAuthConfig?: boolean;
 }
 
+const isValidConnectedApp = (app: ConnectedApp | null | undefined): app is ConnectedApp =>
+  !!app?.id && !!app?.name;
+
+const safeConnectedApps = (apps?: Array<ConnectedApp | null | undefined>): ConnectedApp[] =>
+  (apps || []).filter(isValidConnectedApp);
+
 // Base static options - automatic_ingestion will be built dynamically
 const baseEnrichmentOptions: (Omit<EnrichmentOption, 'connectedApps'> & { isDynamic?: boolean })[] = [
   {
@@ -158,6 +164,9 @@ interface SelectedApp {
   categories?: string[];
 }
 
+const isValidSelectedApp = (app: SelectedApp | null | undefined): app is SelectedApp =>
+  !!app?.objectID && !!app?.name;
+
 interface AutomationConfigProps {
   enrichmentState: EnrichmentState;
   onEnrichmentChange: (state: EnrichmentState) => void;
@@ -223,6 +232,14 @@ interface ThreatIntelSource {
   isOther?: boolean;
 }
 
+type AutomationSource = IngestionSource | NotificationSource | ThreatIntelSource;
+
+const safeSources = (sources?: Array<AutomationSource | null | undefined>): AutomationSource[] =>
+  (sources || []).filter((source): source is AutomationSource => !!source).map(source => ({
+    ...source,
+    apps: safeConnectedApps(source.apps),
+  }));
+
 // Helper component for rendering source category chips
 interface SourceChipProps {
   label: string;
@@ -235,7 +252,7 @@ interface SourceChipProps {
 }
 
 const SourceChip = ({ label, apps, activeCount, totalCount, hasAnyActive, optionId, isToolEnabled }: SourceChipProps) => {
-  const safeApps = (apps || []).filter((a): a is NonNullable<typeof a> => !!a && !!a.name);
+  const safeApps = safeConnectedApps(apps);
   const hasAny = safeApps.length > 0;
   const activeApps = safeApps.filter(app => isToolEnabled(optionId, app.id));
   
@@ -325,17 +342,19 @@ export const AutomationConfig = ({
     };
   }, []);
 
+  const safeSelectedApps = useMemo(() => (selectedApps || []).filter(isValidSelectedApp), [selectedApps]);
+
   // Create a set of selected app names (normalized) for quick lookup
   const selectedAppNames = useMemo(() => {
     const names = new Set<string>();
-    selectedApps.forEach(app => {
-      names.add(app.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_'));
+    safeSelectedApps.forEach(app => {
+      names.add(normalizeAppName(app.name));
     });
     return names;
-  }, [selectedApps]);
+  }, [safeSelectedApps]);
 
   const isAppSelected = (appName: string) => {
-    const normalized = appName.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
+    const normalized = normalizeAppName(appName);
     return selectedAppNames.has(normalized);
   };
 
@@ -376,7 +395,7 @@ export const AutomationConfig = ({
     // section matches what is shown in the Integrations bar above.
     const validatedNames = new Set(validatedApps.map(a => normalizeAppName(a.name)));
     const seenIngestion = new Set<string>(validatedApps.map(a => normalizeAppName(a.name)));
-    selectedApps.forEach(app => {
+    safeSelectedApps.forEach(app => {
       const norm = normalizeAppName(app.name);
       if (validatedNames.has(norm)) return;
       const category = getIngestionCategory(app.name, app.categories) || 'other';
@@ -428,7 +447,7 @@ export const AutomationConfig = ({
     }
     const fwdValidatedNames = new Set(forwardValidatedApps.map(a => normalizeAppName(a.name)));
     const seenForward = new Set<string>(forwardValidatedApps.map(a => normalizeAppName(a.name)));
-    selectedApps.forEach(app => {
+    safeSelectedApps.forEach(app => {
       const norm = normalizeAppName(app.name);
       if (fwdValidatedNames.has(norm)) return;
       const category = getIngestionCategory(app.name, app.categories) || 'other';
@@ -537,8 +556,8 @@ export const AutomationConfig = ({
             });
           }
         });
-        selectedApps.forEach(selApp => {
-          const normalizedName = selApp.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
+        safeSelectedApps.forEach(selApp => {
+          const normalizedName = normalizeAppName(selApp.name);
           if (!appValidationMap.has(normalizedName) && isThreatIntelApp(selApp.name)) {
             threatIntelApps.push({
               id: selApp.objectID,
@@ -606,7 +625,7 @@ export const AutomationConfig = ({
     });
     
     return options;
-  }, [authenticatedApps, activatedApps, selectedApps, workflowAppNames, forwardWorkflowAppNames]);
+  }, [authenticatedApps, activatedApps, safeSelectedApps, workflowAppNames, forwardWorkflowAppNames]);
 
   const toggleOption = (id: string) => {
     const current = enrichmentState[id] || { enabled: false, config: {} };
@@ -641,16 +660,16 @@ export const AutomationConfig = ({
 
   const getAllToolsForOption = (option: EnrichmentOption): ConnectedApp[] => {
     if (option.ingestionSources) {
-      return option.ingestionSources.flatMap(s => s.apps);
+      return option.ingestionSources.flatMap(s => safeConnectedApps(s.apps));
     }
     if (option.notificationSources) {
-      return option.notificationSources.flatMap(s => s.apps);
+      return option.notificationSources.flatMap(s => safeConnectedApps(s.apps));
     }
     if (option.threatIntelSources) {
-      return option.threatIntelSources.flatMap(s => s.apps);
+      return option.threatIntelSources.flatMap(s => safeConnectedApps(s.apps));
     }
     if (option.connectedApps) {
-      return option.connectedApps;
+      return safeConnectedApps(option.connectedApps);
     }
     return [];
   };
@@ -659,16 +678,16 @@ export const AutomationConfig = ({
     const option = enrichmentOptions.find(o => o.id === optionId);
     if (!option) return undefined;
     if (option.ingestionSources) {
-      return option.ingestionSources.flatMap(s => s.apps).find(a => a.id === appId);
+      return option.ingestionSources.flatMap(s => safeConnectedApps(s.apps)).find(a => a.id === appId);
     }
     if (option.notificationSources) {
-      return option.notificationSources.flatMap(s => s.apps).find(a => a.id === appId);
+      return option.notificationSources.flatMap(s => safeConnectedApps(s.apps)).find(a => a.id === appId);
     }
     if (option.threatIntelSources) {
-      return option.threatIntelSources.flatMap(s => s.apps).find(a => a.id === appId);
+      return option.threatIntelSources.flatMap(s => safeConnectedApps(s.apps)).find(a => a.id === appId);
     }
     if (option.connectedApps) {
-      return option.connectedApps.find(a => a.id === appId);
+      return safeConnectedApps(option.connectedApps).find(a => a.id === appId);
     }
     return undefined;
   };
@@ -1007,10 +1026,12 @@ export const AutomationConfig = ({
             const state = enrichmentState[option.id] || { enabled: false, config: {} };
             const isExpanded = expandedId === option.id;
             const hasConfig = option.configFields && option.configFields.length > 0;
-            const hasConnectedApps = option.connectedApps && option.connectedApps.length > 0;
-            const hasIngestionSources = option.ingestionSources && option.ingestionSources.some(s => s.apps.length > 0);
-            const hasNotificationSources = option.notificationSources && option.notificationSources.some(s => s.apps.length > 0);
-            const hasThreatIntelSources = option.threatIntelSources && option.threatIntelSources.some(s => s.apps.length > 0);
+            const connectedApps = safeConnectedApps(option.connectedApps);
+            const optionSources = safeSources(option.ingestionSources || option.notificationSources || option.threatIntelSources);
+            const hasConnectedApps = connectedApps.length > 0;
+            const hasIngestionSources = safeSources(option.ingestionSources).some(s => s.apps.length > 0);
+            const hasNotificationSources = safeSources(option.notificationSources).some(s => s.apps.length > 0);
+            const hasThreatIntelSources = safeSources(option.threatIntelSources).some(s => s.apps.length > 0);
             const isDisabled = option.disabled || (option.id === 'notifications' && !hasNotificationSources);
             const allTools = getAllToolsForOption(option);
             const hasExpandableTools = allTools.length > 0 && !isDisabled;
@@ -1068,7 +1089,7 @@ export const AutomationConfig = ({
                           </Typography>
                           {hasConnectedApps && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              {option.connectedApps!.slice(0, 3).map((app) => (
+                              {connectedApps.slice(0, 3).map((app) => (
                                 <Avatar
                                   key={app.id}
                                   src={app.image}
@@ -1083,9 +1104,9 @@ export const AutomationConfig = ({
                                   {app.name[0]}
                                 </Avatar>
                               ))}
-                              {option.connectedApps!.length > 3 && (
+                              {connectedApps.length > 3 && (
                                 <Chip
-                                  label={`+${option.connectedApps!.length - 3}`}
+                                  label={`+${connectedApps.length - 3}`}
                                   size="small"
                                   sx={{ height: 20, fontSize: '0.6rem' }}
                                 />
@@ -1109,9 +1130,9 @@ export const AutomationConfig = ({
                       </Box>
                       
                       {/* Source chips on the right side */}
-                      {(option.ingestionSources || option.notificationSources || option.threatIntelSources) && (
+                      {optionSources.length > 0 && (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, flexShrink: 0, maxWidth: '45%', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          {(option.ingestionSources || option.notificationSources || option.threatIntelSources)!.map((source) => {
+                          {optionSources.map((source) => {
                             const activeCount = source.apps.filter(a => isToolEnabled(option.id, a.id)).length;
                             const totalCount = source.apps.length;
                             return (
@@ -1182,8 +1203,8 @@ export const AutomationConfig = ({
                             Toggle individual tools:
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {(option.ingestionSources || option.notificationSources || option.threatIntelSources) ? (
-                              (option.ingestionSources || option.notificationSources || option.threatIntelSources)!.map(s => ({ ...s, apps: (s.apps || []).filter((a: any) => a && a.name) })).filter(s => s.apps.length > 0).map((source) => (
+                            {optionSources.length > 0 ? (
+                              optionSources.filter(s => s.apps.length > 0).map((source) => (
                                 <Box key={source.category}>
                                   {source.isOther ? (
                                     // "Other" section: collapsed by default with icon preview
