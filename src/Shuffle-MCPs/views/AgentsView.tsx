@@ -12,16 +12,16 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
-import AgentUI from './AgentUI';
-import AgentActivityList from './AgentActivityList';
-import AgentExecutionDrawer from './AgentExecutionDrawer';
-import AgentRunDrawer, { type AgentRunDrawerTab } from './AgentRunDrawer';
-import type { AgentRun } from './agentActivity';
-import type { AgentUIApp, AgentUIProps } from './AgentUI';
-import { updateAgentScheduleConfig } from './agentActivity';
-import { toast } from './toast';
-import type { ShuffleHostProps } from './host-props';
-import { useSyncHostBaseUrl } from './useSyncHostBaseUrl';
+import AgentUI from '@/Shuffle-MCPs/components/AgentUI';
+import AgentActivityList from '@/Shuffle-MCPs/components/AgentActivityList';
+import AgentExecutionDrawer from '@/Shuffle-MCPs/components/AgentExecutionDrawer';
+import AgentRunDrawer, { type AgentRunDrawerTab } from '@/Shuffle-MCPs/components/AgentRunDrawer';
+import type { AgentRun } from '@/Shuffle-MCPs/agentActivity';
+import type { AgentUIApp, AgentUIProps } from '@/Shuffle-MCPs/components/AgentUI';
+import { updateAgentScheduleConfig } from '@/Shuffle-MCPs/agentActivity';
+import { toast } from '@/Shuffle-MCPs/toast';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 
 export interface AgentsViewProps extends ShuffleHostProps {
   /**

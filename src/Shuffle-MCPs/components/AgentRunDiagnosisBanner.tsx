@@ -12,16 +12,16 @@
 
 import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
 import { AlertTriangle, ArrowUpRight, ExternalLink, HelpCircle, Settings2, X } from 'lucide-react';
-import AgentDiagnosisCtas from './AgentDiagnosisCtas';
+import AgentDiagnosisCtas from '@/Shuffle-MCPs/components/AgentDiagnosisCtas';
 import { useEffect, useMemo, useState } from 'react';
-import type { ShuffleHostProps } from './host-props';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 import {
   diagnoseOutputWarning,
   extractDecisionIndex,
   getFailureInfo,
   hasOutputWarning,
   type DiagnosableRun,
-} from './agentDiagnosis';
+} from '@/Shuffle-MCPs/agentDiagnosis';
 
 interface Props extends ShuffleHostProps {
   run: DiagnosableRun | null | undefined;

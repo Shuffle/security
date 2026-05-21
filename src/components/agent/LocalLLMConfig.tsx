@@ -14,12 +14,12 @@ import {
   DialogActions,
   Button,
 } from '@mui/material';
-import { AppAuthCard } from '@/Shuffle-MCPs/AppAuthConfig';
+import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import { refreshAllIntegrationStatus } from '@/Shuffle-MCPs/IntegrationStatus';
-import { UsageBar } from '@/Shuffle-MCPs/UsageBar';
+import { refreshAllIntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
+import { UsageBar } from '@/Shuffle-MCPs/components/UsageBar';
 import { useAuth } from '@/context/AuthContext';
 import singulAgentIcon from '@/assets/singul-agent-icon.png';
 

@@ -21,12 +21,12 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { toast } from '@/lib/toast';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import PopupTextEditor from '@/components/shared/PopupTextEditor';
-import AppSearchDrawer from '@/Shuffle-MCPs/AppSearchDrawer';
-import AiAgentPromptsEditor from '@/Shuffle-MCPs/AiAgentPromptsEditor';
+import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
+import AiAgentPromptsEditor from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
 import { useAuthenticatedApps } from '@/hooks/useAuthenticatedApps';
 import { Tooltip } from '@mui/material';
 

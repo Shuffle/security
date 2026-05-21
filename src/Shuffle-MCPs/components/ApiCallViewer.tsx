@@ -4,7 +4,7 @@
  */
 import { useState } from 'react';
 import { Box, Typography, IconButton, Tooltip, Chip } from '@mui/material';
-import type { ShuffleHostProps } from './host-props';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 import {
   Code2,
   Terminal,

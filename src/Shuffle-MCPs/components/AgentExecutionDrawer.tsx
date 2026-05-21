@@ -14,16 +14,16 @@ import {
   ExternalLink as OpenInNewIcon
 } from 'lucide-react';
 import type { SxProps, Theme } from '@mui/material';
-import AgentUI, { type AgentUIProps } from './AgentUI';
-import AgentIcon from './AgentIcon';
+import AgentUI, { type AgentUIProps } from '@/Shuffle-MCPs/components/AgentUI';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import {
   STATUS_CONFIG,
   formatDuration,
   getRunTitle,
   getTimeAgo,
-} from './AgentActivityList';
-import type { AgentRun } from './agentActivity';
-import type { ShuffleHostProps } from './host-props';
+} from '@/Shuffle-MCPs/components/AgentActivityList';
+import type { AgentRun } from '@/Shuffle-MCPs/agentActivity';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 export interface AgentExecutionDrawerProps extends ShuffleHostProps {
   open: boolean;

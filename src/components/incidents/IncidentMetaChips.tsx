@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { statusConfig, severityColors } from '@/config/incidentConfig';
 import { isAIAssignee } from '@/lib/utils';
-import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { useUsers } from '@/hooks/useUsers';
 
 export interface IncidentMetaChipsProps {

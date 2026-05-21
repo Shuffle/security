@@ -35,10 +35,10 @@ import {
   X as CloseIcon
 } from 'lucide-react';
 
-import AgentIcon from './AgentIcon';
-import AgentUI, { type AgentUIProps } from './AgentUI';
-import type { ShuffleHostProps } from './host-props';
-import { useSyncHostBaseUrl } from './useSyncHostBaseUrl';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
+import AgentUI, { type AgentUIProps } from '@/Shuffle-MCPs/components/AgentUI';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 
 export type AgentRunDrawerTab = 'run' | 'permissions' | 'localLLM';
 

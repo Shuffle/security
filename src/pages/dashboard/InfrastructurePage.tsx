@@ -33,7 +33,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Chip, Avatar, IconButton, Drawer, Tooltip, Button, Menu, MenuItem } from '@mui/material';
 import { ArrowRight, ChevronRight, Activity, Download, Zap, X, ExternalLink, X as CloseIcon } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
-import { IntegrationStatus } from '@/Shuffle-MCPs/IntegrationStatus';
+import { IntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
 import { AddAppModal } from '@/components/infrastructure/AddAppModal';
 import {
   TOOL_CATEGORIES,

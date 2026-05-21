@@ -10,7 +10,7 @@
 // specificity 0).
 import './shuffle-mcp.css';
 import React from 'react';
-import { ShuffleMcpThemeProvider, type ShuffleMcpColorMode } from './ShuffleMcpThemeProvider';
+import { ShuffleMcpThemeProvider, type ShuffleMcpColorMode } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
 
 /**
  * Every exported component accepts an optional `theme` prop:
@@ -51,95 +51,95 @@ const withMcpThemeRef = <P extends object, R>(Inner: React.ForwardRefExoticCompo
   return Wrapped as React.ForwardRefExoticComponent<WithTheme<P> & React.RefAttributes<R>>;
 };
 
-import { ShuffleMCP as ShuffleMCPRaw } from './ShuffleMCP';
-import AppDetailDrawerRaw from './AppDetailDrawer';
-import AppSearchDrawerRaw from './AppSearchDrawer';
-import AiAgentPromptsEditorRaw from './AiAgentPromptsEditor';
-import ShufflePipelinesBannerRaw from './ShufflePipelinesBanner';
-import AppTitleHeaderRaw from './AppTitleHeader';
-import AppAuthSectionRaw from './AppAuthSection';
-import TryMcpSectionRaw from './TryMcpSection';
-import SingulActionsPreviewRaw from './SingulActionsPreview';
-import AgentUIRaw from './AgentUI';
-import AgentRunDrawerRaw from './AgentRunDrawer';
-import AgentActivityListRaw from './AgentActivityList';
-import AgentExecutionDrawerRaw from './AgentExecutionDrawer';
-import AgentsViewRaw from './AgentsView';
-import AgentRunDiagnosisBannerRaw from './AgentRunDiagnosisBanner';
+import { ShuffleMCP as ShuffleMCPRaw } from '@/Shuffle-MCPs/views/ShuffleMCP';
+import AppDetailDrawerRaw from '@/Shuffle-MCPs/views/AppDetailDrawer';
+import AppSearchDrawerRaw from '@/Shuffle-MCPs/views/AppSearchDrawer';
+import AiAgentPromptsEditorRaw from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
+import ShufflePipelinesBannerRaw from '@/Shuffle-MCPs/components/ShufflePipelinesBanner';
+import AppTitleHeaderRaw from '@/Shuffle-MCPs/components/AppTitleHeader';
+import AppAuthSectionRaw from '@/Shuffle-MCPs/components/AppAuthSection';
+import TryMcpSectionRaw from '@/Shuffle-MCPs/views/TryMcpSection';
+import SingulActionsPreviewRaw from '@/Shuffle-MCPs/components/SingulActionsPreview';
+import AgentUIRaw from '@/Shuffle-MCPs/components/AgentUI';
+import AgentRunDrawerRaw from '@/Shuffle-MCPs/components/AgentRunDrawer';
+import AgentActivityListRaw from '@/Shuffle-MCPs/components/AgentActivityList';
+import AgentExecutionDrawerRaw from '@/Shuffle-MCPs/components/AgentExecutionDrawer';
+import AgentsViewRaw from '@/Shuffle-MCPs/views/AgentsView';
+import AgentRunDiagnosisBannerRaw from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
 
-export { ShuffleMcpThemeProvider } from './ShuffleMcpThemeProvider';
-export type { ShuffleMcpColorMode, ShuffleMcpThemeProviderProps } from './ShuffleMcpThemeProvider';
+export { ShuffleMcpThemeProvider } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
+export type { ShuffleMcpColorMode, ShuffleMcpThemeProviderProps } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
 
-export type { ShuffleHostProps } from './host-props';
+export type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 export const ShuffleMCP = withMcpThemeRef(ShuffleMCPRaw as React.ForwardRefExoticComponent<any>, 'ShuffleMCP');
 export default ShuffleMCP;
-export type { ShuffleMCPHandle } from './ShuffleMCP';
+export type { ShuffleMCPHandle } from '@/Shuffle-MCPs/views/ShuffleMCP';
 export const AppDetailDrawer = withMcpTheme(AppDetailDrawerRaw as React.ComponentType<any>, 'AppDetailDrawer');
 export const AppSearchDrawer = withMcpTheme(AppSearchDrawerRaw as React.ComponentType<any>, 'AppSearchDrawer');
 export const AiAgentPromptsEditor = withMcpTheme(AiAgentPromptsEditorRaw as React.ComponentType<any>, 'AiAgentPromptsEditor');
-export type { AiAgentPromptsEditorProps } from './AiAgentPromptsEditor';
+export type { AiAgentPromptsEditorProps } from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
 export const ShufflePipelinesBanner = withMcpTheme(ShufflePipelinesBannerRaw as React.ComponentType<any>, 'ShufflePipelinesBanner');
 export const AppTitleHeader = withMcpTheme(AppTitleHeaderRaw as React.ComponentType<any>, 'AppTitleHeader');
-export type { AppTitleHeaderProps } from './AppTitleHeader';
+export type { AppTitleHeaderProps } from '@/Shuffle-MCPs/components/AppTitleHeader';
 export const AppAuthSection = withMcpTheme(AppAuthSectionRaw as React.ComponentType<any>, 'AppAuthSection');
-export type { AppAuthSectionProps } from './AppAuthSection';
+export type { AppAuthSectionProps } from '@/Shuffle-MCPs/components/AppAuthSection';
 export const TryMcpSection = withMcpTheme(TryMcpSectionRaw as React.ComponentType<any>, 'TryMcpSection');
-export type { TryMcpSectionProps } from './TryMcpSection';
+export type { TryMcpSectionProps } from '@/Shuffle-MCPs/views/TryMcpSection';
 export const SingulActionsPreview = withMcpTheme(SingulActionsPreviewRaw as React.ComponentType<any>, 'SingulActionsPreview');
 export const AgentUI = withMcpTheme(AgentUIRaw as React.ComponentType<any>, 'AgentUI');
-export type { AgentUIProps, AgentUIApp } from './AgentUI';
+export type { AgentUIProps, AgentUIApp } from '@/Shuffle-MCPs/components/AgentUI';
 export const AgentRunDrawer = withMcpTheme(AgentRunDrawerRaw as React.ComponentType<any>, 'AgentRunDrawer');
-export type { AgentRunDrawerProps, AgentRunDrawerTab } from './AgentRunDrawer';
+export type { AgentRunDrawerProps, AgentRunDrawerTab } from '@/Shuffle-MCPs/components/AgentRunDrawer';
 export const AgentActivityList = withMcpTheme(AgentActivityListRaw as React.ComponentType<any>, 'AgentActivityList');
-export type { AgentActivityListProps } from './AgentActivityList';
+export type { AgentActivityListProps } from '@/Shuffle-MCPs/components/AgentActivityList';
 export const AgentExecutionDrawer = withMcpTheme(AgentExecutionDrawerRaw as React.ComponentType<any>, 'AgentExecutionDrawer');
-export type { AgentExecutionDrawerProps } from './AgentExecutionDrawer';
+export type { AgentExecutionDrawerProps } from '@/Shuffle-MCPs/components/AgentExecutionDrawer';
 export const AgentsView = withMcpTheme(AgentsViewRaw as React.ComponentType<any>, 'AgentsView');
-export type { AgentsViewProps } from './AgentsView';
+export type { AgentsViewProps } from '@/Shuffle-MCPs/views/AgentsView';
 export const AgentRunDiagnosisBanner = withMcpTheme(AgentRunDiagnosisBannerRaw as React.ComponentType<any>, 'AgentRunDiagnosisBanner');
 export {
   parseRunResult,
   getFailureInfo,
   hasOutputWarning,
   diagnoseOutputWarning,
-} from './agentDiagnosis';
+} from '@/Shuffle-MCPs/agentDiagnosis';
 export type {
   DiagnosableRun,
   DiagnosisEvidence,
   OutputDiagnosis,
-} from './agentDiagnosis';
-export { searchAgentActivity } from './agentActivity';
+} from '@/Shuffle-MCPs/agentDiagnosis';
+export { searchAgentActivity } from '@/Shuffle-MCPs/agentActivity';
 export type {
   AgentRun,
   AgentRunResult,
   AgentDecision,
   AgentActivityResponse,
   AgentActivityParams,
-} from './agentActivity';
-export { useAppLookup } from './useAppLookup';
-export type { AppLookupResult } from './useAppLookup';
+} from '@/Shuffle-MCPs/agentActivity';
+export { useAppLookup } from '@/Shuffle-MCPs/useAppLookup';
+export type { AppLookupResult } from '@/Shuffle-MCPs/useAppLookup';
 export {
   resolveApp,
   resolveApps,
   seedResolvedApp,
   invalidateResolvedApps,
-} from './resolveApp';
-export type { ResolvedApp } from './resolveApp';
-export { IntegrationStatus, refreshAllIntegrationStatus } from './IntegrationStatus';
-export { useAppAuth } from './useAppAuth';
-export { AppDetailProvider, useAppDetail, useAppDetailOptional } from './AppDetailContext';
-export { API_CONFIG, getApiUrl, getAuthHeader, isCloud, isOnprem, isCloudDomain, shuffleFetch, setHostBaseUrl, getHostBaseUrl, setRegionUrl, resetRegionUrl } from './api';
-export { useSyncHostBaseUrl } from './useSyncHostBaseUrl';
-export { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
-export { setToastImpl, toast } from './toast';
+} from '@/Shuffle-MCPs/resolveApp';
+export type { ResolvedApp } from '@/Shuffle-MCPs/resolveApp';
+export { IntegrationStatus, refreshAllIntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
+export { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
+export { AppDetailProvider, useAppDetail, useAppDetailOptional } from '@/Shuffle-MCPs/AppDetailContext';
+export { API_CONFIG, getApiUrl, getAuthHeader, isCloud, isOnprem, isCloudDomain, shuffleFetch, setHostBaseUrl, getHostBaseUrl, setRegionUrl, resetRegionUrl } from '@/Shuffle-MCPs/api';
+export { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
+export { installFetchBreaker, registerProtectedOrigin } from '@/Shuffle-MCPs/fetchBreaker';
+export { setToastImpl, toast } from '@/Shuffle-MCPs/toast';
 export type {
   AlgoliaSearchApp,
   AppSelectedEvent,
   AppAuthentication,
   CustomStyles,
   ShuffleMCPProps,
-} from './shuffle-mcp.helpers';
+} from '@/Shuffle-MCPs/shuffle-mcp';
 
 // ---------------------------------------------------------------------------
 // Re-exports consumed by @shuffleio/shuffle-core (and other downstream apps).
@@ -147,16 +147,16 @@ export type {
 // ---------------------------------------------------------------------------
 
 // AgentIcon
-export { default as AgentIcon } from './AgentIcon';
+export { default as AgentIcon } from '@/Shuffle-MCPs/components/AgentIcon';
 
 // Auth configuration UI + types
-export { AppAuthConfig, AppAuthCard } from './AppAuthConfig';
+export { AppAuthConfig, AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
 export type {
   AuthStatus,
   AppAuthState,
   ApiAuthEntry,
   AppAuthCardProps,
-} from './AppAuthConfig';
+} from '@/Shuffle-MCPs/components/AppAuthConfig';
 
 // Datastore helpers
 export {
@@ -169,14 +169,14 @@ export {
   deleteDatastoreItem,
   deleteDatastoreItems,
   DATASTORE_CATEGORIES,
-} from './datastore';
+} from '@/Shuffle-MCPs/datastore';
 export type {
   DatastoreItem,
   CategoryAutomation,
   CategoryConfig,
   DatastoreResponse,
   DatastoreDiagnostics,
-} from './datastore';
+} from '@/Shuffle-MCPs/datastore';
 
 // Ingestion detection
 export {
@@ -200,20 +200,20 @@ export {
   findIngestTicketsWorkflow,
   findForwardTicketsWorkflow,
   isWorkflowScheduleStopped,
-} from './ingestionDetection';
+} from '@/Shuffle-MCPs/ingestionDetection';
 export type {
   IngestionCategory,
   ValidatedIngestionApp,
-} from './ingestionDetection';
+} from '@/Shuffle-MCPs/ingestionDetection';
 
 // Apps cache
 export {
   fetchApps,
   fetchAppsViaApiConfig,
   invalidateAppsCache,
-} from './appsCache';
-export type { FetchAppsOptions } from './appsCache';
+} from '@/Shuffle-MCPs/appsCache';
+export type { FetchAppsOptions } from '@/Shuffle-MCPs/appsCache';
 
 // Usage bar — reusable quota indicator for app runs, agent tokens, etc.
-export { UsageBar } from './UsageBar';
-export type { UsageBarProps } from './UsageBar';
+export { UsageBar } from '@/Shuffle-MCPs/components/UsageBar';
+export type { UsageBarProps } from '@/Shuffle-MCPs/components/UsageBar';

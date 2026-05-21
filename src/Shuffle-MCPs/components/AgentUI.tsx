@@ -116,17 +116,17 @@ const deepParseJsonStrings = (obj: any, depth = 0): any => {
 };
 
 
-import { SegmentedControl } from './SegmentedControl';
-import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
-import AppSearchDrawer from '@/Shuffle-MCPs/AppSearchDrawer';
-import AppDetailDrawer from '@/Shuffle-MCPs/AppDetailDrawer';
+import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
+import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
+import AppDetailDrawer from '@/Shuffle-MCPs/views/AppDetailDrawer';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { fetchApps } from '@/Shuffle-MCPs/appsCache';
 import { resolveApps } from '@/Shuffle-MCPs/resolveApp';
 import { toast } from '@/Shuffle-MCPs/toast';
 import { runAgent } from '@/Shuffle-MCPs/agentRun';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
-import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/AgentRunDiagnosisBanner';
+import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
 
 
 // ── Types ──────────────────────────────────────────────────────────────────────

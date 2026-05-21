@@ -18,8 +18,8 @@
  * same name/id are free.
  */
 
-import { fetchAppsViaApiConfig } from './appsCache';
-import { fetchAuthenticatedApps } from './authenticatedApps';
+import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
+import { fetchAuthenticatedApps } from '@/Shuffle-MCPs/authenticatedApps';
 
 export interface ResolvedApp {
   /** Canonical id — Algolia objectID when known, otherwise Shuffle app id. */

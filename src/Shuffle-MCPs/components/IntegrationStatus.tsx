@@ -22,7 +22,7 @@ const SELECTED_TOOLS_KEY = 'selected_tools';
 import { deduplicateAuthApps, backfillAppImages, type AuthAppEntry } from '@/Shuffle-MCPs/auth-utils';
 import { useAppDetailOptional } from '@/Shuffle-MCPs/AppDetailContext';
 import { SIEM_PATTERNS, CASES_PATTERNS, EDR_PATTERNS, EMAIL_APP_PATTERNS } from '@/Shuffle-MCPs/ingestionDetection';
-import type { ShuffleHostProps } from './host-props';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 interface Integration {
   id: string;

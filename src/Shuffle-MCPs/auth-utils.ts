@@ -88,7 +88,7 @@ export async function backfillAppImages(dedupedApps: DeduplicatedApp[]): Promise
   //    limits). This must run BEFORE Algolia so we keep working when the
   //    public Algolia index is rate-limited (429).
   try {
-    const { fetchAppsViaApiConfig } = await import('./appsCache');
+    const { fetchAppsViaApiConfig } = await import('@/Shuffle-MCPs/appsCache');
     const apps = await fetchAppsViaApiConfig().catch(() => []);
     if (Array.isArray(apps) && apps.length > 0) {
       const byName = new Map<string, string>();

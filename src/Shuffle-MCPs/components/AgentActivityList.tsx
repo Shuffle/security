@@ -46,11 +46,11 @@ import {
   stopAgentSchedule,
   type AgentRun,
   type AgentScheduleWorkflow,
-} from './agentActivity';
-import { diagnoseOutputWarning } from './agentDiagnosis';
+} from '@/Shuffle-MCPs/agentActivity';
+import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
-import { SegmentedControl } from './SegmentedControl';
-import type { ShuffleHostProps } from './host-props';
+import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 // ── Status / icon helpers ────────────────────────────────────────────────────
 

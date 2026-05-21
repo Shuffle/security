@@ -5,7 +5,7 @@
  * so it works in npm consumers without any project-side hooks or contexts.
  */
 
-import { API_CONFIG, getApiUrl, getAuthHeader } from './api';
+import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 
 export interface AgentRunResult {
   action?: {

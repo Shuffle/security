@@ -8,12 +8,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Chip, Button, Avatar, IconButton, Tooltip } from '@mui/material';
 import { ArrowRight, ArrowLeft, Bot, Link as LinkIcon, Plus, PlayCircle, BookOpen, Image as ImageIcon, Flame, Zap, ExternalLink } from 'lucide-react';
 import UsecaseAlluvialDiagram from '@/components/usecases/UsecaseAlluvialDiagram';
-import { IntegrationStatus } from '@/Shuffle-MCPs/IntegrationStatus';
+import { IntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
 import { Clock } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useUsecases } from '@/hooks/useUsecases';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import AppSearchDrawer from '@/Shuffle-MCPs/AppSearchDrawer';
+import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
 import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
 import {
   TOOL_CATEGORIES,

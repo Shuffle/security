@@ -36,12 +36,12 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
-import { AppFallbackIcon } from '@/Shuffle-MCPs/AppFallbackIcon';
+import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import { API_CONFIG, getApiUrl, getAuthHeader, isDevEnvironment, isCloudDomain } from '@/Shuffle-MCPs/api';
 import { getIngestionCategory } from '@/Shuffle-MCPs/ingestionDetection';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { ShuffleHostProps } from './host-props';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 export type AuthStatus = 'pending' | 'testing' | 'connected' | 'error';
 

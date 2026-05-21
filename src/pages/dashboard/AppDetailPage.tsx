@@ -20,14 +20,14 @@ import remarkGfm from 'remark-gfm';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import AppTitleHeader from '@/Shuffle-MCPs/AppTitleHeader';
-import AppAuthSection from '@/Shuffle-MCPs/AppAuthSection';
-import TryMcpSection from '@/Shuffle-MCPs/TryMcpSection';
-import SingulActionsPreview from '@/Shuffle-MCPs/SingulActionsPreview';
+import AppTitleHeader from '@/Shuffle-MCPs/components/AppTitleHeader';
+import AppAuthSection from '@/Shuffle-MCPs/components/AppAuthSection';
+import TryMcpSection from '@/Shuffle-MCPs/views/TryMcpSection';
+import SingulActionsPreview from '@/Shuffle-MCPs/components/SingulActionsPreview';
 import { useAuth } from '@/context/AuthContext';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 
-import ApiCallViewer from '@/Shuffle-MCPs/ApiCallViewer';
+import ApiCallViewer from '@/Shuffle-MCPs/components/ApiCallViewer';
 interface AppInfo {
   name: string;
   description: string;

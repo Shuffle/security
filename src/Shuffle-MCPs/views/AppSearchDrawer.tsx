@@ -12,8 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShuffleMCP, AppDetailDrawer } from '@/Shuffle-MCPs';
 import type { AppSelectedEvent } from '@/Shuffle-MCPs';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
-import { ShufflePipelinesBanner } from '@/Shuffle-MCPs/ShufflePipelinesBanner';
-import type { ShuffleHostProps } from './host-props';
+import { ShufflePipelinesBanner } from '@/Shuffle-MCPs/components/ShufflePipelinesBanner';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 
 // Singul styles — compact dark theme

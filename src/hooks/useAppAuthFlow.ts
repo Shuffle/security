@@ -6,9 +6,9 @@
 
 import { useState, useCallback } from 'react';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
-import type { AppAuthState, ApiAuthEntry } from '@/Shuffle-MCPs/AppAuthConfig';
+import type { AppAuthState, ApiAuthEntry } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import { refreshAllIntegrationStatus } from '@/Shuffle-MCPs/IntegrationStatus';
+import { refreshAllIntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
 
 export function useAppAuthFlow() {
   const [selectedApp, setSelectedApp] = useState<AlgoliaSearchApp | null>(null);
