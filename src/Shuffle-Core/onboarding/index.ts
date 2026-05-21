@@ -39,12 +39,11 @@ const withTheme = <P extends object>(
   Inner: React.ComponentType<P>,
   displayName: string,
 ) => {
-  const Wrapped: React.FC<WithTheme<P>> = ({ theme, colorMode, ...rest }) =>
-    React.createElement(
-      ShuffleCoreThemeProvider,
-      { mode: resolveMode(theme, colorMode) },
-      React.createElement(Inner as React.ComponentType<any>, rest as P),
-    );
+  const Wrapped: React.FC<WithTheme<P>> = ({ theme, colorMode, ...rest }) => (
+    <ShuffleCoreThemeProvider mode={resolveMode(theme, colorMode)}>
+      <Inner {...(rest as P)} />
+    </ShuffleCoreThemeProvider>
+  );
   Wrapped.displayName = `ShuffleCoreOnboarding(${displayName})`;
   return Wrapped;
 };
