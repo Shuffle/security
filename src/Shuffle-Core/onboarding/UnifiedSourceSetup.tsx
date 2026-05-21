@@ -171,6 +171,8 @@ const CategorySection = ({
   onToggleOpen,
   sectionRef,
   globalUrl,
+  theme,
+  colorMode,
   userdata,
   isLoaded,
   isLoggedIn,
@@ -378,6 +380,8 @@ const CategorySection = ({
               key={singulKey}
               ref={singulRef}
               globalUrl={globalUrl}
+              theme={theme}
+              colorMode={colorMode}
               userdata={userdata}
               isLoaded={isLoaded}
               isLoggedIn={isLoggedIn}
