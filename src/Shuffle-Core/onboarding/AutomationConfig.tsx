@@ -1133,10 +1133,11 @@ export const AutomationConfig = ({
                       {optionSources.length > 0 && (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, flexShrink: 0, maxWidth: '45%', justifyContent: 'flex-end', alignItems: 'center' }}>
                           {optionSources.map((source) => {
-                            const activeCount = source.apps.filter(a => isToolEnabled(option.id, a.id)).length;
-                            const totalCount = source.apps.length;
+                            const sourceApps = safeConnectedApps(source.apps);
+                            const activeCount = sourceApps.filter(a => isToolEnabled(option.id, a.id)).length;
+                            const totalCount = sourceApps.length;
                             return (
-                              <SourceChip key={source.category} label={source.label} apps={source.apps} activeCount={activeCount} totalCount={totalCount} hasAnyActive={activeCount > 0} optionId={option.id} isToolEnabled={isToolEnabled} />
+                              <SourceChip key={source.category} label={source.label} apps={sourceApps} activeCount={activeCount} totalCount={totalCount} hasAnyActive={activeCount > 0} optionId={option.id} isToolEnabled={isToolEnabled} />
                             );
                           })}
                         </Box>
