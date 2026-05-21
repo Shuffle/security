@@ -67,7 +67,7 @@ export const WelcomeStep = ({ onSelect, selectedChallenge }: WelcomeStepProps) =
             py: 0.75,
             mb: 3,
             backgroundColor: 'hsl(var(--primary) / 0.1)',
-            border: '1px solid rgba(255, 102, 0, 0.3)',
+            border: '1px solid hsl(var(--primary) / 0.3)',
             borderRadius: '100px',
           }}
         >
