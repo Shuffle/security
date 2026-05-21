@@ -1055,6 +1055,7 @@ const OnboardingFlow = ({
 
   return (
     <Box
+      ref={rootRef}
       sx={{
         minHeight: '100vh',
         position: 'relative',
@@ -1064,6 +1065,7 @@ const OnboardingFlow = ({
         flexDirection: 'column',
       }}
     >
+
       {/* Background effects - matching landing page */}
       <Box
         sx={{
