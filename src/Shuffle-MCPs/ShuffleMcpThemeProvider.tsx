@@ -28,15 +28,42 @@ const readHtmlDarkClass = (): boolean => {
   return document.documentElement.classList.contains("dark");
 };
 
-const useHtmlDarkClass = (enabled: boolean): boolean => {
+/**
+ * Resolve "auto" theme by inspecting the nearest ancestor that already
+ * declares a Shuffle theme scope (set by either ShuffleCoreThemeProvider or
+ * ShuffleMcpThemeProvider). This is what makes a pinned Shuffle-Core subtree
+ * cascade into a Shuffle-MCPs subtree (and vice versa) even across the
+ * package boundary where React contexts cannot be shared.
+ */
+const readAncestorDark = (anchor: Element | null): boolean | null => {
+  if (!anchor || typeof document === "undefined") return null;
+  const start = anchor.parentElement;
+  if (!start) return null;
+  const scoped = start.closest('[data-shuffle-mode="dark"], [data-shuffle-mode="light"]');
+  if (scoped) return scoped.getAttribute("data-shuffle-mode") === "dark";
+  const darkAncestor = start.closest(".dark");
+  if (darkAncestor) return true;
+  return null;
+};
+
+const useAutoDarkClass = (enabled: boolean, anchorRef: React.RefObject<HTMLElement>): boolean => {
   const [isDark, setIsDark] = React.useState<boolean>(() => (enabled ? readHtmlDarkClass() : false));
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!enabled || typeof document === "undefined") return;
-    setIsDark(readHtmlDarkClass());
-    const observer = new MutationObserver(() => setIsDark(readHtmlDarkClass()));
+    const recompute = () => {
+      const ancestor = readAncestorDark(anchorRef.current);
+      setIsDark(ancestor !== null ? ancestor : readHtmlDarkClass());
+    };
+    recompute();
+    const observer = new MutationObserver(recompute);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    let node: HTMLElement | null = anchorRef.current?.parentElement ?? null;
+    while (node) {
+      observer.observe(node, { attributes: true, attributeFilter: ["class", "data-shuffle-mode"] });
+      node = node.parentElement;
+    }
     return () => observer.disconnect();
-  }, [enabled]);
+  }, [enabled, anchorRef]);
   return isDark;
 };
 
@@ -149,15 +176,15 @@ export const ShuffleMcpThemeProvider: React.FC<ShuffleMcpThemeProviderProps> = (
 }) => {
   const parent = useMuiTheme();
   const parentCtx = useShuffleMcpTheme();
-  const htmlIsDark = useHtmlDarkClass(mode === "auto");
-  const effectiveDark = mode === "auto" ? htmlIsDark : mode === "dark";
+  const anchorRef = React.useRef<HTMLSpanElement>(null);
+  const autoIsDark = useAutoDarkClass(mode === "auto", anchorRef);
+  const effectiveDark = mode === "auto" ? autoIsDark : mode === "dark";
 
-  // If we're already inside a Shuffle scope that resolved to the same
-  // theme, don't re-wrap — keeps DOM flat when wrapped exports nest.
   const sameAsParent =
     parentCtx !== null && parentCtx.isDark === effectiveDark;
 
   const scopeClassName = effectiveDark ? "shuffle-mcp-scope dark" : "shuffle-mcp-scope";
+  const resolvedModeAttr = effectiveDark ? "dark" : "light";
 
   const merged = React.useMemo(
     () =>
@@ -183,6 +210,7 @@ export const ShuffleMcpThemeProvider: React.FC<ShuffleMcpThemeProviderProps> = (
   if (sameAsParent) {
     return (
       <ShuffleMcpThemeContext.Provider value={ctxValue}>
+        <span ref={anchorRef} style={{ display: "none" }} aria-hidden />
         {children}
       </ShuffleMcpThemeContext.Provider>
     );
@@ -191,7 +219,8 @@ export const ShuffleMcpThemeProvider: React.FC<ShuffleMcpThemeProviderProps> = (
   return (
     <ShuffleMcpThemeContext.Provider value={ctxValue}>
       <ThemeProvider theme={merged}>
-        <div className={scopeClassName} data-shuffle-mode={mode} data-shuffle-mcp-root>
+        <div className={scopeClassName} data-shuffle-mode={resolvedModeAttr} data-shuffle-mcp-root>
+          <span ref={anchorRef} style={{ display: "none" }} aria-hidden />
           {children}
         </div>
       </ThemeProvider>
