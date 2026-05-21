@@ -1021,10 +1021,12 @@ export const AutomationConfig = ({
             const state = enrichmentState[option.id] || { enabled: false, config: {} };
             const isExpanded = expandedId === option.id;
             const hasConfig = option.configFields && option.configFields.length > 0;
-            const hasConnectedApps = option.connectedApps && option.connectedApps.length > 0;
-            const hasIngestionSources = option.ingestionSources && option.ingestionSources.some(s => s.apps.length > 0);
-            const hasNotificationSources = option.notificationSources && option.notificationSources.some(s => s.apps.length > 0);
-            const hasThreatIntelSources = option.threatIntelSources && option.threatIntelSources.some(s => s.apps.length > 0);
+            const connectedApps = safeConnectedApps(option.connectedApps);
+            const optionSources = safeSources(option.ingestionSources || option.notificationSources || option.threatIntelSources);
+            const hasConnectedApps = connectedApps.length > 0;
+            const hasIngestionSources = safeSources(option.ingestionSources).some(s => s.apps.length > 0);
+            const hasNotificationSources = safeSources(option.notificationSources).some(s => s.apps.length > 0);
+            const hasThreatIntelSources = safeSources(option.threatIntelSources).some(s => s.apps.length > 0);
             const isDisabled = option.disabled || (option.id === 'notifications' && !hasNotificationSources);
             const allTools = getAllToolsForOption(option);
             const hasExpandableTools = allTools.length > 0 && !isDisabled;
@@ -1082,7 +1084,7 @@ export const AutomationConfig = ({
                           </Typography>
                           {hasConnectedApps && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              {option.connectedApps!.slice(0, 3).map((app) => (
+                              {connectedApps.slice(0, 3).map((app) => (
                                 <Avatar
                                   key={app.id}
                                   src={app.image}
@@ -1097,9 +1099,9 @@ export const AutomationConfig = ({
                                   {app.name[0]}
                                 </Avatar>
                               ))}
-                              {option.connectedApps!.length > 3 && (
+                              {connectedApps.length > 3 && (
                                 <Chip
-                                  label={`+${option.connectedApps!.length - 3}`}
+                                  label={`+${connectedApps.length - 3}`}
                                   size="small"
                                   sx={{ height: 20, fontSize: '0.6rem' }}
                                 />
@@ -1123,9 +1125,9 @@ export const AutomationConfig = ({
                       </Box>
                       
                       {/* Source chips on the right side */}
-                      {(option.ingestionSources || option.notificationSources || option.threatIntelSources) && (
+                      {optionSources.length > 0 && (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, flexShrink: 0, maxWidth: '45%', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          {(option.ingestionSources || option.notificationSources || option.threatIntelSources)!.map((source) => {
+                          {optionSources.map((source) => {
                             const activeCount = source.apps.filter(a => isToolEnabled(option.id, a.id)).length;
                             const totalCount = source.apps.length;
                             return (
@@ -1196,8 +1198,8 @@ export const AutomationConfig = ({
                             Toggle individual tools:
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {(option.ingestionSources || option.notificationSources || option.threatIntelSources) ? (
-                              (option.ingestionSources || option.notificationSources || option.threatIntelSources)!.map(s => ({ ...s, apps: (s.apps || []).filter((a: any) => a && a.name) })).filter(s => s.apps.length > 0).map((source) => (
+                            {optionSources.length > 0 ? (
+                              optionSources.filter(s => s.apps.length > 0).map((source) => (
                                 <Box key={source.category}>
                                   {source.isOther ? (
                                     // "Other" section: collapsed by default with icon preview
