@@ -76,6 +76,37 @@ const AgentsView = ({
   });
   const [editing, setEditing] = useState<{ workflowId: string; name: string } | null>(null);
 
+  // Built-in fallback drawer for "Choose LLM" / Permissions when the host
+  // didn't wire its own handler. Ensures the chip is never a dead click.
+  const [builtInDrawer, setBuiltInDrawer] = useState<{ open: boolean; tab: AgentRunDrawerTab }>({
+    open: false,
+    tab: 'localLLM',
+  });
+
+  const effectiveLocalLLMSlot = useMemo(
+    () =>
+      localLLMSlot ?? (
+        <Box sx={{ p: 3, color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem', lineHeight: 1.6 }}>
+          <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'hsl(var(--foreground))', mb: 1 }}>
+            Local LLM not configured
+          </Typography>
+          This host hasn't wired a Local LLM picker yet. Pass an{' '}
+          <code style={{ fontFamily: 'monospace' }}>onChooseLLM</code> handler or a{' '}
+          <code style={{ fontFamily: 'monospace' }}>localLLMSlot</code> to{' '}
+          <code style={{ fontFamily: 'monospace' }}>&lt;AgentsView /&gt;</code> to render your own configuration UI here.
+        </Box>
+      ),
+    [localLLMSlot],
+  );
+
+  const handleChooseLLM = useCallback(() => {
+    if (onChooseLLM) {
+      onChooseLLM();
+      return;
+    }
+    setBuiltInDrawer({ open: true, tab: 'localLLM' });
+  }, [onChooseLLM]);
+
   const handleEditWorkflow = useCallback(
     ({ workflowId, name, prompt, apps }: { workflowId: string; name: string; prompt: string; apps: Array<{ name: string; id?: string }> }) => {
       setEditing({ workflowId, name });
