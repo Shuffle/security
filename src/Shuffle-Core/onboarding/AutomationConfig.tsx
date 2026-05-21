@@ -164,6 +164,9 @@ interface SelectedApp {
   categories?: string[];
 }
 
+const isValidSelectedApp = (app: SelectedApp | null | undefined): app is SelectedApp =>
+  !!app?.objectID && !!app?.name;
+
 interface AutomationConfigProps {
   enrichmentState: EnrichmentState;
   onEnrichmentChange: (state: EnrichmentState) => void;
@@ -339,14 +342,16 @@ export const AutomationConfig = ({
     };
   }, []);
 
+  const safeSelectedApps = useMemo(() => (selectedApps || []).filter(isValidSelectedApp), [selectedApps]);
+
   // Create a set of selected app names (normalized) for quick lookup
   const selectedAppNames = useMemo(() => {
     const names = new Set<string>();
-    selectedApps.forEach(app => {
+    safeSelectedApps.forEach(app => {
       names.add(app.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_'));
     });
     return names;
-  }, [selectedApps]);
+  }, [safeSelectedApps]);
 
   const isAppSelected = (appName: string) => {
     const normalized = appName.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
@@ -390,7 +395,7 @@ export const AutomationConfig = ({
     // section matches what is shown in the Integrations bar above.
     const validatedNames = new Set(validatedApps.map(a => normalizeAppName(a.name)));
     const seenIngestion = new Set<string>(validatedApps.map(a => normalizeAppName(a.name)));
-    selectedApps.forEach(app => {
+    safeSelectedApps.forEach(app => {
       const norm = normalizeAppName(app.name);
       if (validatedNames.has(norm)) return;
       const category = getIngestionCategory(app.name, app.categories) || 'other';
@@ -442,7 +447,7 @@ export const AutomationConfig = ({
     }
     const fwdValidatedNames = new Set(forwardValidatedApps.map(a => normalizeAppName(a.name)));
     const seenForward = new Set<string>(forwardValidatedApps.map(a => normalizeAppName(a.name)));
-    selectedApps.forEach(app => {
+    safeSelectedApps.forEach(app => {
       const norm = normalizeAppName(app.name);
       if (fwdValidatedNames.has(norm)) return;
       const category = getIngestionCategory(app.name, app.categories) || 'other';
@@ -551,7 +556,7 @@ export const AutomationConfig = ({
             });
           }
         });
-        selectedApps.forEach(selApp => {
+        safeSelectedApps.forEach(selApp => {
           const normalizedName = selApp.name.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
           if (!appValidationMap.has(normalizedName) && isThreatIntelApp(selApp.name)) {
             threatIntelApps.push({
@@ -620,7 +625,7 @@ export const AutomationConfig = ({
     });
     
     return options;
-  }, [authenticatedApps, activatedApps, selectedApps, workflowAppNames, forwardWorkflowAppNames]);
+  }, [authenticatedApps, activatedApps, safeSelectedApps, workflowAppNames, forwardWorkflowAppNames]);
 
   const toggleOption = (id: string) => {
     const current = enrichmentState[id] || { enabled: false, config: {} };
