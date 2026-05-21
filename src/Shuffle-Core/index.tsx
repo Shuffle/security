@@ -27,16 +27,27 @@ import AutomationDashboardRaw from './components/dashboard/AutomationDashboard';
 import DashboardOverviewRaw from './components/dashboard/DashboardOverview';
 
 /**
- * Wrap a Shuffle-Core surface in the theme provider and forward an optional
- * `colorMode` prop ('light' | 'dark' | 'auto'). When omitted the surface
- * inherits the host page's `.dark` class on `<html>` (auto). We use
- * `colorMode` (not `mode`) to avoid colliding with component-specific `mode`
- * props (e.g. AutomationDashboard's 'apps' | 'workflows').
+ * Wrap a Shuffle-Core surface in the theme provider. Every exported
+ * component accepts an optional `theme` prop:
+ *   - `"light"` / `"dark"` — pin the subtree to that scheme
+ *   - `"system"` (default) — follow the host page's `.dark` class on `<html>`
+ *
+ * `colorMode` is kept as a legacy alias (`"auto"` == `"system"`). We avoid
+ * the name `mode` so we don't collide with component-specific props
+ * (e.g. AutomationDashboard's `mode: 'apps' | 'workflows'`).
  */
-type WithColorMode<P> = P & { colorMode?: ShuffleColorMode };
+export type ShuffleTheme = 'light' | 'dark' | 'system';
+type WithTheme<P> = P & { theme?: ShuffleTheme; colorMode?: ShuffleColorMode };
+
+const resolveMode = (theme?: ShuffleTheme, colorMode?: ShuffleColorMode): ShuffleColorMode => {
+  if (theme === 'light' || theme === 'dark') return theme;
+  if (theme === 'system') return 'auto';
+  return colorMode ?? 'auto';
+};
+
 const withTheme = <P extends object>(Inner: React.ComponentType<P>, displayName: string) => {
-  const Wrapped: React.FC<WithColorMode<P>> = ({ colorMode, ...rest }) => (
-    <ShuffleCoreThemeProvider mode={colorMode}>
+  const Wrapped: React.FC<WithTheme<P>> = ({ theme, colorMode, ...rest }) => (
+    <ShuffleCoreThemeProvider mode={resolveMode(theme, colorMode)}>
       <Inner {...(rest as P)} />
     </ShuffleCoreThemeProvider>
   );
