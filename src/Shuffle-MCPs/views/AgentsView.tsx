@@ -5,9 +5,9 @@
  * an AgentUI on top, list of past agent runs below, plus the execution
  * drawer and an "editing schedule" banner.
  *
- * The host wires in a scheduler via `onSchedule` (typically
- * useScheduleAgentRun in Shuffle Security). Everything else — activity
- * list, execution drawer, schedule edit save — is handled internally.
+ * Scheduling, activity list, execution drawer, schedule edit save, and Local
+ * LLM configuration are handled internally. Hosts can still override slots and
+ * handlers when they need custom behavior.
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -26,9 +26,8 @@ import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 
 export interface AgentsViewProps extends ShuffleHostProps {
   /**
-   * Required scheduler implementation. Receives the cron + prompt + apps
-   * from AgentUI and is responsible for creating the underlying scheduled
-   * workflow on the host backend.
+   * Optional scheduler override. When omitted, AgentsView creates the scheduled
+   * AI Agent workflow directly through the Shuffle API.
    */
   onSchedule?: NonNullable<AgentUIProps['onSchedule']>;
   /** Optional Shuffle API key. Falls back to the shared API config/session. */
