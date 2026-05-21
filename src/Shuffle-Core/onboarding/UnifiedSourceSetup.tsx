@@ -28,6 +28,7 @@ import type {
   AlgoliaSearchApp,
   ShuffleMCPHandle,
   IngestionCategory,
+  ShuffleHostProps,
 } from '@shuffleio/shuffle-mcps';
 
 /** Fire-and-forget activate call for a newly selected app. Refreshes the
@@ -147,7 +148,7 @@ const singulStyles = {
 
 // ─── CategorySection ────────────────────────────────────────────────────────
 
-interface CategorySectionProps {
+interface CategorySectionProps extends ShuffleHostProps {
   category: typeof CATEGORIES[number];
   stepIndex: number;
   totalSteps: number;
@@ -169,6 +170,11 @@ const CategorySection = ({
   isOpen,
   onToggleOpen,
   sectionRef,
+  globalUrl,
+  userdata,
+  isLoaded,
+  isLoggedIn,
+  serverside,
 }: CategorySectionProps) => {
   const singulRef = useRef<ShuffleMCPHandle>(null);
   const [singulKey, setSingulKey] = useState(0);
@@ -371,6 +377,11 @@ const CategorySection = ({
             <ShuffleMCP
               key={singulKey}
               ref={singulRef}
+              globalUrl={globalUrl}
+              userdata={userdata}
+              isLoaded={isLoaded}
+              isLoggedIn={isLoggedIn}
+              serverside={serverside}
               apiKey={API_CONFIG.apiKey || undefined}
               apiBaseUrl={API_CONFIG.baseUrl}
               placeholder={`Search ${category.label.toLowerCase()} integrations...`}
