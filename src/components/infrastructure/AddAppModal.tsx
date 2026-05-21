@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { ShuffleMCP } from '@/Shuffle-MCPs';
 import type { AppSelectedEvent } from '@/Shuffle-MCPs';
-import { AppAuthCard } from '@/Shuffle-MCPs/AppAuthConfig';
+import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAppAuthFlow } from '@/hooks/useAppAuthFlow';
 

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Box, Typography, InputBase, CircularProgress } from '@mui/material';
 import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon } from 'lucide-react';
-import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';

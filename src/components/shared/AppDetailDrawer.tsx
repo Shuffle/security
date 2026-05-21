@@ -1,1 +1,1 @@
-export { default } from '@/Shuffle-MCPs/AppDetailDrawer';
+export { default } from '@/Shuffle-MCPs/views/AppDetailDrawer';

@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Settings, Play, RefreshCw as RefreshIcon } from 'lucide-react';
-import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { useAgentActivity } from '@/hooks/useAgentActivity';
 import AgentActivityStatsPanel from '@/components/agent/AgentActivityStats';
 

@@ -1,7 +1,7 @@
 import { User as PersonIcon } from 'lucide-react';
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 import { Box, TextField, TextFieldProps, Typography, Avatar } from '@mui/material';
-import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { useUsers, User } from '@/hooks/useUsers';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 

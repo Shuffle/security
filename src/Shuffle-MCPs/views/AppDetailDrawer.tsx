@@ -35,18 +35,18 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
-import { AppAuthCard } from '@/Shuffle-MCPs/AppAuthConfig';
-import AppMcpChat from '@/Shuffle-MCPs/AppMcpChat';
-import ApiCallViewer from '@/Shuffle-MCPs/ApiCallViewer';
-import type { AlgoliaSearchApp } from './shuffle-mcp.helpers';
+import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
+import AppMcpChat from '@/Shuffle-MCPs/views/AppMcpChat';
+import ApiCallViewer from '@/Shuffle-MCPs/components/ApiCallViewer';
+import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { API_CONFIG, getApiUrl, getAuthHeader, getTrackedOrgId } from '@/Shuffle-MCPs/api';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
-import AppTitleHeader from './AppTitleHeader';
-import AppAuthSection from './AppAuthSection';
-import TryMcpSection from './TryMcpSection';
-import SingulActionsPreview from './SingulActionsPreview';
-import type { ShuffleHostProps } from './host-props';
+import AppTitleHeader from '@/Shuffle-MCPs/components/AppTitleHeader';
+import AppAuthSection from '@/Shuffle-MCPs/components/AppAuthSection';
+import TryMcpSection from '@/Shuffle-MCPs/views/TryMcpSection';
+import SingulActionsPreview from '@/Shuffle-MCPs/components/SingulActionsPreview';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 // AuthContext detached — consumers can pass `isAuthenticated` as a prop. Defaults to true.
 
 interface AppInfo {

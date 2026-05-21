@@ -14,8 +14,8 @@
  */
 import { Box, Button, Tooltip } from '@mui/material';
 import { ExternalLink, Settings2 } from 'lucide-react';
-import type { OutputDiagnosis } from './agentDiagnosis';
-import type { ShuffleHostProps } from './host-props';
+import type { OutputDiagnosis } from '@/Shuffle-MCPs/agentDiagnosis';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 interface Props extends ShuffleHostProps {
   diagnosis: OutputDiagnosis | null | undefined;

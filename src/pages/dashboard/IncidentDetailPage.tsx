@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'react';
 import DOMPurify from 'dompurify';
-import AgentIcon from '@/Shuffle-MCPs/AgentIcon';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEntityLabel, useTaskStatuses, useEntityText } from '@/hooks/useEntityLabel';
 import {
@@ -125,7 +125,7 @@ import { IncidentSection } from '@/components/incidents/IncidentSection';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { useAssignEscalateStatus } from '@/hooks/useAssignEscalateStatus';
-import AppSearchDrawer from '@/Shuffle-MCPs/AppSearchDrawer';
+import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
 
 // Per-open guarantee: at least ONE of Email Thread or Timeline must be
 // expanded, otherwise the page looks empty. We respect whichever the user

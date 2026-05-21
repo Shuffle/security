@@ -20,7 +20,7 @@ import {
   parseAgentApprovalParams,
   type AgentNotification,
 } from '@/services/notifications';
-import AgentUI from '@/Shuffle-MCPs/AgentUI';
+import AgentUI from '@/Shuffle-MCPs/components/AgentUI';
 import type { AgentRun, AgentDecision } from '@/services/agentActivity';
 import {
   parseDatastoreReference,

@@ -4,7 +4,7 @@
  * https://github.com/Shuffle/singul.js
  */
 
-import type { ShuffleHostProps } from './host-props';
+import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 
 export interface AlgoliaSearchApp {
   name: string;

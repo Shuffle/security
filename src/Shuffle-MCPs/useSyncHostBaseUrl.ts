@@ -10,7 +10,7 @@
  * after a top-level remount).
  */
 import { useEffect } from 'react';
-import { setHostBaseUrl } from './api';
+import { setHostBaseUrl } from '@/Shuffle-MCPs/api';
 
 export const useSyncHostBaseUrl = (globalUrl: string | undefined | null) => {
   useEffect(() => {
