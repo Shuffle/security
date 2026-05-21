@@ -14,6 +14,7 @@ import type { AppSelectedEvent } from '@/Shuffle-MCPs';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import { ShufflePipelinesBanner } from '@/Shuffle-MCPs/components/ShufflePipelinesBanner';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { useShuffleMcpTheme } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
 
 
 // Singul styles — compact dark theme
@@ -163,7 +164,11 @@ export default function AppSearchDrawer({
   multiSelect = false,
   selectedApps,
   onSelectionChange,
+  globalUrl,
+  theme,
+  colorMode,
 }: AppSearchDrawerProps) {
+  const themeScope = useShuffleMcpTheme();
   const [detailAppName, setDetailAppName] = useState<string | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [highlightActive, setHighlightActive] = useState(false);
@@ -264,6 +269,7 @@ export default function AppSearchDrawer({
         anchor={anchor}
         open={open && detailAppName === null}
         onClose={handleClose}
+        slotProps={{ paper: { className: themeScope?.scopeClassName } }}
         sx={{
           zIndex: 9999,
           '& .MuiDrawer-paper': {
@@ -420,7 +426,10 @@ export default function AppSearchDrawer({
               >
                 <ShuffleMCP
                   apiKey={API_CONFIG.apiKey || undefined}
-                  apiBaseUrl={API_CONFIG.baseUrl}
+                  apiBaseUrl={globalUrl || API_CONFIG.baseUrl}
+                  globalUrl={globalUrl}
+                  theme={theme}
+                  colorMode={colorMode}
                   placeholder={initialQuery ? `Search ${initialQuery} integrations...` : 'Search integrations...'}
                   layout="grid"
                   gridColumns={2}
@@ -432,6 +441,7 @@ export default function AppSearchDrawer({
                   showCheckbox={multiSelect}
                   multiSelect={multiSelect}
                   selectedApps={multiSelect ? projectedSelectedApps : undefined}
+                  disableAutoSelectValidatedApps={multiSelect}
                   preventDefault={true}
                   onAppSelected={handleAppSelected}
                   // NOTE: intentionally NOT forwarding ShuffleMCP's
@@ -482,6 +492,9 @@ export default function AppSearchDrawer({
         appId={detailAppId}
         anchor={anchor}
         width={width}
+        globalUrl={globalUrl}
+        theme={theme}
+        colorMode={colorMode}
         onRefresh={onClose}
         onAddToCanvas={onAddToCanvas}
       />
