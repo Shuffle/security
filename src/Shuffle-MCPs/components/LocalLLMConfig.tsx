@@ -86,7 +86,7 @@ export interface LocalLLMConfigProps extends ShuffleHostProps {
   onTestResult?: (result: LocalLLMTestResult) => void;
 }
 
-const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, serverside }: LocalLLMConfigProps) => {
+const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, serverside, theme, colorMode }: LocalLLMConfigProps) => {
   useSyncHostBaseUrl(globalUrl);
   const { authStates, authenticatedApps, handleAuthChange, handleTestConnection, handleSaveAuth, refreshAuth } = useAppAuth();
   const [expanded, setExpanded] = useState(true);
@@ -319,6 +319,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           isLoaded={isLoaded}
           isLoggedIn={isLoggedIn}
           serverside={serverside}
+          theme={theme}
+          colorMode={colorMode}
         />
       )}
 
