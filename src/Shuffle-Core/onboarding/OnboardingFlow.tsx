@@ -239,6 +239,26 @@ const OnboardingFlow = ({
   const stepEnteredAtRef = useRef<number>(Date.now());
   const onboardingCompletedRef = useRef(false);
 
+  // Track the OnboardingFlow root rect so the fixed-position pill + demo
+  // CTA can be centered relative to THIS component's box (excluding the
+  // app sidebar) rather than the viewport.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [rootRect, setRootRect] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setRootRect({ left: r.left, width: r.width });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => { ro.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
+
+
 
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
   const [selectedApps, setSelectedApps] = useState<AlgoliaSearchApp[]>([]);
