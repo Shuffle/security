@@ -408,7 +408,7 @@ const CategorySection = ({
 
 // ─── UnifiedSourceSetup ─────────────────────────────────────────────────────
 
-interface UnifiedSourceSetupProps {
+interface UnifiedSourceSetupProps extends ShuffleHostProps {
   selectedApps: AlgoliaSearchApp[];
   onAppsChange: (apps: AlgoliaSearchApp[]) => void;
 }
@@ -416,6 +416,11 @@ interface UnifiedSourceSetupProps {
 export const UnifiedSourceSetup = ({
   selectedApps,
   onAppsChange,
+  globalUrl,
+  userdata,
+  isLoaded,
+  isLoggedIn,
+  serverside,
 }: UnifiedSourceSetupProps) => {
   // Only one category open at a time (accordion)
   const [openCategory, setOpenCategory] = useState<string | null>(null);
@@ -509,6 +514,11 @@ export const UnifiedSourceSetup = ({
             selectedApps={categorizedApps[category.id]}
             allSelectedApps={selectedApps}
             onAppsChange={handleAppsChange}
+            globalUrl={globalUrl}
+            userdata={userdata}
+            isLoaded={isLoaded}
+            isLoggedIn={isLoggedIn}
+            serverside={serverside}
             isOpen={openCategory === category.id}
             onToggleOpen={() => toggleCategory(category.id)}
             sectionRef={(el) => { sectionRefs.current[category.id] = el; }}
