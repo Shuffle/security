@@ -444,14 +444,14 @@ export default function AppSearchDrawer({
                   disableAutoSelectValidatedApps={multiSelect}
                   preventDefault={true}
                   onAppSelected={handleAppSelected}
-                  // NOTE: intentionally NOT forwarding ShuffleMCP's
-                  // onSelectionChange. The inner library emits a selection
-                  // event on mount that includes the user's already-
-                  // authenticated apps (Gmail, Outlook, Slack, …), which
-                  // would silently add them to chosenApps without a click.
-                  // The user-driven multi-select toggle is handled in
-                  // handleAppSelected above, so click events are the only
-                  // path that mutates the selection here.
+                  onSelectionChange={multiSelect ? (next) => {
+                    onSelectionChange?.(next.map((app) => ({
+                      name: app.name,
+                      id: app.objectID || null,
+                      icon: app.image_url || '',
+                      categories: app.categories || [],
+                    })));
+                  } : undefined}
                   pinnedApps={pinnedApps?.map(p => ({
                     name: p.name,
                     image_url: p.image_url,
