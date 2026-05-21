@@ -173,6 +173,19 @@ export default function AppSearchDrawer({
   const [detailAppName, setDetailAppName] = useState<string | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [highlightActive, setHighlightActive] = useState(false);
+  // Defer mounting the heavy <ShuffleMCP> (Algolia) widget so the Drawer
+  // slide-in paints immediately. Without this, clicking "Select Apps" feels
+  // laggy because the search widget initializes on the same frame the drawer
+  // tries to open.
+  const [bodyReady, setBodyReady] = useState(false);
+  useEffect(() => {
+    if (!open) { setBodyReady(false); return; }
+    const raf = requestAnimationFrame(() => {
+      // Wait one more frame so the drawer animation actually starts first.
+      requestAnimationFrame(() => setBodyReady(true));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
 
   // Activate highlight only after the delay, so users get a chance to find
   // the app on their own before we draw attention to it.
@@ -182,6 +195,7 @@ export default function AppSearchDrawer({
     const t = setTimeout(() => setHighlightActive(true), highlightDelayMs);
     return () => clearTimeout(t);
   }, [open, highlightAppName, highlightDelayMs]);
+
 
   const handleClose = () => {
     setDetailAppName(null);
