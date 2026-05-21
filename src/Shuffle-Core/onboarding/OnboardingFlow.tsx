@@ -1163,13 +1163,36 @@ const OnboardingFlow = ({
                   window.location.href = demoRedirectUrl;
                 }
               }}
-              className="group inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background/80 backdrop-blur px-4 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              style={{ pointerEvents: 'auto' }}
+              style={{
+                pointerEvents: 'auto',
+                height: 36,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                borderRadius: 6,
+                border: '1px solid hsl(var(--border))',
+                backgroundColor: 'hsl(var(--background) / 0.8)',
+                color: 'hsl(var(--foreground))',
+                padding: '0 16px',
+                fontSize: 14,
+                fontWeight: 500,
+                lineHeight: 1,
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                transition: 'border-color 160ms ease, color 160ms ease',
+              }}
+              onMouseEnter={(event) => {
+                event.currentTarget.style.borderColor = 'hsl(var(--primary))';
+                event.currentTarget.style.color = 'hsl(var(--primary))';
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.borderColor = 'hsl(var(--border))';
+                event.currentTarget.style.color = 'hsl(var(--foreground))';
+              }}
             >
-              <PlayCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">See it immediately — Try Demo Mode</span>
-              <span className="sm:hidden">Try Demo Mode</span>
-              <ArrowForwardIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              <PlayCircle size={16} />
+              <span>See it immediately — Try Demo Mode</span>
+              <ArrowForwardIcon size={16} />
             </motion.button>
           </Box>
         )}
