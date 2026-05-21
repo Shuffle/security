@@ -180,7 +180,8 @@ function getPrimaryCategory(appName: string, categories?: string[]): string | nu
   return null;
 }
 
-const AppMcpChat = ({ appName, appIcon, appId, categories }: AppMcpChatProps) => {
+const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpChatProps) => {
+  useSyncHostBaseUrl(globalUrl);
   const [input, setInput] = useState('');
   const [runState, setRunState] = useState<RunState>('idle');
   const [query, setQuery] = useState('');
