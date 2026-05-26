@@ -240,6 +240,8 @@ export interface AgentUIProps {
   };
   /** Called whenever a run finishes (success or failure). */
   onRun?: (info: { input: string; success: boolean; executionId?: string; error?: string }) => void;
+  /** Called whenever the chip set under the prompt changes (add/remove apps). */
+  onAppsChange?: (apps: AgentUIApp[]) => void;
   /** Called whenever the active top-level view changes (start / simple / detailed). */
   onViewChange?: (view: 'start' | 'simple' | 'detailed') => void;
   /**
