@@ -240,6 +240,8 @@ export interface AgentUIProps {
   };
   /** Called whenever a run finishes (success or failure). */
   onRun?: (info: { input: string; success: boolean; executionId?: string; error?: string }) => void;
+  /** Called whenever the chip set under the prompt changes (add/remove apps). */
+  onAppsChange?: (apps: AgentUIApp[]) => void;
   /** Called whenever the active top-level view changes (start / simple / detailed). */
   onViewChange?: (view: 'start' | 'simple' | 'detailed') => void;
   /**
@@ -988,6 +990,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   authorization,
   initialExecution,
   onRun,
+  onAppsChange,
   onViewChange,
   onSchedule,
   apiKey,
@@ -2234,6 +2237,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     onViewChange?.(activeTab);
   }, [activeTab, onViewChange]);
+  useEffect(() => {
+    onAppsChange?.(chosenApps);
+  }, [chosenApps, onAppsChange]);
   const goToTab = (t: TabKey) => {
     if (t === 'start') {
       // Seed the starter form with the current run's prompt + tools so the

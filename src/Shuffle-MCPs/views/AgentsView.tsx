@@ -55,6 +55,10 @@ export interface AgentsViewProps extends ShuffleHostProps {
   localLLMSlot?: React.ReactNode;
   /** Content for the built-in AgentRunDrawer's Permissions tab. Optional. */
   permissionsSlot?: React.ReactNode;
+  /** Pre-fill the starter chip row on mount (e.g. from persisted host state). */
+  initialApps?: AgentUIApp[];
+  /** Called whenever the chip row under the prompt changes. */
+  onAppsChange?: (apps: AgentUIApp[]) => void;
 }
 
 const AgentsView = ({
@@ -64,6 +68,8 @@ const AgentsView = ({
   hideChooseLLM,
   localLLMSlot,
   permissionsSlot,
+  initialApps,
+  onAppsChange,
   globalUrl,
   isLoaded,
   isLoggedIn,
@@ -79,7 +85,7 @@ const AgentsView = ({
   const [agentView, setAgentView] = useState<'start' | 'simple' | 'detailed'>('start');
   const [prefill, setPrefill] = useState<{ input: string; apps: AgentUIApp[]; key: number }>({
     input: '',
-    apps: [],
+    apps: initialApps && initialApps.length > 0 ? initialApps : [],
     key: 0,
   });
   const [editing, setEditing] = useState<{ workflowId: string; name: string } | null>(null);
@@ -213,6 +219,7 @@ const AgentsView = ({
           disableScheduleTooltip={editing ? 'Scheduling is disabled while editing an existing schedule' : undefined}
           theme={theme}
           colorMode={colorMode}
+          onAppsChange={onAppsChange}
         />
         {agentView === 'start' && (
           <Box sx={{ pt: { xs: 4, md: '8vh' } }}>
