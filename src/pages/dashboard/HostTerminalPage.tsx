@@ -223,7 +223,7 @@ const HostTerminalPage = () => {
     if (!noHostInUrl || !hostsLoaded || allHosts.length === 0) return;
     const sorted = [...allHosts].sort((a, b) => (b.checkin || 0) - (a.checkin || 0));
     const target = sorted[0];
-    const seg = hostUrlSegment({ hostname: target.hostname, arch: target.arch, uuid: target.uuid });
+    const seg = hostUrlSegment({ hostname: target.hostname, arch: target.arch, uuid: target.uuid, groupName: target.groupName });
     if (seg) navigate(`/monitors/${encodeURIComponent(seg)}/terminal`, { replace: true });
   }, [noHostInUrl, hostsLoaded, allHosts, navigate]);
 
