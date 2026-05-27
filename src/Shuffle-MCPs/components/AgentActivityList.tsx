@@ -551,6 +551,26 @@ const AgentActivityList = ({
     return () => { cancelled = true; };
   }, [apiKey, apiBaseUrl, orgId]);
 
+  // Load app icons once so each run row can render the same Avatar-based
+  // app indicators used elsewhere in the agent UI.
+  useEffect(() => {
+    let cancelled = false;
+    fetchAppsViaApiConfig()
+      .then((apps) => {
+        if (cancelled || !Array.isArray(apps)) return;
+        const map: Record<string, string> = {};
+        for (const a of apps as Array<{ name?: string; large_image?: string; image_url?: string; image?: string }>) {
+          const name = a?.name;
+          const img = a?.large_image || a?.image_url || a?.image;
+          if (!name || !img) continue;
+          map[normToolKey(name)] = img;
+        }
+        setAppIcons(map);
+      })
+      .catch(() => { /* icons are non-critical — fall back to initials */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const loadMore = useCallback(() => {
     if (cursor && !isLoading) fetchRuns(true, cursor);
   }, [cursor, isLoading, fetchRuns]);
