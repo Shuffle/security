@@ -4921,6 +4921,8 @@ function UsecaseCard({
       variant="outlined"
       sx={{
         position: 'relative',
+        minHeight: 88,
+        maxHeight: 88,
         bgcolor: 'hsl(var(--card))',
         borderColor: showDrift
           ? `${driftColor.replace(')', ' / 0.5)')}`
