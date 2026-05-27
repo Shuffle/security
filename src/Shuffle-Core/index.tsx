@@ -19,7 +19,7 @@ import React from 'react';
 import { ShuffleCoreThemeProvider, type ShuffleColorMode } from './components/ShuffleCoreThemeProvider';
 import { QueryClient, QueryClientProvider, QueryClientContext } from '@tanstack/react-query';
 
-import UsecasesRaw from './views/Usecases';
+import UsecasesRaw, { UsecaseDrawer as UsecaseDrawerRaw, type UsecaseDrawerProps } from './views/Usecases';
 import UsecaseAlluvialDiagramRaw from './views/UsecaseAlluvialDiagram';
 import FormInputRaw from './views/FormInput';
 import EditWorkflowRaw from './components/EditWorkflow';
@@ -79,7 +79,12 @@ const withTheme = <P extends object>(Inner: React.ComponentType<P>, displayName:
   const Wrapped: React.FC<WithTheme<P>> = ({ theme, colorMode, ...rest }) => (
     <EnsureQueryClient>
       <ShuffleCoreThemeProvider mode={resolveMode(theme, colorMode)}>
-        <Inner {...(rest as P)} />
+        {/* Forward `theme` to the inner component too — internal scoped
+         *  surfaces (e.g. Usecases, UsecaseDrawer) need it for their own
+         *  `.dark` / `.light` class on the scope wrapper, AND composed
+         *  surfaces (CombinedDashboard → UsecaseDrawer) need to pass it
+         *  through. Stripping it broke that chain. */}
+        <Inner {...(rest as P)} theme={theme} colorMode={colorMode} />
       </ShuffleCoreThemeProvider>
     </EnsureQueryClient>
   );
@@ -88,6 +93,8 @@ const withTheme = <P extends object>(Inner: React.ComponentType<P>, displayName:
 };
 
 export const Usecases = withTheme(UsecasesRaw, 'Usecases');
+export const UsecaseDrawer = withTheme(UsecaseDrawerRaw, 'UsecaseDrawer');
+export type { UsecaseDrawerProps };
 export const UsecaseAlluvialDiagram = withTheme(UsecaseAlluvialDiagramRaw, 'UsecaseAlluvialDiagram');
 export const FormInput = withTheme(FormInputRaw, 'FormInput');
 export const EditWorkflow = withTheme(EditWorkflowRaw, 'EditWorkflow');

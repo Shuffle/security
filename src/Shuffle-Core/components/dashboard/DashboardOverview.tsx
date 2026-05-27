@@ -56,6 +56,10 @@ export interface OverviewProps extends ShuffleCoreHostProps {
   customRange?: { fromMs: number; toMs: number } | null;
   /** Called when the user click-drags on a chart to pick a range. */
   onRangeSelect?: (fromMs: number, toMs: number) => void;
+  /** When provided, the "Set up X" empty-state CTAs open the matching
+   *  usecase in-place via the host (typically by rendering <UsecaseDrawer>)
+   *  instead of redirecting to /usecases or to security.shuffler.io. */
+  onOpenUsecase?: (flowId: string) => void;
 }
 
 const STATUS_COLORS = {
@@ -76,6 +80,7 @@ export const DashboardOverview = ({
   gran = 'daily',
   customRange,
   onRangeSelect,
+  onOpenUsecase,
   // Standard Shuffle-Core host props — accepted for API consistency across
   // components mounted in multiple places. Not currently consumed because this
   // surface is purely presentational over host-supplied data.
@@ -111,10 +116,16 @@ export const DashboardOverview = ({
     }
     rrNavigate(path);
   };
-  // For "set up X" CTAs: stay local when on Shuffle Security (deep-link to
-  // the relevant page), otherwise open the Usecases drawer here in Shuffle
-  // Core pre-filtered to the matching automation area / category.
-  const navigateSetup = (securityPath: string, usecasesQuery: string) => {
+  // For "set up X" CTAs:
+  //   1. If the host wired `onOpenUsecase`, open the specific usecase drawer
+  //      right here on the dashboard (no redirect).
+  //   2. Otherwise, on Shuffle Security stay local and deep-link to the page.
+  //   3. Otherwise, fall back to /usecases pre-filtered by area + category.
+  const navigateSetup = (flowId: string, securityPath: string, usecasesQuery: string) => {
+    if (onOpenUsecase) {
+      onOpenUsecase(flowId);
+      return;
+    }
     if (isShuffleSecurityHost()) {
       rrNavigate(securityPath);
       return;
@@ -310,7 +321,7 @@ export const DashboardOverview = ({
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <EmptyState text={`No incident activity in the last ${days} days`} ctaLabel="Set up incident ingestion" onCta={() => navigateSetup('/incidents?highlight=ingest', 'area=automatic_ingestion&category=case_management')} />
+              <EmptyState text={`No incident activity in the last ${days} days`} ctaLabel="Set up incident ingestion" onCta={() => navigateSetup('siem_case_management_1', '/incidents?highlight=ingest', 'area=automatic_ingestion&category=case_management')} />
             )}
           </Box>
         </Panel>
@@ -377,7 +388,7 @@ export const DashboardOverview = ({
                 </Box>
               </>
             ) : (
-              <EmptyState text="No host monitors or pipeline sensors deployed yet" ctaLabel="Deploy a monitor" onCta={() => navigateSetup('/monitors?add_host=true', 'area=detection&category=endpoint_detection')} />
+              <EmptyState text="No host monitors or pipeline sensors deployed yet" ctaLabel="Deploy a monitor" onCta={() => navigateSetup('case_management_asset_management_monitors_1', '/monitors?add_host=true', 'area=detection&category=endpoint_detection')} />
             )}
           </Box>
           {monitorTotal > 0 && (
@@ -441,7 +452,7 @@ export const DashboardOverview = ({
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyState text="No vulnerabilities ingested yet" ctaLabel="Set up vulnerability ingestion" onCta={() => navigateSetup('/vulnerabilities', 'area=automatic_ingestion&category=asset_management')} />
+            <EmptyState text="No vulnerabilities ingested yet" ctaLabel="Set up vulnerability ingestion" onCta={() => navigateSetup('vulnerability_ingestion_1', '/vulnerabilities', 'area=automatic_ingestion&category=asset_management')} />
           )}
         </Box>
       </Panel>

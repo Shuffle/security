@@ -27,6 +27,7 @@ import AutomationDashboard, { type AutomationDashboardProps, AUTOMATION_RANGE_OP
 import { SegmentedControl } from '../ui/segmented-control';
 import type { ShuffleCoreHostProps } from '../../types/host-props';
 import { useSyncHostBaseUrl } from '../../useSyncHostBaseUrl';
+import { UsecaseDrawer } from '../../views/Usecases';
 
 type VulnCounts = { critical: number; high: number; medium: number; low: number; info: number };
 const EMPTY_VULNS: VulnCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -106,6 +107,9 @@ const CombinedDashboard = ({
   const [mode, setMode] = useState<'workflows' | 'apps'>('workflows');
   const [customRange, setCustomRange] = useState<{ fromMs: number; toMs: number } | null>(null);
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
+  // Inline usecase drawer — opened by DashboardOverview's "Set up X" CTAs so
+  // the user configures ingestion right here without leaving /dashboard.
+  const [openUsecaseId, setOpenUsecaseId] = useState<string | null>(null);
 
   // ── Incidents ─────────────────────────────────────────────────────────────
   const { items: incidentItems, isLoading: incidentsFetching, fetchItems, hasFetched } = useDatastore({
@@ -338,8 +342,23 @@ const CombinedDashboard = ({
           gran={gran}
           customRange={customRange}
           onRangeSelect={(fromMs, toMs) => setCustomRange({ fromMs, toMs })}
+          onOpenUsecase={(flowId) => setOpenUsecaseId(flowId)}
         />
       )}
+      {/* Inline usecase drawer — opens in-place from the Security Operations
+       *  setup CTAs instead of redirecting to /usecases. Receives the SAME
+       *  host props (globalUrl, userdata, isLoaded, isLoggedIn, theme) we
+       *  thread through the rest of Shuffle-Core. */}
+      <UsecaseDrawer
+        open={openUsecaseId !== null}
+        onClose={() => setOpenUsecaseId(null)}
+        flowId={openUsecaseId}
+        globalUrl={host.globalUrl}
+        userdata={host.userdata}
+        isLoaded={host.isLoaded}
+        isLoggedIn={host.isLoggedIn}
+        theme={host.theme as 'light' | 'dark' | 'system' | undefined}
+      />
     </Box>
   );
 };
