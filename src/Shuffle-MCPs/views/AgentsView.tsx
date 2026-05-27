@@ -191,7 +191,7 @@ const AgentsView = ({
         isLoaded={isLoaded}
         isLoggedIn={isLoggedIn}
         serverside={serverside}
-        theme={theme}
+        theme={resolvedTheme}
         colorMode={colorMode}
       />
     ),
@@ -295,9 +295,9 @@ const AgentsView = ({
           submitTooltip={editing ? '⌘+Enter to save' : undefined}
           disableSchedule={Boolean(editing)}
           disableScheduleTooltip={editing ? 'Scheduling is disabled while editing an existing schedule' : undefined}
-          theme={theme}
+          theme={resolvedTheme}
           colorMode={colorMode}
-          onAppsChange={onAppsChange}
+          onAppsChange={handleAppsChange}
         />
         {agentView === 'start' && (
           <Box sx={{ pt: { xs: 4, md: '8vh' } }}>
@@ -320,7 +320,7 @@ const AgentsView = ({
         onSchedule={effectiveSchedule}
         apiKey={apiKey}
         orgId={orgId}
-        theme={theme}
+        theme={resolvedTheme}
         colorMode={colorMode}
       />
 
@@ -331,7 +331,7 @@ const AgentsView = ({
         globalUrl={globalUrl}
         localLLMSlot={effectiveLocalLLMSlot}
         permissionsSlot={permissionsSlot}
-        theme={theme}
+        theme={resolvedTheme}
         colorMode={colorMode}
         agentUIProps={{ onSchedule: effectiveSchedule, apiBaseUrl: globalUrl, apiKey, orgId, theme, colorMode }}
       />
