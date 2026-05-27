@@ -288,7 +288,11 @@ export default function AppSearchDrawer({
           paper: {
             className: scopeClassName,
             sx: {
-              width: { xs: '100%', sm: width },
+              // Strict, environment-independent sizing so the drawer
+              // looks identical on every host (Shuffle Security, /agents,
+              // test page, embedded library, etc.). No breakpoint variance.
+              width: `min(${width}px, 100vw)`,
+              minWidth: `min(${width}px, 100vw)`,
               maxWidth: '100vw',
               height: '100vh',
               display: 'flex',
@@ -304,6 +308,7 @@ export default function AppSearchDrawer({
           zIndex: 9999,
           '& .MuiDrawer-paper': { boxSizing: 'border-box' },
         }}
+
       >
         {/* Header */}
         <Box
@@ -401,33 +406,36 @@ export default function AppSearchDrawer({
                 overflowY: 'auto',
               },
               '& .singul-results-grid': {
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                gridAutoRows: '78px',
-                gap: '12px',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) !important',
+                gridAutoRows: '78px !important',
+                gap: '12px !important',
               },
               '& .singul-results-grid .singul-dropdown-item': {
                 minWidth: 0,
-                minHeight: 78,
-                maxHeight: 78,
-                height: 78,
-                padding: '10px 14px',
+                minHeight: '78px !important',
+                maxHeight: '78px !important',
+                height: '78px !important',
+                padding: '10px 14px !important',
                 alignItems: 'center',
                 overflow: 'hidden',
+                boxSizing: 'border-box',
               },
 
               '& .singul-results-grid .singul-app-info': {
                 alignItems: 'center',
-                gap: '12px',
+                gap: '12px !important',
               },
               '& .singul-results-grid .singul-app-icon': {
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                padding: 4,
+                width: '36px !important',
+                height: '36px !important',
+                minWidth: '36px !important',
+                borderRadius: '8px !important',
+                padding: '4px !important',
               },
               '& .singul-results-grid .singul-app-details': { minWidth: 0 },
               '& .singul-results-grid .singul-app-name': { maxWidth: '100%' },
-              '& .singul-results-grid .singul-checkbox': { marginLeft: 'auto' },
+              '& .singul-results-grid .singul-checkbox': { marginLeft: 'auto', flexShrink: 0 },
+
               ...(highlightActive && highlightAppName ? {
                 [`& .singul-dropdown-item[data-app-name="${highlightAppName}"]`]: {
                   borderColor: 'hsl(var(--primary)) !important',
