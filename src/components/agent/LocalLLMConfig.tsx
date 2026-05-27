@@ -56,8 +56,8 @@ const ENDPOINT_PRESETS: Array<{ label: string; url: string; apiKeyUrl?: string; 
   { label: 'Groq', url: 'https://api.groq.com/openai/v1', apiKeyUrl: 'https://console.groq.com/keys', apiKeyHint: 'Create a key under API Keys in the Groq Console.', logoUrl: 'https://www.google.com/s2/favicons?domain=groq.com&sz=64' },
   { label: 'DeepSeek', url: 'https://api.deepseek.com/v1', apiKeyUrl: 'https://platform.deepseek.com/api_keys', apiKeyHint: 'Create a key under API Keys in the DeepSeek platform.', logoUrl: 'https://cdn.simpleicons.org/deepseek' },
   { label: 'Together AI', url: 'https://api.together.xyz/v1', apiKeyUrl: 'https://api.together.ai/settings/api-keys', apiKeyHint: 'Create a key under Settings → API Keys in Together AI.', logoUrl: 'https://www.google.com/s2/favicons?domain=together.ai&sz=64' },
-  { label: 'OpenRouter', url: 'https://openrouter.ai/api/v1', apiKeyUrl: 'https://openrouter.ai/keys', apiKeyHint: 'Create a key under Keys in your OpenRouter dashboard.', logoUrl: 'https://cdn.simpleicons.org/openrouter/white' },
-  { label: 'Ollama', url: '', apiKeyUrl: 'https://github.com/ollama/ollama/blob/main/docs/api.md', apiKeyHint: 'Point to your Ollama server (e.g. http://your-host:11434/v1). Any non-empty API key works.', logoUrl: 'https://cdn.simpleicons.org/ollama/white' },
+  { label: 'OpenRouter', url: 'https://openrouter.ai/api/v1', apiKeyUrl: 'https://openrouter.ai/keys', apiKeyHint: 'Create a key under Keys in your OpenRouter dashboard.', logoUrl: 'https://www.google.com/s2/favicons?domain=openrouter.ai&sz=64' },
+  { label: 'Ollama', url: '', apiKeyUrl: 'https://github.com/ollama/ollama/blob/main/docs/api.md', apiKeyHint: 'Point to your Ollama server (e.g. http://your-host:11434/v1). Any non-empty API key works.', logoUrl: 'https://www.google.com/s2/favicons?domain=ollama.com&sz=64' },
   { label: 'LM Studio', url: '', apiKeyUrl: 'https://lmstudio.ai/docs/local-server', apiKeyHint: 'Point to your LM Studio server (e.g. http://your-host:1234/v1). Any non-empty API key works.', logoUrl: 'https://lmstudio.ai/favicon.ico' },
   { label: 'Custom / self-hosted', url: '' },
 ];
