@@ -169,6 +169,8 @@ export const AutomationDashboard = ({
   };
   const isModeControlled = modeProp !== undefined;
   const [modeInternal, setModeInternal] = useState<ModeKind>('workflows');
+  const { data: workflowList, isLoading: workflowsLoading } = useWorkflows();
+  const workflowCount = Array.isArray(workflowList) ? workflowList.length : 0;
   const mode = isModeControlled ? (modeProp as ModeKind) : modeInternal;
   const setMode = (v: ModeKind) => {
     if (onModeChange) onModeChange(v);
