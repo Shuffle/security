@@ -204,6 +204,7 @@ export type ToolStatus = 'success' | 'failure' | 'waiting' | 'unknown';
 export interface RunTool {
   name: string;
   status: ToolStatus;
+  id?: string;
 }
 
 const normalizeResultStatus = (s?: string): ToolStatus => {
