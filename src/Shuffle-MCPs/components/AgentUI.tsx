@@ -3324,7 +3324,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Typography>
             )}
 
-            <Box sx={{
+            <Box ref={promptAnchorRef} sx={{
               width: '100%',
               display: 'flex',
               flexDirection: 'column',
