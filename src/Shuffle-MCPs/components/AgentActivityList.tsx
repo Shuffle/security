@@ -214,7 +214,12 @@ const normalizeResultStatus = (s?: string): ToolStatus => {
   return 'unknown';
 };
 
-/** Extract distinct tools/apps used in this run from results + decisions. */
+/** Extract distinct tools/apps used in this run.
+ *
+ *  Prefers the agent's own `allowed_actions` list (format: "app:<id>:<name>"),
+ *  which is the authoritative set of apps configured for the run. Falls back
+ *  to scraping results/decisions only when allowed_actions is not available
+ *  (e.g. very old runs). Per-app status is derived from matching results. */
 const getRunTools = (run: AgentRun): RunTool[] => {
   const map = new Map<string, ToolStatus>();
   const skip = (s: string) => /^(ai\s*agent|shuffle\s*agent|shuffle_agent)$/i.test(s);
@@ -227,13 +232,41 @@ const getRunTools = (run: AgentRun): RunTool[] => {
     const prev = map.get(s);
     if (!prev || rank[next] > rank[prev]) map.set(s, next);
   };
-  (run.results || []).forEach((r) => {
-    const name = r?.action?.app_name || r?.action?.label;
-    merge(name, normalizeResultStatus(r?.status));
-  });
-  (run.decisions || []).forEach((d) => {
-    if (typeof d?.tool === 'string') merge(d.tool, normalizeResultStatus(d?.status as string));
-  });
+
+  const allowed: string[] | undefined = (run as any).allowed_actions;
+  if (Array.isArray(allowed) && allowed.length > 0) {
+    // 1) Seed from allowed_actions — the configured app list.
+    for (const entry of allowed) {
+      if (typeof entry !== 'string') continue;
+      const parts = entry.split(':');
+      if (parts.length < 3 || parts[0] !== 'app') continue;
+      const name = parts.slice(2).join(':');
+      merge(name, 'unknown');
+    }
+    // 2) Upgrade statuses from any results/decisions that match by name.
+    const normalize = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, '_');
+    const known = new Map<string, string>();
+    for (const real of map.keys()) known.set(normalize(real), real);
+    const apply = (name?: string, status?: ToolStatus) => {
+      if (!name) return;
+      const hit = known.get(normalize(name));
+      if (hit) merge(hit, status);
+    };
+    (run.results || []).forEach((r) => {
+      apply(r?.action?.app_name || r?.action?.label, normalizeResultStatus(r?.status));
+    });
+    (run.decisions || []).forEach((d) => {
+      if (typeof d?.tool === 'string') apply(d.tool, normalizeResultStatus(d?.status as string));
+    });
+  } else {
+    // Legacy fallback for runs without allowed_actions.
+    (run.results || []).forEach((r) => {
+      merge(r?.action?.app_name || r?.action?.label, normalizeResultStatus(r?.status));
+    });
+    (run.decisions || []).forEach((d) => {
+      if (typeof d?.tool === 'string') merge(d.tool, normalizeResultStatus(d?.status as string));
+    });
+  }
   return Array.from(map.entries()).slice(0, 6).map(([name, status]) => ({ name, status }));
 };
 
