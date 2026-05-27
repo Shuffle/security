@@ -388,7 +388,7 @@ export const DashboardOverview = ({
                 </Box>
               </>
             ) : (
-              <EmptyState text="No host monitors or pipeline sensors deployed yet" ctaLabel="Deploy a monitor" onCta={() => navigateSetup('/monitors?add_host=true', 'area=detection&category=endpoint_detection')} />
+              <EmptyState text="No host monitors or pipeline sensors deployed yet" ctaLabel="Deploy a monitor" onCta={() => navigateSetup('case_management_asset_management_monitors_1', '/monitors?add_host=true', 'area=detection&category=endpoint_detection')} />
             )}
           </Box>
           {monitorTotal > 0 && (
