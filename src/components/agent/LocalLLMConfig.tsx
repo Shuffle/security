@@ -57,8 +57,8 @@ const ENDPOINT_PRESETS: Array<{ label: string; url: string; apiKeyUrl?: string; 
   { label: 'DeepSeek', url: 'https://api.deepseek.com/v1', apiKeyUrl: 'https://platform.deepseek.com/api_keys', apiKeyHint: 'Create a key under API Keys in the DeepSeek platform.', logoUrl: 'https://cdn.simpleicons.org/deepseek' },
   { label: 'Together AI', url: 'https://api.together.xyz/v1', apiKeyUrl: 'https://api.together.ai/settings/api-keys', apiKeyHint: 'Create a key under Settings → API Keys in Together AI.', logoUrl: 'https://logo.clearbit.com/together.xyz' },
   { label: 'OpenRouter', url: 'https://openrouter.ai/api/v1', apiKeyUrl: 'https://openrouter.ai/keys', apiKeyHint: 'Create a key under Keys in your OpenRouter dashboard.', logoUrl: 'https://cdn.simpleicons.org/openrouter/white' },
-  { label: 'Ollama (localhost)', url: 'http://localhost:11434/v1', apiKeyHint: 'Local Ollama does not require an API key — any non-empty value works.', logoUrl: 'https://cdn.simpleicons.org/ollama/white' },
-  { label: 'LM Studio (localhost)', url: 'http://localhost:1234/v1', apiKeyHint: 'Local LM Studio does not require an API key — any non-empty value works.', logoUrl: 'https://lmstudio.ai/favicon.ico' },
+  { label: 'Ollama', url: '', apiKeyUrl: 'https://github.com/ollama/ollama/blob/main/docs/api.md', apiKeyHint: 'Point to your Ollama server (e.g. http://your-host:11434/v1). Any non-empty API key works.', logoUrl: 'https://cdn.simpleicons.org/ollama/white' },
+  { label: 'LM Studio', url: '', apiKeyUrl: 'https://lmstudio.ai/docs/local-server', apiKeyHint: 'Point to your LM Studio server (e.g. http://your-host:1234/v1). Any non-empty API key works.', logoUrl: 'https://lmstudio.ai/favicon.ico' },
   { label: 'Custom / self-hosted', url: '' },
 ];
 
@@ -443,11 +443,17 @@ const LocalLLMConfig = ({ compact, hasOpenAIAuth }: LocalLLMConfigProps) => {
         <Box sx={{ mt: 0.5, width: '100%' }}>{usageBars}</Box>
       )}
 
-      {effectivePreset === CUSTOM_PRESET && (
+      {!isShuffleAI && selectedProviderDocs && !selectedProviderDocs.url && (
         <TextField
           size="small"
           fullWidth
-          placeholder="https://your-self-hosted-endpoint.example.com"
+          placeholder={
+            effectivePreset === 'Ollama'
+              ? 'http://your-ollama-host:11434/v1'
+              : effectivePreset === 'LM Studio'
+                ? 'http://your-lmstudio-host:1234/v1'
+                : 'https://your-self-hosted-endpoint.example.com'
+          }
           value={customUrl || currentUrl}
           onChange={(e) => handleCustomUrlChange(e.target.value)}
           helperText="Enter the base URL of your OpenAI-compatible endpoint"
