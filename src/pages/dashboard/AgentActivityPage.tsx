@@ -22,6 +22,7 @@ import PermissionsPanel from '@/components/agent/PermissionsPanel';
 import LocalLLMConfig from '@/components/agent/LocalLLMConfig';
 import {
   AgentRunDrawer,
+  API_CONFIG,
   type AgentRunDrawerTab,
   AgentActivityList,
   AgentExecutionDrawer,
@@ -195,7 +196,7 @@ const AgentActivityPage = () => {
         <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
           {/* Left: Feed (sourced from Shuffle-MCPs lib) */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <AgentActivityList onRunClick={(run) => setSelectedRun(run)} />
+            <AgentActivityList apiBaseUrl={API_CONFIG.baseUrl} onRunClick={(run) => setSelectedRun(run)} />
           </Box>
 
           {/* Right: Stats */}
@@ -210,9 +211,10 @@ const AgentActivityPage = () => {
         open={permissionsOpen}
         onClose={() => setPermissionsOpen(false)}
         initialTab={permissionsInitialTab}
+        globalUrl={API_CONFIG.baseUrl}
         permissionsSlot={<PermissionsPanel compact />}
-        localLLMSlot={<LocalLLMConfig />}
-        agentUIProps={{ onSchedule: handleSchedule }}
+        localLLMSlot={<LocalLLMConfig globalUrl={API_CONFIG.baseUrl} />}
+        agentUIProps={{ onSchedule: handleSchedule, apiBaseUrl: API_CONFIG.baseUrl }}
       />
 
       {/* Execution view drawer (sourced from Shuffle-MCPs lib) */}
@@ -220,6 +222,7 @@ const AgentActivityPage = () => {
         open={!!selectedRun}
         onClose={() => setSelectedRun(null)}
         run={selectedRun}
+        apiBaseUrl={API_CONFIG.baseUrl}
         onSchedule={handleSchedule}
       />
     </motion.div>
