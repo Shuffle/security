@@ -367,9 +367,7 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
 
   if (
     status === 401 ||
-    /\b(unauthori[sz]ed|invalid[_\s-]*(api[_\s-]*key|token|credentials?)|authentication[_\s-]*(failed|required)|missing[_\s-]*(api[_\s-]*key|token|authorization)|bearer[_\s-]*token|expired[_\s-]*token)\b/.test(
-      lower
-    )
+    /\b(unauthori[sz]ed|invalid[_\s-]*(api[_\s-]*key|token|credentials?)|authentication[_\s-]*(failed|required)|missing[_\s-]*(api[_\s-]*key|token|authorization)|bearer[_\s-]*token|expired[_\s-]*token)\b/.test(errorHaystackLower)
   ) {
     const ev = findEvidenceByRegex(
       /unauthori[sz]ed|invalid[_\s-]*(api[_\s-]*key|token|credentials?)|authentication[_\s-]*(failed|required)|missing[_\s-]*(api[_\s-]*key|token|authorization)|bearer[_\s-]*token|expired[_\s-]*token|\b401\b/
@@ -389,9 +387,7 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
 
   if (
     status === 403 ||
-    /\b(forbidden|permission[_\s-]*denied|not[_\s-]*allowed|access[_\s-]*denied|insufficient[_\s-]*(scope|permission|privileges?)|missing[_\s-]*scope)\b/.test(
-      lower
-    )
+    /\b(forbidden|permission[_\s-]*denied|not[_\s-]*allowed|access[_\s-]*denied|insufficient[_\s-]*(scope|permission|privileges?)|missing[_\s-]*scope)\b/.test(errorHaystackLower)
   ) {
     const ev = findEvidenceByRegex(
       /forbidden|permission[_\s-]*denied|not[_\s-]*allowed|access[_\s-]*denied|insufficient[_\s-]*(scope|permission|privileges?)|missing[_\s-]*scope|\b403\b/
@@ -411,7 +407,7 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
 
   if (
     status === 429 ||
-    /\b(rate[_\s-]*limit|too[_\s-]*many[_\s-]*requests|quota[_\s-]*exceeded|throttled)\b/.test(lower)
+    /\b(rate[_\s-]*limit|too[_\s-]*many[_\s-]*requests|quota[_\s-]*exceeded|throttled)\b/.test(errorHaystackLower)
   ) {
     const ev = findEvidenceByRegex(
       /rate[_\s-]*limit|too[_\s-]*many[_\s-]*requests|quota[_\s-]*exceeded|throttled|\b429\b/
@@ -432,7 +428,7 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
 
   if (
     status === 404 ||
-    /\b(not[_\s-]*found|no such|does not exist|unknown[_\s-]*(id|resource))\b/.test(lower)
+    /\b(not[_\s-]*found|no such|does not exist|unknown[_\s-]*(id|resource))\b/.test(errorHaystackLower)
   ) {
     const ev = findEvidenceByRegex(
       /not[_\s-]*found|no such|does not exist|unknown[_\s-]*(id|resource)|\b404\b/
@@ -453,9 +449,7 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
   if (
     status === 400 ||
     status === 422 ||
-    /\b(bad[_\s-]*request|validation[_\s-]*(error|failed)|invalid[_\s-]*(parameter|field|argument|body|payload))\b/.test(
-      lower
-    )
+    /\b(bad[_\s-]*request|validation[_\s-]*(error|failed)|invalid[_\s-]*(parameter|field|argument|body|payload))\b/.test(errorHaystackLower)
   ) {
     const ev = findEvidenceByRegex(
       /bad[_\s-]*request|validation[_\s-]*(error|failed)|invalid[_\s-]*(parameter|field|argument|body|payload)|\b400\b|\b422\b/
@@ -475,9 +469,7 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
 
   if (
     (typeof status === 'number' && status >= 500) ||
-    /\b(timeout|timed[_\s-]*out|econnrefused|enotfound|network[_\s-]*error|connection[_\s-]*(refused|reset|closed)|service[_\s-]*unavailable|bad[_\s-]*gateway|gateway[_\s-]*timeout)\b/.test(
-      lower
-    )
+    /\b(timeout|timed[_\s-]*out|econnrefused|enotfound|network[_\s-]*error|connection[_\s-]*(refused|reset|closed)|service[_\s-]*unavailable|bad[_\s-]*gateway|gateway[_\s-]*timeout)\b/.test(errorHaystackLower)
   ) {
     const ev = findEvidenceByRegex(
       /timeout|timed[_\s-]*out|econnrefused|enotfound|network[_\s-]*error|connection[_\s-]*(refused|reset|closed)|service[_\s-]*unavailable|bad[_\s-]*gateway|gateway[_\s-]*timeout|\b5\d{2}\b/
