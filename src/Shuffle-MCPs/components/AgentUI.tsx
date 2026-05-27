@@ -3630,7 +3630,23 @@ const AgentUI: React.FC<AgentUIProps> = ({
                           {durationSec != null ? ` · ${Math.round(durationSec)}s` : ''}
                         </Typography>
                         <Box sx={{ flexGrow: 1 }} />
+                        {finishAnswer && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setFinishAnswerRaw((v) => !v)}
+                            sx={{
+                              height: 28, textTransform: 'none', fontWeight: 500,
+                              fontSize: '0.72rem', px: 1, minWidth: 0,
+                              color: 'hsl(var(--muted-foreground))',
+                              borderColor: 'hsl(var(--border))',
+                            }}
+                          >
+                            {finishAnswerRaw ? 'Rendered' : 'Raw'}
+                          </Button>
+                        )}
                       </Box>
+
                       {pendingAuthApps.map(({ appName, appId, icon }) => {
                         const pretty = appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
                         return (
