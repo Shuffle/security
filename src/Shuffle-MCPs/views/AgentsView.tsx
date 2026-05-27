@@ -10,7 +10,7 @@
  * handlers when they need custom behavior.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import AgentUI from '@/Shuffle-MCPs/components/AgentUI';
 import AgentActivityList from '@/Shuffle-MCPs/components/AgentActivityList';
