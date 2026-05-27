@@ -35,6 +35,85 @@ const IOC_EXTRACTION_WORKFLOW = 'Realtime IOC extraction';
 
 const CATEGORY_CONFIG_CACHE_KEY = 'shuffle-enrichment-category-config';
 
+/**
+ * Standalone (non-hook) version of `enable()` from `useEnrichmentStatus`.
+ *
+ * Generates both the "Enable Threat feeds" and the matching webhook workflow
+ * via /api/v2/workflows/generate, then force-runs the threat-feeds workflow
+ * so ingestion starts immediately. Safe to call from anywhere (no React
+ * context required).
+ *
+ * Returns true when both generate calls succeeded.
+ */
+export const enableThreatIntelAutomation = async (): Promise<boolean> => {
+  try {
+    const [r1, r2] = await Promise.all([
+      fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: THREAT_FEEDS_WORKFLOW }),
+      }),
+      fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: `${THREAT_FEEDS_WORKFLOW}_webhook` }),
+      }),
+    ]);
+    let threatFeedsId: string | null = null;
+    try {
+      if (r1.ok) {
+        const data = await r1.json();
+        threatFeedsId = data?.id || data?.workflow_id || null;
+      }
+    } catch { /* ignore */ }
+    if (threatFeedsId) {
+      try {
+        await fetch(getApiUrl(`/api/v1/workflows/${threatFeedsId}/execute`), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+          body: JSON.stringify({ execution_source: 'enrichment-enable', start: '' }),
+        });
+      } catch (err) {
+        console.warn('[enableThreatIntelAutomation] force-run failed', err);
+      }
+    }
+    return r1.ok && r2.ok;
+  } catch (err) {
+    console.warn('[enableThreatIntelAutomation] failed', err);
+    return false;
+  }
+};
+
+/**
+ * Standalone (non-hook) version of `disable()` from `useEnrichmentStatus`.
+ * Removes both generated workflows. Safe to call from anywhere.
+ */
+export const disableThreatIntelAutomation = async (): Promise<boolean> => {
+  try {
+    const [r1, r2] = await Promise.all([
+      fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: THREAT_FEEDS_WORKFLOW, action_name: 'disable' }),
+      }),
+      fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: `${THREAT_FEEDS_WORKFLOW}_webhook`, action_name: 'disable' }),
+      }),
+    ]);
+    return r1.ok && r2.ok;
+  } catch (err) {
+    console.warn('[disableThreatIntelAutomation] failed', err);
+    return false;
+  }
+};
+
 const readCachedCategoryConfig = (orgId: string | null): CategoryConfig | null => {
   if (!orgId) return null;
   try {

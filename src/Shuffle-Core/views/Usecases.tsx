@@ -1166,6 +1166,43 @@ function useApi() {
 import { toast as sonnerToast } from '../toast';
 import { fetchIocEntries, sumIocEntries } from '../utils/iocFeedTotals';
 import { usePageMeta } from '../usePageMeta';
+import { seedDefaultThreatFeeds } from '../hooks/useThreatFeeds';
+import { enableThreatIntelAutomation, disableThreatIntelAutomation } from '../hooks/useEnrichmentStatus';
+
+// Usecases that enable themselves end-to-end without needing the user to
+// connect a source-category app first. Clicking Enable on these runs a
+// dedicated, self-contained setup path (seeding defaults, generating
+// background workflows, etc.) instead of the generic /workflows/generate
+// flow that hard-requires a validated source tool.
+const SELF_CONTAINED_ENABLE: Record<
+  string,
+  { enable: () => Promise<boolean>; disable: () => Promise<boolean> }
+> = {
+  threat_intel_network_1: {
+    enable: async () => {
+      const a = await seedDefaultThreatFeeds();
+      const b = await enableThreatIntelAutomation();
+      return a && b;
+    },
+    disable: () => disableThreatIntelAutomation(),
+  },
+  threat_intel_edr_1: {
+    enable: async () => {
+      const a = await seedDefaultThreatFeeds();
+      const b = await enableThreatIntelAutomation();
+      return a && b;
+    },
+    disable: () => disableThreatIntelAutomation(),
+  },
+  threat_intel_cloud_1: {
+    enable: async () => {
+      const a = await seedDefaultThreatFeeds();
+      const b = await enableThreatIntelAutomation();
+      return a && b;
+    },
+    disable: () => disableThreatIntelAutomation(),
+  },
+};
 type ToastOpts = { duration?: number; description?: string; action?: { label: string; onClick: () => void } };
 const toast = {
   success: (msg: string, opts?: ToastOpts) => {
@@ -2825,6 +2862,37 @@ function UsecaseDetailContent({
     if (!flow?.automationLabel || toggling) return;
     const willBeEnabled = !effectiveEnabled;
     const sourceName = flow.source ? categoryLabel(flow.source) : 'source';
+
+    // Self-contained usecases (e.g. IOC / threat feeds) do not need a
+    // validated source-category tool — they seed their own defaults and
+    // generate background workflows directly. Run that path instead of the
+    // generic /workflows/generate flow below.
+    const selfContained = flow ? SELF_CONTAINED_ENABLE[flow.id] : undefined;
+    if (selfContained) {
+      setToggling(true);
+      setOptimisticEnabled(willBeEnabled);
+      try {
+        const ok = willBeEnabled ? await selfContained.enable() : await selfContained.disable();
+        if (!ok) throw new Error('Backend rejected the request');
+        toast.success(willBeEnabled ? `${flow.label} enabled` : `${flow.label} disabled`, {
+          description: willBeEnabled
+            ? 'Seeded default threat feeds and started background ingestion.'
+            : undefined,
+          duration: 6000,
+        });
+        onToggled?.(flow.automationLabel, willBeEnabled);
+        setTimeout(() => setOptimisticEnabled(null), 8000);
+      } catch (err: any) {
+        setOptimisticEnabled(null);
+        toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`, {
+          description: err?.message || 'The backend rejected the request.',
+          duration: 8000,
+        });
+      } finally {
+        setToggling(false);
+      }
+      return;
+    }
 
     if (willBeEnabled && !hasValidatedSource) {
       // Hard-block the enable. The /workflows/generate endpoint may return
