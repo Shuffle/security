@@ -7,11 +7,13 @@
  * consumer decides what happens next (typically: open AgentExecutionDrawer).
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  Avatar,
+  AvatarGroup,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -31,6 +33,7 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  GitBranch,
   Globe,
   Loader2,
   Server,
@@ -48,6 +51,7 @@ import {
   type AgentScheduleWorkflow,
 } from '@/Shuffle-MCPs/agentActivity';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
+import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
 import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
