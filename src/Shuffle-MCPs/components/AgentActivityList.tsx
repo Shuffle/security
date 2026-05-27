@@ -48,8 +48,10 @@ import {
   getAgentScheduleConfig,
   stopAgentSchedule,
   type AgentRun,
+  type AgentDecision,
   type AgentScheduleWorkflow,
 } from '@/Shuffle-MCPs/agentActivity';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
