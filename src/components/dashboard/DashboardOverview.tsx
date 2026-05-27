@@ -4,14 +4,14 @@
  * of falling back to the library default ("dark").
  */
 import type { ComponentProps } from 'react';
-import { DashboardOverview as CoreDashboardOverview } from '@/Shuffle-Core';
+import { API_CONFIG, DashboardOverview as CoreDashboardOverview } from '@/Shuffle-Core';
 import { useTheme } from '@/context/ThemeContext';
 
 type Props = ComponentProps<typeof CoreDashboardOverview>;
 
 export const DashboardOverview = (props: Props) => {
   const { resolvedTheme } = useTheme();
-  return <CoreDashboardOverview theme={resolvedTheme} {...props} />;
+  return <CoreDashboardOverview globalUrl={API_CONFIG.baseUrl} theme={resolvedTheme} {...props} />;
 };
 
 export default DashboardOverview;

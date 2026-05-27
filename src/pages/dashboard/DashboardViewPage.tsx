@@ -4,6 +4,7 @@
  * spacing/max-width/padding is exactly what you see.
  */
 import { CombinedDashboard } from '@/Shuffle-Core';
+import { API_CONFIG } from '@/Shuffle-Core';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -17,7 +18,7 @@ const DashboardViewPage = () => {
       isLoaded={!isLoading}
       isLoggedIn={isAuthenticated}
       userdata={userInfo}
-      globalUrl={window.location.origin}
+      globalUrl={API_CONFIG.baseUrl}
       theme={resolvedTheme}
     />
   );

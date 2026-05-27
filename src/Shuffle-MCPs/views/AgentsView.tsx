@@ -204,15 +204,6 @@ const AgentsView = ({
       onChooseLLM();
       return;
     }
-    // Prefer a globally-mounted AgentRunDrawer (e.g. host's GlobalAgentDrawer)
-    // so the user gets the host-wired Permissions/Local LLM slots. Falls back
-    // to the built-in drawer when running the library standalone.
-    if (typeof window !== 'undefined' && (window as any).__shuffleAgentDrawerMounted > 0) {
-      window.dispatchEvent(
-        new CustomEvent('agent-drawer-open', { detail: { tab: 'localLLM' } }),
-      );
-      return;
-    }
     setBuiltInDrawer({ open: true, tab: 'localLLM' });
   }, [onChooseLLM]);
 
