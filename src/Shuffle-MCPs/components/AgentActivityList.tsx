@@ -57,6 +57,7 @@ import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
 import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import AppDetailDrawer from '@/Shuffle-MCPs/views/AppDetailDrawer';
 
 // ── Status / icon helpers ────────────────────────────────────────────────────
 
