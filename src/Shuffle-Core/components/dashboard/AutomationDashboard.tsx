@@ -608,12 +608,13 @@ export const AutomationDashboard = ({
         <Box sx={{ height: 260 }}>
           {statKeys.length === 0 ? (
             <EmptyState
-              text="No custom stats yet — increment any key from a workflow and it shows up here."
-              ctaLabel="View Custom Stats API"
-              onCta={() => window.open('https://shuffler.io/docs/API#count-stats-for-custom-key', '_blank', 'noopener,noreferrer')}
+              text="No custom stats yet. Any counter you increment from a workflow (via the Stats & Timelines API or a Shuffle Tools stat action) appears here automatically — for example agent_executions, tickets_closed, or phishing_blocked."
+              ctaLabel="View Stats & Timelines API"
+              onCta={() => window.open('https://shuffler.io/docs/API#stats-and-timelines', '_blank', 'noopener,noreferrer')}
             />
           ) : statSeries.every(p => p.value === 0) ? (
-            <EmptyState text={`No values for "${prettyStatLabel(selectedStat)}" in the last ${days} days`} />
+            <EmptyState text={`No values for "${prettyStatLabel(selectedStat)}" in the last ${days} days. Increment this key from a workflow and it will start charting here.`} />
+
                     ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...statsDrag.chartProps}>
