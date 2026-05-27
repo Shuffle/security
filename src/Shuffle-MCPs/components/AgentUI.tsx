@@ -3711,7 +3711,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                           '& th, & td': { border: '1px solid hsl(var(--border))', px: 1, py: 0.5 },
                           '& hr': { border: 0, borderTop: '1px solid hsl(var(--border))', my: 1.5 },
                         }}>
-                          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(finishAnswer)}</Markdown>
+                          <FinishAnswerMarkdown text={normalizeMarkdown(finishAnswer)} />
                         </Box>
                       ) : pendingAsk && pendingQuestions.length > 0 ? (
                         (() => {
