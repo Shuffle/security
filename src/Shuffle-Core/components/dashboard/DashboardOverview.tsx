@@ -116,10 +116,16 @@ export const DashboardOverview = ({
     }
     rrNavigate(path);
   };
-  // For "set up X" CTAs: stay local when on Shuffle Security (deep-link to
-  // the relevant page), otherwise open the Usecases drawer here in Shuffle
-  // Core pre-filtered to the matching automation area / category.
-  const navigateSetup = (securityPath: string, usecasesQuery: string) => {
+  // For "set up X" CTAs:
+  //   1. If the host wired `onOpenUsecase`, open the specific usecase drawer
+  //      right here on the dashboard (no redirect).
+  //   2. Otherwise, on Shuffle Security stay local and deep-link to the page.
+  //   3. Otherwise, fall back to /usecases pre-filtered by area + category.
+  const navigateSetup = (flowId: string, securityPath: string, usecasesQuery: string) => {
+    if (onOpenUsecase) {
+      onOpenUsecase(flowId);
+      return;
+    }
     if (isShuffleSecurityHost()) {
       rrNavigate(securityPath);
       return;
