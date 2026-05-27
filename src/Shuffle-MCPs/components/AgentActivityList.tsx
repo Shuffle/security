@@ -48,8 +48,10 @@ import {
   getAgentScheduleConfig,
   stopAgentSchedule,
   type AgentRun,
+  type AgentDecision,
   type AgentScheduleWorkflow,
 } from '@/Shuffle-MCPs/agentActivity';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
@@ -197,25 +199,56 @@ const getRunSubtitle = (run: AgentRun): string => {
 
 // ── Run row ──────────────────────────────────────────────────────────────────
 
+export type ToolStatus = 'success' | 'failure' | 'waiting' | 'unknown';
+
+export interface RunTool {
+  name: string;
+  status: ToolStatus;
+}
+
+const normalizeResultStatus = (s?: string): ToolStatus => {
+  const v = (s || '').toUpperCase();
+  if (v === 'SUCCESS' || v === 'FINISHED') return 'success';
+  if (v === 'FAILURE' || v === 'FAILED' || v === 'ABORTED') return 'failure';
+  if (v === 'WAITING' || v === 'SKIPPED') return 'waiting';
+  return 'unknown';
+};
+
 /** Extract distinct tools/apps used in this run from results + decisions. */
-const getRunTools = (run: AgentRun): string[] => {
-  const out = new Set<string>();
-  const add = (v?: string) => {
-    if (!v) return;
-    const s = String(v).trim();
-    if (!s) return;
-    // Skip the agent itself.
-    if (/^(ai\s*agent|shuffle\s*agent|shuffle_agent)$/i.test(s)) return;
-    out.add(s);
+const getRunTools = (run: AgentRun): RunTool[] => {
+  const map = new Map<string, ToolStatus>();
+  const skip = (s: string) => /^(ai\s*agent|shuffle\s*agent|shuffle_agent)$/i.test(s);
+  const rank: Record<ToolStatus, number> = { failure: 3, waiting: 2, success: 1, unknown: 0 };
+  const merge = (name?: string, status?: ToolStatus) => {
+    if (!name) return;
+    const s = String(name).trim();
+    if (!s || skip(s)) return;
+    const next = status || 'unknown';
+    const prev = map.get(s);
+    if (!prev || rank[next] > rank[prev]) map.set(s, next);
   };
   (run.results || []).forEach((r) => {
-    add(r?.action?.app_name);
-    if (!r?.action?.app_name) add(r?.action?.label);
+    const name = r?.action?.app_name || r?.action?.label;
+    merge(name, normalizeResultStatus(r?.status));
   });
   (run.decisions || []).forEach((d) => {
-    add(typeof d?.tool === 'string' ? d.tool : undefined);
+    if (typeof d?.tool === 'string') merge(d.tool, normalizeResultStatus(d?.status as string));
   });
-  return Array.from(out).slice(0, 6);
+  return Array.from(map.entries()).slice(0, 6).map(([name, status]) => ({ name, status }));
+};
+
+const TOOL_STATUS_RING: Record<ToolStatus, string> = {
+  success: 'hsl(var(--severity-low, 142 71% 45%))',
+  failure: 'hsl(var(--severity-critical, 0 72% 55%))',
+  waiting: 'hsl(var(--severity-medium, 38 92% 50%))',
+  unknown: 'hsl(var(--border))',
+};
+
+const TOOL_STATUS_LABEL: Record<ToolStatus, string> = {
+  success: 'ran successfully',
+  failure: 'failed',
+  waiting: 'needs input',
+  unknown: 'used',
 };
 
 interface RunRowProps {
@@ -356,11 +389,12 @@ const AgentRunRow = ({ run, onClick, sx, appIcons }: RunRowProps) => {
             }}
           >
             {tools.map((t) => {
-              const icon = appIcons?.[normToolKey(t)];
-              const label = t.replace(/_/g, ' ');
-              const slug = t.toLowerCase().replace(/\s+/g, '_');
+              const icon = appIcons?.[normToolKey(t.name)];
+              const label = t.name.replace(/_/g, ' ');
+              const slug = t.name.toLowerCase().replace(/\s+/g, '_');
+              const ring = TOOL_STATUS_RING[t.status];
               return (
-                <Tooltip key={t} title={label} arrow>
+                <Tooltip key={t.name} title={`${label} — ${TOOL_STATUS_LABEL[t.status]}`} arrow>
                   <Avatar
                     src={icon || undefined}
                     alt={label}
@@ -371,6 +405,9 @@ const AgentRunRow = ({ run, onClick, sx, appIcons }: RunRowProps) => {
                     }}
                     sx={{
                       cursor: 'pointer',
+                      borderColor: `${ring} !important`,
+                      borderWidth: t.status === 'unknown' ? '1px' : '2px',
+                      borderStyle: 'solid',
                       transition: 'transform 0.15s ease, border-color 0.15s ease',
                       '&:hover': {
                         transform: 'scale(1.08)',
@@ -460,6 +497,7 @@ const AgentActivityList = ({
   const [stopOpen, setStopOpen] = useState(false);
   const [stopLoading, setStopLoading] = useState(false);
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
+  const [enrichedRuns, setEnrichedRuns] = useState<Record<string, Partial<AgentRun>>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const selectedAgentWorkflow = agentWorkflows.find((w) => w.id === workflowFilter) || null;
@@ -571,12 +609,82 @@ const AgentActivityList = ({
     return () => { cancelled = true; };
   }, []);
 
+  // Enrich each visible run with full execution details (results, decisions,
+  // execution_argument). The search endpoint returns a lightweight summary, so
+  // we hydrate each row via /api/v1/streams/results to render real prompts,
+  // app icons, decision counts, and per-tool status.
+  useEffect(() => {
+    if (!runs.length) return;
+    let cancelled = false;
+    const targets = runs
+      .map((r) => r.execution_id)
+      .filter((id) => !!id && !enrichedRuns[id]);
+    if (!targets.length) return;
+
+    const CONCURRENCY = 4;
+    let i = 0;
+    const fetchOne = async (executionId: string) => {
+      try {
+        const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : getAuthHeader()),
+            ...(orgId ? { 'Org-Id': orgId } : {}),
+          },
+          body: JSON.stringify({ execution_id: executionId, authorization: executionId }),
+        });
+        if (!resp.ok || cancelled) return;
+        const json = await resp.json().catch(() => null);
+        if (!json || cancelled) return;
+        let decisions: AgentDecision[] | undefined;
+        let originalInput: string | undefined;
+        // Decisions / original_input live inside the AI Agent action result.
+        const agentResult = Array.isArray(json.results)
+          ? json.results.find((r: any) => r?.action?.app_name === 'AI Agent')
+          : null;
+        if (agentResult?.result) {
+          try {
+            const parsed = JSON.parse(agentResult.result);
+            if (Array.isArray(parsed?.decisions)) decisions = parsed.decisions;
+            if (typeof parsed?.original_input === 'string') originalInput = parsed.original_input;
+          } catch { /* ignore */ }
+        }
+        const patch: Partial<AgentRun> = {
+          results: json.results,
+          execution_argument: json.execution_argument,
+          result: agentResult?.result,
+          decisions,
+        };
+        if (originalInput && !patch.execution_argument) {
+          patch.execution_argument = JSON.stringify({ original_input: originalInput });
+        }
+        setEnrichedRuns((prev) => ({ ...prev, [executionId]: patch }));
+      } catch { /* non-critical */ }
+    };
+    const workers = Array.from({ length: Math.min(CONCURRENCY, targets.length) }, async () => {
+      while (!cancelled && i < targets.length) {
+        const id = targets[i++];
+        await fetchOne(id);
+      }
+    });
+    Promise.all(workers).catch(() => { /* ignore */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runs, apiKey, orgId]);
+
+  const mergedRuns = runs.map((r) => {
+    const patch = r.execution_id ? enrichedRuns[r.execution_id] : undefined;
+    return patch ? { ...r, ...patch } : r;
+  });
+
   const loadMore = useCallback(() => {
     if (cursor && !isLoading) fetchRuns(true, cursor);
   }, [cursor, isLoading, fetchRuns]);
 
   const filteredRuns = debouncedQuery
-    ? runs.filter((r) => {
+    ? mergedRuns.filter((r) => {
         const hay = [
           getRunTitle(r),
           getRunSubtitle(r),
@@ -589,7 +697,7 @@ const AgentActivityList = ({
           .toLowerCase();
         return hay.includes(debouncedQuery.toLowerCase());
       })
-    : runs;
+    : mergedRuns;
 
   return (
     <Box
