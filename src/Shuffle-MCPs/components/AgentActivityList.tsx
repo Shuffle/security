@@ -8,10 +8,12 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  Avatar,
+  AvatarGroup,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -31,6 +33,7 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  GitBranch,
   Globe,
   Loader2,
   Server,
@@ -48,6 +51,7 @@ import {
   type AgentScheduleWorkflow,
 } from '@/Shuffle-MCPs/agentActivity';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
+import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
 import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
@@ -135,20 +139,42 @@ const getTimeAgo = (dateStr: string): string => {
   }
 };
 
-const getRunTitle = (run: AgentRun): string => {
-  if (run.workflow?.name) return run.workflow.name;
+/** Extract the original user prompt from a run, when available. */
+const getRunPrompt = (run: AgentRun): string | null => {
+  if (run.result) {
+    try {
+      const p = JSON.parse(run.result);
+      if (typeof p?.original_input === 'string' && p.original_input.trim()) return p.original_input.trim();
+    } catch { /* ignore */ }
+  }
   if (run.execution_argument) {
     try {
-      const parsed = JSON.parse(run.execution_argument);
-      if (parsed.title) return parsed.title;
-      if (parsed.action) return parsed.action;
-      if (parsed.name) return parsed.name;
+      const p = JSON.parse(run.execution_argument);
+      if (typeof p?.input === 'string' && p.input.trim()) return p.input.trim();
+      if (typeof p?.prompt === 'string' && p.prompt.trim()) return p.prompt.trim();
+      if (typeof p?.original_input === 'string' && p.original_input.trim()) return p.original_input.trim();
     } catch {
       const clean = run.execution_argument.replace(/[{}"]/g, '').trim();
-      if (clean.length > 0 && clean.length < 80) return clean;
+      if (clean && clean.length < 240) return clean;
     }
   }
+  return null;
+};
+
+const getRunTitle = (run: AgentRun): string => {
+  const prompt = getRunPrompt(run);
+  if (prompt) {
+    const oneLine = prompt.replace(/\s+/g, ' ').trim();
+    return oneLine.length > 80 ? oneLine.slice(0, 80) + '…' : oneLine;
+  }
+  if (run.workflow?.name) return run.workflow.name;
   return `Execution ${run.execution_id?.slice(0, 8) || '—'}`;
+};
+
+/** Count the number of decisions the agent made during this run. */
+const getDecisionCount = (run: AgentRun): number => {
+  if (Array.isArray(run.decisions)) return run.decisions.length;
+  return 0;
 };
 
 const getRunSubtitle = (run: AgentRun): string => {
@@ -196,14 +222,19 @@ interface RunRowProps {
   run: AgentRun;
   onClick: () => void;
   sx?: SxProps<Theme>;
+  appIcons?: Record<string, string>;
 }
 
-const AgentRunRow = ({ run, onClick, sx }: RunRowProps) => {
+const normToolKey = (s: string) => s.toLowerCase().replace(/[\s_\-]+/g, '_');
+
+const AgentRunRow = ({ run, onClick, sx, appIcons }: RunRowProps) => {
+  const navigate = useNavigate();
   const statusKey = getEffectiveStatus(run);
   const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
   const iconColor = getRunIconColor(run);
   const duration = formatDuration(run);
   const tools = getRunTools(run);
+  const decisionCount = getDecisionCount(run);
 
   return (
     <Box
@@ -287,43 +318,72 @@ const AgentRunRow = ({ run, onClick, sx }: RunRowProps) => {
               </Typography>
             </>
           )}
+          {decisionCount > 0 && (
+            <>
+              <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', opacity: 0.4 }}>·</Typography>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--muted-foreground))', opacity: 0.7 }}>
+                <GitBranch size={11} />
+                <Typography sx={{ fontSize: '0.72rem', color: 'inherit' }}>
+                  {decisionCount} {decisionCount === 1 ? 'decision' : 'decisions'}
+                </Typography>
+              </Box>
+            </>
+          )}
         </Box>
       </Box>
 
       {tools.length > 0 && (
         <Box
+          onClick={(e) => e.stopPropagation()}
           sx={{
             display: { xs: 'none', sm: 'flex' },
             alignItems: 'center',
-            gap: 0.5,
-            flexWrap: 'wrap',
-            justifyContent: 'flex-end',
-            maxWidth: 220,
             flexShrink: 0,
+            ml: 1,
           }}
         >
-          {tools.map((t) => (
-            <Tooltip key={t} title={t} arrow>
-              <Chip
-                label={t}
-                size="small"
-                sx={{
-                  height: 20,
-                  fontSize: '0.68rem',
-                  maxWidth: 120,
-                  bgcolor: 'hsla(var(--muted) / 0.5)',
-                  color: 'hsl(var(--muted-foreground))',
-                  border: '1px solid hsl(var(--border))',
-                  '& .MuiChip-label': {
-                    px: 0.75,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  },
-                }}
-              />
-            </Tooltip>
-          ))}
+          <AvatarGroup
+            max={5}
+            sx={{
+              '& .MuiAvatar-root': {
+                width: 28,
+                height: 28,
+                fontSize: '0.7rem',
+                borderColor: 'hsl(var(--border))',
+                bgcolor: 'hsl(var(--muted))',
+                color: 'hsl(var(--muted-foreground))',
+              },
+            }}
+          >
+            {tools.map((t) => {
+              const icon = appIcons?.[normToolKey(t)];
+              const label = t.replace(/_/g, ' ');
+              const slug = t.toLowerCase().replace(/\s+/g, '_');
+              return (
+                <Tooltip key={t} title={label} arrow>
+                  <Avatar
+                    src={icon || undefined}
+                    alt={label}
+                    variant="rounded"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/apps/${encodeURIComponent(slug)}`);
+                    }}
+                    sx={{
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s ease, border-color 0.15s ease',
+                      '&:hover': {
+                        transform: 'scale(1.08)',
+                        borderColor: 'hsl(var(--primary)) !important',
+                      },
+                    }}
+                  >
+                    {label.charAt(0).toUpperCase()}
+                  </Avatar>
+                </Tooltip>
+              );
+            })}
+          </AvatarGroup>
         </Box>
       )}
     </Box>
@@ -399,6 +459,7 @@ const AgentActivityList = ({
   const [workflowFilter, setWorkflowFilter] = useState('');
   const [stopOpen, setStopOpen] = useState(false);
   const [stopLoading, setStopLoading] = useState(false);
+  const [appIcons, setAppIcons] = useState<Record<string, string>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const selectedAgentWorkflow = agentWorkflows.find((w) => w.id === workflowFilter) || null;
@@ -489,6 +550,26 @@ const AgentActivityList = ({
       .catch(() => { /* non-fatal — dropdown stays "All" only */ });
     return () => { cancelled = true; };
   }, [apiKey, apiBaseUrl, orgId]);
+
+  // Load app icons once so each run row can render the same Avatar-based
+  // app indicators used elsewhere in the agent UI.
+  useEffect(() => {
+    let cancelled = false;
+    fetchAppsViaApiConfig()
+      .then((apps) => {
+        if (cancelled || !Array.isArray(apps)) return;
+        const map: Record<string, string> = {};
+        for (const a of apps as Array<{ name?: string; large_image?: string; image_url?: string; image?: string }>) {
+          const name = a?.name;
+          const img = a?.large_image || a?.image_url || a?.image;
+          if (!name || !img) continue;
+          map[normToolKey(name)] = img;
+        }
+        setAppIcons(map);
+      })
+      .catch(() => { /* icons are non-critical — fall back to initials */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const loadMore = useCallback(() => {
     if (cursor && !isLoading) fetchRuns(true, cursor);
@@ -708,6 +789,7 @@ const AgentActivityList = ({
               run={run}
               onClick={() => onRunClick?.(run)}
               sx={rowSx}
+              appIcons={appIcons}
             />
           ))}
           {hasMore && (
