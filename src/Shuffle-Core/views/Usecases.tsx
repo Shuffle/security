@@ -1166,6 +1166,43 @@ function useApi() {
 import { toast as sonnerToast } from '../toast';
 import { fetchIocEntries, sumIocEntries } from '../utils/iocFeedTotals';
 import { usePageMeta } from '../usePageMeta';
+import { seedDefaultThreatFeeds } from '../hooks/useThreatFeeds';
+import { enableThreatIntelAutomation, disableThreatIntelAutomation } from '../hooks/useEnrichmentStatus';
+
+// Usecases that enable themselves end-to-end without needing the user to
+// connect a source-category app first. Clicking Enable on these runs a
+// dedicated, self-contained setup path (seeding defaults, generating
+// background workflows, etc.) instead of the generic /workflows/generate
+// flow that hard-requires a validated source tool.
+const SELF_CONTAINED_ENABLE: Record<
+  string,
+  { enable: () => Promise<boolean>; disable: () => Promise<boolean> }
+> = {
+  threat_intel_network_1: {
+    enable: async () => {
+      const a = await seedDefaultThreatFeeds();
+      const b = await enableThreatIntelAutomation();
+      return a && b;
+    },
+    disable: () => disableThreatIntelAutomation(),
+  },
+  threat_intel_edr_1: {
+    enable: async () => {
+      const a = await seedDefaultThreatFeeds();
+      const b = await enableThreatIntelAutomation();
+      return a && b;
+    },
+    disable: () => disableThreatIntelAutomation(),
+  },
+  threat_intel_cloud_1: {
+    enable: async () => {
+      const a = await seedDefaultThreatFeeds();
+      const b = await enableThreatIntelAutomation();
+      return a && b;
+    },
+    disable: () => disableThreatIntelAutomation(),
+  },
+};
 type ToastOpts = { duration?: number; description?: string; action?: { label: string; onClick: () => void } };
 const toast = {
   success: (msg: string, opts?: ToastOpts) => {
