@@ -280,6 +280,16 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
   const haystack = entries.map((e) => e.value).join('\n');
   const lower = haystack.toLowerCase();
 
+  // Error-like field paths: error, reason, message, msg, detail, failure,
+  // fault, exception, warning, status_text, status_message, status_reason.
+  // Keyword matches inside non-error fields (body content, success payloads,
+  // HTML pages, descriptions) are NOT reliable signals on their own — a
+  // response body legitimately containing the word "permission" or
+  // "forbidden" should not produce a "Permission denied" banner.
+  const ERROR_PATH_RE = /(^|[._\[])(error|errors|err|reason|message|messages|msg|detail|details|failure|fault|exception|exceptions|warning|warnings|status_text|status_message|status_reason|errorMessage|error_description)(\b|[._\[\]])/i;
+  const errorEntries = entries.filter((e) => ERROR_PATH_RE.test(e.path));
+  const errorHaystackLower = errorEntries.map((e) => e.value).join('\n').toLowerCase();
+
   const findEvidence = (
     test: (lowerVal: string, val: string) => boolean,
     max = 3
@@ -297,6 +307,20 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
     findEvidence((l) => re.test(l), max);
   const findEvidenceByKeywords = (needles: string[], max = 3): DiagnosisEvidence[] =>
     findEvidence((l) => needles.some((n) => l.includes(n.toLowerCase())), max);
+
+  /** Test a keyword regex with status-aware scoping: when there is no
+   *  labelled HTTP failure status, only match if the keyword appears inside
+   *  an error-like field path. Prevents body content from triggering
+   *  category banners. `statusForBranch` is the status that would activate
+   *  this branch (e.g. 403 for permission). */
+  const keywordHit = (re: RegExp, statusForBranch?: number): boolean => {
+    if (typeof status === 'number' && (statusForBranch === undefined || status === statusForBranch || status >= 400)) {
+      // We already have a labelled failure status — keyword-based confirmation
+      // can look at the full payload.
+      return re.test(lower);
+    }
+    return re.test(errorHaystackLower);
+  };
 
   let status: number | undefined;
   let statusEvidence: DiagnosisEvidence | null = null;
