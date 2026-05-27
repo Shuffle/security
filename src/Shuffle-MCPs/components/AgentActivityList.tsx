@@ -19,6 +19,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   InputAdornment,
   MenuItem,
   Select,
