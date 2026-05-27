@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { AlertCircle, RefreshCw, Zap, Workflow, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useWorkflows } from '../../hooks/useWorkflows';
 import { SegmentedControl } from '../ui/segmented-control';
 import { getApiUrl, getAuthHeader } from '../../api';
 import { NEON, TooltipContent, KpiTile, Panel, EmptyState, buildBuckets, buildBucketsBetween, bucketIndexOf, useChartRangeDrag, ReferenceArea } from './_shared';
@@ -168,6 +169,8 @@ export const AutomationDashboard = ({
   };
   const isModeControlled = modeProp !== undefined;
   const [modeInternal, setModeInternal] = useState<ModeKind>('workflows');
+  const { data: workflowList, isLoading: workflowsLoading } = useWorkflows();
+  const workflowCount = Array.isArray(workflowList) ? workflowList.length : 0;
   const mode = isModeControlled ? (modeProp as ModeKind) : modeInternal;
   const setMode = (v: ModeKind) => {
     if (onModeChange) onModeChange(v);
@@ -448,11 +451,11 @@ export const AutomationDashboard = ({
         <KpiTile
           icon={Activity}
           glow={NEON.cyan}
-          value={`${successRate}%`}
-          label="Success rate"
-          isLoading={loading}
+          value={workflowCount}
+          label="Workflows"
+          isLoading={loading || workflowsLoading}
           delay={0.15}
-          onClick={() => window.open('https://shuffler.io/workflows/debug', '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open('https://shuffler.io/workflows', '_blank', 'noopener,noreferrer')}
         />
       </Box>
 
