@@ -1501,12 +1501,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   useEffect(() => {
     if (!autoLoadApps) return;
-    if (apps || defaultApps) return;
     if (!hasApiKey) return;
     const signal = { cancelled: false };
     loadAuthenticatedApps(signal);
     return () => { signal.cancelled = true; };
-  }, [autoLoadApps, apps, defaultApps, hasApiKey, loadAuthenticatedApps]);
+  }, [autoLoadApps, hasApiKey, loadAuthenticatedApps]);
 
   // Re-fetch authenticated apps whenever auth state changes anywhere
   // (e.g. the user just saved/validated credentials via the auth drawer or
@@ -4098,6 +4097,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         <AppDetailDrawer
           open={!!authDrawerApp}
           onClose={() => setAuthDrawerApp(null)}
+          onRefresh={() => { loadAuthenticatedApps(); }}
           appName={authDrawerApp?.name || null}
           appId={authDrawerApp?.id || null}
           activeOrgId={orgId || null}
