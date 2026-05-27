@@ -39,7 +39,8 @@ import {
   CircleStop as StopCircleIcon,
   ThumbsDown as ThumbDownIcon,
   ThumbsUp as ThumbUpIcon,
-  AlertTriangle as WarningIcon
+  AlertTriangle as WarningIcon,
+  Search as SearchIcon,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -50,10 +51,14 @@ import {
   // ButtonGroup removed (replaced by chip tabs)
   Chip,
   CircularProgress,
+  ClickAwayListener,
   IconButton,
   InputBase,
   MenuItem,
+  MenuList,
+  Paper,
   Popover,
+  Popper,
   Select,
   TextField,
   Tooltip,
@@ -61,6 +66,10 @@ import {
 } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import Markdown from 'react-markdown';
+import {
+  DEFAULT_AGENT_PROMPT_PLACEHOLDER,
+  matchAgentPromptSuggestions,
+} from './agentPromptSuggestions';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 
@@ -1247,7 +1256,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   autoLoadApps = true,
   title = 'What do you want to do?',
   subtitle,
-  placeholder = 'Describe a task, e.g. "Get my emails for today and summarise them"',
+  placeholder = DEFAULT_AGENT_PROMPT_PLACEHOLDER,
   defaultInput = '',
   autoSubmit = false,
   hideHeroIcon = false,
@@ -1304,6 +1313,33 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const hasApiKey = !!apiKey || !!API_CONFIG.apiKey;
   const navigate = useNavigate();
   const [actionInput, setActionInput] = useState(defaultInput);
+  // ── Prompt autocomplete ─────────────────────────────────────────
+  // Google-style suggestion list under the starter input. Only shows when
+  // the user has typed something AND there are substring matches in the
+  // curated AGENT_PROMPT_SUGGESTIONS list.
+  const promptAnchorRef = React.useRef<HTMLDivElement | null>(null);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
+  const promptSuggestions = useMemo(
+    () => matchAgentPromptSuggestions(actionInput, 8),
+    [actionInput],
+  );
+  // Reset the highlighted item / dismiss flag whenever the input changes
+  // (typing should always reopen the list if matches exist).
+  useEffect(() => {
+    setSuggestionIndex(-1);
+    setSuggestionsDismissed(false);
+  }, [actionInput]);
+  const suggestionsOpen = promptSuggestions.length > 0 && !suggestionsDismissed;
+  const acceptSuggestion = useCallback((s: string) => {
+    setActionInput(s);
+    setSuggestionsDismissed(true);
+    setSuggestionIndex(-1);
+    // Refocus the textarea so the user can keep editing / press ⌘+Enter.
+    requestAnimationFrame(() => {
+      try { inputRef.current?.focus(); } catch { /* ignore */ }
+    });
+  }, []);
   const BUILTIN_DEFAULT_APPS: AgentUIApp[] = [
     { name: 'http' },
     { name: 'shuffle_tools' },
@@ -2553,6 +2589,36 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [submitOverride, actionInput, chosenApps, submitInput]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Autocomplete navigation takes priority over the normal submit shortcut
+    // — but only when the suggestion list is actually open with matches.
+    if (suggestionsOpen && promptSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSuggestionIndex((i) => (i + 1) % promptSuggestions.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSuggestionIndex((i) => (i <= 0 ? promptSuggestions.length - 1 : i - 1));
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSuggestionsDismissed(true);
+        setSuggestionIndex(-1);
+        return;
+      }
+      if (e.key === 'Tab' && suggestionIndex >= 0) {
+        e.preventDefault();
+        acceptSuggestion(promptSuggestions[suggestionIndex]);
+        return;
+      }
+      if (e.key === 'Enter' && suggestionIndex >= 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        acceptSuggestion(promptSuggestions[suggestionIndex]);
+        return;
+      }
+    }
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
       handlePrimarySubmit();
@@ -3259,7 +3325,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Typography>
             )}
 
-            <Box sx={{
+            <Box ref={promptAnchorRef} sx={{
               width: '100%',
               display: 'flex',
               flexDirection: 'column',
@@ -3478,6 +3544,62 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Tooltip>
               </Box>
             </Box>
+            <Popper
+              open={suggestionsOpen}
+              anchorEl={promptAnchorRef.current}
+              placement="bottom-start"
+              style={{ zIndex: 1300, width: promptAnchorRef.current?.offsetWidth }}
+              modifiers={[{ name: 'offset', options: { offset: [0, 6] } }]}
+            >
+              <ClickAwayListener onClickAway={() => setSuggestionsDismissed(true)}>
+                <Paper
+                  elevation={6}
+                  sx={{
+                    bgcolor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    maxHeight: 320,
+                    overflowY: 'auto',
+                  }}
+                >
+                  <MenuList dense disablePadding>
+                    {promptSuggestions.map((s, i) => {
+                      const q = actionInput.trim();
+                      const lower = s.toLowerCase();
+                      const idx = q ? lower.indexOf(q.toLowerCase()) : -1;
+                      const before = idx >= 0 ? s.slice(0, idx) : s;
+                      const match = idx >= 0 ? s.slice(idx, idx + q.length) : '';
+                      const after = idx >= 0 ? s.slice(idx + q.length) : '';
+                      return (
+                        <MenuItem
+                          key={s}
+                          selected={i === suggestionIndex}
+                          onMouseEnter={() => setSuggestionIndex(i)}
+                          onMouseDown={(e) => { e.preventDefault(); acceptSuggestion(s); }}
+                          sx={{
+                            fontSize: '0.88rem',
+                            color: 'hsl(var(--foreground))',
+                            py: 0.75,
+                            px: 2,
+                            '&.Mui-selected, &.Mui-selected:hover': {
+                              bgcolor: 'hsl(var(--muted) / 0.6)',
+                            },
+                          }}
+                        >
+                          <SearchIcon size={14} style={{ marginRight: 10, color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+                          <Box component="span" sx={{ whiteSpace: 'normal', lineHeight: 1.4 }}>
+                            {before}
+                            <Box component="span" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>{match}</Box>
+                            {after}
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
+                  </MenuList>
+                </Paper>
+              </ClickAwayListener>
+            </Popper>
 
             {!hideAppPicker && (
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
