@@ -417,6 +417,8 @@ const AGENT_NO_AUTH_APPS = new Set<string>([
   'shuffle_files',
 ]);
 
+const normalizeAgentAppName = (name: string) => name.toLowerCase().replace(/[\s-]+/g, '_');
+
 const extractAuthRequest = (decision: any): { appName: string; appId: string | null } | null => {
   if (!decision || typeof decision !== 'object') return null;
   const raw = decision?.run_details?.raw_response;
@@ -428,18 +430,22 @@ const extractAuthRequest = (decision: any): { appName: string; appId: string | n
   }
   const needsAuth = parsed && (parsed.action === 'app_authentication' || parsed.app_authentication === true);
   if (!needsAuth) return null;
-  let appName: string | undefined = parsed.app || parsed.app_name || parsed.appname;
+
+  let toolAppName: string | undefined;
   let appId: string | null = null;
-  if (!appName && typeof decision?.tool === 'string') {
+  if (typeof decision?.tool === 'string') {
     const t = decision.tool;
     if (t.startsWith('app:')) {
       const parts = t.split(':');
       appId = parts[1] || null;
-      appName = parts[2] || t;
+      toolAppName = parts[2] || undefined;
     } else {
-      appName = t;
+      toolAppName = t;
     }
   }
+
+  let appName: string | undefined = parsed.app || parsed.app_name || parsed.appname;
+  if (!appName) appName = toolAppName;
   if (!appName) {
     const f = (decision?.fields || []).find((x: any) => x?.key === 'app' || x?.key === 'app_name');
     if (f?.value) appName = f.value;
