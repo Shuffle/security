@@ -26,6 +26,7 @@ import EditWorkflowRaw from './components/EditWorkflow';
 import RecentWorkflowRaw from './components/RecentWorkflow';
 import AutomationDashboardRaw from './components/dashboard/AutomationDashboard';
 import DashboardOverviewRaw from './components/dashboard/DashboardOverview';
+import CombinedDashboardRaw from './components/dashboard/CombinedDashboard';
 
 /**
  * Wrap a Shuffle-Core surface in the theme provider. Every exported
