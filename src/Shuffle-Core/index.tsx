@@ -26,6 +26,7 @@ import EditWorkflowRaw from './components/EditWorkflow';
 import RecentWorkflowRaw from './components/RecentWorkflow';
 import AutomationDashboardRaw from './components/dashboard/AutomationDashboard';
 import DashboardOverviewRaw from './components/dashboard/DashboardOverview';
+import CombinedDashboardRaw from './components/dashboard/CombinedDashboard';
 
 /**
  * Wrap a Shuffle-Core surface in the theme provider. Every exported
@@ -93,7 +94,9 @@ export const EditWorkflow = withTheme(EditWorkflowRaw, 'EditWorkflow');
 export const RecentWorkflow = withTheme(RecentWorkflowRaw, 'RecentWorkflow');
 export const AutomationDashboard = withTheme(AutomationDashboardRaw, 'AutomationDashboard');
 export const DashboardOverview = withTheme(DashboardOverviewRaw, 'DashboardOverview');
+export const CombinedDashboard = withTheme(CombinedDashboardRaw, 'CombinedDashboard');
 export type { AutomationDashboardProps } from './components/dashboard/AutomationDashboard';
+export type { CombinedDashboardProps } from './components/dashboard/CombinedDashboard';
 export { AUTOMATION_RANGE_OPTIONS } from './components/dashboard/AutomationDashboard';
 export type { ShuffleCoreHostProps } from './types/host-props';
 
