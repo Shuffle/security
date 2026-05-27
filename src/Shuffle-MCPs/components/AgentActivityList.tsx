@@ -665,22 +665,64 @@ const AgentActivityList = ({
   useEffect(() => {
     if (!runs.length) return;
     let cancelled = false;
-    const hasNativeData = (r: AgentRun): boolean => {
-      // The row renderers (getRunPrompt / getRunSubtitle / getDecisionCount /
-      // getRunTools) read these fields directly off the top-level run. If any
-      // of them is missing we MUST sideload via /streams/results — otherwise
-      // the row keeps showing its default "Execution <id>" title.
-      const hasPrompt = (typeof r.execution_argument === 'string' && r.execution_argument.length > 0)
-        || (typeof (r as any).result === 'string' && (r as any).result.length > 0);
-      const hasDecisions = Array.isArray(r.decisions) && r.decisions.length > 0;
-      const hasResults = Array.isArray((r as any).results) && (r as any).results.length > 0;
-      return hasPrompt && hasDecisions && hasResults;
-    };
-    const targets = runs
-      .filter((r) => !!r.execution_id && !enrichedRuns[r.execution_id!] && !hasNativeData(r))
-      .map((r) => r.execution_id!) as string[];
-    if (!targets.length) return;
 
+    // Build the same patch shape we'd get from /api/v1/streams/results, but
+    // sourced from whatever the /workflows/search row already contains. The
+    // AI Agent's decisions / original_input / allowed_actions live inside
+    // results[i].result as a JSON string, so a row can be "complete" even
+    // when its top-level fields look empty.
+    const buildPatchFromRun = (
+      r: AgentRun,
+    ): (Partial<AgentRun> & { allowed_actions?: string[] }) | null => {
+      const results = Array.isArray((r as any).results) ? (r as any).results : null;
+      if (!results || results.length === 0) return null;
+      const agentResult = results.find((x: any) => x?.action?.app_name === 'AI Agent');
+      let decisions: AgentDecision[] | undefined = Array.isArray(r.decisions) ? r.decisions : undefined;
+      let originalInput: string | undefined;
+      let allowedActions: string[] | undefined;
+      if (agentResult?.result) {
+        try {
+          const parsed = JSON.parse(agentResult.result);
+          if (!decisions && Array.isArray(parsed?.decisions)) decisions = parsed.decisions;
+          if (typeof parsed?.original_input === 'string') originalInput = parsed.original_input;
+          if (Array.isArray(parsed?.allowed_actions)) allowedActions = parsed.allowed_actions;
+        } catch { /* ignore */ }
+      }
+      const hasPrompt = !!r.execution_argument || !!originalInput || !!agentResult?.result;
+      if (!decisions || !hasPrompt) return null;
+      const patch: Partial<AgentRun> & { allowed_actions?: string[] } = {
+        results,
+        execution_argument: r.execution_argument,
+        result: agentResult?.result ?? (r as any).result,
+        decisions,
+        allowed_actions: allowedActions,
+      };
+      if (originalInput && !patch.execution_argument) {
+        patch.execution_argument = JSON.stringify({ original_input: originalInput });
+      }
+      return patch;
+    };
+
+    // First pass: hydrate from native data without any network calls.
+    const nativePatches: Record<string, Partial<AgentRun> & { allowed_actions?: string[] }> = {};
+    const needsFetch: string[] = [];
+    for (const r of runs) {
+      const id = r.execution_id;
+      if (!id || enrichedRuns[id]) continue;
+      const native = buildPatchFromRun(r);
+      if (native) {
+        nativePatches[id] = native;
+      } else {
+        needsFetch.push(id);
+      }
+    }
+    if (Object.keys(nativePatches).length > 0) {
+      setEnrichedRuns((prev) => ({ ...prev, ...nativePatches }));
+    }
+    if (needsFetch.length === 0) return;
+
+    // Second pass: sideload via /streams/results only for the rows that did
+    // not already carry enough data.
     const CONCURRENCY = 4;
     let i = 0;
     const fetchOne = async (executionId: string) => {
@@ -701,8 +743,6 @@ const AgentActivityList = ({
         let decisions: AgentDecision[] | undefined;
         let originalInput: string | undefined;
         let allowedActions: string[] | undefined;
-        // Decisions / original_input / allowed_actions live inside the AI
-        // Agent action result.
         const agentResult = Array.isArray(json.results)
           ? json.results.find((r: any) => r?.action?.app_name === 'AI Agent')
           : null;
@@ -727,9 +767,9 @@ const AgentActivityList = ({
         setEnrichedRuns((prev) => ({ ...prev, [executionId]: patch }));
       } catch { /* non-critical */ }
     };
-    const workers = Array.from({ length: Math.min(CONCURRENCY, targets.length) }, async () => {
-      while (!cancelled && i < targets.length) {
-        const id = targets[i++];
+    const workers = Array.from({ length: Math.min(CONCURRENCY, needsFetch.length) }, async () => {
+      while (!cancelled && i < needsFetch.length) {
+        const id = needsFetch[i++];
         await fetchOne(id);
       }
     });
