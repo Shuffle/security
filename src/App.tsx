@@ -276,8 +276,9 @@ const ThemedApp = () => {
               <Route path="/monitors/response" element={<SupportOnly><ResponseActionsPage /></SupportOnly>} />
               <Route path="/incidents/response-actions" element={<Navigate to="/monitors/response" replace />} />
               <Route path="/agent" element={<AgentActivityPage />} />
-              <Route path="/agents" element={<AgentsView globalUrl={API_CONFIG.baseUrl} theme={resolvedTheme} permissionsSlot={<PermissionsPanel compact />} />} />
-              <Route path="/agents/:executionId" element={<AgentsView globalUrl={API_CONFIG.baseUrl} theme={resolvedTheme} permissionsSlot={<PermissionsPanel compact />} />} />
+              <Route path="/agents" element={<AgentsRoute theme={resolvedTheme} />} />
+              <Route path="/agents/:executionId" element={<AgentsRoute theme={resolvedTheme} />} />
+
 
               <Route path="/infrastructure" element={<InfrastructurePage />} />
               <Route path="/infrastructure/flows/:flowId" element={<DataFlowDetailPage />} />
