@@ -1,25 +1,29 @@
 /**
- * CombinedDashboard — single surface that stacks the security
- * DashboardOverview on top and the AutomationDashboard below.
+ * CombinedDashboard — single surface that mirrors the host `/dashboard`
+ * page's tabbed layout: a "Security Operations" view (DashboardOverview)
+ * and an "Automation" view (AutomationDashboard), switched via a shared
+ * SegmentedControl header that also exposes the date range, mode
+ * (workflows/apps), granularity (daily/monthly), and a refresh button.
  *
  * Self-sufficient: when mounted with just the standard Shuffle-Core host
  * props (`serverside`, `isLoaded`, `isLoggedIn`, `userdata`, `globalUrl`,
- * `theme`), this component fetches everything DashboardOverview needs:
- *   - Incidents     -> `useDatastore({ category: INCIDENTS })`
+ * `theme`) this component fetches everything the inner dashboards need:
+ *   - Incidents       -> `useDatastore({ category: INCIDENTS })`
  *   - Vulnerabilities -> raw list_cache fetch + inline severity tallying
  *   - Sensors / Hosts -> `/api/v1/getenvironments`
  *
- * Mirrors the logic used by the host `/dashboard` page (single-org branch
- * only; multi-tenant view-as-child is host-specific and intentionally not
- * replicated here). Any data prop the caller passes explicitly wins over
- * the internally-fetched value, so this stays a drop-in.
+ * Any data prop the caller passes explicitly wins over the internally
+ * fetched value, so this stays a drop-in replacement for the single-org
+ * branch of the host `/dashboard` page.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Box } from '@mui/material';
+import { Box, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip as MuiTooltip } from '@mui/material';
+import { RefreshCw as RefreshIcon, X as CloseIcon } from 'lucide-react';
 import { useDatastore } from '../../hooks/useDatastore';
 import { DATASTORE_CATEGORIES, getApiUrl, getAuthHeader } from '@shuffleio/shuffle-mcps';
 import DashboardOverview, { type OverviewProps } from './DashboardOverview';
-import AutomationDashboard, { type AutomationDashboardProps } from './AutomationDashboard';
+import AutomationDashboard, { type AutomationDashboardProps, AUTOMATION_RANGE_OPTIONS } from './AutomationDashboard';
+import { SegmentedControl } from '../ui/segmented-control';
 import type { ShuffleCoreHostProps } from '../../types/host-props';
 
 type VulnCounts = { critical: number; high: number; medium: number; low: number; info: number };
@@ -29,10 +33,8 @@ export interface CombinedDashboardProps
   extends ShuffleCoreHostProps,
     Partial<Omit<OverviewProps, keyof ShuffleCoreHostProps | 'days'>>,
     Partial<Omit<AutomationDashboardProps, keyof ShuffleCoreHostProps | 'gran' | 'customRange' | 'onRangeSelect' | 'days'>> {
-  /** Gap (in MUI spacing units) between the two dashboards. Defaults to 4. */
-  gap?: number;
-  /** Time range — number (overview days) or string (automation days). */
-  days?: number | string;
+  /** Default tab on first mount. Persisted to localStorage thereafter. */
+  defaultTab?: 'security' | 'automation';
 }
 
 // ── helpers (mirrors DashboardPage.overviewIncidents transform) ─────────────
@@ -61,8 +63,14 @@ const normalizeTs = (t: unknown): number => {
   return n / 1e6;
 };
 
+const fmtShort = (ms: number) => {
+  const d = new Date(ms);
+  const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  return `${M} ${d.getDate()}`;
+};
+
 const CombinedDashboard = ({
-  gap = 4,
+  defaultTab = 'security',
   // Overview data overrides (when supplied, used as-is)
   incidents: incidentsProp,
   incidentsLoading: incidentsLoadingProp,
@@ -71,23 +79,30 @@ const CombinedDashboard = ({
   monitorHostCount: monitorHostCountProp,
   runningSensorCount: runningSensorCountProp,
   monitorsLoading: monitorsLoadingProp,
-  days,
-  gran,
-  customRange,
-  onRangeSelect,
-  // Automation-specific
+  // Automation-specific (callers may pre-control)
   orgId,
   displayName,
   headerLeft,
-  onDaysChange,
-  onGranChange,
-  mode,
-  onModeChange,
-  refreshKey,
-  hideRefresh,
+  refreshKey: refreshKeyProp,
   // Host props — forwarded to both inner dashboards
   ...host
 }: CombinedDashboardProps) => {
+  // ── Shared filter state (mirrors DashboardPage) ──────────────────────────
+  const [tab, setTab] = useState<'security' | 'automation'>(() => {
+    try {
+      const stored = localStorage.getItem('shuffle_dashboard_tab');
+      if (stored === 'security' || stored === 'automation') return stored;
+    } catch { /* noop */ }
+    return defaultTab;
+  });
+  useEffect(() => { try { localStorage.setItem('shuffle_dashboard_tab', tab); } catch { /* noop */ } }, [tab]);
+
+  const [days, setDays] = useState<string>('30');
+  const [gran, setGran] = useState<'daily' | 'monthly'>('daily');
+  const [mode, setMode] = useState<'workflows' | 'apps'>('workflows');
+  const [customRange, setCustomRange] = useState<{ fromMs: number; toMs: number } | null>(null);
+  const [internalRefreshKey, setInternalRefreshKey] = useState(0);
+
   // ── Incidents ─────────────────────────────────────────────────────────────
   const { items: incidentItems, isLoading: incidentsFetching, fetchItems, hasFetched } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
@@ -149,7 +164,7 @@ const CombinedDashboard = ({
       }
     })();
     return () => { cancelled = true; };
-  }, [vulnSeverityCountsProp]);
+  }, [vulnSeverityCountsProp, internalRefreshKey]);
 
   // ── Sensors / Host monitors ──────────────────────────────────────────────
   const [fetchedSensorCount, setFetchedSensorCount] = useState<number | null>(null);
@@ -187,7 +202,7 @@ const CombinedDashboard = ({
       }
     })();
     return () => { cancelled = true; };
-  }, [monitorHostCountProp, runningSensorCountProp]);
+  }, [monitorHostCountProp, runningSensorCountProp, internalRefreshKey]);
 
   // ── Resolve effective values (caller overrides win) ──────────────────────
   const eIncidents = incidentsProp ?? fetchedIncidents;
@@ -198,41 +213,129 @@ const CombinedDashboard = ({
   const eSensorCount = runningSensorCountProp !== undefined ? runningSensorCountProp : fetchedSensorCount;
   const eMonitorsLoading = monitorsLoadingProp ?? monitorsFetching;
 
-  const overviewDays = typeof days === 'number' ? days : (typeof days === 'string' ? parseInt(days, 10) || 30 : undefined);
-  const automationDays = typeof days === 'string' ? days : (typeof days === 'number' ? String(days) : undefined);
+  const handleRefresh = () => {
+    setInternalRefreshKey(k => k + 1);
+    try { fetchItems(); } catch { /* noop */ }
+  };
+
+  const customRangeLabel = customRange
+    ? `${fmtShort(customRange.fromMs)} → ${fmtShort(customRange.toMs)}`
+    : null;
+
+  const sharedHeader = (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', minHeight: 36 }}>
+        <SegmentedControl
+          ariaLabel="Dashboard view"
+          value={tab}
+          onChange={(v) => setTab(v as 'security' | 'automation')}
+          options={[
+            { value: 'security', label: 'Security Operations' },
+            { value: 'automation', label: 'Automation' },
+          ]}
+        />
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <FormControl size="small" sx={{ minWidth: customRangeLabel ? 220 : 130 }}>
+          <InputLabel>Last</InputLabel>
+          <Select
+            label="Last"
+            value={customRange ? '__custom__' : days}
+            onChange={(e) => {
+              const v = String(e.target.value);
+              if (v === '__custom__') return;
+              setCustomRange(null);
+              setDays(v);
+            }}
+            renderValue={() => customRangeLabel ?? (AUTOMATION_RANGE_OPTIONS.find(o => o.value === days)?.label ?? `${days} days`)}
+            endAdornment={customRange ? (
+              <IconButton
+                size="small"
+                onMouseDown={(e) => { e.stopPropagation(); }}
+                onClick={(e) => { e.stopPropagation(); setCustomRange(null); }}
+                sx={{ mr: 3, p: 0.25, color: 'hsl(var(--muted-foreground))' }}
+                aria-label="Clear custom range"
+              >
+                <CloseIcon size={14} />
+              </IconButton>
+            ) : undefined}
+          >
+            {customRangeLabel && (
+              <MenuItem value="__custom__" disabled>{customRangeLabel} (custom)</MenuItem>
+            )}
+            {AUTOMATION_RANGE_OPTIONS.map(o => (
+              <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Box sx={{ alignSelf: 'flex-end', opacity: tab === 'security' ? 0.5 : 1, pointerEvents: tab === 'security' ? 'none' : 'auto' }}>
+          <SegmentedControl
+            ariaLabel="Mode"
+            value={mode}
+            onChange={(v) => setMode(v as 'workflows' | 'apps')}
+            options={[
+              { value: 'workflows', label: 'Workflows', disabled: tab === 'security' },
+              { value: 'apps', label: 'Apps', disabled: tab === 'security' },
+            ]}
+          />
+        </Box>
+        <Box sx={{ alignSelf: 'flex-end' }}>
+          <SegmentedControl
+            ariaLabel="Granularity"
+            value={gran}
+            onChange={(v) => setGran(v as 'daily' | 'monthly')}
+            options={[{ value: 'daily', label: 'Daily' }, { value: 'monthly', label: 'Monthly' }]}
+          />
+        </Box>
+        <MuiTooltip title="Refresh">
+          <IconButton
+            size="small"
+            onClick={handleRefresh}
+            sx={{ color: 'hsl(var(--muted-foreground))', alignSelf: 'flex-end', width: 36, height: 36, borderRadius: '8px' }}
+          >
+            <RefreshIcon size={16} />
+          </IconButton>
+        </MuiTooltip>
+      </Box>
+    </Box>
+  );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap }}>
-      <DashboardOverview
-        {...host}
-        incidents={eIncidents}
-        incidentsLoading={eIncidentsLoading}
-        vulnSeverityCounts={eVulns}
-        vulnLoading={eVulnLoading}
-        monitorHostCount={eHostCount}
-        runningSensorCount={eSensorCount}
-        monitorsLoading={eMonitorsLoading}
-        days={overviewDays}
-        gran={gran}
-        customRange={customRange}
-        onRangeSelect={onRangeSelect}
-      />
-      <AutomationDashboard
-        {...host}
-        orgId={orgId}
-        displayName={displayName}
-        headerLeft={headerLeft}
-        days={automationDays}
-        onDaysChange={onDaysChange}
-        gran={gran}
-        onGranChange={onGranChange}
-        mode={mode}
-        onModeChange={onModeChange}
-        refreshKey={refreshKey}
-        hideRefresh={hideRefresh}
-        customRange={customRange}
-        onRangeSelect={onRangeSelect}
-      />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {sharedHeader}
+      {tab === 'automation' ? (
+        <AutomationDashboard
+          {...host}
+          orgId={orgId}
+          displayName={displayName}
+          headerLeft={headerLeft}
+          days={days}
+          onDaysChange={setDays}
+          gran={gran}
+          onGranChange={setGran}
+          mode={mode}
+          onModeChange={setMode}
+          refreshKey={(refreshKeyProp ?? 0) + internalRefreshKey}
+          hideRefresh
+          customRange={customRange}
+          onRangeSelect={(fromMs, toMs) => setCustomRange({ fromMs, toMs })}
+        />
+      ) : (
+        <DashboardOverview
+          {...host}
+          incidents={eIncidents}
+          incidentsLoading={eIncidentsLoading}
+          vulnSeverityCounts={eVulns}
+          vulnLoading={eVulnLoading}
+          monitorHostCount={eHostCount}
+          runningSensorCount={eSensorCount}
+          monitorsLoading={eMonitorsLoading}
+          days={parseInt(days, 10) || 30}
+          gran={gran}
+          customRange={customRange}
+          onRangeSelect={(fromMs, toMs) => setCustomRange({ fromMs, toMs })}
+        />
+      )}
     </Box>
   );
 };
