@@ -228,9 +228,60 @@ const CombinedDashboard = ({
     try { fetchItems(); } catch { /* noop */ }
   };
 
+  // ── PDF export ────────────────────────────────────────────────────────────
+  const dashboardRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+
   const customRangeLabel = customRange
     ? `${fmtShort(customRange.fromMs)} → ${fmtShort(customRange.toMs)}`
     : null;
+
+  const handleExportPdf = async () => {
+    if (exporting) return;
+    setExporting(true);
+    const originalTab = tab;
+    try {
+      // Capture whichever tab is mounted first, then flip, wait, capture again.
+      const captureCurrent = async (): Promise<string | null> => {
+        if (!dashboardRef.current) return null;
+        try { return await captureNode(dashboardRef.current); } catch { return null; }
+      };
+
+      let securityImage: string | null = null;
+      let automationImage: string | null = null;
+
+      setTab('security');
+      await new Promise((r) => setTimeout(r, 400));
+      securityImage = await captureCurrent();
+
+      setTab('automation');
+      await new Promise((r) => setTimeout(r, 600));
+      automationImage = await captureCurrent();
+
+      setTab(originalTab);
+
+      // Stats summary derived from the same data the dashboards render.
+      const byStatus: Record<string, number> = {};
+      const bySeverity: Record<string, number> = {};
+      eIncidents.forEach((i) => {
+        byStatus[i.status] = (byStatus[i.status] || 0) + 1;
+        bySeverity[i.severity] = (bySeverity[i.severity] || 0) + 1;
+      });
+
+      const stats: DashboardStatsSummary = {
+        orgName: displayName || userdataOrgName(host) || 'Unknown org',
+        rangeLabel: customRangeLabel ?? `Last ${days} days`,
+        incidents: { total: eIncidents.length, byStatus, bySeverity },
+        vulnerabilities: eVulns,
+        monitors: { hostCount: eHostCount, runningSensors: eSensorCount },
+      };
+
+      await buildDashboardPdf({ securityImage, automationImage, stats });
+    } finally {
+      setExporting(false);
+    }
+  };
+
 
   const sharedHeader = (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
