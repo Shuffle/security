@@ -322,6 +322,26 @@ const LocalLLMConfig = ({ compact, hasOpenAIAuth }: LocalLLMConfigProps) => {
             return (
               <li {...props} key={option}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                  <Box
+                    sx={{
+                      width: 18,
+                      height: 18,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {preset?.logoUrl && (
+                      <Box
+                        component="img"
+                        src={preset.logoUrl}
+                        alt=""
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        sx={{ width: 18, height: 18, objectFit: 'contain' }}
+                      />
+                    )}
+                  </Box>
                   <Typography sx={{ fontSize: '0.85rem' }}>{option}</Typography>
                   {preset?.url && (
                     <Typography
@@ -335,22 +355,37 @@ const LocalLLMConfig = ({ compact, hasOpenAIAuth }: LocalLLMConfigProps) => {
               </li>
             );
           }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              placeholder="Search a provider…"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'hsl(var(--card))',
-                  color: 'hsl(var(--foreground))',
-                  '& fieldset': { borderColor: 'hsl(var(--border))' },
-                  '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.4)' },
-                  '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
-                },
-                '& .MuiSvgIcon-root': { color: 'hsl(var(--muted-foreground))' },
-              }}
-            />
-          )}
+          renderInput={(params) => {
+            const selectedLogo = ENDPOINT_PRESETS.find((p) => p.label === effectivePreset)?.logoUrl;
+            return (
+              <TextField
+                {...params}
+                placeholder="Search a provider…"
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: selectedLogo ? (
+                    <Box
+                      component="img"
+                      src={selectedLogo}
+                      alt=""
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      sx={{ width: 18, height: 18, objectFit: 'contain', ml: 0.5, mr: 0.5, flexShrink: 0 }}
+                    />
+                  ) : params.InputProps.startAdornment,
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'hsl(var(--card))',
+                    color: 'hsl(var(--foreground))',
+                    '& fieldset': { borderColor: 'hsl(var(--border))' },
+                    '&:hover fieldset': { borderColor: 'hsl(var(--muted-foreground) / 0.4)' },
+                    '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                  },
+                  '& .MuiSvgIcon-root': { color: 'hsl(var(--muted-foreground))' },
+                }}
+              />
+            );
+          }}
           componentsProps={{
             paper: {
               sx: {
