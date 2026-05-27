@@ -417,6 +417,8 @@ const AGENT_NO_AUTH_APPS = new Set<string>([
   'shuffle_files',
 ]);
 
+const normalizeAgentAppName = (name: string) => name.toLowerCase().replace(/[\s-]+/g, '_');
+
 const extractAuthRequest = (decision: any): { appName: string; appId: string | null } | null => {
   if (!decision || typeof decision !== 'object') return null;
   const raw = decision?.run_details?.raw_response;
@@ -428,18 +430,22 @@ const extractAuthRequest = (decision: any): { appName: string; appId: string | n
   }
   const needsAuth = parsed && (parsed.action === 'app_authentication' || parsed.app_authentication === true);
   if (!needsAuth) return null;
-  let appName: string | undefined = parsed.app || parsed.app_name || parsed.appname;
+
+  let toolAppName: string | undefined;
   let appId: string | null = null;
-  if (!appName && typeof decision?.tool === 'string') {
+  if (typeof decision?.tool === 'string') {
     const t = decision.tool;
     if (t.startsWith('app:')) {
       const parts = t.split(':');
       appId = parts[1] || null;
-      appName = parts[2] || t;
+      toolAppName = parts[2] || undefined;
     } else {
-      appName = t;
+      toolAppName = t;
     }
   }
+
+  let appName: string | undefined = parsed.app || parsed.app_name || parsed.appname;
+  if (!appName) appName = toolAppName;
   if (!appName) {
     const f = (decision?.fields || []).find((x: any) => x?.key === 'app' || x?.key === 'app_name');
     if (f?.value) appName = f.value;
@@ -519,7 +525,9 @@ interface TimelineRowProps {
   getFormUrl?: (decisionId: string) => string | null;
   runFinished?: boolean;
   onAuthenticateApp?: (appName: string, appId?: string | null) => void;
-  isAppAuthenticated?: (appName: string) => boolean;
+  onRefreshAuthenticatedApps?: () => void;
+  isAppAuthenticated?: (appName: string, appId?: string | null) => boolean;
+  authAppsLoading?: boolean;
   /** When true, briefly draw attention to this row + its output. Used after
    *  a "jump to evidence" click from the diagnosis banner. */
   highlight?: boolean;
@@ -529,7 +537,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   item, index, open, onToggle, appsById, totalDuration, originalStartTime,
   maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
   onRerunAgent, onRerunDecision, agentRequestLoading, getFormUrl, runFinished,
-  onAuthenticateApp, isAppAuthenticated, highlight = false,
+  onAuthenticateApp, onRefreshAuthenticatedApps, isAppAuthenticated, authAppsLoading = false, highlight = false,
 }) => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const validate = validateJson(item.details);
@@ -925,9 +933,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       {(() => {
         const req = extractAuthRequest(details);
         if (!req) return null;
-        if (isAppAuthenticated?.(req.appName)) return null;
+        if (authAppsLoading) return null;
+        if (isAppAuthenticated?.(req.appName, req.appId)) return null;
         const pretty = req.appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-        const slug = req.appName.toLowerCase().replace(/[\s-]+/g, '_');
+        const slug = normalizeAgentAppName(req.appName);
         const appId = req.appId || appsById[req.appName]?.id || appsById[slug]?.id || null;
         const icon = appsById[req.appName]?.icon || appsById[slug]?.icon || (appId ? appsById[appId]?.icon : '') || '';
         return (
@@ -972,6 +981,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                 disabled={!onAuthenticateApp}
                 onClick={(e) => {
                   e.stopPropagation();
+                  onRefreshAuthenticatedApps?.();
                   onAuthenticateApp?.(req.appName, appId);
                 }}
                 sx={{
@@ -1106,6 +1116,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Apps the caller has authenticated — used to resolve icons by name and as
   // suggestions in the picker. NOT auto-selected as `chosenApps`.
   const [availableApps, setAvailableApps] = useState<AgentUIApp[]>([]);
+  const [authAppsLoading, setAuthAppsLoading] = useState(autoLoadApps && hasApiKey);
   // Apps actually allowed for the current execution, derived from the agent's
   // `allowed_actions` field (format: "app:<id>:<name>"). Falls back to
   // `chosenApps` when the field is missing (legacy runs).
@@ -1282,36 +1293,39 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Predicate used by the auth banners — an app is considered authenticated
   // when it appears in the caller's `availableApps` list (which is populated
   // from /api/v1/apps/authentication and only includes valid entries).
-  const isAppAuthenticated = useCallback((appName: string) => {
-    if (!appName) return false;
-    const norm = (s: string) => s.toLowerCase().replace(/[\s-]+/g, '_');
-    const target = norm(appName);
+  const isAppAuthenticated = useCallback((appName: string, appId?: string | null) => {
+    if (!appName && !appId) return false;
+    const target = normalizeAgentAppName(appName);
     // Shuffle's own built-in apps don't require auth inside the Agent area
     // (they piggyback on the user's existing Shuffle session). They DO need
     // auth elsewhere — this short-circuit is scoped to AgentUI only.
     if (AGENT_NO_AUTH_APPS.has(target)) return true;
-    return availableApps.some((a) => norm(a.name || '') === target);
+    return availableApps.some((a) => {
+      if (appId && a.id && String(a.id) === String(appId)) return true;
+      return !!appName && normalizeAgentAppName(a.name || '') === target;
+    });
   }, [availableApps]);
 
   // Unique apps (across all decisions) that returned `app_authentication`
   // and are not yet authenticated. Powers the Simple-view banners.
   const pendingAuthApps = useMemo(() => {
+    if (authAppsLoading) return [];
     const decisions: any[] = (agentData?.decisions as any[]) || [];
     const seen = new Set<string>();
     const out: { appName: string; appId: string | null; icon: string }[] = [];
     for (const d of decisions) {
       const req = extractAuthRequest(d);
       if (!req) continue;
-      const slug = req.appName.toLowerCase().replace(/[\s-]+/g, '_');
+      const slug = normalizeAgentAppName(req.appName);
       if (seen.has(slug)) continue;
-      if (isAppAuthenticated(req.appName)) continue;
+      if (isAppAuthenticated(req.appName, req.appId)) continue;
       seen.add(slug);
       const appId = req.appId || appsById[req.appName]?.id || appsById[slug]?.id || null;
       const icon = appsById[req.appName]?.icon || appsById[slug]?.icon || (appId ? appsById[appId]?.icon : '') || '';
       out.push({ appName: req.appName, appId, icon });
     }
     return out;
-  }, [agentData, appsById, isAppAuthenticated]);
+  }, [agentData, appsById, authAppsLoading, isAppAuthenticated]);
 
   // Sync controlled `apps` prop into local state.
   useEffect(() => {
@@ -1444,16 +1458,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return () => { cancelled = true; };
   }, [chosenApps, availableApps, resolveUrl, resolveHeaders]);
 
-  // Auto-load the caller's authenticated apps when nothing was passed in
-  // and an API token is configured. Skipped when controlled or `defaultApps`
-  // were provided explicitly.
+  // Auto-load the caller's authenticated apps whenever an API token is
+  // configured. This stays independent from selected/default apps because
+  // the auth banners need the live credential list for revalidation.
   const loadAuthenticatedApps = useCallback(async (signal?: { cancelled: boolean }) => {
+    setAuthAppsLoading(true);
     try {
       const resp = await fetch(resolveUrl('/api/v1/apps/authentication'), {
         credentials: 'include',
         headers: { ...resolveHeaders() },
       });
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        if (!signal?.cancelled) setAvailableApps([]);
+        return;
+      }
       const result = await resp.json();
       const list = Array.isArray(result) ? result : (result?.data || []);
       const seen = new Set<string>();
@@ -1462,9 +1480,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
         const app = entry?.app || entry;
         const name: string | undefined = app?.name;
         if (!name) continue;
-        const valid = entry?.active || entry?.validation?.valid || entry?.hasValidAuth;
+        const valid = entry?.active || entry?.validation?.valid || entry?.hasValidAuth || app?.is_valid || app?.tested;
         if (valid === false) continue;
-        const key = name.toLowerCase();
+        const key = normalizeAgentAppName(name);
         if (seen.has(key)) continue;
         seen.add(key);
         loaded.push({
@@ -1479,17 +1497,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setAvailableApps(loaded);
     } catch {
       // silent — caller can still pick apps manually
+    } finally {
+      if (!signal?.cancelled) setAuthAppsLoading(false);
     }
   }, [resolveUrl, resolveHeaders]);
 
   useEffect(() => {
     if (!autoLoadApps) return;
-    if (apps || defaultApps) return;
     if (!hasApiKey) return;
     const signal = { cancelled: false };
     loadAuthenticatedApps(signal);
     return () => { signal.cancelled = true; };
-  }, [autoLoadApps, apps, defaultApps, hasApiKey, loadAuthenticatedApps]);
+  }, [autoLoadApps, hasApiKey, loadAuthenticatedApps]);
 
   // Re-fetch authenticated apps whenever auth state changes anywhere
   // (e.g. the user just saved/validated credentials via the auth drawer or
@@ -3336,9 +3355,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Box>
                 </Tooltip>
                 {chosenApps.map((app, i) => {
-                  const slug = (app.name || '').toLowerCase().replace(/[\s-]+/g, '_');
+                  const slug = normalizeAgentAppName(app.name || '');
                   const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
-                  const needsAuth = !NO_AUTH.has(slug) && !isAppAuthenticated(app.name || '');
+                  const needsAuth = !authAppsLoading && !NO_AUTH.has(slug) && !isAppAuthenticated(app.name || '', app.id || null);
                   return (
                   <Tooltip
                     key={`${app.name}-${i}`}
@@ -3394,9 +3413,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 without these — Shuffle will request auth mid-run if needed. */}
             {!hideAppPicker && (() => {
               const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
+              if (authAppsLoading) return null;
               const unauthed = chosenApps.filter((a) => {
-                const slug = (a.name || '').toLowerCase().replace(/[\s-]+/g, '_');
-                return !NO_AUTH.has(slug) && !isAppAuthenticated(a.name || '');
+                const slug = normalizeAgentAppName(a.name || '');
+                return !NO_AUTH.has(slug) && !isAppAuthenticated(a.name || '', a.id || null);
               });
               if (unauthed.length === 0) return null;
               return (
@@ -3927,7 +3947,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       getFormUrl={getFormUrl}
                       runFinished={detailedRunFinished}
                       onAuthenticateApp={(name, id) => setAuthDrawerApp({ name, id })}
+                      onRefreshAuthenticatedApps={() => { loadAuthenticatedApps(); }}
                       isAppAuthenticated={isAppAuthenticated}
+                      authAppsLoading={authAppsLoading}
                       highlight={highlightedIndex === i}
                     />
                   ))}
@@ -4079,6 +4101,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         <AppDetailDrawer
           open={!!authDrawerApp}
           onClose={() => setAuthDrawerApp(null)}
+          onRefresh={() => { loadAuthenticatedApps(); }}
           appName={authDrawerApp?.name || null}
           appId={authDrawerApp?.id || null}
           activeOrgId={orgId || null}
