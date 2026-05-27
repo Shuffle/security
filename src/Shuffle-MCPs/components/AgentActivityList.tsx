@@ -387,11 +387,12 @@ const AgentRunRow = ({ run, onClick, sx, appIcons }: RunRowProps) => {
             }}
           >
             {tools.map((t) => {
-              const icon = appIcons?.[normToolKey(t)];
-              const label = t.replace(/_/g, ' ');
-              const slug = t.toLowerCase().replace(/\s+/g, '_');
+              const icon = appIcons?.[normToolKey(t.name)];
+              const label = t.name.replace(/_/g, ' ');
+              const slug = t.name.toLowerCase().replace(/\s+/g, '_');
+              const ring = TOOL_STATUS_RING[t.status];
               return (
-                <Tooltip key={t} title={label} arrow>
+                <Tooltip key={t.name} title={`${label} — ${TOOL_STATUS_LABEL[t.status]}`} arrow>
                   <Avatar
                     src={icon || undefined}
                     alt={label}
@@ -402,6 +403,9 @@ const AgentRunRow = ({ run, onClick, sx, appIcons }: RunRowProps) => {
                     }}
                     sx={{
                       cursor: 'pointer',
+                      borderColor: `${ring} !important`,
+                      borderWidth: t.status === 'unknown' ? '1px' : '2px',
+                      borderStyle: 'solid',
                       transition: 'transform 0.15s ease, border-color 0.15s ease',
                       '&:hover': {
                         transform: 'scale(1.08)',
