@@ -3944,7 +3944,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       getFormUrl={getFormUrl}
                       runFinished={detailedRunFinished}
                       onAuthenticateApp={(name, id) => setAuthDrawerApp({ name, id })}
+                      onRefreshAuthenticatedApps={() => { loadAuthenticatedApps(); }}
                       isAppAuthenticated={isAppAuthenticated}
+                      authAppsLoading={authAppsLoading}
                       highlight={highlightedIndex === i}
                     />
                   ))}
