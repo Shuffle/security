@@ -266,34 +266,42 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
         />
       </Box>
 
-      {(() => {
+      {!compact && (() => {
         const preset = ENDPOINT_PRESETS.find((p) => p.label === effectivePreset);
-        if (!preset || (!preset.apiKeyUrl && !preset.apiKeyHint)) return null;
+        const hasProviderDocs = !!preset && (!!preset.apiKeyUrl || !!preset.apiKeyHint);
         return (
-          <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', mt: -1.5, lineHeight: 1.5 }}>
-            {preset.apiKeyHint}{' '}
-            {preset.apiKeyUrl && (
-              <Box component="a" href={preset.apiKeyUrl} target="_blank" rel="noopener noreferrer" sx={{ color: 'hsl(var(--primary))', textDecoration: 'underline' }}>
-                Get your {preset.label} API key →
-              </Box>
-            )}
-          </Typography>
+          <Box sx={{ px: 2.5, py: 2, borderRadius: 2, border: '1px solid hsl(var(--border))', bgcolor: 'hsl(var(--muted) / 0.3)' }}>
+            <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+              {isShuffleAI ? (
+                <>
+                  Using Shuffle AI. No configuration is required. Pick another provider above to use your own endpoint.{' '}
+                  <Box component="a" href="https://shuffler.io/docs/AI#using-self-hosted-ai-models" target="_blank" rel="noopener noreferrer" sx={{ color: 'hsl(var(--primary))', textDecoration: 'underline' }}>
+                    Read the docs
+                  </Box>
+                  .
+                </>
+              ) : hasProviderDocs ? (
+                <>
+                  {preset!.apiKeyHint}{' '}
+                  {preset!.apiKeyUrl && (
+                    <Box component="a" href={preset!.apiKeyUrl} target="_blank" rel="noopener noreferrer" sx={{ color: 'hsl(var(--primary))', textDecoration: 'underline' }}>
+                      Get your {preset!.label} API key →
+                    </Box>
+                  )}
+                </>
+              ) : (
+                <>
+                  Configure an OpenAI-compatible endpoint for agent operations. Credentials are saved through the app authentication system.{' '}
+                  <Box component="a" href="https://shuffler.io/docs/AI#using-self-hosted-ai-models" target="_blank" rel="noopener noreferrer" sx={{ color: 'hsl(var(--primary))', textDecoration: 'underline' }}>
+                    Read the docs
+                  </Box>
+                  .
+                </>
+              )}
+            </Typography>
+          </Box>
         );
       })()}
-
-      {!compact && (
-        <Box sx={{ px: 2.5, py: 2, borderRadius: 2, border: '1px solid hsl(var(--border))', bgcolor: 'hsl(var(--muted) / 0.3)' }}>
-          <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
-            {isShuffleAI
-              ? 'Using Shuffle AI. No configuration is required. Pick another provider above to use your own endpoint.'
-              : 'Configure an OpenAI-compatible endpoint for agent operations. Credentials are saved through the app authentication system.'}{' '}
-            <Box component="a" href="https://shuffler.io/docs/AI#using-self-hosted-ai-models" target="_blank" rel="noopener noreferrer" sx={{ color: 'hsl(var(--primary))', textDecoration: 'underline' }}>
-              Read the docs
-            </Box>
-            .
-          </Typography>
-        </Box>
-      )}
 
       {isShuffleAI && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5, width: '100%' }}>
