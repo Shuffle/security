@@ -3744,6 +3744,29 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         }}>
                           <FinishAnswerMarkdown text={normalizeMarkdown(finishAnswer)} />
                         </Box>
+                      ) : null}
+                      {finishAnswer && finishAnswerRaw && (
+                        <Box sx={{
+                          p: 2, borderRadius: 1.5,
+                          border: '1px solid hsl(var(--border))',
+                          bgcolor: 'hsl(var(--muted))',
+                          mt: finishAnswer ? 1 : 0,
+                        }}>
+                          <Box
+                            component="pre"
+                            sx={{
+                              m: 0,
+                              fontSize: '0.78rem',
+                              fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                              color: 'hsl(var(--foreground))',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              lineHeight: 1.55,
+                            }}
+                          >
+                            {finishAnswer}
+                          </Box>
+
                       ) : pendingAsk && pendingQuestions.length > 0 ? (
                         (() => {
                           const trySimpleSubmit = () => {
