@@ -1,6 +1,17 @@
 /**
- * Host re-export of the Shuffle-Core DashboardOverview.
- * The implementation lives in `@/Shuffle-Core`.
+ * Host wrapper around the Shuffle-Core DashboardOverview — forwards the
+ * host's resolved color scheme so the charts honor light/dark mode instead
+ * of falling back to the library default ("dark").
  */
-export { DashboardOverview } from '@/Shuffle-Core';
-export default function _Default() { return null; }
+import type { ComponentProps } from 'react';
+import { DashboardOverview as CoreDashboardOverview } from '@/Shuffle-Core';
+import { useTheme } from '@/context/ThemeContext';
+
+type Props = ComponentProps<typeof CoreDashboardOverview>;
+
+export const DashboardOverview = (props: Props) => {
+  const { resolvedTheme } = useTheme();
+  return <CoreDashboardOverview theme={resolvedTheme} {...props} />;
+};
+
+export default DashboardOverview;
