@@ -20,7 +20,7 @@ import {
   Tooltip as RechartsTooltip, BarChart, Bar, RadialBarChart, RadialBar,
   PolarAngleAxis, Cell,
 } from 'recharts';
-import { AlertCircle, RefreshCw, Zap, Workflow, Activity } from 'lucide-react';
+import { AlertCircle, RefreshCw, Zap, Workflow, Activity, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkflows } from '../../hooks/useWorkflows';
 import { SegmentedControl } from '../ui/segmented-control';
@@ -525,70 +525,96 @@ export const AutomationDashboard = ({
         accent={NEON.violet}
         delay={0.3}
         action={
-          <FormControl size="small" sx={{ minWidth: 260 }}>
-            <Autocomplete
-              size="small"
-              options={statKeys}
-              value={selectedStat || null}
-              onChange={(_, v) => { if (v) pickSelectedStat(v); }}
-              disableClearable
-              getOptionLabel={(k) => prettyStatLabel(k)}
-              isOptionEqualToValue={(a, b) => a === b}
-              noOptionsText={statKeys.length === 0 ? 'No stats available' : 'No matches'}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Find your stat"
-                  placeholder="Type to search..."
-                  InputLabelProps={{ sx: { color: NEON.violet } }}
-                />
-              )}
-              componentsProps={{
-                paper: {
-                  sx: {
-                    bgcolor: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <FormControl size="small" sx={{ minWidth: 260 }}>
+              <Autocomplete
+                size="small"
+                options={statKeys}
+                value={selectedStat || null}
+                onChange={(_, v) => { if (v) pickSelectedStat(v); }}
+                disableClearable
+                getOptionLabel={(k) => prettyStatLabel(k)}
+                isOptionEqualToValue={(a, b) => a === b}
+                noOptionsText={statKeys.length === 0 ? 'No stats available' : 'No matches'}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Find your stat"
+                    placeholder="Type to search..."
+                    InputLabelProps={{ sx: { color: NEON.violet } }}
+                  />
+                )}
+                componentsProps={{
+                  paper: {
+                    sx: {
+                      bgcolor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                    },
                   },
-                },
-              }}
-              ListboxProps={{ sx: { maxHeight: 420 } }}
-              renderOption={(props, k) => {
-                const total = statTotals[k] || 0;
-                return (
-                  <li {...props} key={k}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                      <Typography
-                        sx={{
-                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: statColor(total),
-                          minWidth: 56,
-                          textAlign: 'left',
-                        }}
-                      >
-                        {formatCompact(total)}
-                      </Typography>
-                      <Typography sx={{ fontSize: 13, color: 'hsl(var(--foreground))' }}>
-                        {prettyStatLabel(k)}
-                      </Typography>
-                    </Box>
-                  </li>
-                );
-              }}
-            />
-          </FormControl>
+                }}
+                ListboxProps={{ sx: { maxHeight: 420 } }}
+                renderOption={(props, k) => {
+                  const total = statTotals[k] || 0;
+                  return (
+                    <li {...props} key={k}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                        <Typography
+                          sx={{
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: statColor(total),
+                            minWidth: 56,
+                            textAlign: 'left',
+                          }}
+                        >
+                          {formatCompact(total)}
+                        </Typography>
+                        <Typography sx={{ fontSize: 13, color: 'hsl(var(--foreground))' }}>
+                          {prettyStatLabel(k)}
+                        </Typography>
+                      </Box>
+                    </li>
+                  );
+                }}
+              />
+            </FormControl>
+            <MuiTooltip title="Increment any custom key from a workflow (Shuffle Tools → Repeat back / Stats actions, or the API) and it shows up here. Opens the Stats & Timelines API docs.">
+              <Box
+                component="a"
+                href="https://shuffler.io/docs/API#stats-and-timelines"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  fontSize: '0.72rem',
+                  fontWeight: 500,
+                  color: NEON.violet,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                Add custom stats
+                <ExternalLink size={12} />
+              </Box>
+            </MuiTooltip>
+          </Box>
         }
+
       >
         <Box sx={{ height: 260 }}>
           {statKeys.length === 0 ? (
             <EmptyState
-              text="No custom stats yet — increment any key from a workflow and it shows up here."
-              ctaLabel="View Custom Stats API"
-              onCta={() => window.open('https://shuffler.io/docs/API#count-stats-for-custom-key', '_blank', 'noopener,noreferrer')}
+              text="No custom stats yet. Any counter you increment from a workflow (via the Stats & Timelines API or a Shuffle Tools stat action) appears here automatically — for example agent_executions, tickets_closed, or phishing_blocked."
+              ctaLabel="View Stats & Timelines API"
+              onCta={() => window.open('https://shuffler.io/docs/API#stats-and-timelines', '_blank', 'noopener,noreferrer')}
             />
           ) : statSeries.every(p => p.value === 0) ? (
-            <EmptyState text={`No values for "${prettyStatLabel(selectedStat)}" in the last ${days} days`} />
+            <EmptyState text={`No values for "${prettyStatLabel(selectedStat)}" in the last ${days} days. Increment this key from a workflow and it will start charting here.`} />
+
                     ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...statsDrag.chartProps}>
