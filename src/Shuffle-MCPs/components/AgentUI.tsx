@@ -3352,9 +3352,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Box>
                 </Tooltip>
                 {chosenApps.map((app, i) => {
-                  const slug = (app.name || '').toLowerCase().replace(/[\s-]+/g, '_');
+                  const slug = normalizeAgentAppName(app.name || '');
                   const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
-                  const needsAuth = !NO_AUTH.has(slug) && !isAppAuthenticated(app.name || '');
+                  const needsAuth = !authAppsLoading && !NO_AUTH.has(slug) && !isAppAuthenticated(app.name || '');
                   return (
                   <Tooltip
                     key={`${app.name}-${i}`}
@@ -3410,8 +3410,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 without these — Shuffle will request auth mid-run if needed. */}
             {!hideAppPicker && (() => {
               const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
+              if (authAppsLoading) return null;
               const unauthed = chosenApps.filter((a) => {
-                const slug = (a.name || '').toLowerCase().replace(/[\s-]+/g, '_');
+                const slug = normalizeAgentAppName(a.name || '');
                 return !NO_AUTH.has(slug) && !isAppAuthenticated(a.name || '');
               });
               if (unauthed.length === 0) return null;
