@@ -1838,7 +1838,10 @@ function IntegrationStatusLite({
         }
         if (!cancelled && iconByName.size) {
           const obj: Record<string, string> = {};
-          iconByName.forEach((v, k) => { obj[k] = v; });
+          iconByName.forEach((v, k) => {
+            obj[k] = v;
+            obj[normalizeAppName(k)] = v;
+          });
           setCatalogIcons(obj);
         }
 
