@@ -3206,7 +3206,10 @@ function UsecaseDetailContent({
       return;
     }
 
-    if (willBeEnabled && !hasValidatedSource) {
+    // Forward Tickets is Cases-sourced — Shuffle itself IS the source, so
+    // there is no third-party source auth to validate. Skip the hard-block.
+    const isForwardTicketsFlow = flow.id === 'case_management_cases_forward_1';
+    if (willBeEnabled && !hasValidatedSource && !isForwardTicketsFlow) {
       // Hard-block the enable. The /workflows/generate endpoint may return
       // success: true and then quietly skip creating the workflow when no
       // source tool is authenticated, which makes the UI look like it worked
@@ -3780,11 +3783,18 @@ function UsecaseDetailContent({
           generated. Never shown by default. */}
       {!isComingSoon && flow.automationLabel && !effectiveEnabled && enableAttempted && (() => {
         const selfContained = !!SELF_CONTAINED_ENABLE[flow.id];
-        const needsSource = !!flow.source && !selfContained;
+        // Forward Tickets is Cases-sourced: Shuffle itself IS the source, so
+        // the user never needs to add a Source-side tool. What they DO need
+        // is at least one external destination tool (Cases / Communication)
+        // to forward updates to. Point the hint at the Destination side.
+        const isForwardTicketsFlow = flow.id === 'case_management_cases_forward_1';
+        const needsSource = !!flow.source && !selfContained && !isForwardTicketsFlow;
         const sourceLabel = flow.source ? categoryLabel(flow.source) : 'source';
         let message: string | null = null;
         if (!isAuthenticated) {
           message = 'Sign in first. Enable will not do anything until you are signed in.';
+        } else if (isForwardTicketsFlow) {
+          message = `To enable ${flow.label}, add a destination tool using the highlighted "+" under Destination below.`;
         } else if (needsSource && !hasValidatedSource) {
           message = `To enable ${flow.label}, add a ${sourceLabel} tool using the highlighted "+" under Source below.`;
         }
@@ -4219,7 +4229,11 @@ function UsecaseDetailContent({
                 onAddApp={addToolBlocked ? undefined : () => setAddToolFor({ side, categoryId: endpoint.categoryId, multiDest: endpointAllowsMultiDestAdd })}
                 addAppLabel={addToolBlocked ? undefined : (endpointAllowsMultiDestAdd ? 'Add destination tool (Communication or Cases)' : `Add ${endpoint.meta?.label || endpoint.title} tool`)}
                 extraTile={renderEndpointSlot && flow ? renderEndpointSlot({ flowId: flow.id, flowLabel: flow.label, side }) : undefined}
-                highlightAddApp={side === 'source' && enableAttempted && !hasValidatedSource && !effectiveEnabled}
+                highlightAddApp={enableAttempted && !effectiveEnabled && (
+                  flow.id === 'case_management_cases_forward_1'
+                    ? side === 'destination'
+                    : side === 'source' && !hasValidatedSource
+                )}
 
               />
             </Box>
