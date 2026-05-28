@@ -4342,8 +4342,9 @@ function UsecasesPageInner() {
           if (entry?.validation?.valid !== true) continue;
           const app = entry?.app;
           if (!app?.name) continue;
-          const categoryId = matchAppToCategory(app.name, app.categories || []);
-          if (categoryId) cats.add(categoryId);
+          for (const categoryId of matchAppToCategoryList(app.name, app.categories || [])) {
+            cats.add(categoryId);
+          }
         }
         if (!cancelled) setValidatedCategories(cats);
       } catch {
