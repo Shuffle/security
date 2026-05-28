@@ -3949,6 +3949,30 @@ function UsecaseDetailContent({
           : [];
         const allLinked = [...linkedWorkflows, ...forwardTicketsWorkflows, ...notifWorkflows];
         if (allLinked.length === 0) return null;
+        // Build a name->icon lookup from every validated app we have on hand
+        // so action chips can render with the real app icon.
+        const iconByName = new Map<string, string>();
+        for (const apps of Object.values(validatedAppsByCategory)) {
+          for (const a of (apps || [])) {
+            const k = normalizeAppName(a.name);
+            if (a.icon && !iconByName.has(k)) iconByName.set(k, a.icon);
+          }
+        }
+        // Some actions are wrapped by Singul — the surface app_name is
+        // "Singul" but the real tool is in parameters[name=app_name].value.
+        const isSingulWrapper = (n: string) => /^singul$/i.test(String(n || '').trim());
+        const resolveActionApp = (action: any): string | null => {
+          const raw = action?.app_name;
+          if (!raw) return null;
+          if (isSingulWrapper(raw)) {
+            const params = Array.isArray(action?.parameters) ? action.parameters : [];
+            for (const p of params) {
+              if (p?.name === 'app_name' && p.value) return String(p.value);
+            }
+            return null; // hide unresolved Singul wrappers
+          }
+          return raw;
+        };
         const labelHint = forwardTicketsWorkflows.length > 0 && flow.automationLabel
           ? `Matched on "${flow.automationLabel}" and "Forward Tickets"`
           : notifWorkflows.length > 0
@@ -3990,12 +4014,13 @@ function UsecaseDetailContent({
                   }
                 })();
                 // Collect distinct action app names so the right side can
-                // surface what the workflow actually does.
+                // surface what the workflow actually does. Unwrap Singul-wrapped
+                // actions so the real chosen app is shown.
                 const actionApps: string[] = (() => {
                   const out: string[] = [];
                   const seen = new Set<string>();
                   for (const a of (wf.actions || []) as any[]) {
-                    const n = a?.app_name;
+                    const n = resolveActionApp(a);
                     if (!n) continue;
                     const k = normalizeAppName(n);
                     if (seen.has(k)) continue;
@@ -4059,19 +4084,29 @@ function UsecaseDetailContent({
                         title={`Actions: ${actionApps.join(', ')}`}
                         sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'nowrap' }}
                       >
-                        {visibleActionApps.map((n) => (
-                          <Typography
-                            key={n}
-                            sx={{
-                              fontSize: '0.68rem', fontWeight: 600, color: MUTED,
-                              px: 0.75, py: 0.15, borderRadius: 0.75,
-                              border: CARD_BORDER, bgcolor: 'hsla(0, 0%, 60%, 0.04)',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {n}
-                          </Typography>
-                        ))}
+                        {visibleActionApps.map((n) => {
+                          const icon = iconByName.get(normalizeAppName(n));
+                          return (
+                            <Box
+                              key={n}
+                              title={n}
+                              sx={{
+                                width: 22, height: 22, borderRadius: 0.75,
+                                border: CARD_BORDER, bgcolor: 'hsla(0, 0%, 60%, 0.04)',
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                overflow: 'hidden', flexShrink: 0,
+                              }}
+                            >
+                              {icon ? (
+                                <Box component="img" src={icon} alt={n} sx={{ width: 16, height: 16, objectFit: 'contain' }} />
+                              ) : (
+                                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: MUTED, lineHeight: 1 }}>
+                                  {n.slice(0, 1).toUpperCase()}
+                                </Typography>
+                              )}
+                            </Box>
+                          );
+                        })}
                         {extraActionCount > 0 && (
                           <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: MUTED, px: 0.75, py: 0.15, borderRadius: 0.75, border: CARD_BORDER, bgcolor: 'hsla(0, 0%, 60%, 0.04)' }}>
                             +{extraActionCount}
