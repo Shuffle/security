@@ -1948,7 +1948,11 @@ function IntegrationStatusLite({
       if (!key || existing.has(key)) return acc;
       existing.add(key);
       const icon = catalogIcons[key] || catalogIcons[name.toLowerCase()] || '';
-      acc.push({ id: `workflow-${key}`, name, icon, validated: true, active: true });
+      // Wired into a workflow but no authentication entry exists for it —
+      // surface as "not configured" rather than faking a validated state.
+      // The real validated/active flags come from the /apps/authentication
+      // merge above when an auth actually exists for this app.
+      acc.push({ id: `workflow-${key}`, name, icon, validated: false, active: false });
       return acc;
     }, []);
     return [...extras, ...workflowExtras, ...integrations];
