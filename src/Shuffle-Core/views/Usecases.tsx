@@ -1502,7 +1502,7 @@ function getLinkedWorkflowsForUsecase(
   flow: Pick<Usecase, 'id' | 'automationLabel' | 'automationArea'>,
   workflows: WorkflowSummary[],
   notificationWorkflow?: WorkflowSummary | null,
-): { workflows: WorkflowSummary[]; forwardTicketsWorkflows: WorkflowSummary[]; notificationWorkflows: WorkflowSummary[] } {
+): { workflows: WorkflowSummary[]; usecaseWorkflows: WorkflowSummary[]; forwardTicketsWorkflows: WorkflowSummary[]; notificationWorkflows: WorkflowSummary[] } {
   const linked = findWorkflowsForUsecase(flow, workflows);
   const seen = new Set(linked.map((wf) => wf.id).filter(Boolean));
   const forwardTicketsWorkflows = USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id)
@@ -1513,7 +1513,7 @@ function getLinkedWorkflowsForUsecase(
   const notificationWorkflows = notificationWorkflow?.id && !seen.has(notificationWorkflow.id)
     ? [notificationWorkflow]
     : [];
-  return { workflows: [...linked, ...forwardTicketsWorkflows, ...notificationWorkflows], forwardTicketsWorkflows, notificationWorkflows };
+  return { workflows: [...linked, ...forwardTicketsWorkflows, ...notificationWorkflows], usecaseWorkflows: linked, forwardTicketsWorkflows, notificationWorkflows };
 }
 
 function getWorkflowEnabledAppNames(workflows: WorkflowSummary[]): Set<string> {
