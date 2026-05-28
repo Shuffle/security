@@ -3969,6 +3969,44 @@ function UsecaseDetailContent({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {allLinked.map((wf) => {
                 const isForwardingContext = forwardTicketsWorkflows.some((f) => f.id === wf.id);
+                // Resolve the workflow's primary trigger so we can show it on
+                // the left side instead of a generic lightning icon. Prefer
+                // the first non-stopped trigger when there are multiple.
+                const triggers: any[] = Array.isArray(wf.triggers) ? wf.triggers : [];
+                const primaryTrigger = triggers.find((t: any) => (t?.status || '').toLowerCase() !== 'stopped') || triggers[0] || null;
+                const triggerMeta = (() => {
+                  const type = String(primaryTrigger?.trigger_type || primaryTrigger?.app_name || '').toUpperCase();
+                  switch (type) {
+                    case 'WEBHOOK': return { label: 'Webhook', Icon: Webhook };
+                    case 'SCHEDULE': return { label: 'Schedule', Icon: Clock };
+                    case 'EMAIL': return { label: 'Email', Icon: Mail };
+                    case 'USERINPUT': return { label: 'User input', Icon: MessageCircleQuestion };
+                    case 'SUBFLOW': return { label: 'Subflow', Icon: GitBranch };
+                    case 'PIPELINE': return { label: 'Pipeline', Icon: Activity };
+                    case 'MANUAL': return { label: 'Manual', Icon: MousePointerClick };
+                    default: return primaryTrigger
+                      ? { label: (primaryTrigger.name || 'Trigger'), Icon: Zap }
+                      : { label: 'Manual', Icon: MousePointerClick };
+                  }
+                })();
+                // Collect distinct action app names so the right side can
+                // surface what the workflow actually does.
+                const actionApps: string[] = (() => {
+                  const out: string[] = [];
+                  const seen = new Set<string>();
+                  for (const a of (wf.actions || []) as any[]) {
+                    const n = a?.app_name;
+                    if (!n) continue;
+                    const k = normalizeAppName(n);
+                    if (seen.has(k)) continue;
+                    seen.add(k);
+                    out.push(n);
+                  }
+                  return out;
+                })();
+                const visibleActionApps = actionApps.slice(0, 3);
+                const extraActionCount = actionApps.length - visibleActionApps.length;
+                const TriggerIcon = triggerMeta.Icon;
                 return (
                 <Box
                   key={wf.id}
@@ -3991,8 +4029,21 @@ function UsecaseDetailContent({
                     '&:hover': { bgcolor: 'hsla(24, 100%, 50%, 0.06)', borderColor: 'hsla(24, 100%, 50%, 0.3)' },
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-                    <Zap size={14} style={{ color: MUTED, flexShrink: 0 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
+                    <Box
+                      title={`Trigger: ${triggerMeta.label}`}
+                      sx={{
+                        display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                        px: 0.75, py: 0.25, borderRadius: 0.75,
+                        border: CARD_BORDER, bgcolor: 'hsla(0, 0%, 60%, 0.04)',
+                        color: MUTED, flexShrink: 0,
+                      }}
+                    >
+                      <TriggerIcon size={12} />
+                      <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, lineHeight: 1, color: MUTED }}>
+                        {triggerMeta.label}
+                      </Typography>
+                    </Box>
                     <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {wf.name || 'Untitled workflow'}
                     </Typography>
@@ -4002,7 +4053,34 @@ function UsecaseDetailContent({
                       </Typography>
                     )}
                   </Box>
-                  <ExternalLink size={13} style={{ color: MUTED, flexShrink: 0 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                    {visibleActionApps.length > 0 && (
+                      <Box
+                        title={`Actions: ${actionApps.join(', ')}`}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'nowrap' }}
+                      >
+                        {visibleActionApps.map((n) => (
+                          <Typography
+                            key={n}
+                            sx={{
+                              fontSize: '0.68rem', fontWeight: 600, color: MUTED,
+                              px: 0.75, py: 0.15, borderRadius: 0.75,
+                              border: CARD_BORDER, bgcolor: 'hsla(0, 0%, 60%, 0.04)',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {n}
+                          </Typography>
+                        ))}
+                        {extraActionCount > 0 && (
+                          <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: MUTED, px: 0.75, py: 0.15, borderRadius: 0.75, border: CARD_BORDER, bgcolor: 'hsla(0, 0%, 60%, 0.04)' }}>
+                            +{extraActionCount}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                    <ExternalLink size={13} style={{ color: MUTED, flexShrink: 0 }} />
+                  </Box>
                 </Box>
                 );
               })}
