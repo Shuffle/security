@@ -3736,6 +3736,11 @@ function UsecaseDetailContent({
             const next = new Set(Array.from(enabledNamesSet));
             const key = normalizeAppName(appName);
             if (enabled) next.add(key); else next.delete(key);
+            // Keep the localStorage "injected apps" snapshot in sync with the
+            // toggle, otherwise readInjectedUsecaseApps() will keep showing
+            // a disabled app as still-enabled in the Source/Destination strip.
+            if (enabled) pushInjectedUsecaseApp(flow.id, appName);
+            else removeInjectedUsecaseApp(flow.id, appName);
             const activeNames: string[] = [];
             const seen = new Set<string>();
             // Preserve original casing from auth/apps catalog where possible
