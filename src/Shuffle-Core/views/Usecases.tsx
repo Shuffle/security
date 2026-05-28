@@ -1903,11 +1903,12 @@ function IntegrationStatusLite({
       const key = normalizeAppName(name);
       if (!key || existing.has(key)) return acc;
       existing.add(key);
-      acc.push({ id: `workflow-${key}`, name, icon: '', validated: true, active: true });
+      const icon = catalogIcons[key] || catalogIcons[name.toLowerCase()] || '';
+      acc.push({ id: `workflow-${key}`, name, icon, validated: true, active: true });
       return acc;
     }, []);
     return [...extras, ...workflowExtras, ...integrations];
-  }, [integrations, syntheticApps, workflowAppNames]);
+  }, [integrations, syntheticApps, workflowAppNames, catalogIcons]);
 
   const visible = filterApps?.length
     ? merged.filter((item) => filterApps.some((name) => normalizeAppName(name) === normalizeAppName(item.name)))
