@@ -3596,9 +3596,56 @@ function UsecaseDetailContent({
 
 
 
-      {showConnectionPath && (
-      <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
-        {useAlluvialDiagram && ['siem_case_management_1', 'edr_case_management_1', 'email_case_management_1'].includes(flow.id) ? (
+      {showConnectionPath && (() => {
+        const alluvialEligible = useAlluvialDiagram && ['siem_case_management_1', 'edr_case_management_1', 'email_case_management_1'].includes(flow.id);
+        const showAlluvial = alluvialEligible && connectionViewMode === 'source_destination';
+        return (
+      <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3, position: 'relative' }}>
+        {alluvialEligible && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              zIndex: 2,
+              display: 'inline-flex',
+              borderRadius: 1.5,
+              border: '1px solid hsl(var(--border))',
+              bgcolor: 'hsl(var(--card))',
+              overflow: 'hidden',
+            }}
+          >
+            {([
+              { id: 'source_destination', label: 'Source / Destination' },
+              { id: 'line', label: 'Line view' },
+            ] as const).map((opt) => {
+              const active = connectionViewMode === opt.id;
+              return (
+                <Box
+                  key={opt.id}
+                  component="button"
+                  onClick={() => setConnectionViewMode(opt.id)}
+                  sx={{
+                    px: 1.25,
+                    height: 28,
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    fontFamily: 'inherit',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    bgcolor: active ? 'hsl(var(--primary) / 0.12)' : 'transparent',
+                    transition: 'all 0.15s ease',
+                    '&:hover': { bgcolor: active ? 'hsl(var(--primary) / 0.18)' : 'hsl(var(--muted))' },
+                  }}
+                >
+                  {opt.label}
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+        {showAlluvial ? (
           <UsecaseAlluvialDiagram
             sourceCategory={flow.source}
             targetCategory={flow.target}
