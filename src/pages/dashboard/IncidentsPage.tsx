@@ -3237,6 +3237,7 @@ const IncidentsPage = () => {
           },
         ] : undefined}
         highlightAppName={shouldHighlightOutlook ? 'Outlook_Office365' : undefined}
+        realtimeHighlightAppNames={isAddOutlookStep && isHoveringEmailGoal ? ['Outlook_Office365', 'Gmail'] : undefined}
         onSelectOverride={isAddOutlookStep ? (app) => {
           // Pretend-authenticate flow: Outlook Office365 or Gmail advance the
           // tour. Anything else falls through to the normal detail drawer so
