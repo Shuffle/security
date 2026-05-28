@@ -2013,7 +2013,13 @@ function IntegrationStatusLite({
         key={integration.id}
         title={isShuffleSecurity
           ? `${integration.name} (always available)`
-          : `${integration.name}${integration.validated ? ' (validated)' : integration.active ? ' (configured)' : ' (not configured)'}`}
+          : `${integration.name}${integration.validated ? ' (validated)' : integration.active ? ' (configured)' : ' (not configured)'}${(() => {
+              const wfs = workflowsByAppName?.get(normalizeAppName(integration.name));
+              if (!wfs || wfs.length === 0) return '';
+              const shown = wfs.slice(0, 3).join(', ');
+              const more = wfs.length > 3 ? ` (+${wfs.length - 3} more)` : '';
+              return ` — used in: ${shown}${more}`;
+            })()}`}
         placement="top"
         arrow
       >
