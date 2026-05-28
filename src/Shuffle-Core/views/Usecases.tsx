@@ -5443,21 +5443,8 @@ function UsecasesPageInner() {
             />
           </Box>
         </Box>
-      ) : (
-        <Box sx={{
-          mb: 3,
-          display: 'inline-flex', alignItems: 'center', gap: 1,
-          px: 1.5, py: 0.75, borderRadius: 1.5,
-          bgcolor: 'hsl(var(--primary) / 0.06)',
-          border: '1px solid hsl(var(--primary) / 0.18)',
-        }}>
-          <Zap size={14} style={{ color: 'hsl(var(--primary))' }} />
-          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.78rem' }}>
-            <Box component="span" sx={{ color: 'hsl(var(--primary))', fontWeight: 700 }}>One-click automations</Box>
-            {' '}for Incidents, AI Agents & Enrichment.
-          </Typography>
-        </Box>
-      )}
+      ) : null}
+
 
       {/* Grouped card grid */}
       {grouped.map((group) => (
