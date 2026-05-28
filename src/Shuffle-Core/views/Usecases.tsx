@@ -4029,19 +4029,27 @@ function UsecaseDetailContent({
               // enabled in some workflow. Only the current flow's target
               // catalog and truly-foreign (uncategorized) apps may show.
               const targetCatKey = flow.target;
-              const targetSeen = new Set(
-                (categoryAppNames[targetCatKey] || []).map((n) => normalizeAppName(n))
-              );
+              // When the destination spans Communication AND Cases (multi-dest
+              // or ingest flows that inherit Forward Tickets), treat both
+              // catalogs as the "target" so apps from either side aren't
+              // filtered as "foreign" and dropped.
+              const targetCatKeys = destSpansCommAndCases
+                ? new Set(['communication', 'case_management'])
+                : new Set([targetCatKey]);
+              const targetSeen = new Set<string>();
+              for (const ck of targetCatKeys) {
+                for (const n of (categoryAppNames[ck] || [])) targetSeen.add(normalizeAppName(n));
+              }
               const foreignCategorySeen = new Set<string>();
               for (const [catKey, names] of Object.entries(categoryAppNames)) {
-                if (catKey === targetCatKey) continue;
+                if (targetCatKeys.has(catKey)) continue;
                 for (const n of (names as string[])) {
                   foreignCategorySeen.add(normalizeAppName(n));
                 }
               }
               for (const k of enabledNamesSet) {
                 if (baseSeen.has(k)) continue;
-                if (!isMultiDest && foreignCategorySeen.has(k) && !targetSeen.has(k)) continue;
+                if (!destSpansCommAndCases && foreignCategorySeen.has(k) && !targetSeen.has(k)) continue;
                 injected.push(k); baseSeen.add(k);
               }
             }
