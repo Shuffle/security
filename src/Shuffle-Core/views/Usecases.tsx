@@ -3896,7 +3896,8 @@ function UsecaseDetailContent({
         })()
         )}
       </Box>
-      )}
+        );
+      })()}
 
       {flow.automationArea === 'notifications'
         ? <NotificationsOutcomeBlock />
