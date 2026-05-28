@@ -43,6 +43,7 @@ import {
   shuffleFetch,
   getApiUrl,
   getDatastoreByCategory,
+  resolveApp,
 } from '@shuffleio/shuffle-mcps';
 import { useUsecaseOutcomes } from '../hooks/useUsecaseOutcomes';
 import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
@@ -1044,6 +1045,32 @@ const getStoredApiKey = (): string | null => {
 // API base resolved from env/host, auth via `shuffle_api_key` localStorage,
 // and authentication probed via `/api/v1/getinfo`.
 // ============================================================================
+/**
+ * Async-resolved app icon used in the Linked Workflows chips. Falls back to
+ * the seeded icon (if any) while the catalog lookup is in flight, then to a
+ * single uppercase letter when no image is available.
+ */
+function WorkflowAppIcon({ name, seededIcon, size = 16 }: { name: string; seededIcon?: string; size?: number }) {
+  const [icon, setIcon] = useState<string | undefined>(seededIcon);
+  useEffect(() => {
+    setIcon(seededIcon);
+    if (seededIcon || !name) return;
+    let cancelled = false;
+    resolveApp(name)
+      .then((r) => { if (!cancelled && r?.image) setIcon(r.image); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [name, seededIcon]);
+  if (icon) {
+    return <Box component="img" src={icon} alt={name} sx={{ width: size, height: size, objectFit: 'contain' }} />;
+  }
+  return (
+    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', lineHeight: 1 }}>
+      {name.slice(0, 1).toUpperCase()}
+    </Typography>
+  );
+}
+
 /**
  * Raw response body from `GET /api/v1/getinfo`. Host apps typically already
  * have this loaded and pass it down as `userdata`.
@@ -4004,23 +4031,20 @@ function UsecaseDetailContent({
         }
         // Some actions are wrapped by Singul — the surface app_name is
         // "Singul" but the real tool is in parameters[name=app_name].value.
-        // Show Singul as a single chip and stack the inner app's icon on
-        // top so the user sees "Singul (with <inner>)" as one entry.
+        // We always unwrap to the inner app so the chip shows the real tool
+        // (e.g. Wazuh) instead of "Singul".
         const isSingulWrapper = (n: string) => /^singul$/i.test(String(n || '').trim());
-        type ActionChip = { name: string; via?: string };
-        const resolveActionChip = (action: any): ActionChip | null => {
+        const resolveActionApp = (action: any): string | null => {
           const raw = action?.app_name;
           if (!raw) return null;
           if (isSingulWrapper(raw)) {
             const params = Array.isArray(action?.parameters) ? action.parameters : [];
             for (const p of params) {
-              if (p?.name === 'app_name' && p.value) {
-                return { name: 'Singul', via: String(p.value) };
-              }
+              if (p?.name === 'app_name' && p.value) return String(p.value);
             }
-            return { name: 'Singul' };
+            return null; // hide unresolved Singul wrappers
           }
-          return { name: String(raw) };
+          return String(raw);
         };
         const labelHint = forwardTicketsWorkflows.length > 0 && flow.automationLabel
           ? `Matched on "${flow.automationLabel}" and "Forward Tickets"`
@@ -4062,24 +4086,24 @@ function UsecaseDetailContent({
                       : { label: 'Manual', Icon: MousePointerClick };
                   }
                 })();
-                // Collect distinct action app chips. Singul-wrapped actions
-                // dedupe by inner app so multiple Singul calls to Wazuh
-                // surface as a single "Singul (Wazuh)" chip.
-                const actionChips: ActionChip[] = (() => {
-                  const out: ActionChip[] = [];
+                // Collect distinct action app names. Singul-wrapped actions
+                // resolve to their inner app, so multiple Singul calls to
+                // Wazuh dedupe into a single Wazuh chip.
+                const actionApps: string[] = (() => {
+                  const out: string[] = [];
                   const seen = new Set<string>();
                   for (const a of (wf.actions || []) as any[]) {
-                    const chip = resolveActionChip(a);
-                    if (!chip) continue;
-                    const k = `${normalizeAppName(chip.name)}::${normalizeAppName(chip.via || '')}`;
-                    if (seen.has(k)) continue;
+                    const n = resolveActionApp(a);
+                    if (!n) continue;
+                    const k = normalizeAppName(n);
+                    if (!k || seen.has(k)) continue;
                     seen.add(k);
-                    out.push(chip);
+                    out.push(n);
                   }
                   return out;
                 })();
-                const visibleActionApps = actionChips.slice(0, 3);
-                const extraActionCount = actionChips.length - visibleActionApps.length;
+                const visibleActionApps = actionApps.slice(0, 3);
+                const extraActionCount = actionApps.length - visibleActionApps.length;
                 const TriggerIcon = triggerMeta.Icon;
                 return (
                 <Box
@@ -4130,52 +4154,24 @@ function UsecaseDetailContent({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                     {visibleActionApps.length > 0 && (
                       <Box
-                        title={`Actions: ${actionChips.map((c) => c.via ? `${c.name} (${c.via})` : c.name).join(', ')}`}
+                        title={`Actions: ${actionApps.join(', ')}`}
                         sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'nowrap' }}
                       >
-                        {visibleActionApps.map((chip) => {
-                          const icon = iconByName.get(normalizeAppName(chip.name));
-                          const viaIcon = chip.via ? iconByName.get(normalizeAppName(chip.via)) : undefined;
-                          const chipLabel = chip.via ? `${chip.name} (${chip.via})` : chip.name;
+                        {visibleActionApps.map((n) => {
+                          const icon = iconByName.get(normalizeAppName(n));
                           return (
                             <Box
-                              key={chipLabel}
-                              title={chipLabel}
+                              key={n}
+                              title={n}
                               sx={{
-                                position: 'relative',
                                 width: 22, height: 22, borderRadius: 0.75,
                                 border: CARD_BORDER, bgcolor: 'hsla(0, 0%, 60%, 0.04)',
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                overflow: 'visible', flexShrink: 0,
+                                overflow: 'hidden', flexShrink: 0,
                               }}
                             >
-                              {icon ? (
-                                <Box component="img" src={icon} alt={chip.name} sx={{ width: 16, height: 16, objectFit: 'contain' }} />
-                              ) : (
-                                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: MUTED, lineHeight: 1 }}>
-                                  {chip.name.slice(0, 1).toUpperCase()}
-                                </Typography>
-                              )}
-                              {chip.via && (
-                                <Box
-                                  title={chip.via}
-                                  sx={{
-                                    position: 'absolute', right: -6, bottom: -6,
-                                    width: 14, height: 14, borderRadius: 0.5,
-                                    border: CARD_BORDER, bgcolor: CARD_BG,
-                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                    overflow: 'hidden',
-                                  }}
-                                >
-                                  {viaIcon ? (
-                                    <Box component="img" src={viaIcon} alt={chip.via} sx={{ width: 10, height: 10, objectFit: 'contain' }} />
-                                  ) : (
-                                    <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: MUTED, lineHeight: 1 }}>
-                                      {chip.via.slice(0, 1).toUpperCase()}
-                                    </Typography>
-                                  )}
-                                </Box>
-                              )}
+                              <WorkflowAppIcon name={n} seededIcon={icon} size={16} />
+
                             </Box>
                           );
                         })}
