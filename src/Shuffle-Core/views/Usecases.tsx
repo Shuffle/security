@@ -3942,12 +3942,9 @@ function UsecaseDetailContent({
         <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
           {(() => {
             const isMultiDest = MULTI_DEST_FLOW_IDS.has(flow.id);
-            // Ingest-to-cases usecases (SIEM/EDR/Email alerts) inherit the
-            // Forward Tickets workflow on the destination side. That workflow
-            // can contain Communication apps (Gmail, Slack, ...) alongside
-            // Cases apps, so widen the destination catalog the same way as
-            // multi-dest flows — otherwise foreign-category apps from the
-            // linked workflow get silently filtered out below.
+            // Ingest-to-cases usecases (SIEM/EDR/Email alerts) use the Forward
+            // Tickets workflow as the Destination truth source. Do not mix the
+            // ingest workflow's SIEM/EDR/Email apps into the destination tools.
             const inheritsForwardTickets = USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id);
             const destSpansCommAndCases = isMultiDest || inheritsForwardTickets;
             // For multi-destination flows (Notifications, Forward Tickets)
@@ -4057,7 +4054,10 @@ function UsecaseDetailContent({
                   foreignCategorySeen.add(normalizeAppName(n));
                 }
               }
-              for (const k of enabledNamesSet) {
+              const endpointEnabledNamesSet = endpoint.title === 'Destination'
+                ? destinationEnabledNamesSet
+                : sourceEnabledNamesSet;
+              for (const k of endpointEnabledNamesSet) {
                 if (baseSeen.has(k)) continue;
                 if (!destSpansCommAndCases && foreignCategorySeen.has(k) && !targetSeen.has(k)) continue;
                 injected.push(k); baseSeen.add(k);
