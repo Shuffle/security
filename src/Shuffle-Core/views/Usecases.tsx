@@ -43,6 +43,7 @@ import {
   shuffleFetch,
   getApiUrl,
   getDatastoreByCategory,
+  resolveApp,
 } from '@shuffleio/shuffle-mcps';
 import { useUsecaseOutcomes } from '../hooks/useUsecaseOutcomes';
 import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
