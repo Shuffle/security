@@ -468,6 +468,36 @@ const DESTINATION_SHUFFLE_ONLY_FLOW_IDS = new Set<string>([
   'threat_intel_case_management_1', // Enrichment
 ]);
 
+// ── Per-usecase "I just picked this app" persistence ──────────────────────────
+// When the user picks an app from the AppSearchDrawer we both wire it into the
+// workflow (best-effort) AND record it in localStorage so the next time they
+// open the usecase the app is shown as enabled — even if the backend write was
+// still in flight or got dropped.
+const INJECTED_APPS_LS_KEY = 'shuffle-security_usecase_injected_apps';
+export function readInjectedUsecaseApps(flowId: string): string[] {
+  try {
+    const raw = localStorage.getItem(INJECTED_APPS_LS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.[flowId]) ? parsed[flowId] : [];
+  } catch { return []; }
+}
+export function pushInjectedUsecaseApp(flowId: string, appName: string) {
+  try {
+    const raw = localStorage.getItem(INJECTED_APPS_LS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const list: string[] = Array.isArray(parsed[flowId]) ? parsed[flowId] : [];
+    const k = String(appName || '').toLowerCase().replace(/[\s_-]+/g, '');
+    if (!list.some((n) => String(n).toLowerCase().replace(/[\s_-]+/g, '') === k)) {
+      list.push(appName);
+    }
+    parsed[flowId] = list;
+    localStorage.setItem(INJECTED_APPS_LS_KEY, JSON.stringify(parsed));
+  } catch { /* localStorage unavailable */ }
+}
+
+
+
 // ── Default usecases (migrated from InfrastructurePage DATA_FLOWS) ─────────────
 
 export const DEFAULT_USECASES: Usecase[] = [
