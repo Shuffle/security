@@ -144,6 +144,7 @@ export default function AppDetailDrawer({
   onAddToCanvas,
   isAuthenticated = true,
   activeOrgId,
+  autoActivate = false,
   globalUrl,
   userdata,
   isLoaded,
