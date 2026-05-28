@@ -496,6 +496,17 @@ export function pushInjectedUsecaseApp(flowId: string, appName: string) {
     localStorage.setItem(INJECTED_APPS_LS_KEY, JSON.stringify(parsed));
   } catch { /* localStorage unavailable */ }
 }
+export function removeInjectedUsecaseApp(flowId: string, appName: string) {
+  try {
+    const raw = localStorage.getItem(INJECTED_APPS_LS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    const list: string[] = Array.isArray(parsed[flowId]) ? parsed[flowId] : [];
+    const k = String(appName || '').toLowerCase().replace(/[\s_-]+/g, '');
+    parsed[flowId] = list.filter((n) => String(n).toLowerCase().replace(/[\s_-]+/g, '') !== k);
+    localStorage.setItem(INJECTED_APPS_LS_KEY, JSON.stringify(parsed));
+  } catch { /* localStorage unavailable */ }
+}
 
 
 
@@ -3725,6 +3736,11 @@ function UsecaseDetailContent({
             const next = new Set(Array.from(enabledNamesSet));
             const key = normalizeAppName(appName);
             if (enabled) next.add(key); else next.delete(key);
+            // Keep the localStorage "injected apps" snapshot in sync with the
+            // toggle, otherwise readInjectedUsecaseApps() will keep showing
+            // a disabled app as still-enabled in the Source/Destination strip.
+            if (enabled) pushInjectedUsecaseApp(flow.id, appName);
+            else removeInjectedUsecaseApp(flow.id, appName);
             const activeNames: string[] = [];
             const seen = new Set<string>();
             // Preserve original casing from auth/apps catalog where possible
@@ -4018,6 +4034,8 @@ function UsecaseDetailContent({
           const next = new Set(Array.from(enabledNamesSetLW));
           const key = normalizeAppName(appName);
           if (enabled) next.add(key); else next.delete(key);
+          if (enabled) pushInjectedUsecaseApp(flow.id, appName);
+          else removeInjectedUsecaseApp(flow.id, appName);
           const activeNames: string[] = [];
           const seen = new Set<string>();
           const isMultiDest = MULTI_DEST_FLOW_IDS.has(flow.id);
