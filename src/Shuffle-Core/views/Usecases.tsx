@@ -2811,6 +2811,10 @@ function UsecaseDetailContent({
   const { renderEndpointSlot, renderUsecaseDetailSlot } = useUsecasesConfig();
   const flow = usecases.find((item) => item.id === flowId);
   const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
+  // Apps with a *validated* authentication, grouped by category. Powers the
+  // "In this usecase" row inside the Add-Tool drawer so users immediately see
+  // what they have already connected (e.g. Wazuh under SIEM).
+  const [validatedAppsByCategory, setValidatedAppsByCategory] = useState<Record<string, Array<{ name: string; icon: string }>>>({});
   // Tracks whether the apps→category resolution has completed at least once.
   // While false, the popup's per-endpoint tools section shows a loader so the
   // user does not see a flash of "all apps" or "No apps selected" before the
@@ -3190,11 +3194,19 @@ function UsecaseDetailContent({
         ]);
 
         const mapped: Record<string, Set<string>> = {};
+        const validated: Record<string, Map<string, string>> = {};
         const addApp = (name: string, categories: string[]) => {
           const categoryId = matchAppToCategory(name, categories);
           if (!categoryId) return;
           if (!mapped[categoryId]) mapped[categoryId] = new Set();
           mapped[categoryId].add(name);
+        };
+        const addValidated = (name: string, icon: string, categories: string[]) => {
+          const categoryId = matchAppToCategory(name, categories);
+          if (!categoryId) return;
+          if (!validated[categoryId]) validated[categoryId] = new Map();
+          const key = normalizeAppName(name);
+          if (!validated[categoryId].has(key)) validated[categoryId].set(key, icon);
         };
 
         if (authRes.ok) {
@@ -3202,7 +3214,12 @@ function UsecaseDetailContent({
           const authList = Array.isArray(authData) ? authData : (authData?.data || []);
           for (const entry of Array.isArray(authList) ? authList : []) {
             const app = entry?.app;
-            if (app?.name) addApp(app.name, app.categories || []);
+            if (app?.name) {
+              addApp(app.name, app.categories || []);
+              if (entry?.validation?.valid === true) {
+                addValidated(app.name, app?.large_image || app?.image || '', app.categories || []);
+              }
+            }
           }
         }
 
@@ -3216,6 +3233,14 @@ function UsecaseDetailContent({
         if (!cancelled) {
           setCategoryAppNames(
             Object.fromEntries(Object.entries(mapped).map(([key, value]) => [key, Array.from(value).sort()]))
+          );
+          setValidatedAppsByCategory(
+            Object.fromEntries(
+              Object.entries(validated).map(([key, m]) => [
+                key,
+                Array.from(m.entries()).map(([name, icon]) => ({ name, icon })),
+              ])
+            )
           );
         }
       } catch {
@@ -3951,6 +3976,26 @@ function UsecaseDetailContent({
           : `Add ${addToolFor ? categoryLabel(addToolFor.categoryId) : ''} Tool`}
         subtitle="Search and authenticate an integration"
         priorityCategory={addToolFor?.multiDest ? undefined : addToolFor?.categoryId}
+        initialQuery={addToolFor?.multiDest
+          ? ''
+          : (addToolFor ? categoryLabel(addToolFor.categoryId) : '')}
+        connectionPathApps={(() => {
+          if (!addToolFor) return undefined;
+          const cats = addToolFor.multiDest
+            ? ['case_management', 'communication']
+            : [addToolFor.categoryId];
+          const seen = new Set<string>();
+          const apps: Array<{ name: string; icon: string; hasValidAuth?: boolean }> = [];
+          for (const cat of cats) {
+            for (const a of (validatedAppsByCategory[cat] || [])) {
+              const key = normalizeAppName(a.name);
+              if (seen.has(key)) continue;
+              seen.add(key);
+              apps.push({ name: a.name, icon: a.icon, hasValidAuth: true });
+            }
+          }
+          return apps.length > 0 ? apps : undefined;
+        })()}
         onSelectOverride={(app) => {
           // Two-step UX: (1) immediately wire the picked app into this
           // usecase's workflow so it appears in the Tools strip right away,
