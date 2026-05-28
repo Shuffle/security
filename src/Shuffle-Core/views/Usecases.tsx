@@ -1502,7 +1502,7 @@ function getLinkedWorkflowsForUsecase(
   flow: Pick<Usecase, 'id' | 'automationLabel' | 'automationArea'>,
   workflows: WorkflowSummary[],
   notificationWorkflow?: WorkflowSummary | null,
-): { workflows: WorkflowSummary[]; forwardTicketsWorkflows: WorkflowSummary[]; notificationWorkflows: WorkflowSummary[] } {
+): { workflows: WorkflowSummary[]; usecaseWorkflows: WorkflowSummary[]; forwardTicketsWorkflows: WorkflowSummary[]; notificationWorkflows: WorkflowSummary[] } {
   const linked = findWorkflowsForUsecase(flow, workflows);
   const seen = new Set(linked.map((wf) => wf.id).filter(Boolean));
   const forwardTicketsWorkflows = USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id)
@@ -1513,7 +1513,7 @@ function getLinkedWorkflowsForUsecase(
   const notificationWorkflows = notificationWorkflow?.id && !seen.has(notificationWorkflow.id)
     ? [notificationWorkflow]
     : [];
-  return { workflows: [...linked, ...forwardTicketsWorkflows, ...notificationWorkflows], forwardTicketsWorkflows, notificationWorkflows };
+  return { workflows: [...linked, ...forwardTicketsWorkflows, ...notificationWorkflows], usecaseWorkflows: linked, forwardTicketsWorkflows, notificationWorkflows };
 }
 
 function getWorkflowEnabledAppNames(workflows: WorkflowSummary[]): Set<string> {
@@ -3850,8 +3850,16 @@ function UsecaseDetailContent({
           // workflow currently uses, and provide a toggle that re-posts the
           // full app_name list to /workflows/generate (same contract as the
           // /incidents Ingest popover so the two stay in sync).
-          const { workflows: allLinkedForApps } = getLinkedWorkflowsForUsecase(flow, workflows, notificationWorkflow);
-          const enabledNamesSet = getWorkflowEnabledAppNames(allLinkedForApps);
+          const {
+            workflows: allLinkedForApps,
+            usecaseWorkflows: usecaseLinkedForApps,
+            forwardTicketsWorkflows: forwardTicketsLinkedForApps,
+          } = getLinkedWorkflowsForUsecase(flow, workflows, notificationWorkflow);
+          const sourceEnabledNamesSet = getWorkflowEnabledAppNames(usecaseLinkedForApps);
+          const destinationEnabledNamesSet = USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id)
+            ? getWorkflowEnabledAppNames(forwardTicketsLinkedForApps)
+            : getWorkflowEnabledAppNames(allLinkedForApps);
+          const enabledNamesSet = new Set([...sourceEnabledNamesSet, ...destinationEnabledNamesSet]);
           // Merge in any apps the user has chosen from the AppSearchDrawer in
           // a previous session — keeps the picked tool visible even if the
           // backend wiring is still in flight on the next reload.
@@ -3861,16 +3869,43 @@ function UsecaseDetailContent({
           if (allLinkedForApps.length === 0) {
             clearInjectedUsecaseApps(flow.id);
           } else {
+            const sourceCatalogKeys = new Set((categoryAppNames[flow.source] || []).map((n) => normalizeAppName(n)));
+            const destinationCatalogKeys = new Set(
+              ((MULTI_DEST_FLOW_IDS.has(flow.id) || USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id))
+                ? [...(categoryAppNames['communication'] || []), ...(categoryAppNames['case_management'] || [])]
+                : (categoryAppNames[flow.target] || [])
+              ).map((n) => normalizeAppName(n))
+            );
             for (const n of readInjectedUsecaseApps(flow.id)) {
-              enabledNamesSet.add(normalizeAppName(n));
+              const key = normalizeAppName(n);
+              enabledNamesSet.add(key);
+              if (sourceCatalogKeys.has(key) && !destinationCatalogKeys.has(key)) {
+                sourceEnabledNamesSet.add(key);
+              } else {
+                destinationEnabledNamesSet.add(key);
+              }
             }
           }
-          const handleUsecaseAppToggle = async (appName: string, enabled: boolean) => {
-            if (!flow.automationLabel) {
+          const handleUsecaseAppToggle = async (
+            appName: string,
+            enabled: boolean,
+            context?: {
+              automationLabel?: string;
+              automationCategory?: string;
+              workflows: WorkflowSummary[];
+              enabledNamesSet: Set<string>;
+              toastLabel?: string;
+            },
+          ) => {
+            const automationLabel = context?.automationLabel || flow.automationLabel;
+            if (!automationLabel) {
               toast.error('This usecase is not toggleable yet');
               return;
             }
-            const next = new Set(Array.from(enabledNamesSet));
+            const activeSet = context?.enabledNamesSet || enabledNamesSet;
+            const workflowScope = context?.workflows || allLinkedForApps;
+            const toastLabel = context?.toastLabel || flow.label;
+            const next = new Set(Array.from(activeSet));
             const key = normalizeAppName(appName);
             if (enabled) next.add(key); else next.delete(key);
             // Keep the localStorage "injected apps" snapshot in sync with the
@@ -3887,7 +3922,7 @@ function UsecaseDetailContent({
             // other apps still in the workflow.
             const activeNames: string[] = [];
             const seen = new Set<string>();
-            for (const wf of allLinkedForApps) {
+            for (const wf of workflowScope) {
               for (const action of (wf.actions || [])) {
                 for (const n of extractActionAppNames(action)) {
                   const k = normalizeAppName(n);
@@ -3903,8 +3938,9 @@ function UsecaseDetailContent({
             if (enabled && !seen.has(key)) { activeNames.push(appName); seen.add(key); }
 
             try {
-              const body: Record<string, string> = { label: flow.automationLabel };
-              if (flow.automationCategory) body.category = flow.automationCategory;
+              const body: Record<string, string> = { label: automationLabel };
+              const automationCategory = context?.automationCategory ?? flow.automationCategory;
+              if (automationCategory) body.category = automationCategory;
               if (activeNames.length > 0) body.app_name = activeNames.join(',');
               else body.action_name = 'remove';
               const res = await fetch(apiUrl('/api/v2/workflows/generate'), {
@@ -3918,10 +3954,10 @@ function UsecaseDetailContent({
               const ok = res.ok && parsed?.success !== false;
               if (!ok) throw new Error(parsed?.reason || `Request failed (${res.status})`);
               toast.success(enabled
-                ? `${appName} enabled for ${flow.label}`
-                : `${appName} disabled for ${flow.label}`);
+                ? `${appName} enabled for ${toastLabel}`
+                : `${appName} disabled for ${toastLabel}`);
               invalidateAppsCache(); setIntegrationsRefreshKey((k2) => k2 + 1);
-              onToggled?.(flow.automationLabel, activeNames.length > 0);
+              onToggled?.(automationLabel, activeNames.length > 0);
             } catch (err: any) {
               toast.error(`Failed to ${enabled ? 'enable' : 'disable'} ${appName}`, {
                 description: err?.message || 'The backend rejected the request.',
@@ -3932,12 +3968,9 @@ function UsecaseDetailContent({
         <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
           {(() => {
             const isMultiDest = MULTI_DEST_FLOW_IDS.has(flow.id);
-            // Ingest-to-cases usecases (SIEM/EDR/Email alerts) inherit the
-            // Forward Tickets workflow on the destination side. That workflow
-            // can contain Communication apps (Gmail, Slack, ...) alongside
-            // Cases apps, so widen the destination catalog the same way as
-            // multi-dest flows — otherwise foreign-category apps from the
-            // linked workflow get silently filtered out below.
+            // Ingest-to-cases usecases (SIEM/EDR/Email alerts) use the Forward
+            // Tickets workflow as the Destination truth source. Do not mix the
+            // ingest workflow's SIEM/EDR/Email apps into the destination tools.
             const inheritsForwardTickets = USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id);
             const destSpansCommAndCases = isMultiDest || inheritsForwardTickets;
             // For multi-destination flows (Notifications, Forward Tickets)
@@ -4047,7 +4080,10 @@ function UsecaseDetailContent({
                   foreignCategorySeen.add(normalizeAppName(n));
                 }
               }
-              for (const k of enabledNamesSet) {
+              const endpointEnabledNamesSet = endpoint.title === 'Destination'
+                ? destinationEnabledNamesSet
+                : sourceEnabledNamesSet;
+              for (const k of endpointEnabledNamesSet) {
                 if (baseSeen.has(k)) continue;
                 if (!destSpansCommAndCases && foreignCategorySeen.has(k) && !targetSeen.has(k)) continue;
                 injected.push(k); baseSeen.add(k);
@@ -4081,6 +4117,31 @@ function UsecaseDetailContent({
                 duration: 6000,
               });
             };
+            const endpointEnabledNamesSet = side === 'destination' ? destinationEnabledNamesSet : sourceEnabledNamesSet;
+            const endpointWorkflowAppNames = Array.from(endpointEnabledNamesSet);
+            const destinationUsesForwardTickets = side === 'destination' && inheritsForwardTickets;
+            const endpointAllowsMultiDestAdd = MULTI_DEST_FLOW_IDS.has(flow.id) || destinationUsesForwardTickets;
+            const addToolBlocked = isComingSoon
+              || destIsShuffleOnly
+              || sourceComingSoon
+              || (isCases && !endpointAllowsMultiDestAdd)
+              || (isCasesSourceOnly && side === 'source');
+            const endpointToggleHandler = sourceComingSoon
+              ? handleSourceComingSoon
+              : ((flow.automationLabel && !isComingSoon && !destIsShuffleOnly)
+                  ? (appName: string, enabled: boolean) => handleUsecaseAppToggle(appName, enabled, destinationUsesForwardTickets
+                      ? {
+                          automationLabel: 'Forward Tickets',
+                          automationCategory: 'cases',
+                          workflows: forwardTicketsLinkedForApps,
+                          enabledNamesSet: destinationEnabledNamesSet,
+                          toastLabel: 'Forward Tickets',
+                        }
+                      : {
+                          workflows: side === 'source' ? usecaseLinkedForApps : allLinkedForApps,
+                          enabledNamesSet: endpointEnabledNamesSet,
+                        })
+                  : undefined);
 
             return (
             <Box key={endpoint.title} sx={{ flex: 1, minWidth: 0 }}>
@@ -4115,18 +4176,16 @@ function UsecaseDetailContent({
                 filterApps={appNamesWithShuffle}
                 isResolving={!categoryAppsResolved}
                 syntheticApps={synthetic}
-                workflowAppNames={Array.from(enabledNamesSet)}
+                workflowAppNames={endpointWorkflowAppNames}
                 onHover={(item) => setHoveredTool((prev) => ({ ...prev, [side]: item }))}
                 onSelect={(item) => setPinnedTool((prev) => ({ ...prev, [side]: prev[side]?.id === item.id ? null : item }))}
                 selectedId={pinned?.id}
-                usecaseEnabledNames={enabledNamesSet}
-                onUsecaseAppToggle={sourceComingSoon
-                  ? handleSourceComingSoon
-                  : ((flow.automationLabel && !isComingSoon && !destIsShuffleOnly) ? handleUsecaseAppToggle : undefined)}
+                usecaseEnabledNames={endpointEnabledNamesSet}
+                onUsecaseAppToggle={endpointToggleHandler}
                 usecaseLabel={flow.label}
                 
-                onAddApp={(isComingSoon || destIsShuffleOnly || sourceComingSoon || (isCases && !MULTI_DEST_FLOW_IDS.has(flow.id)) || (isCasesSourceOnly && side === 'source')) ? undefined : () => setAddToolFor({ side, categoryId: endpoint.categoryId, multiDest: MULTI_DEST_FLOW_IDS.has(flow.id) })}
-                addAppLabel={(isComingSoon || destIsShuffleOnly || sourceComingSoon || (isCases && !MULTI_DEST_FLOW_IDS.has(flow.id)) || (isCasesSourceOnly && side === 'source')) ? undefined : (MULTI_DEST_FLOW_IDS.has(flow.id) ? 'Add destination tool (Communication or Cases)' : `Add ${endpoint.meta?.label || endpoint.title} tool`)}
+                onAddApp={addToolBlocked ? undefined : () => setAddToolFor({ side, categoryId: endpoint.categoryId, multiDest: endpointAllowsMultiDestAdd })}
+                addAppLabel={addToolBlocked ? undefined : (endpointAllowsMultiDestAdd ? 'Add destination tool (Communication or Cases)' : `Add ${endpoint.meta?.label || endpoint.title} tool`)}
                 extraTile={renderEndpointSlot && flow ? renderEndpointSlot({ flowId: flow.id, flowLabel: flow.label, side }) : undefined}
                 highlightAddApp={side === 'source' && enableAttempted && !hasValidatedSource && !effectiveEnabled}
 
@@ -4452,8 +4511,15 @@ function UsecaseDetailContent({
           // We then return `false` so the AppSearchDrawer falls through to
           // opening the AppDetailDrawer (sidebar) for configuration, where
           // `autoActivate` fires the Activate button automatically.
-          if (!flow?.automationLabel) return false;
-          const linkedForApps = findWorkflowsForUsecase(flow, workflows);
+          if (!flow) return false;
+          const addTargetsForwardTickets = addToolFor?.side === 'destination'
+            && USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id);
+          const automationLabel = addTargetsForwardTickets ? 'Forward Tickets' : flow?.automationLabel;
+          const automationCategory = addTargetsForwardTickets ? 'cases' : flow?.automationCategory;
+          if (!automationLabel) return false;
+          const linkedForApps = addTargetsForwardTickets
+            ? findWorkflowsForUsecase({ automationLabel: 'Forward Tickets', automationArea: undefined as any }, workflows)
+            : findWorkflowsForUsecase(flow, workflows);
           const enabledNames = new Set<string>();
           for (const wf of linkedForApps) {
             extractWorkflowAppNames(wf).forEach((n) => enabledNames.add(n));
@@ -4465,7 +4531,7 @@ function UsecaseDetailContent({
             return false; // open detail drawer for configuration
           }
           enabledNames.add(newKey);
-          const isMultiDest = MULTI_DEST_FLOW_IDS.has(flow.id);
+          const isMultiDest = MULTI_DEST_FLOW_IDS.has(flow.id) || addTargetsForwardTickets;
           const catalog: string[] = isMultiDest
             ? [
                 ...((categoryAppNames['case_management'] || []) as string[]),
@@ -4485,8 +4551,8 @@ function UsecaseDetailContent({
             if (!seen.has(k)) { activeNames.push(k); seen.add(k); }
           }
           if (!seen.has(newKey)) activeNames.push(app.name);
-          const body: Record<string, string> = { label: flow.automationLabel, app_name: activeNames.join(',') };
-          if (flow.automationCategory) body.category = flow.automationCategory;
+          const body: Record<string, string> = { label: automationLabel, app_name: activeNames.join(',') };
+          if (automationCategory) body.category = automationCategory;
           fetch(apiUrl('/api/v2/workflows/generate'), {
             method: 'POST',
             credentials: 'include',
@@ -4502,9 +4568,9 @@ function UsecaseDetailContent({
               });
               return;
             }
-            toast.success(`${app.name} added to ${flow.label}`);
+            toast.success(`${app.name} added to ${addTargetsForwardTickets ? 'Forward Tickets' : flow.label}`);
             invalidateAppsCache(); setIntegrationsRefreshKey((k) => k + 1);
-            onToggled?.(flow.automationLabel!, true);
+            onToggled?.(automationLabel, true);
           }).catch((err) => {
             toast.error(`Failed to add ${app.name}`, {
               description: err?.message || 'The backend rejected the request.',
