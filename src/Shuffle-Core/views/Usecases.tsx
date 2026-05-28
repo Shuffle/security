@@ -507,6 +507,16 @@ export function removeInjectedUsecaseApp(flowId: string, appName: string) {
     localStorage.setItem(INJECTED_APPS_LS_KEY, JSON.stringify(parsed));
   } catch { /* localStorage unavailable */ }
 }
+export function clearInjectedUsecaseApps(flowId: string) {
+  try {
+    const raw = localStorage.getItem(INJECTED_APPS_LS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!(flowId in parsed)) return;
+    delete parsed[flowId];
+    localStorage.setItem(INJECTED_APPS_LS_KEY, JSON.stringify(parsed));
+  } catch { /* localStorage unavailable */ }
+}
 
 
 
