@@ -1836,6 +1836,11 @@ function IntegrationStatusLite({
             }
           } catch { /* ignore */ }
         }
+        if (!cancelled && iconByName.size) {
+          const obj: Record<string, string> = {};
+          iconByName.forEach((v, k) => { obj[k] = v; });
+          setCatalogIcons(obj);
+        }
 
         const items = new Map<string, IntegrationItem>();
 
