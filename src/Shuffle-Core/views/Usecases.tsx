@@ -2828,6 +2828,23 @@ function UsecaseDetailContent({
     }
   }, [isEnabled, optimisticEnabled]);
 
+  // Capture the latest server-side enablement in a ref so the optimistic
+  // 8-second safety net can verify whether the backend actually reflected the
+  // change, and surface a clear warning toast if it didn't.
+  const isEnabledRef = React.useRef(isEnabled);
+  useEffect(() => { isEnabledRef.current = isEnabled; }, [isEnabled]);
+  const scheduleEnableVerification = (willBeEnabled: boolean) => {
+    setTimeout(() => {
+      setOptimisticEnabled(null);
+      if (willBeEnabled && !isEnabledRef.current && flow) {
+        toast.warning(`${flow.label} did not confirm`, {
+          description: 'The backend accepted the request but the change has not been reflected after 8 seconds. Open Workflows to check whether the workflow was generated, or try again.',
+          duration: 10000,
+        });
+      }
+    }, 8000);
+  };
+
   // For the Notifications usecase, the linked workflow is referenced by the
   // org's `defaults.notification_workflow` UUID rather than by tag/name, so
   // findWorkflowsForUsecase() never picks it up. Fetch it explicitly so we
@@ -2888,7 +2905,7 @@ function UsecaseDetailContent({
           duration: 6000,
         });
         onToggled?.(flow.automationLabel, willBeEnabled);
-        setTimeout(() => setOptimisticEnabled(null), 8000);
+        scheduleEnableVerification(willBeEnabled);
       } catch (err: any) {
         setOptimisticEnabled(null);
         toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`, {
@@ -3075,7 +3092,7 @@ function UsecaseDetailContent({
 
       onToggled?.(flow.automationLabel, willBeEnabled);
       // Hard safety net in case the server never reflects the change.
-      setTimeout(() => setOptimisticEnabled(null), 8000);
+      scheduleEnableVerification(willBeEnabled);
     } catch (err: any) {
       setOptimisticEnabled(null);
       const raw = err?.message || '';
@@ -3105,7 +3122,27 @@ function UsecaseDetailContent({
       return;
     }
     if (autoEnableFiredRef.current) return;
-    if (!flow || !canToggle || toggling) return;
+    if (toggling) return;
+    if (!flow) return;
+    if (!canToggle) {
+      // Don't silently swallow the click. Tell the user exactly why nothing
+      // happened so they can fix it (sign in, or pick a flow that is wired
+      // up for automation server-side).
+      autoEnableFiredRef.current = true;
+      onAutoEnableConsumed?.();
+      if (!isAuthenticated) {
+        toast.error('Sign in to enable usecases', {
+          description: 'You need to be signed in to generate the underlying workflow.',
+          duration: 8000,
+        });
+      } else if (!flow.automationLabel) {
+        toast.warning(`${flow.label} cannot be enabled yet`, {
+          description: 'This usecase does not have an automation label wired up server-side. Pick another usecase or contact support.',
+          duration: 8000,
+        });
+      }
+      return;
+    }
     if (effectiveEnabled) {
       // Already on — nothing to do; just consume the flag.
       autoEnableFiredRef.current = true;
@@ -3431,6 +3468,106 @@ function UsecaseDetailContent({
           </Box>
         </Box>
       </Box>
+
+      {/* Pre-flight requirements panel — makes it explicit when and WHY the
+          Enable button will (or will not) succeed, so users no longer click
+          and see "nothing happen". Hidden for Coming-soon flows and for
+          self-contained flows that do not need a source tool. */}
+      {!isComingSoon && flow.automationLabel && (() => {
+        const selfContained = !!SELF_CONTAINED_ENABLE[flow.id];
+        const needsSource = !!flow.source && !selfContained;
+        const sourceLabel = flow.source ? categoryLabel(flow.source) : 'source';
+        const checks: { ok: boolean; label: string; hint?: string; action?: { label: string; onClick: () => void } }[] = [];
+        checks.push({
+          ok: isAuthenticated,
+          label: isAuthenticated ? 'Signed in' : 'Sign in required',
+          hint: isAuthenticated ? undefined : 'You must be signed in to generate the underlying workflow.',
+        });
+        if (needsSource) {
+          checks.push({
+            ok: hasValidatedSource,
+            label: hasValidatedSource
+              ? `${sourceLabel} tool connected`
+              : `Connect a ${sourceLabel} tool`,
+            hint: hasValidatedSource
+              ? undefined
+              : `${flow.label} needs at least one validated ${sourceLabel} integration to react to — without it, the workflow has nothing to ingest and Enable will not do anything.`,
+            action: hasValidatedSource ? undefined : {
+              label: `Connect ${sourceLabel}`,
+              onClick: () => setAddToolFor({ side: 'source', categoryId: flow.source! }),
+            },
+          });
+        }
+        const allOk = checks.every((c) => c.ok);
+        const accent = allOk ? 'hsl(142 70% 45%)' : 'hsl(45 93% 47%)';
+        return (
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              border: `1px solid ${accent}40`,
+              bgcolor: `${accent}10`,
+              mb: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {allOk ? <CheckCircle2 size={16} color={accent} /> : <AlertTriangle size={16} color={accent} />}
+              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: FG }}>
+                {effectiveEnabled
+                  ? `${flow.label} is enabled`
+                  : allOk
+                    ? 'Ready to enable'
+                    : 'Cannot enable yet — fix the items below'}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pl: 0.25 }}>
+              {checks.map((c, idx) => (
+                <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  {c.ok ? (
+                    <CheckCircle2 size={14} style={{ color: 'hsl(142 70% 45%)', marginTop: 2, flexShrink: 0 }} />
+                  ) : (
+                    <Circle size={14} style={{ color: 'hsl(45 93% 47%)', marginTop: 2, flexShrink: 0 }} />
+                  )}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: FG }}>
+                      {c.label}
+                    </Typography>
+                    {c.hint && (
+                      <Typography sx={{ fontSize: '0.72rem', color: MUTED, lineHeight: 1.5 }}>
+                        {c.hint}
+                      </Typography>
+                    )}
+                  </Box>
+                  {c.action && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={c.action.onClick}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        py: 0.4,
+                        px: 1,
+                        minHeight: 0,
+                        borderColor: 'hsl(var(--border))',
+                        color: FG,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {c.action.label}
+                    </Button>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        );
+      })()}
+
 
       {flow.id === 'case_management_agent_ai_incident_handling_1' && (
         <AiIncidentHandlingPromptsBlock />
