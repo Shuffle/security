@@ -341,6 +341,34 @@ const AppDetailPage = () => {
     }
   };
 
+  // Auto-activate: when arriving from the Usecases AppSearchDrawer with
+  // ?autoActivate=1, fire the Activate button as soon as the app's
+  // algoliaId is resolved and we know it is not already activated.
+  useEffect(() => {
+    if (!autoActivateRequested || autoActivateTried) return;
+    if (!isAuthenticated || appLoading) return;
+    if (!appInfo?.algoliaId) return;
+    // Wait until /api/v1/apps has resolved activation state.
+    if (isActivated === null) return;
+    if (isActivated) {
+      // Already activated — just strip the param so a refresh doesn't loop.
+      setAutoActivateTried(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('autoActivate');
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    setAutoActivateTried(true);
+    handleActivateToggle().finally(() => {
+      const next = new URLSearchParams(searchParams);
+      next.delete('autoActivate');
+      setSearchParams(next, { replace: true });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoActivateRequested, autoActivateTried, isAuthenticated, appLoading, appInfo?.algoliaId, isActivated]);
+
+
+
   // Get matching auth entries for this app
   const matchingEntries = useMemo(() => {
     if (!appname || !isAuthenticated) return [];
