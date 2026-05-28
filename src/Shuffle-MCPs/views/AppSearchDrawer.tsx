@@ -165,6 +165,7 @@ export default function AppSearchDrawer({
   pinnedApps,
   highlightAppName,
   highlightDelayMs = 5000,
+  realtimeHighlightAppNames,
   multiSelect = false,
   selectedApps,
   onSelectionChange,
