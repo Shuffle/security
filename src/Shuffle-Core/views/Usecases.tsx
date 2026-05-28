@@ -4014,12 +4014,13 @@ function UsecaseDetailContent({
                   }
                 })();
                 // Collect distinct action app names so the right side can
-                // surface what the workflow actually does.
+                // surface what the workflow actually does. Unwrap Singul-wrapped
+                // actions so the real chosen app is shown.
                 const actionApps: string[] = (() => {
                   const out: string[] = [];
                   const seen = new Set<string>();
                   for (const a of (wf.actions || []) as any[]) {
-                    const n = a?.app_name;
+                    const n = resolveActionApp(a);
                     if (!n) continue;
                     const k = normalizeAppName(n);
                     if (seen.has(k)) continue;
