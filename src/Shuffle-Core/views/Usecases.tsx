@@ -3949,6 +3949,30 @@ function UsecaseDetailContent({
           : [];
         const allLinked = [...linkedWorkflows, ...forwardTicketsWorkflows, ...notifWorkflows];
         if (allLinked.length === 0) return null;
+        // Build a name->icon lookup from every validated app we have on hand
+        // so action chips can render with the real app icon.
+        const iconByName = new Map<string, string>();
+        for (const apps of Object.values(validatedAppsByCategory)) {
+          for (const a of (apps || [])) {
+            const k = normalizeAppName(a.name);
+            if (a.icon && !iconByName.has(k)) iconByName.set(k, a.icon);
+          }
+        }
+        // Some actions are wrapped by Singul — the surface app_name is
+        // "Singul" but the real tool is in parameters[name=app_name].value.
+        const isSingulWrapper = (n: string) => /^singul$/i.test(String(n || '').trim());
+        const resolveActionApp = (action: any): string | null => {
+          const raw = action?.app_name;
+          if (!raw) return null;
+          if (isSingulWrapper(raw)) {
+            const params = Array.isArray(action?.parameters) ? action.parameters : [];
+            for (const p of params) {
+              if (p?.name === 'app_name' && p.value) return String(p.value);
+            }
+            return null; // hide unresolved Singul wrappers
+          }
+          return raw;
+        };
         const labelHint = forwardTicketsWorkflows.length > 0 && flow.automationLabel
           ? `Matched on "${flow.automationLabel}" and "Forward Tickets"`
           : notifWorkflows.length > 0
