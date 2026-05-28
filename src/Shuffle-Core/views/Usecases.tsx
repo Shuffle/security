@@ -4511,8 +4511,14 @@ function UsecaseDetailContent({
           // We then return `false` so the AppSearchDrawer falls through to
           // opening the AppDetailDrawer (sidebar) for configuration, where
           // `autoActivate` fires the Activate button automatically.
-          if (!flow?.automationLabel) return false;
-          const linkedForApps = findWorkflowsForUsecase(flow, workflows);
+          const addTargetsForwardTickets = addToolFor?.side === 'destination'
+            && USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id);
+          const automationLabel = addTargetsForwardTickets ? 'Forward Tickets' : flow?.automationLabel;
+          const automationCategory = addTargetsForwardTickets ? 'cases' : flow?.automationCategory;
+          if (!automationLabel) return false;
+          const linkedForApps = addTargetsForwardTickets
+            ? findWorkflowsForUsecase({ automationLabel: 'Forward Tickets', automationArea: undefined as any }, workflows)
+            : findWorkflowsForUsecase(flow, workflows);
           const enabledNames = new Set<string>();
           for (const wf of linkedForApps) {
             extractWorkflowAppNames(wf).forEach((n) => enabledNames.add(n));
@@ -4524,7 +4530,7 @@ function UsecaseDetailContent({
             return false; // open detail drawer for configuration
           }
           enabledNames.add(newKey);
-          const isMultiDest = MULTI_DEST_FLOW_IDS.has(flow.id);
+          const isMultiDest = MULTI_DEST_FLOW_IDS.has(flow.id) || addTargetsForwardTickets;
           const catalog: string[] = isMultiDest
             ? [
                 ...((categoryAppNames['case_management'] || []) as string[]),
@@ -4544,8 +4550,8 @@ function UsecaseDetailContent({
             if (!seen.has(k)) { activeNames.push(k); seen.add(k); }
           }
           if (!seen.has(newKey)) activeNames.push(app.name);
-          const body: Record<string, string> = { label: flow.automationLabel, app_name: activeNames.join(',') };
-          if (flow.automationCategory) body.category = flow.automationCategory;
+          const body: Record<string, string> = { label: automationLabel, app_name: activeNames.join(',') };
+          if (automationCategory) body.category = automationCategory;
           fetch(apiUrl('/api/v2/workflows/generate'), {
             method: 'POST',
             credentials: 'include',
@@ -4561,9 +4567,9 @@ function UsecaseDetailContent({
               });
               return;
             }
-            toast.success(`${app.name} added to ${flow.label}`);
+            toast.success(`${app.name} added to ${addTargetsForwardTickets ? 'Forward Tickets' : flow.label}`);
             invalidateAppsCache(); setIntegrationsRefreshKey((k) => k + 1);
-            onToggled?.(flow.automationLabel!, true);
+            onToggled?.(automationLabel, true);
           }).catch((err) => {
             toast.error(`Failed to add ${app.name}`, {
               description: err?.message || 'The backend rejected the request.',
