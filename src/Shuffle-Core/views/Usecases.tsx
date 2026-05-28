@@ -456,6 +456,12 @@ const MULTI_DEST_FLOW_IDS = new Set<string>([
   'case_management_cases_forward_1', // Forward Tickets
 ]);
 
+const USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT = new Set<string>([
+  'siem_case_management_1',
+  'edr_case_management_1',
+  'email_case_management_1',
+]);
+
 // Usecases whose Source apps cannot be wired up yet — clicking the toggle
 // on any source app surfaces a "Coming soon" toast instead of mutating the
 // workflow. The Enrichment usecase runs entirely off Shuffle's built-in
