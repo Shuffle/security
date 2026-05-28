@@ -3211,6 +3211,7 @@ const IncidentsPage = () => {
       />
 
       <AppSearchDrawer
+        theme={resolvedTheme}
         open={appSearchOpen}
         onClose={() => {
           setAppSearchOpen(false);
