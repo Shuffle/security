@@ -4004,23 +4004,20 @@ function UsecaseDetailContent({
         }
         // Some actions are wrapped by Singul — the surface app_name is
         // "Singul" but the real tool is in parameters[name=app_name].value.
-        // Show Singul as a single chip and stack the inner app's icon on
-        // top so the user sees "Singul (with <inner>)" as one entry.
+        // We always unwrap to the inner app so the chip shows the real tool
+        // (e.g. Wazuh) instead of "Singul".
         const isSingulWrapper = (n: string) => /^singul$/i.test(String(n || '').trim());
-        type ActionChip = { name: string; via?: string };
-        const resolveActionChip = (action: any): ActionChip | null => {
+        const resolveActionApp = (action: any): string | null => {
           const raw = action?.app_name;
           if (!raw) return null;
           if (isSingulWrapper(raw)) {
             const params = Array.isArray(action?.parameters) ? action.parameters : [];
             for (const p of params) {
-              if (p?.name === 'app_name' && p.value) {
-                return { name: 'Singul', via: String(p.value) };
-              }
+              if (p?.name === 'app_name' && p.value) return String(p.value);
             }
-            return { name: 'Singul' };
+            return null; // hide unresolved Singul wrappers
           }
-          return { name: String(raw) };
+          return String(raw);
         };
         const labelHint = forwardTicketsWorkflows.length > 0 && flow.automationLabel
           ? `Matched on "${flow.automationLabel}" and "Forward Tickets"`
@@ -4062,24 +4059,24 @@ function UsecaseDetailContent({
                       : { label: 'Manual', Icon: MousePointerClick };
                   }
                 })();
-                // Collect distinct action app chips. Singul-wrapped actions
-                // dedupe by inner app so multiple Singul calls to Wazuh
-                // surface as a single "Singul (Wazuh)" chip.
-                const actionChips: ActionChip[] = (() => {
-                  const out: ActionChip[] = [];
+                // Collect distinct action app names. Singul-wrapped actions
+                // resolve to their inner app, so multiple Singul calls to
+                // Wazuh dedupe into a single Wazuh chip.
+                const actionApps: string[] = (() => {
+                  const out: string[] = [];
                   const seen = new Set<string>();
                   for (const a of (wf.actions || []) as any[]) {
-                    const chip = resolveActionChip(a);
-                    if (!chip) continue;
-                    const k = `${normalizeAppName(chip.name)}::${normalizeAppName(chip.via || '')}`;
-                    if (seen.has(k)) continue;
+                    const n = resolveActionApp(a);
+                    if (!n) continue;
+                    const k = normalizeAppName(n);
+                    if (!k || seen.has(k)) continue;
                     seen.add(k);
-                    out.push(chip);
+                    out.push(n);
                   }
                   return out;
                 })();
-                const visibleActionApps = actionChips.slice(0, 3);
-                const extraActionCount = actionChips.length - visibleActionApps.length;
+                const visibleActionApps = actionApps.slice(0, 3);
+                const extraActionCount = actionApps.length - visibleActionApps.length;
                 const TriggerIcon = triggerMeta.Icon;
                 return (
                 <Box
