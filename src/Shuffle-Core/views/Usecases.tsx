@@ -3504,7 +3504,7 @@ function UsecaseDetailContent({
         if (!isAuthenticated) {
           message = 'Sign in first. Enable will not do anything until you are signed in.';
         } else if (needsSource && !hasValidatedSource) {
-          message = `Connect a ${sourceLabel} tool first. ${flow.label} needs something to react to before Enable can generate the workflow.`;
+          message = `To enable ${flow.label}, add a ${sourceLabel} tool using the highlighted "+" under Source below.`;
           action = { label: `Connect ${sourceLabel}`, onClick: () => setAddToolFor({ side: 'source', categoryId: flow.source! }) };
         }
         if (!message) return null;
