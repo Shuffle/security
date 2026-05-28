@@ -1799,6 +1799,10 @@ function IntegrationStatusLite({
    *  ReactNode to render under Available, or `{ node, enabled }` to control
    *  whether it appears under Enabled or Available. */
   extraTile?: React.ReactNode | { node: React.ReactNode; enabled?: boolean };
+  /** Optional map of normalized app name -> workflow names that reference it.
+   *  When provided, the tile tooltip lists the workflow(s) using the app so
+   *  users can trace where a weird-looking app came from. */
+  workflowsByAppName?: Map<string, string[]>;
 }) {
   const { apiUrl, authHeader } = useApi();
   const appDetail = useAppDetailOptional();
