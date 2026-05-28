@@ -4061,7 +4061,6 @@ function UsecaseDetailContent({
 
 
       {(() => {
-        const linkedWorkflows = findWorkflowsForUsecase(flow, workflows);
         // Mirror the Source/Destination popover behavior — figure out which
         // apps the linked workflows currently use, and provide the same
         // enable/disable handler, so clicking an app chip in Linked Workflows
@@ -4147,15 +4146,6 @@ function UsecaseDetailContent({
         const notifWorkflows = notifForLW;
         const allLinked = allLinkedForSet;
         if (allLinked.length === 0) return null;
-        // Build a name->icon lookup from every validated app we have on hand
-        // so action chips can render with the real app icon.
-        const iconByName = new Map<string, string>();
-        for (const apps of Object.values(validatedAppsByCategory)) {
-          for (const a of (apps || [])) {
-            const k = normalizeAppName(a.name);
-            if (a.icon && !iconByName.has(k)) iconByName.set(k, a.icon);
-          }
-        }
         const labelHint = forwardTicketsWorkflows.length > 0 && flow.automationLabel
           ? `Matched on "${flow.automationLabel}" and "Forward Tickets"`
           : notifWorkflows.length > 0
@@ -4212,8 +4202,6 @@ function UsecaseDetailContent({
                   }
                   return out;
                 })();
-                const visibleActionApps = actionApps.slice(0, 3);
-                const extraActionCount = actionApps.length - visibleActionApps.length;
                 const TriggerIcon = triggerMeta.Icon;
                 return (
                 <Box
