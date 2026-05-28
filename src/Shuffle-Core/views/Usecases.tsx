@@ -2905,7 +2905,7 @@ function UsecaseDetailContent({
           duration: 6000,
         });
         onToggled?.(flow.automationLabel, willBeEnabled);
-        setTimeout(() => setOptimisticEnabled(null), 8000);
+        scheduleEnableVerification(willBeEnabled);
       } catch (err: any) {
         setOptimisticEnabled(null);
         toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`, {
