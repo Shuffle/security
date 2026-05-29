@@ -935,7 +935,7 @@ export const AppAuthCard = ({
               sx={{
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: isSecretField ? 'hsl(var(--primary) / 0.06)' : 'hsl(var(--muted))',
-                  borderRadius: 2,
+                  borderRadius: 1,
                   '& fieldset': {
                     borderColor: fieldErrors[fieldKey]
                       ? 'hsl(var(--destructive))'
