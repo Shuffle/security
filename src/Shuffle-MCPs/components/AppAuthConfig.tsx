@@ -2058,7 +2058,7 @@ export const AppAuthCard = ({
                               setUserHasSelected(true);
                               setLocalCredentials({});
                               setFieldErrors({});
-                              if (onSelectAuth) onSelectAuth(acceptId);
+                              if (onSelectAuth) onSelectAuth(app.objectID, acceptId);
                             }}
                             sx={{
                               color: 'hsl(var(--muted-foreground))',
