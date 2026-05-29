@@ -197,7 +197,18 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     setSelectedPreset(label);
     const preset = ENDPOINT_PRESETS.find((p) => p.label === label);
     if (!preset) return;
-    handleAuthChange(OPENAI_APP_ID, { ...authState.credentials, url: preset.label === CUSTOM_PRESET ? customUrl : preset.url });
+    // Auto-select the top model for this provider so the user does not have
+    // to manually pick one. Custom-typed values are preserved if already set.
+    const topModel = PROVIDER_MODELS[label]?.[0] || '';
+    const existingModel = (authState.credentials?.model as string) || '';
+    const nextModel = topModel || existingModel;
+    setCustomMode(false);
+    setCustomModel('');
+    handleAuthChange(OPENAI_APP_ID, {
+      ...authState.credentials,
+      url: preset.label === CUSTOM_PRESET ? customUrl : preset.url,
+      ...(nextModel ? { model: nextModel } : {}),
+    });
   };
 
   const handleCustomUrlChange = (value: string) => {

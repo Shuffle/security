@@ -591,7 +591,7 @@ export const AppAuthCard = ({
     }
   }, [auth?.parameters, disableUrlPrefill]);
 
-  // Sync externally-driven URL/endpoint changes (e.g. provider preset
+  // Sync externally-driven URL/endpoint/model changes (e.g. provider preset
   // selectors) into the local form state so the field reflects the choice.
   useEffect(() => {
     const incoming = authState.credentials || {};
@@ -601,7 +601,8 @@ export const AppAuthCard = ({
       for (const [k, v] of Object.entries(incoming)) {
         const lk = k.toLowerCase();
         const isUrlish = lk.includes('url') || lk.includes('endpoint') || lk.includes('host');
-        if (isUrlish && typeof v === 'string' && v !== prev[k]) {
+        const isModel = lk === 'model';
+        if ((isUrlish || isModel) && typeof v === 'string' && v !== prev[k]) {
           next[k] = v;
           changed = true;
         }
@@ -2058,14 +2059,30 @@ export const AppAuthCard = ({
                             size="medium"
                             onClick={async (e) => {
                               e.stopPropagation();
-                              const acceptId = pendingFailedAuthId;
+                              const previousFailedId = pendingFailedAuthId;
                               setPendingFailedAuthId(null);
-                              setSelectedAuthId(acceptId);
                               setUserHasSelected(true);
                               setFieldErrors({});
+                              // Re-PUT the credentials so URL/model/apikey from
+                              // the in-memory form are guaranteed to be on the
+                              // accepted entry (the original PUT may have raced
+                              // with preset selection and missed the URL).
+                              await onSaveAuth(app.objectID, localCredentials);
+                              // Refresh to pick up the newest entry.
+                              let entries = apiAuthEntries;
+                              if (onRefreshAuth) {
+                                await onRefreshAuth();
+                              }
+                              // Best-effort: re-read entries after refresh.
+                              entries = (apiAuthEntries || []);
+                              // Newest entry = the one we just PUT. Fall back
+                              // to the previously-failed id if we cannot tell.
+                              const sorted = [...entries].sort((a, b) => (b.created || 0) - (a.created || 0));
+                              const acceptId = (sorted[0]?.id as string) || previousFailedId;
+                              setSelectedAuthId(acceptId);
                               // Delete every other saved auth for this app so
                               // the accepted one is the only entry left.
-                              const stale = apiAuthEntries.filter((e) => e.id && e.id !== acceptId);
+                              const stale = entries.filter((e) => e.id && e.id !== acceptId);
                               await Promise.all(stale.map(async (entry) => {
                                 try {
                                   await fetch(getApiUrl(`/api/v1/apps/authentication/${entry.id}`), {
