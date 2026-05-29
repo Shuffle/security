@@ -1921,7 +1921,7 @@ export const AppAuthCard = ({
                   </Alert>
                 )}
                 <Typography variant="subtitle2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, mb: 2 }}>
-                  {apiAuthEntries.length === 0 ? 'Configure Authentication' : 'Add New Authentication'}
+                  {apiAuthEntries.length === 0 ? `Configure ${app.name.replace(/_/g, ' ')}` : 'Add New Authentication'}
                 </Typography>
                 
                 {loading ? (
