@@ -211,9 +211,9 @@ const fetchSensorGroups = async (): Promise<{ groups: MonitoringGroup[]; allEnvs
         groups[0] = { ...groups[0], hosts: [...groups[0].hosts, ...orphanSensorHosts] };
       } else {
         groups.push({
-          id: 'shuffle_sensors',
-          name: 'shuffle_sensors',
-          queue: 'shuffle_sensors',
+          id: 'default_monitors',
+          name: 'default_monitors',
+          queue: 'default_monitors',
           auth: '',
           org_id: '',
           hosts: orphanSensorHosts,
