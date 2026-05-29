@@ -1278,7 +1278,8 @@ export const AppAuthCard = ({
             }}
           >
             {/* Auth Selection Dropdown - always at top */}
-            {apiAuthEntries.length > 0 && (
+            {!compactAuthForm && apiAuthEntries.length > 0 && (
+
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 1 }}>
                   Select authentication
