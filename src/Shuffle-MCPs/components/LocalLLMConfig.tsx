@@ -139,8 +139,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // Prefer the in-memory edit (authState.credentials), but fall back to the
   // persisted URL on the saved auth entry so we can auto-detect the vendor
   // even when the user has not opened/edited the form yet.
-  const savedUrlFromEntry = (openaiEntries[0]?.fields || [])
-    .find((f: any) => (f?.key || '').toLowerCase() === 'url')?.value || '';
+  const savedUrlFromEntry = (((openaiEntries[0] as any)?.fields) as Array<{ key?: string; value?: string }> | undefined || [])
+    .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
   const currentUrl = ((authState.credentials?.url as string) || savedUrlFromEntry || '').trim();
   // Model is now persisted inside the AppAuthCard credentials (read via extraFieldsSlot).
   const [customModel, setCustomModel] = useState<string>('');
