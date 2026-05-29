@@ -433,12 +433,16 @@ export const AppAuthCard = ({
       });
       // If this error came from the auto-test that fires right after a brand
       // new auth was saved, switch the form back to the "Add new" view so the
-      // user's still-populated credentials are visible and editable.
+      // user's still-populated credentials are visible and editable. We also
+      // remember the saved-but-failed auth so we can offer a "Save anyway"
+      // secondary CTA — our test isn't always authoritative.
       if (autoTestFiredRef.current === testingAuthId) {
         setSelectedAuthId(ADD_NEW_AUTH);
         setUserHasSelected(true);
+        setPendingFailedAuthId(testingAuthId);
         autoTestFiredRef.current = null;
       }
+
       // Clear testingAuthId after processing completed status
       setTestingAuthId(null);
     }
@@ -482,6 +486,10 @@ export const AppAuthCard = ({
   const [localCredentials, setLocalCredentials] = useState<Record<string, string>>(authState.credentials || {});
   // Track which secret fields the user has chosen to reveal (eye toggle).
   const [revealedFields, setRevealedFields] = useState<Record<string, boolean>>({});
+  // Auth id of a freshly-saved entry whose auto-test failed — drives the
+  // "Save anyway" secondary CTA so the user can accept it despite the failure.
+  const [pendingFailedAuthId, setPendingFailedAuthId] = useState<string | null>(null);
+
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -2037,12 +2045,45 @@ export const AppAuthCard = ({
 
                     {/* Save button for non-OAuth2 apps */}
                     {!isOAuth2 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1.5, gap: 1, flexWrap: 'wrap' }}>
+                        {pendingFailedAuthId && (
+                          <Button
+                            variant="text"
+                            size="medium"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const acceptId = pendingFailedAuthId;
+                              setPendingFailedAuthId(null);
+                              setSelectedAuthId(acceptId);
+                              setUserHasSelected(true);
+                              setLocalCredentials({});
+                              setFieldErrors({});
+                              if (onSelectAuth) onSelectAuth(app.objectID, acceptId);
+                            }}
+                            sx={{
+                              color: 'hsl(var(--muted-foreground))',
+                              fontWeight: 600,
+                              textTransform: 'none',
+                              fontSize: '0.85rem',
+                              px: 2,
+                              py: 1,
+                              borderRadius: 2,
+                              '&:hover': {
+                                color: 'hsl(var(--foreground))',
+                                backgroundColor: 'hsl(var(--muted) / 0.5)',
+                              },
+                            }}
+                            title="Our test isn't always authoritative — keep the credentials you saved and dismiss the failure."
+                          >
+                            Save anyway
+                          </Button>
+                        )}
                         <Button
                           variant="outlined"
                           size="medium"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setPendingFailedAuthId(null);
                             handleSave();
                           }}
                           disabled={saving || !isFormValid()}
@@ -2066,10 +2107,11 @@ export const AppAuthCard = ({
                             },
                           }}
                         >
-                          {saving ? 'Testing...' : 'Test Authentication'}
+                          {saving ? 'Testing...' : pendingFailedAuthId ? 'Retry Test' : 'Test Authentication'}
                         </Button>
                       </Box>
                     )}
+
 
                     {/* Save & Authenticate button for OAuth2 apps with manual credentials */}
                     {isOAuth2 && (() => {
