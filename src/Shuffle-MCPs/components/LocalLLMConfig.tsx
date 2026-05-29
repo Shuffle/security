@@ -29,8 +29,6 @@ import {
 
 const OPENAI_APP_NAME = 'OpenAI';
 const OPENAI_APP_ID = '5d19dd82517870c68d40cacad9b5ca91';
-const SHUFFLE_AI_PRESET = 'Shuffle AI';
-const CUSTOM_PRESET = 'Custom / self-hosted';
 
 const OPENAI_ALGOLIA_APP: AlgoliaSearchApp = {
   name: OPENAI_APP_NAME,
