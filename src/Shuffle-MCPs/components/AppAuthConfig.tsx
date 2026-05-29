@@ -462,7 +462,7 @@ export const AppAuthCard = ({
   // User can manually switch back to other auths or add new one
   const isCredentialError = localTestMessages.errorCode === 401 || localTestMessages.errorCode === 403;
 
-  const showAddNewForm = selectedAuthId === ADD_NEW_AUTH;
+  const showAddNewForm = compactAuthForm ? true : selectedAuthId === ADD_NEW_AUTH;
 
   // Compute configured/tested status for the SELECTED auth entry only (not any auth)
   const isConfigured = selectedAuth?.active === true;
