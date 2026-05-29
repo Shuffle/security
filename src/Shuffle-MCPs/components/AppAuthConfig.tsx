@@ -185,6 +185,12 @@ export interface AppAuthCardProps extends ShuffleHostProps {
   /** Render without the outer Card border so the component can be embedded
    *  inside another bordered container without the nested "double border" look. */
   borderless?: boolean;
+  /** Compact mode for embedded auth setup (e.g. Local LLM). Hides the
+   *  "Select authentication" dropdown and the large "Pending Verification"
+   *  detail panel with its standalone Test Connection button. The inline
+   *  credentials form (with the small "Test Authentication" CTA) is always
+   *  visible so users can edit & retest in one place. */
+  compactAuthForm?: boolean;
   /** Render additional fields inside the expanded body, above the credential
    *  inputs. The slot receives the live `localCredentials` and a `setField`
    *  helper so its values are persisted as part of the auth on Save. */
@@ -193,6 +199,7 @@ export interface AppAuthCardProps extends ShuffleHostProps {
     setField: (key: string, value: string) => void;
   }) => React.ReactNode;
 }
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
