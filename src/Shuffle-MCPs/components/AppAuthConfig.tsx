@@ -1940,6 +1940,7 @@ export const AppAuthCard = ({
                   </Alert>
                 ) : (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {extraFieldsSlot?.({ credentials: localCredentials, setField: handleCredentialChange })}
                     {/* Render dynamic fields based on auth type */}
                     {renderOAuth2Fields()}
                     {renderParameterFields()}
