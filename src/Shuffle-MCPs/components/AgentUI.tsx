@@ -2091,7 +2091,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
     
     setError(null);
     setLocalRunStart(null);
-    setViewMode('simple');
+    // When starting a new run, respect the user's stored Simple/Detailed
+    // preference rather than forcing Simple every time.
+    try {
+      const stored = typeof window !== 'undefined' ? window.localStorage.getItem('shuffle-agents-view-mode') : null;
+      setViewMode(stored === 'detailed' ? 'detailed' : 'simple');
+    } catch {
+      setViewMode('simple');
+    }
     setShowStarter(false);
     // The user is starting a new run — drop any sticky "manual Start" pin so
     // future polls/effects can populate Simple/Detailed normally.
