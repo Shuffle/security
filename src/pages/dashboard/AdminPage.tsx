@@ -23,6 +23,7 @@ import UsersPage from './UsersPage';
 import { Billing, TenantManagement } from '@/Shuffle-Core';
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useTheme as useNextTheme } from 'next-themes';
 
 const REGION_OPTIONS = [
   { value: '', label: 'Default (UK)' },
