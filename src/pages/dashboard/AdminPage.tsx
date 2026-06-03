@@ -88,6 +88,7 @@ const AdminPage = () => {
     if (newValue === 0) navigate('/admin');
     else if (newValue === 1) navigate('/admin/users');
     else if (newValue === 2) navigate('/admin/tenants');
+    else if (newValue === 3) navigate('/admin/billing');
   };
 
   // Fetch org details
