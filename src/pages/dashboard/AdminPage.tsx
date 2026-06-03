@@ -53,6 +53,8 @@ const AdminPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { userInfo, refreshUserInfo, setActiveOrg } = useAuth();
+  const { resolvedTheme } = useNextTheme();
+  const shuffleTheme = (resolvedTheme === 'light' ? 'light' : 'dark') as 'light' | 'dark';
   const orgId = userInfo?.active_org?.id;
 
   // Determine active tab from path
