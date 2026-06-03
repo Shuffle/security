@@ -446,7 +446,7 @@ const AdminPage = () => {
               theme="system"
               {...({
                 userdata: userInfo,
-                selectedOrganization: userInfo?.active_org,
+                selectedOrganization: fullOrg || userInfo?.active_org,
                 globalUrl: getApiUrl(''),
                 serverside: false,
                 isLoaded: true,
