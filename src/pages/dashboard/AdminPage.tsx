@@ -21,6 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
 import TenantManagement from '@/components/tenants/TenantManagement';
+import Billing from '@/Shuffle-Core/views/Billing';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 const REGION_OPTIONS = [
@@ -57,6 +58,7 @@ const AdminPage = () => {
   const getTabFromPath = useCallback(() => {
     if (location.pathname === '/admin/users') return 1;
     if (location.pathname === '/admin/tenants') return 2;
+    if (location.pathname === '/admin/billing') return 3;
     return 0;
   }, [location.pathname]);
 
@@ -86,6 +88,7 @@ const AdminPage = () => {
     if (newValue === 0) navigate('/admin');
     else if (newValue === 1) navigate('/admin/users');
     else if (newValue === 2) navigate('/admin/tenants');
+    else if (newValue === 3) navigate('/admin/billing');
   };
 
   // Fetch org details
@@ -222,7 +225,7 @@ const AdminPage = () => {
           border: '1px solid hsl(var(--border))',
           boxShadow: '0 4px 12px hsl(0 0% 0% / 0.15)',
         }}>
-          {['Overview', 'Users', 'Tenants'].map((label, index) => (
+          {['Overview', 'Users', 'Tenants', 'Billing'].map((label, index) => (
             <Box
               key={label}
               onClick={() => handleTabChange(null, index)}
@@ -410,6 +413,20 @@ const AdminPage = () => {
 
       {activeTab === 1 && <UsersPage embedded />}
       {activeTab === 2 && <TenantManagement />}
+      {activeTab === 3 && (
+        <Billing
+          {...({
+            userdata: userInfo,
+            selectedOrganization: userInfo?.active_org,
+            globalUrl: getApiUrl(''),
+            serverside: false,
+            isLoaded: true,
+            billingInfo: {},
+            stripeKey: '',
+            handleGetOrg: refreshUserInfo,
+          } as any)}
+        />
+      )}
     </Box>
   );
 };
