@@ -415,14 +415,16 @@ const AdminPage = () => {
       {activeTab === 2 && <TenantManagement />}
       {activeTab === 3 && (
         <Billing
-          userdata={userInfo}
-          selectedOrganization={userInfo?.active_org}
-          globalUrl={getApiUrl('')}
-          serverside={false}
-          isLoaded={true}
-          billingInfo={{}}
-          stripeKey=""
-          handleGetOrg={refreshUserInfo}
+          {...({
+            userdata: userInfo,
+            selectedOrganization: userInfo?.active_org,
+            globalUrl: getApiUrl(''),
+            serverside: false,
+            isLoaded: true,
+            billingInfo: {},
+            stripeKey: '',
+            handleGetOrg: refreshUserInfo,
+          } as any)}
         />
       )}
     </Box>
