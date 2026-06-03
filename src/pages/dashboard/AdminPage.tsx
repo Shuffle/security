@@ -225,7 +225,7 @@ const AdminPage = () => {
           border: '1px solid hsl(var(--border))',
           boxShadow: '0 4px 12px hsl(0 0% 0% / 0.15)',
         }}>
-          {['Overview', 'Users', 'Tenants'].map((label, index) => (
+          {['Overview', 'Users', 'Tenants', 'Billing'].map((label, index) => (
             <Box
               key={label}
               onClick={() => handleTabChange(null, index)}
