@@ -28,6 +28,7 @@ import AutomationDashboardRaw from './components/dashboard/AutomationDashboard';
 import DashboardOverviewRaw from './components/dashboard/DashboardOverview';
 import CombinedDashboardRaw from './components/dashboard/CombinedDashboard';
 import BillingRaw from './views/Billing';
+import TenantManagementRaw from './views/TenantManagement';
 
 /**
  * Wrap a Shuffle-Core surface in the theme provider. Every exported
