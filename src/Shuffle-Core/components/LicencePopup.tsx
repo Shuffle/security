@@ -1,7 +1,8 @@
+// @ts-nocheck
 import React, { useState, useEffect, useContext, useRef } from "react";
+import { useTheme } from "@mui/material/styles";
 import ReactGA from "react-ga4";
 
-import { getTheme } from "../theme.jsx";
 import {
   Box,
   Typography,
@@ -26,8 +27,7 @@ import {
 } from "@mui/material";
 
 import { useNavigate, Link } from "react-router-dom";
-import { toast } from "react-toastify";
-import { Context } from "../context/ContextApi.jsx";
+import { toast } from "../toast";
 import {
   ContentCopy as ContentCopyIcon,
   Draw as DrawIcon,
@@ -63,8 +63,8 @@ const LicencePopup = (props) => {
     selectedOrganization?.Billing?.Email
   );
 
-  const { themeMode } = useContext(Context);
-  const theme = getTheme(themeMode);
+  const theme = useTheme();
+  const themeMode = theme.palette.mode;
 
 
   useEffect(() => {
