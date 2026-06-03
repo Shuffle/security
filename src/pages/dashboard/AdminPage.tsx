@@ -415,6 +415,7 @@ const AdminPage = () => {
       {activeTab === 2 && <TenantManagement />}
       {activeTab === 3 && (
         <Billing
+          theme="system"
           {...({
             userdata: userInfo,
             selectedOrganization: userInfo?.active_org,
