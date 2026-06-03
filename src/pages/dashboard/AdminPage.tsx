@@ -406,7 +406,10 @@ const AdminPage = () => {
 
       {activeTab === 1 && <UsersPage embedded />}
       {activeTab === 2 && <TenantManagement />}
-      {activeTab === 3 && (() => {
+      {activeTab === 3 && userInfo?.support !== true && (
+        <Alert severity="info">Only support users can view billing.</Alert>
+      )}
+      {activeTab === 3 && userInfo?.support === true && (() => {
         const origin = typeof window === 'undefined' || window.location === undefined ? '' : window.location.origin;
         const isLiveStripeOrigin = origin === 'https://shuffler.io' || origin === 'https://security.shuffler.io';
         const stripeKey = isLiveStripeOrigin
