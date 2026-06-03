@@ -67,6 +67,7 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fullOrg, setFullOrg] = useState<any>(null);
 
   const [orgName, setOrgName] = useState('');
   const [orgDescription, setOrgDescription] = useState('');
@@ -106,6 +107,7 @@ const AdminPage = () => {
         if (!response.ok) throw new Error('Failed to fetch organization details');
 
         const data = await response.json();
+        setFullOrg(data);
         const name = data.name || '';
         const description = data.description || '';
         const image = data.image || '';
@@ -444,7 +446,7 @@ const AdminPage = () => {
               theme="system"
               {...({
                 userdata: userInfo,
-                selectedOrganization: userInfo?.active_org,
+                selectedOrganization: fullOrg || userInfo?.active_org,
                 globalUrl: getApiUrl(''),
                 serverside: false,
                 isLoaded: true,
