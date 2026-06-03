@@ -406,7 +406,20 @@ const AdminPage = () => {
       )}
 
       {activeTab === 1 && <UsersPage embedded />}
-      {activeTab === 2 && <TenantManagement />}
+      {activeTab === 2 && (
+        <TenantManagement
+          theme="system"
+          {...({
+            userdata: userInfo,
+            selectedOrganization: fullOrg || userInfo?.active_org,
+            globalUrl: getApiUrl(''),
+            serverside: false,
+            isLoaded: true,
+            setActiveOrg,
+            handleGetOrg: refreshUserInfo,
+          } as any)}
+        />
+      )}
       {activeTab === 3 && userInfo?.support !== true && (
         <Alert severity="info">Only support users can view billing.</Alert>
       )}
