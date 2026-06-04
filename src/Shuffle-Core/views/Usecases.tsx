@@ -1968,9 +1968,21 @@ function IntegrationStatusLite({
     return [...extras, ...workflowExtras, ...integrations];
   }, [integrations, syntheticApps, workflowAppNames, catalogIcons]);
 
-  const visible = filterApps?.length
+  const visibleUnsorted = filterApps?.length
     ? merged.filter((item) => filterApps.some((name) => normalizeAppName(name) === normalizeAppName(item.name)))
     : merged;
+  // Order: Enabled (validated) > Configured (active) > Available (in catalog) > Other (workflow-only/synthetic)
+  const visibleRank = (i: IntegrationItem) => {
+    if (i.validated) return 0;
+    if (i.active) return 1;
+    if (typeof i.id === 'string' && (i.id.startsWith('workflow-') || i.id.startsWith('synthetic-'))) return 3;
+    return 2;
+  };
+  const visible = [...visibleUnsorted].sort((a, b) => {
+    const r = visibleRank(a) - visibleRank(b);
+    if (r !== 0) return r;
+    return (a.name || '').localeCompare(b.name || '');
+  });
 
   // Show the loader both while we are fetching the API and while the parent
   // is still figuring out which app names belong to this category — this
@@ -2411,11 +2423,15 @@ function IntegrationStatusLite({
           px: 0.5,
           // extra vertical padding so the status dot (bottom: -2) isn't clipped
           py: '6px',
-          overflowX: 'hidden',
+          overflowX: 'auto',
           overflowY: 'visible',
           minWidth: 0,
-          maskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent)',
-          WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent)',
+          scrollbarWidth: 'thin',
+          '&::-webkit-scrollbar': { height: 6 },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'hsl(var(--border))',
+            borderRadius: 3,
+          },
         }}
       >
         {visible.map(renderIcon)}
