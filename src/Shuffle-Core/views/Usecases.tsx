@@ -3924,6 +3924,26 @@ function UsecaseDetailContent({
             targetCategory={flow.target}
             highlightCategory={flow.source}
             isLoggedIn={isAuthenticated}
+            // Reuse the same AppDetailDrawer the default Source/Destination
+            // tile popover opens via its "Manage authentication" button.
+            onBubbleClick={({ appName }) => {
+              if (!appDetail) return false;
+              appDetail.openApp(appName);
+              return true;
+            }}
+            // Reuse the same AppSearchDrawer wiring (setAddToolFor) the
+            // default Source/Destination "+" tile uses, so adding a tool
+            // from the alluvial goes through the same workflows/generate
+            // pipeline with toast + cache invalidation.
+            onAddTool={(side) => {
+              const isLeft = side === 'left';
+              setAddToolFor({
+                side: isLeft ? 'source' : 'destination',
+                categoryId: isLeft ? flow.source! : flow.target!,
+                multiDest: !isLeft && (MULTI_DEST_FLOW_IDS.has(flow.id) || USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id)),
+              });
+              return true;
+            }}
           />
         ) : (
         (() => {
