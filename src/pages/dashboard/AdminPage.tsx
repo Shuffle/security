@@ -20,8 +20,10 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
-import TenantManagement from '@/components/tenants/TenantManagement';
+import { Billing, TenantManagement } from '@/Shuffle-Core';
+import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useTheme as useAppTheme } from '@/context/ThemeContext';
 
 const REGION_OPTIONS = [
   { value: '', label: 'Default (UK)' },
@@ -50,13 +52,16 @@ const AdminPage = () => {
   });
   const location = useLocation();
   const navigate = useNavigate();
-  const { userInfo, refreshUserInfo } = useAuth();
+  const { userInfo, refreshUserInfo, setActiveOrg } = useAuth();
+  const { resolvedTheme } = useAppTheme();
+  const shuffleTheme = (resolvedTheme === 'light' ? 'light' : 'dark') as 'light' | 'dark';
   const orgId = userInfo?.active_org?.id;
 
   // Determine active tab from path
   const getTabFromPath = useCallback(() => {
     if (location.pathname === '/admin/users') return 1;
     if (location.pathname === '/admin/tenants') return 2;
+    if (location.pathname === '/admin/billing') return 3;
     return 0;
   }, [location.pathname]);
 
@@ -64,6 +69,7 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fullOrg, setFullOrg] = useState<any>(null);
 
   const [orgName, setOrgName] = useState('');
   const [orgDescription, setOrgDescription] = useState('');
@@ -86,6 +92,7 @@ const AdminPage = () => {
     if (newValue === 0) navigate('/admin');
     else if (newValue === 1) navigate('/admin/users');
     else if (newValue === 2) navigate('/admin/tenants');
+    else if (newValue === 3) navigate('/admin/billing');
   };
 
   // Fetch org details
@@ -102,6 +109,7 @@ const AdminPage = () => {
         if (!response.ok) throw new Error('Failed to fetch organization details');
 
         const data = await response.json();
+        setFullOrg(data);
         const name = data.name || '';
         const description = data.description || '';
         const image = data.image || '';
@@ -211,42 +219,34 @@ const AdminPage = () => {
         Manage your tenant settings, users, and sub-tenants.
       </Typography>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <Box sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.5,
-          p: 0.75,
-          bgcolor: 'hsl(var(--card))',
-          borderRadius: 999,
-          border: '1px solid hsl(var(--border))',
-          boxShadow: '0 4px 12px hsl(0 0% 0% / 0.15)',
-        }}>
-          {['Overview', 'Users', 'Tenants'].map((label, index) => (
-            <Box
-              key={label}
-              onClick={() => handleTabChange(null, index)}
-              sx={{
-                px: 2.5,
-                py: 1,
-                borderRadius: 999,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                bgcolor: activeTab === index ? '#ff6600' : 'transparent',
-                color: activeTab === index ? '#ffffff' : 'hsl(var(--muted-foreground))',
-                fontWeight: activeTab === index ? 600 : 500,
-                fontSize: '0.875rem',
-                '&:hover': {
-                  bgcolor: activeTab === index ? '#ff6600' : 'hsl(var(--muted))',
-                  color: activeTab === index ? '#ffffff' : 'hsl(var(--foreground))',
-                },
-              }}
-            >
-              {label}
-            </Box>
-          ))}
-        </Box>
-      </Box>
+      {(() => {
+        const isSupport = userInfo?.support === true;
+        type TabValue = 'overview' | 'users' | 'tenants' | 'billing';
+        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'billing'];
+        const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
+        const options: SegmentedItem<TabValue>[] = [
+          { value: 'overview', label: 'Overview' },
+          { value: 'users', label: 'Users' },
+          { value: 'tenants', label: 'Tenants' },
+          {
+            value: 'billing',
+            label: 'Billing',
+            disabled: !isSupport,
+            title: isSupport ? undefined : 'Only support users can view billing',
+          },
+        ];
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+            <SegmentedControl<TabValue>
+              options={options}
+              value={currentValue}
+              onChange={(v) => handleTabChange(null, valueByIndex.indexOf(v))}
+              variant="filled"
+              ariaLabel="Admin sections"
+            />
+          </Box>
+        );
+      })()}
 
       {activeTab === 0 && (
         <>
@@ -409,7 +409,71 @@ const AdminPage = () => {
       )}
 
       {activeTab === 1 && <UsersPage embedded />}
-      {activeTab === 2 && <TenantManagement />}
+      {activeTab === 2 && (
+        <TenantManagement
+          theme={shuffleTheme}
+          {...({
+            userdata: userInfo,
+            selectedOrganization: fullOrg || userInfo?.active_org,
+            globalUrl: getApiUrl(''),
+            serverside: false,
+            isLoaded: true,
+            setActiveOrg,
+            handleGetOrg: refreshUserInfo,
+          } as any)}
+        />
+      )}
+      {activeTab === 3 && userInfo?.support !== true && (
+        <Alert severity="info">Only support users can view billing.</Alert>
+      )}
+      {activeTab === 3 && userInfo?.support === true && (() => {
+        const origin = typeof window === 'undefined' || window.location === undefined ? '' : window.location.origin;
+        const isLiveStripeOrigin = origin === 'https://shuffler.io' || origin === 'https://security.shuffler.io';
+        const stripeKey = isLiveStripeOrigin
+          ? 'pk_live_51PXYYMEJjT17t98N20qEqItyt1fLQjrnn41lPeG2PjnSlZHTDNKHuisAbW00s4KAn86nGuqB9uSVU4ds8MutbnMU00DPXpZ8ZD'
+          : 'pk_test_51PXYYMEJjT17t98NbDkojZ3DRvsFUQBs35LGMx3i436BXwEBVFKB9nCvHt0Q3M4MG3dz4mHheuWvfoYvpaL3GmsG00k1Rb2ksO';
+        const isSupport = userInfo?.support === true;
+        const searchParams = new URLSearchParams(location.search);
+        const viewParam = searchParams.get('view');
+        const billingView: 'cloud' | 'onprem' = isSupport && viewParam === 'onprem' ? 'onprem' : 'cloud';
+        const setBillingView = (next: 'cloud' | 'onprem') => {
+          const sp = new URLSearchParams(location.search);
+          sp.set('view', next);
+          navigate(`${location.pathname}?${sp.toString()}`, { replace: true });
+        };
+        return (
+          <>
+            {isSupport && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <SegmentedControl<'cloud' | 'onprem'>
+                  options={[
+                    { value: 'cloud', label: 'Cloud' },
+                    { value: 'onprem', label: 'On-prem' },
+                  ]}
+                  value={billingView}
+                  onChange={(v) => setBillingView(v)}
+                  variant="filled"
+                  ariaLabel="Billing view"
+                />
+              </Box>
+            )}
+            <Billing
+              theme={shuffleTheme}
+              {...({
+                userdata: userInfo,
+                selectedOrganization: fullOrg || userInfo?.active_org,
+                globalUrl: getApiUrl(''),
+                serverside: false,
+                isLoaded: true,
+                billingInfo: {},
+                stripeKey,
+                isCloud: billingView === 'cloud',
+                handleGetOrg: refreshUserInfo,
+              } as any)}
+            />
+          </>
+        );
+      })()}
     </Box>
   );
 };

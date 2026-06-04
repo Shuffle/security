@@ -33,11 +33,14 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  Database,
   FileText,
   GitBranch,
   Globe,
+  Hand,
   Loader2,
   Server,
+  Workflow as WorkflowIcon,
   XCircle,
   Zap,
   Search as SearchIcon
@@ -73,7 +76,7 @@ const STATUS_CONFIG: Record<
   EXECUTING: { icon: <Loader2 size={16} />, color: 'hsl(var(--severity-medium, 38 92% 50%))', label: 'Running' },
   RUNNING: { icon: <Loader2 size={16} />, color: 'hsl(var(--severity-medium, 38 92% 50%))', label: 'Running' },
   WAITING: { icon: <Clock size={16} />, color: 'hsl(var(--severity-info, 217 91% 60%))', label: 'Waiting' },
-  LIMIT_REACHED: { icon: <AlertTriangle size={16} />, color: 'hsl(var(--severity-medium, 38 92% 50%))', label: 'Limit reached' },
+  LIMIT_REACHED: { icon: <AlertTriangle size={16} />, color: 'hsl(var(--severity-critical, 0 72% 55%))', label: 'Limit reached' },
 };
 
 /** Returns a synthetic "LIMIT_REACHED" status when the run finished but its
@@ -91,22 +94,177 @@ const getEffectiveStatus = (run: AgentRun): string => {
   return raw;
 };
 
-const getRunIcon = (run: AgentRun): React.ReactNode => {
-  const src = (run.execution_source || '').toLowerCase();
-  const arg = (run.execution_argument || '').toLowerCase();
-  if (src.includes('schedule') || src.includes('cron')) return <Clock size={18} />;
-  if (src.includes('webhook') || src.includes('http')) return <Globe size={18} />;
-  if (arg.includes('alert') || arg.includes('detect')) return <Activity size={18} />;
-  if (arg.includes('report') || arg.includes('email')) return <FileText size={18} />;
-  if (arg.includes('endpoint') || arg.includes('server')) return <Server size={18} />;
-  return <Zap size={18} />;
+// Classifies an agent run by where it was triggered from. The icon to the
+// left of each row uses this so the user can tell at a glance whether the
+// agent was started manually from the /agents UI, kicked off by another
+// workflow, or fired by a datastore automation (enrichments, etc.).
+const SOURCE_ICON_SIZE = 18;
+
+interface RunSourceInfo {
+  kind: 'manual' | 'workflow' | 'datastore' | 'schedule' | 'webhook' | 'form' | 'unknown';
+  label: string;
+  reason: string;
+  icon: React.ReactNode;
+  datastoreKey?: string;
+  datastoreCategory?: string;
+}
+
+const looksLikeExecutionId = (s: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim());
+
+// Datastore automations start the agent with an `execution_argument` that
+// contains the standardized "Key: <value>" and "Category: <value>" markers
+// (and usually also "TASK:" / "Finding"). The key/category values are the
+// only thing we actually need to deep-link back to the datastore item, so
+// we match those independently rather than demanding a strict ordering.
+// Values can be anything that is not whitespace.
+const DATASTORE_KEY_RE = /\bKey:\s*(\S+)/i;
+const DATASTORE_CATEGORY_RE = /\bCategory:\s*(\S+)/i;
+
+const parseDatastoreTask = (
+  arg?: string,
+): { key: string; category: string } | null => {
+  if (!arg) return null;
+  const k = arg.match(DATASTORE_KEY_RE);
+  const c = arg.match(DATASTORE_CATEGORY_RE);
+  if (!k || !c) return null;
+  const key = (k[1] || '').trim();
+  const category = (c[1] || '').trim();
+  if (!key || !category) return null;
+  return { key, category };
 };
+
+const isAIAgentResult = (result: any): boolean =>
+  String(result?.action?.app_name || '').trim().toLowerCase() === 'ai agent';
+
+const getAIAgentResultPayload = (run: AgentRun): unknown => {
+  const results = Array.isArray((run as any).results) ? (run as any).results : [];
+  const agentResult = results.find(isAIAgentResult);
+  if (!agentResult || typeof agentResult !== 'object' || !('result' in agentResult)) return null;
+  return tryParseJson(agentResult.result);
+};
+
+const getDirectAgentInput = (payload: unknown): string | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const obj = payload as Record<string, unknown>;
+  if (typeof obj.original_input === 'string' && obj.original_input.trim()) {
+    return obj.original_input.trim();
+  }
+  if (typeof obj.input === 'string' && obj.input.trim()) {
+    return obj.input.trim();
+  }
+  return null;
+};
+
+/** Scan every plausible text field on a run for the datastore Key/Category
+ *  markers. The canonical datastore prompt lives in the AI Agent entry inside
+ *  `results[]`, under its `result.original_input` or `result.input` field. */
+const findDatastoreTaskInRun = (
+  run: AgentRun,
+): { key: string; category: string } | null => {
+  const agentInput = getDirectAgentInput(getAIAgentResultPayload(run));
+  const agentHit = parseDatastoreTask(agentInput || undefined);
+  if (agentHit) return agentHit;
+
+  const anyRun = run as any;
+  const candidates: string[] = [];
+  if (typeof anyRun.original_input === 'string') candidates.push(anyRun.original_input);
+  if (typeof anyRun.input === 'string') candidates.push(anyRun.input);
+  if (run.execution_argument) candidates.push(run.execution_argument);
+  if (run.result) candidates.push(run.result);
+  if (Array.isArray(anyRun.results)) {
+    try { candidates.push(JSON.stringify(anyRun.results)); } catch { /* ignore */ }
+  }
+  for (const c of candidates) {
+    const hit = parseDatastoreTask(c);
+    if (hit) return hit;
+  }
+  return null;
+};
+
+
+const classifyRunSource = (run: AgentRun): RunSourceInfo => {
+  const raw = (run.execution_source || '').trim();
+  const src = raw.toLowerCase();
+
+  // Datastore automation can be detected either via execution_source or by
+  // finding the standardized Key:/Category: markers anywhere on the run.
+  const ds = findDatastoreTaskInRun(run);
+  if (
+    ds ||
+    src.includes('datastore') ||
+    src.includes('enrichment') ||
+    src.includes('automation')
+  ) {
+    return {
+      kind: 'datastore',
+      label: 'Datastore automation',
+      reason: ds
+        ? `Started by datastore automation (category "${ds.category}", key "${ds.key}"). Click to open in Datastore.`
+        : 'Started by a datastore automation (e.g. enrichment trigger).',
+      icon: <Database size={SOURCE_ICON_SIZE} />,
+      datastoreKey: ds?.key,
+      datastoreCategory: ds?.category,
+    };
+  }
+
+
+  if (src.includes('schedule') || src.includes('cron')) {
+    return {
+      kind: 'schedule',
+      label: 'Schedule',
+      reason: 'Started by a scheduled trigger (cron).',
+      icon: <Clock size={SOURCE_ICON_SIZE} />,
+    };
+  }
+  if (src.includes('webhook') || src.includes('http')) {
+    return {
+      kind: 'webhook',
+      label: 'Webhook',
+      reason: 'Started by an incoming webhook / HTTP trigger.',
+      icon: <Globe size={SOURCE_ICON_SIZE} />,
+    };
+  }
+  if (src.includes('form')) {
+    return {
+      kind: 'form',
+      label: 'Form',
+      reason: 'Started by a form submission.',
+      icon: <FileText size={SOURCE_ICON_SIZE} />,
+    };
+  }
+  if (raw && looksLikeExecutionId(raw)) {
+    return {
+      kind: 'workflow',
+      label: 'Workflow',
+      reason: 'Started by another workflow as a subflow.',
+      icon: <WorkflowIcon size={SOURCE_ICON_SIZE} />,
+    };
+  }
+  if (src === '' || src === 'manual' || src === 'default' || src === 'demo') {
+    return {
+      kind: 'manual',
+      label: 'Manual',
+      reason: 'Started manually from the Agents UI.',
+      icon: <Hand size={SOURCE_ICON_SIZE} />,
+    };
+  }
+  return {
+    kind: 'unknown',
+    label: raw || 'Unknown',
+    reason: raw
+      ? `Started by "${raw}".`
+      : 'Trigger source unknown.',
+    icon: <Zap size={SOURCE_ICON_SIZE} />,
+  };
+};
+
 
 const getRunIconColor = (run: AgentRun): string => {
   const status = getEffectiveStatus(run);
   if (status === 'FINISHED' || status === 'SUCCESS') return 'hsl(var(--severity-low, 142 71% 45%))';
   if (status === 'FAILED' || status === 'ABORTED') return 'hsl(var(--severity-critical, 0 72% 55%))';
-  if (status === 'LIMIT_REACHED') return 'hsl(var(--severity-medium, 38 92% 50%))';
+  if (status === 'LIMIT_REACHED') return 'hsl(var(--severity-critical, 0 72% 55%))';
   if (status === 'EXECUTING' || status === 'RUNNING') return 'hsl(var(--severity-medium, 38 92% 50%))';
   return 'hsl(var(--primary, 24 100% 50%))';
 };
@@ -199,10 +357,16 @@ const tryParseJson = (s: unknown): unknown => {
 
 /** Extract the original user prompt from a run, when available. */
 const getRunPrompt = (run: AgentRun): string | null => {
-  // 1) AI Agent node result inside results[] (deepest source of truth).
-  const results = Array.isArray((run as any).results) ? (run as any).results : null;
+  const anyRun = run as any;
+  // 1) AI Agent node result inside results[]. Its `result` payload is the
+  //    canonical agent result; read direct `original_input` first, then `input`.
+  const agentInput = getDirectAgentInput(getAIAgentResultPayload(run));
+  if (agentInput) return agentInput;
+
+  // 2) Fallback: scan the AI Agent payload for older/nested shapes.
+  const results = Array.isArray(anyRun.results) ? anyRun.results : null;
   if (results) {
-    const agentResult = results.find((r: any) => r?.action?.app_name === 'AI Agent');
+    const agentResult = results.find(isAIAgentResult);
     if (agentResult?.result) {
       const hit = deepFindPrompt(tryParseJson(agentResult.result));
       if (hit) return hit;
@@ -215,12 +379,18 @@ const getRunPrompt = (run: AgentRun): string | null => {
       if (hit) return hit;
     }
   }
-  // 2) Top-level `result` blob (search rows hydrated via buildPatchFromRun).
+  // 3) Search-row fallbacks for runs without a results[] AI Agent entry.
+  if (typeof anyRun.original_input === 'string' && anyRun.original_input.trim()) {
+    return anyRun.original_input.trim();
+  }
+  if (typeof anyRun.input === 'string' && anyRun.input.trim()) {
+    return anyRun.input.trim();
+  }
   if (run.result) {
     const hit = deepFindPrompt(tryParseJson(run.result));
     if (hit) return hit;
   }
-  // 3) Top-level `execution_argument` (sometimes raw text, sometimes JSON).
+  // 4) Top-level `execution_argument` (sometimes raw text, sometimes JSON).
   if (run.execution_argument) {
     const parsed = tryParseJson(run.execution_argument);
     const hit = deepFindPrompt(parsed);
@@ -230,6 +400,8 @@ const getRunPrompt = (run: AgentRun): string | null => {
   }
   return null;
 };
+
+
 
 
 const getRunTitle = (run: AgentRun): string => {
@@ -263,7 +435,9 @@ const getRunSubtitle = (run: AgentRun): string => {
       if (run.result.length < 120) return run.result;
     }
   }
-  return run.execution_source || 'Agent execution';
+  const status = getEffectiveStatus(run);
+  const isRunning = status === 'EXECUTING' || status === 'RUNNING' || status === 'WAITING';
+  return run.execution_source || (isRunning ? 'Agent still running…' : 'Agent execution');
 };
 
 // ── Run row ──────────────────────────────────────────────────────────────────
@@ -399,21 +573,55 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
-      <Box
-        sx={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: `${iconColor}15`,
-          color: iconColor,
-          flexShrink: 0,
-        }}
-      >
-        {getRunIcon(run)}
-      </Box>
+      {(() => {
+        const sourceInfo = classifyRunSource(run);
+        const dsLink =
+          sourceInfo.kind === 'datastore' && sourceInfo.datastoreKey && sourceInfo.datastoreCategory
+            ? `https://shuffler.io/admin?tab=datastore&category=${encodeURIComponent(sourceInfo.datastoreCategory)}&key=${encodeURIComponent(sourceInfo.datastoreKey)}`
+            : null;
+        return (
+          <Tooltip
+            title={
+              <Box sx={{ lineHeight: 1.4 }}>
+                <Box sx={{ fontWeight: 600 }}>{sourceInfo.label}</Box>
+                <Box sx={{ opacity: 0.85 }}>{sourceInfo.reason}</Box>
+              </Box>
+            }
+            placement="top"
+            arrow
+          >
+            <Box
+              onClick={
+                dsLink
+                  ? (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      window.open(dsLink, '_blank', 'noopener,noreferrer');
+                    }
+                  : undefined
+              }
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: `${iconColor}15`,
+                color: iconColor,
+                flexShrink: 0,
+                cursor: dsLink ? 'pointer' : 'inherit',
+                transition: 'background 0.15s ease',
+                '&:hover': dsLink
+                  ? { bgcolor: `${iconColor}30` }
+                  : undefined,
+              }}
+            >
+              {sourceInfo.icon}
+            </Box>
+          </Tooltip>
+        );
+      })()}
+
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
@@ -429,9 +637,6 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
           >
             {getRunTitle(run)}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', color: cfg.color, flexShrink: 0 }}>
-            {cfg.icon}
-          </Box>
         </Box>
 
         <Typography
@@ -535,18 +740,7 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
               );
             })}
           </AvatarGroup>
-        ) : (
-          <Typography
-            sx={{
-              fontSize: '0.7rem',
-              color: 'hsl(var(--muted-foreground))',
-              opacity: 0.5,
-              fontStyle: 'italic',
-            }}
-          >
-            No apps
-          </Typography>
-        )}
+        ) : null}
       </Box>
 
     </Box>

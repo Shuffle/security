@@ -1140,6 +1140,9 @@ interface UsecasesPageConfig {
    *  a usecase (e.g. the Incident Routing editor) instead of bundling it
    *  into Shuffle-Core. */
   renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string }) => React.ReactNode;
+  /** Scope class to apply to portaled MUI surfaces (Drawer paper, etc.) so
+   *  the scoped HSL tokens resolve correctly even outside the page wrapper. */
+  scopeClassName?: string;
 }
 
 const DEFAULT_CONFIG: UsecasesPageConfig = {
@@ -1154,6 +1157,7 @@ const DEFAULT_CONFIG: UsecasesPageConfig = {
   isLoaded: true,
   renderEndpointSlot: undefined,
   renderUsecaseDetailSlot: undefined,
+  scopeClassName: 'shuffle-usecases-scope',
 };
 
 const UsecasesPageConfigContext = React.createContext<UsecasesPageConfig>(DEFAULT_CONFIG);
@@ -1965,9 +1969,21 @@ function IntegrationStatusLite({
     return [...extras, ...workflowExtras, ...integrations];
   }, [integrations, syntheticApps, workflowAppNames, catalogIcons]);
 
-  const visible = filterApps?.length
+  const visibleUnsorted = filterApps?.length
     ? merged.filter((item) => filterApps.some((name) => normalizeAppName(name) === normalizeAppName(item.name)))
     : merged;
+  // Order: Enabled (validated) > Configured (active) > Available (in catalog) > Other (workflow-only/synthetic)
+  const visibleRank = (i: IntegrationItem) => {
+    if (i.validated) return 0;
+    if (i.active) return 1;
+    if (typeof i.id === 'string' && (i.id.startsWith('workflow-') || i.id.startsWith('synthetic-'))) return 3;
+    return 2;
+  };
+  const visible = [...visibleUnsorted].sort((a, b) => {
+    const r = visibleRank(a) - visibleRank(b);
+    if (r !== 0) return r;
+    return (a.name || '').localeCompare(b.name || '');
+  });
 
   // Show the loader both while we are fetching the API and while the parent
   // is still figuring out which app names belong to this category — this
@@ -2171,6 +2187,7 @@ function IntegrationStatusLite({
         onClose={() => setPopoverFor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ zIndex: 9999 }}
         slotProps={{
           paper: {
             sx: {
@@ -2408,11 +2425,15 @@ function IntegrationStatusLite({
           px: 0.5,
           // extra vertical padding so the status dot (bottom: -2) isn't clipped
           py: '6px',
-          overflowX: 'hidden',
+          overflowX: 'auto',
           overflowY: 'visible',
           minWidth: 0,
-          maskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent)',
-          WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent)',
+          scrollbarWidth: 'thin',
+          '&::-webkit-scrollbar': { height: 6 },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'hsl(var(--border))',
+            borderRadius: 3,
+          },
         }}
       >
         {visible.map(renderIcon)}
@@ -3064,6 +3085,10 @@ function UsecaseDetailContent({
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
   const { renderEndpointSlot, renderUsecaseDetailSlot } = useUsecasesConfig();
+  // Same handle used by the default Source/Destination tile popover so the
+  // alluvial bubble-click reuses the AppDetailDrawer instead of its own
+  // mini Visit/Enable Sync popover.
+  const appDetail = useAppDetailOptional();
   const flow = usecases.find((item) => item.id === flowId);
   const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
   // Apps with a *validated* authentication, grouped by category. Powers the
@@ -3870,140 +3895,155 @@ function UsecaseDetailContent({
         const alluvialEligible = useAlluvialDiagram && ['siem_case_management_1', 'edr_case_management_1', 'email_case_management_1'].includes(flow.id);
         const showAlluvial = alluvialEligible && connectionViewMode === 'source_destination';
         return (
-          <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3, position: 'relative' }}>
-            {alluvialEligible && (() => {
-              const nextMode = connectionViewMode === 'source_destination' ? 'line' : 'source_destination';
-              const tooltip = nextMode === 'line' ? 'Switch to Line view' : 'Switch to Source / Destination view';
-              const Icon = connectionViewMode === 'source_destination' ? Rows : Workflow;
-              return (
-                <Tooltip title={tooltip} placement="left" arrow>
-                  <Box
-                    component="button"
-                    onClick={() => setConnectionViewMode(nextMode)}
-                    aria-label={tooltip}
-                    sx={{
-                      position: 'absolute',
-                      top: 10,
-                      right: 10,
-                      zIndex: 2,
-                      width: 24,
-                      height: 24,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: 'none',
-                      borderRadius: 1,
-                      bgcolor: 'transparent',
-                      color: 'hsl(var(--muted-foreground) / 0.6)',
-                      cursor: 'pointer',
-                      transition: 'color 0.15s ease, background-color 0.15s ease',
-                      '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted) / 0.5)' },
-                    }}
-                  >
-                    <Icon size={14} />
-                  </Box>
-                </Tooltip>
-              );
-            })()}
-            {showAlluvial ? (
-              <UsecaseAlluvialDiagram
-                sourceCategory={flow.source}
-                targetCategory={flow.target}
-                highlightCategory={flow.source}
-                isLoggedIn={isAuthenticated}
-              />
-            ) : (
-              (() => {
-                // Per-usecase per-app enable/disable: read which apps the linked
-                // workflow currently uses, and provide a toggle that re-posts the
-                // full app_name list to /workflows/generate (same contract as the
-                // /incidents Ingest popover so the two stay in sync).
-                const {
-                  workflows: allLinkedForApps,
-                  usecaseWorkflows: usecaseLinkedForApps,
-                  forwardTicketsWorkflows: forwardTicketsLinkedForApps,
-                } = getLinkedWorkflowsForUsecase(flow, workflows, notificationWorkflow);
-                const sourceEnabledNamesSet = getWorkflowEnabledAppNames(usecaseLinkedForApps);
-                const destinationEnabledNamesSet = USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id)
-                  ? getWorkflowEnabledAppNames(forwardTicketsLinkedForApps)
-                  : getWorkflowEnabledAppNames(allLinkedForApps);
-                const enabledNamesSet = new Set([...sourceEnabledNamesSet, ...destinationEnabledNamesSet]);
-                // Merge in any apps the user has chosen from the AppSearchDrawer in
-                // a previous session — keeps the picked tool visible even if the
-                // backend wiring is still in flight on the next reload.
-                // BUT: if no workflow exists for this usecase at all (deleted, never
-                // created), the injected snapshot is stale by definition — drop it
-                // so we don't show "enabled" tools that have nothing backing them.
-                if (allLinkedForApps.length === 0) {
-                  clearInjectedUsecaseApps(flow.id);
-                } else {
-                  const sourceCatalogKeys = new Set((categoryAppNames[flow.source] || []).map((n) => normalizeAppName(n)));
-                  const destinationCatalogKeys = new Set(
-                    ((MULTI_DEST_FLOW_IDS.has(flow.id) || USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id))
-                      ? [...(categoryAppNames['communication'] || []), ...(categoryAppNames['case_management'] || [])]
-                      : (categoryAppNames[flow.target] || [])
-                    ).map((n) => normalizeAppName(n))
-                  );
-                  for (const n of readInjectedUsecaseApps(flow.id)) {
-                    const key = normalizeAppName(n);
-                    enabledNamesSet.add(key);
-                    if (sourceCatalogKeys.has(key) && !destinationCatalogKeys.has(key)) {
-                      sourceEnabledNamesSet.add(key);
-                    } else {
-                      destinationEnabledNamesSet.add(key);
-                    }
-                  }
+      <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3, position: 'relative' }}>
+        {alluvialEligible && (() => {
+          const nextMode = connectionViewMode === 'source_destination' ? 'line' : 'source_destination';
+          const tooltip = nextMode === 'line' ? 'Switch to Line view' : 'Switch to Source / Destination view';
+          const Icon = connectionViewMode === 'source_destination' ? Rows : Workflow;
+          return (
+            <Tooltip title={tooltip} placement="left" arrow>
+              <Box
+                component="button"
+                onClick={() => setConnectionViewMode(nextMode)}
+                aria-label={tooltip}
+                sx={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 10,
+                  zIndex: 2,
+                  width: 24,
+                  height: 24,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  borderRadius: 1,
+                  bgcolor: 'transparent',
+                  color: 'hsl(var(--muted-foreground) / 0.6)',
+                  cursor: 'pointer',
+                  transition: 'color 0.15s ease, background-color 0.15s ease',
+                  '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted) / 0.5)' },
+                }}
+              >
+                <Icon size={14} />
+              </Box>
+            </Tooltip>
+          );
+        })()}
+        {showAlluvial ? (
+          <UsecaseAlluvialDiagram
+            sourceCategory={flow.source}
+            targetCategory={flow.target}
+            highlightCategory={flow.source}
+            isLoggedIn={isAuthenticated}
+            // Keep the AppBubble's built-in mini popover (Visit / Enable Sync
+            // / Remove). Only the "+" Add buttons delegate to the host below.
+            // Reuse the same AppSearchDrawer wiring (setAddToolFor) the
+            // default Source/Destination "+" tile uses, so adding a tool
+            // from the alluvial goes through the same workflows/generate
+            // pipeline with toast + cache invalidation.
+            onAddTool={(side) => {
+              const isLeft = side === 'left';
+              setAddToolFor({
+                side: isLeft ? 'source' : 'destination',
+                categoryId: isLeft ? flow.source! : flow.target!,
+                multiDest: !isLeft && (MULTI_DEST_FLOW_IDS.has(flow.id) || USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id)),
+              });
+              return true;
+            }}
+          />
+        ) : (
+        (() => {
+          // Per-usecase per-app enable/disable: read which apps the linked
+          // workflow currently uses, and provide a toggle that re-posts the
+          // full app_name list to /workflows/generate (same contract as the
+          // /incidents Ingest popover so the two stay in sync).
+          const {
+            workflows: allLinkedForApps,
+            usecaseWorkflows: usecaseLinkedForApps,
+            forwardTicketsWorkflows: forwardTicketsLinkedForApps,
+          } = getLinkedWorkflowsForUsecase(flow, workflows, notificationWorkflow);
+          const sourceEnabledNamesSet = getWorkflowEnabledAppNames(usecaseLinkedForApps);
+          const destinationEnabledNamesSet = USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id)
+            ? getWorkflowEnabledAppNames(forwardTicketsLinkedForApps)
+            : getWorkflowEnabledAppNames(allLinkedForApps);
+          const enabledNamesSet = new Set([...sourceEnabledNamesSet, ...destinationEnabledNamesSet]);
+          // Merge in any apps the user has chosen from the AppSearchDrawer in
+          // a previous session — keeps the picked tool visible even if the
+          // backend wiring is still in flight on the next reload.
+          // BUT: if no workflow exists for this usecase at all (deleted, never
+          // created), the injected snapshot is stale by definition — drop it
+          // so we don't show "enabled" tools that have nothing backing them.
+          if (allLinkedForApps.length === 0) {
+            clearInjectedUsecaseApps(flow.id);
+          } else {
+            const sourceCatalogKeys = new Set((categoryAppNames[flow.source] || []).map((n) => normalizeAppName(n)));
+            const destinationCatalogKeys = new Set(
+              ((MULTI_DEST_FLOW_IDS.has(flow.id) || USECASE_IDS_WITH_FORWARD_TICKETS_CONTEXT.has(flow.id))
+                ? [...(categoryAppNames['communication'] || []), ...(categoryAppNames['case_management'] || [])]
+                : (categoryAppNames[flow.target] || [])
+              ).map((n) => normalizeAppName(n))
+            );
+            for (const n of readInjectedUsecaseApps(flow.id)) {
+              const key = normalizeAppName(n);
+              enabledNamesSet.add(key);
+              if (sourceCatalogKeys.has(key) && !destinationCatalogKeys.has(key)) {
+                sourceEnabledNamesSet.add(key);
+              } else {
+                destinationEnabledNamesSet.add(key);
+              }
+            }
+          }
+          const handleUsecaseAppToggle = async (
+            appName: string,
+            enabled: boolean,
+            context?: {
+              automationLabel?: string;
+              automationCategory?: string;
+              workflows: WorkflowSummary[];
+              enabledNamesSet: Set<string>;
+              toastLabel?: string;
+            },
+          ) => {
+            const automationLabel = context?.automationLabel || flow.automationLabel;
+            if (!automationLabel) {
+              toast.error('This usecase is not toggleable yet');
+              return;
+            }
+            const activeSet = context?.enabledNamesSet || enabledNamesSet;
+            const workflowScope = context?.workflows || allLinkedForApps;
+            const toastLabel = context?.toastLabel || flow.label;
+            const next = new Set(Array.from(activeSet));
+            const key = normalizeAppName(appName);
+            if (enabled) next.add(key); else next.delete(key);
+            // Keep the localStorage "injected apps" snapshot in sync with the
+            // toggle, otherwise readInjectedUsecaseApps() will keep showing
+            // a disabled app as still-enabled in the Source/Destination strip.
+            if (enabled) pushInjectedUsecaseApp(flow.id, appName);
+            else removeInjectedUsecaseApp(flow.id, appName);
+            // Source of truth = the actual apps inside the linked workflow(s).
+            // Anything currently wired into the workflow stays wired unless it
+            // IS the app the user just toggled off. This prevents accidentally
+            // dropping apps that aren't in the per-category catalog (e.g. a
+            // Singul-wrapped Wazuh node, or a tool outside flow.source/target)
+            // and falling back to action_name=remove when there are clearly
+            // other apps still in the workflow.
+            const activeNames: string[] = [];
+            const seen = new Set<string>();
+            for (const wf of workflowScope) {
+              for (const action of (wf.actions || [])) {
+                for (const n of extractActionAppNames(action)) {
+                  const k = normalizeAppName(n);
+                  if (!k || seen.has(k)) continue;
+                  if (!enabled && k === key) continue; // drop the one being disabled
+                  seen.add(k);
+                  activeNames.push(n);
                 }
-                const handleUsecaseAppToggle = async (
-                  appName: string,
-                  enabled: boolean,
-                  context?: {
-                    automationLabel?: string;
-                    automationCategory?: string;
-                    workflows: WorkflowSummary[];
-                    enabledNamesSet: Set<string>;
-                    toastLabel?: string;
-                  },
-                ) => {
-                  const automationLabel = context?.automationLabel || flow.automationLabel;
-                  if (!automationLabel) {
-                    toast.error('This usecase is not toggleable yet');
-                    return;
-                  }
-                  const activeSet = context?.enabledNamesSet || enabledNamesSet;
-                  const workflowScope = context?.workflows || allLinkedForApps;
-                  const toastLabel = context?.toastLabel || flow.label;
-                  const next = new Set(Array.from(activeSet));
-                  const key = normalizeAppName(appName);
-                  if (enabled) next.add(key); else next.delete(key);
-                  // Keep the localStorage "injected apps" snapshot in sync with the
-                  // toggle, otherwise readInjectedUsecaseApps() will keep showing
-                  // a disabled app as still-enabled in the Source/Destination strip.
-                  if (enabled) pushInjectedUsecaseApp(flow.id, appName);
-                  else removeInjectedUsecaseApp(flow.id, appName);
-                  // Source of truth = the actual apps inside the linked workflow(s).
-                  // Anything currently wired into the workflow stays wired unless it
-                  // IS the app the user just toggled off. This prevents accidentally
-                  // dropping apps that aren't in the per-category catalog (e.g. a
-                  // Singul-wrapped Wazuh node, or a tool outside flow.source/target)
-                  // and falling back to action_name=remove when there are clearly
-                  // other apps still in the workflow.
-                  const activeNames: string[] = [];
-                  const seen = new Set<string>();
-                  for (const wf of workflowScope) {
-                    for (const action of (wf.actions || [])) {
-                      for (const n of extractActionAppNames(action)) {
-                        const k = normalizeAppName(n);
-                        if (!k || seen.has(k)) continue;
-                        if (!enabled && k === key) continue; // drop the one being disabled
-                        seen.add(k);
-                        activeNames.push(n);
-                      }
-                    }
-                  }
-                  // Make sure the just-enabled app is in the list even if it isn't
-                  // already wired into the workflow (the user explicitly clicked it).
-                  if (enabled && !seen.has(key)) { activeNames.push(appName); seen.add(key); }
+              }
+            }
+            // Make sure the just-enabled app is in the list even if it isn't
+            // already wired into the workflow (the user explicitly clicked it).
+            if (enabled && !seen.has(key)) { activeNames.push(appName); seen.add(key); }
 
                   try {
                     const body: Record<string, string> = { label: automationLabel };
@@ -4723,6 +4763,7 @@ function UsecasesPageInner() {
 
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
+  const { scopeClassName: cfgScopeClassName } = useUsecasesConfig();
   const { usecases, apiLoaded, getDrift } = useUsecasesLite();
   const { userInfo, isAuthenticated, refetch: refetchAuth } = useAuthLite();
   const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
@@ -5530,17 +5571,19 @@ function UsecasesPageInner() {
         open={drawerFlowId !== null}
         onClose={() => setDrawerFlowId(null)}
         PaperProps={{
+          className: cfgScopeClassName,
           sx: {
             width: { xs: '100%', sm: 720, md: 900 },
             maxWidth: '100vw',
-            // Explicit fallback so the drawer is never transparent in the
-            // standalone build (host CSS may not define --background).
-            backgroundColor: '#1a1a1a',
+            // Tokens resolve via the scope class on this paper. Fallback HSL
+            // values guarantee the drawer is never transparent even if the
+            // host CSS does not define --background / --foreground.
             bgcolor: 'hsl(var(--background, 0 0% 10%))',
             color: 'hsl(var(--foreground, 0 0% 100%))',
             backgroundImage: 'none',
           },
         }}
+        sx={{ zIndex: 9999 }}
       >
         <Box sx={{
           display: 'flex',
@@ -5549,7 +5592,6 @@ function UsecasesPageInner() {
           px: 3, py: 2,
           borderBottom: '1px solid hsl(var(--border, 0 0% 20%))',
           position: 'sticky', top: 0, zIndex: 2,
-          backgroundColor: '#1a1a1a',
           bgcolor: 'hsl(var(--background, 0 0% 10%))',
         }}>
           <Box />
@@ -6094,8 +6136,9 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
       isLoaded: loaded,
       renderEndpointSlot,
       renderUsecaseDetailSlot,
+      scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, themeClass]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>
@@ -6134,6 +6177,7 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
   const { usecases } = useUsecasesLite();
   const { isAuthenticated } = useAuthLite();
   const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
+  const { scopeClassName: cfgScopeClassName } = useUsecasesConfig();
 
   // Simplified mirror of UsecasesPageInner.workflowEnabledLabels — good enough
   // for the standalone drawer (presence-based gates like agent-response /
@@ -6206,15 +6250,16 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
       open={open}
       onClose={onClose}
       PaperProps={{
+        className: cfgScopeClassName,
         sx: {
           width: { xs: '100%', sm: 720, md: 900 },
           maxWidth: '100vw',
-          backgroundColor: '#1a1a1a',
           bgcolor: 'hsl(var(--background, 0 0% 10%))',
           color: 'hsl(var(--foreground, 0 0% 100%))',
           backgroundImage: 'none',
         },
       }}
+      sx={{ zIndex: 9999 }}
     >
       <Box sx={{
         display: 'flex',
@@ -6223,7 +6268,6 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
         px: 3, py: 2,
         borderBottom: '1px solid hsl(var(--border, 0 0% 20%))',
         position: 'sticky', top: 0, zIndex: 2,
-        backgroundColor: '#1a1a1a',
         bgcolor: 'hsl(var(--background, 0 0% 10%))',
       }}>
         <Box />
@@ -6318,8 +6362,9 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
       isLoaded: loaded,
       renderEndpointSlot,
       renderUsecaseDetailSlot,
+      scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, themeClass]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>
