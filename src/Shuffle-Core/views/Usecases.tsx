@@ -3079,6 +3079,10 @@ function UsecaseDetailContent({
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
   const { renderEndpointSlot, renderUsecaseDetailSlot } = useUsecasesConfig();
+  // Same handle used by the default Source/Destination tile popover so the
+  // alluvial bubble-click reuses the AppDetailDrawer instead of its own
+  // mini Visit/Enable Sync popover.
+  const appDetail = useAppDetailOptional();
   const flow = usecases.find((item) => item.id === flowId);
   const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
   // Apps with a *validated* authentication, grouped by category. Powers the
