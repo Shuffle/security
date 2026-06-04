@@ -148,7 +148,7 @@ function getStatusColor(app: AppNode): string {
 
 // ── App bubble component ───────────────────────────────────────────────────────
 
-function AppBubble({ app, size = 40, highlighted = false, isSample = false, disabled = false, side = 'left', onClickApp, onRemoveApp, onToggleSync, onVisitApp, webhookInfo, onWebhookToggled }: { app: AppNode; size?: number; highlighted?: boolean; isSample?: boolean; disabled?: boolean; side?: 'left' | 'right'; onClickApp?: (appName: string) => void; onRemoveApp?: (appName: string) => void; onToggleSync?: (appName: string, enabled: boolean) => void; onVisitApp?: (appName: string) => void; webhookInfo?: { url: string | null; exists: boolean; enabled: boolean; workflowId: string | null }; onWebhookToggled?: () => void }) {
+function AppBubble({ app, size = 40, highlighted = false, isSample = false, disabled = false, side = 'left', onClickApp, onRemoveApp, onToggleSync, onVisitApp, onPrimaryClick, webhookInfo, onWebhookToggled }: { app: AppNode; size?: number; highlighted?: boolean; isSample?: boolean; disabled?: boolean; side?: 'left' | 'right'; onClickApp?: (appName: string) => void; onRemoveApp?: (appName: string) => void; onToggleSync?: (appName: string, enabled: boolean) => void; onVisitApp?: (appName: string) => void; onPrimaryClick?: (appName: string, anchorEl: HTMLElement, side: 'left' | 'right') => boolean; webhookInfo?: { url: string | null; exists: boolean; enabled: boolean; workflowId: string | null }; onWebhookToggled?: () => void }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
