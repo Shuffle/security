@@ -135,20 +135,20 @@ const parseDatastoreTask = (
 };
 
 /** Scan every plausible text field on a run for the datastore Key/Category
- *  markers. The prompt can live in `execution_argument`, somewhere inside
- *  the AI Agent's `results[*].result`, or in the top-level `result` blob —
- *  so we stringify each and try the regex. */
+ *  markers. The original prompt lives at `run.original_input` (or `run.input`)
+ *  for datastore-triggered runs; we also check `execution_argument`, the
+ *  top-level `result`, and finally stringify `results[]` as a last resort. */
 const findDatastoreTaskInRun = (
   run: AgentRun,
 ): { key: string; category: string } | null => {
+  const anyRun = run as any;
   const candidates: string[] = [];
+  if (typeof anyRun.original_input === 'string') candidates.push(anyRun.original_input);
+  if (typeof anyRun.input === 'string') candidates.push(anyRun.input);
   if (run.execution_argument) candidates.push(run.execution_argument);
   if (run.result) candidates.push(run.result);
-  if (Array.isArray((run as any).results)) {
-    try { candidates.push(JSON.stringify((run as any).results)); } catch { /* ignore */ }
-  }
-  if (Array.isArray((run as any).decisions)) {
-    try { candidates.push(JSON.stringify((run as any).decisions)); } catch { /* ignore */ }
+  if (Array.isArray(anyRun.results)) {
+    try { candidates.push(JSON.stringify(anyRun.results)); } catch { /* ignore */ }
   }
   for (const c of candidates) {
     const hit = parseDatastoreTask(c);
@@ -156,6 +156,7 @@ const findDatastoreTaskInRun = (
   }
   return null;
 };
+
 
 const classifyRunSource = (run: AgentRun): RunSourceInfo => {
   const raw = (run.execution_source || '').trim();
