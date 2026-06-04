@@ -4713,6 +4713,7 @@ function UsecasesPageInner() {
 
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
+  const { scopeClassName: cfgScopeClassName } = useUsecasesConfig();
   const { usecases, apiLoaded, getDrift } = useUsecasesLite();
   const { userInfo, isAuthenticated, refetch: refetchAuth } = useAuthLite();
   const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
