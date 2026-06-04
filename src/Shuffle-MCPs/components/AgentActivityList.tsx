@@ -134,13 +134,38 @@ const parseDatastoreTask = (
   return { key, category };
 };
 
+const isAIAgentResult = (result: any): boolean =>
+  String(result?.action?.app_name || '').trim().toLowerCase() === 'ai agent';
+
+const getAIAgentResultPayload = (run: AgentRun): unknown => {
+  const results = Array.isArray((run as any).results) ? (run as any).results : [];
+  const agentResult = results.find(isAIAgentResult);
+  if (!agentResult || !('result' in agentResult)) return null;
+  return tryParseJson(agentResult.result);
+};
+
+const getDirectAgentInput = (payload: unknown): string | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const obj = payload as Record<string, unknown>;
+  if (typeof obj.original_input === 'string' && obj.original_input.trim()) {
+    return obj.original_input.trim();
+  }
+  if (typeof obj.input === 'string' && obj.input.trim()) {
+    return obj.input.trim();
+  }
+  return null;
+};
+
 /** Scan every plausible text field on a run for the datastore Key/Category
- *  markers. The original prompt lives at `run.original_input` (or `run.input`)
- *  for datastore-triggered runs; we also check `execution_argument`, the
- *  top-level `result`, and finally stringify `results[]` as a last resort. */
+ *  markers. The canonical datastore prompt lives in the AI Agent entry inside
+ *  `results[]`, under its `result.original_input` or `result.input` field. */
 const findDatastoreTaskInRun = (
   run: AgentRun,
 ): { key: string; category: string } | null => {
+  const agentInput = getDirectAgentInput(getAIAgentResultPayload(run));
+  const agentHit = parseDatastoreTask(agentInput || undefined);
+  if (agentHit) return agentHit;
+
   const anyRun = run as any;
   const candidates: string[] = [];
   if (typeof anyRun.original_input === 'string') candidates.push(anyRun.original_input);
