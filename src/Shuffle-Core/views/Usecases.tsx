@@ -6206,15 +6206,16 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
       open={open}
       onClose={onClose}
       PaperProps={{
+        className: cfgScopeClassName,
         sx: {
           width: { xs: '100%', sm: 720, md: 900 },
           maxWidth: '100vw',
-          backgroundColor: '#1a1a1a',
           bgcolor: 'hsl(var(--background, 0 0% 10%))',
           color: 'hsl(var(--foreground, 0 0% 100%))',
           backgroundImage: 'none',
         },
       }}
+      sx={{ zIndex: 9999 }}
     >
       <Box sx={{
         display: 'flex',
@@ -6223,7 +6224,6 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
         px: 3, py: 2,
         borderBottom: '1px solid hsl(var(--border, 0 0% 20%))',
         position: 'sticky', top: 0, zIndex: 2,
-        backgroundColor: '#1a1a1a',
         bgcolor: 'hsl(var(--background, 0 0% 10%))',
       }}>
         <Box />
