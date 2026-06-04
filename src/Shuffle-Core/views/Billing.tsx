@@ -3123,28 +3123,6 @@ const Billing = memo((props) => {
 				</div>
 			)}
 
-			{!isChildOrg && isCloud && (
-				<div style={{ display: 'flex', flexDirection: 'column', marginTop: 50, maxWidth: 860 }} id="professional-services">
-					<Typography variant="h6" style={{ marginBottom: 5, fontSize: 24, fontWeight: 500 }}>
-						Professional Services
-					</Typography>
-					<Typography variant="body2" color="textSecondary" style={{fontSize: 16,}}>
-						We offer priority support through consultations and training to help you make the most of our product. If you have any questions, please reach out to us at {supportEmail}.
-					</Typography>We offer priority support through consultations and training to help you make the most of our product. If you have any questions, please reach out to us at
-					<div style={{ display: 'flex', width: '50%', flexDirection: 'row', marginTop: 5, }}>
-						{/* {billingInfo.subscription !== undefined && billingInfo.subscription !== null ? (
-							isChildOrg ? null : (
-								<ConsultationManagement
-									globalUrl={globalUrl}
-									userdata={userdata}
-									selectedOrganization={selectedOrganization}
-								/>
-							)
-						) : null} */}
-						<TrainingService />
-					</div>
-				</div>
-			)}
 			{isCloud ? (
 				<div style={{ marginTop: 40, marginLeft: 10 }}>
 				<Typography
