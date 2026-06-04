@@ -627,6 +627,8 @@ export default function UsecaseAlluvialDiagram({
   targetCategory,
   highlightCategory,
   isLoggedIn = false,
+  onBubbleClick,
+  onAddTool,
 }: UsecaseAlluvialDiagramProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   // isLoggedIn comes from props (host injects); defaults to false.
