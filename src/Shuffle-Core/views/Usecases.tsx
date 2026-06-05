@@ -2591,6 +2591,10 @@ function WebhookExecutionsOutcomeBlock({
         },
         ...next.breakdown,
       ];
+      next.primary = {
+        ...next.primary,
+        value: (next.primary?.value || 0) + stats.total,
+      };
       next.isEmpty = false;
     }
     return next;
