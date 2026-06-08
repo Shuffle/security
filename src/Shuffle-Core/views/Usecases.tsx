@@ -3965,6 +3965,65 @@ function UsecaseDetailContent({
         <AiIncidentHandlingPromptsBlock />
       )}
 
+      {/* Inline custom-action CTA (e.g. "Add Monitor" → opens Add Host
+          dialog directly in the sidebar). Falls back to a navigation
+          button when no modal slot is configured for this customAction. */}
+      {flow.customAction && (flow.customAction.modal || flow.customAction.href || flow.customAction.url) && (() => {
+        const hasModal = !!flow.customAction.modal;
+        const modalNode = hasModal && renderUsecaseActionModal
+          ? renderUsecaseActionModal({
+              modal: flow.customAction.modal!,
+              flowId: flow.id,
+              flowLabel: flow.label,
+              open: actionModalOpen,
+              onClose: () => setActionModalOpen(false),
+            })
+          : null;
+        const navProps = flow.customAction.url
+          ? { component: 'a' as const, href: flow.customAction.url, target: '_blank', rel: 'noopener noreferrer' }
+          : flow.customAction.href
+            ? { component: Link, to: flow.customAction.href }
+            : null;
+        return (
+          <Box sx={{ p: 2.5, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                {flow.customAction.label}
+              </Typography>
+              {flow.customAction.description && (
+                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
+                  {flow.customAction.description}
+                </Typography>
+              )}
+            </Box>
+            {hasModal && modalNode ? (
+              <>
+                <Button
+                  onClick={() => setActionModalOpen(true)}
+                  variant="contained"
+                  disableElevation
+                  startIcon={<ArrowRight size={14} />}
+                  sx={{ textTransform: 'none', fontWeight: 600, bgcolor: primaryColor, color: '#FFFFFF', height: 36, '&:hover': { bgcolor: primaryColor } }}
+                >
+                  {flow.customAction.label}
+                </Button>
+                {modalNode}
+              </>
+            ) : navProps ? (
+              <Button
+                {...(navProps as any)}
+                variant="contained"
+                disableElevation
+                startIcon={<ArrowRight size={14} />}
+                sx={{ textTransform: 'none', fontWeight: 600, bgcolor: primaryColor, color: '#FFFFFF', height: 36, '&:hover': { bgcolor: primaryColor } }}
+              >
+                {flow.customAction.label}
+              </Button>
+            ) : null}
+          </Box>
+        );
+      })()}
+
       {(() => {
         const slot = renderUsecaseDetailSlot
           ? renderUsecaseDetailSlot({ flowId: flow.id, flowLabel: flow.label })
