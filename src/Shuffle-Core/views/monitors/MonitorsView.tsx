@@ -1101,6 +1101,26 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Dialog-only mode: open Add Host immediately on mount, and propagate
+  // close events to the host (e.g. so the usecase sidebar can dismiss the
+  // dialog without leaving the current page).
+  const dialogOnly = mode === 'add-host-dialog';
+  useEffect(() => {
+    if (dialogOnly && !addHostOpen) {
+      handleOpenAddHost();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dialogOnly]);
+  useEffect(() => {
+    if (dialogOnly && !addHostOpen && onClose) {
+      // Defer so any internal click handlers finish before unmount.
+      const t = setTimeout(() => onClose(), 0);
+      return () => clearTimeout(t);
+    }
+  }, [dialogOnly, addHostOpen, onClose]);
+
+
+
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
     setCreatingGroupLoading(true);
