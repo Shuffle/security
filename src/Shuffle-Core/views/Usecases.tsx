@@ -6190,7 +6190,7 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
     url: '/usecases',
   });
   useInjectScopedStyles();
-  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot } = props;
+  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal } = props;
   // Sync host-injected `globalUrl` into the Shuffle-Core api.ts runtime so
   // every internal `getApiUrl()` call (hooks, helpers, etc.) targets the host
   // backend instead of the bundled default.
