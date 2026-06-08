@@ -3173,7 +3173,9 @@ function UsecaseDetailContent({
   const primaryColor = theme.palette.primary.main;
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
-  const { renderEndpointSlot, renderUsecaseDetailSlot } = useUsecasesConfig();
+  const { renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal } = useUsecasesConfig();
+  // Tracks whether a `customAction.modal` dialog is open for this flow.
+  const [actionModalOpen, setActionModalOpen] = useState(false);
   // Same handle used by the default Source/Destination tile popover so the
   // alluvial bubble-click reuses the AppDetailDrawer instead of its own
   // mini Visit/Enable Sync popover.
