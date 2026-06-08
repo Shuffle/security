@@ -332,6 +332,12 @@ export interface Usecase {
     url?: string;
     /** Optional helper text rendered next to the CTA. */
     description?: string;
+    /**
+     * Optional modal key. When set, the host renders an inline dialog via
+     * the `renderUsecaseActionModal` slot on `<Usecases />` instead of
+     * navigating. Used by "Add Host-Monitors" to embed the Add Host dialog.
+     */
+    modal?: string;
   };
 }
 
