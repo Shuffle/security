@@ -409,15 +409,30 @@ const PublicMonitorsView = () => {
   );
 };
 
-const VulnAssetsPage = () => {
-  usePageMeta({ title: 'Assets — Vulnerabilities', description: 'Monitor host compliance and security posture' });
-  const { isAuthenticated, isLoading: authLoading, userInfo } = useAuth();
+export type MonitorsViewMode = 'page' | 'add-host-dialog';
+
+export interface MonitorsViewProps {
+  /**
+   * - `'page'` (default) — full monitors page: header, host table, dialog.
+   * - `'add-host-dialog'` — render ONLY the Add Host Monitor dialog (no
+   *   header/table chrome). The dialog opens immediately on mount; closing
+   *   it calls `onClose`. Used by the usecase sidebar to embed Add Host
+   *   without leaving the current page.
+   */
+  mode?: MonitorsViewMode;
+  /** Called when the dialog closes (only meaningful in dialog modes). */
+  onClose?: () => void;
+}
+
+const MonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps = {}) => {
+  if (mode === 'page') usePageMeta({ title: 'Monitors', description: 'Monitor host compliance and security posture' });
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   if (authLoading) return null;
-  if (!isAuthenticated) return <PublicMonitorsView />;
-  return <AuthenticatedVulnAssetsPage />;
+  if (!isAuthenticated) return mode === 'page' ? <PublicMonitorsView /> : null;
+  return <AuthenticatedMonitorsView mode={mode} onClose={onClose} />;
 };
 
-const AuthenticatedVulnAssetsPage = () => {
+const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
