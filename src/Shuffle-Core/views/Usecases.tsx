@@ -359,6 +359,13 @@ export interface Usecase {
     url?: string;
     /** Optional helper text rendered next to the CTA. */
     description?: string;
+    /**
+     * Optional modal key. When set, the CTA opens an inline dialog provided
+     * by the host via the `renderUsecaseActionModal` slot instead of (or in
+     * addition to) navigating via `href`/`url`. Used so flows like
+     * "Add Host-Monitors" can deploy a monitor without leaving the page.
+     */
+    modal?: string;
   };
 }
 
@@ -797,6 +804,7 @@ export const DEFAULT_USECASES: Usecase[] = [
     customAction: {
       label: 'Add Monitor',
       href: '/monitors?add_host=true',
+      modal: 'add-host',
       description: 'Open the monitor deployment dialog to register a new host.',
     },
   },
@@ -1141,6 +1149,18 @@ interface UsecasesPageConfig {
    *  a usecase (e.g. the Incident Routing editor) instead of bundling it
    *  into Shuffle-Core. */
   renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string }) => React.ReactNode;
+  /** Optional host slot that renders an inline modal for a usecase whose
+   *  `customAction.modal` key matches. Lets the host embed dialogs (e.g.
+   *  "Add Host" for the Add Host-Monitors usecase) directly in the sidebar
+   *  without navigating away. The host should return its own Dialog
+   *  controlled by `open`/`onClose`. */
+  renderUsecaseActionModal?: (params: {
+    modal: string;
+    flowId: string;
+    flowLabel: string;
+    open: boolean;
+    onClose: () => void;
+  }) => React.ReactNode;
   /** Scope class to apply to portaled MUI surfaces (Drawer paper, etc.) so
    *  the scoped HSL tokens resolve correctly even outside the page wrapper. */
   scopeClassName?: string;
@@ -1158,6 +1178,7 @@ const DEFAULT_CONFIG: UsecasesPageConfig = {
   isLoaded: true,
   renderEndpointSlot: undefined,
   renderUsecaseDetailSlot: undefined,
+  renderUsecaseActionModal: undefined,
   scopeClassName: 'shuffle-usecases-scope',
 };
 
@@ -3153,7 +3174,9 @@ function UsecaseDetailContent({
   const primaryColor = theme.palette.primary.main;
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
-  const { renderEndpointSlot, renderUsecaseDetailSlot } = useUsecasesConfig();
+  const { renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal } = useUsecasesConfig();
+  // Tracks whether a `customAction.modal` dialog is open for this flow.
+  const [actionModalOpen, setActionModalOpen] = useState(false);
   // Same handle used by the default Source/Destination tile popover so the
   // alluvial bubble-click reuses the AppDetailDrawer instead of its own
   // mini Visit/Enable Sync popover.
@@ -3942,6 +3965,65 @@ function UsecaseDetailContent({
       {flow.id === 'case_management_agent_ai_incident_handling_1' && (
         <AiIncidentHandlingPromptsBlock />
       )}
+
+      {/* Inline custom-action CTA (e.g. "Add Monitor" → opens Add Host
+          dialog directly in the sidebar). Falls back to a navigation
+          button when no modal slot is configured for this customAction. */}
+      {flow.customAction && (flow.customAction.modal || flow.customAction.href || flow.customAction.url) && (() => {
+        const hasModal = !!flow.customAction.modal;
+        const modalNode = hasModal && renderUsecaseActionModal
+          ? renderUsecaseActionModal({
+              modal: flow.customAction.modal!,
+              flowId: flow.id,
+              flowLabel: flow.label,
+              open: actionModalOpen,
+              onClose: () => setActionModalOpen(false),
+            })
+          : null;
+        const navProps = flow.customAction.url
+          ? { component: 'a' as const, href: flow.customAction.url, target: '_blank', rel: 'noopener noreferrer' }
+          : flow.customAction.href
+            ? { component: Link, to: flow.customAction.href }
+            : null;
+        return (
+          <Box sx={{ p: 2.5, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                {flow.customAction.label}
+              </Typography>
+              {flow.customAction.description && (
+                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
+                  {flow.customAction.description}
+                </Typography>
+              )}
+            </Box>
+            {hasModal && modalNode ? (
+              <>
+                <Button
+                  onClick={() => setActionModalOpen(true)}
+                  variant="contained"
+                  disableElevation
+                  startIcon={<ArrowRight size={14} />}
+                  sx={{ textTransform: 'none', fontWeight: 600, bgcolor: primaryColor, color: '#FFFFFF', height: 36, '&:hover': { bgcolor: primaryColor } }}
+                >
+                  {flow.customAction.label}
+                </Button>
+                {modalNode}
+              </>
+            ) : navProps ? (
+              <Button
+                {...(navProps as any)}
+                variant="contained"
+                disableElevation
+                startIcon={<ArrowRight size={14} />}
+                sx={{ textTransform: 'none', fontWeight: 600, bgcolor: primaryColor, color: '#FFFFFF', height: 36, '&:hover': { bgcolor: primaryColor } }}
+              >
+                {flow.customAction.label}
+              </Button>
+            ) : null}
+          </Box>
+        );
+      })()}
 
       {(() => {
         const slot = renderUsecaseDetailSlot
@@ -4818,6 +4900,18 @@ export interface UsecasesPageProps {
    * Use it to inject a full configuration UI (e.g. Incident Routing editor).
    */
   renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string }) => React.ReactNode;
+  /**
+   * Optional host slot that renders an inline modal for a usecase whose
+   * `customAction.modal` matches. Used to embed dialogs like "Add Host"
+   * directly from the usecase sidebar.
+   */
+  renderUsecaseActionModal?: (params: {
+    modal: string;
+    flowId: string;
+    flowLabel: string;
+    open: boolean;
+    onClose: () => void;
+  }) => React.ReactNode;
 }
 
 function UsecasesPageInner() {
@@ -6158,7 +6252,7 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
     url: '/usecases',
   });
   useInjectScopedStyles();
-  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot } = props;
+  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal } = props;
   // Sync host-injected `globalUrl` into the Shuffle-Core api.ts runtime so
   // every internal `getApiUrl()` call (hooks, helpers, etc.) targets the host
   // backend instead of the bundled default.
@@ -6207,9 +6301,10 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
       isLoaded: loaded,
       renderEndpointSlot,
       renderUsecaseDetailSlot,
+      renderUsecaseActionModal,
       scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, themeClass]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, themeClass]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>
@@ -6403,6 +6498,7 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
     theme = 'system',
     renderEndpointSlot,
     renderUsecaseDetailSlot,
+    renderUsecaseActionModal,
   } = props;
   useSyncHostBaseUrl(globalUrl);
 
@@ -6433,9 +6529,10 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
       isLoaded: loaded,
       renderEndpointSlot,
       renderUsecaseDetailSlot,
+      renderUsecaseActionModal,
       scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, themeClass]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, themeClass]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>

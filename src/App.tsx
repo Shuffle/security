@@ -88,7 +88,7 @@ import PipelinesPage from '@/pages/dashboard/PipelinesPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import DashboardViewPage from '@/pages/dashboard/DashboardViewPage';
 import VulnerabilitiesPage from '@/pages/dashboard/VulnerabilitiesPage';
-import VulnAssetsPage from '@/pages/dashboard/VulnAssetsPage';
+import MonitorsPage from '@/pages/dashboard/MonitorsPage';
 import AssetsPage from '@/pages/dashboard/AssetsPage';
 import WorkflowsNotSupportedPage from '@/pages/dashboard/WorkflowsNotSupportedPage';
 import HostTerminalPage from '@/pages/dashboard/HostTerminalPage';
@@ -290,7 +290,7 @@ const ThemedApp = () => {
               <Route path="/organizations" element={<OrganizationsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/preferences" element={<OrgPreferencesPage />} />
-              <Route path="/monitors" element={<VulnAssetsPage />} />
+              <Route path="/monitors" element={<MonitorsPage />} />
               <Route path="/monitors/terminal" element={<HostTerminalPage />} />
               <Route path="/monitors/:id" element={<MonitorDetailPage />} />
               <Route path="/monitors/:hostUuid/terminal" element={<HostTerminalPage />} />

@@ -1,49 +1,63 @@
-## Problem
+## Why this is broken today
 
-On `/usecases/siem_alerts` the Alluvial diagram has its own click handlers:
-- Clicking an app bubble opens a small `Visit app / Enable Sync / Remove` popover (`AppBubble` local state).
-- Clicking the dashed `+` opens an `AppSearchDrawer` with its own `onSelectOverride` that calls `handleToggleSync` / `handleToggleForward`.
+- `Add Host-Monitors` (`case_management_asset_management_monitors_1`) is configured with `customAction.href = '/monitors?add_host=true'`. The customAction path in `Usecases.tsx` only ever renders a `<Button as={Link} to=...>` — it has no way to open a modal inline in the sidebar drawer, so the user has to leave the page.
+- The route `/monitors` in `src/App.tsx` is actually backed by `src/pages/dashboard/VulnAssetsPage.tsx` (1.7k lines). The page is correctly mounted at `/monitors`, but because the file/component is named "VulnAssets" and the Add Host modal lives inside that file, it looks (and reads, in the code) like the action targets vulnerabilities — not monitors.
+- The Add Host dialog and all monitor UI (host table, host detail panel, terminal, action popovers) live in the host app under `src/pages/dashboard` + `src/components/monitors`, so they can't be reused inside Shuffle-Core (sidebar, dashboards, onboarding, anywhere else).
 
-The default Source/Destination view (`IntegrationStatusLite` in `UsecaseDetailContent`) does something different and richer:
-- Clicking a tile opens a popover with the usecase status chip ("In use" / "Not in use"), an `Enable for <usecase>` / `Disable for <usecase>` toggle wired to `handleUsecaseAppToggle` (POSTs `/api/v2/workflows/generate` with the full `app_name` list and toasts on success), and a `Manage authentication` / `Authenticate app` button that opens the AppDetailDrawer.
-- Clicking the `+` calls `setAddToolFor({ side, categoryId, multiDest })` which opens an `AppSearchDrawer` configured with `connectionPathApps`, `priorityCategory`, `autoActivate` and an `onSelectOverride` that wires the app into the usecase workflow via `/api/v2/workflows/generate` with toast feedback and `invalidateAppsCache()` + `setIntegrationsRefreshKey()`.
+## What we will do
 
-The two surfaces disagree, and on the Alluvial side many clicks appear to do nothing because they delegate to `appDetailCtx.openApp` / local toggles that do not feed back into the same usecase wiring path the rest of the page expects.
+### 1. Extract the monitors UI into Shuffle-Core
+Create a self-contained Monitors module in `src/Shuffle-Core/views/monitors/`:
 
-## Goal
+```text
+src/Shuffle-Core/views/monitors/
+  MonitorsView.tsx          // page-level UI (was VulnAssetsPage body)
+  AddHostDialog.tsx         // standalone Add Host modal (checks + deploy steps)
+  MonitorHostTable.tsx      // moved from src/components/monitors
+  HostDetailPanel.tsx       // moved
+  HostActionPopover.tsx     // moved
+  HostTerminalView.tsx      // moved
+  ActionOutputView.tsx      // moved
+  DisableRceConfirmDialog.tsx
+  hostActionDefinitions.tsx
+  index.ts                  // public exports: MonitorsView, AddHostDialog
+```
 
-Make the Alluvial diagram reuse the default Source/Destination behavior end‑to‑end:
-- Clicking an app bubble opens the same popover, with `Enable for <usecase>` / `Disable for <usecase>` and `Manage authentication`.
-- Clicking the Add button opens the same `AppSearchDrawer` flow (`setAddToolFor`) the default view uses.
+Rules during the move:
+- Replace any host-only imports (`@/components/...`, `@/hooks/...`) with either Shuffle-Core equivalents or props/slots. Hooks that talk to the API (`useHostActions`, `useVulnerabilities` host-data parts) move into `src/Shuffle-Core/hooks/` only if they only depend on the existing Shuffle-Core API client; otherwise expose them as injected props on `MonitorsView`.
+- Keep the file naming "Monitor*" everywhere — drop the "Vuln" terminology from the monitors module entirely.
+- Export `MonitorsView` and `AddHostDialog` from `src/Shuffle-Core/index.tsx`.
 
-Visuals stay the same (positioned bubbles, stripes, webhook node). Only behavior changes.
+### 2. Rewire the host app to the new module
+- `src/pages/dashboard/VulnAssetsPage.tsx` becomes a thin wrapper that renders `<MonitorsView />` from Shuffle-Core and passes any host-only props (auth, navigation helpers, demo mode).
+- Rename the file to `MonitorsPage.tsx` and update the import in `src/App.tsx` (`/monitors` route). `/vulnerabilities` stays on its existing page; nothing about vulnerabilities moves.
+- Delete the moved files under `src/components/monitors/` (or leave one-line re-export shims if anything else still imports them — a quick `rg` will confirm).
 
-## Changes
+### 3. Make the usecase sidebar embed Add Host inline
+Extend the customAction contract so a usecase can request an inline dialog instead of (or in addition to) a navigation:
 
-### 1. `src/Shuffle-Core/views/UsecaseAlluvialDiagram.tsx`
+```ts
+customAction?: {
+  label: string;
+  description?: string;
+  href?: string;        // existing
+  url?: string;         // existing
+  modal?: 'add-host';   // NEW — typed key, resolved by the host
+};
+```
 
-- Add optional handoff props on `UsecaseAlluvialDiagramProps`:
-  - `onBubbleClick?: (args: { appName: string; side: 'left' | 'right'; anchorEl: HTMLElement }) => boolean` — return `true` to skip the local Visit/Enable Sync/Remove popover.
-  - `onAddTool?: (side: 'left' | 'right') => boolean` — return `true` to skip the local `AppSearchDrawer`.
-- In `AppBubble`, accept and call a new `onPrimaryClick(appName, anchorEl)` prop. If it returns `true`, do not set local `anchorEl` (i.e., do not show the local popover). Webhook bubbles keep their existing popover behavior.
-- Pass `onPrimaryClick` through from the diagram so both source (`side="left"`) and destination (`side="right"`) bubbles delegate to the host.
-- In the diagram's `+` Add buttons (lines ~1434, ~1463, ~1494) call `onAddTool?.(side)` first; only fall back to `setSearchOpen(side)` (existing `AppSearchDrawer`) when the host did not handle it.
-- Keep all existing handlers (`handleToggleSync`, `handleToggleForward`, `handleVisitApp`, `handleRemoveApp`, webhook flow) intact for guest mode and standalone usage.
+- In `Usecases.tsx`, when `customAction.modal` is set, render the CTA as a `<Button onClick={...}>` that opens the dialog instead of a `Link`.
+- The host wires the actual modal via a new `renderUsecaseActionModal` slot on `<Usecases />` (same pattern already used for `renderEndpointSlot` / `renderUsecaseDetailSlot` in `src/pages/dashboard/UsecasesPage.tsx`). The host returns `<AddHostDialog open={...} onClose={...} />` for the `'add-host'` key.
+- Update the `Add Host-Monitors` usecase entry in both `src/Shuffle-Core/views/Usecases.tsx` and `src/Shuffle-Core/config/usecases.ts` to use `modal: 'add-host'` and drop the `?add_host=true` href.
+- Keep the URL-param auto-open (`?add_host=true`) on `MonitorsView` so any remaining deep links still work.
 
-### 2. `src/Shuffle-Core/views/Usecases.tsx`
+### 4. Verification
+- `/monitors` still renders the full monitors UI (table, detail, terminal, Add Host).
+- The `Add Host-Monitors` card in the usecase grid + sidebar opens the Add Host dialog inline on the current page.
+- `src/Shuffle-Core/views/monitors/` has no imports from `@/components/monitors`, `@/pages/dashboard`, or vulnerability code.
+- `rg "from '@/components/monitors'"` returns nothing (or only shims).
 
-- In `UsecaseDetailContent`, wire the new props on the existing `<UsecaseAlluvialDiagram>` instance (around line 3918):
-  - `onAddTool={(side) => { setAddToolFor({ side: side === 'left' ? 'source' : 'destination', categoryId: side === 'left' ? flow.source : flow.target, multiDest: endpointAllowsMultiDestAdd }); return true; }}`
-  - `onBubbleClick={({ appName, side, anchorEl }) => { setPopoverFor({ el: anchorEl, item: synthesizeItem(appName) }); return true; }}`
-- Lift the existing `IntegrationStatusLite` popover (`renderPopover`) so it can be reused outside the lite strip, OR (simpler) expose the same data via a small inline popover component in `Usecases.tsx` that calls the same `handleUsecaseAppToggle` + `appDetail.openApp` the lite strip uses. Reuse the existing `popoverFor` shape (`{ el, item }`) so styling and copy stay identical.
-- `synthesizeItem(appName)` resolves the bubble's app name to an `IntegrationItem` using the already-fetched authenticated apps + catalog icons (same lookup the lite strip uses) so the popover shows `Validated` / `Configured` / `Not configured` correctly.
-
-### 3. No changes to
-
-- `AppSearchDrawer`, `IntegrationStatusLite` rendering, `/api/v2/workflows/generate` request shape, guest-mode URL params, or webhook handling.
-
-## Technical notes
-
-- The Alluvial today calls `appDetailCtx?.openApp(appName)` from `handleVisitApp`. Once `onBubbleClick` handles the click, that path is no longer hit for the bubble — but it stays available for any code still using `onVisitApp` (e.g., a guest flow).
-- `connectionViewMode === 'source_destination'` already gates Alluvial rendering, so this change only affects the three usecases that opt into it (`siem_case_management_1`, `edr_case_management_1`, `email_case_management_1`).
-- After approval I will verify by opening `/usecases/siem_alerts`, clicking an existing source app bubble (expecting the same popover as the default card view), and clicking the `+` button (expecting the same `AppSearchDrawer` opened by `setAddToolFor`).
+## Out of scope
+- No changes to `/vulnerabilities`, CVE pages, or vulnerability data flow.
+- No backend / API changes — same endpoints, same payloads.
+- No visual redesign of the Add Host modal; same two-step (checks → deploy) flow.

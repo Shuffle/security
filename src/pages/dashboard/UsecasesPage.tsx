@@ -10,6 +10,7 @@ import { WebhookIngestionButton, type WebhookIngestionInfo } from '@/components/
 import { useWebhookStatus } from '@/hooks/useWebhookStatus';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import { IncidentRoutingEditor } from '@/components/settings/IncidentRoutingEditor';
+import MonitorsView from '@/Shuffle-Core/views/monitors/MonitorsView';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -56,6 +57,12 @@ const UsecasesPage = (props: UsecasesPageProps = {}) => {
         // Same component used on /preferences — single source of truth so
         // changes apply in both places.
         return <IncidentRoutingEditor forceShow />;
+      }}
+      renderUsecaseActionModal={({ modal, open, onClose }) => {
+        // Embed the same Add Host dialog from /monitors directly in the
+        // usecase sidebar so users can deploy a monitor without navigating.
+        if (modal !== 'add-host' || !open) return null;
+        return <MonitorsView mode="add-host-dialog" onClose={onClose} />;
       }}
     />
   );
