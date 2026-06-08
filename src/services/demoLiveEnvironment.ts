@@ -616,9 +616,13 @@ export const enableLiveDemoEnvironment = (): LiveDemoEnvironmentResult => {
 
   // Independent steps — fire alongside Stage A. generateOnboardingWorkflows
   // is what creates the threat-intel usecase workflows (incl. "Enable
-  // Threat feeds") that Stage B then executes.
+  // Threat feeds") that Stage B then executes. We also call the SAME
+  // standalone helpers the Automation Readiness banner uses so Enrichment
+  // and Assign & Escalate flip Active at the same time as everything else.
   const independent = Promise.allSettled([
     generateOnboardingWorkflows(),
+    enableThreatIntelAutomation(),
+    enableAssignEscalateAutomation(),
     initDemoMonitorHost(),
     initDemoAgents(),
     initAgentPermissionsDefaults(),
