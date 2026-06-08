@@ -4531,6 +4531,9 @@ function UsecaseDetailContent({
           if (enabled) next.add(key); else next.delete(key);
           if (enabled) pushInjectedUsecaseApp(flow.id, appName);
           else removeInjectedUsecaseApp(flow.id, appName);
+          // Optimistically refresh the tool strip so the change is visible
+          // immediately, without waiting for the backend write.
+          invalidateAppsCache(); setIntegrationsRefreshKey((k2) => k2 + 1);
           // Source of truth = the actual apps inside the linked workflow(s).
           const activeNames: string[] = [];
           const seen = new Set<string>();
