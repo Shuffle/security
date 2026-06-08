@@ -1331,6 +1331,7 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
           <MonitorHostTable hosts={allHosts as any} onRefresh={loadGroups} />
         ) : null}
       </div>
+      </>)}
 
       {/* Add Host Monitor Dialog */}
       <Dialog open={addHostOpen} onOpenChange={setAddHostOpen}>
