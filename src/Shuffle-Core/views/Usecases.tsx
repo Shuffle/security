@@ -1148,6 +1148,18 @@ interface UsecasesPageConfig {
    *  a usecase (e.g. the Incident Routing editor) instead of bundling it
    *  into Shuffle-Core. */
   renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string }) => React.ReactNode;
+  /** Optional host slot that renders an inline modal for a usecase whose
+   *  `customAction.modal` key matches. Lets the host embed dialogs (e.g.
+   *  "Add Host" for the Add Host-Monitors usecase) directly in the sidebar
+   *  without navigating away. The host should return its own Dialog
+   *  controlled by `open`/`onClose`. */
+  renderUsecaseActionModal?: (params: {
+    modal: string;
+    flowId: string;
+    flowLabel: string;
+    open: boolean;
+    onClose: () => void;
+  }) => React.ReactNode;
   /** Scope class to apply to portaled MUI surfaces (Drawer paper, etc.) so
    *  the scoped HSL tokens resolve correctly even outside the page wrapper. */
   scopeClassName?: string;
