@@ -94,6 +94,7 @@ const FormInput = (defaultprops: any) => {
   const sourceNode = searchParams.get("source_node") || searchParams.get("start")
   const decisionId = searchParams.get("decision_id") // ONLY for agentic workflows
   const backendUrl = searchParams.get("backend_url") || globalUrl
+  const hasExecutionAuth = execution_id && authorization
 
   const initializedQuestionsForWorkflowId = React.useRef(null)
   useEffect(() => {
@@ -871,7 +872,7 @@ const FormInput = (defaultprops: any) => {
       })
       .then((responseJson) => {
 		if (responseJson.success === false) {
-			if (workflow_id !== execution_id) { 
+			if (workflow_id !== execution_id && !hasExecutionAuth) { 
 				toast.warn("Form not found. Redirecting to forms list.")
 				navigate("/forms")
 			}
@@ -1096,6 +1097,12 @@ const FormInput = (defaultprops: any) => {
 		})
 		.then((responseJson) => {
 			if (responseJson?.success == false) {
+				toast.error(responseJson?.reason || "This form link is no longer valid.")
+				setExecutionLoading(false)
+				setExecutionRunning(false)
+				setDisableButtons(true)
+				stop()
+				navigate("/forms")
 				return
 			}
 
@@ -1367,7 +1374,7 @@ const FormInput = (defaultprops: any) => {
 		return (
 			<div style={{paddingTop: 24, width: "100%", maxWidth: 480, margin: "0 auto", textAlign: "center"}}>
 
-				{!isLoggedIn ?
+				{!isLoggedIn && !hasExecutionAuth ?
 					<div style={{paddingTop: 32, paddingBottom: 32}}>
 						<div style={{
 							width: 56, height: 56, borderRadius: 14,
