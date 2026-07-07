@@ -350,7 +350,7 @@ export interface Usecase {
   /** Optional custom action — a one-click CTA that overrides the default "create workflow" flow.
    *  Use for usecases best fulfilled by an in-app navigation (e.g. opening /monitors?add_host=true)
    *  rather than generating a Shuffle workflow. */
-  customAction?: {
+  customAction?: null | {
     /** Button label shown on the usecase detail page (e.g. "Add Monitor"). */
     label: string;
     /** In-app route. Use this OR `url`. Internal routes use react-router navigation. */
@@ -483,6 +483,12 @@ const SOURCE_COMING_SOON_FLOW_IDS = new Set<string>([
 // third-party destination apps and the "Add tool" affordance.
 const DESTINATION_SHUFFLE_ONLY_FLOW_IDS = new Set<string>([
   'threat_intel_case_management_1', // Enrichment
+]);
+
+// Usecases where the Source is Shuffle Security itself (datastore trigger) —
+// no external app to wire up on the source side.
+const SOURCE_SHUFFLE_ONLY_FLOW_IDS = new Set<string>([
+  'asset_management_case_management_vuln_1', // Vulnerability Correlation — triggered by shuffle-security_packages
 ]);
 
 // ── Per-usecase "I just picked this app" persistence ──────────────────────────
@@ -674,17 +680,16 @@ export const DEFAULT_USECASES: Usecase[] = [
     },
   },
   {
-    id: 'asset_management_case_management_vuln_1', phase: 'ingest', source: 'asset_management', target: 'case_management',
+    id: 'asset_management_case_management_vuln_1', phase: 'correlation', source: 'asset_management', target: 'case_management',
     label: 'Vulnerability Correlation',
+    animated: true,
     tags: ['Context', 'Correlation', 'Vulnerability'],
     description: 'Correlate known vulnerabilities (CVEs, misconfigurations, missing patches) on affected assets with active incidents — surfacing exploitable weaknesses that elevate risk and guide containment priorities.',
     agenticDescription: 'An agent matches observables and affected hosts in a case against the vulnerability inventory, identifies exploitable CVEs aligned with the attack technique, recalculates incident severity, and recommends remediation or compensating controls.',
+    automationLabel: 'Vulnerability Correlation',
+    automationCategory: 'cases',
     automationArea: 'correlation',
-    customAction: {
-      label: 'Configure Vulnerabilities',
-      href: '/vulnerabilities',
-      description: 'Open the vulnerability inventory to ingest CVEs from your scanners.',
-    },
+    customAction: null,
   },
   {
     id: 'vulnerability_ingestion_1', phase: 'ingest', source: 'asset_management', target: 'case_management',
@@ -1637,7 +1642,7 @@ function mapApiToFrontend(cat: ApiUsecaseCategory, api: ApiUsecase, local?: Usec
     video: api.video || local?.video,
     blogpost: api.blogpost || local?.blogpost,
     referenceImage: api.reference_image || local?.referenceImage,
-    customAction: api.custom_action || local?.customAction,
+    customAction: local?.customAction === null ? undefined : (api.custom_action || local?.customAction),
   };
 }
 
@@ -2554,6 +2559,7 @@ const ACTIVE_USECASE_IDS = [
   'threat_intel_network_1',
   'threat_intel_edr_1',
   'threat_intel_cloud_1',
+  'asset_management_case_management_vuln_1',
 ];
 
 // Small wrapper so UsecaseDetailContent can render an Outcome block without
@@ -3334,7 +3340,8 @@ function UsecaseDetailContent({
     // itself IS the source, so there is no third-party source auth to
     // validate. Skip the hard-block for these flows.
     const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
-      || flow.id === 'case_management_communication_1';
+      || flow.id === 'case_management_communication_1'
+      || SOURCE_SHUFFLE_ONLY_FLOW_IDS.has(flow.id);
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
       // Hard-block the enable. The /workflows/generate endpoint may return
       // success: true and then quietly skip creating the workflow when no
@@ -3369,7 +3376,7 @@ function UsecaseDetailContent({
 
       let validatedSourceAppNames: string[] = [];
 
-      if (willBeEnabled) {
+      if (willBeEnabled && !isShuffleSourcedFlow) {
         // Step 1+2: re-check live which source tools are VALIDATED right now,
         // and forward them explicitly to /workflows/generate. Without this
         // the backend may generate a shell workflow with no source app wired
@@ -4295,14 +4302,14 @@ function UsecaseDetailContent({
                         // side and disable adding source tools.
                         const isForwardTickets = flow.id === 'case_management_cases_forward_1';
                         const isNotifications = flow.id === 'case_management_communication_1';
-                        const isCasesSourceOnly = isForwardTickets || isNotifications;
+                        const isCasesSourceOnly = isForwardTickets || isNotifications || SOURCE_SHUFFLE_ONLY_FLOW_IDS.has(flow.id);
                         const skipShuffle = endpoint.title === 'Destination'
                           && (isCasesSourceOnly || (flow.source === 'case_management' && !isMultiDest));
                         const showShuffle = includesCases && !skipShuffle;
                         // When Shuffle itself is the Source, only surface the Shuffle Security
                         // tile — hiding other case-management apps that would otherwise clutter
                         // the source side of the flow.
-                        const sourceIsShuffleOnly = endpoint.title === 'Source' && endpoint.categoryId === 'case_management';
+                        const sourceIsShuffleOnly = endpoint.title === 'Source' && (endpoint.categoryId === 'case_management' || SOURCE_SHUFFLE_ONLY_FLOW_IDS.has(flow.id));
                         // Some usecases (e.g. Enrichment) run entirely on a built-in Shuffle
                         // workflow — the destination has no third-party apps to wire up,
                         // only the Shuffle Security platform itself.
@@ -4358,7 +4365,7 @@ function UsecaseDetailContent({
                         const appNamesWithShuffle = injected.length
                           ? [...baseAppNames, ...injected]
                           : baseAppNames;
-                        const synthetic = (showShuffle || destIsShuffleOnly)
+                        const synthetic = (showShuffle || destIsShuffleOnly || sourceIsShuffleOnly)
                           ? [{
                             id: 'shuffle-security',
                             name: 'Shuffle Security',
@@ -4426,7 +4433,7 @@ function UsecaseDetailContent({
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
 
                                 <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: FG, letterSpacing: '0.02em', flexShrink: 0 }}>
-                                  {endpoint.title === 'Source' && endpoint.categoryId === 'case_management' ? 'Shuffle' : (endpoint.meta?.label || 'Unknown')}
+                                  {sourceIsShuffleOnly ? 'Shuffle' : (endpoint.meta?.label || 'Unknown')}
                                 </Typography>
                                 {endpoint.details ? (
                                   <Typography sx={{
