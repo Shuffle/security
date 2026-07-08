@@ -6293,7 +6293,7 @@ const IncidentDetailPage = () => {
             switch (a.type) {
               case 'set_severity': return !!a.value && editedSeverity === a.value;
               case 'set_status':   return !!a.value && editedStatus === a.value;
-              case 'set_priority': return !!a.value && (editedPriority ?? incident?.priority) === a.value;
+              case 'set_priority': return false; // priority writes are workflow-driven
               case 'add_label':    return !!a.value && editedLabels.includes(a.value);
               case 'assign_to':    return !!a.value && editedAssignee === a.value;
               case 'add_comment': {
