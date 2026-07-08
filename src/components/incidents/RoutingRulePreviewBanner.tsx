@@ -358,9 +358,31 @@ export const RoutingRulePreviewBanner = ({
               }}
             >
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>
-                  {m.rule.name}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
+                  <Typography variant="body2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, flex: 1, minWidth: 0 }}>
+                    {m.rule.name}
+                  </Typography>
+                  {m.rule.actions.filter((a) => !isApplied(a)).length > 1 && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => applyAllForRule(m.rule)}
+                      sx={{
+                        height: 26,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        fontSize: 11,
+                        px: 1.25,
+                        bgcolor: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary-foreground))',
+                        boxShadow: 'none',
+                        '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
+                      }}
+                    >
+                      Apply all ({m.rule.actions.filter((a) => !isApplied(a)).length})
+                    </Button>
+                  )}
+                </Box>
                 <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mb: 0.75 }}>
                   Matched {m.matched.length}/{m.rule.conditions.length} condition{m.rule.conditions.length === 1 ? '' : 's'}
                   {m.matched[0]?.field ? ` — ${m.matched[0].field} ${m.matched[0].op}${m.matched[0].value ? ` "${m.matched[0].value}"` : ''}` : ''}
