@@ -147,7 +147,14 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
     }
     return out;
   }, [entityPlural, entityBasePath, isSupport, sidebarTabs]);
-  const [expandedItems, setExpandedItems] = useState<string[]>([entityPlural]);
+  // Initialise expanded state from the CURRENT route so we never flash a
+  // stale group (e.g. Incidents) open on mount before the effect corrects it.
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    const path = location.pathname;
+    const matches = (p?: string) => !!p && (path === p || path.startsWith(p + '/'));
+    const owning = navItems.find(item => matches(item.path) || item.children?.some(c => matches(c.path)));
+    return owning ? [owning.label] : [];
+  });
   const [changingOrg, setChangingOrg] = useState(false);
   
   const [toolMenuAnchor, setToolMenuAnchor] = useState<null | HTMLElement>(null);
@@ -181,6 +188,11 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
     });
     if (owning) {
       setExpandedItems(prev => (prev.length === 1 && prev[0] === owning.label ? prev : [owning.label]));
+    } else {
+      // No group owns the current route (top-level item like Host Monitors or
+      // Vulnerabilities) — collapse everything so the previous group does not
+      // stay open.
+      setExpandedItems(prev => (prev.length === 0 ? prev : []));
     }
   }, [location.pathname, navItems]);
 
