@@ -383,14 +383,15 @@ const hasActiveFilterParams = (params: URLSearchParams): boolean => {
   return keys.some(k => params.has(k));
 };
 
-const loadPersistedFilters = (): PersistedIncidentFilters | null => {
+const loadPersistedFilters = (orgId: string | null | undefined): PersistedIncidentFilters | null => {
   try {
-    const raw = localStorage.getItem(INCIDENT_FILTERS_STORAGE_KEY);
+    const key = incidentFiltersKey(orgId);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedIncidentFilters;
     if (!parsed || typeof parsed.savedAt !== 'number') return null;
     if (Date.now() - parsed.savedAt > INCIDENT_FILTERS_TTL_MS) {
-      localStorage.removeItem(INCIDENT_FILTERS_STORAGE_KEY);
+      localStorage.removeItem(key);
       return null;
     }
     return parsed;
@@ -400,6 +401,7 @@ const loadPersistedFilters = (): PersistedIncidentFilters | null => {
 };
 
 const savePersistedFilters = (
+  orgId: string | null | undefined,
   filters: Filters,
   negatedFilters: Set<string>,
   dateFrom?: Date,
@@ -413,7 +415,7 @@ const savePersistedFilters = (
       dateTo: dateTo?.toISOString(),
       savedAt: Date.now(),
     };
-    localStorage.setItem(INCIDENT_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(incidentFiltersKey(orgId), JSON.stringify(payload));
   } catch {
     // ignore localStorage errors
   }
