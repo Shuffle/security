@@ -9810,7 +9810,7 @@ const IncidentDetailPage = () => {
                   // Refresh local presence state so the header banner and
                   // the next open of this dialog reflect the new tenant set
                   // without needing a page reload.
-                  const activeId = userInfo?.active_org?.id;
+                  // `activeId` was already computed above for validation.
                   const stayingOrgId = toRemove.includes(sourceOrgId)
                     ? ((activeId && selected.has(activeId)) ? activeId : Array.from(selected)[0])
                     : sourceOrgId;
