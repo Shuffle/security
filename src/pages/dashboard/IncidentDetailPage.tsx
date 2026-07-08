@@ -95,6 +95,7 @@ import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePrev
 import {
   ROUTING_DATASTORE_CATEGORY,
   type RoutingRule,
+  type RoutingAction,
   ACTION_TYPE_LABELS,
 } from '@/components/settings/IncidentRoutingEditor';
 import { evaluateRoutingRules, type IncidentEvaluationContext } from '@/utils/routingRuleEvaluator';
@@ -244,6 +245,46 @@ const formatDuration = (ms: number): string => {
 
 const parseTimestamp = (timestamp: number | string | undefined): number => {
   return normalizeToMs(timestamp);
+};
+
+const normalizeRoutingSeverityValue = (value?: string): string => {
+  const raw = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const match = severityOptions.find((s) =>
+    s.value.toLowerCase() === raw ||
+    s.label.toLowerCase().replace(/[\s-]+/g, '_') === raw
+  );
+  return match?.value || raw;
+};
+
+const parseRoutingActionValue = (value: string | undefined): string | number | boolean => {
+  const trimmed = String(value ?? '').trim();
+  if (/^(true|false)$/i.test(trimmed)) return trimmed.toLowerCase() === 'true';
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+  return trimmed;
+};
+
+const readDeepValue = (obj: any, path: string): any => {
+  if (!obj || !path) return undefined;
+  const parts = path.split('.').filter(Boolean);
+  let cur = obj;
+  for (const part of parts) {
+    if (cur == null) return undefined;
+    cur = cur[part];
+  }
+  return cur;
+};
+
+const setDeepValue = (obj: any, path: string, value: string | number | boolean) => {
+  if (!obj || !path) return;
+  const parts = path.split('.').filter(Boolean);
+  if (parts.length === 0) return;
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const part = parts[i];
+    if (!cur[part] || typeof cur[part] !== 'object' || Array.isArray(cur[part])) cur[part] = {};
+    cur = cur[part];
+  }
+  cur[parts[parts.length - 1]] = value;
 };
 
 // Quick OCSF-shape check used by the revision-fallback logic. Mirrors the
