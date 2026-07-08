@@ -597,9 +597,9 @@ export const deleteDatastoreItem = async (
   // destructive operation.
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Org-Id': orgId,
-    ...getAuthHeader(),
+    ...getAuthHeader(orgId),
   };
+
 
   console.log(`[datastore.delete] key=${rawKey} category=${category} orgId=${orgId}${overrideOrgId ? ' (override)' : ''}`);
 
