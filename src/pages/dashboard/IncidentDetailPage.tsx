@@ -2023,13 +2023,29 @@ const IncidentDetailPage = () => {
                   const r = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, oid);
                   const valLen = r.item?.value?.length || 0;
                   const stub = !!(r.success && r.item) && !r.item.key && valLen <= 2;
-                  return r.success && r.item && !stub ? oid : null;
+                  if (!(r.success && r.item && !stub)) return null;
+                  let parsedValue: unknown = null;
+                  try { parsedValue = r.item.value ? JSON.parse(r.item.value) : null; } catch { /* ignore */ }
+                  return { orgId: oid, value: parsedValue };
                 } catch {
                   return null;
                 }
               }),
             );
-            const foundOrgId = probeResults.find(Boolean) as string | undefined;
+            const hits = probeResults.filter((r): r is { orgId: string; value: unknown } => !!r);
+            // Pick authoritative stamp so we don't chase a ghost.
+            let authStamp: TenantStamp | null = null;
+            for (const h of hits) {
+              const s = readTenantStamp(h.value);
+              if (s && (!authStamp || s.updatedAt > authStamp.updatedAt)) authStamp = s;
+            }
+            const liveHits = hits.filter(h => !isTenantGhost(h.orgId, authStamp));
+            // Prefer a hit that matches the authoritative tenants list;
+            // otherwise fall back to any live hit.
+            const preferred = authStamp
+              ? liveHits.find(h => authStamp!.tenants.includes(h.orgId)) || liveHits[0]
+              : liveHits[0] || hits[0];
+            const foundOrgId = preferred?.orgId;
             if (foundOrgId) {
               const newKey = foundOrgId === activeId ? id : `${foundOrgId}::${id}`;
               console.log(`[IncidentDetail] primary lookup empty; found copy in tenant ${foundOrgId} — redirecting`);
