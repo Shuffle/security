@@ -64,6 +64,8 @@ const LEGACY_ALERTS_CATEGORY = 'shuffle-alerts';
 const LEGACY_SECURITY_ALERTS_CATEGORY = 'shuffle-security_alerts';
 const MIGRATION_KEY = 'shuffle_incidents_migrated_v1';
 const DEFAULT_STATUS_FILTER = ['new', 'in_progress'];
+const INCIDENT_FILTERS_STORAGE_KEY = 'shuffle_incidents_filters_v1';
+const INCIDENT_FILTERS_TTL_MS = 24 * 60 * 60 * 1000;
 
 const toRawIncidentKey = (key: string): string => {
   if (!key?.includes('::')) return key;
@@ -362,6 +364,55 @@ interface Filters {
   org: string[] | null;
 }
 
+interface PersistedIncidentFilters {
+  filters: Filters;
+  negatedFilters: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  savedAt: number;
+}
+
+const hasActiveFilterParams = (params: URLSearchParams): boolean => {
+  const keys = ['severity', 'status', 'tlp', 'assignee', 'source', 'tag', 'not'];
+  return keys.some(k => params.has(k));
+};
+
+const loadPersistedFilters = (): PersistedIncidentFilters | null => {
+  try {
+    const raw = localStorage.getItem(INCIDENT_FILTERS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedIncidentFilters;
+    if (!parsed || typeof parsed.savedAt !== 'number') return null;
+    if (Date.now() - parsed.savedAt > INCIDENT_FILTERS_TTL_MS) {
+      localStorage.removeItem(INCIDENT_FILTERS_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const savePersistedFilters = (
+  filters: Filters,
+  negatedFilters: Set<string>,
+  dateFrom?: Date,
+  dateTo?: Date
+) => {
+  try {
+    const payload: PersistedIncidentFilters = {
+      filters,
+      negatedFilters: Array.from(negatedFilters),
+      dateFrom: dateFrom?.toISOString(),
+      dateTo: dateTo?.toISOString(),
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(INCIDENT_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore localStorage errors
+  }
+};
+
 const IncidentsPage = () => {
   const { resolvedTheme } = useTheme();
 
@@ -395,6 +446,10 @@ const IncidentsPage = () => {
       if (!arr.length) return null;
       return arr.length === 1 ? arr[0] : arr;
     };
+    const persisted = !hasActiveFilterParams(searchParams) ? loadPersistedFilters() : null;
+    if (persisted?.filters) {
+      return persisted.filters;
+    }
     const sevParam = parseList(searchParams.get('severity'));
     const statusParam = parseList(searchParams.get('status'));
     const tlpParam = searchParams.get('tlp');
@@ -412,6 +467,10 @@ const IncidentsPage = () => {
     };
   });
   const [negatedFilters, setNegatedFilters] = useState<Set<string>>(() => {
+    const persisted = !hasActiveFilterParams(searchParams) ? loadPersistedFilters() : null;
+    if (persisted?.negatedFilters) {
+      return new Set(persisted.negatedFilters);
+    }
     const neg = searchParams.get('not');
     if (!neg) return new Set();
     return new Set(neg.split(',').map(s => s.trim()).filter(Boolean));
@@ -442,8 +501,46 @@ const IncidentsPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.severity, filters.status, filters.tlp, filters.assignee, filters.source, filters.tag, negatedFilters]);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(() => {
+    const persisted = loadPersistedFilters();
+    if (persisted?.dateFrom) {
+      const d = new Date(persisted.dateFrom);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return undefined;
+  });
+  const [dateTo, setDateTo] = useState<Date | undefined>(() => {
+    const persisted = loadPersistedFilters();
+    if (persisted?.dateTo) {
+      const d = new Date(persisted.dateTo);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return undefined;
+  });
+
+  // Persist incident filters to localStorage for up to 24 hours so reloads
+  // and sidebar navigation restore the last active filter set.
+  useEffect(() => {
+    savePersistedFilters(filters, negatedFilters, dateFrom, dateTo);
+  }, [filters, negatedFilters, dateFrom, dateTo]);
+
+  const orgFilterValidatedRef = useRef(false);
+  useEffect(() => {
+    if (!currentOrgId || orgFilterValidatedRef.current) return;
+    if (!isChildOrg && subOrgs.length === 0) return;
+    orgFilterValidatedRef.current = true;
+    const validIds = new Set([currentOrgId, ...subOrgs.map(o => o.id)]);
+    setFilters(prev => {
+      if (!prev.org) return prev;
+      const nextOrg = prev.org.filter(id => validIds.has(id));
+      if (nextOrg.length === prev.org.length) return prev;
+      if (nextOrg.length === 0) {
+        return { ...prev, org: isChildOrg ? [currentOrgId] : null };
+      }
+      return { ...prev, org: nextOrg };
+    });
+  }, [currentOrgId, subOrgs, isChildOrg]);
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
   const [categoryAutomations, setCategoryAutomations] = useState<CategoryAutomation[]>([]);
