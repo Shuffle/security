@@ -1686,8 +1686,7 @@ const IncidentDetailPage = () => {
   // Detect which other orgs share the same incident key
   // Primary source: shared_orgs query param from the list page (most reliable)
   // Fallback: probe each org via get_cache
-  // (sharedOrgs declared earlier — hoisted so automation-status hooks that
-  // scope to every tenant this incident lives in can reference it.)
+  // (see hoisted declaration above)
   
   useEffect(() => {
     if (!id || !userInfo?.active_org?.id) return;
