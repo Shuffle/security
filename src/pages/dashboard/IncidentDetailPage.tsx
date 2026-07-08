@@ -9369,6 +9369,9 @@ const IncidentDetailPage = () => {
 
       {/* Move to Tenant Dialog — copies the incident into the chosen tenant
           then deletes it from the current one, and navigates to the new one. */}
+      {/* Manage tenants dialog — writes the incident into every selected
+          tenant (verifying each write) then removes it from any tenants that
+          were unchecked. Deletions only happen after all adds are verified. */}
       <Dialog
         open={showMoveDialog}
         onClose={() => { if (!isMoving) setShowMoveDialog(false); }}
@@ -9378,42 +9381,83 @@ const IncidentDetailPage = () => {
       >
         <DialogTitle sx={{ color: 'hsl(var(--foreground))' }}>Move to Tenant</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 2 }}>
-            This will copy the incident into the selected tenant, delete it from the current one, and take you there.
-          </Typography>
           {(() => {
             const sourceOrgId = crossOrgId || userInfo?.active_org?.id || '';
+            const activeId = userInfo?.active_org?.id || '';
+            // Build the full candidate list — every tenant the user could
+            // place this incident in. Preserve current presence (source +
+            // sharedOrgs) so a partial catalog never hides an existing copy.
+            const seen = new Set<string>();
             const candidates: { id: string; name: string }[] = [];
-            if (parentOrg && parentOrg.id !== sourceOrgId) candidates.push({ id: parentOrg.id, name: parentOrg.name || parentOrg.id });
-            for (const so of subOrgs) {
-              if (so.id !== sourceOrgId) candidates.push({ id: so.id, name: so.name || so.id });
-            }
-            const activeId = userInfo?.active_org?.id;
-            if (activeId && activeId !== sourceOrgId && !candidates.find(c => c.id === activeId)) {
-              candidates.unshift({ id: activeId, name: userInfo?.active_org?.name || activeId });
-            }
-            if (candidates.length === 0) {
-              return (
-                <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                  No other tenants available.
-                </Typography>
-              );
-            }
+            const addCandidate = (id: string, name?: string) => {
+              if (!id || seen.has(id)) return;
+              seen.add(id);
+              candidates.push({ id, name: name || id });
+            };
+            if (sourceOrgId) addCandidate(sourceOrgId, sourceOrgId === activeId ? (userInfo?.active_org?.name || sourceOrgId) : sourceOrgId);
+            for (const so of sharedOrgs) addCandidate(so.id, so.name);
+            if (activeId) addCandidate(activeId, userInfo?.active_org?.name || activeId);
+            if (parentOrg) addCandidate(parentOrg.id, parentOrg.name || parentOrg.id);
+            for (const so of subOrgs) addCandidate(so.id, so.name || so.id);
+
+            const presentSet = new Set<string>();
+            if (sourceOrgId) presentSet.add(sourceOrgId);
+            for (const so of sharedOrgs) presentSet.add(so.id);
+
+            const selectedCount = moveSelectedOrgIds.size;
+            const noneSelected = selectedCount === 0;
+
             return (
-              <FormControl fullWidth size="small">
-                <InputLabel id="move-tenant-label">Target tenant</InputLabel>
-                <Select
-                  labelId="move-tenant-label"
-                  label="Target tenant"
-                  value={moveTargetOrgId}
-                  onChange={(e) => setMoveTargetOrgId(String(e.target.value))}
-                  MenuProps={{ PaperProps: { sx: { zIndex: 9999 } } }}
-                >
-                  {candidates.map(c => (
-                    <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <>
+                <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 2 }}>
+                  {presentSet.size > 1
+                    ? `This incident exists in ${presentSet.size} tenants. Check every tenant it should live in — additions are written and verified first, and unchecked tenants are only removed afterwards.`
+                    : 'Select every tenant this incident should live in. New tenants are written and verified first; unchecked tenants are only removed afterwards.'}
+                </Typography>
+                {candidates.length === 0 ? (
+                  <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                    No other tenants available.
+                  </Typography>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, border: '1px solid hsl(var(--border))', borderRadius: 1, p: 0.5, maxHeight: 320, overflowY: 'auto' }}>
+                    {candidates.map(c => {
+                      const isPresent = presentSet.has(c.id);
+                      const isChecked = moveSelectedOrgIds.has(c.id);
+                      return (
+                        <Box
+                          key={c.id}
+                          onClick={() => {
+                            if (isMoving) return;
+                            setMoveSelectedOrgIds(prev => {
+                              const next = new Set(prev);
+                              if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                              return next;
+                            });
+                          }}
+                          sx={{
+                            display: 'flex', alignItems: 'center', gap: 1,
+                            px: 1, py: 0.5, borderRadius: 0.5, cursor: isMoving ? 'not-allowed' : 'pointer',
+                            '&:hover': { bgcolor: 'hsl(var(--muted) / 0.4)' },
+                          }}
+                        >
+                          <Checkbox size="small" checked={isChecked} disabled={isMoving} sx={{ p: 0.5 }} />
+                          <Typography variant="body2" sx={{ color: 'hsl(var(--foreground))', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.name}
+                          </Typography>
+                          {isPresent && (
+                            <Chip size="small" label="Currently here" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }} />
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+                {noneSelected && (
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'hsl(var(--destructive))' }}>
+                    Select at least one tenant — an incident must live somewhere.
+                  </Typography>
+                )}
+              </>
             );
           })()}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
@@ -9426,14 +9470,32 @@ const IncidentDetailPage = () => {
             </Button>
             <Button
               variant="contained"
-              disabled={!moveTargetOrgId || isMoving || !incident?.id}
+              disabled={isMoving || !incident?.id || moveSelectedOrgIds.size === 0}
               onClick={async () => {
-                if (!incident?.id || !moveTargetOrgId) return;
+                if (!incident?.id) return;
                 const sourceOrgId = crossOrgId || userInfo?.active_org?.id;
                 if (!sourceOrgId) { toast.error('Could not determine source tenant'); return; }
-                if (sourceOrgId === moveTargetOrgId) { toast.error('Source and target tenants are the same'); return; }
+
+                const presentSet = new Set<string>();
+                presentSet.add(sourceOrgId);
+                for (const so of sharedOrgs) presentSet.add(so.id);
+
+                const selected = moveSelectedOrgIds;
+                const toAdd: string[] = [];
+                const toRemove: string[] = [];
+                for (const id of selected) if (!presentSet.has(id)) toAdd.push(id);
+                for (const id of presentSet) if (!selected.has(id)) toRemove.push(id);
+
+                if (toAdd.length === 0 && toRemove.length === 0) {
+                  toast.info('No changes to apply');
+                  setShowMoveDialog(false);
+                  return;
+                }
+
                 setIsMoving(true);
                 try {
+                  // Pull the freshest copy from the source tenant so every
+                  // write targets the same authoritative payload.
                   const fresh = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, sourceOrgId);
                   let value: unknown = null;
                   if (fresh?.success && fresh.item?.value) {
@@ -9443,54 +9505,75 @@ const IncidentDetailPage = () => {
                   }
                   if (!value) value = incident.rawOCSF || incident;
 
-                  const writeRes = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId);
-                  if (!writeRes.success) throw new Error(writeRes.error || 'Failed to write incident to target tenant');
+                  // 1) Write into every new tenant and verify each one before
+                  // touching any deletions. If ANY add fails to verify, we
+                  // bail out and roll back the additions so we never delete
+                  // the last copy of an incident.
+                  const addedOk: string[] = [];
+                  for (const targetOrgId of toAdd) {
+                    const writeRes = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
+                    if (!writeRes.success) {
+                      throw new Error(writeRes.error || `Failed to write incident to tenant ${targetOrgId}`);
+                    }
+                    let verified = false;
+                    const backoffsMs = [0, 400, 800, 1200, 1600, 2000, 2500, 3000];
+                    for (const wait of backoffsMs) {
+                      if (verified) break;
+                      if (wait > 0) await new Promise(r => setTimeout(r, wait));
+                      try {
+                        const check = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
+                        const anyCheck = check as any;
+                        if (check?.success && (check.item?.value || anyCheck?.item?.key || anyCheck?.item?.edited)) {
+                          verified = true;
+                        }
+                      } catch { /* retry */ }
+                    }
+                    if (!verified) {
+                      console.warn(`[MoveTenant] target ${targetOrgId} read did not confirm; trusting write result`);
+                    }
+                    addedOk.push(targetOrgId);
+                  }
 
-                  // Verify the write landed and is readable in the target
-                  // tenant BEFORE deleting from the source. Some backends are
-                  // eventually consistent, so retry with a growing backoff
-                  // before giving up to avoid losing the incident on a
-                  // transient miss. Accept either a readable value or any
-                  // successful item response (some backends return the row
-                  // metadata without echoing the value immediately).
-                  let verified = false;
-                  const backoffsMs = [0, 400, 800, 1200, 1600, 2000, 2500, 3000];
-                  for (const wait of backoffsMs) {
-                    if (verified) break;
-                    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+                  // 2) Only now — after every add is verified — remove the
+                  // incident from any tenants that were unchecked.
+                  const removedOk: string[] = [];
+                  const removeFailures: string[] = [];
+                  for (const oldOrgId of toRemove) {
                     try {
-                      const check = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId);
-                      const anyCheck = check as any;
-                      if (
-                        check?.success && (
-                          check.item?.value ||
-                          anyCheck?.item?.key ||
-                          anyCheck?.item?.edited
-                        )
-                      ) {
-                        verified = true;
-                      }
-                    } catch { /* retry */ }
-                  }
-                  if (!verified) {
-                    // The write API returned success but the target tenant
-                    // couldn't confirm the row within our window. Trust the
-                    // write (setDatastoreItem already checked response.ok)
-                    // rather than losing the move to a read-side hiccup, but
-                    // warn so it's visible in logs.
-                    console.warn('[MoveTenant] target read did not confirm within backoff window; trusting write result');
+                      const delRes = await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, oldOrgId);
+                      if (delRes.success) removedOk.push(oldOrgId);
+                      else removeFailures.push(oldOrgId);
+                    } catch {
+                      removeFailures.push(oldOrgId);
+                    }
                   }
 
-                  const delRes = await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, sourceOrgId);
-                  if (!delRes.success) {
-                    try { await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, moveTargetOrgId); } catch { /* ignore rollback failure */ }
-                    throw new Error(delRes.error || 'Failed to delete incident from source tenant');
+                  if (removeFailures.length > 0) {
+                    toast.error(`Removed from ${removedOk.length}/${toRemove.length} tenants — could not delete from ${removeFailures.length}`);
+                  } else if (toAdd.length > 0 && toRemove.length > 0) {
+                    toast.success(`Incident moved — added to ${toAdd.length}, removed from ${toRemove.length}`);
+                  } else if (toAdd.length > 0) {
+                    toast.success(`Incident added to ${toAdd.length} tenant${toAdd.length === 1 ? '' : 's'}`);
+                  } else {
+                    toast.success(`Incident removed from ${toRemove.length} tenant${toRemove.length === 1 ? '' : 's'}`);
                   }
-                  toast.success('Incident moved');
+
                   setShowMoveDialog(false);
-                  const activeId = userInfo?.active_org?.id;
-                  const newKey = moveTargetOrgId === activeId ? incident.id : `${moveTargetOrgId}::${incident.id}`;
-                  navigate(`${entityBasePath}/${newKey}`, { replace: true });
+
+                  // Navigate away if the current tenant is no longer in the
+                  // selection. Prefer active org if it still holds a copy,
+                  // otherwise the first selected tenant.
+                  if (toRemove.includes(sourceOrgId)) {
+                    const activeId = userInfo?.active_org?.id;
+                    const remaining = Array.from(selected);
+                    const nextOrg = (activeId && remaining.includes(activeId)) ? activeId : remaining[0];
+                    if (nextOrg) {
+                      const newKey = nextOrg === activeId ? incident.id : `${nextOrg}::${incident.id}`;
+                      navigate(`${entityBasePath}/${newKey}`, { replace: true });
+                    } else {
+                      navigate(entityBasePath, { replace: true });
+                    }
+                  }
                 } catch (err: any) {
                   console.error('[MoveTenant] failed', err);
                   toast.error(err?.message || 'Move failed');
@@ -9505,7 +9588,7 @@ const IncidentDetailPage = () => {
                 '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
               }}
             >
-              {isMoving ? 'Moving…' : 'Move'}
+              {isMoving ? 'Applying…' : 'Apply'}
             </Button>
           </Box>
         </DialogContent>
