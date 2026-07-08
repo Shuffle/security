@@ -572,7 +572,7 @@ export const DEFAULT_USECASES: Usecase[] = [
     agenticDescription: 'An agent evaluates each new incident against your rules, decides which sub-organization should own it, and either suggests or executes the move with full audit trail.',
     automationArea: 'correlation',
     customAction: {
-      label: 'Configure Rules',
+      label: 'Configure Routing Rules',
       href: '/preferences?tab=routing',
       description: 'Open Organization Preferences to manage incident rules.',
     },
