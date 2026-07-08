@@ -575,9 +575,15 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
         const actionSummary = rule.actions
           .map((a) => summarizeAction(a, a.type === 'suggest_move' ? orgOptions.find((o) => o.id === a.targetOrgId)?.name : undefined))
           .join(' · ');
+        const orCount = rule.conditions.filter((c, i) => i > 0 && c.or).length;
         const condSummary = rule.conditions.length === 1
           ? `${rule.conditions[0].field} ${OP_LABELS[rule.conditions[0].op]}${rule.conditions[0].op !== 'exists' ? ` "${rule.conditions[0].value || ''}"` : ''}`
-          : `${rule.conditions.length} conditions (${rule.matchMode === 'all' ? 'all' : 'any'})`;
+          : orCount > 0
+            ? `${rule.conditions.length} conditions (${orCount} OR)`
+            : rule.conditions.some((c) => c.or) || rule.matchMode === 'all'
+              ? `${rule.conditions.length} conditions (all)`
+              : `${rule.conditions.length} conditions (any)`;
+
         return (
         <Paper
           key={rule.id}
