@@ -2086,12 +2086,12 @@ const IncidentDetailPage = () => {
               const s = readTenantStamp(h.value);
               if (s && (!authStamp || s.updatedAt > authStamp.updatedAt)) authStamp = s;
             }
-            const liveHits = hits.filter(h => !isTenantGhost(h.orgId, authStamp));
+            const liveHits = hits.filter(h => !isTenantGhost(h.orgId, authStamp) && !isTenantTombstone(h.value));
             // Prefer a hit that matches the authoritative tenants list;
             // otherwise fall back to any live hit.
             const preferred = authStamp
               ? liveHits.find(h => authStamp!.tenants.includes(h.orgId)) || liveHits[0]
-              : liveHits[0] || hits[0];
+              : liveHits[0];
             const foundOrgId = preferred?.orgId;
             if (foundOrgId) {
               const newKey = foundOrgId === activeId ? id : `${foundOrgId}::${id}`;
