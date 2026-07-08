@@ -142,8 +142,49 @@ export const RoutingRulePreviewBanner = ({
     setDismissed(next);
   }, [incidentId, matches]);
 
-  const visible = matches.filter((m) => !dismissed.has(m.rule.id));
+  // Filter out dismissed rules AND rules whose actions have all already been
+  // applied (nothing left to suggest). `isActionApplied` is optional — when
+  // absent we keep prior behavior and show everything.
+  const isApplied = (a: RoutingAction) => (isActionApplied ? isActionApplied(a) : false);
+  const visible = matches
+    .filter((m) => !dismissed.has(m.rule.id))
+    .filter((m) => m.rule.actions.some((a) => !isApplied(a)));
   if (visible.length === 0) return null;
+
+  /** Dispatch a single action through the correct callback. */
+  const runAction = async (a: RoutingAction) => {
+    if (isApplied(a)) return;
+    switch (a.type) {
+      case 'suggest_move':
+        if (a.targetOrgId && onMove) {
+          const name = orgNameById[a.targetOrgId] || a.targetOrgId.slice(0, 8);
+          await onMove(a.targetOrgId, name);
+        }
+        return;
+      case 'set_severity':  if (a.value) await onApply?.({ severity: a.value }); return;
+      case 'set_status':    if (a.value) await onApply?.({ status: a.value }); return;
+      case 'set_priority':  if (a.value) await onApply?.({ priority: a.value }); return;
+      case 'add_label':     if (a.value) await onApply?.({ addLabel: a.value }); return;
+      case 'assign_to':     if (a.value) await onApply?.({ assignee: a.value }); return;
+      case 'add_comment':   if (a.value) await onApply?.({ addComment: a.value }); return;
+      case 'set_field':
+        if (a.field && a.value !== undefined) {
+          await onApply?.({ setField: { field: a.field, value: a.value } });
+        }
+        return;
+    }
+  };
+
+  const applyAllForRule = async (rule: RoutingRule) => {
+    for (const a of rule.actions) {
+      // Skip already-applied and re-check after each run so we never double-apply.
+      if (!isApplied(a)) {
+        // eslint-disable-next-line no-await-in-loop
+        await runAction(a);
+      }
+    }
+  };
+
 
   const dismissRule = (ruleId: string) => {
     try {
