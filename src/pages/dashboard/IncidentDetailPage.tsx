@@ -1,4 +1,4 @@
-import { readTenantStamp, isTenantGhost, type TenantStamp } from '@/utils/tenantAuthority';
+import { readTenantStamp, isTenantGhost, isTenantTombstone, buildTombstonePayload, type TenantStamp } from '@/utils/tenantAuthority';
 import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'react';
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
