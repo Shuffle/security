@@ -1,4 +1,4 @@
-import { readTenantStamp, isTenantGhost, type TenantStamp } from '@/utils/tenantAuthority';
+import { readTenantStamp, isTenantGhost, isTenantTombstone, buildTombstonePayload, type TenantStamp } from '@/utils/tenantAuthority';
 import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'react';
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
@@ -1775,23 +1775,20 @@ const IncidentDetailPage = () => {
         }
       } catch { /* ignore */ }
 
-      const ghostIds = raw.filter(c => isTenantGhost(c.id, authStamp)).map(c => c.id);
+      // A copy is a ghost if the authoritative stamp says so, OR the copy
+      // itself is a tombstone we wrote to a removed tenant.
+      const isGhost = (c: { id: string; value: string | null }) => {
+        if (isTenantGhost(c.id, authStamp)) return true;
+        if (!c.value) return false;
+        try { return isTenantTombstone(JSON.parse(c.value)); } catch { return false; }
+      };
+      const ghostIds = raw.filter(isGhost).map(c => c.id);
       const filtered = raw.filter(c => !ghostIds.includes(c.id));
       // If the viewing tenant is a ghost per the stamp, the user is looking
       // at a stale copy — leave that decision to the load logic. Just make
       // sure we don't count ghost tenants as "shared".
       if (isTenantGhost(viewingOrgId, authStamp)) {
         console.warn(`[CrossOrg] viewing tenant ${viewingOrgId} is flagged as a ghost by authoritative stamp`);
-      }
-
-      // Self-heal: aggressively re-delete any auto-recovered ghost copies so
-      // the backend's datastore-history recovery does not keep resurrecting
-      // them on every refresh. Fire-and-forget: the UI already filters them.
-      if (ghostIds.length > 0) {
-        console.log(`[CrossOrg] Self-healing ${ghostIds.length} auto-recovered ghost copies:`, ghostIds);
-        void Promise.allSettled(
-          ghostIds.map(oid => deleteDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, oid)),
-        );
       }
 
       const found = filtered.map(({ id: oid, name, image }) => ({ id: oid, name, image }));
@@ -1867,7 +1864,21 @@ const IncidentDetailPage = () => {
     const itemKeyEmpty = !result.item?.key;
     const isEmptyStub = !!(result.success && result.item) && itemKeyEmpty && itemValueLen <= 2;
 
-    if (result.success && result.item && !isEmptyStub) {
+    // Tombstones are stamped placeholders we leave in a removed tenant to
+    // block datastore-history auto-recovery. Treat them exactly like a
+    // missing item so the cross-tenant probe below can redirect to a live
+    // copy — otherwise the user would land on an empty ghost.
+    let isTombstoneCopy = false;
+    if (result.success && result.item?.value && !isEmptyStub) {
+      try {
+        const parsedProbe = typeof result.item.value === 'string'
+          ? JSON.parse(result.item.value)
+          : result.item.value;
+        isTombstoneCopy = isTenantTombstone(parsedProbe);
+      } catch { /* ignore */ }
+    }
+
+    if (result.success && result.item && !isEmptyStub && !isTombstoneCopy) {
       setPublicAuthorization(result.item.public_authorization || '');
       const itemData = {
         key: result.item.key || id,
@@ -2075,12 +2086,12 @@ const IncidentDetailPage = () => {
               const s = readTenantStamp(h.value);
               if (s && (!authStamp || s.updatedAt > authStamp.updatedAt)) authStamp = s;
             }
-            const liveHits = hits.filter(h => !isTenantGhost(h.orgId, authStamp));
+            const liveHits = hits.filter(h => !isTenantGhost(h.orgId, authStamp) && !isTenantTombstone(h.value));
             // Prefer a hit that matches the authoritative tenants list;
             // otherwise fall back to any live hit.
             const preferred = authStamp
               ? liveHits.find(h => authStamp!.tenants.includes(h.orgId)) || liveHits[0]
-              : liveHits[0] || hits[0];
+              : liveHits[0];
             const foundOrgId = preferred?.orgId;
             if (foundOrgId) {
               const newKey = foundOrgId === activeId ? id : `${foundOrgId}::${id}`;
@@ -9730,48 +9741,55 @@ const IncidentDetailPage = () => {
                     addedOk.push(targetOrgId);
                   }
 
-                  // 2) Only now — after every add is verified — remove the
-                  // incident from any tenants that were unchecked. Some
-                  // gateways return a non-2xx from delete_cache even when the
-                  // row is actually gone, so treat the operation as succeeded
-                  // when a follow-up read confirms the item is missing.
+                  // 2) Only now — after every add is verified — clear the
+                  // incident from any tenants that were unchecked. We do NOT
+                  // hard-delete the row: the datastore backend auto-recovers
+                  // deleted keys from history on the next read, which brings
+                  // the removed incident back. Instead we overwrite the copy
+                  // with a stamped TOMBSTONE payload. The row stays present
+                  // (no auto-recovery kicks in) and the UI filters it via
+                  // `isTenantTombstone` / `isTenantGhost`.
                   const removedOk: string[] = [];
                   const removeFailures: string[] = [];
                   for (const oldOrgId of toRemove) {
-                    let deleteReturnedOk = false;
+                    const tombstone = buildTombstonePayload(value, {
+                      tenants: selectedList,
+                      removed: removedList,
+                      updatedAt: stampedAt,
+                    });
+                    let writeReturnedOk = false;
                     try {
-                      const delRes = await deleteDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, oldOrgId);
-                      deleteReturnedOk = !!delRes.success;
+                      const wr = await setDatastoreItem(incident.id, tombstone, DATASTORE_CATEGORIES.INCIDENTS, oldOrgId);
+                      writeReturnedOk = !!wr.success;
                     } catch {
-                      deleteReturnedOk = false;
+                      writeReturnedOk = false;
                     }
 
-                    // Verify the row is actually gone regardless of the API's
-                    // status code. Poll with a short backoff to absorb any
-                    // eventual-consistency lag on the tenant's cache read.
-                    let gone = false;
+                    // Verify the tombstone actually landed by reading it back
+                    // and checking the flag. Small backoff to absorb cache lag.
+                    let verified = false;
                     const backoffsMs = [0, 300, 600, 1000, 1500];
                     for (const wait of backoffsMs) {
-                      if (gone) break;
+                      if (verified) break;
                       if (wait > 0) await new Promise(r => setTimeout(r, wait));
                       try {
                         const check = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, oldOrgId);
-                        const anyCheck = check as any;
-                        const stillThere = check?.success && (check.item?.value || anyCheck?.item?.key || anyCheck?.item?.edited);
-                        if (!stillThere) gone = true;
+                        if (check?.success && check.item?.value) {
+                          try {
+                            const parsed = typeof check.item.value === 'string' ? JSON.parse(check.item.value) : check.item.value;
+                            if (isTenantTombstone(parsed)) verified = true;
+                          } catch { /* retry */ }
+                        }
                       } catch { /* retry */ }
                     }
 
-                    if (gone) {
-                      removedOk.push(oldOrgId);
-                    } else if (deleteReturnedOk) {
-                      // API said OK but the row is still readable — trust the
-                      // API and move on; the read may just be lagging.
+                    if (verified || writeReturnedOk) {
                       removedOk.push(oldOrgId);
                     } else {
                       removeFailures.push(oldOrgId);
                     }
                   }
+
 
                   if (removeFailures.length > 0) {
                     toast.error(`Removed from ${removedOk.length}/${toRemove.length} tenants — could not delete from ${removeFailures.length}`);
