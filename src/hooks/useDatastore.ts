@@ -182,7 +182,7 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
     };
     window.addEventListener('demo:refresh', onRefresh);
     return () => window.removeEventListener('demo:refresh', onRefresh);
-  }, [category, fetchItems]);
+  }, [category, fetchItems, overrideOrgId]);
 
   const addItem = useCallback(async (key: string, value: string | object, skipRefresh = true): Promise<boolean> => {
     setError(null);
