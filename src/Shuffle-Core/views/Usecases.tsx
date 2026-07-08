@@ -485,11 +485,6 @@ const DESTINATION_SHUFFLE_ONLY_FLOW_IDS = new Set<string>([
   'threat_intel_case_management_1', // Enrichment
 ]);
 
-// Usecases where the Source is Shuffle Security itself (datastore trigger) —
-// no external app to wire up on the source side.
-const SOURCE_SHUFFLE_ONLY_FLOW_IDS = new Set<string>([
-  'asset_management_case_management_vuln_1', // Vulnerability Correlation — triggered by shuffle-security_packages
-]);
 
 // ── Per-usecase "I just picked this app" persistence ──────────────────────────
 // When the user picks an app from the AppSearchDrawer we both wire it into the
@@ -3341,7 +3336,7 @@ function UsecaseDetailContent({
     // validate. Skip the hard-block for these flows.
     const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
       || flow.id === 'case_management_communication_1'
-      || SOURCE_SHUFFLE_ONLY_FLOW_IDS.has(flow.id);
+      || flow.id === 'asset_management_case_management_vuln_1';
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
       // Hard-block the enable. The /workflows/generate endpoint may return
       // success: true and then quietly skip creating the workflow when no
@@ -3420,7 +3415,7 @@ function UsecaseDetailContent({
           return;
         }
         requestBody.app_name = validatedSourceAppNames.join(',');
-      } else {
+      } else if (!willBeEnabled) {
         // When disabling, the same workflow (e.g. "Ingest Tickets") may also be
         // powering sibling usecases that share a category (SIEM / EDR / Email
         // all generate the same ingestion workflow). A blind action_name=remove
@@ -3927,7 +3922,8 @@ function UsecaseDetailContent({
         // tool. What they DO need is at least one external destination tool
         // to push to. Point the hint at the Destination side.
         const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
-          || flow.id === 'case_management_communication_1';
+          || flow.id === 'case_management_communication_1'
+          || flow.id === 'asset_management_case_management_vuln_1';
         const needsSource = !!flow.source && !selfContained && !isShuffleSourcedFlow;
         const sourceLabel = flow.source ? categoryLabel(flow.source) : 'source';
         // Detect if a source-side app is ALREADY wired into the usecase's
@@ -4302,14 +4298,14 @@ function UsecaseDetailContent({
                         // side and disable adding source tools.
                         const isForwardTickets = flow.id === 'case_management_cases_forward_1';
                         const isNotifications = flow.id === 'case_management_communication_1';
-                        const isCasesSourceOnly = isForwardTickets || isNotifications || SOURCE_SHUFFLE_ONLY_FLOW_IDS.has(flow.id);
+                        const isCasesSourceOnly = isForwardTickets || isNotifications || flow.id === 'asset_management_case_management_vuln_1';
                         const skipShuffle = endpoint.title === 'Destination'
                           && (isCasesSourceOnly || (flow.source === 'case_management' && !isMultiDest));
                         const showShuffle = includesCases && !skipShuffle;
                         // When Shuffle itself is the Source, only surface the Shuffle Security
                         // tile — hiding other case-management apps that would otherwise clutter
                         // the source side of the flow.
-                        const sourceIsShuffleOnly = endpoint.title === 'Source' && (endpoint.categoryId === 'case_management' || SOURCE_SHUFFLE_ONLY_FLOW_IDS.has(flow.id));
+                        const sourceIsShuffleOnly = endpoint.title === 'Source' && (endpoint.categoryId === 'case_management' || flow.id === 'asset_management_case_management_vuln_1');
                         // Some usecases (e.g. Enrichment) run entirely on a built-in Shuffle
                         // workflow — the destination has no third-party apps to wire up,
                         // only the Shuffle Security platform itself.
