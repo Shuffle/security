@@ -1775,7 +1775,14 @@ const IncidentDetailPage = () => {
         }
       } catch { /* ignore */ }
 
-      const ghostIds = raw.filter(c => isTenantGhost(c.id, authStamp)).map(c => c.id);
+      // A copy is a ghost if the authoritative stamp says so, OR the copy
+      // itself is a tombstone we wrote to a removed tenant.
+      const isGhost = (c: { id: string; value: string | null }) => {
+        if (isTenantGhost(c.id, authStamp)) return true;
+        if (!c.value) return false;
+        try { return isTenantTombstone(JSON.parse(c.value)); } catch { return false; }
+      };
+      const ghostIds = raw.filter(isGhost).map(c => c.id);
       const filtered = raw.filter(c => !ghostIds.includes(c.id));
       // If the viewing tenant is a ghost per the stamp, the user is looking
       // at a stale copy — leave that decision to the load logic. Just make
