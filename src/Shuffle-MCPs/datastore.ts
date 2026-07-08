@@ -153,10 +153,16 @@ export const setDatastoreItem = async (
   // endpoint the bulk writer uses; set_cache has been retired for incident
   // updates because it stringifies the payload differently and caused
   // double-encoded JSON to land in the datastore.
+  //
+  // IMPORTANT: pin the org_id INSIDE the payload item as well as on the
+  // Org-Id header. The v2 endpoint reads org_id from the payload when
+  // present; without it, the backend falls back to the session's active
+  // org and the write silently lands in the wrong tenant.
   const payload = [{
     key: rawKey,
     value: serializeDatastoreValue(value),
     category,
+    org_id: orgId,
     // Incident category is governed by automation/security rules that would
     // otherwise reject programmatic edits — bypass them for our own writes.
     ...(category === 'shuffle-security_incidents' ? { ignore_security_rules: true } : {}),
@@ -167,6 +173,8 @@ export const setDatastoreItem = async (
     'Org-Id': orgId,
     ...getAuthHeader(),
   };
+
+  console.log(`[datastore.set] key=${rawKey} category=${category} orgId=${orgId}${overrideOrgId ? ' (override)' : ''}`);
 
   const response = await fetch(getApiUrl('/api/v2/datastore'), {
     method: 'POST',
@@ -181,6 +189,7 @@ export const setDatastoreItem = async (
 
   return { success: true };
 };
+
 
 /**
  * Set multiple items in the datastore (bulk create) using v2 API
@@ -253,13 +262,16 @@ export const getDatastoreItem = async (
     payload.category = category;
   }
 
+  // Always pin Org-Id header so the backend routes the read to the exact
+  // tenant we asked for — do NOT rely on session default even when there is
+  // no explicit override, because the URL path already carries this orgId.
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Org-Id': orgId,
     ...getAuthHeader(),
   };
-  if (overrideOrgId) {
-    headers['Org-Id'] = overrideOrgId;
-  }
+
+  console.log(`[datastore.get] key=${rawKey} category=${category} orgId=${orgId}${overrideOrgId ? ' (override)' : ''}`);
 
   const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/get_cache`), {
     method: 'POST',
@@ -275,6 +287,7 @@ export const getDatastoreItem = async (
     }
     return { success: false, error: `Failed to get datastore item: ${response.statusText}` };
   }
+
 
   const data = await response.json();
   
@@ -576,13 +589,16 @@ export const deleteDatastoreItem = async (
     payload.category = category;
   }
 
+  // Always pin Org-Id header — the URL path already carries this orgId,
+  // never let the backend fall back to the session's active org for a
+  // destructive operation.
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Org-Id': orgId,
     ...getAuthHeader(),
   };
-  if (overrideOrgId) {
-    headers['Org-Id'] = overrideOrgId;
-  }
+
+  console.log(`[datastore.delete] key=${rawKey} category=${category} orgId=${orgId}${overrideOrgId ? ' (override)' : ''}`);
 
   const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/delete_cache`), {
     method: 'POST',
