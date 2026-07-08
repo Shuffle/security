@@ -6318,7 +6318,7 @@ const IncidentDetailPage = () => {
             {sharedOrgs.length > 0 ? (
               <>
                 <Typography sx={{ fontSize: '0.82rem', color: 'hsl(var(--foreground))' }}>
-                  This incident exists in <strong>{sharedOrgs.length + 1} organizations</strong> — changes sync to all:
+                  This incident exists in <strong>{sharedOrgs.length + 1} tenants</strong> — changes sync to all:
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                   {/* Show the "viewing" org first */}
