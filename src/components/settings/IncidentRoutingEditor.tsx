@@ -208,7 +208,15 @@ const parseRule = (key: string, value: string): RoutingRule | null => {
       enabled: parsed.enabled !== false,
       priority: Number.isFinite(parsed.priority) ? parsed.priority : 100,
       matchMode: parsed.matchMode === 'any' ? 'any' : 'all',
-      conditions: Array.isArray(parsed.conditions) ? parsed.conditions : [],
+      conditions: Array.isArray(parsed.conditions)
+        ? parsed.conditions.map((c: any) => ({
+            field: typeof c?.field === 'string' ? c.field : 'title',
+            op: c?.op || 'contains',
+            value: typeof c?.value === 'string' ? c.value : undefined,
+            or: c?.or === true,
+          }))
+        : [],
+
       actions,
       createdBy: parsed.createdBy,
       createdTs: parsed.createdTs,
