@@ -501,8 +501,22 @@ const IncidentsPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.severity, filters.status, filters.tlp, filters.assignee, filters.source, filters.tag, negatedFilters]);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(() => {
+    const persisted = loadPersistedFilters();
+    if (persisted?.dateFrom) {
+      const d = new Date(persisted.dateFrom);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return undefined;
+  });
+  const [dateTo, setDateTo] = useState<Date | undefined>(() => {
+    const persisted = loadPersistedFilters();
+    if (persisted?.dateTo) {
+      const d = new Date(persisted.dateTo);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return undefined;
+  });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
   const [categoryAutomations, setCategoryAutomations] = useState<CategoryAutomation[]>([]);
