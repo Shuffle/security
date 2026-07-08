@@ -5779,7 +5779,6 @@ const IncidentDetailPage = () => {
       // They cannot be modified or replied to — render a distinct,
       // resolution-themed badge instead of the comment-style card.
       if (isStatusActivity) {
-        const resolvedColor = 'hsl(var(--status-resolved))';
         return (
           <Box
             key={actItem.id}
@@ -5792,16 +5791,21 @@ const IncidentDetailPage = () => {
               px: 1.5,
               py: 1,
               borderRadius: 1.5,
-              bgcolor: 'hsl(var(--status-resolved) / 0.08)',
-              border: '1px solid hsl(var(--status-resolved) / 0.25)',
+              bgcolor: 'transparent',
+              border: '1px solid hsl(var(--border-subtle))',
+              transition: 'background-color 0.15s ease, border-color 0.15s ease',
+              '&:hover': {
+                bgcolor: 'hsl(var(--muted) / 0.4)',
+                borderColor: 'hsl(var(--border))',
+              },
             }}
           >
-            <Avatar sx={{ width: 22, height: 22, bgcolor: 'hsl(var(--status-resolved) / 0.18)', color: resolvedColor }}>
+            <Avatar sx={{ width: 22, height: 22, bgcolor: 'hsl(var(--muted) / 0.6)', color: 'hsl(var(--muted-foreground))' }}>
               <CheckCircleIcon size={14} />
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                <Typography sx={{ fontSize: '0.73rem', fontWeight: 700, color: resolvedColor, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+                <Typography sx={{ fontSize: '0.73rem', fontWeight: 600, color: 'hsl(var(--foreground))', letterSpacing: 0.3, textTransform: 'uppercase' }}>
                   Incident resolution
                 </Typography>
                 <Chip
@@ -5812,8 +5816,8 @@ const IncidentDetailPage = () => {
                     fontSize: '0.58rem',
                     fontWeight: 600,
                     bgcolor: 'transparent',
-                    border: '1px solid hsl(var(--status-resolved) / 0.4)',
-                    color: resolvedColor,
+                    border: '1px solid hsl(var(--border-subtle))',
+                    color: 'text.secondary',
                     '& .MuiChip-label': { px: 0.6 },
                   }}
                 />
