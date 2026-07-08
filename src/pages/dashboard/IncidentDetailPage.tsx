@@ -1709,14 +1709,16 @@ const IncidentDetailPage = () => {
     if (orgsToProbe.length === 0) return;
 
     const probeOrgs = async () => {
-      const found: Array<{ id: string; name: string; image?: string }> = [];
-      
+      // Collect every copy along with its raw value so we can compute the
+      // authoritative tenant stamp before deciding which tenants are real.
+      const raw: Array<{ id: string; name: string; image?: string; value: string | null }> = [];
+
       const results = await Promise.allSettled(
         orgsToProbe.map(async (org) => {
           try {
             const result = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, org.id);
             if (result.success && result.item?.value && result.item.value.length > 2) {
-              return { id: org.id, name: org.name, image: org.image };
+              return { id: org.id, name: org.name, image: org.image, value: result.item.value };
             }
           } catch {
             // Ignore probe failures
@@ -1724,13 +1726,39 @@ const IncidentDetailPage = () => {
           return null;
         })
       );
-      
+
       for (const r of results) {
         if (r.status === 'fulfilled' && r.value) {
-          found.push(r.value);
+          raw.push(r.value);
         }
       }
-      console.log(`[CrossOrg] Probed ${orgsToProbe.length} orgs for key "${id}", found in ${found.length} additional orgs:`, found.map(o => o.name));
+
+      // Also include the currently-viewed tenant when computing the stamp so
+      // its `_tenants` list wins if it's the newest.
+      const viewingOrgId = crossOrgId || userInfo.active_org?.id || '';
+      let authStamp: TenantStamp | null = null;
+      const consider = (value: string | null) => {
+        if (!value) return;
+        try {
+          const parsed = JSON.parse(value);
+          const s = readTenantStamp(parsed);
+          if (s && (!authStamp || s.updatedAt > authStamp.updatedAt)) authStamp = s;
+        } catch { /* ignore parse errors */ }
+      };
+      for (const c of raw) consider(c.value);
+      // Also consider whatever the primary loader already has in memory (the
+      // incident state) via a lightweight direct read to avoid coupling.
+      // Ghosts: any tenant explicitly excluded by the stamp.
+      const filtered = raw.filter(c => !isTenantGhost(c.id, authStamp));
+      // If the viewing tenant is a ghost per the stamp, the user is looking
+      // at a stale copy — leave that decision to the load logic. Just make
+      // sure we don't count ghost tenants as "shared".
+      if (isTenantGhost(viewingOrgId, authStamp)) {
+        console.warn(`[CrossOrg] viewing tenant ${viewingOrgId} is flagged as a ghost by authoritative stamp`);
+      }
+
+      const found = filtered.map(({ id: oid, name, image }) => ({ id: oid, name, image }));
+      console.log(`[CrossOrg] Probed ${orgsToProbe.length} orgs for key "${id}", found in ${found.length} additional orgs${authStamp ? ' (stamp-filtered)' : ''}:`, found.map(o => o.name));
       setSharedOrgs(found);
     };
     probeOrgs();
