@@ -589,13 +589,16 @@ export const deleteDatastoreItem = async (
     payload.category = category;
   }
 
+  // Always pin Org-Id header — the URL path already carries this orgId,
+  // never let the backend fall back to the session's active org for a
+  // destructive operation.
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Org-Id': orgId,
     ...getAuthHeader(),
   };
-  if (overrideOrgId) {
-    headers['Org-Id'] = overrideOrgId;
-  }
+
+  console.log(`[datastore.delete] key=${rawKey} category=${category} orgId=${orgId}${overrideOrgId ? ' (override)' : ''}`);
 
   const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/delete_cache`), {
     method: 'POST',
