@@ -6532,6 +6532,7 @@ const IncidentDetailPage = () => {
             stakeholders: editedStakeholders,
             rawOCSF: incident.rawOCSF,
           }}
+          onApplyActions={applyRoutingActions}
           onApply={async (patch) => {
             if (patch.severity) {
               setEditedSeverity(patch.severity);
@@ -6542,8 +6543,7 @@ const IncidentDetailPage = () => {
               toast.success(`Status set to ${patch.status}`);
             }
             if (patch.priority) {
-              toast.message(`Priority: ${patch.priority}`,
-                { description: 'Priority writes run via the routing workflow.' });
+              await applyRoutingActions([{ type: 'set_priority', value: patch.priority }]);
             }
             if (patch.assignee) {
               setEditedAssignee(patch.assignee);
@@ -6560,15 +6560,19 @@ const IncidentDetailPage = () => {
               await handleAddComment(patch.addComment);
             }
             if (patch.setField) {
-              toast.message(`Set ${patch.setField.field} → ${patch.setField.value}`,
-                { description: 'Custom-field writes are executed by the routing workflow.' });
+              await applyRoutingActions([{ type: 'set_field', field: patch.setField.field, value: patch.setField.value }]);
             }
           }}
           isActionApplied={(a) => {
+            const currentOrgIds = new Set<string>([
+              crossOrgId || userInfo?.active_org?.id || '',
+              ...sharedOrgs.map((org) => org.id),
+            ].filter(Boolean));
+            const rawCustomAttrs = incident?.rawOCSF?.metadata?.extensions?.custom_attributes || {};
             switch (a.type) {
-              case 'set_severity': return !!a.value && editedSeverity === a.value;
-              case 'set_status':   return !!a.value && editedStatus === a.value;
-              case 'set_priority': return false; // priority writes are workflow-driven
+              case 'set_severity': return !!a.value && editedSeverity === normalizeRoutingSeverityValue(a.value);
+              case 'set_status':   return !!a.value && editedStatus === normalizeStatus(a.value);
+              case 'set_priority': return !!a.value && String((incident?.rawOCSF as any)?.priority ?? (rawCustomAttrs as any)?.priority ?? '') === String(a.value);
               case 'add_label':    return !!a.value && editedLabels.includes(a.value);
               case 'assign_to':    return !!a.value && editedAssignee === a.value;
               case 'add_comment': {
@@ -6581,16 +6585,20 @@ const IncidentDetailPage = () => {
                   it.content.trim() === needle
                 );
               }
-              case 'suggest_move': return false; // cross-tenant moves aren't tracked here
-              case 'set_field':    return false; // handled by backend workflow
+              case 'suggest_move': return !!a.targetOrgId && currentOrgIds.size === 1 && currentOrgIds.has(a.targetOrgId);
+              case 'set_field': {
+                if (!a.field) return false;
+                const expected = parseRoutingActionValue(a.value);
+                const actual = a.field.startsWith('rawOCSF.')
+                  ? readDeepValue(incident?.rawOCSF, a.field.slice('rawOCSF.'.length))
+                  : editedCustomFields[a.field.replace(/^customFields\./, '').replace(/^custom_fields\./, '')];
+                return String(actual ?? '') === String(expected ?? '');
+              }
               default: return false;
             }
           }}
-          onMove={(targetOrgId, targetOrgName) => {
-            toast.message(
-              `Suggested move to ${targetOrgName || targetOrgId.slice(0, 8)}`,
-              { description: 'Cross-tenant moves run via the routing workflow once configured.' }
-            );
+          onMove={async (targetOrgId) => {
+            await moveIncidentToTenant(targetOrgId);
           }}
         />
         </div>
