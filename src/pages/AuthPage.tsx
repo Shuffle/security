@@ -302,10 +302,11 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         sx={{
           minHeight: '100vh',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: { xs: 'flex-start', sm: 'center' },
           justifyContent: 'center',
-          p: 3,
-          mt: -6,
+          p: { xs: 2, sm: 3 },
+          pt: { xs: 10, sm: 3 },
+          mt: { xs: 0, sm: -6 },
         }}
       >
         <motion.div
@@ -323,7 +324,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
               borderRadius: 2,
             }}
           >
-            <CardContent sx={{ p: 5 }}>
+            <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
               {/* Logo */}
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Box
@@ -430,13 +431,15 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                     Email
                   </Typography>
                   <TextField
-                    type="text"
+                    type="email"
                     placeholder="username@example.com"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     fullWidth
                     required
                     disabled={loading}
+                    autoComplete="email"
+                    inputProps={{ inputMode: 'email', autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }}
                     sx={inputSx}
                   />
                 </Box>
@@ -462,12 +465,14 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                     fullWidth
                     required
                     disabled={loading}
+                    autoComplete={isLogin ? 'current-password' : 'new-password'}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
                           <IconButton
                             onClick={() => setShowPassword(!showPassword)}
                             edge="end"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                             sx={{ color: 'text.secondary' }}
                           >
                             {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
@@ -501,6 +506,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                       fullWidth
                       required
                       disabled={loading}
+                      autoComplete="new-password"
                       sx={inputSx}
                     />
                   </Box>
@@ -589,7 +595,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                   color: 'text.secondary',
                 }}
               >
-                {isLogin ? "Don't have an account yet? " : 'Already have an account? '}
+                {isLogin ? 'Do not have an account yet? ' : 'Already have an account? '}
                 <Link
                   to={isLogin ? '/register' : '/login'}
                   style={{
