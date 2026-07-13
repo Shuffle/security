@@ -506,6 +506,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                       fullWidth
                       required
                       disabled={loading}
+                      autoComplete="new-password"
                       sx={inputSx}
                     />
                   </Box>
