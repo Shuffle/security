@@ -15,7 +15,31 @@ import { toast } from '@/lib/toast';
 
 const DOC_TO_OPENAPI_URL = 'https://doc-to-openapi-stbuwivzoq-nw.a.run.app/api/v1/doc_to_openapi';
 
-type Stage = 'idle' | 'generating' | 'preview' | 'verifying' | 'done' | 'error';
+type Stage = 'idle' | 'checking' | 'existing' | 'generating' | 'preview' | 'verifying' | 'done' | 'error';
+
+interface ExistingMatch {
+  objectID: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  categories?: string[];
+}
+
+const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+const looksLikeUrl = (s: string) => /^https?:\/\//i.test(s) || /\/|\.[a-z]{2,}(\/|$)/i.test(s);
+
+/** Semi-exact match: normalized names equal, or one contains the other and is
+ *  at least 4 chars, so "gmail" matches "Gmail" and "sentinelone" matches
+ *  "SentinelOne" but a bare "api" does not match everything. */
+const isSemiExactMatch = (query: string, hitName: string) => {
+  const q = normalize(query);
+  const n = normalize(hitName);
+  if (!q || !n) return false;
+  if (q === n) return true;
+  if (q.length >= 4 && (n.includes(q) || q.includes(n))) return true;
+  return false;
+};
+
 
 interface OpenApiSpec {
   info?: {
@@ -149,6 +173,7 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
   const [spec, setSpec] = useState<OpenApiSpec | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [createdAppId, setCreatedAppId] = useState<string>('');
+  const [existing, setExisting] = useState<ExistingMatch | null>(null);
 
   const endpointCount = (() => {
     if (!spec?.paths) return 0;
@@ -165,6 +190,7 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
     setSpec(null);
     setErrorMsg('');
     setCreatedAppId('');
+    setExisting(null);
   }, []);
 
   useEffect(() => {
@@ -175,12 +201,9 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
     }
   }, [open, reset]);
 
-  const handleGenerate = async () => {
-    const value = input.trim();
-    if (!value) {
-      toast.error('Enter a name or documentation URL');
-      return;
-    }
+  /** Actual OpenAPI generation. Split out so we can call it either directly
+   *  (URL input) or after the user rejects an existing Algolia match. */
+  const runGeneration = useCallback(async (value: string) => {
     setStage('generating');
     setErrorMsg('');
     try {
@@ -191,7 +214,6 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
       });
       if (!res.ok) throw new Error(`Failed to generate spec (${res.status})`);
       const data = await res.json();
-      // The endpoint may return { openapi: {...} } or the spec directly
       const openapiSpec: OpenApiSpec =
         (data && typeof data === 'object' && 'info' in data)
           ? data
@@ -206,7 +228,47 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
       setErrorMsg(msg);
       setStage('error');
     }
+  }, []);
+
+  const handleGenerate = async () => {
+    const value = input.trim();
+    if (!value) {
+      toast.error('Enter a name or documentation URL');
+      return;
+    }
+
+    // URL inputs skip the Algolia check — the user has clearly picked a
+    // documentation source rather than trying to reuse an existing app.
+    if (looksLikeUrl(value)) {
+      await runGeneration(value);
+      return;
+    }
+
+    // Name input: check Algolia for a semi-exact match to avoid re-creating
+    // an app that already exists in the catalog.
+    setStage('checking');
+    setErrorMsg('');
+    try {
+      const { algoliasearch } = await import('algoliasearch');
+      const client = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957bed552');
+      const res = await client.searchSingleIndex({
+        indexName: 'appsearch',
+        searchParams: { query: value, hitsPerPage: 5 },
+      });
+      const hits = ((res.hits as unknown[]) || []) as ExistingMatch[];
+      const match = hits.find((h) => isSemiExactMatch(value, h?.name || ''));
+      if (match) {
+        setExisting(match);
+        setStage('existing');
+        return;
+      }
+    } catch {
+      // Algolia unavailable — fall through and generate anyway.
+    }
+    await runGeneration(value);
   };
+
+
 
   const handleCreate = async () => {
     if (!spec) return;
@@ -277,8 +339,73 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
           </div>
         )}
 
+        {stage === 'checking' && <RadarLoader messages={['Checking existing apps…']} />}
         {stage === 'generating' && <RadarLoader messages={GENERATION_MESSAGES} />}
         {stage === 'verifying' && <RadarLoader messages={VERIFICATION_MESSAGES} />}
+
+        {stage === 'existing' && existing && (
+          <div className="py-2 space-y-3">
+            <div
+              className="flex items-start gap-4 p-4 rounded-lg"
+              style={{
+                border: '1px solid hsl(var(--primary) / 0.4)',
+                background: 'hsl(var(--primary) / 0.06)',
+              }}
+            >
+              <div
+                className="flex items-center justify-center rounded-md shrink-0 overflow-hidden"
+                style={{
+                  width: 56,
+                  height: 56,
+                  background: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                }}
+              >
+                {existing.image_url ? (
+                  <img
+                    src={existing.image_url}
+                    alt={existing.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <Sparkles size={22} style={{ color: 'hsl(var(--primary))' }} />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide mb-1"
+                  style={{ color: 'hsl(var(--primary))' }}
+                >
+                  Already exists
+                </div>
+                <div
+                  className="font-semibold text-base truncate"
+                  style={{ color: 'hsl(var(--foreground))' }}
+                >
+                  {existing.name}
+                </div>
+                {existing.description && (
+                  <div
+                    className="text-sm mt-1"
+                    style={{
+                      color: 'hsl(var(--muted-foreground))',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {existing.description}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
+              This app is already available in the catalog. Generate a new version only if you need a different vendor or API.
+            </div>
+          </div>
+        )}
+
 
         {stage === 'preview' && spec && (
           <div className="py-2">
@@ -383,8 +510,29 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
               </Button>
             </>
           )}
-          {(stage === 'generating' || stage === 'verifying') && (
+          {(stage === 'checking' || stage === 'generating' || stage === 'verifying') && (
             <Button variant="ghost" disabled>Working…</Button>
+          )}
+          {stage === 'existing' && existing && (
+            <>
+              <Button variant="ghost" onClick={reset}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => { setExisting(null); runGeneration(input.trim()); }}
+              >
+                <Sparkles size={14} className="mr-1.5" />
+                Generate anyway
+              </Button>
+              <Button
+                onClick={() => {
+                  if (existing.objectID) onCreated?.(existing.objectID);
+                  onOpenChange(false);
+                }}
+              >
+                <CheckCircle2 size={14} className="mr-1.5" />
+                Use existing
+              </Button>
+            </>
           )}
           {stage === 'preview' && (
             <>
