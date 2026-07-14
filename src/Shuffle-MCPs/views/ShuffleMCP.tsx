@@ -20,6 +20,49 @@ const DEFAULT_ALGOLIA_API_KEY = '33e4e3564f4f060e96e0531957bed552';
 const DEFAULT_ALGOLIA_INDEX = 'appsearch';
 const EMPTY_SELECTED_APPS: AlgoliaSearchApp[] = [];
 
+// Skeleton row(s) rendered at the bottom of an infinite-scrolling result list
+// while the next page is being fetched from Algolia.
+const InfiniteScrollSkeleton: React.FC<{ layout: 'list' | 'grid'; gridColumns: number }> = ({ layout, gridColumns }) => {
+  const count = layout === 'grid' ? Math.max(3, gridColumns) : 3;
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={`skel-${i}`}
+          className="singul-dropdown-item"
+          aria-hidden="true"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '10px 14px',
+            opacity: 0.6,
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{
+            width: 28, height: 28, borderRadius: 6,
+            background: 'hsl(var(--muted) / 0.5)',
+            animation: 'singul-skeleton-pulse 1.2s ease-in-out infinite',
+          }} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{
+              width: '55%', height: 10, borderRadius: 4,
+              background: 'hsl(var(--muted) / 0.5)',
+              animation: 'singul-skeleton-pulse 1.2s ease-in-out infinite',
+            }} />
+            <div style={{
+              width: '35%', height: 8, borderRadius: 4,
+              background: 'hsl(var(--muted) / 0.35)',
+              animation: 'singul-skeleton-pulse 1.2s ease-in-out infinite',
+            }} />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+};
+
 export interface ShuffleMCPHandle {
   search: (query: string) => void;
   clear: () => void;
