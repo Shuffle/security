@@ -187,6 +187,8 @@ export interface ShuffleMCPProps extends ShuffleHostProps {
   renderItem?: (app: AlgoliaSearchApp, isSelected: boolean, onSelect: () => void, authState: { configured: boolean; validated: boolean }) => React.ReactNode;
   renderEmptyState?: () => React.ReactNode;
   renderLoadingState?: () => React.ReactNode;
+  /** Custom footer shown when the user has scrolled through all results */
+  renderEndOfResults?: () => React.ReactNode;
   
   // Events
   onAppSelected?: (detail: AppSelectedEvent) => void;

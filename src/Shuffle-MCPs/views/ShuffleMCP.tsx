@@ -106,6 +106,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   renderItem,
   renderEmptyState,
   renderLoadingState,
+  renderEndOfResults,
   onAppSelected,
   onSelectionChange,
   onSearchChange,
@@ -710,13 +711,15 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
                 )}
                 {!hasMore && !isLoadingMore && (
                   <div className="singul-end-of-results" style={{
-                    padding: '10px 16px',
-                    color: 'hsl(var(--foreground) / 0.3)',
+                    padding: '10px 16px 28px',
                     textAlign: 'center' as const,
-                    fontSize: '11px',
                     gridColumn: '1 / -1',
                   }}>
-                    Can't find what you're looking for? Try a different search term.
+                    {renderEndOfResults ? renderEndOfResults() : (
+                      <span style={{ color: 'hsl(var(--foreground) / 0.3)', fontSize: '11px' }}>
+                        Can't find what you're looking for? Try a different search term.
+                      </span>
+                    )}
                   </div>
                 )}
               </>

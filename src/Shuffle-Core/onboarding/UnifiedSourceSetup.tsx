@@ -89,7 +89,7 @@ const singulStyles = {
     borderColor: 'hsl(var(--border))',
     borderTopColor: 'hsl(var(--primary))',
   },
-  resultsContainer: { marginTop: '12px', gap: '10px' },
+  resultsContainer: { marginTop: '12px', gap: '10px', paddingBottom: '16px' },
   dropdownItem: {
     backgroundColor: 'hsl(var(--input))',
     border: '1px solid hsl(var(--border))',
@@ -418,6 +418,23 @@ const CategorySection = ({
               selectedApps={allSelectedApps}
               onSelectionChange={onAppsChange}
               customStyles={singulStyles}
+              renderEndOfResults={() => (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 1 }}>
+                  <Typography sx={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
+                    Cannot find what you are looking for?
+                  </Typography>
+                  <AddAppButton
+                    size="sm"
+                    label="Generate the app"
+                    onCreated={(appId) => {
+                      activateApp(appId);
+                      invalidateAppsCache();
+                      refreshAllIntegrationStatus();
+                      setSingulKey((k) => k + 1);
+                    }}
+                  />
+                </Box>
+              )}
             />
           </Box>
         </Collapse>
