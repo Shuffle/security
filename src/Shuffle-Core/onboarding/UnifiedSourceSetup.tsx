@@ -30,6 +30,7 @@ import type {
   IngestionCategory,
   ShuffleHostProps,
 } from '@shuffleio/shuffle-mcps';
+import { AddAppButton } from '@/components/apps/AddAppDialog';
 
 /** Fire-and-forget activate call for a newly selected app. Refreshes the
  *  Integrations bar so the icon flips to "enabled" immediately. */
@@ -494,19 +495,22 @@ export const UnifiedSourceSetup = ({
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          variant="h5"
-          sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, mb: 1 }}
-        >
-          Select Your Sources
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{ color: 'hsl(var(--muted-foreground))', mb: 0 }}
-        >
-          Choose the tools you use in each category. You'll configure credentials in the next step.
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography
+            variant="h5"
+            sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, mb: 1 }}
+          >
+            Select Your Sources
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{ color: 'hsl(var(--muted-foreground))', mb: 0 }}
+          >
+            Choose the tools you use in each category. You will configure credentials in the next step.
+          </Typography>
+        </Box>
+        <AddAppButton />
       </Box>
 
       {/* Category Sections — vertical stepper */}
