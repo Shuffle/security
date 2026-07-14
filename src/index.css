@@ -131,7 +131,8 @@
     --muted: 0 0% 16%;
     --muted-foreground: 0 0% 50%;
 
-    --accent: 24 100% 50%;
+    /* Accent = subtle hover surface (NOT orange). Orange lives in --primary. */
+    --accent: 0 0% 20%;
     --accent-foreground: 0 0% 100%;
 
     /* Severity colors */
