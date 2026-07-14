@@ -93,7 +93,7 @@ export const WebhookIngestionButton = ({ webhook, onToggled, workflowLabel = 'In
           credentials: 'include',
           headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            label: 'Ingest Tickets_webhook',
+            label: workflowLabel,
           }),
         });
         if (!res.ok) throw new Error('Failed to create webhook workflow');
@@ -104,7 +104,7 @@ export const WebhookIngestionButton = ({ webhook, onToggled, workflowLabel = 'In
           credentials: 'include',
           headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            label: 'Ingest Tickets_webhook',
+            label: workflowLabel,
             action_name: 'remove',
           }),
         });
