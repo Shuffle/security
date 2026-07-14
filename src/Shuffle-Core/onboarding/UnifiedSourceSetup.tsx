@@ -418,6 +418,23 @@ const CategorySection = ({
               selectedApps={allSelectedApps}
               onSelectionChange={onAppsChange}
               customStyles={singulStyles}
+              renderEndOfResults={() => (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 1 }}>
+                  <Typography sx={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
+                    Can't find what you are looking for?
+                  </Typography>
+                  <AddAppButton
+                    size="sm"
+                    label="Generate the app"
+                    onCreated={(appId) => {
+                      activateApp(appId);
+                      invalidateAppsCache();
+                      refreshAllIntegrationStatus();
+                      setSingulKey((k) => k + 1);
+                    }}
+                  />
+                </Box>
+              )}
             />
           </Box>
         </Collapse>
