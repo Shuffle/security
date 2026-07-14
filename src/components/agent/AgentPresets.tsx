@@ -8,7 +8,7 @@
  */
 import { useState } from 'react';
 import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
-import { Workflow, ShieldAlert, Blocks, LifeBuoy, Bug, Radar, Plus } from 'lucide-react';
+import { Workflow, ShieldAlert, Blocks, LifeBuoy, Bug, Radar, Monitor, Plus } from 'lucide-react';
 
 export interface AgentPreset {
   id: string;
@@ -61,6 +61,13 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Creates and tunes detection rules (Sigma, pipelines) — adjusts logic, filters false positives, and validates coverage.',
     defaultPrompt: 'Modify my detections to ',
     icon: <Radar size={16} />,
+  },
+  {
+    id: 'host-monitor-control',
+    label: 'Host Monitor Control',
+    description: 'Controls a host computer with screenshots and mouse/keyboard input — useful for hands-on remediation or guided walkthroughs.',
+    defaultPrompt: 'Take control of this host and help me with: ',
+    icon: <Monitor size={16} />,
   },
 ];
 
