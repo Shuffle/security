@@ -84,11 +84,13 @@ const useImagePreview = (fileId: string, isImage: boolean) => {
 const ImageThumbnail = ({ 
   attachment, 
   onDelete, 
-  onDownload 
+  onDownload,
+  deleting = false,
 }: { 
   attachment: FileAttachment; 
   onDelete: () => void; 
   onDownload: () => void;
+  deleting?: boolean;
 }) => {
   const blobUrl = useImagePreview(attachment.id, true);
   const [showPreview, setShowPreview] = useState(false);
