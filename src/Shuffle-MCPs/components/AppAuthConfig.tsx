@@ -1068,6 +1068,9 @@ export const AppAuthCard = ({
       // NOTE: Intentionally keep `localCredentials` populated so that if the
       // auto-test that runs right after a successful PUT fails, the user can
       // edit and retry without re-typing every field.
+      toast.success('Authentication saved', {
+        description: `Your ${app.name.replace(/_/g, ' ')} credentials have been stored securely.`,
+      });
     }
 
   };
