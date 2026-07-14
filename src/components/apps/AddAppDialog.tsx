@@ -15,7 +15,31 @@ import { toast } from '@/lib/toast';
 
 const DOC_TO_OPENAPI_URL = 'https://doc-to-openapi-stbuwivzoq-nw.a.run.app/api/v1/doc_to_openapi';
 
-type Stage = 'idle' | 'generating' | 'preview' | 'verifying' | 'done' | 'error';
+type Stage = 'idle' | 'checking' | 'existing' | 'generating' | 'preview' | 'verifying' | 'done' | 'error';
+
+interface ExistingMatch {
+  objectID: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  categories?: string[];
+}
+
+const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+const looksLikeUrl = (s: string) => /^https?:\/\//i.test(s) || /\/|\.[a-z]{2,}(\/|$)/i.test(s);
+
+/** Semi-exact match: normalized names equal, or one contains the other and is
+ *  at least 4 chars, so "gmail" matches "Gmail" and "sentinelone" matches
+ *  "SentinelOne" but a bare "api" does not match everything. */
+const isSemiExactMatch = (query: string, hitName: string) => {
+  const q = normalize(query);
+  const n = normalize(hitName);
+  if (!q || !n) return false;
+  if (q === n) return true;
+  if (q.length >= 4 && (n.includes(q) || q.includes(n))) return true;
+  return false;
+};
+
 
 interface OpenApiSpec {
   info?: {
