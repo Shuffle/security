@@ -404,6 +404,7 @@ export const FileAttachments = ({
                   <ImageThumbnail
                     key={attachment.id}
                     attachment={attachment}
+                    deleting={deletingIds.has(attachment.id)}
                     onDelete={() => handleDelete(attachment)}
                     onDownload={() => handleDownload(attachment)}
                   />
