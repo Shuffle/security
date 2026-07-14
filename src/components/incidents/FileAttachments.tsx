@@ -268,12 +268,12 @@ export const FileAttachments = ({
     const toastId = toast.loading(`Deleting ${attachment.filename}…`);
     try {
       const result = await deleteFile(attachment.id);
+      toast.dismiss(toastId as string | number);
       if (result.success) {
         onChange(attachments.filter(a => a.id !== attachment.id));
-        toast.success(`Deleted ${attachment.filename}`, { id: toastId });
+        toast.success(`Deleted ${attachment.filename}`);
       } else {
         toast.error(`Failed to delete ${attachment.filename}`, {
-          id: toastId,
           description: result.reason || 'The server did not confirm the deletion.',
         });
       }
