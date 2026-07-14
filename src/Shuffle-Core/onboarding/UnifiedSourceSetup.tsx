@@ -89,7 +89,7 @@ const singulStyles = {
     borderColor: 'hsl(var(--border))',
     borderTopColor: 'hsl(var(--primary))',
   },
-  resultsContainer: { marginTop: '12px', gap: '10px' },
+  resultsContainer: { marginTop: '12px', gap: '10px', paddingBottom: '16px' },
   dropdownItem: {
     backgroundColor: 'hsl(var(--input))',
     border: '1px solid hsl(var(--border))',
