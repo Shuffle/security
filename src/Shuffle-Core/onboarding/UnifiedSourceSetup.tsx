@@ -388,7 +388,7 @@ const CategorySection = ({
               backgroundColor: 'transparent',
               transition: 'border-color 0.3s ease',
               '& .singul-results-container': {
-                maxHeight: '430px !important',
+                maxHeight: '300px !important',
               },
             }}
           >
