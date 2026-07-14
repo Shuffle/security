@@ -1,6 +1,6 @@
-import { Home as HomeIcon, Settings as SettingsIcon, Server as DnsIcon, Radio as SensorsIcon, ExternalLink as OpenInNewIcon, AlertTriangle as ReportProblemIcon, Radar as RadarIcon, Download as DownloadIcon, FileText as FileTextIcon } from 'lucide-react';
+import { Home as HomeIcon, Settings as SettingsIcon, Server as DnsIcon, Radio as SensorsIcon, ExternalLink as OpenInNewIcon, AlertTriangle as ReportProblemIcon, Radar as RadarIcon, Download as DownloadIcon, FileText as FileTextIcon, ChevronDown as ChevronDownIcon, BookOpen as BookOpenIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   List,
@@ -8,6 +8,8 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Typography,
 } from '@mui/material';
 import { getApiUrl } from '@/Shuffle-MCPs/api';
@@ -73,7 +75,10 @@ const toLabel = (name: string) =>
 
 export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [remoteDocs, setRemoteDocs] = useState<RemoteDoc[]>([]);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const menuOpen = Boolean(menuAnchor);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,52 +169,85 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
       </List>
 
       {remoteDocs.length > 0 && (
-        <>
-          <Typography
-            variant="overline"
-            sx={{
-              px: 3,
-              mt: 4,
-              display: 'block',
-              color: 'text.secondary',
-              fontWeight: 600,
-              letterSpacing: 1.5,
+        <List sx={{ px: 1, mt: 0 }}>
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={(e) => setMenuAnchor(e.currentTarget)}
+              selected={remoteDocs.some((d) => d.slug === slug)}
+              sx={{
+                borderRadius: 1,
+                mx: 1,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 102, 0, 0.1)',
+                  '&:hover': { backgroundColor: 'rgba(255, 102, 0, 0.15)' },
+                  '& .MuiListItemIcon-root': { color: 'primary.main' },
+                  '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
+                <BookOpenIcon size={20} />
+              </ListItemIcon>
+              <ListItemText primary="Reference Docs" />
+              <ChevronDownIcon
+                size={16}
+                style={{
+                  transition: 'transform 150ms ease',
+                  transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  opacity: 0.7,
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
+          <Menu
+            anchorEl={menuAnchor}
+            open={menuOpen}
+            onClose={() => setMenuAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            slotProps={{
+              paper: {
+                sx: {
+                  maxHeight: 420,
+                  minWidth: 240,
+                  mt: 0.5,
+                },
+              },
             }}
           >
-            Reference
-          </Typography>
-          <List sx={{ px: 1, mt: 1 }}>
             {remoteDocs.map((doc) => (
-              <ListItem key={doc.slug} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  to={`/docs/${doc.slug}`}
-                  onClick={handleClick}
-                  selected={slug === doc.slug}
-                  sx={{
-                    borderRadius: 1,
-                    mx: 1,
-                    '&.Mui-selected': {
-                      backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                      '&:hover': { backgroundColor: 'rgba(255, 102, 0, 0.15)' },
-                      '& .MuiListItemIcon-root': { color: 'primary.main' },
-                      '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-                    <FileTextIcon size={18} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={doc.label}
-                    primaryTypographyProps={{ fontSize: '0.875rem' }}
-                  />
-                </ListItemButton>
-              </ListItem>
+              <MenuItem
+                key={doc.slug}
+                selected={slug === doc.slug}
+                onClick={() => {
+                  setMenuAnchor(null);
+                  handleClick();
+                  navigate(`/docs/${doc.slug}`);
+                }}
+                sx={{
+                  fontSize: '0.875rem',
+                  gap: 1.25,
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(255, 102, 0, 0.1)',
+                    color: 'primary.main',
+                    fontWeight: 600,
+                  },
+                }}
+              >
+                <FileTextIcon size={16} style={{ opacity: 0.7, flexShrink: 0 }} />
+                <Box component="span" sx={{ flex: 1 }}>{doc.label}</Box>
+                {doc.read_time ? (
+                  <Typography variant="caption" sx={{ color: 'text.disabled', ml: 1 }}>
+                    {doc.read_time}m
+                  </Typography>
+                ) : null}
+              </MenuItem>
             ))}
-          </List>
-        </>
+          </Menu>
+        </List>
       )}
+
+
 
 
       <Typography
