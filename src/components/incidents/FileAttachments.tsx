@@ -419,10 +419,12 @@ export const FileAttachments = ({
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {attachments
               .filter(a => !isImageFile(a.filename))
-              .map((attachment) => (
+              .map((attachment) => {
+                const isDeleting = deletingIds.has(attachment.id);
+                return (
                 <Box
                   key={attachment.id}
-                  onClick={() => handleOpen(attachment)}
+                  onClick={() => !isDeleting && handleOpen(attachment)}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -431,8 +433,10 @@ export const FileAttachments = ({
                     borderRadius: 1,
                     bgcolor: 'hsl(var(--muted) / 0.35)',
                     border: '1px solid hsl(var(--border))',
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: 'hsl(var(--muted) / 0.55)' },
+                    cursor: isDeleting ? 'default' : 'pointer',
+                    opacity: isDeleting ? 0.6 : 1,
+                    transition: 'opacity 0.2s ease',
+                    '&:hover': { bgcolor: isDeleting ? 'hsl(var(--muted) / 0.35)' : 'hsl(var(--muted) / 0.55)' },
                   }}
                 >
                   <Box sx={{ color: 'text.secondary' }}>
@@ -452,7 +456,7 @@ export const FileAttachments = ({
                       {attachment.filename}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      {formatFileSize(attachment.filesize)}
+                      {isDeleting ? 'Deleting…' : formatFileSize(attachment.filesize)}
                     </Typography>
                   </Box>
                   
@@ -460,26 +464,31 @@ export const FileAttachments = ({
                     <IconButton 
                       size="small" 
                       onClick={(e) => { e.stopPropagation(); handleDownload(attachment); }}
+                      disabled={isDeleting}
                       sx={{ color: 'text.secondary' }}
                     >
                       <DownloadIcon size={16} />
                     </IconButton>
                   </Tooltip>
                   
-                  <Tooltip title="Delete">
-                    <IconButton 
-                      size="small" 
-                      onClick={(e) => { e.stopPropagation(); handleDelete(attachment); }}
-                      sx={{ 
-                        color: 'text.disabled',
-                        '&:hover': { color: 'hsl(var(--destructive))' },
-                      }}
-                    >
-                      <DeleteIcon size={16} />
-                    </IconButton>
+                  <Tooltip title={isDeleting ? 'Deleting…' : 'Delete'}>
+                    <span>
+                      <IconButton 
+                        size="small" 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(attachment); }}
+                        disabled={isDeleting}
+                        sx={{ 
+                          color: 'text.disabled',
+                          '&:hover': { color: 'hsl(var(--destructive))' },
+                        }}
+                      >
+                        {isDeleting ? <CircularProgress size={14} sx={{ color: 'text.secondary' }} /> : <DeleteIcon size={16} />}
+                      </IconButton>
+                    </span>
                   </Tooltip>
                 </Box>
-              ))}
+                );
+              })}
           </Box>
         </Box>
       )}
