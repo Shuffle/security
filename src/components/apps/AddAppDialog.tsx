@@ -510,8 +510,29 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
               </Button>
             </>
           )}
-          {(stage === 'generating' || stage === 'verifying') && (
+          {(stage === 'checking' || stage === 'generating' || stage === 'verifying') && (
             <Button variant="ghost" disabled>Working…</Button>
+          )}
+          {stage === 'existing' && existing && (
+            <>
+              <Button variant="ghost" onClick={reset}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => { setExisting(null); runGeneration(input.trim()); }}
+              >
+                <Sparkles size={14} className="mr-1.5" />
+                Generate anyway
+              </Button>
+              <Button
+                onClick={() => {
+                  if (existing.objectID) onCreated?.(existing.objectID);
+                  onOpenChange(false);
+                }}
+              >
+                <CheckCircle2 size={14} className="mr-1.5" />
+                Use existing
+              </Button>
+            </>
           )}
           {stage === 'preview' && (
             <>
