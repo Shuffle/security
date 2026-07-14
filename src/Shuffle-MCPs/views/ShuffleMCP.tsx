@@ -701,6 +701,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
         {/* Dropdown Results (non-inline mode) */}
         {!inline && isOpen && (
           <div
+            onScroll={handleResultsScroll}
             className={`singul-dropdown ${layout === 'grid' ? 'singul-dropdown-grid' : ''}`}
             style={{
               ...customStyles.dropdown,
@@ -709,7 +710,12 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
             }}
           >
             {displayResults.length > 0 ? (
-              displayResults.map((app, index) => renderAppItem(app, index))
+              <>
+                {displayResults.map((app, index) => renderAppItem(app, index))}
+                {isLoadingMore && (
+                  <InfiniteScrollSkeleton layout={layout} gridColumns={typeof gridColumns === 'number' ? gridColumns : (gridColumns.md || 3)} />
+                )}
+              </>
             ) : (
               <div className="singul-empty-state" style={customStyles.emptyState}>
                 {searchError ? (
