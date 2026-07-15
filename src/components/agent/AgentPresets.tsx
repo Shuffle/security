@@ -28,6 +28,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Designs and edits Shuffle workflows for you — pick apps, wire actions, and iterate on automations from a description.',
     defaultPrompt: 'Build a Shuffle workflow that ',
     icon: <Workflow size={16} />,
+    enabled: true,
   },
   {
     id: 'incident-response',
@@ -35,13 +36,6 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Triages incidents: enriches observables, correlates related cases, and proposes next actions with rationale.',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     icon: <ShieldAlert size={16} />,
-  },
-  {
-    id: 'app-builder',
-    label: 'App Builder Agent',
-    description: 'Generates a new Shuffle app from an OpenAPI spec or API description — actions, auth, and parameters included.',
-    defaultPrompt: 'Build a Shuffle app for ',
-    icon: <Blocks size={16} />,
   },
   {
     id: 'support',
