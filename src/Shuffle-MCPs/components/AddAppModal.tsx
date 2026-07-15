@@ -20,8 +20,8 @@ import {
   DialogTitle,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShuffleMCP } from '../index';
-import type { AppSelectedEvent } from '../index';
+import { ShuffleMCP } from '../views/ShuffleMCP';
+import type { AppSelectedEvent } from '../shuffle-mcp.helpers';
 import { AppAuthCard } from './AppAuthConfig';
 import { API_CONFIG } from '../api';
 import { useAppAuthFlow } from '../useAppAuthFlow';
