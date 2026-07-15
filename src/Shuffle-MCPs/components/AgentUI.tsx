@@ -3568,7 +3568,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       <Tooltip title="Try this prompt without saving" placement="top" arrow>
                         <IconButton
                           type="button"
-                          onClick={() => submitInput(actionInput)}
+                          onClick={() => submitInput(composeSubmitInput(actionInput))}
                           disabled={actionInput.trim().length < 1 || agentRequestLoading}
                           sx={{
                             width: 36, height: 36,
