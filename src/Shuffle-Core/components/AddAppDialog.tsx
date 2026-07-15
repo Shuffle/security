@@ -101,34 +101,78 @@ export interface AddAppDialogProps extends ShuffleCoreHostProps {
   initialInput?: string;
 }
 
-const DotsLoader = ({ message }: { message: string }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
-    <Box sx={{ display: 'flex', gap: 0.5 }}>
-      {[0, 1, 2].map((i) => (
-        <Box
-          key={i}
+const GENERATION_TIPS = [
+  'Pentesting the API docs for hidden endpoints...',
+  'Bribing a firewall with a USB stick labeled "NOT MALWARE"...',
+  'Convincing the SIEM that this is just a normal Tuesday...',
+  'Running a background check on every URL parameter...',
+  'Asking the threat intel feed if it has seen this app before...',
+  'Scanning for vulnerabilities in the loading screen itself...',
+  'Negotiating with the WAF. It is suspicious...',
+  'Deploying decoy packets so the app builds in peace...',
+  'Checking if the API key is "password123"...',
+  'Teaching the IDS to ignore our harmless traffic...',
+  'Waiting for the SOC team to look away...',
+  'Making sure no CVEs are hiding in the CSS...',
+  'Hunting down the missing semicolon before it becomes an incident...',
+  'Confirming the app is not just a Bitcoin miner in disguise...',
+  'Telling the EDR this process is totally legitimate...',
+];
+
+const DotsLoader = ({ message, tips }: { message: string; tips?: string[] }) => {
+  const [tipIndex, setTipIndex] = useState(0);
+
+  useEffect(() => {
+    if (!tips || tips.length === 0) return;
+    const interval = setInterval(() => {
+      setTipIndex((i) => (i + 1) % tips.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [tips]);
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4, textAlign: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {[0, 1, 2].map((i) => (
+          <Box
+            key={i}
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: 'hsl(var(--primary))',
+              animation: 'shuffle-addapp-bounce 1.2s ease-in-out infinite',
+              animationDelay: `${i * 0.16}s`,
+            }}
+          />
+        ))}
+      </Box>
+      <Typography variant="body2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 500 }}>
+        {message}
+      </Typography>
+      {tips && tips.length > 0 && (
+        <Typography
+          variant="caption"
+          key={tipIndex}
           sx={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: 'hsl(var(--primary))',
-            animation: 'shuffle-addapp-bounce 1.2s ease-in-out infinite',
-            animationDelay: `${i * 0.16}s`,
+            maxWidth: 420,
+            minHeight: 36,
+            color: 'hsl(var(--muted-foreground))',
+            transition: 'opacity 0.4s ease',
           }}
-        />
-      ))}
+        >
+          {tips[tipIndex]}
+        </Typography>
+      )}
+      <style>{`
+        @keyframes shuffle-addapp-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40% { transform: translateY(-6px); opacity: 1; }
+        }
+      `}</style>
     </Box>
-    <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-      {message}
-    </Typography>
-    <style>{`
-      @keyframes shuffle-addapp-bounce {
-        0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-        40% { transform: translateY(-6px); opacity: 1; }
-      }
-    `}</style>
-  </Box>
-);
+  );
+};
 
 export const AddAppDialog = ({
   open,
