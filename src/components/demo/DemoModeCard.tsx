@@ -107,10 +107,10 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
           px: compact ? { xs: 1.5, sm: 2 } : { xs: 2, sm: 2.5 },
           py: compact ? { xs: 1.5, sm: 1.75 } : { xs: 2.625, sm: 3.125 },
           display: 'flex',
-          alignItems: { xs: 'flex-start', md: 'center' },
+          alignItems: compact ? 'center' : { xs: 'flex-start', md: 'center' },
           flexDirection: { xs: 'column', md: 'row' },
           gap: compact ? { xs: 1.25, md: 1.5 } : { xs: 1.5, md: 2 },
-          textAlign: 'left',
+          textAlign: compact ? 'center' : 'left',
         }}
       >
 
