@@ -5,11 +5,12 @@
 
 import { useState, useEffect } from 'react';
 import {
-  X as CloseIcon
+  X as CloseIcon,
+  Plus as PlusIcon,
 } from 'lucide-react';
-import { Box, Typography, IconButton, Drawer, Avatar, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, Drawer, Avatar, Tooltip, Button } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShuffleMCP, AppDetailDrawer } from '@/Shuffle-MCPs';
+import { ShuffleMCP, AppDetailDrawer, AddAppModal } from '@/Shuffle-MCPs';
 import type { AppSelectedEvent } from '@/Shuffle-MCPs';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import { ShufflePipelinesBanner } from '@/Shuffle-MCPs/components/ShufflePipelinesBanner';
@@ -180,6 +181,7 @@ export default function AppSearchDrawer({
   const scopeClassName = themeScope?.scopeClassName ?? (theme === 'dark' ? 'shuffle-mcp-scope dark' : theme === 'light' ? 'shuffle-mcp-scope' : undefined);
   const [detailAppName, setDetailAppName] = useState<string | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
+  const [addAppOpen, setAddAppOpen] = useState(false);
   const [highlightActive, setHighlightActive] = useState(false);
   // Defer mounting the heavy <ShuffleMCP> (Algolia) widget so the Drawer
   // slide-in paints immediately. Without this, clicking "Select Apps" feels
@@ -511,6 +513,42 @@ export default function AppSearchDrawer({
               } : {}),
             }}
           >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1.5,
+                mb: 1.5,
+                flexShrink: 0,
+              }}
+            >
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Search integrations
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => setAddAppOpen(true)}
+                startIcon={<PlusIcon size={14} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  height: 28,
+                  px: 1.25,
+                  borderRadius: 999,
+                  color: 'hsl(var(--primary))',
+                  borderColor: 'hsl(var(--primary))',
+                  bgcolor: 'transparent',
+                  border: '1px solid hsl(var(--primary))',
+                  '&:hover': {
+                    bgcolor: 'hsla(var(--primary) / 0.08)',
+                  },
+                }}
+              >
+                Add App
+              </Button>
+            </Box>
             <AnimatePresence mode="wait">
               <motion.div
                 key="search"
@@ -631,6 +669,14 @@ export default function AppSearchDrawer({
         onRefresh={onClose}
         onAddToCanvas={onAddToCanvas}
         autoActivate={autoActivate}
+      />
+
+      {/* Add App modal — opens from the search toolbar to find/configure a new app */}
+      <AddAppModal
+        open={addAppOpen}
+        onClose={() => setAddAppOpen(false)}
+        initialQuery={initialQuery}
+        categoryLabel={title}
       />
     </>
   );
