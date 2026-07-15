@@ -14,9 +14,11 @@ export interface AgentPreset {
   id: string;
   label: string;
   description: string;
-  /** Default prompt seed — will pre-fill the AgentUI when presets become clickable. */
+  /** Default prompt seed — will pre-fill the AgentUI when the preset is clicked. */
   defaultPrompt: string;
   icon: React.ReactNode;
+  /** When true, the preset is clickable and pre-fills the prompt. Others are placeholders. */
+  enabled?: boolean;
 }
 
 export const AGENT_PRESETS: AgentPreset[] = [
