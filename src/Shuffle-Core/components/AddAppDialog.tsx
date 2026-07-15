@@ -320,7 +320,7 @@ export const AddAppDialog = ({
         }}
       >
         <Plus size={18} style={{ color: 'hsl(var(--primary))' }} />
-        Add app
+        New app
       </DialogTitle>
 
       <DialogContent sx={{ px: 4, py: 2, minWidth: 0, boxSizing: 'border-box' }}>
@@ -611,7 +611,7 @@ export const AddAppButton = ({
   onCreated,
   variant = 'outlined',
   size = 'small',
-  label = 'Add app',
+  label = 'New app',
   ...dialogProps
 }: AddAppButtonProps) => {
   const [open, setOpen] = useState(false);
