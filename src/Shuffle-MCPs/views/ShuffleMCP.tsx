@@ -119,6 +119,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<AlgoliaSearchApp[]>([]);
   const [privateApps, setPrivateApps] = useState<AlgoliaSearchApp[]>([]);
+  const [privateAppsLoading, setPrivateAppsLoading] = useState<boolean>(!disablePrivateApps);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'public' | 'private' | 'authenticated'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -129,7 +130,9 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [internalSelectedApps, setInternalSelectedApps] = useState<AlgoliaSearchApp[]>(selectedApps);
   const [authenticatedApps, setAuthenticatedApps] = useState<AppAuthentication[]>(externalAuthenticatedApps || []);
+  const [authenticatedAppsLoading, setAuthenticatedAppsLoading] = useState<boolean>(!externalAuthenticatedApps);
   const [drawerApp, setDrawerApp] = useState<AlgoliaSearchApp | null>(null);
+
   const hasInitialized = useRef(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -141,7 +144,11 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
 
   // Fetch authenticated apps when apiKey is provided
   const fetchAuthenticatedApps = useCallback(async () => {
-    if (!apiKey) return;
+    if (!apiKey) {
+      setAuthenticatedAppsLoading(false);
+      return;
+    }
+    setAuthenticatedAppsLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}${authPath}`, {
         headers: {
@@ -158,6 +165,8 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
       }
     } catch (error) {
       console.error('Failed to fetch authenticated apps:', error);
+    } finally {
+      setAuthenticatedAppsLoading(false);
     }
   }, [apiKey, apiBaseUrl, authPath, orgId]);
 
@@ -165,14 +174,17 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
     fetchAuthenticatedApps();
   }, [fetchAuthenticatedApps]);
 
+
   // Fetch the user's private apps from /api/v1/apps when apiKey is provided.
   // These get merged into search results so users can find their own apps too.
   useEffect(() => {
     if (disablePrivateApps) {
       setPrivateApps([]);
+      setPrivateAppsLoading(false);
       return;
     }
     const fetchPrivateApps = async () => {
+      setPrivateAppsLoading(true);
       try {
         const apps = await fetchApps({
           baseUrl: apiBaseUrl,
@@ -204,10 +216,13 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
         setPrivateApps(normalized);
       } catch (error) {
         console.error('Failed to fetch private apps:', error);
+      } finally {
+        setPrivateAppsLoading(false);
       }
     };
     fetchPrivateApps();
   }, [apiKey, apiBaseUrl, privateAppsPath, disablePrivateApps, orgId]);
+
 
   // Auto-select validated apps when they're loaded (validated = tests ran successfully)
   useEffect(() => {
@@ -237,8 +252,10 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   useEffect(() => {
     if (externalAuthenticatedApps) {
       setAuthenticatedApps(externalAuthenticatedApps);
+      setAuthenticatedAppsLoading(false);
     }
   }, [externalAuthenticatedApps]);
+
 
   // Initialize Algolia client and run initial search
   useEffect(() => {
@@ -701,22 +718,24 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
           )}
         </div>
 
-        {/* Source filter — only shown when private apps are loaded */}
-        {showSourceFilter && privateApps.length > 0 && (
+        {/* Source filter — shown immediately; per-tab counts fall back to a
+            spinner glyph while private/authenticated data is still loading. */}
+        {showSourceFilter && (
           <div style={{ margin: '12px 0 8px' }}>
             <SegmentedControl
               ariaLabel="Filter by app source"
               value={sourceFilter}
               onChange={(v) => setSourceFilter(v as typeof sourceFilter)}
               options={[
-                { value: 'all', label: 'All', count: (results.length >= hitsPerPage ? `${results.length + filteredPrivateApps.length}+` : results.length + filteredPrivateApps.length), title: 'All available apps — both the public catalog and your private apps.' },
+                { value: 'all', label: 'All', count: privateAppsLoading ? '…' : (results.length >= hitsPerPage ? `${results.length + filteredPrivateApps.length}+` : results.length + filteredPrivateApps.length), title: 'All available apps — both the public catalog and your private apps.' },
                 { value: 'public', label: 'Public', count: (results.length >= hitsPerPage ? `${results.length}+` : results.length), title: 'Public apps from the Shuffle catalog (powered by Algolia).' },
-                { value: 'private', label: 'Private', count: filteredPrivateApps.length, title: 'Private apps are apps you have activated in your organization, or your own custom apps — not just from the public Algolia catalog.' },
-                { value: 'authenticated', label: 'Authenticated', count: [...filteredPrivateApps, ...results].filter((a, i, arr) => arr.findIndex(x => x.name?.toLowerCase() === a.name?.toLowerCase()) === i).filter(isAppConfigured).length, title: 'Apps you have authenticated and that are ready to use.' },
+                { value: 'private', label: 'Private', count: privateAppsLoading ? '…' : filteredPrivateApps.length, title: 'Private apps are apps you have activated in your organization, or your own custom apps — not just from the public Algolia catalog.' },
+                { value: 'authenticated', label: 'Authenticated', count: (privateAppsLoading || authenticatedAppsLoading) ? '…' : [...filteredPrivateApps, ...results].filter((a, i, arr) => arr.findIndex(x => x.name?.toLowerCase() === a.name?.toLowerCase()) === i).filter(isAppConfigured).length, title: 'Apps you have authenticated and that are ready to use.' },
               ]}
             />
           </div>
         )}
+
 
         {/* Inline Results Container */}
         {inline && (
