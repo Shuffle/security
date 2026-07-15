@@ -13,9 +13,12 @@ interface IngestionSourceButtonProps {
    *  opening the action popover. Used by empty states where the only wanted
    *  action is "turn this on". */
   enableOnClick?: boolean;
+  /** When true, draw the primary orange border around the icon to guide the
+   *  user's eye — used on the "No incidents yet" empty state. */
+  highlighted?: boolean;
 }
 
-export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, variant = 'ingest', enableOnClick = false }: IngestionSourceButtonProps) => {
+export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, variant = 'ingest', enableOnClick = false, highlighted = false }: IngestionSourceButtonProps) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const popoverOpen = Boolean(anchorEl);
