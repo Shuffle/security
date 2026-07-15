@@ -587,6 +587,31 @@ export default function AppSearchDrawer({
                       verified: true,
                     }))}
                     customStyles={singulStyles}
+                    renderInputEndAdornment={() => (
+                      <Button
+                        size="small"
+                        onClick={() => { setAddAppQuery(''); setAddAppOpen(true); onClose(); }}
+                        startIcon={<PlusIcon size={12} />}
+                        sx={{
+                          textTransform: 'none',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          height: 26,
+                          minHeight: 26,
+                          px: 1.25,
+                          borderRadius: 999,
+                          color: 'hsl(var(--primary))',
+                          bgcolor: 'hsla(var(--primary) / 0.08)',
+                          border: '1px solid hsla(var(--primary) / 0.35)',
+                          '&:hover': {
+                            bgcolor: 'hsla(var(--primary) / 0.16)',
+                            borderColor: 'hsl(var(--primary))',
+                          },
+                        }}
+                      >
+                        New App
+                      </Button>
+                    )}
                     renderEmptyState={(query) => (
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.25, py: 2 }}>
                         <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
