@@ -539,7 +539,7 @@ export const AddAppDialog = ({
         )}
 
         {stage === 'checking' && <DotsLoader message="Checking existing apps…" />}
-        {stage === 'generating' && <DotsLoader message="Generating app…" />}
+        {stage === 'generating' && <DotsLoader message="Generating app…" tips={GENERATION_TIPS} />}
         {stage === 'verifying' && <DotsLoader message="Finishing up…" />}
 
         {stage === 'existing' && existing && (
