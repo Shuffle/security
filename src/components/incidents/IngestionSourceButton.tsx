@@ -48,7 +48,14 @@ export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, varian
 
   return (
     <Box sx={{ position: 'relative' }} data-tour={`ingestion-source-${app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
-      <Tooltip title={displayName} placement="bottom">
+      <Tooltip
+        title={
+          enableOnClick && !isEnabled
+            ? `Click to enable ${displayName}`
+            : displayName
+        }
+        placement="bottom"
+      >
         <IconButton
           onClick={handleIconClick}
           size="small"
