@@ -84,7 +84,10 @@ export interface AddAppDialogProps extends ShuffleCoreHostProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Fires with the created / picked app's canonical `objectID`. */
-  onCreated?: (appId: string) => void;
+  onCreated?: (
+    appId: string,
+    app?: { name: string; image_url?: string; categories?: string[] },
+  ) => void;
   /** URL of the doc-to-openapi service. Override for self-hosted deployments. */
   docToOpenApiUrl?: string;
   /** Path (relative to the host API) used to verify + persist the OpenAPI spec. */
