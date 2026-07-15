@@ -119,6 +119,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<AlgoliaSearchApp[]>([]);
   const [privateApps, setPrivateApps] = useState<AlgoliaSearchApp[]>([]);
+  const [privateAppsLoading, setPrivateAppsLoading] = useState<boolean>(!disablePrivateApps);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'public' | 'private' | 'authenticated'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -129,7 +130,9 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [internalSelectedApps, setInternalSelectedApps] = useState<AlgoliaSearchApp[]>(selectedApps);
   const [authenticatedApps, setAuthenticatedApps] = useState<AppAuthentication[]>(externalAuthenticatedApps || []);
+  const [authenticatedAppsLoading, setAuthenticatedAppsLoading] = useState<boolean>(!externalAuthenticatedApps);
   const [drawerApp, setDrawerApp] = useState<AlgoliaSearchApp | null>(null);
+
   const hasInitialized = useRef(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
