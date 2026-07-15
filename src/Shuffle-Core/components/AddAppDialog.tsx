@@ -593,31 +593,58 @@ export const AddAppDialog = ({
           </Box>
         )}
 
-        {stage === 'done' && (
-          <Box
-            sx={{
-              py: 3,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 1.5,
-              textAlign: 'center',
-            }}
-          >
-            <CheckCircle2 size={44} style={{ color: 'hsl(var(--primary))' }} />
-            <Typography sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-              {title || 'App'} created
-            </Typography>
-            {createdAppId && (
-              <Typography
-                variant="caption"
-                sx={{ fontFamily: 'monospace', color: 'hsl(var(--muted-foreground))' }}
-              >
-                ID: {createdAppId}
+        {stage === 'done' && (() => {
+          const image = (spec?.info as any)?.['x-image'] as string | undefined;
+          return (
+            <Box
+              sx={{
+                py: 3,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1.5,
+                textAlign: 'center',
+              }}
+            >
+              {image ? (
+                <Box
+                  sx={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 1.5,
+                    background: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    p: 1,
+                  }}
+                >
+                  <img
+                    src={image}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </Box>
+              ) : (
+                <CheckCircle2 size={44} style={{ color: 'hsl(var(--primary))' }} />
+              )}
+              <Typography sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                {title || 'App'} created
               </Typography>
-            )}
-          </Box>
-        )}
+              {createdAppId && (
+                <Typography
+                  variant="caption"
+                  sx={{ fontFamily: 'monospace', color: 'hsl(var(--muted-foreground))' }}
+                >
+                  ID: {createdAppId}
+                </Typography>
+              )}
+            </Box>
+          );
+        })()}
+
 
         {stage === 'error' && (
           <Box
