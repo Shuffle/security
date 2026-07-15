@@ -530,7 +530,7 @@ export default function AppSearchDrawer({
               </Typography>
               <Button
                 size="small"
-                onClick={() => { setAddAppQuery(''); setAddAppOpen(true); }}
+                onClick={() => { setAddAppQuery(''); setAddAppOpen(true); onClose(); }}
                 startIcon={<PlusIcon size={14} />}
                 sx={{
                   textTransform: 'none',
@@ -617,7 +617,7 @@ export default function AppSearchDrawer({
                         </Typography>
                         <Button
                           size="small"
-                          onClick={() => { setAddAppQuery(query); setAddAppOpen(true); }}
+                          onClick={() => { setAddAppQuery(query); setAddAppOpen(true); onClose(); }}
                           startIcon={<PlusIcon size={14} />}
                           sx={{
                             mt: 0.5,
