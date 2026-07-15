@@ -32,6 +32,14 @@ export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, varian
     onToggle(app.name, willBeEnabled);
   };
 
+  const handleIconClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (enableOnClick && !isEnabled) {
+      handleToggle();
+    } else {
+      setAnchorEl(e.currentTarget);
+    }
+  };
+
   // Reset optimistic state when the real prop catches up
   if (optimisticEnabled !== null && app.enabled === optimisticEnabled) {
     // Schedule reset to avoid setState during render
