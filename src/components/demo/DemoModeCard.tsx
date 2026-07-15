@@ -107,10 +107,10 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
           px: compact ? { xs: 1.5, sm: 2 } : { xs: 2, sm: 2.5 },
           py: compact ? { xs: 1.5, sm: 1.75 } : { xs: 2.625, sm: 3.125 },
           display: 'flex',
-          alignItems: { xs: 'flex-start', md: 'center' },
+          alignItems: compact ? 'center' : { xs: 'flex-start', md: 'center' },
           flexDirection: { xs: 'column', md: 'row' },
           gap: compact ? { xs: 1.25, md: 1.5 } : { xs: 1.5, md: 2 },
-          textAlign: 'left',
+          textAlign: compact ? 'center' : 'left',
         }}
       >
 
@@ -151,7 +151,14 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
         </Box>
 
         {/* Actions */}
-        <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+          justifyContent: compact ? 'center' : 'flex-start',
+          width: compact ? 'auto' : { xs: '100%', md: 'auto' },
+        }}>
           {active ? (
             <>
               <Button
@@ -245,7 +252,7 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
                       py: 1,
                       boxShadow: 'none',
                       whiteSpace: 'nowrap',
-                      width: { xs: '100%', md: 'auto' },
+                      width: compact ? 'auto' : { xs: '100%', md: 'auto' },
                       '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
                       '&.Mui-disabled': {
                         backgroundColor: 'hsl(var(--muted))',
