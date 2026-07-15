@@ -116,10 +116,10 @@ export const AddAppDialog = ({ open, onOpenChange, onCreated }: AddAppDialogProp
         const client = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957bed552');
         const res = await client.searchSingleIndex({
           indexName: 'appsearch',
-          searchParams: { query: q, hitsPerPage: 5 },
+          searchParams: { query: q, hitsPerPage: 3 },
         });
         if (cancelled) return;
-        setLiveHits(((res.hits as unknown[]) || []) as ExistingMatch[]);
+        setLiveHits(((res.hits as unknown[]) || []).slice(0, 3) as ExistingMatch[]);
       } catch {
         if (!cancelled) setLiveHits([]);
       } finally {
