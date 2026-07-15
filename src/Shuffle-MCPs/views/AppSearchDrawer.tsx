@@ -615,9 +615,6 @@ export default function AppSearchDrawer({
                         <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
                           No integrations match "{query}".
                         </Typography>
-                        <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground) / 0.8)', textAlign: 'center' }}>
-                          Build it on the fly — we will search the web and configure it for you.
-                        </Typography>
                         <Button
                           size="small"
                           onClick={() => { setAddAppQuery(query); setAddAppOpen(true); }}
@@ -636,7 +633,7 @@ export default function AppSearchDrawer({
                             '&:hover': { bgcolor: 'hsla(var(--primary) / 0.08)' },
                           }}
                         >
-                          Add "{query.length > 24 ? query.slice(0, 24) + '…' : query}"
+                          New App
                         </Button>
                       </Box>
                     )}
@@ -703,12 +700,14 @@ export default function AppSearchDrawer({
         autoActivate={autoActivate}
       />
 
-      {/* Add App modal — opens from the search toolbar to find/configure a new app */}
-      <AddAppModal
+      {/* New App dialog — Shuffle-Core canonical modal for finding / generating apps */}
+      <AddAppDialog
         open={addAppOpen}
-        onClose={() => setAddAppOpen(false)}
-        initialQuery={addAppQuery || initialQuery}
-        categoryLabel={title}
+        onOpenChange={setAddAppOpen}
+        initialInput={addAppQuery || initialQuery || ''}
+        globalUrl={globalUrl}
+        theme={theme}
+        colorMode={colorMode}
       />
     </>
   );
