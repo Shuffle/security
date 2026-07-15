@@ -2640,12 +2640,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
     });
 
   const handlePrimarySubmit = useCallback(() => {
+    const composed = composeSubmitInput(actionInput);
     if (submitOverride) {
-      submitOverride({ input: actionInput, apps: chosenApps });
+      submitOverride({ input: composed, apps: chosenApps });
     } else {
-      submitInput(actionInput);
+      submitInput(composed);
     }
-  }, [submitOverride, actionInput, chosenApps, submitInput]);
+  }, [submitOverride, actionInput, chosenApps, submitInput, composeSubmitInput]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     // Autocomplete navigation takes priority over the normal submit shortcut
