@@ -670,6 +670,14 @@ export default function AppSearchDrawer({
         onAddToCanvas={onAddToCanvas}
         autoActivate={autoActivate}
       />
+
+      {/* Add App modal — opens from the search toolbar to find/configure a new app */}
+      <AddAppModal
+        open={addAppOpen}
+        onClose={() => setAddAppOpen(false)}
+        initialQuery={initialQuery}
+        categoryLabel={title}
+      />
     </>
   );
 }
