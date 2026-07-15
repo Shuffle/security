@@ -348,11 +348,11 @@ export const AddAppDialog = ({
           <Plus size={24} style={{ color: 'hsl(var(--primary))' }} />
         </Box>
         <Typography sx={{ fontSize: 20, fontWeight: 700 }}>
-          New app
+          Can't find the app you are looking for?
         </Typography>
         <Typography sx={{ fontSize: 13, fontWeight: 400, color: 'hsl(var(--muted-foreground))', textAlign: 'center', maxWidth: 460 }}>
-          Type any app name (min. 3 characters) and we will search for its public API,
-          or paste a link to the app's API documentation and we will generate the integration from it.
+          Type any app name (minimum 3 characters) and we will hunt down its public API,
+          or paste a link to the API docs and we will build the integration for you.
         </Typography>
       </DialogTitle>
 
