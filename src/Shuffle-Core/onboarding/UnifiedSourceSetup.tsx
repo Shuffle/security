@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   ChevronDown,
   CheckCircle2,
+  Plus as PlusIcon,
 } from 'lucide-react';
 import {
   ShuffleMCP,
