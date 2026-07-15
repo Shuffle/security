@@ -124,7 +124,7 @@ export const IncidentsEmptyState = ({ ingestionApps = [], onIngestionToggled, on
               <WebhookIngestionButton webhook={webhook} onToggled={onIngestionToggled} />
             )}
             {ingestionApps.map(app => (
-              <IngestionSourceButton key={app.name} app={app} onToggle={onToggleApp || (() => {})} />
+              <IngestionSourceButton key={app.name} app={app} onToggle={onToggleApp || (() => {})} enableOnClick={!app.enabled} />
             ))}
             <Tooltip title="Add ingestion source" placement="bottom">
               <IconButton
@@ -239,37 +239,6 @@ export const IncidentsEmptyState = ({ ingestionApps = [], onIngestionToggled, on
                   Manage Sources
                 </Button>
               </>
-            ) : hasNonWebhookSources && onToggleApp ? (
-              (() => {
-                const firstDisabled = ingestionApps.find(a => !a.enabled);
-                const target = firstDisabled ?? ingestionApps[0];
-                const label = target ? `Enable ${target.name}` : 'Enable Sync';
-                return (
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    disabled={isUpdatingApps || !target}
-                    startIcon={isUpdatingApps ? <CircularProgress size={18} color="inherit" /> : <PlayArrowIcon />}
-                    onClick={() => target && onToggleApp(target.name, true)}
-                    sx={{
-                      px: 3,
-                      py: 1.5,
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.95rem',
-                      borderColor: 'hsl(var(--primary) / 0.5)',
-                      color: 'hsl(var(--primary))',
-                      '&:hover': {
-                        borderColor: 'hsl(var(--primary))',
-                        bgcolor: 'hsl(var(--primary) / 0.08)',
-                      },
-                    }}
-                  >
-                    {label}
-                  </Button>
-                );
-              })()
             ) : (
               <Button
                 component={Link}
@@ -292,7 +261,7 @@ export const IncidentsEmptyState = ({ ingestionApps = [], onIngestionToggled, on
                   },
                 }}
               >
-                Set Up Ingestion
+                {hasNonWebhookSources ? 'Manage Sources' : 'Set Up Ingestion'}
               </Button>
             )}
           </Box>

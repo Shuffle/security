@@ -9,9 +9,13 @@ interface IngestionSourceButtonProps {
   onToggle: (appName: string, enabled: boolean) => void;
   incidentCount?: number;
   variant?: 'ingest' | 'forward';
+  /** When true, clicking a disabled source immediately enables it instead of
+   *  opening the action popover. Used by empty states where the only wanted
+   *  action is "turn this on". */
+  enableOnClick?: boolean;
 }
 
-export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, variant = 'ingest' }: IngestionSourceButtonProps) => {
+export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, variant = 'ingest', enableOnClick = false }: IngestionSourceButtonProps) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   const popoverOpen = Boolean(anchorEl);
@@ -28,6 +32,14 @@ export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, varian
     onToggle(app.name, willBeEnabled);
   };
 
+  const handleIconClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (enableOnClick && !isEnabled) {
+      handleToggle();
+    } else {
+      setAnchorEl(e.currentTarget);
+    }
+  };
+
   // Reset optimistic state when the real prop catches up
   if (optimisticEnabled !== null && app.enabled === optimisticEnabled) {
     // Schedule reset to avoid setState during render
@@ -36,9 +48,16 @@ export const IngestionSourceButton = ({ app, onToggle, incidentCount = 0, varian
 
   return (
     <Box sx={{ position: 'relative' }} data-tour={`ingestion-source-${app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
-      <Tooltip title={displayName} placement="bottom">
+      <Tooltip
+        title={
+          enableOnClick && !isEnabled
+            ? `Click to enable ${displayName}`
+            : displayName
+        }
+        placement="bottom"
+      >
         <IconButton
-          onClick={(e) => setAnchorEl(e.currentTarget)}
+          onClick={handleIconClick}
           size="small"
           sx={{
             width: 30,
