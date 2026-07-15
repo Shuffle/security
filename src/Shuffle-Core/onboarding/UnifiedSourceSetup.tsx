@@ -4,6 +4,7 @@ import {
   Typography,
   Chip,
   Collapse,
+  Button,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -14,6 +15,7 @@ import {
   LayoutGrid,
   ChevronDown,
   CheckCircle2,
+  Plus as PlusIcon,
 } from 'lucide-react';
 import {
   ShuffleMCP,
@@ -30,7 +32,7 @@ import type {
   IngestionCategory,
   ShuffleHostProps,
 } from '@shuffleio/shuffle-mcps';
-import { AddAppButton } from '@/Shuffle-Core/components/AddAppDialog';
+import { AddAppButton, AddAppDialog } from '@/Shuffle-Core/components/AddAppDialog';
 
 /** Fire-and-forget activate call for a newly selected app. Refreshes the
  *  Integrations bar so the icon flips to "enabled" immediately. */
@@ -181,6 +183,74 @@ const CategorySection = ({
 }: CategorySectionProps) => {
   const singulRef = useRef<ShuffleMCPHandle>(null);
   const [singulKey, setSingulKey] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addSeed, setAddSeed] = useState('');
+
+  const handleAppCreated = useCallback(
+    (
+      appId: string,
+      app?: { name?: string; image_url?: string; categories?: string[] },
+    ) => {
+      activateApp(appId);
+      invalidateAppsCache();
+      refreshAllIntegrationStatus();
+      const already = allSelectedApps.some((a) => a.objectID === appId);
+      if (!already) {
+        const next: AlgoliaSearchApp = {
+          objectID: appId,
+          name: app?.name || appId,
+          image_url: app?.image_url || '',
+          description: '',
+          categories: app?.categories || [],
+          creator: '',
+          app_version: '1.0.0',
+          time_edited: 0,
+          generated: false,
+          invalid: false,
+          priority: 0,
+          actions: 0,
+          tags: [],
+          accessible_by: [],
+          action_labels: [],
+          triggers: [],
+          verified: true,
+        } as any;
+        onAppsChange([...allSelectedApps, next]);
+      }
+      setSingulKey((k) => k + 1);
+    },
+    [allSelectedApps, onAppsChange],
+  );
+
+  const renderNewAppChip = () => (
+    <Button
+      size="small"
+      onClick={(e) => {
+        e.stopPropagation();
+        setAddSeed('');
+        setAddOpen(true);
+      }}
+      startIcon={<PlusIcon size={12} />}
+      sx={{
+        textTransform: 'none',
+        fontSize: '0.72rem',
+        fontWeight: 600,
+        height: 26,
+        minHeight: 26,
+        px: 1.25,
+        borderRadius: 999,
+        color: 'hsl(var(--primary))',
+        bgcolor: 'hsla(var(--primary) / 0.08)',
+        border: '1px solid hsla(var(--primary) / 0.35)',
+        '&:hover': {
+          bgcolor: 'hsla(var(--primary) / 0.16)',
+          borderColor: 'hsl(var(--primary))',
+        },
+      }}
+    >
+      New App
+    </Button>
+  );
 
   const Icon = category.icon;
   const hasSelections = selectedApps.length > 0;
@@ -418,6 +488,34 @@ const CategorySection = ({
               selectedApps={allSelectedApps}
               onSelectionChange={onAppsChange}
               customStyles={singulStyles}
+              renderInputEndAdornment={renderNewAppChip}
+              renderEmptyState={(query) => (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.25, py: 2 }}>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
+                    No integrations match "{query}".
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={() => { setAddSeed(query); setAddOpen(true); }}
+                    startIcon={<PlusIcon size={14} />}
+                    sx={{
+                      mt: 0.5,
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      height: 32,
+                      px: 1.5,
+                      borderRadius: 999,
+                      color: 'hsl(var(--primary))',
+                      border: '1px solid hsl(var(--primary))',
+                      bgcolor: 'transparent',
+                      '&:hover': { bgcolor: 'hsla(var(--primary) / 0.08)' },
+                    }}
+                  >
+                    Try building "{query}" as a new app
+                  </Button>
+                </Box>
+              )}
               renderEndOfResults={() => (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 1 }}>
                   <Typography sx={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
@@ -426,15 +524,16 @@ const CategorySection = ({
                   <AddAppButton
                     size="small"
                     label="Generate the app"
-                    onCreated={(appId) => {
-                      activateApp(appId);
-                      invalidateAppsCache();
-                      refreshAllIntegrationStatus();
-                      setSingulKey((k) => k + 1);
-                    }}
+                    onCreated={handleAppCreated}
                   />
                 </Box>
               )}
+            />
+            <AddAppDialog
+              open={addOpen}
+              onOpenChange={setAddOpen}
+              initialInput={addSeed}
+              onCreated={handleAppCreated}
             />
           </Box>
         </Collapse>
@@ -527,49 +626,19 @@ export const UnifiedSourceSetup = ({
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography
-            variant="h5"
-            sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, mb: 1 }}
-          >
-            Select Your Sources
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{ color: 'hsl(var(--muted-foreground))', mb: 0 }}
-          >
-            Choose the tools you use in each category. You will configure credentials in the next step.
-          </Typography>
-        </Box>
-        <AddAppButton
-          onCreated={(appId, app) => {
-            activateApp(appId);
-            const already = selectedApps.some((a) => a.objectID === appId);
-            if (!already) {
-              const next: AlgoliaSearchApp = {
-                objectID: appId,
-                name: app?.name || appId,
-                image_url: app?.image_url || '',
-                description: '',
-                categories: app?.categories || [],
-                creator: '',
-                app_version: '1.0.0',
-                time_edited: 0,
-                generated: false,
-                invalid: false,
-                priority: 0,
-                actions: 0,
-                tags: [],
-                accessible_by: [],
-                action_labels: [],
-                triggers: [],
-                verified: true,
-              } as any;
-              handleAppsChange([...selectedApps, next]);
-            }
-          }}
-        />
+      <Box sx={{ mb: 3 }}>
+        <Typography
+          variant="h5"
+          sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, mb: 1 }}
+        >
+          Select Your Sources
+        </Typography>
+        <Typography
+          variant="body1"
+          sx={{ color: 'hsl(var(--muted-foreground))', mb: 0 }}
+        >
+          Choose the tools you use in each category. You will configure credentials in the next step.
+        </Typography>
       </Box>
 
       {/* Category Sections — vertical stepper */}
