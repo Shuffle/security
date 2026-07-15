@@ -97,6 +97,8 @@ export interface AddAppDialogProps extends ShuffleCoreHostProps {
   algoliaIndexName?: string;
   /** Maximum characters accepted in the input field. */
   maxLength?: number;
+  /** Pre-fill the input field when the dialog opens (e.g. seed with the user's failed search query). */
+  initialInput?: string;
 }
 
 const DotsLoader = ({ message }: { message: string }) => (
@@ -138,8 +140,9 @@ export const AddAppDialog = ({
   algoliaApiKey = DEFAULT_ALGOLIA_API_KEY,
   algoliaIndexName = DEFAULT_ALGOLIA_INDEX,
   maxLength = 1024,
+  initialInput = '',
 }: AddAppDialogProps) => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialInput);
   const [stage, setStage] = useState<Stage>('idle');
   const [spec, setSpec] = useState<OpenApiSpec | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
