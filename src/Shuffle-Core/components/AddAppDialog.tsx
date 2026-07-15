@@ -105,21 +105,18 @@ export interface AddAppDialogProps extends ShuffleCoreHostProps {
 }
 
 const GENERATION_TIPS = [
-  'Pentesting the API docs for hidden endpoints...',
-  'Bribing a firewall with a USB stick labeled "NOT MALWARE"...',
-  'Convincing the SIEM that this is just a normal Tuesday...',
-  'Running a background check on every URL parameter...',
-  'Asking the threat intel feed if it has seen this app before...',
-  'Scanning for vulnerabilities in the loading screen itself...',
-  'Negotiating with the WAF. It is suspicious...',
-  'Deploying decoy packets so the app builds in peace...',
-  'Checking if the API key is "password123"...',
-  'Teaching the IDS to ignore our harmless traffic...',
-  'Waiting for the SOC team to look away...',
-  'Making sure no CVEs are hiding in the CSS...',
-  'Hunting down the missing semicolon before it becomes an incident...',
-  'Confirming the app is not just a Bitcoin miner in disguise...',
-  'Telling the EDR this process is totally legitimate...',
+  'Reading the API docs so you do not have to...',
+  'Asking the documentation nicely for its schema...',
+  'Translating developer-speak into actual endpoints...',
+  'Polishing the OpenAPI spec until it stops complaining...',
+  'Brewing a fresh cup of JSON for the algorithm...',
+  'Summoning the integration from the digital ether...',
+  'Negotiating with the API one endpoint at a time...',
+  'Teaching the AI that "REST" does not mean nap time...',
+  'Parsing examples and hoping nobody used placeholder data...',
+  'Reading between the lines of the docs...',
+  'Turning a wall of text into something you can actually use...',
+  'Building the app with 100% fewer hand-wavy examples...',
 ];
 
 const DotsLoader = ({ message, tips }: { message: string; tips?: string[] }) => {
@@ -129,7 +126,7 @@ const DotsLoader = ({ message, tips }: { message: string; tips?: string[] }) => 
     if (!tips || tips.length === 0) return;
     const interval = setInterval(() => {
       setTipIndex((i) => (i + 1) % tips.length);
-    }, 5000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [tips]);
 
@@ -553,7 +550,7 @@ export const AddAppDialog = ({
         )}
 
         {stage === 'checking' && <DotsLoader message="Checking existing apps…" />}
-        {stage === 'generating' && <DotsLoader message="Generating app…" tips={GENERATION_TIPS} />}
+        {stage === 'generating' && <DotsLoader message={`Generating app for ${input.trim() || 'this tool'}…`} tips={GENERATION_TIPS} />}
         {stage === 'verifying' && <DotsLoader message="Finishing up…" />}
 
         {stage === 'existing' && existing && (
