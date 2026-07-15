@@ -8,15 +8,17 @@
  */
 import { useState } from 'react';
 import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
-import { Workflow, ShieldAlert, Blocks, LifeBuoy, Bug, Radar, Monitor, Plus } from 'lucide-react';
+import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus } from 'lucide-react';
 
 export interface AgentPreset {
   id: string;
   label: string;
   description: string;
-  /** Default prompt seed — will pre-fill the AgentUI when presets become clickable. */
+  /** Default prompt seed — will pre-fill the AgentUI when the preset is clicked. */
   defaultPrompt: string;
   icon: React.ReactNode;
+  /** When true, the preset is clickable and pre-fills the prompt. Others are placeholders. */
+  enabled?: boolean;
 }
 
 export const AGENT_PRESETS: AgentPreset[] = [
@@ -26,6 +28,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Designs and edits Shuffle workflows for you — pick apps, wire actions, and iterate on automations from a description.',
     defaultPrompt: 'Build a Shuffle workflow that ',
     icon: <Workflow size={16} />,
+    enabled: true,
   },
   {
     id: 'incident-response',
@@ -33,13 +36,6 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Triages incidents: enriches observables, correlates related cases, and proposes next actions with rationale.',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     icon: <ShieldAlert size={16} />,
-  },
-  {
-    id: 'app-builder',
-    label: 'App Builder Agent',
-    description: 'Generates a new Shuffle app from an OpenAPI spec or API description — actions, auth, and parameters included.',
-    defaultPrompt: 'Build a Shuffle app for ',
-    icon: <Blocks size={16} />,
   },
   {
     id: 'support',
@@ -74,9 +70,11 @@ export const AGENT_PRESETS: AgentPreset[] = [
 export interface AgentPresetsProps {
   /** Inline variant sits inside the prompt input row alongside action buttons. */
   variant?: 'default' | 'inline';
+  /** Called when the user picks a preset — receives the preset's default prompt seed. */
+  onSelectPreset?: (preset: AgentPreset) => void;
 }
 
-export const AgentPresets = ({ variant = 'default' }: AgentPresetsProps) => {
+export const AgentPresets = ({ variant = 'default', onSelectPreset }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -131,14 +129,18 @@ export const AgentPresets = ({ variant = 'default' }: AgentPresetsProps) => {
           Agent presets
         </Typography>
         <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', opacity: 0.7, mt: 0.25 }}>
-          Coming soon — will pre-fill the prompt, apps and LLM.
+          Click a preset to seed the prompt. More coming soon.
         </Typography>
       </Box>
       {AGENT_PRESETS.map((p) => (
         <MenuItem
           key={p.id}
-          disabled
-          aria-disabled="true"
+          disabled={!p.enabled}
+          aria-disabled={!p.enabled}
+          onClick={p.enabled ? () => {
+            onSelectPreset?.(p);
+            setAnchorEl(null);
+          } : undefined}
           sx={{
             alignItems: 'flex-start',
             gap: 1.25,
@@ -146,7 +148,7 @@ export const AgentPresets = ({ variant = 'default' }: AgentPresetsProps) => {
             px: 1.5,
             opacity: '1 !important',
             '&.Mui-disabled': { opacity: 1 },
-            cursor: 'not-allowed',
+            cursor: p.enabled ? 'pointer' : 'not-allowed',
             whiteSpace: 'normal',
           }}
         >
