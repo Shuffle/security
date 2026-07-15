@@ -97,6 +97,8 @@ export interface AddAppDialogProps extends ShuffleCoreHostProps {
   algoliaIndexName?: string;
   /** Maximum characters accepted in the input field. */
   maxLength?: number;
+  /** Pre-fill the input field when the dialog opens (e.g. seed with the user's failed search query). */
+  initialInput?: string;
 }
 
 const DotsLoader = ({ message }: { message: string }) => (
@@ -138,8 +140,9 @@ export const AddAppDialog = ({
   algoliaApiKey = DEFAULT_ALGOLIA_API_KEY,
   algoliaIndexName = DEFAULT_ALGOLIA_INDEX,
   maxLength = 1024,
+  initialInput = '',
 }: AddAppDialogProps) => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialInput);
   const [stage, setStage] = useState<Stage>('idle');
   const [spec, setSpec] = useState<OpenApiSpec | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -147,6 +150,13 @@ export const AddAppDialog = ({
   const [existing, setExisting] = useState<ExistingMatch | null>(null);
   const [liveHits, setLiveHits] = useState<ExistingMatch[]>([]);
   const [liveSearching, setLiveSearching] = useState(false);
+
+  // Seed the input with the initial value each time the dialog opens.
+  useEffect(() => {
+    if (open) setInput(initialInput);
+  }, [open, initialInput]);
+
+
 
   const title = spec?.info?.title || '';
 
@@ -320,7 +330,7 @@ export const AddAppDialog = ({
         }}
       >
         <Plus size={18} style={{ color: 'hsl(var(--primary))' }} />
-        Add app
+        New app
       </DialogTitle>
 
       <DialogContent sx={{ px: 4, py: 2, minWidth: 0, boxSizing: 'border-box' }}>
@@ -611,7 +621,7 @@ export const AddAppButton = ({
   onCreated,
   variant = 'outlined',
   size = 'small',
-  label = 'Add app',
+  label = 'New app',
   ...dialogProps
 }: AddAppButtonProps) => {
   const [open, setOpen] = useState(false);
