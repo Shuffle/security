@@ -1348,8 +1348,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // user's saved default prefix.
   const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId });
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
+  // Local (in-memory) overrides for preset prompts. Editing the chip while a
+  // preset is active updates the preset's prompt without touching the user's
+  // saved default. Not persisted — presets ship with their own defaults.
+  const [presetPromptOverrides, setPresetPromptOverrides] = useState<Record<string, string>>({});
   const activePromptLabel = selectedPreset?.label ?? 'Shuffle Tools';
-  const activePromptPrefix = selectedPreset ? selectedPreset.defaultPrompt : savedPromptPrefix;
+  const activePromptPrefix = selectedPreset
+    ? (presetPromptOverrides[selectedPreset.id] ?? selectedPreset.defaultPrompt)
+    : savedPromptPrefix;
   const composeSubmitInput = useCallback(
     (raw: string) => {
       const trimmedPrefix = (activePromptPrefix || '').trim();
