@@ -261,7 +261,7 @@ export const IncidentsEmptyState = ({ ingestionApps = [], onIngestionToggled, on
                   },
                 }}
               >
-                Set Up Ingestion
+                {hasNonWebhookSources ? 'Manage Sources' : 'Set Up Ingestion'}
               </Button>
             )}
           </Box>
