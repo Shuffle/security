@@ -46,6 +46,8 @@ import { getIngestionCategory } from '@/Shuffle-MCPs/ingestionDetection';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { fetchAppConfig as fetchSharedAppConfig } from '@/Shuffle-MCPs/appConfigFetch';
+import { invalidateAuthenticatedAppsCache } from '@/Shuffle-MCPs/authenticatedApps';
 
 export type AuthStatus = 'pending' | 'testing' | 'connected' | 'error';
 
@@ -302,6 +304,7 @@ export const AppAuthCard = ({
           setSelectedAuthId(ADD_NEW_AUTH);
           setUserHasSelected(false);
         }
+        invalidateAuthenticatedAppsCache();
         if (onRefreshAuth) await onRefreshAuth();
       }
     } catch (err) {
@@ -513,7 +516,7 @@ export const AppAuthCard = ({
   }, [isExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const fetchAppConfig = async () => {
+    const loadAppConfig = async () => {
       if (!isExpanded || appConfig) return;
 
       // Skip synthetic fallback ids (e.g. "name:shuffle_workflows") — these
@@ -529,38 +532,21 @@ export const AppAuthCard = ({
       setLoading(true);
       setError(null);
 
+      const result = await fetchSharedAppConfig(app.objectID);
+
       try {
-        const response = await fetch(
-          getApiUrl(`/api/v1/apps/${encodeURIComponent(app.objectID)}/config`),
-          {
-            credentials: 'include',
-            headers: {
-              ...getAuthHeader(),
-            },
-          },
-        );
-
-        if (!response.ok) {
-          // Cache an empty config so the effect does not keep re-firing on
-          // every render while `appConfig` stays null. Users see a clear
-          // error message instead of an infinite skeleton + request loop.
-          setAppConfig({ authentication: undefined } as unknown as DecodedApp);
-          throw new Error(
-            response.status === 401 ? 'You are not authorized to load this app configuration.'
-            : response.status === 404 ? 'App configuration not found.'
-            : `Failed to fetch app configuration (HTTP ${response.status}).`,
-          );
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.app) {
-          const decodedAppString = atob(data.app);
-          const decodedApp = JSON.parse(decodedAppString) as DecodedApp;
-          setAppConfig(decodedApp);
+        if (result.ok && result.data?.name) {
+          setAppConfig(result.data as DecodedApp);
         } else {
           setAppConfig({ authentication: undefined } as unknown as DecodedApp);
-          throw new Error('Invalid response format');
+          const status = result.status;
+          setError(
+            status === 401 ? 'You are not authorized to load this app configuration.'
+            : status === 403 ? 'You do not have permission to view this app configuration.'
+            : status === 404 ? 'App configuration not found.'
+            : status === 0 ? 'Could not reach the Shuffle API. Check your connection and try again.'
+            : `Failed to fetch app configuration (HTTP ${status}).`,
+          );
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load configuration');
@@ -569,7 +555,7 @@ export const AppAuthCard = ({
       }
     };
 
-    fetchAppConfig();
+    loadAppConfig();
   }, [isExpanded, app.objectID, appConfig]);
 
   const auth = appConfig?.authentication;
@@ -673,6 +659,7 @@ export const AppAuthCard = ({
 
       if (response.ok) {
         setEditingLabel(false);
+        invalidateAuthenticatedAppsCache();
         if (onRefreshAuth) await onRefreshAuth();
         toast({ title: 'Label updated', description: `Renamed to "${editLabelValue.trim()}"` });
       } else {
@@ -2119,6 +2106,7 @@ export const AppAuthCard = ({
                                   console.error('[AppAuthCard] Failed to delete stale auth on Save anyway:', err);
                                 }
                               }));
+                              invalidateAuthenticatedAppsCache();
                               if (onRefreshAuth) await onRefreshAuth();
                               if (onSelectAuth) onSelectAuth(app.objectID, acceptId);
                               // Tell anyone listening (AgentUI's "Choose LLM"
