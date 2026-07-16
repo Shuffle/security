@@ -121,23 +121,19 @@ export function useAppLookup(appName: string | null): AppLookupResult {
       }
 
       if (API_CONFIG.apiKey && id) {
-        try {
-          const response = await fetch(
-            getApiUrl(`/api/v1/apps/${encodeURIComponent(id)}/config`),
-            { credentials: 'include', headers: { ...getAuthHeader() } },
-          );
-          if (response.ok) {
-            const data = await response.json();
-            if (data?.name) {
-              setInfo((prev) => ({
-                name: data.name || prev?.name || searchName,
-                description: data.description || prev?.description || '',
-                image: data.large_image || prev?.image || '',
-                categories: data.categories || prev?.categories || [],
-              }));
-            }
-          }
-        } catch {}
+        // Shared negative-caching fetcher: a 401/403/404 on this id is
+        // remembered for the session so remounting this hook does not
+        // repeat the failing request.
+        const result = await fetchAppConfig(id);
+        if (result.ok && result.data?.name) {
+          const data = result.data;
+          setInfo((prev) => ({
+            name: data.name || prev?.name || searchName,
+            description: data.description || prev?.description || '',
+            image: data.large_image || prev?.image || '',
+            categories: data.categories || prev?.categories || [],
+          }));
+        }
       }
 
       setInfo((prev) => prev ?? { name: searchName, description: '', image: '', categories: [] });
