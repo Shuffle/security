@@ -218,6 +218,7 @@ export default function AppDetailDrawer({
           (hits.length > 0 ? hits[0] : null);
 
         if (match) {
+          foundMatch = true;
           if (!algoliaId) {
             algoliaId = match.objectID;
             setResolvedAlgoliaId(algoliaId);
