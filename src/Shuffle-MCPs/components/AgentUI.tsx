@@ -504,9 +504,9 @@ export interface AgentUIProps {
    * (shared across all users on this browser).
    */
   userId?: string;
-  /** Hide the "+ Presets" trigger next to the input. */
+  /** Hide the "+ Templates" trigger next to the input. */
   hidePresets?: boolean;
-  /** Override the built-in preset list surfaced by the "+ Presets" trigger. */
+  /** Override the built-in template list surfaced by the "+ Templates" trigger. */
   presets?: AgentPreset[];
   /** Called when the user picks a preset. Overrides the built-in seed behavior. */
   onSelectPreset?: (preset: AgentPreset) => void;
@@ -1342,7 +1342,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // input. Prepended to the submitted text so it feels like the user is
   // "typing to" the Shuffle Tools MCP without the prefix filling the box.
   //
-  // Presets only swap the chip's visible label; the actual prompt and tool
+  // Templates only swap the chip's visible label; the actual prompt and tool
   // selection are handled by the backend. The user's saved default prefix is
   // still prepended when no preset is selected.
   const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId });
@@ -1381,7 +1381,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     () => placeholder ?? getRandomAgentPromptPlaceholder(),
   );
   // Once the textarea has mounted, measure the actual available width for a
-  // one-line placeholder (accounting for the Presets chip's text-indent) and
+  // one-line placeholder (accounting for the Templates chip's text-indent) and
   // pick a suggestion that fully fits — no arbitrary character cutoff.
   useLayoutEffect(() => {
     if (!shouldTypewrite) return;
