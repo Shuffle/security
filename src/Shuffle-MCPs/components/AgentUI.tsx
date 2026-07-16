@@ -3448,9 +3448,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   ))}
                 </Box>
               )}
-              <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
               {!hidePresets && (
-                <Box sx={{ alignSelf: 'flex-start', pt: '8px', flexShrink: 0 }}>
+                <Box sx={{ flexShrink: 0 }}>
                   <AgentPresets
                     variant="inline"
                     presets={presets}
