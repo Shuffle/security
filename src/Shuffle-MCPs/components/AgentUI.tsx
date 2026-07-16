@@ -3541,7 +3541,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
               {!hidePresets && (
-                <Box sx={{ position: 'absolute', left: '19px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }}>
+                <Box sx={{ position: 'absolute', left: '14px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }}>
                   <AgentPresets
                     variant="floating"
                     chipRef={presetsChipRef}
