@@ -3537,13 +3537,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     }}
                     onSelectPreset={(preset) => {
                       try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
+                      // Inject the template's default apps as the chosen tool set.
+                      if (preset.defaultApps && preset.defaultApps.length > 0) {
+                        setChosenApps(preset.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
+                      }
                       if (onSelectPreset) {
                         onSelectPreset(preset);
                         return;
                       }
-                      // The preset is only tracked locally so its ID can be sent
-                      // to the backend. Prompt seeding and tool pre-selection are
-                      // now handled server-side.
+                      // The template is only tracked locally so its ID can be sent
+                      // to the backend. Prompt seeding is handled server-side.
                       setSelectedPreset(preset);
                       setTimeout(() => {
                         const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
