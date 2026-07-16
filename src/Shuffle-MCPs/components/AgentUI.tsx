@@ -1349,6 +1349,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
   const presetsChipRef = useRef<HTMLButtonElement>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Restore the last used preset from localStorage so the choice survives
   // reloads, matching how assigned agent tools are remembered.
