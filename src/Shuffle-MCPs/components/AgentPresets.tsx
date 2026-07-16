@@ -162,10 +162,10 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     >
       <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid hsl(var(--border))' }}>
         <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))' }}>
-          Agent presets
+          Agent templates
         </Typography>
         <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', opacity: 0.7, mt: 0.25 }}>
-          Click a preset to seed the prompt. More coming soon.
+          Click a template to seed the prompt. More coming soon.
         </Typography>
       </Box>
       {list.map((p) => (
