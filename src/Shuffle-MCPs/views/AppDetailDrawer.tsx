@@ -648,6 +648,30 @@ export default function AppDetailDrawer({
 
         ) : (
           <>
+            {configError && (
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: '1px solid hsl(var(--destructive) / 0.4)',
+                  bgcolor: 'hsl(var(--destructive) / 0.08)',
+                  display: 'flex',
+                  gap: 1,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <ErrorOutlineIcon size={16} style={{ color: 'hsl(var(--destructive))', marginTop: 2, flexShrink: 0 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ color: 'hsl(var(--destructive))', fontSize: '0.78rem', fontWeight: 600 }}>
+                    {configError.status === 401 ? 'Unauthorized' : configError.status === 403 ? 'Forbidden' : configError.status === 404 ? 'Not found' : 'Failed to load configuration'}
+                  </Typography>
+                  <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.72rem', mt: 0.25 }}>
+                    {configError.message}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
             {/* App header */}
             <AppTitleHeader
               name={displayName}
