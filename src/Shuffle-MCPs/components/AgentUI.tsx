@@ -3605,7 +3605,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                           onClick={() => submitInput(composeSubmitInput(actionInput))}
                           disabled={actionInput.trim().length < 1 || agentRequestLoading}
                           sx={{
-                            width: 36, height: 36,
+                            width: 32, height: 32,
                             bgcolor: 'transparent',
                             border: '1px solid hsl(var(--border))',
                             color: 'hsl(var(--foreground))',
@@ -3622,7 +3622,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         disabled={actionInput.trim().length < 1 || agentRequestLoading}
                         startIcon={agentRequestLoading ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : null}
                         sx={{
-                          height: 36,
+                          height: 32,
                           px: 2,
                           textTransform: 'none',
                           fontSize: '0.85rem',
@@ -3642,7 +3642,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       type="submit"
                       disabled={actionInput.trim().length < 1 || agentRequestLoading}
                       sx={{
-                        width: 36, height: 36,
+                        width: 32, height: 32,
                         bgcolor: actionInput.trim().length >= 1 ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
                         color: actionInput.trim().length >= 1 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
                         '&:hover': actionInput.trim().length >= 1 ? { filter: 'brightness(1.1)', bgcolor: 'hsl(var(--primary))' } : {},
