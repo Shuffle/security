@@ -1381,7 +1381,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     () => placeholder ?? getRandomAgentPromptPlaceholder(),
   );
   // Once the textarea has mounted, measure the actual available width for a
-  // one-line placeholder (accounting for the Presets chip's text-indent) and
+  // one-line placeholder (accounting for the Templates chip's text-indent) and
   // pick a suggestion that fully fits — no arbitrary character cutoff.
   useLayoutEffect(() => {
     if (!shouldTypewrite) return;
