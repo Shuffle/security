@@ -68,6 +68,7 @@ import type { SxProps, Theme } from '@mui/material';
 import Markdown from 'react-markdown';
 import {
   DEFAULT_AGENT_PROMPT_PLACEHOLDER,
+  getRandomAgentPromptPlaceholder,
   matchAgentPromptSuggestions,
 } from './agentPromptSuggestions';
 import remarkGfm from 'remark-gfm';
@@ -1275,7 +1276,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   autoLoadApps = true,
   title = 'What do you want to do?',
   subtitle,
-  placeholder = DEFAULT_AGENT_PROMPT_PLACEHOLDER,
+  placeholder = getRandomAgentPromptPlaceholder(),
   defaultInput = '',
   autoSubmit = false,
   hideHeroIcon = false,
@@ -3542,7 +3543,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     lineHeight: 1.67,
                     textIndent: !hidePresets ? `${presetsChipWidth + 8}px` : 0,
                   },
-                  '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7 },
+                  '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
                 }}
               />
               <input
