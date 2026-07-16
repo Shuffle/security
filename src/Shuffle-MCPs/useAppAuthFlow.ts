@@ -10,8 +10,9 @@
 import { useState, useCallback } from 'react';
 import type { AlgoliaSearchApp } from './index';
 import type { AppAuthState, ApiAuthEntry } from './components/AppAuthConfig';
-import { API_CONFIG, getApiUrl, getAuthHeader } from './api';
+import { getApiUrl, getAuthHeader } from './api';
 import { refreshAllIntegrationStatus } from './components/IntegrationStatus';
+import { fetchAuthenticatedApps, invalidateAuthenticatedAppsCache } from './authenticatedApps';
 
 export function useAppAuthFlow() {
   const [selectedApp, setSelectedApp] = useState<AlgoliaSearchApp | null>(null);
@@ -27,29 +28,20 @@ export function useAppAuthFlow() {
 
     setAuthLoading(true);
     try {
-      const response = await fetch(getApiUrl('/api/v1/apps/authentication'), {
-        credentials: 'include',
-        headers: { ...getAuthHeader() },
-      });
-      if (response.ok) {
-        const result = await response.json();
-        const authData = result.data || result;
-        if (Array.isArray(authData)) {
-          const normalize = (n: string) => n.toLowerCase().replace(/[\s_\-]+/g, '_');
-          const appEntries = authData
-            .filter(
-              (a: ApiAuthEntry) => normalize(a.app?.name || '') === normalize(appName)
-            )
-            .map((a: ApiAuthEntry) => ({
-              ...a,
-              app: {
-                ...a.app,
-                large_image: a.app?.large_image || appImageUrl || '',
-              },
-            }));
-          setAuthenticatedApps(appEntries);
-        }
-      }
+      const authData = await fetchAuthenticatedApps();
+      const normalize = (n: string) => n.toLowerCase().replace(/[\s_\-]+/g, '_');
+      const appEntries = (authData as ApiAuthEntry[])
+        .filter(
+          (a: ApiAuthEntry) => normalize(a.app?.name || '') === normalize(appName)
+        )
+        .map((a: ApiAuthEntry) => ({
+          ...a,
+          app: {
+            ...a.app,
+            large_image: a.app?.large_image || appImageUrl || '',
+          },
+        }));
+      setAuthenticatedApps(appEntries);
     } catch (err) {
       console.error('Failed to fetch auth entries:', err);
     } finally {
@@ -148,6 +140,7 @@ export function useAppAuthFlow() {
       });
       const result = await response.json();
       if (response.ok && result.success !== false) {
+        invalidateAuthenticatedAppsCache();
         await fetchAuthForApp(selectedApp.name, selectedApp.image_url);
         refreshAllIntegrationStatus();
         return true;
