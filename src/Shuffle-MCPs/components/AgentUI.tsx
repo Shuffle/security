@@ -1371,6 +1371,32 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
   }, [selectedPreset, hidePresets, presets]);
 
+  // Pick ONE random autocomplete suggestion on mount and keep it stable, so
+  // the placeholder does not rotate every render. If the caller supplied an
+  // explicit placeholder, use that verbatim (no typewriter).
+  const fullPlaceholder = useMemo(
+    () => placeholder ?? getRandomAgentPromptPlaceholder(),
+    [placeholder],
+  );
+  const shouldTypewrite = placeholder === undefined;
+  const [typedPlaceholder, setTypedPlaceholder] = useState(
+    shouldTypewrite ? '' : fullPlaceholder,
+  );
+  useEffect(() => {
+    if (!shouldTypewrite) {
+      setTypedPlaceholder(fullPlaceholder);
+      return;
+    }
+    setTypedPlaceholder('');
+    let i = 0;
+    const id = window.setInterval(() => {
+      i += 1;
+      setTypedPlaceholder(fullPlaceholder.slice(0, i));
+      if (i >= fullPlaceholder.length) window.clearInterval(id);
+    }, 22);
+    return () => window.clearInterval(id);
+  }, [fullPlaceholder, shouldTypewrite]);
+
   const activePromptPrefix = savedPromptPrefix;
   const composeSubmitInput = useCallback(
     (raw: string) => {
