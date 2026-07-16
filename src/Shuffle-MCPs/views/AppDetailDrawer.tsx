@@ -189,6 +189,7 @@ export default function AppDetailDrawer({
     setAppLoading(true);
     setAppInfo(null);
     setIsActivated(null);
+    setAppNotFound(false);
     // Seed from caller-provided id (e.g. AppSearchDrawer already has the Algolia hit)
     setResolvedAlgoliaId(appId || null);
     // Always refresh auth when opening a different app
