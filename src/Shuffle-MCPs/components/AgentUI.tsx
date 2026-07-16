@@ -1546,7 +1546,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // execution_id, so the "Agent is working… Xs" counter starts ticking
   // immediately — even before the backend echoes `started_at` back to us.
   const [localRunStart, setLocalRunStart] = useState<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Tracks the execution_id we currently want to display. Used to discard
   // stale poll responses from a previous run after the user has started a
