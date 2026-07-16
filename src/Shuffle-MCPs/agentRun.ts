@@ -292,8 +292,15 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     params.tool_ids = request.toolIds;
   }
 
+  // Some presets map to dedicated agent paths (e.g. /api/v1/agent/workflow-edit).
+  // For those, we encode the preset in the URL and skip the body field.
+  const presetPath =
+    request.presetId === 'build-workflows'
+      ? '/api/v1/agent/workflow-edit'
+      : null;
+
   // Pass selected preset to the backend so it can apply the prompt and tools.
-  if (request.presetId) {
+  if (request.presetId && !presetPath) {
     params.preset_id = request.presetId;
   }
 
@@ -304,7 +311,7 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     params,
   };
 
-  const { url: agentUrl, headers: agentHeaders } = resolveTarget('/api/v1/agent', {
+  const { url: agentUrl, headers: agentHeaders } = resolveTarget(presetPath || '/api/v1/agent', {
     apiKey: request.apiKey,
     apiBaseUrl: request.apiBaseUrl,
     orgId: request.orgId,
