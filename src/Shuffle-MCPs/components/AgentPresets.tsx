@@ -1,11 +1,11 @@
 /**
- * AgentPresets — compact "+ Presets" trigger shown above the AgentUI textbox.
+ * AgentPresets — compact "+ Templates" trigger shown above the AgentUI textbox.
  *
- * Self-contained: no host-app `@/` imports. Consumers can override the preset
+ * Self-contained: no host-app `@/` imports. Consumers can override the template
  * list via the `presets` prop; otherwise the built-in {@link AGENT_PRESETS}
  * list is used.
  *
- * Enabled presets notify the consumer via the `onSelectPreset` callback. The
+ * Enabled templates notify the consumer via the `onSelectPreset` callback. The
  * consumer is responsible for forwarding the preset to the backend API; the
  * frontend no longer seeds the prompt or pre-selects tools locally. Disabled
  * presets render with a "coming soon" chip and are not clickable.
