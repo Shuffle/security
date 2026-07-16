@@ -1276,7 +1276,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   autoLoadApps = true,
   title = 'What do you want to do?',
   subtitle,
-  placeholder = DEFAULT_AGENT_PROMPT_PLACEHOLDER,
+  placeholder = getRandomAgentPromptPlaceholder(),
   defaultInput = '',
   autoSubmit = false,
   hideHeroIcon = false,
