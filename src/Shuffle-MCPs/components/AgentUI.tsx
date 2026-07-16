@@ -3518,26 +3518,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   if (e.target) e.target.value = '';
                 }}
               />
-              {!hidePresets && (
-                <AgentPresets
-                  variant="inline"
-                  presets={presets}
-                  onSelectPreset={(preset) => {
-                    if (onSelectPreset) {
-                      onSelectPreset(preset);
-                      return;
-                    }
-                    // The preset is only tracked locally so its ID can be sent
-                    // to the backend. Prompt seeding and tool pre-selection are
-                    // now handled server-side.
-                    setSelectedPreset(preset);
-                    setTimeout(() => {
-                      const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
-                      try { el?.focus(); } catch { /* ignore */ }
-                    }, 0);
-                  }}
-                />
-              )}
               {(() => {
                 const allowWithoutExecution = showStarter;
                 const promptTooShort = showStarter && (actionInput || '').trim().length < 1;
