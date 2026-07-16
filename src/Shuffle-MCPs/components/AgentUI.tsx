@@ -98,6 +98,8 @@ import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
 
+const LAST_PRESET_STORAGE_KEY = 'agent_last_preset_id';
+
 /** Recursively parse JSON-looking strings into objects/arrays so JsonView can collapse them. */
 const deepParseJsonStrings = (obj: any, depth = 0): any => {
   if (depth > 5) return obj;
