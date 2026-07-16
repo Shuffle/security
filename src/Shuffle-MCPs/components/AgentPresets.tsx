@@ -76,7 +76,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
 
 export interface AgentPresetsProps {
   /** Inline variant sits inside the prompt input row alongside action buttons. */
-  variant?: 'default' | 'inline';
+  variant?: 'default' | 'inline' | 'floating';
   /** Called when the user picks a preset — receives the preset's default prompt seed. */
   onSelectPreset?: (preset: AgentPreset) => void;
   /** Optional currently selected preset — turns the trigger into a chip showing the preset label. */
@@ -85,9 +85,11 @@ export interface AgentPresetsProps {
   onRemoveSelected?: () => void;
   /** Override the built-in preset list. */
   presets?: AgentPreset[];
+  /** Ref forwarded to the trigger button so the host can measure its width. */
+  chipRef?: React.Ref<HTMLButtonElement>;
 }
 
-export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets }: AgentPresetsProps) => {
+export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const list = presets && presets.length > 0 ? presets : AGENT_PRESETS;
