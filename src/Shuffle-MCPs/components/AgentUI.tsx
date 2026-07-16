@@ -506,10 +506,6 @@ export interface AgentUIProps {
   presets?: AgentPreset[];
   /** Called when the user picks a preset. Overrides the built-in seed behavior. */
   onSelectPreset?: (preset: AgentPreset) => void;
-  /** Hide the "Shuffle Tools MCP" prompt-prefix chip at the start of the input. */
-  hidePromptPrefixChip?: boolean;
-  /** Label shown on the prompt-prefix chip. Defaults to "Shuffle Tools MCP". */
-  promptPrefixLabel?: string;
 }
 
 interface ExecutionData {
