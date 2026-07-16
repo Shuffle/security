@@ -202,6 +202,7 @@ export default function AppDetailDrawer({
       // Algolia lookup — also runs when caller passed an appId, so we still get
       // the image/description/categories that the caller didn't have.
       let algoliaId: string | null = appId || null;
+      let foundMatch = false;
       try {
         const { algoliasearch } = await import('algoliasearch');
         const client = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957bed552');
