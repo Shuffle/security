@@ -1589,6 +1589,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
   stateRef.current.localRunStart = localRunStart;
   stateRef.current.showStarter = showStarter;
 
+  // The app-picker chip bar uses a pill radius when it fits on one line, but
+  // when it wraps to multiple lines the 999px radius becomes comically large.
+  // Measure the rendered height and switch to a fixed corner radius.
+  useLayoutEffect(() => {
+    const el = chipBarRef.current;
+    if (!el) return;
+    const update = () => setChipBarMultiline(el.clientHeight > 44);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Reset / capture the local run start. Seed as soon as the user submits
   // (so the counter ticks from t=0 even before /agent returns), and keep it
   // pinned until the run is cleared. Without this, the "0s/1s" counter
