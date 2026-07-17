@@ -47,6 +47,8 @@ import {
   type Usecase,
 } from '@/config/usecases';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { UsecaseDrawer } from '@/Shuffle-Core';
 import { useUsecases, type UsecaseDrift } from '@/hooks/useUsecases';
 
 // Re-export for any external consumers
@@ -2118,6 +2120,7 @@ const InfrastructureContent = () => {
   usePageMeta({ title: 'Infrastructure', description: 'Security tool integrations and data flow visualization' });
   const reactFlowInstance = useReactFlow();
   const { userInfo } = useAuth();
+  const { resolvedTheme } = useTheme();
   const { driftMap, hasDrift, apiLoaded, isLoading: usecasesLoading } = useUsecases();
   const isSupport = userInfo?.support === true;
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -3118,34 +3121,17 @@ const InfrastructureContent = () => {
         driftMap={driftMap}
         isSupport={isSupport}
       />
-      <EdgeDetailDrawer
-        flow={selectedEdgeIdx !== null ? DATA_FLOWS[selectedEdgeIdx] || null : null}
-        edgeIdx={selectedEdgeIdx}
+      <UsecaseDrawer
         open={selectedEdgeIdx !== null}
         onClose={() => setSelectedEdgeIdx(null)}
-        activeCategories={activeCategories}
-        configuredCategories={activeCategories}
-        categoryApps={categoryApps}
-        flowStateOverrides={flowStateOverrides}
-        onSetFlowState={setFlowStateFn}
-        agenticFlows={agenticFlows}
-        onToggleAgentic={toggleAgenticFlow}
-        disabledApps={disabledApps}
-        onToggleAppDisabled={toggleAppDisabled}
-        onSelectCategory={(catId) => {
-          setSelectedEdgeIdx(null);
-          setSelectedId(catId);
-        }}
-        onViewAllFlows={(fromEdgeIdx) => {
-          setLastViewedEdgeIdx(fromEdgeIdx);
-          setSelectedEdgeIdx(null);
-          setShowAllFlows(true);
-        }}
-        driftMap={driftMap}
-        isSupport={isSupport}
-        apiLoaded={apiLoaded}
-        usecasesLoading={usecasesLoading}
+        flowId={selectedEdgeIdx !== null ? (DATA_FLOWS[selectedEdgeIdx]?.id ?? null) : null}
+        globalUrl={API_CONFIG.baseUrl}
+        userdata={userInfo as any}
+        isLoaded={true}
+        isLoggedIn={!!userInfo}
+        theme={resolvedTheme}
       />
+
     </Box>
   );
 };
