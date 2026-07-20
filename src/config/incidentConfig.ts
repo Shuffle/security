@@ -89,6 +89,10 @@ export const STATUS_SYNONYMS: Record<string, string> = {
   // escalated synonyms
   escalated: 'escalated',
   critical_escalation: 'escalated',
+  // merged synonyms
+  merged: 'merged',
+  duplicate: 'merged',
+  duplicated: 'merged',
 };
 
 /**
