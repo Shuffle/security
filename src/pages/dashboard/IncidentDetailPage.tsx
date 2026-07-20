@@ -91,7 +91,9 @@ import { MergeIncidentDialog } from '@/components/incidents/MergeIncidentDialog'
 import { MergeCandidatesBanner } from '@/components/incidents/MergeCandidatesBanner';
 import { MergedIncidentBanner } from '@/components/incidents/MergedIncidentBanner';
 import { RelatedIncidentsBanner } from '@/components/incidents/RelatedIncidentsBanner';
+import { ThreadCorrelatedBanner } from '@/components/incidents/ThreadCorrelatedBanner';
 import { useRelatedIncidents } from '@/hooks/useRelatedIncidents';
+import { useThreadCorrelatedIncidents } from '@/hooks/useThreadCorrelatedIncidents';
 import { maybeMigrateLegacyMerge, getPrimaryPointer } from '@/lib/incidentRelations';
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
@@ -1651,6 +1653,16 @@ const IncidentDetailPage = () => {
   // into another) and the incidents that were merged INTO this one.
   const relatedIncidents = useRelatedIncidents(incident?.id, incident?.rawOCSF);
   const primaryPointer = useMemo(() => getPrimaryPointer(incident?.rawOCSF), [incident?.rawOCSF]);
+
+  // Thread-correlated incidents: when the current payload has a thread_id,
+  // pull in every other incident that shares the value via the correlations
+  // API. Read-only surface — does not write pointers.
+  const threadCorrelated = useThreadCorrelatedIncidents(
+    incident?.id,
+    incident?.rawOCSF,
+    crossOrgHeaders,
+  );
+
 
   // Legacy migration: pre-cross-reference merges wrote status_id 99 +
   // `merged_into` on the source only. On first view, upgrade the record
@@ -6556,6 +6568,18 @@ const IncidentDetailPage = () => {
           onUnlinked={() => loadIncident(false)}
         />
       )}
+
+      {/* Thread-correlated incidents — any other incidents that share the
+          same thread_id, pulled in live via the correlations API. */}
+      {!isPublicView && incident?.id && (
+        <ThreadCorrelatedBanner
+          threadId={threadCorrelated.threadId}
+          incidents={threadCorrelated.incidents}
+          invisibleCount={threadCorrelated.invisibleCount}
+          loading={threadCorrelated.loading}
+        />
+      )}
+
 
       {/* Possible duplicates / merge suggestions banner — surfaces past
           incidents that share observables, correlations, or known IOCs with
