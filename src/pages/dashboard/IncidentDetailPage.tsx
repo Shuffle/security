@@ -2171,6 +2171,25 @@ const IncidentDetailPage = () => {
         edited: result.item.edited,
         enrichments: result.item.enrichments,
       };
+
+      // Repair corrupted translation fields (e.g. literal JSONPath or header
+      // arrays leaked into the title/assignee) before we display or persist.
+      // This mutates the parsed payload in place and re-serializes it for the
+      // parser so the corrected values become the stored values.
+      let repairedRaw: any = null;
+      let fieldRepairs: FieldRepair[] = [];
+      if (!isPublicView) {
+        try {
+          repairedRaw = JSON.parse(itemData.value);
+          fieldRepairs = repairCorruptedOcsfFields(repairedRaw);
+          if (fieldRepairs.length > 0) {
+            itemData.value = JSON.stringify(repairedRaw);
+          }
+        } catch (repairErr) {
+          console.warn('[IncidentDetail] Failed to pre-parse incident for translation repair:', repairErr);
+        }
+      }
+
       const parseStart = performance.now();
       const parsed = parseIncidentFromDatastore(itemData);
       console.log(`[Perf] parseIncidentFromDatastore: ${(performance.now() - parseStart).toFixed(1)}ms`);
