@@ -5030,11 +5030,14 @@ const IncidentDetailPage = () => {
 
 
 
-    if (isFilterActive('manual')) {
-      activity.forEach((item) => {
-        items.push({ type: 'manual', timestamp: normalizeToMs(item.timestamp), data: item });
-      });
-    }
+    // Comments (user-authored activity) and merge/threading audit entries
+    // are stored in the same `activity` array but gate on separate filters
+    // so users can hide auto-merge noise without also hiding conversation.
+    activity.forEach((item) => {
+      const isMerge = isMergeActivityItem(item);
+      if (isMerge ? !isFilterActive('merges') : !isFilterActive('manual')) return;
+      items.push({ type: 'manual', timestamp: normalizeToMs(item.timestamp), data: item });
+    });
 
     // ── Step injection ─────────────────────────────────────────────────────
     // Render Tasks, Observables and Correlations as small "step" markers in
