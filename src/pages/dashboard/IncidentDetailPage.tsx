@@ -5478,7 +5478,7 @@ const IncidentDetailPage = () => {
         // orange dot, no grey card background, no bright text — only chats
         // and truly noteworthy states (failed / needs-attention) stand out.
         const isFailed = status === 'FAILED' || status === 'ERROR' || status === 'ABORTED';
-        const needsAttention = !!(statusCfg && statusCfg.needsAttention);
+        const needsAttention = !!(statusCfg && (statusCfg as any).needsAttention);
         const isQuiet = !isFailed && !needsAttention && !skip.skipped;
         return (
           <Box
