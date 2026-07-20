@@ -413,6 +413,27 @@ const meaningfulField = (
   return meaningfulString(corrected ?? (typeof val === 'string' ? val : undefined));
 };
 
+const cleanInitialRevisionText = (
+  val: unknown,
+  container: unknown,
+  headerName?: string,
+): string => {
+  const meaningful = meaningfulField(val, container, headerName);
+  const src = String(meaningful || '');
+  if (!src) return '';
+  const decoded = decodeIfBase64(src);
+  const trimmedDecoded = decoded.trim();
+  const looksLikeBase64Blob =
+    src.length > 120
+    && /^[A-Za-z0-9+/_\-\s=]+$/.test(src)
+    && !/\s/.test(src.trim().slice(0, 200));
+  if (looksLikeBase64Blob && decoded === src) return '';
+  if (/^\s*(Content-Type|MIME-Version|Content-Transfer-Encoding):/im.test(decoded)) return '';
+  if (/^\s*\[\s*\{\s*"name"\s*:/i.test(trimmedDecoded)) return '';
+  if (/\[\?\(\s*@\./.test(trimmedDecoded)) return '';
+  return decoded;
+};
+
 /**
  * Resolve the "created" timestamp for an incident.
  * Priority: value.created_time → item.created (datastore envelope).
