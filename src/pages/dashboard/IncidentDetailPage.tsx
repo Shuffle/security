@@ -6522,6 +6522,30 @@ const IncidentDetailPage = () => {
         }
       />
 
+      {/* If this incident was merged into another one, surface a jump link
+          at the top so the analyst is not stuck reading a "dead" case. */}
+      {!isPublicView && incident?.id && primaryPointer && (
+        <MergedIncidentBanner
+          currentIncidentId={incident.id}
+          primary={relatedIncidents.primary}
+          primaryPointerId={primaryPointer.id}
+          loading={relatedIncidents.loading}
+          onUnlinked={() => fetchIncident?.()}
+        />
+      )}
+
+      {/* If other incidents were merged INTO this one, list them so the
+          analyst can jump back or unmerge from the primary side. */}
+      {!isPublicView && incident?.id && (relatedIncidents.linked.length > 0 || relatedIncidents.invisibleCount > 0) && (
+        <RelatedIncidentsBanner
+          currentIncidentId={incident.id}
+          linked={relatedIncidents.linked}
+          invisibleCount={relatedIncidents.invisibleCount}
+          loading={relatedIncidents.loading}
+          onUnlinked={() => fetchIncident?.()}
+        />
+      )}
+
       {/* Possible duplicates / merge suggestions banner — surfaces past
           incidents that share observables, correlations, or known IOCs with
           the one being viewed. Hidden in the public/read-only view. */}
