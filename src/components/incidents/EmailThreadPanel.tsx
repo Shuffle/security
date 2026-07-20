@@ -37,7 +37,10 @@ export interface EmailMessage {
   body: string;
   bodyHtml?: string;
   isLatest?: boolean;
+  /** Provider flagged this message as an unsent draft. */
+  isDraft?: boolean;
 }
+
 
 interface EmailThreadPanelProps {
   descriptionHtml: string;
