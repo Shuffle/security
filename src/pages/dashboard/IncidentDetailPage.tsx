@@ -489,7 +489,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulField(ocsf.title, data) || meaningfulField(ocsf.supporting_data, data) || meaningfulField(ocsf.desc, data),
+        title: meaningfulField(ocsf.title, data, 'Subject') || meaningfulField(ocsf.supporting_data, data) || meaningfulField(ocsf.desc, data),
         source: normalizeSourceLabel(meaningfulField(ocsf.product?.name, data) || meaningfulField(ocsf.types?.[0], data)),
         severity: mapOCSFSeverity(ocsf.severity_id || 3),
         status: normalizeStatus(ocsf.status || mapOCSFStatus(ocsf.status_id || 1)),
@@ -524,7 +524,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulField(findingInfo?.title, legacyData) || meaningfulField(legacyData.supporting_data, legacyData) || meaningfulField(legacyData.desc, legacyData) || meaningfulField(legacyData.message, legacyData),
+        title: meaningfulField(findingInfo?.title, legacyData, 'Subject') || meaningfulField(legacyData.supporting_data, legacyData) || meaningfulField(legacyData.desc, legacyData) || meaningfulField(legacyData.message, legacyData),
         source: normalizeSourceLabel(meaningfulField(legacyData.metadata?.product?.name, legacyData) || meaningfulField(findingInfo?.types?.[0], legacyData)),
         severity: mapOCSFSeverity(legacyData.severity_id),
         status: normalizeStatus(legacyData.status || mapOCSFStatus(legacyData.status_id)),
@@ -550,7 +550,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
     // Non-OCSF format
     return {
       id: item.key, // Always use datastore key as the canonical ID
-      title: meaningfulField(data.title, data) || meaningfulField(data.supporting_data, data) || meaningfulField(data.desc, data) || meaningfulField(data.message, data),
+      title: meaningfulField(data.title, data, 'Subject') || meaningfulField(data.supporting_data, data) || meaningfulField(data.desc, data) || meaningfulField(data.message, data),
       source: normalizeSourceLabel(meaningfulField(data.source, data)),
       severity: data.severity || 'medium',
       status: normalizeStatus(data.status),
