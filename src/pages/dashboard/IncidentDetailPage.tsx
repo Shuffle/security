@@ -130,6 +130,8 @@ import type { AgentRun } from '@/services/agentActivity';
 import { getAgentSkipInfo } from '@/lib/agentParsers';
 import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor';
 import EmailThreadPanel, { isEmailContent } from '@/components/incidents/EmailThreadPanel';
+import { isDraftOnlyIncident } from '@/lib/emailThreadAdapters';
+
 import { IncidentSection } from '@/components/incidents/IncidentSection';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
 import { useIsSupport } from '@/hooks/useIsSupport';
