@@ -4576,8 +4576,34 @@ const IncidentDetailPage = () => {
           while the incident is fresh, just after a comment, or while the
           user is typing a new comment. */}
       {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
-      {/* Comment Input */}
+      {/* Comment Input — hidden on merged incidents. Comments and AI
+          interactions belong on the primary; leaving them enabled here
+          would fragment the conversation across incidents that share a
+          single primary. */}
+      {primaryPointer ? (
+        <Box sx={{
+          p: 2,
+          borderBottom: '1px solid hsl(var(--border-subtle))',
+          bgcolor: 'hsl(var(--muted) / 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', flex: 1 }}>
+            Comments and AI actions are disabled on merged incidents. Open the primary to continue the conversation.
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => navigate(`/incidents/${encodeURIComponent(primaryPointer.id)}`)}
+            sx={{ textTransform: 'none', fontSize: '0.7rem', height: 26 }}
+          >
+            Open primary
+          </Button>
+        </Box>
+      ) : (
       <Box sx={{ p: 2, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
+
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Avatar sx={{ width: 28, height: 28, bgcolor: 'hsl(var(--primary) / 0.2)' }}>
             <PersonIcon size={16} style={{ color: 'hsl(var(--primary))' }} />
