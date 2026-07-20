@@ -7194,25 +7194,53 @@ const IncidentDetailPage = () => {
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
           {/* Icon */}
-          <Box
-            sx={{
-              width: { xs: 40, sm: 56 },
-              height: { xs: 40, sm: 56 },
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: sourceAppImage ? 'transparent' : `${severityColors[editedSeverity]}15`,
-              border: sourceAppImage ? 'none' : `1px solid ${severityColors[editedSeverity]}30`,
-              flexShrink: 0,
-              overflow: 'hidden',
-            }}
-          >
-            {sourceAppImage ? (
-              <img src={sourceAppImage} alt={incident?.source || ''} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8 }} />
-            ) : (
-              <TaskAltIcon size={28} style={{ color: severityColors[editedSeverity] }} />
-            )}
+          <Box sx={{ position: 'relative', flexShrink: 0 }}>
+            <Box
+              sx={{
+                width: { xs: 40, sm: 56 },
+                height: { xs: 40, sm: 56 },
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: sourceAppImage ? 'transparent' : `${severityColors[editedSeverity]}15`,
+                border: sourceAppImage ? 'none' : `1px solid ${severityColors[editedSeverity]}30`,
+                overflow: 'hidden',
+              }}
+            >
+              {sourceAppImage ? (
+                <img src={sourceAppImage} alt={incident?.source || ''} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8 }} />
+              ) : (
+                <TaskAltIcon size={28} style={{ color: severityColors[editedSeverity] }} />
+              )}
+            </Box>
+            {(() => {
+              const mergedCount = relatedIncidents?.linked?.length || 0;
+              if (mergedCount === 0) return null;
+              const total = mergedCount + (relatedIncidents?.invisibleCount || 0);
+              const suffix = relatedIncidents?.invisibleCount ? ` (${relatedIncidents.invisibleCount} unavailable)` : '';
+              return (
+                <Tooltip title={`${total} incident${total !== 1 ? 's' : ''} merged into this thread${suffix}`} arrow>
+                  <Avatar
+                    sx={{
+                      position: 'absolute',
+                      bottom: -5,
+                      right: -5,
+                      width: { xs: 18, sm: 20 },
+                      height: { xs: 18, sm: 20 },
+                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                      fontWeight: 700,
+                      bgcolor: 'hsl(var(--primary))',
+                      color: 'hsl(var(--primary-foreground))',
+                      border: '2px solid hsl(var(--background))',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {mergedCount}
+                  </Avatar>
+                </Tooltip>
+              );
+            })()}
           </Box>
 
           {/* Title and meta */}
