@@ -35,6 +35,7 @@ import { sweepOrphanDemoIncidents } from '@/services/demoMode';
 import { CreateIncidentDialog, ActivityItem } from '@/components/incidents/CreateIncidentDialog';
 import { OCSFIncidentFinding, Observable, TLP_LABELS, convertLegacyTlp, mapOCSFSeverity, mapOCSFStatus } from '@/config/ocsfIncidentSchema';
 import { deduplicateTasks, decodeHtmlEntities } from '@/lib/utils';
+import { autoCorrectTranslatedString } from '@/lib/translationFallback';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
 import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, findForwardTicketsWorkflow, extractWorkflowAppNames, normalizeAppName, isWorkflowScheduleStopped } from '@/Shuffle-MCPs/ingestionDetection';
@@ -207,6 +208,41 @@ const meaningfulString = (val: unknown): string | undefined => {
   return decodeHtmlEntities(trimmed);
 };
 
+// A title looks "bad" when the OCSF translator failed and left an unresolved
+// JSONPath expression or dumped a raw header array into the field. Detect the
+// common shapes so we can auto-correct via the translation fallback.
+const looksLikeBadTitle = (val: unknown): boolean => {
+  if (Array.isArray(val)) return true;
+  if (typeof val !== 'string') return false;
+  const t = val.trim();
+  if (!t) return false;
+  // Unresolved translation expression: e.g. `$payload.headers[?(@.name=="Subject")].value`
+  if (t.startsWith('$') && /[.\[]/.test(t)) return true;
+  // Serialized header array (with or without appended filter suffix).
+  if (t.startsWith('[{') && /"name"\s*:/.test(t)) return true;
+  // Hybrid failure suffix leaked in without a leading `[{`.
+  if (/\[\?\(\s*@\./.test(t)) return true;
+  return false;
+};
+
+// Resolve a title from OCSF data, auto-correcting when the translator left
+// behind a broken JSONPath expression or a raw header array (see
+// looksLikeBadTitle). The auto-correction pulls the intended header value
+// from the raw payload container (unmapped_original / payload).
+const resolveTitle = (rawTitle: unknown, container: any, ...fallbacks: unknown[]): string | undefined => {
+  if (looksLikeBadTitle(rawTitle)) {
+    const fixed = autoCorrectTranslatedString(rawTitle, container, 'Subject');
+    if (fixed && !looksLikeBadTitle(fixed)) return meaningfulString(fixed);
+  }
+  const primary = meaningfulString(rawTitle);
+  if (primary && !looksLikeBadTitle(primary)) return primary;
+  for (const fb of fallbacks) {
+    const s = meaningfulString(fb);
+    if (s && !looksLikeBadTitle(s)) return s;
+  }
+  return undefined;
+};
+
 // Normalize source labels so equivalent values render consistently in filters/charts.
 // e.g. legacy payloads use "Manual Entry" while the modern create flow uses "Manual".
 const normalizeSourceLabel = (val: string | undefined): string | undefined => {
@@ -283,7 +319,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulString(ocsf.title) || meaningfulString(ocsf.supporting_data) || meaningfulString(ocsf.desc),
+        title: resolveTitle(ocsf.title, data, ocsf.supporting_data, ocsf.desc),
         source: normalizeSourceLabel(meaningfulString(ocsf.product?.name) || meaningfulString(ocsf.types?.[0])),
         severity: mapOCSFSeverity(ocsf.severity_id || 3),
         status: normalizeStatus(ocsf.status || mapOCSFStatus(ocsf.status_id || 1)),
@@ -313,7 +349,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulString(findingInfo?.title) || meaningfulString(legacyData.supporting_data) || meaningfulString(legacyData.desc) || meaningfulString(legacyData.message),
+        title: resolveTitle(findingInfo?.title, legacyData, legacyData.supporting_data, legacyData.desc, legacyData.message),
         source: normalizeSourceLabel(meaningfulString(legacyData.metadata?.product?.name) || meaningfulString(findingInfo?.types?.[0])),
         severity: mapOCSFSeverity(legacyData.severity_id),
         status: normalizeStatus(legacyData.status || mapOCSFStatus(legacyData.status_id)),
@@ -337,7 +373,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       const tasks = data.tasks || [];
       return {
         id: item.key, // Always use datastore key as the canonical ID
-        title: meaningfulString(data.title) || meaningfulString(data.supporting_data) || meaningfulString(data.desc) || meaningfulString(data.message),
+        title: resolveTitle(data.title, data, data.supporting_data, data.desc, data.message),
         source: normalizeSourceLabel(meaningfulString(data.source)),
         severity: (data.severity || 'medium').toLowerCase(),
         status: normalizeStatus(data.status),
