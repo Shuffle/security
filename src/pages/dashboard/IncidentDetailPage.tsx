@@ -60,7 +60,7 @@ import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
 import type { GenerateReportInput } from '@/services/incidentReports';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { resyncState } from '@/lib/resyncState';
-import { autoCorrectTranslatedString } from '@/lib/translationFallback';
+import { autoCorrectTranslatedString, repairCorruptedOcsfFields, type FieldRepair } from '@/lib/translationFallback';
 import { useUsers } from '@/hooks/useUsers';
 import { useSubOrgs } from '@/hooks/useSubOrgs';
 import { useCustomFields, CustomField } from '@/hooks/useCustomFields';
