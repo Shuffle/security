@@ -1,12 +1,12 @@
 /**
  * Banner listing incidents that share the same `thread_id` as the one
- * being viewed. Purely read-only — surfaces the automatic thread grouping
- * without folding the records together. Sits next to the manual merge
- * banners at the top of the incident detail page.
+ * being viewed. Read-only surface plus an optional "Auto-merge" CTA that
+ * lets the analyst collapse the thread — the newest incident is kept as
+ * primary and the rest become non-primary merged links.
  */
 
-import { Box, Typography, Chip, IconButton, Tooltip, CircularProgress } from '@mui/material';
-import { MessagesSquare, ExternalLink } from 'lucide-react';
+import { Box, Typography, Chip, IconButton, Tooltip, CircularProgress, Button } from '@mui/material';
+import { MessagesSquare, ExternalLink, GitMerge } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 
@@ -15,6 +15,10 @@ interface ThreadCorrelatedBannerProps {
   incidents: LinkedIncidentSummary[];
   invisibleCount: number;
   loading?: boolean;
+  /** Optional callback to auto-merge all thread siblings into the latest. */
+  onAutoMerge?: () => void | Promise<void>;
+  /** Disables the CTA and shows a spinner while a merge is in flight. */
+  autoMergeBusy?: boolean;
 }
 
 export const ThreadCorrelatedBanner = ({
@@ -22,6 +26,8 @@ export const ThreadCorrelatedBanner = ({
   incidents,
   invisibleCount,
   loading,
+  onAutoMerge,
+  autoMergeBusy,
 }: ThreadCorrelatedBannerProps) => {
   const navigate = useNavigate();
   if (!threadId) return null;
@@ -65,6 +71,32 @@ export const ThreadCorrelatedBanner = ({
             label={`${invisibleCount} not visible`}
             sx={{ height: 18, fontSize: '0.65rem' }}
           />
+        )}
+        {onAutoMerge && incidents.length > 0 && (
+          <Box sx={{ ml: 'auto' }}>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={autoMergeBusy}
+              onClick={() => { void onAutoMerge(); }}
+              startIcon={autoMergeBusy
+                ? <CircularProgress size={12} sx={{ color: 'inherit' }} />
+                : <GitMerge size={14} />}
+              sx={{
+                height: 28,
+                fontSize: '0.7rem',
+                textTransform: 'none',
+                borderColor: 'hsl(var(--border))',
+                color: 'hsl(var(--foreground))',
+                '&:hover': {
+                  borderColor: 'hsl(var(--primary))',
+                  bgcolor: 'hsl(var(--primary) / 0.08)',
+                },
+              }}
+            >
+              {autoMergeBusy ? 'Merging…' : 'Auto-merge into latest'}
+            </Button>
+          </Box>
         )}
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -112,3 +144,4 @@ export const ThreadCorrelatedBanner = ({
     </Box>
   );
 };
+
