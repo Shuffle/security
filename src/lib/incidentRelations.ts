@@ -195,7 +195,7 @@ export const linkMergePair = async ({
   sourceRaw,
   sourceTitle,
   linkedBy,
-}: LinkArgs): Promise<{ success: boolean; error?: string }> => {
+}: LinkArgs): Promise<{ success: boolean; error?: string; foldedPrimary?: any }> => {
   const now = Date.now();
 
   // Snapshot the source's current status so unmerge can restore it.
@@ -225,8 +225,33 @@ export const linkMergePair = async ({
     previous_status_id: prevStatusId,
   };
 
-  const nextPrimary = upsertPointer(primaryRaw, primaryPointer);
-  const nextSource = {
+  // Fold the source's data (observables, correlations, activity, tasks,
+  // email_thread, iocs, stakeholders, ...) into the primary BEFORE
+  // writing. Identity fields on the primary are preserved. This is the
+  // core of the merge overhaul: the primary keeps everything the source
+  // contributed, so no data is lost when the analyst lands on it.
+  const foldedPrimaryData = foldSourceIntoPrimary(primaryRaw, sourceRaw);
+  const nextPrimary: any = upsertPointer(foldedPrimaryData, primaryPointer);
+  // Track which sources have been folded, for debugging / repair tooling.
+  const foldedFrom = Array.isArray(nextPrimary._merged_data_from) ? nextPrimary._merged_data_from : [];
+  if (!foldedFrom.includes(sourceId)) {
+    nextPrimary._merged_data_from = [...foldedFrom, sourceId];
+  }
+  // Attach an audit entry to the primary's activity so the timeline
+  // shows the fold happened.
+  const primaryActivity = Array.isArray(nextPrimary.activity) ? nextPrimary.activity : [];
+  nextPrimary.activity = [
+    ...primaryActivity,
+    {
+      id: `merge-in-${sourceId}-${now}`,
+      type: 'system',
+      user: linkedBy || 'System',
+      timestamp: now,
+      content: `Merged data from "${sourceTitle || sourceId}"`,
+    },
+  ];
+
+  const nextSource: any = {
     ...upsertPointer(sourceRaw, sourcePointer),
     status_id: MERGED_STATUS_ID,
     status: MERGED_STATUS_LABEL,
@@ -263,8 +288,9 @@ export const linkMergePair = async ({
   );
   if (!r2.success) return { success: false, error: r2.error || 'Failed to update source' };
 
-  return { success: true };
+  return { success: true, foldedPrimary: nextPrimary };
 };
+
 
 interface UnlinkArgs {
   primaryId: string;
