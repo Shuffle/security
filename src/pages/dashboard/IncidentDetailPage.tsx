@@ -1654,6 +1654,16 @@ const IncidentDetailPage = () => {
   const relatedIncidents = useRelatedIncidents(incident?.id, incident?.rawOCSF);
   const primaryPointer = useMemo(() => getPrimaryPointer(incident?.rawOCSF), [incident?.rawOCSF]);
 
+  // Thread-correlated incidents: when the current payload has a thread_id,
+  // pull in every other incident that shares the value via the correlations
+  // API. Read-only surface — does not write pointers.
+  const threadCorrelated = useThreadCorrelatedIncidents(
+    incident?.id,
+    incident?.rawOCSF,
+    crossOrgHeaders,
+  );
+
+
   // Legacy migration: pre-cross-reference merges wrote status_id 99 +
   // `merged_into` on the source only. On first view, upgrade the record
   // to the symmetric pointer model so the banners can render.
