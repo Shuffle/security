@@ -125,20 +125,21 @@ const ensureHook = () => {
   });
 };
 
-const BASE_STYLE_TAG = `<style>${BASE_STYLES}</style><meta name="referrer" content="no-referrer">`;
+// Only a <meta name="referrer"> is injected — no styles. Real mail clients
+// render the email's own HTML/CSS untouched inside their viewport; adding
+// our own base styles fights the template and distorts sizing/layout.
+const HEAD_INJECT = `<meta name="referrer" content="no-referrer">`;
 
 const buildDocument = (sanitized: string): string => {
   const trimmed = (sanitized || '').trim();
-  // If DOMPurify returned a full document, inject our fallback styles into
-  // <head> (or before </html>) so email-provided styles override ours.
   if (/^<!doctype|^<html[\s>]/i.test(trimmed)) {
     if (/<head[\s>]/i.test(trimmed)) {
-      return trimmed.replace(/<head([^>]*)>/i, `<head$1>${BASE_STYLE_TAG}`);
+      return trimmed.replace(/<head([^>]*)>/i, `<head$1>${HEAD_INJECT}`);
     }
-    return trimmed.replace(/<html([^>]*)>/i, `<html$1><head>${BASE_STYLE_TAG}</head>`);
+    return trimmed.replace(/<html([^>]*)>/i, `<html$1><head>${HEAD_INJECT}</head>`);
   }
-  // Fragment — wrap it.
-  return `<!doctype html><html><head>${BASE_STYLE_TAG}</head><body>${trimmed}</body></html>`;
+  // Fragment — wrap it with an empty head so referrer policy still applies.
+  return `<!doctype html><html><head>${HEAD_INJECT}</head><body>${trimmed}</body></html>`;
 };
 
 const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
