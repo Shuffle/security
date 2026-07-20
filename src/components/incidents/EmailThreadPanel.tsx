@@ -661,12 +661,37 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                         onClick={confirmExternalLinkClick}
                         dangerouslySetInnerHTML={{
                           __html: DOMPurify.sanitize(msg.bodyHtml, {
-                            FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-                            FORBID_ATTR: ['onerror', 'onload', 'onclick'],
+                            // Drop anything that can execute, submit, or hijack navigation.
+                            // `form/input/button/textarea/select/option` prevent crafted
+                            // "Confirm" or "Login" forms in emails from POSTing on click.
+                            // `meta/link/base` prevent auto-refresh and relative-URL hijacks.
+                            // `svg/math` avoid namespaced script vectors.
+                            FORBID_TAGS: [
+                              'script', 'style', 'iframe', 'object', 'embed',
+                              'form', 'input', 'button', 'textarea', 'select', 'option',
+                              'meta', 'link', 'base', 'svg', 'math', 'template', 'portal',
+                            ],
+                            // DOMPurify strips all on* by default; naming a few here is
+                            // just documentation. `formaction`/`action`/`ping`/`background`
+                            // are legacy navigation vectors worth killing explicitly.
+                            FORBID_ATTR: [
+                              'onerror', 'onload', 'onclick',
+                              'formaction', 'action', 'ping', 'background',
+                            ],
                             ADD_ATTR: ['target', 'rel'],
+                            // Only permit safe URI schemes on any attribute; the default
+                            // regex is broader. Blocks javascript:, vbscript:, and
+                            // arbitrary data: URIs on links/images.
+                            ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|cid:|#|\/|\.{0,2}\/)/i,
+                            // Neutralise ${...} / {{...}} template syntax so a downstream
+                            // React/Angular consumer can never re-interpret sanitized HTML.
+                            SAFE_FOR_TEMPLATES: true,
+                            // Prevent DOM clobbering (e.g. <img name="body">).
+                            SANITIZE_DOM: true,
                           }),
                         }}
                       />
+
                     ) : (
                       <Typography variant="body2" sx={{
                         whiteSpace: 'pre-wrap',
