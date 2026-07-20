@@ -6684,6 +6684,8 @@ const IncidentDetailPage = () => {
           incidents={threadCorrelated.incidents}
           invisibleCount={threadCorrelated.invisibleCount}
           loading={threadCorrelated.loading}
+          onAutoMerge={handleAutoMergeThread}
+          autoMergeBusy={autoMergeBusy}
         />
       )}
 
