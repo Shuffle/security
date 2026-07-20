@@ -88,6 +88,11 @@ function getAutomationSnapshot(): boolean {
   const val = localStorage.getItem(LOCAL_AUTOMATION_KEY);
   return val === null ? true : val === 'true';
 }
+function getAutoMergeThreadSnapshot(): boolean {
+  const val = localStorage.getItem(LOCAL_AUTO_MERGE_THREAD_KEY);
+  return val === null ? true : val === 'true';
+}
+
 let _cachedSidebarTabs: Record<SidebarTabKey, boolean> = DEFAULT_SIDEBAR_TABS;
 let _cachedSidebarTabsRaw: string | null = null;
 
