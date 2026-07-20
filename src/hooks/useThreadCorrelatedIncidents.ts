@@ -22,7 +22,7 @@ import {
   DATASTORE_CATEGORIES,
 } from '@/Shuffle-MCPs/datastore';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import { useCrossOrgHeaders } from '@/hooks/useCrossOrgHeaders';
+
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 
 export interface UseThreadCorrelatedIncidentsResult {
