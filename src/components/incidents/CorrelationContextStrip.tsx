@@ -17,7 +17,7 @@
 import { Clock as ScheduleIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Chip, CircularProgress, Tooltip } from '@mui/material';
-import { getDatastoreItem } from '@/Shuffle-MCPs/datastore';
+import { lookupIncidentCached } from './incidentPreviewCache';
 
 interface CorrelationContextStripProps {
   /** The other incident keys referenced by this correlation (current incident already filtered out). */
