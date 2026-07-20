@@ -9330,6 +9330,18 @@ const IncidentDetailPage = () => {
           border: '1px solid hsl(var(--border))',
           p: 2.5,
         }}>
+          {/* Incidents that have been merged INTO this one — surfaced quietly
+              here at the top of the Correlations tab instead of a page-level
+              banner. Auto-hides when there is nothing to show. */}
+          {!isPublicView && incident?.id && (
+            <RelatedIncidentsBanner
+              currentIncidentId={incident.id}
+              linked={relatedIncidents.linked}
+              invisibleCount={relatedIncidents.invisibleCount}
+              loading={relatedIncidents.loading}
+              onUnlinked={() => loadIncident(false)}
+            />
+          )}
           {correlationsLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress size={24} />
