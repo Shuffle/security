@@ -94,7 +94,7 @@ import { RelatedIncidentsBanner } from '@/components/incidents/RelatedIncidentsB
 import { ThreadCorrelatedBanner } from '@/components/incidents/ThreadCorrelatedBanner';
 import { useRelatedIncidents } from '@/hooks/useRelatedIncidents';
 import { useThreadCorrelatedIncidents } from '@/hooks/useThreadCorrelatedIncidents';
-import { maybeMigrateLegacyMerge, getPrimaryPointer } from '@/lib/incidentRelations';
+import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePair } from '@/lib/incidentRelations';
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
@@ -1662,6 +1662,113 @@ const IncidentDetailPage = () => {
     incident?.rawOCSF,
     crossOrgHeaders,
   );
+
+  // Auto-merge state — busy flag for the "Auto-merge into latest" CTA in
+  // the thread banner.
+  const [autoMergeBusy, setAutoMergeBusy] = useState(false);
+
+  /**
+   * Pull the freshest "when did something happen" timestamp out of a raw
+   * incident payload. Providers land it in different places — try the
+   * common ones and fall back to 0 so untimestamped rows sort last.
+   */
+  const readIncidentTimestamp = useCallback((raw: any): number => {
+    if (!raw || typeof raw !== 'object') return 0;
+    const candidates: unknown[] = [
+      raw.modified_time_dt,
+      raw.updated_time_dt,
+      raw.updated_at,
+      raw.modified_at,
+      raw.time_dt,
+      raw.time,
+      raw.event_time,
+      raw.created_time_dt,
+      raw.created_time,
+      raw.created_at,
+    ];
+    for (const c of candidates) {
+      if (typeof c === 'number' && Number.isFinite(c) && c > 0) {
+        // Heuristic: seconds vs ms.
+        return c < 1e12 ? c * 1000 : c;
+      }
+      if (typeof c === 'string' && c) {
+        const parsed = Date.parse(c);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+      }
+    }
+    return 0;
+  }, []);
+
+  const handleAutoMergeThread = useCallback(async () => {
+    if (!incident?.id || !incident.rawOCSF) return;
+    const siblings = threadCorrelated.incidents;
+    if (siblings.length === 0) return;
+
+    // Build the pool: current incident + every visible sibling.
+    const pool = [
+      {
+        id: incident.id,
+        raw: incident.rawOCSF,
+        title: (incident.rawOCSF as any)?.title
+          || (incident.rawOCSF as any)?.finding_info_list?.[0]?.title
+          || incident.id,
+        ts: readIncidentTimestamp(incident.rawOCSF),
+      },
+      ...siblings.map(s => ({
+        id: s.id,
+        raw: s.raw,
+        title: s.title,
+        ts: readIncidentTimestamp(s.raw),
+      })),
+    ];
+
+    // Latest wins. Tiebreaker: incident id string sort (stable).
+    pool.sort((a, b) => (b.ts - a.ts) || b.id.localeCompare(a.id));
+    const primary = pool[0];
+    const sources = pool.slice(1);
+
+    setAutoMergeBusy(true);
+    try {
+      let failed = 0;
+      for (const src of sources) {
+        const res = await linkMergePair({
+          primaryId: primary.id,
+          primaryRaw: primary.raw,
+          primaryTitle: primary.title,
+          sourceId: src.id,
+          sourceRaw: src.raw,
+          sourceTitle: src.title,
+          linkedBy: 'thread-auto-merge',
+        });
+        if (!res.success) failed += 1;
+      }
+
+      if (failed === 0) {
+        toast.success(
+          sources.length === 1
+            ? 'Merged 1 thread sibling into the latest incident'
+            : `Merged ${sources.length} thread siblings into the latest incident`,
+        );
+      } else {
+        toast.error(`Auto-merge partial: ${failed} of ${sources.length} failed`);
+      }
+
+      // If the current view is now non-primary, jump to the primary so
+      // the analyst lands on the retained incident.
+      if (primary.id !== incident.id) {
+        navigate(`/incidents/${encodeURIComponent(primary.id)}`);
+      } else {
+        await loadIncident?.(false);
+        threadCorrelated.refresh();
+      }
+    } catch (e: any) {
+      toast.error(`Auto-merge failed: ${e?.message || 'unknown error'}`);
+    } finally {
+      setAutoMergeBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incident?.id, incident?.rawOCSF, threadCorrelated.incidents, readIncidentTimestamp]);
+
 
 
   // Legacy migration: pre-cross-reference merges wrote status_id 99 +
@@ -6577,6 +6684,8 @@ const IncidentDetailPage = () => {
           incidents={threadCorrelated.incidents}
           invisibleCount={threadCorrelated.invisibleCount}
           loading={threadCorrelated.loading}
+          onAutoMerge={handleAutoMergeThread}
+          autoMergeBusy={autoMergeBusy}
         />
       )}
 
