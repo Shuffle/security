@@ -201,12 +201,26 @@ const AgentRunStatusBadge = ({ run, skip, statusCfg, compact = false, maxWidth =
   }
 
   if (statusCfg) {
+    // Neutral by default so completed/green runs don't shout at the analyst.
+    // The row's own hover state reveals the semantic color — parents that opt
+    // in mark themselves with data-timeline-compact="true" (or data-status-hover).
     return (
-      <Typography sx={{ fontSize, color: statusCfg.color, flexShrink: 0 }}>
+      <Typography
+        sx={{
+          fontSize,
+          color: 'hsl(var(--muted-foreground))',
+          flexShrink: 0,
+          transition: 'color 0.15s ease',
+          '[data-timeline-compact="true"]:hover &, [data-status-hover="true"]:hover &': {
+            color: statusCfg.color,
+          },
+        }}
+      >
         {statusCfg.label}
       </Typography>
     );
   }
+
 
   return null;
 };
