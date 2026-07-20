@@ -27,11 +27,40 @@ import DOMPurify from 'dompurify';
 // This protects middle-click / cmd-click paths that bypass our React
 // onClick handler — without it, those would still navigate the current
 // tab to whatever the email contained.
+// Harden every element that survives sanitization. Emails are untrusted
+// third-party HTML; the goal is that nothing in a rendered email can
+// execute code, exfiltrate data, or navigate on its own.
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node && (node as Element).tagName === 'A') {
-    const el = node as HTMLAnchorElement;
-    el.setAttribute('target', '_blank');
-    el.setAttribute('rel', 'noopener noreferrer nofollow');
+  const el = node as Element;
+  if (!el || !el.attributes) return;
+
+  // Force anchors to open externally, never in the current tab, and
+  // never leak our referrer or pass link equity.
+  if (el.tagName === 'A') {
+    (el as HTMLAnchorElement).setAttribute('target', '_blank');
+    (el as HTMLAnchorElement).setAttribute('rel', 'noopener noreferrer nofollow');
+  }
+
+  // Belt-and-braces: strip any surviving event-handler attributes
+  // (SVG namespace, mixed case, vendor-prefixed) and any URI attribute
+  // pointing at an active scheme (javascript:, vbscript:, data:).
+  for (let i = el.attributes.length - 1; i >= 0; i--) {
+    const attr = el.attributes[i];
+    const name = attr.name.toLowerCase();
+    if (name.startsWith('on')) {
+      el.removeAttribute(attr.name);
+      continue;
+    }
+    if (
+      (name === 'href' ||
+        name === 'src' ||
+        name === 'xlink:href' ||
+        name === 'formaction' ||
+        name === 'action') &&
+      /^\s*(?:javascript|vbscript|data):/i.test(attr.value)
+    ) {
+      el.removeAttribute(attr.name);
+    }
   }
 });
 import { resolveEmailThread, type ResolvedEmailThread } from '@/lib/emailThreadAdapters';
@@ -632,12 +661,37 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                         onClick={confirmExternalLinkClick}
                         dangerouslySetInnerHTML={{
                           __html: DOMPurify.sanitize(msg.bodyHtml, {
-                            FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-                            FORBID_ATTR: ['onerror', 'onload', 'onclick'],
+                            // Drop anything that can execute, submit, or hijack navigation.
+                            // `form/input/button/textarea/select/option` prevent crafted
+                            // "Confirm" or "Login" forms in emails from POSTing on click.
+                            // `meta/link/base` prevent auto-refresh and relative-URL hijacks.
+                            // `svg/math` avoid namespaced script vectors.
+                            FORBID_TAGS: [
+                              'script', 'style', 'iframe', 'object', 'embed',
+                              'form', 'input', 'button', 'textarea', 'select', 'option',
+                              'meta', 'link', 'base', 'svg', 'math', 'template', 'portal',
+                            ],
+                            // DOMPurify strips all on* by default; naming a few here is
+                            // just documentation. `formaction`/`action`/`ping`/`background`
+                            // are legacy navigation vectors worth killing explicitly.
+                            FORBID_ATTR: [
+                              'onerror', 'onload', 'onclick',
+                              'formaction', 'action', 'ping', 'background',
+                            ],
                             ADD_ATTR: ['target', 'rel'],
+                            // Only permit safe URI schemes on any attribute; the default
+                            // regex is broader. Blocks javascript:, vbscript:, and
+                            // arbitrary data: URIs on links/images.
+                            ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|cid:|#|\/|\.{0,2}\/)/i,
+                            // Neutralise ${...} / {{...}} template syntax so a downstream
+                            // React/Angular consumer can never re-interpret sanitized HTML.
+                            SAFE_FOR_TEMPLATES: true,
+                            // Prevent DOM clobbering (e.g. <img name="body">).
+                            SANITIZE_DOM: true,
                           }),
                         }}
                       />
+
                     ) : (
                       <Typography variant="body2" sx={{
                         whiteSpace: 'pre-wrap',
