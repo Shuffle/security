@@ -1722,10 +1722,18 @@ const IncidentDetailPage = () => {
       })),
     ];
 
-    // Latest wins. Tiebreaker: incident id string sort (stable).
-    pool.sort((a, b) => (b.ts - a.ts) || b.id.localeCompare(a.id));
+    // Latest wins, but never pick a draft-only incident as primary — drafts
+    // are unsent and must not become the source of truth. Sort non-draft
+    // first, then by newest timestamp, then by id (stable tiebreaker).
+    pool.sort((a, b) => {
+      const ad = isDraftOnlyIncident(a.raw) ? 1 : 0;
+      const bd = isDraftOnlyIncident(b.raw) ? 1 : 0;
+      if (ad !== bd) return ad - bd;
+      return (b.ts - a.ts) || b.id.localeCompare(a.id);
+    });
     const primary = pool[0];
     const sources = pool.slice(1);
+
 
     setAutoMergeBusy(true);
     try {
