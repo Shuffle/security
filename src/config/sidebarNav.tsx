@@ -110,6 +110,21 @@ export const SIDEBAR_NAV: SidebarItemSpec[] = [
     ],
   },
   {
+    tabKey: 'vulnerabilities',
+    label: 'Vulnerabilities',
+    icon: <Bug size={20} />,
+    path: '/vulnerabilities',
+    children: [
+      {
+        tabKey: 'vulnerabilities_assets',
+        label: 'Assets',
+        path: '/assets',
+        icon: <HardDrive size={16} />,
+        supportOnly: true,
+      },
+    ],
+  },
+  {
     tabKey: 'host_monitors',
     label: 'Host Monitors',
     icon: <MonitorCheck size={20} />,
@@ -126,21 +141,6 @@ export const SIDEBAR_NAV: SidebarItemSpec[] = [
         label: 'Response',
         path: '/monitors/response',
         icon: <Zap size={16} />,
-        supportOnly: true,
-      },
-    ],
-  },
-  {
-    tabKey: 'vulnerabilities',
-    label: 'Vulnerabilities',
-    icon: <Bug size={20} />,
-    path: '/vulnerabilities',
-    children: [
-      {
-        tabKey: 'vulnerabilities_assets',
-        label: 'Assets',
-        path: '/assets',
-        icon: <HardDrive size={16} />,
         supportOnly: true,
       },
     ],
