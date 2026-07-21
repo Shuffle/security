@@ -52,6 +52,8 @@ import {
 } from '@/components/settings/IncidentRoutingEditor';
 import { getDatastoreByCategory, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { evaluateRoutingRules, type IncidentEvaluationContext } from '@/utils/routingRuleEvaluator';
+import { applyRoutingActionsToRaw } from '@/lib/applyRoutingActionsToRaw';
+import { writeIncidentSafe } from '@/lib/incidentRelations';
 import { useNavigate } from 'react-router-dom';
 
 type FieldChoice = {
