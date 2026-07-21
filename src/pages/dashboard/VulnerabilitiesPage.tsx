@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, Plus, RefreshCw, Search, Zap, ArrowRight, Wrench, Sparkles, AlertTriangle, Globe, LogIn, Loader2 } from 'lucide-react';
+import { Shield, Plus, RefreshCw, Search, Zap, ArrowRight, Wrench, Sparkles, AlertTriangle, Globe, LogIn, Loader2, MonitorCheck } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useVulnerabilities, Vulnerability, VulnSeverity, VulnCategory } from '@/hooks/useVulnerabilities';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
@@ -277,14 +277,20 @@ const AuthenticatedVulnerabilitiesView = () => {
             addSubtitle="Search and authenticate a tool to ingest vulnerabilities from"
             onSourcesChanged={() => refresh()}
           />
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAddVulnOpen(true)}>
-            <Plus size={14} />
-            Add Vulnerability
-          </Button>
           <Button size="sm" className="gap-1.5" onClick={() => navigate('/monitors?add_host=true')}>
-            <Plus size={14} />
+            <MonitorCheck size={14} />
             Add Host Monitor
           </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0" onClick={() => setAddVulnOpen(true)}>
+                  <Plus size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add Vulnerability</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
