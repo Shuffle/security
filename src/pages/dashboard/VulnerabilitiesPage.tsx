@@ -299,8 +299,8 @@ const AuthenticatedVulnerabilitiesView = () => {
                     }
                   }}
                   style={{
-                    color: categoryAutomations?.some(a => a.enabled) ? '#4ade80' : undefined,
-                    borderColor: categoryAutomations?.some(a => a.enabled) ? '#4ade80' : undefined,
+                    color: categoryAutomations?.some(a => a.enabled) ? 'hsl(var(--severity-low))' : undefined,
+                    borderColor: categoryAutomations?.some(a => a.enabled) ? 'hsl(var(--severity-low))' : undefined,
                   }}
                 >
                   <RocketLaunchIcon size={16} />
@@ -318,7 +318,7 @@ const AuthenticatedVulnerabilitiesView = () => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={() => refresh()} disabled={isRefreshing}>
+                <Button variant="outline" size="icon" className="shrink-0" onClick={() => refresh()} disabled={isRefreshing}>
                   <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
                 </Button>
               </TooltipTrigger>
