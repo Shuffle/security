@@ -58,6 +58,42 @@ import { evaluateRoutingRules, type IncidentEvaluationContext } from '@/utils/ro
 import { applyRoutingActionsToRaw } from '@/lib/applyRoutingActionsToRaw';
 import { writeIncidentSafe } from '@/lib/incidentRelations';
 import { decodeIfBase64, htmlToPlainText } from '@/lib/utils';
+import { repairCorruptedOcsfFields } from '@/lib/translationFallback';
+
+/**
+ * Normalize a raw datastore incident payload into the same shape the incident
+ * detail page uses when evaluating routing rules. This mirrors the detail
+ * view's read pipeline so the retroactive scan finds the same matches the
+ * analyst would see when opening the incident:
+ *   1. Repair corrupted OCSF translation fields (e.g. header arrays leaked
+ *      into title/assignee) in place.
+ *   2. Fall back to nested `rawOCSF.*` values when top-level fields are
+ *      missing or clearly wrong.
+ *   3. Decode base64 (Gmail bodies) and strip HTML from title/description
+ *      so plain-text conditions match rendered text, not markup.
+ */
+const buildScanContext = (raw: any): IncidentEvaluationContext => {
+  // Repair in place so nested and top-level fields agree before we read.
+  try { repairCorruptedOcsfFields(raw); } catch { /* best-effort */ }
+  const ocsf = raw?.rawOCSF || {};
+  const pickTitle = raw?.title || ocsf.title || ocsf.subject || ocsf.name || '';
+  const pickDesc = raw?.message || raw?.description || ocsf.desc || ocsf.message || ocsf.body || '';
+  const decodedTitle = typeof pickTitle === 'string' ? decodeIfBase64(pickTitle) : pickTitle;
+  const plainTitle = typeof decodedTitle === 'string' ? htmlToPlainText(decodedTitle) : decodedTitle;
+  const decodedDesc = typeof pickDesc === 'string' ? decodeIfBase64(pickDesc) : pickDesc;
+  const plainDesc = typeof decodedDesc === 'string' ? htmlToPlainText(decodedDesc) : decodedDesc;
+  return {
+    title: plainTitle,
+    description: plainDesc,
+    source: raw?.source,
+    severity: raw?.severity,
+    status: raw?.status,
+    labels: raw?.labels,
+    observables: raw?.observables,
+    stakeholders: raw?.stakeholders,
+    rawOCSF: raw?.rawOCSF,
+  };
+};
 import { useNavigate } from 'react-router-dom';
 
 type FieldChoice = {
