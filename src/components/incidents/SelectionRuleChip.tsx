@@ -232,6 +232,35 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     // Never react while the popover is open — analyst is filling the form.
     if (popoverOpen) return;
 
+    // Case 1: selection inside an <input>/<textarea> that is explicitly
+    // marked as an incident field (e.g. the title). window.getSelection() is
+    // collapsed in that case, so we read selectionStart/End directly.
+    const active = document.activeElement as HTMLElement | null;
+    if (
+      active &&
+      (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') &&
+      active.closest?.('[data-incident-content]') &&
+      active.closest?.('[data-incident-field]') &&
+      !active.closest?.('[data-selection-rule-ignore="1"]')
+    ) {
+      const inp = active as HTMLInputElement | HTMLTextAreaElement;
+      const start = inp.selectionStart ?? 0;
+      const end = inp.selectionEnd ?? 0;
+      if (end > start) {
+        const text = (inp.value || '').slice(start, end).trim();
+        if (text.length >= 3) {
+          const rect = inp.getBoundingClientRect();
+          setChip({
+            x: rect.left + rect.width / 2,
+            y: rect.bottom + 8,
+            text,
+            field: detectField(inp),
+          });
+          return;
+        }
+      }
+    }
+
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
       setChip(null);
@@ -245,6 +274,10 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     const range = sel.getRangeAt(0);
     const anchor = range.startContainer;
     if (isEditableTarget(anchor)) {
+      setChip(null);
+      return;
+    }
+    if (isInsideIgnored(range.commonAncestorContainer)) {
       setChip(null);
       return;
     }
@@ -265,6 +298,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
       field: detectedField,
     });
   }, [popoverOpen]);
+
 
   useEffect(() => {
     const handleSelectionChange = () => {
