@@ -159,6 +159,13 @@ const AuthenticatedVulnerabilitiesView = () => {
   const [enablingAutomation, setEnablingAutomation] = useState(false);
   const [addVulnOpen, setAddVulnOpen] = useState(false);
 
+  const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
+  const [categoryAutomations, setCategoryAutomations] = useState<CategoryAutomation[]>([]);
+  const { categoryConfig } = useDatastore({ category: DATASTORE_CATEGORIES.VULNERABILITIES });
+  useEffect(() => {
+    if (categoryConfig?.automations) setCategoryAutomations(categoryConfig.automations);
+  }, [categoryConfig]);
+
   const { data: workflows, refetch: refetchWorkflows } = useWorkflows();
   const vulnComparisonWorkflow = (workflows || []).find(
     w => (w.name || '').toLowerCase() === 'vulnerability comparison'
