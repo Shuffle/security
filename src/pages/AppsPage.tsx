@@ -25,10 +25,30 @@ export default function AppsPage() {
   const singulRef = useRef<ShuffleMCPHandle>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
+  const [addAppOpen, setAddAppOpen] = useState(false);
+  const [addAppSeed, setAddAppSeed] = useState('');
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
+
+  // Category search-terms we should NOT seed into the "Add app" dialog —
+  // these are broad filters (e.g. "cloud", "siem"), not the name of an app
+  // the user is trying to generate.
+  const CATEGORY_PREFIXES = ['cloud', 'siem', 'email', 'edr', 'threat intel'];
+  const SEED_MAX_LEN = 200;
+
+  const openAddApp = (source: string) => {
+    const raw = (searchQuery || '').trim();
+    const lower = raw.toLowerCase();
+    const isCategory = CATEGORY_PREFIXES.some(
+      (p) => lower === p || lower === p.replace(' ', ''),
+    );
+    const seed = !raw || isCategory ? '' : raw.slice(0, SEED_MAX_LEN);
+    setAddAppSeed(seed);
+    setAddAppOpen(true);
+    trackCTA('add_app', source);
+  };
 
   usePageMeta({
     title: '3,000+ Integrations',
