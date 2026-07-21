@@ -623,7 +623,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             }}
           >
             <Typography sx={{ fontSize: '0.95rem' }}>
-              An incident is edited
+              {`A${/^[aeiou]/i.test(entitySingular) ? 'n' : ''} ${entitySingular} is edited`}
             </Typography>
           </Box>
         </Box>
