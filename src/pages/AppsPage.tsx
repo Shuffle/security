@@ -3,10 +3,11 @@ import { Box, Container, Typography, Button, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Mail, Radar, Search, Globe, Cloud, Shield, ArrowRight as ArrowForwardIcon } from 'lucide-react';
+import { Mail, Radar, Search, Globe, Cloud, Shield, ArrowRight as ArrowForwardIcon, Plus } from 'lucide-react';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { Footer } from '@/components/landing/Footer';
 import { ShuffleMCP, ShuffleMCPHandle } from '@/Shuffle-MCPs';
+import { AddAppDialog } from '@/Shuffle-Core';
 import { trackCTA, trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
