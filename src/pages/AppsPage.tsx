@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Box, Container, Typography, Button, useTheme } from '@mui/material';
+import { Box, Container, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -27,6 +27,8 @@ export default function AppsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [addAppOpen, setAddAppOpen] = useState(false);
   const [addAppSeed, setAddAppSeed] = useState('');
+  const [registerPromptOpen, setRegisterPromptOpen] = useState(false);
+  const [pendingSeed, setPendingSeed] = useState('');
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const theme = useTheme();
@@ -38,16 +40,30 @@ export default function AppsPage() {
   const CATEGORY_PREFIXES = ['cloud', 'siem', 'email', 'edr', 'threat intel'];
   const SEED_MAX_LEN = 200;
 
-  const openAddApp = (source: string) => {
+  const computeSeed = () => {
     const raw = (searchQuery || '').trim();
     const lower = raw.toLowerCase();
     const isCategory = CATEGORY_PREFIXES.some(
       (p) => lower === p || lower === p.replace(' ', ''),
     );
-    const seed = !raw || isCategory ? '' : raw.slice(0, SEED_MAX_LEN);
+    return !raw || isCategory ? '' : raw.slice(0, SEED_MAX_LEN);
+  };
+
+  const openAddApp = (source: string) => {
+    const seed = computeSeed();
+    trackCTA('add_app', source);
+    if (!isAuthenticated) {
+      setPendingSeed(seed);
+      setRegisterPromptOpen(true);
+      return;
+    }
     setAddAppSeed(seed);
     setAddAppOpen(true);
-    trackCTA('add_app', source);
+  };
+
+  const goRegisterForAddApp = () => {
+    const target = `/apps?addApp=1${pendingSeed ? `&addAppSeed=${encodeURIComponent(pendingSeed)}` : ''}`;
+    navigate(`/register?view=${encodeURIComponent(target)}`);
   };
 
   usePageMeta({
@@ -84,7 +100,25 @@ export default function AppsPage() {
         }
       }
     }
-  }, []);
+
+    // Auto-open the "Add app" dialog if the user came back from /register with the flag.
+    if (searchParams.get('addApp') === '1') {
+      const seed = searchParams.get('addAppSeed') || '';
+      if (isAuthenticated) {
+        setAddAppSeed(seed);
+        setAddAppOpen(true);
+        // Clean the URL so a refresh does not re-open the dialog.
+        const next = new URLSearchParams(searchParams);
+        next.delete('addApp');
+        next.delete('addAppSeed');
+        setSearchParams(next, { replace: true });
+      } else {
+        // Still not authenticated (e.g. cancelled registration) — surface the prompt again.
+        setPendingSeed(seed);
+        setRegisterPromptOpen(true);
+      }
+    }
+  }, [isAuthenticated]);
 
   const getActiveCategory = () => {
     const lowerQuery = searchQuery.toLowerCase().trim();
@@ -455,6 +489,54 @@ export default function AppsPage() {
           }
         }}
       />
+
+      <Dialog
+        open={registerPromptOpen}
+        onClose={() => setRegisterPromptOpen(false)}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            background: 'hsl(var(--card))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pt: 4, pb: 1 }}>
+          <Box sx={{
+            width: 48, height: 48, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'hsla(var(--primary) / 0.1)',
+            border: '1px solid hsla(var(--primary) / 0.3)',
+            mb: 0.5,
+          }}>
+            <Plus size={24} style={{ color: 'hsl(var(--primary))' }} />
+          </Box>
+          <Typography sx={{ fontSize: 20, fontWeight: 700, textAlign: 'center' }}>
+            Register to add a new app
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ px: 4, pb: 1 }}>
+          <Typography sx={{ fontSize: 14, color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
+            Generating a new integration requires a free Shuffle account. You will be sent to registration, and after signing up we will bring you right back here with this popup ready to continue{pendingSeed ? <> for <strong style={{ color: 'hsl(var(--foreground))' }}>"{pendingSeed}"</strong></> : null}.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 4, pb: 3, pt: 2, justifyContent: 'center', gap: 1 }}>
+          <Button onClick={() => setRegisterPromptOpen(false)} sx={{ textTransform: 'none', color: 'hsl(var(--muted-foreground))' }}>
+            Not now
+          </Button>
+          <Button
+            variant="contained"
+            onClick={goRegisterForAddApp}
+            sx={{ textTransform: 'none', background: primaryColor, '&:hover': { background: primaryColor, filter: 'brightness(1.05)' } }}
+          >
+            Register &amp; continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Footer />
     </Box>
   );
