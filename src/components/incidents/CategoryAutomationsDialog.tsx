@@ -58,6 +58,7 @@ interface CategoryAutomationsDialogProps {
   onAutomationsChange: (automations: CategoryAutomation[]) => void;
   initialSettings?: { timeout?: number; public?: boolean };
   onSaved?: () => void;
+  entityLabel?: { singular: string; plural: string };
 }
 
 const WEEKS_OPTIONS = [
