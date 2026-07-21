@@ -313,6 +313,8 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     const onDown = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null;
       if (t?.closest?.('[data-selection-rule-ui="1"]')) return;
+      // Ignore clicks inside MUI portal-rendered popovers/menus (Selects).
+      if (t?.closest?.('.MuiPopover-root, .MuiMenu-root, .MuiModal-root')) return;
       closeChip();
     };
     document.addEventListener('mousedown', onDown);
@@ -460,13 +462,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
           </Stack>
 
           <Stack spacing={1.25}>
-            <TextField
-              size="small"
-              label="Rule name"
-              value={ruleName}
-              onChange={(e) => setRuleName(e.target.value)}
-              fullWidth
-            />
+
 
             <Typography sx={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', mt: 0.5 }}>
               When
