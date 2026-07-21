@@ -32,6 +32,7 @@ import { useSubOrgs } from '@/hooks/useSubOrgs';
 import { useUsers } from '@/hooks/useUsers';
 import { DATASTORE_CATEGORIES, getDatastoreByCategory, getDatastoreItem, setDatastoreItem, setDatastoreItems, CategoryAutomation, deleteDatastoreItem, deleteDatastoreItems } from '@/Shuffle-MCPs/datastore';
 import { sweepOrphanDemoIncidents } from '@/services/demoMode';
+import { writeIncidentSafe } from '@/lib/incidentRelations';
 import { CreateIncidentDialog, ActivityItem } from '@/components/incidents/CreateIncidentDialog';
 import { OCSFIncidentFinding, Observable, TLP_LABELS, convertLegacyTlp, mapOCSFSeverity, mapOCSFStatus } from '@/config/ocsfIncidentSchema';
 import { deduplicateTasks, decodeHtmlEntities } from '@/lib/utils';
@@ -1717,12 +1718,12 @@ const IncidentsPage = () => {
         };
 
         const rawKey = toRawIncidentKey(incident.id);
-        const primaryResult = await setDatastoreItem(rawKey, updated, DATASTORE_CATEGORIES.INCIDENTS);
+        const primaryResult = await writeIncidentSafe(rawKey, updated);
 
         if (incident.sharedOrgs && incident.sharedOrgs.length > 0) {
           Promise.allSettled(
             incident.sharedOrgs.map(org =>
-              setDatastoreItem(rawKey, updated, DATASTORE_CATEGORIES.INCIDENTS, org.orgId)
+              writeIncidentSafe(rawKey, updated, org.orgId)
             )
           );
         }
@@ -1893,13 +1894,13 @@ const IncidentsPage = () => {
         }
         
         const rawKey = toRawIncidentKey(incident.id);
-        const primaryResult = await setDatastoreItem(rawKey, updated, DATASTORE_CATEGORIES.INCIDENTS);
+        const primaryResult = await writeIncidentSafe(rawKey, updated);
         
         // Sync to shared orgs (fire-and-forget)
         if (incident.sharedOrgs && incident.sharedOrgs.length > 0) {
           Promise.allSettled(
             incident.sharedOrgs.map(org =>
-              setDatastoreItem(rawKey, updated, DATASTORE_CATEGORIES.INCIDENTS, org.orgId)
+              writeIncidentSafe(rawKey, updated, org.orgId)
             )
           );
         }
