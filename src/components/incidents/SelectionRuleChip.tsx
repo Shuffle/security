@@ -210,7 +210,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
   // Selection listener
   // The chip should only appear after the user has finished marking text
   // (pointer released), not while the mouse is still being dragged.
-  const [pointerDown, setPointerDown] = useState(false);
+  const pointerDownRef = useRef(false);
   const pendingUpdateRef = useRef(false);
 
   const evaluateSelection = useCallback(() => {
@@ -255,7 +255,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     const handleSelectionChange = () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
-        if (pointerDown) {
+        if (pointerDownRef.current) {
           pendingUpdateRef.current = true;
           return;
         }
@@ -267,29 +267,36 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     const handlePointerDown = (e: PointerEvent) => {
       const t = e.target as HTMLElement | null;
       if (t?.closest?.('[data-selection-rule-ui="1"]')) return;
-      setPointerDown(true);
+      pointerDownRef.current = true;
       // Hide any existing chip while a new selection is being created.
       if (chip && !popoverOpen) setChip(null);
     };
 
     const handlePointerUp = () => {
-      setPointerDown(false);
+      pointerDownRef.current = false;
       if (pendingUpdateRef.current) {
         pendingUpdateRef.current = false;
         evaluateSelection();
       }
     };
 
+    const handlePointerCancel = () => {
+      pointerDownRef.current = false;
+      pendingUpdateRef.current = false;
+    };
+
     document.addEventListener('selectionchange', handleSelectionChange);
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerCancel);
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerCancel);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
-  }, [pointerDown, chip, popoverOpen, evaluateSelection]);
+  }, [chip, popoverOpen, evaluateSelection]);
 
   // Dismiss on Escape
   useEffect(() => {
