@@ -110,6 +110,7 @@ export const IncidentSection = forwardRef<HTMLDivElement, IncidentSectionProps>(
     >
       <Box
         onClick={toggle}
+        data-selection-rule-ignore="1"
         sx={{
           display: 'flex',
           alignItems: 'center',
