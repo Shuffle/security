@@ -632,16 +632,23 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
                   <Stack direction="row" spacing={1} alignItems="center">
                     <CircularProgress size={12} />
                     <Typography sx={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>
-                      Scanning recent incidents for matches...
+                      Applying rule to recent incidents...
                     </Typography>
                   </Stack>
                 ) : scanResult ? (
                   <Typography sx={{ fontSize: 12, color: 'hsl(var(--foreground))' }}>
-                    Matched <strong>{scanResult.matched}</strong> of {scanResult.scanned} recent incidents.
-                    {scanResult.matched === 0 && (
-                      <Box component="span" sx={{ display: 'block', mt: 0.5, color: 'hsl(var(--muted-foreground))' }}>
-                        No historical matches — the rule will still run on new incidents.
-                      </Box>
+                    {scanResult.matched === 0 ? (
+                      <>
+                        No historical matches across {scanResult.scanned} recent incidents. The rule will run on new incoming incidents.
+                      </>
+                    ) : (
+                      <>
+                        Applied to <strong>{scanResult.applied}</strong> of {scanResult.matched} matching incident{scanResult.matched === 1 ? '' : 's'}
+                        {scanResult.failed > 0 && (
+                          <Box component="span" sx={{ color: 'hsl(0 84% 60%)' }}> ({scanResult.failed} failed)</Box>
+                        )}
+                        . The rule will also run on new incoming incidents.
+                      </>
                     )}
                   </Typography>
                 ) : (
