@@ -116,7 +116,7 @@ export const RoutingRulePreviewBanner = ({
   }, [items]);
 
   const matches: RoutingRuleMatch[] = useMemo(
-    () => evaluateRoutingRules(context, rules),
+    () => dedupeMatchesByActionTarget(evaluateRoutingRules(context, rules)),
     [context, rules]
   );
 
