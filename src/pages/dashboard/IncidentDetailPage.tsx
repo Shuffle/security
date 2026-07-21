@@ -1200,7 +1200,11 @@ const IncidentDetailPage = () => {
   const [ocsfFallbackInfo, setOcsfFallbackInfo] = useState<{
     revisionTimestamp?: number;
     overlaidFieldCount: number;
+    reason: 'not-ocsf' | 'missing-fields';
+    missingFields: string[];
+    recoveredValue?: string;
   } | null>(null);
+  const [ocsfRestoring, setOcsfRestoring] = useState(false);
   const ocsfFallbackAttemptedRef = useRef(false);
   const ocsfFallbackDismissKey = id ? `ocsf-fallback-dismissed:${id}` : '';
   const [ocsfFallbackDismissed, setOcsfFallbackDismissed] = useState<boolean>(() => {
