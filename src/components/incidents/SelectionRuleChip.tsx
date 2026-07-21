@@ -224,7 +224,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
   // how many would have matched the rule they just created.
   const [savedRule, setSavedRule] = useState<RoutingRule | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{ matched: number; scanned: number } | null>(null);
+  const [scanResult, setScanResult] = useState<{ matched: number; scanned: number; applied: number; failed: number } | null>(null);
 
   const currentPreset = useMemo(
     () => ACTION_PRESETS.find((p) => p.key === actionKey) || ACTION_PRESETS[0],
