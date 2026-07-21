@@ -2600,6 +2600,32 @@ const IncidentDetailPage = () => {
     })();
   }, [loading, incident, isResyncing, isPublicView, loadIncident]);
 
+  // Reconcile related_incidents from revisions. If a stale write elsewhere
+  // dropped a pointer on this primary, walk revisions and union any prior
+  // `related_incidents` / `_merged_data_from` back into the current row,
+  // then persist. Runs once per incident load after revisions land.
+  const relationsReconcileRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isPublicView) return;
+    if (!id || !incident || !revisionsLoaded) return;
+    if (relationsReconcileRef.current === id) return;
+    relationsReconcileRef.current = id;
+    const currentRaw = incident.rawOCSF;
+    if (!currentRaw || typeof currentRaw !== 'object') return;
+    // Skip children — they only hold one pointer (to primary) which is
+    // written atomically by linkMergePair and never dropped.
+    if (currentRaw.merged_into || currentRaw.status_id === 6) return;
+    const { raw: reconciled, changed } = reconcileRelatedFromRevisions(currentRaw, revisions);
+    if (!changed) return;
+    const before = getLinkedPointers(currentRaw).length;
+    const after = getLinkedPointers(reconciled).length;
+    console.log(`[IncidentRelations] Reconciled from revisions: ${before} -> ${after} linked pointers`);
+    setIncident(prev => prev ? { ...prev, rawOCSF: reconciled } : prev);
+    writeIncidentSafe(id, reconciled, crossOrgId || undefined)
+      .catch(err => console.warn('[IncidentRelations] persist reconciliation failed:', err));
+  }, [id, incident, revisionsLoaded, revisions, isPublicView, crossOrgId]);
+
+
   // Show toast for invalid data incidents (no title + no source). We wait for
   // revisions to finish loading and for the OCSF-recovery fallback to attempt
   // a merge — if recovery succeeds, the inline banner replaces the toast.
