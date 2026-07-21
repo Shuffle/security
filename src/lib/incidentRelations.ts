@@ -671,7 +671,10 @@ export const preserveRelationFields = (existing: any, next: any): any => {
     out._merged_data_from = Array.from(new Set<string>([...existingFolded, ...nextFolded]));
   }
 
-  const mergedRelationRefs = unionRelationRefs(getRelationRefs(existing), getRelationRefs(out));
+  const pointerRefs = getRelatedIncidents(out)
+    .filter((p) => p.relation === 'merged')
+    .map((p) => p.id);
+  const mergedRelationRefs = unionRelationRefs(getRelationRefs(existing), getRelationRefs(out), pointerRefs);
   if (mergedRelationRefs.length > 0) {
     out.related_events = mergedRelationRefs;
     if (Array.isArray(existing.related_findings) || Array.isArray(out.related_findings)) {
@@ -766,16 +769,25 @@ export const reconcileRelatedFromRevisions = (
 
   const merged = unionPointers(currentPointers, revPointers);
   const foldedUnion = new Set<string>([...currentFolded, ...revFolded]);
+  const currentRelationRefs = getRelationRefs(currentRaw);
+  const mergedRelationRefs = unionRelationRefs(
+    currentRelationRefs,
+    merged.filter((p) => p.relation === 'merged').map((p) => p.id),
+  );
 
   const pointersChanged =
     merged.length !== currentPointers.length ||
     merged.some(p => !currentPointers.find(cp => cp.id === p.id && cp.primary === p.primary));
   const foldedChanged = foldedUnion.size !== currentFolded.size;
+  const relatedRefsChanged =
+    mergedRelationRefs.length !== currentRelationRefs.length ||
+    mergedRelationRefs.some((ref) => !currentRelationRefs.find((current) => relationRefKey(current) === relationRefKey(ref)));
 
-  if (!pointersChanged && !foldedChanged) return { raw: currentRaw, changed: false };
+  if (!pointersChanged && !foldedChanged && !relatedRefsChanged) return { raw: currentRaw, changed: false };
 
   const next: any = { ...currentRaw };
   if (merged.length > 0) next.related_incidents = merged;
   if (foldedUnion.size > 0) next._merged_data_from = Array.from(foldedUnion);
+  if (mergedRelationRefs.length > 0) next.related_events = mergedRelationRefs;
   return { raw: next, changed: true };
 };
