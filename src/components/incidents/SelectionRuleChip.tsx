@@ -123,12 +123,19 @@ const SEVERITY_OPTIONS = ['Informational', 'Low', 'Medium', 'High', 'Critical'];
 const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Urgent'];
 
 // Detect whether a Node is inside an editable element the user is typing in.
+// Inputs/textareas that are explicitly marked as selectable incident content
+// (via `data-incident-field`) are NOT treated as editable here — we still
+// want to offer the chip when the user highlights part of the title.
 const isEditableTarget = (node: Node | null): boolean => {
   let el: HTMLElement | null =
     node instanceof HTMLElement ? node : node?.parentElement ?? null;
   while (el) {
     const tag = el.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+      // Allow if this input is inside a marked incident field.
+      if (el.closest?.('[data-incident-field]')) return false;
+      return true;
+    }
     if (el.isContentEditable) return true;
     if (el.getAttribute?.('data-selection-rule-ui') === '1') return true;
     el = el.parentElement;
@@ -136,20 +143,28 @@ const isEditableTarget = (node: Node | null): boolean => {
   return false;
 };
 
-// Walk up to find the nearest [data-incident-field] hint. Falls back to a
-// heuristic (H1/H2 => title) so we can still pre-fill the field even when
-// the caller hasn't tagged its DOM.
+// Walk up to find the nearest [data-incident-field] hint. No heading fallback
+// — random subtitle headings like "Timeline" or "Email Thread" should not
+// trigger a rule creation.
 const detectField = (node: Node | null): string => {
   let el: HTMLElement | null =
     node instanceof HTMLElement ? node : node?.parentElement ?? null;
   while (el) {
     const hint = el.getAttribute?.('data-incident-field');
     if (hint) return hint;
-    const tag = el.tagName;
-    if (tag === 'H1' || tag === 'H2') return 'title';
     el = el.parentElement;
   }
   return '*';
+};
+
+const isInsideIgnored = (node: Node | null): boolean => {
+  let el: HTMLElement | null =
+    node instanceof HTMLElement ? node : node?.parentElement ?? null;
+  while (el) {
+    if (el.getAttribute?.('data-selection-rule-ignore') === '1') return true;
+    el = el.parentElement;
+  }
+  return false;
 };
 
 const isInsideIncidentContent = (node: Node | null): boolean => {
@@ -217,6 +232,35 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     // Never react while the popover is open — analyst is filling the form.
     if (popoverOpen) return;
 
+    // Case 1: selection inside an <input>/<textarea> that is explicitly
+    // marked as an incident field (e.g. the title). window.getSelection() is
+    // collapsed in that case, so we read selectionStart/End directly.
+    const active = document.activeElement as HTMLElement | null;
+    if (
+      active &&
+      (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') &&
+      active.closest?.('[data-incident-content]') &&
+      active.closest?.('[data-incident-field]') &&
+      !active.closest?.('[data-selection-rule-ignore="1"]')
+    ) {
+      const inp = active as HTMLInputElement | HTMLTextAreaElement;
+      const start = inp.selectionStart ?? 0;
+      const end = inp.selectionEnd ?? 0;
+      if (end > start) {
+        const text = (inp.value || '').slice(start, end).trim();
+        if (text.length >= 3) {
+          const rect = inp.getBoundingClientRect();
+          setChip({
+            x: rect.left + rect.width / 2,
+            y: rect.bottom + 8,
+            text,
+            field: detectField(inp),
+          });
+          return;
+        }
+      }
+    }
+
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
       setChip(null);
@@ -230,6 +274,10 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     const range = sel.getRangeAt(0);
     const anchor = range.startContainer;
     if (isEditableTarget(anchor)) {
+      setChip(null);
+      return;
+    }
+    if (isInsideIgnored(range.commonAncestorContainer)) {
       setChip(null);
       return;
     }
@@ -250,6 +298,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
       field: detectedField,
     });
   }, [popoverOpen]);
+
 
   useEffect(() => {
     const handleSelectionChange = () => {
@@ -285,15 +334,34 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
       pendingUpdateRef.current = false;
     };
 
+    // Selections that originate in a sandboxed same-origin iframe (e.g. the
+    // Email Thread body) don't reach the parent's selectionchange. Frames
+    // bridge them via a custom `selection-rule:external` event.
+    const handleExternalSelection = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { x: number; y: number; text: string; field?: string }
+        | undefined;
+      if (!detail || !detail.text || detail.text.length < 3) return;
+      if (popoverOpen) return;
+      setChip({
+        x: detail.x,
+        y: detail.y,
+        text: detail.text.trim(),
+        field: detail.field || '*',
+      });
+    };
+
     document.addEventListener('selectionchange', handleSelectionChange);
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('pointerup', handlePointerUp);
     document.addEventListener('pointercancel', handlePointerCancel);
+    window.addEventListener('selection-rule:external', handleExternalSelection);
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('pointerup', handlePointerUp);
       document.removeEventListener('pointercancel', handlePointerCancel);
+      window.removeEventListener('selection-rule:external', handleExternalSelection);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
   }, [chip, popoverOpen, evaluateSelection]);
