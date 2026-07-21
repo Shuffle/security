@@ -1201,7 +1201,12 @@ const IncidentDetailPage = () => {
     revisionTimestamp?: number;
     overlaidFieldCount: number;
     reason: 'not-ocsf' | 'missing-fields';
+    // Fields that were missing on the live payload before reconstruction.
     missingFields: string[];
+    // Fields still missing AFTER folding revisions into the reconstruction.
+    // Only these should be surfaced as "missing" in the UI — anything the
+    // recovery could refill is no longer a concern for the reader.
+    stillMissingFields: string[];
     recoveredValue?: string;
   } | null>(null);
   const [ocsfRestoring, setOcsfRestoring] = useState(false);
