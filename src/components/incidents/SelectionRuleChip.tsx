@@ -208,53 +208,88 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
   }, []);
 
   // Selection listener
+  // The chip should only appear after the user has finished marking text
+  // (pointer released), not while the mouse is still being dragged.
+  const [pointerDown, setPointerDown] = useState(false);
+  const pendingUpdateRef = useRef(false);
+
+  const evaluateSelection = useCallback(() => {
+    // Never react while the popover is open — analyst is filling the form.
+    if (popoverOpen) return;
+
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+      setChip(null);
+      return;
+    }
+    const text = sel.toString().trim();
+    if (text.length < 3) {
+      setChip(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const anchor = range.startContainer;
+    if (isEditableTarget(anchor)) {
+      setChip(null);
+      return;
+    }
+    if (!isInsideIncidentContent(range.commonAncestorContainer)) {
+      setChip(null);
+      return;
+    }
+    const rect = range.getBoundingClientRect();
+    if (!rect || (rect.width === 0 && rect.height === 0)) {
+      setChip(null);
+      return;
+    }
+    const detectedField = detectField(anchor);
+    setChip({
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 8,
+      text,
+      field: detectedField,
+    });
+  }, [popoverOpen]);
+
   useEffect(() => {
-    const handle = () => {
+    const handleSelectionChange = () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
-        // Never react while the popover is open — analyst is filling the form.
-        if (popoverOpen) return;
-
-        const sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
-          setChip(null);
+        if (pointerDown) {
+          pendingUpdateRef.current = true;
           return;
         }
-        const text = sel.toString().trim();
-        if (text.length < 3) {
-          setChip(null);
-          return;
-        }
-        const range = sel.getRangeAt(0);
-        const anchor = range.startContainer;
-        if (isEditableTarget(anchor)) {
-          setChip(null);
-          return;
-        }
-        if (!isInsideIncidentContent(range.commonAncestorContainer)) {
-          setChip(null);
-          return;
-        }
-        const rect = range.getBoundingClientRect();
-        if (!rect || (rect.width === 0 && rect.height === 0)) {
-          setChip(null);
-          return;
-        }
-        const detectedField = detectField(anchor);
-        setChip({
-          x: rect.left + rect.width / 2,
-          y: rect.bottom + 6,
-          text,
-          field: detectedField,
-        });
+        pendingUpdateRef.current = false;
+        evaluateSelection();
       });
     };
-    document.addEventListener('selectionchange', handle);
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.('[data-selection-rule-ui="1"]')) return;
+      setPointerDown(true);
+      // Hide any existing chip while a new selection is being created.
+      if (chip && !popoverOpen) setChip(null);
+    };
+
+    const handlePointerUp = () => {
+      setPointerDown(false);
+      if (pendingUpdateRef.current) {
+        pendingUpdateRef.current = false;
+        evaluateSelection();
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('pointerup', handlePointerUp);
     return () => {
-      document.removeEventListener('selectionchange', handle);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('pointerup', handlePointerUp);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
-  }, [popoverOpen]);
+  }, [pointerDown, chip, popoverOpen, evaluateSelection]);
 
   // Dismiss on Escape
   useEffect(() => {
