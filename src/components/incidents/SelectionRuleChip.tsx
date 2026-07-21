@@ -634,7 +634,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
                   // If we just mutated the incident the analyst is
                   // currently looking at, tell the detail view to
                   // reload so the change appears immediately.
-                  if (String(incidentId) === String(props_incidentId ?? '')) {
+                  if (String(incidentId) === String(incidentId ?? '')) {
                     window.dispatchEvent(
                       new CustomEvent('incident:refresh', { detail: { id: String(incidentId) } }),
                     );
@@ -648,9 +648,9 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
             // Final safety net: even if the current incident wasn't in the
             // matched set, the new rule may still apply to it on the next
             // load. Trigger a refresh so the UI is guaranteed consistent.
-            if (props_incidentId) {
+            if (incidentId) {
               window.dispatchEvent(
-                new CustomEvent('incident:refresh', { detail: { id: String(props_incidentId) } }),
+                new CustomEvent('incident:refresh', { detail: { id: String(incidentId) } }),
               );
             }
           } catch {
