@@ -27,6 +27,8 @@ export default function AppsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [addAppOpen, setAddAppOpen] = useState(false);
   const [addAppSeed, setAddAppSeed] = useState('');
+  const [registerPromptOpen, setRegisterPromptOpen] = useState(false);
+  const [pendingSeed, setPendingSeed] = useState('');
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const theme = useTheme();
@@ -38,16 +40,30 @@ export default function AppsPage() {
   const CATEGORY_PREFIXES = ['cloud', 'siem', 'email', 'edr', 'threat intel'];
   const SEED_MAX_LEN = 200;
 
-  const openAddApp = (source: string) => {
+  const computeSeed = () => {
     const raw = (searchQuery || '').trim();
     const lower = raw.toLowerCase();
     const isCategory = CATEGORY_PREFIXES.some(
       (p) => lower === p || lower === p.replace(' ', ''),
     );
-    const seed = !raw || isCategory ? '' : raw.slice(0, SEED_MAX_LEN);
+    return !raw || isCategory ? '' : raw.slice(0, SEED_MAX_LEN);
+  };
+
+  const openAddApp = (source: string) => {
+    const seed = computeSeed();
+    trackCTA('add_app', source);
+    if (!isAuthenticated) {
+      setPendingSeed(seed);
+      setRegisterPromptOpen(true);
+      return;
+    }
     setAddAppSeed(seed);
     setAddAppOpen(true);
-    trackCTA('add_app', source);
+  };
+
+  const goRegisterForAddApp = () => {
+    const target = `/apps?addApp=1${pendingSeed ? `&addAppSeed=${encodeURIComponent(pendingSeed)}` : ''}`;
+    navigate(`/register?view=${encodeURIComponent(target)}`);
   };
 
   usePageMeta({
