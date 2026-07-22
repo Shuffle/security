@@ -1776,8 +1776,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const action = dec?.action || dec?.details?.action;
       const category = dec?.category || dec?.details?.category;
       // Tool tokens — skip terminal/ask steps.
-      if (action !== 'finish' && action !== 'finalise' && action !== 'ask' &&
-          category !== 'finish' && category !== 'finalise' && category !== 'ask') {
+      if (action !== 'finish' && action !== 'finalise' && !isAskDecision(dec, category) &&
+          category !== 'finish' && category !== 'finalise') {
         const tool = dec?.details?.tool ?? dec?.tool;
         if (tool && tool !== 'singul' && tool !== 'core') consider(tool);
       }
