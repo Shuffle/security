@@ -4205,18 +4205,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Tooltip>
                 ) : null;
               })()}
-              <Tooltip title="Rerun with the same prompt and tools">
+              <Tooltip title={rerunAgentPending ? 'Rerun starting…' : 'Rerun with the same prompt and tools'}>
                 <span>
                   <IconButton
                     size="small"
-                    disabled={agentRequestLoading}
+                    disabled={agentRequestLoading || rerunAgentPending}
                     onClick={rerunAgent}
                     sx={{
-                      color: 'hsl(var(--muted-foreground))',
+                      color: rerunAgentPending ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                       '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--muted))' },
                     }}
                   >
-                    <RestartAltIcon size={18} />
+                    {rerunAgentPending
+                      ? <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))' }} />
+                      : <RestartAltIcon size={18} />}
                   </IconButton>
                 </span>
               </Tooltip>
