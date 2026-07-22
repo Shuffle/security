@@ -1022,15 +1022,17 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               action !== 'add_tool';
             if (!isApiAction) return null;
             return (
-              <Tooltip title="Rerun from this decision (clears all decisions after it)">
+              <Tooltip title={isRerunTarget ? 'Rerun starting…' : 'Rerun from this decision (clears all decisions after it)'}>
                 <span>
                   <IconButton
                     size="small"
-                    disabled={agentRequestLoading || !details?.run_details?.id}
+                    disabled={agentRequestLoading || !details?.run_details?.id || isRerunTarget}
                     onClick={() => details && onRerunDecision(details)}
-                    sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
+                    sx={{ color: isRerunTarget ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
                   >
-                    <RestartAltIcon size={16} />
+                    {isRerunTarget
+                      ? <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
+                      : <RestartAltIcon size={16} />}
                   </IconButton>
                 </span>
               </Tooltip>
