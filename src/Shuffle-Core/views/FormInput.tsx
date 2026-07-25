@@ -28,7 +28,36 @@ import RecentWorkflow from "../components/RecentWorkflow";
 import { toast } from "react-toastify";
 import Markdown from "react-markdown";
 import { shuffleFetch } from "../api";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+// SECURITY: raw HTML is intentionally NOT enabled (no rehype-raw). Do not add it.
+// react-markdown v9 already drops raw HTML tags; rehype-sanitize below is
+// defense-in-depth in case the AST ever contains HTML nodes (e.g. via a plugin).
 const rehypeRaw: any = undefined;
+const markdownSanitizeSchema: any = {
+    ...defaultSchema,
+    // Strict URL scheme allowlist — blocks javascript:, data:, vbscript:, file:, etc.
+    protocols: {
+        ...(defaultSchema.protocols || {}),
+        href: ["http", "https", "mailto", "tel"],
+        src: ["http", "https"],
+        cite: ["http", "https"],
+    },
+    // Drop any tag that could execute script or exfiltrate: iframe, script,
+    // object, embed, form, input, style, link, meta, base, svg, math, etc.
+    tagNames: (defaultSchema.tagNames || []).filter(
+        (t: string) => !["iframe", "script", "style", "object", "embed", "form", "input", "button", "textarea", "select", "option", "link", "meta", "base", "svg", "math"].includes(t)
+    ),
+    // Strip event handlers and dangerous attrs across the board.
+    attributes: {
+        ...(defaultSchema.attributes || {}),
+        "*": ((defaultSchema.attributes || {})["*"] || []).filter(
+            (a: any) => {
+                const name = Array.isArray(a) ? a[0] : a;
+                return typeof name === "string" && !name.toLowerCase().startsWith("on");
+            }
+        ),
+    },
+};
 
 import {
   	Tooltip,
@@ -1597,7 +1626,7 @@ const FormInput = (defaultprops: any) => {
 								  style={{
 									maxWidth: "100%", minWidth: "100%",
 								  }}
-								  rehypePlugins={rehypeRaw ? [rehypeRaw] : []}
+								  rehypePlugins={[[rehypeSanitize, markdownSanitizeSchema], ...(rehypeRaw ? [rehypeRaw] : [])]}
 								>
 								  {md}
 			    				</Markdown>
