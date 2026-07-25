@@ -1626,7 +1626,7 @@ const FormInput = (defaultprops: any) => {
 								  style={{
 									maxWidth: "100%", minWidth: "100%",
 								  }}
-								  rehypePlugins={rehypeRaw ? [rehypeRaw] : []}
+								  rehypePlugins={[[rehypeSanitize, markdownSanitizeSchema], ...(rehypeRaw ? [rehypeRaw] : [])]}
 								>
 								  {md}
 			    				</Markdown>
