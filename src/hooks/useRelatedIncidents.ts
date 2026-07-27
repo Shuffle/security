@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { decodeHtmlEntities } from '@/lib/utils';
 import {
   getDatastoreItem,
   DATASTORE_CATEGORIES,
@@ -70,7 +71,7 @@ export const extractReadableTitle = (raw: any, fallback: string): string => {
   ];
   for (const c of candidates) {
     if (typeof c !== 'string') continue;
-    const s = c.trim();
+    const s = decodeHtmlEntities(c).trim();
     if (!s) continue;
     // Skip anything that looks like a JSON blob dump
     if ((s.startsWith('[') || s.startsWith('{')) && (s.includes('"name"') || s.includes('"value"'))) continue;
@@ -90,7 +91,7 @@ export const extractReadableDescription = (raw: any): string | undefined => {
   ];
   for (const c of candidates) {
     if (typeof c !== 'string') continue;
-    const s = c.replace(/\s+/g, ' ').trim();
+    const s = decodeHtmlEntities(c).replace(/\s+/g, ' ').trim();
     if (!s) continue;
     if ((s.startsWith('[') || s.startsWith('{')) && (s.includes('"name"') || s.includes('"value"'))) continue;
     return s.length > 200 ? s.slice(0, 200).trimEnd() + '…' : s;
