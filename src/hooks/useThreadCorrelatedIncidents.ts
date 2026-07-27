@@ -24,6 +24,7 @@ import {
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
+import { extractReadableTitle, extractReadableDescription } from '@/hooks/useRelatedIncidents';
 
 export interface UseThreadCorrelatedIncidentsResult {
   threadId: string | null;
@@ -67,15 +68,10 @@ const refToIncidentId = (ref: string): string => {
 const parseSummary = (id: string, value: string): LinkedIncidentSummary | null => {
   try {
     const raw = JSON.parse(value);
-    const title =
-      raw.title
-      || raw.finding_info_list?.[0]?.title
-      || raw.finding_info?.title
-      || raw.message
-      || id;
     return {
       id,
-      title,
+      title: extractReadableTitle(raw, id),
+      description: extractReadableDescription(raw),
       status: raw.status,
       status_id: raw.status_id,
       severity: raw.severity,

@@ -114,8 +114,7 @@ export const ThreadCorrelatedBanner = ({
               '&:hover': { bgcolor: 'hsl(var(--muted) / 0.4)' },
             }}
           >
-            <Typography
-              variant="body2"
+            <Box
               sx={{
                 flex: 1,
                 minWidth: 0,
@@ -124,9 +123,24 @@ export const ThreadCorrelatedBanner = ({
                 textOverflow: 'ellipsis',
               }}
             >
-              {l.title}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              <Typography
+                component="span"
+                variant="body2"
+                sx={{ fontWeight: 500, color: 'hsl(var(--foreground))' }}
+              >
+                {l.title}
+              </Typography>
+              {l.description && (
+                <Typography
+                  component="span"
+                  variant="body2"
+                  sx={{ color: 'hsl(var(--muted-foreground))', ml: 0.75 }}
+                >
+                  — {l.description}
+                </Typography>
+              )}
+            </Box>
+            <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
               {l.id.substring(0, 10)}…
             </Typography>
             <Tooltip title="Open">
