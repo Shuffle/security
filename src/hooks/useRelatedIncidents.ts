@@ -25,6 +25,7 @@ import {
 export interface LinkedIncidentSummary {
   id: string;
   title: string;
+  description?: string;
   status?: string;
   status_id?: number;
   severity?: string;
@@ -43,15 +44,10 @@ export interface UseRelatedIncidentsResult {
 const parseSummary = (id: string, value: string): LinkedIncidentSummary | null => {
   try {
     const raw = JSON.parse(value);
-    const title =
-      raw.title
-      || raw.finding_info_list?.[0]?.title
-      || raw.finding_info?.title
-      || raw.message
-      || id;
     return {
       id,
-      title,
+      title: extractReadableTitle(raw, id),
+      description: extractReadableDescription(raw),
       status: raw.status,
       status_id: raw.status_id,
       severity: raw.severity,
@@ -61,6 +57,45 @@ const parseSummary = (id: string, value: string): LinkedIncidentSummary | null =
   } catch {
     return null;
   }
+};
+
+export const extractReadableTitle = (raw: any, fallback: string): string => {
+  const fi = raw?.finding_info_list?.[0] || raw?.finding_info || {};
+  const candidates: unknown[] = [
+    fi.title,
+    raw?.title,
+    raw?.subject,
+    raw?.email?.subject,
+    raw?.message,
+  ];
+  for (const c of candidates) {
+    if (typeof c !== 'string') continue;
+    const s = c.trim();
+    if (!s) continue;
+    // Skip anything that looks like a JSON blob dump
+    if ((s.startsWith('[') || s.startsWith('{')) && (s.includes('"name"') || s.includes('"value"'))) continue;
+    return s.length > 140 ? s.slice(0, 140).trimEnd() + '…' : s;
+  }
+  return fallback;
+};
+
+export const extractReadableDescription = (raw: any): string | undefined => {
+  const fi = raw?.finding_info_list?.[0] || raw?.finding_info || {};
+  const candidates: unknown[] = [
+    fi.desc,
+    raw?.description,
+    raw?.desc,
+    raw?.email?.snippet,
+    raw?.summary,
+  ];
+  for (const c of candidates) {
+    if (typeof c !== 'string') continue;
+    const s = c.replace(/\s+/g, ' ').trim();
+    if (!s) continue;
+    if ((s.startsWith('[') || s.startsWith('{')) && (s.includes('"name"') || s.includes('"value"'))) continue;
+    return s.length > 200 ? s.slice(0, 200).trimEnd() + '…' : s;
+  }
+  return undefined;
 };
 
 export const useRelatedIncidents = (
