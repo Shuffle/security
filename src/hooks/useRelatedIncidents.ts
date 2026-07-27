@@ -91,7 +91,7 @@ export const extractReadableDescription = (raw: any): string | undefined => {
   ];
   for (const c of candidates) {
     if (typeof c !== 'string') continue;
-    const s = c.replace(/\s+/g, ' ').trim();
+    const s = decodeHtmlEntities(c).replace(/\s+/g, ' ').trim();
     if (!s) continue;
     if ((s.startsWith('[') || s.startsWith('{')) && (s.includes('"name"') || s.includes('"value"'))) continue;
     return s.length > 200 ? s.slice(0, 200).trimEnd() + '…' : s;
