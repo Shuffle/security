@@ -1840,35 +1840,70 @@ const IncidentDetailPage = () => {
 
     setAutoMergeBusy(true);
     try {
-      let failed = 0;
+      const failures: { id: string; title: string; error: string }[] = [];
       // Chain the folded primary through each iteration so successive
       // sources fold on top of the already-enriched primary. Without
       // this, iteration N would clobber the fold from iteration N-1
       // because primaryRaw would still be the pre-merge snapshot.
       let currentPrimaryRaw = primary.raw;
       for (const src of sources) {
-        const res = await linkMergePair({
-          primaryId: primary.id,
-          primaryRaw: currentPrimaryRaw,
-          primaryTitle: primary.title,
-          sourceId: src.id,
-          sourceRaw: src.raw,
-          sourceTitle: src.title,
-          linkedBy: 'thread-auto-merge',
-        });
-        if (!res.success) failed += 1;
-        else if (res.foldedPrimary) currentPrimaryRaw = res.foldedPrimary;
+        let res: { success: boolean; error?: string; foldedPrimary?: any };
+        try {
+          res = await linkMergePair({
+            primaryId: primary.id,
+            primaryRaw: currentPrimaryRaw,
+            primaryTitle: primary.title,
+            sourceId: src.id,
+            sourceRaw: src.raw,
+            sourceTitle: src.title,
+            linkedBy: 'thread-auto-merge',
+          });
+        } catch (err: any) {
+          res = { success: false, error: err?.message || 'Threw an unexpected error' };
+        }
+        if (!res.success) {
+          failures.push({
+            id: src.id,
+            title: src.title || src.id,
+            error: res.error || 'Unknown reason',
+          });
+        } else if (res.foldedPrimary) {
+          currentPrimaryRaw = res.foldedPrimary;
+        }
       }
 
 
-      if (failed === 0) {
+      if (failures.length === 0) {
         toast.success(
           sources.length === 1
             ? 'Merged 1 thread sibling into the latest incident'
             : `Merged ${sources.length} thread siblings into the latest incident`,
         );
       } else {
-        toast.error(`Auto-merge partial: ${failed} of ${sources.length} failed`);
+        // Surface the actual failure reason(s) so the analyst can act:
+        // group by error message, then show up to 2 sample titles per group.
+        const grouped = new Map<string, { title: string; id: string }[]>();
+        for (const f of failures) {
+          const list = grouped.get(f.error) || [];
+          list.push({ title: f.title, id: f.id });
+          grouped.set(f.error, list);
+        }
+        const lines = Array.from(grouped.entries()).map(([reason, items]) => {
+          const sample = items
+            .slice(0, 2)
+            .map(i => `"${i.title.length > 40 ? i.title.slice(0, 40) + '…' : i.title}"`)
+            .join(', ');
+          const more = items.length > 2 ? ` +${items.length - 2} more` : '';
+          return `• ${reason} — ${sample}${more}`;
+        });
+        const headline = failures.length === sources.length
+          ? `Auto-merge failed for all ${sources.length} sibling${sources.length === 1 ? '' : 's'}`
+          : `Auto-merge partial: ${failures.length} of ${sources.length} failed`;
+        toast.error(headline, {
+          description: lines.join('\n'),
+          duration: 12000,
+        });
+        console.error('[auto-merge] failures', failures);
       }
 
       // If the current view is now non-primary, jump to the primary so
@@ -1880,7 +1915,11 @@ const IncidentDetailPage = () => {
         threadCorrelated.refresh();
       }
     } catch (e: any) {
-      toast.error(`Auto-merge failed: ${e?.message || 'unknown error'}`);
+      toast.error('Auto-merge failed', {
+        description: e?.message || 'Unknown error before any siblings were processed.',
+        duration: 12000,
+      });
+      console.error('[auto-merge] fatal', e);
     } finally {
       setAutoMergeBusy(false);
     }
