@@ -57,6 +57,7 @@ export const useIncidentWorkflowRuns = (
       : false,
     refetchOnWindowFocus: isDetailContext,
     gcTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
   });
 
   const runsForIncident = (() => {
