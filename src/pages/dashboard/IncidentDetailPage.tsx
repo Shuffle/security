@@ -1919,7 +1919,17 @@ const IncidentDetailPage = () => {
     // Skip sources the analyst has explicitly unmerged from the chosen
     // primary (either direction). Auto-merge must never resurrect a pair
     // that was manually taken apart.
-    const sources = pool.slice(1).filter((s) => !pairWasUnmerged(primary.raw, primary.id, s.raw, s.id));
+    const primaryLinkedIds = new Set(getLinkedPointers(primary.raw).map((p) => p.id.toLowerCase()));
+    const primaryIdLower = primary.id.toLowerCase();
+    const sources = pool.slice(1).filter((s) => {
+      const sourceIdLower = s.id.toLowerCase();
+      if (primaryLinkedIds.has(sourceIdLower)) return false;
+      const sourcePrimary = getPrimaryPointer(s.raw);
+      if (sourcePrimary?.id?.toLowerCase() === primaryIdLower) return false;
+      if (String(s.raw?.merged_into || '').toLowerCase() === primaryIdLower) return false;
+      if (sourcePrimary || s.raw?.status_id === 6 || String(s.raw?.status || '').toLowerCase() === 'merged') return false;
+      return !pairWasUnmerged(primary.raw, primary.id, s.raw, s.id);
+    });
     if (sources.length === 0) return;
 
 
