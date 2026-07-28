@@ -464,3 +464,13 @@
 .Toastify__progress-bar--error   { background: hsl(var(--destructive)) !important; }
 .Toastify__progress-bar--warning { background: hsl(var(--severity-medium, 38 92% 50%)) !important; }
 .Toastify__progress-bar--info    { background: hsl(var(--primary)) !important; }
+
+/* Keep the global left sidebar interactive while any MUI Drawer/Dialog is open.
+   The sidebar sets `--app-sidebar-right` (its right edge in px). We clip every
+   MUI Backdrop so it only covers the area to the right of the sidebar — the
+   sidebar column stays clickable and receives pointer events. */
+:root { --app-sidebar-right: 0px; }
+
+.MuiBackdrop-root:not(.MuiBackdrop-invisible) {
+  clip-path: inset(0 0 0 var(--app-sidebar-right, 0px));
+}
