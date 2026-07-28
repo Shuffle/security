@@ -63,6 +63,7 @@ export const useIncidentAgentRuns = (
       : false,
     refetchOnWindowFocus: isDetailContext,
     gcTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
   });
 
   const freshMatches = useMemo(
