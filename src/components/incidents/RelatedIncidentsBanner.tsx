@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from '@/lib/toast';
 import { unlinkMergePair } from '@/lib/incidentRelations';
+import { UnmergeConfirmDialog } from '@/components/incidents/UnmergeConfirmDialog';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 
 interface RelatedIncidentsBannerProps {
@@ -47,6 +48,9 @@ export const RelatedIncidentsBanner = ({
 }: RelatedIncidentsBannerProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  // Pending confirmation target: null = closed, string = single sourceId,
+  // 'all' = unlink every merged source in one confirm.
+  const [pendingUnmerge, setPendingUnmerge] = useState<string | null>(null);
   const highlightMatch = useMemo(
     () => (highlightId ? linked.find((l) => l.id === highlightId) : null),
     [highlightId, linked],
