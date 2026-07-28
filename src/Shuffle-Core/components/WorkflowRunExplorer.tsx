@@ -283,9 +283,34 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
 
           {exec.execution_argument && exec.execution_argument.length > 1 && (
             <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--muted-foreground))' }}>
-                Execution argument
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                <Tooltip title={<Typography variant="body2">Expand debug window. Errors: 0</Typography>} arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => setDebugResult({
+                      action: {
+                        label: 'Execution argument',
+                        name: exec.workflow?.name || 'execution_argument',
+                        app_name: exec.workflow?.name,
+                        parameters: [
+                          { name: 'source', value: sourceLabel(exec) },
+                          ...(exec.execution_parent ? [{ name: 'execution_parent', value: exec.execution_parent }] : []),
+                          ...(exec.authgroup ? [{ name: 'authgroup', value: exec.authgroup }] : []),
+                        ],
+                      },
+                      result: exec.execution_argument,
+                      status: exec.status,
+                      __isExecutionArgument: true,
+                    })}
+                    sx={{ color: 'hsl(var(--foreground))', p: 0.5 }}
+                  >
+                    <ArrowLeftIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Typography variant="subtitle2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                  Execution argument
+                </Typography>
+              </Box>
               <ResultRenderer value={exec.execution_argument} baseName={exec.workflow?.name} />
             </Box>
           )}
