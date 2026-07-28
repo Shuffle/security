@@ -5458,6 +5458,7 @@ const IncidentDetailPage = () => {
     type TimelineItem =
       | { type: 'revision'; timestamp: number; data: any; idx: number; parsedCurrent: any; parsedPrevious: any | null }
       | { type: 'agent'; timestamp: number; data: typeof agentRuns[number] }
+      | { type: 'workflow-exec'; timestamp: number; data: typeof agentRuns[number] }
       | { type: 'manual'; timestamp: number; data: ActivityItem }
       | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsKeys?: string[]; obsType?: string; obsValue?: string };
 
