@@ -2419,6 +2419,18 @@ const IncidentDetailPage = () => {
     return map;
   }, [agentNotifications]);
 
+  // Questions scoped to this incident that we could not attach to a specific
+  // execution row (e.g. the parent workflow row is visible but the child agent
+  // execution is not). Rendered as a standalone card at the top of the
+  // timeline so the user can always answer without hunting.
+  const incidentQuestions = useMemo(() => {
+    return (agentNotifications || []).filter((n) => {
+      if (isApprovalNotification(n)) return;
+      if (!n.incident_id || !id) return false;
+      return String(n.incident_id) === String(id);
+    });
+  }, [agentNotifications, id]);
+
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
 
