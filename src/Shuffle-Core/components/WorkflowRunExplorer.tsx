@@ -44,6 +44,10 @@ import LinkIcon from '@mui/icons-material/Link';
 import { getApiUrl, getAuthHeader } from '../api';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import shuffleLogo from '@/assets/shuffle-logo.png';
+import singulAgentIcon from '@/assets/singul-agent-icon.png';
+
+const isAiAgentName = (name?: string) =>
+  !!name && name.trim().toLowerCase().replace(/[_-]+/g, ' ') === 'ai agent';
 import JsonView from 'react18-json-view';
 import type { JsonViewProps } from 'react18-json-view';
 import 'react18-json-view/src/style.css';
@@ -456,13 +460,14 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               (r?.action?.app_name && a?.app_name === r.action.app_name) ||
               (r?.action?.label && a?.label === r.action.label)
             );
-            const imgSrc =
-              r?.action?.large_image ||
-              (wfAction as any)?.large_image ||
-              r?.action?.small_image ||
-              (wfAction as any)?.small_image ||
-              '';
             const appName = r?.action?.app_name || (wfAction as any)?.app_name;
+            const imgSrc = isAiAgentName(appName)
+              ? singulAgentIcon
+              : (r?.action?.large_image ||
+                (wfAction as any)?.large_image ||
+                r?.action?.small_image ||
+                (wfAction as any)?.small_image ||
+                '');
             return (
             <Box
               key={r?.action?.id || idx}
@@ -580,13 +585,14 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             (debugResult?.action?.app_name && a?.app_name === debugResult.action.app_name) ||
             (debugResult?.action?.label && a?.label === debugResult.action.label)
           );
-          const imgSrc =
-            debugResult?.action?.large_image ||
-            (wfAction as any)?.large_image ||
-            debugResult?.action?.small_image ||
-            (wfAction as any)?.small_image ||
-            '';
           const appName = debugResult?.action?.app_name || (wfAction as any)?.app_name;
+          const imgSrc = isAiAgentName(appName)
+            ? singulAgentIcon
+            : (debugResult?.action?.large_image ||
+              (wfAction as any)?.large_image ||
+              debugResult?.action?.small_image ||
+              (wfAction as any)?.small_image ||
+              '');
           const label = debugResult?.action?.label || debugResult?.action?.name || 'Step result';
           const actionName = debugResult?.action?.name;
           const allParams: any[] = Array.isArray(debugResult?.action?.parameters) ? debugResult.action.parameters : [];
