@@ -2326,12 +2326,10 @@ const IncidentDetailPage = () => {
       return !replied;
     });
   }, [activity]);
-  // Scope the workflow-search API to the incident's lifecycle so older runs
-  // that would otherwise fall outside the recent-100 window are still found.
+  // Scope execution searches to the incident's lifecycle so older runs that
+  // would otherwise fall outside the recent-100 window are still found.
   // Window = incident.createdTs → last observed "change" event (activity max
-  // timestamp / edited time), padded on both sides for clock skew. If the
-  // incident is still active (pending mention or an in-flight run), we drop
-  // the upper bound so new runs keep landing in the results.
+  // timestamp / edited time), padded on both sides for clock skew.
   const runsWindow = useMemo(() => {
     if (loading || !incident) return {};
     const PAD_MS = 5 * 60 * 1000;
@@ -2359,6 +2357,15 @@ const IncidentDetailPage = () => {
     return runsWindow;
   }, [runsWindow, hasPendingAgentMention, refreshingObservables]);
 
+  // Non-agent workflow executions can change after the incident itself stops
+  // changing (for example, an abort happens from the execution drawer and does
+  // not necessarily write incident activity). Passing the old incident-derived
+  // end_time can make the workflow disappear after reload, so keep only the
+  // lower bound for the workflow-run timeline search.
+  const workflowRunsWindow = useMemo(() => ({
+    startTime: runsWindow.startTime,
+  }), [runsWindow.startTime]);
+
   const { runsForIncident: agentRuns, isLoading: agentRunsLoading, refetch: refetchAgentRuns } = useIncidentAgentRuns(!loading ? id : undefined, hasPendingAgentMention, activeRunsWindow);
   // Every OTHER workflow execution that touched this incident (datastore
   // triggers, enrichment / indicator-check workflows, forward-to-tool runs).
@@ -2368,7 +2375,7 @@ const IncidentDetailPage = () => {
   const { runsForIncident: allIncidentWorkflowRuns, refetch: refetchWorkflowRuns } = useIncidentWorkflowRuns(
     !loading ? id : undefined,
     hasPendingAgentMention || refreshingObservables,
-    activeRunsWindow,
+    workflowRunsWindow,
   );
   // When a workflow execution changes state from within the run explorer
   // (e.g. the user aborts it), refetch both the workflow-run and agent-run
