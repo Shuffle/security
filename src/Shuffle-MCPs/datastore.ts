@@ -117,6 +117,17 @@ const truncateResponsePreview = (value: string | null | undefined, maxLength = 2
   return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}…` : normalized;
 };
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isTransientDatastoreStatus = (status: number): boolean => {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+};
+
+const isSameDatastoreKey = (a: string | undefined, b: string): boolean => {
+  if (!a) return false;
+  return normalizeDatastoreKey(a) === normalizeDatastoreKey(b);
+};
+
 /**
  * Serialize a datastore value to a string for the API.
  * Validates JSON-shaped strings (parse+restringify) so we always send valid JSON.
@@ -272,6 +283,15 @@ export const getDatastoreItem = async (
     payload.category = category;
   }
 
+  const requestUrl = getApiUrl(`/api/v1/orgs/${orgId}/get_cache`);
+  const baseDiagnostics: DatastoreDiagnostics = {
+    operation: 'get',
+    category,
+    orgId,
+    url: requestUrl,
+    timestamp: new Date().toISOString(),
+  };
+
   // Always pin Org-Id header so the backend routes the read to the exact
   // tenant we asked for — do NOT rely on session default even when there is
   // no explicit override, because the URL path already carries this orgId.
@@ -283,31 +303,172 @@ export const getDatastoreItem = async (
 
   console.log(`[datastore.get] key=${rawKey} category=${category} orgId=${orgId}${overrideOrgId ? ' (override)' : ''}`);
 
-  const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/get_cache`), {
-    method: 'POST',
-    credentials: 'include',
-    headers,
-    body: JSON.stringify(payload),
-  });
+  let response: Response | null = null;
+  let rawBody = '';
+  const maxAttempts = category === 'shuffle-security_incidents' ? 3 : 2;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      response = await fetch(requestUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      rawBody = await response.text();
+      if (response.ok || response.status === 404 || !isTransientDatastoreStatus(response.status) || attempt === maxAttempts - 1) {
+        break;
+      }
+    } catch (error) {
+      if (attempt === maxAttempts - 1) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to get datastore item',
+          diagnostics: {
+            ...baseDiagnostics,
+            errorStage: 'request',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
+    }
+
+    await wait(400 * (attempt + 1));
+  }
+
+  if (!response) {
+    return {
+      success: false,
+      error: 'Failed to get datastore item',
+      diagnostics: {
+        ...baseDiagnostics,
+        errorStage: 'request',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
 
   if (!response.ok) {
     // 404 means key doesn't exist - not an error, just empty
     if (response.status === 404) {
-      return { success: true, item: undefined };
+      return {
+        success: true,
+        item: undefined,
+        diagnostics: {
+          ...baseDiagnostics,
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type'),
+          bodyPreview: truncateResponsePreview(rawBody),
+          errorStage: 'response',
+          timestamp: new Date().toISOString(),
+        },
+      };
     }
-    return { success: false, error: `Failed to get datastore item: ${response.statusText}` };
+
+    if (category === 'shuffle-security_incidents' && isTransientDatastoreStatus(response.status)) {
+      const fallbackItem = await findDatastoreItemInCategoryPages(rawKey, category, orgId);
+      if (fallbackItem) {
+        return {
+          success: true,
+          item: fallbackItem,
+          diagnostics: {
+            ...baseDiagnostics,
+            status: response.status,
+            statusText: `${response.statusText || 'transient'}; recovered via list_cache`,
+            contentType: response.headers.get('content-type'),
+            bodyPreview: truncateResponsePreview(rawBody),
+            errorStage: 'response',
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: `Failed to get datastore item: ${response.status} ${response.statusText}`.trim(),
+      diagnostics: {
+        ...baseDiagnostics,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        bodyPreview: truncateResponsePreview(rawBody),
+        errorStage: 'response',
+        timestamp: new Date().toISOString(),
+      },
+    };
   }
 
 
-  const data = await response.json();
+  let data: any;
+  try {
+    data = rawBody ? JSON.parse(rawBody) : {};
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? `Failed to parse datastore item response: ${error.message}` : 'Failed to parse datastore item response',
+      diagnostics: {
+        ...baseDiagnostics,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        bodyPreview: truncateResponsePreview(rawBody),
+        errorStage: 'parse',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
   
   // API returns success: false if key not found
   if (data.success === false && !data.value) {
-    return { success: true, item: undefined };
+    return {
+      success: true,
+      item: undefined,
+      diagnostics: {
+        ...baseDiagnostics,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        bodyPreview: truncateResponsePreview(rawBody),
+        responseShape: 'unknown',
+        itemCount: 0,
+        timestamp: new Date().toISOString(),
+      },
+    };
   }
   
-  return { success: true, item: data };
+  return {
+    success: true,
+    item: data,
+    diagnostics: {
+      ...baseDiagnostics,
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get('content-type'),
+      responseShape: 'unknown',
+      itemCount: data?.key ? 1 : 0,
+      timestamp: new Date().toISOString(),
+    },
+  };
 };
+
+async function findDatastoreItemInCategoryPages(
+  rawKey: string,
+  category: string,
+  orgId: string,
+): Promise<DatastoreItem | null> {
+  let cursor: string | undefined;
+  for (let page = 0; page < 12; page += 1) {
+    const response = await getDatastoreByCategory(category, cursor, 100, orgId);
+    if (!response.success) return null;
+    const found = (response.data || []).find((item) => isSameDatastoreKey(item.key, rawKey));
+    if (found) return found;
+    if (!response.cursor) return null;
+    cursor = response.cursor;
+  }
+  return null;
+}
 
 /**
  * Get a single item from the datastore using public authorization (no login required)
