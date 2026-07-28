@@ -6256,7 +6256,11 @@ const IncidentDetailPage = () => {
             key={`wfexec-${run.execution_id}`}
             data-timeline-compact="true"
             data-timeline-quiet={!isFailed && !isRunning ? 'true' : undefined}
-            onClick={() => { if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer'); }}
+            onClick={() => {
+              if (run.execution_id) setSelectedWorkflowExecutionId(String(run.execution_id));
+              else if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer');
+            }}
+
             sx={{
               position: 'relative',
               display: 'flex',
