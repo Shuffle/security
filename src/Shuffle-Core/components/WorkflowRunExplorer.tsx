@@ -194,6 +194,15 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         console.error('Abort failed', resp.status, await resp.text().catch(() => ''));
       }
       await load();
+      // Notify host surfaces (e.g. incident timeline) that this execution
+      // just changed state so they can refetch their workflow-run lists
+      // without waiting for the next poll cycle.
+      try {
+        window.dispatchEvent(new CustomEvent('workflow-run:changed', {
+          detail: { executionId: exec.execution_id, reason: 'aborted' },
+        }));
+      } catch { /* ignore */ }
+
     } catch (e) {
       console.error('Abort error', e);
     } finally {
