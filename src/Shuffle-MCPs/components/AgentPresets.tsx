@@ -149,102 +149,142 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     </Button>
   );
 
-  const menu = (
-    <Menu
-      anchorEl={anchorEl}
+  const [query, setQuery] = useState('');
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((p) =>
+      p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
+    );
+  }, [list, query]);
+
+  const menu = open ? (
+    <Popper
       open={open}
-      onClose={() => setAnchorEl(null)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      slotProps={{
-        paper: {
-          sx: {
-            mt: 0.5,
-            maxWidth: 360,
+      anchorEl={anchorEl}
+      placement="bottom-end"
+      style={{ zIndex: 1400 }}
+      modifiers={[{ name: 'offset', options: { offset: [0, 6] } }]}
+    >
+      <ClickAwayListener onClickAway={() => { setAnchorEl(null); setQuery(''); }}>
+        <Paper
+          sx={{
+            width: 360,
+            maxWidth: '90vw',
             bgcolor: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
             boxShadow: '0 8px 24px hsl(var(--background) / 0.4)',
-          },
-        },
-      }}
-    >
-      <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid hsl(var(--border))' }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))' }}>
-          Agent templates
-        </Typography>
-        <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', opacity: 0.7, mt: 0.25 }}>
-          Click a template to seed the prompt. More coming soon.
-        </Typography>
-      </Box>
-      {list.map((p) => (
-        <MenuItem
-          key={p.id}
-          disabled={!p.enabled}
-          aria-disabled={!p.enabled}
-          onClick={p.enabled ? () => {
-            onSelectPreset?.(p);
-            setAnchorEl(null);
-          } : undefined}
-          sx={{
-            alignItems: 'flex-start',
-            gap: 1.25,
-            py: 1,
-            px: 1.5,
-            opacity: '1 !important',
-            '&.Mui-disabled': { opacity: 1 },
-            cursor: p.enabled ? 'pointer' : 'not-allowed',
-            whiteSpace: 'normal',
+            overflow: 'hidden',
           }}
         >
-          <Box
-            sx={{
-              mt: 0.25,
-              width: 26,
-              height: 26,
-              borderRadius: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'hsl(var(--muted))',
-              color: 'hsl(var(--muted-foreground))',
-              flexShrink: 0,
-            }}
-          >
-            {p.icon}
+          <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid hsl(var(--border))' }}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))' }}>
+              Agent templates
+            </Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', opacity: 0.7, mt: 0.25 }}>
+              Click a template to seed the prompt. More coming soon.
+            </Typography>
           </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                {p.label}
-              </Typography>
-              {!p.enabled && (
-                <Typography
+          <Box sx={{ px: 1, pt: 1 }}>
+            <TextField
+              autoFocus
+              size="small"
+              fullWidth
+              placeholder="Search templates…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  fontSize: '0.8rem',
+                  bgcolor: 'hsl(var(--background))',
+                  '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                  '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                },
+                '& input': { color: 'hsl(var(--foreground))', py: '6px' },
+              }}
+            />
+          </Box>
+          <Box sx={{ maxHeight: 300, overflowY: 'auto', py: 0.5 }}>
+            {filtered.length === 0 ? (
+              <Box sx={{ px: 1.5, py: 2, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                  No templates match "{query}"
+                </Typography>
+              </Box>
+            ) : filtered.map((p) => (
+              <Box
+                key={p.id}
+                role="button"
+                aria-disabled={!p.enabled}
+                onClick={p.enabled ? () => {
+                  onSelectPreset?.(p);
+                  setAnchorEl(null);
+                  setQuery('');
+                } : undefined}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 1.25,
+                  py: 1,
+                  px: 1.5,
+                  cursor: p.enabled ? 'pointer' : 'not-allowed',
+                  '&:hover': { bgcolor: p.enabled ? 'hsl(var(--muted))' : 'transparent' },
+                }}
+              >
+                <Box
                   sx={{
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    color: 'hsl(var(--muted-foreground))',
+                    mt: 0.25,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     bgcolor: 'hsl(var(--muted))',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 999,
-                    lineHeight: 1,
+                    color: 'hsl(var(--muted-foreground))',
                     flexShrink: 0,
                   }}
                 >
-                  coming soon
-                </Typography>
-              )}
-            </Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>
-              {p.description}
-            </Typography>
+                  {p.icon}
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                      {p.label}
+                    </Typography>
+                    {!p.enabled && (
+                      <Typography
+                        sx={{
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                          color: 'hsl(var(--muted-foreground))',
+                          bgcolor: 'hsl(var(--muted))',
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: 999,
+                          lineHeight: 1,
+                          flexShrink: 0,
+                        }}
+                      >
+                        coming soon
+                      </Typography>
+                    )}
+                  </Box>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>
+                    {p.description}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
           </Box>
-        </MenuItem>
-      ))}
-    </Menu>
-  );
+        </Paper>
+      </ClickAwayListener>
+    </Popper>
+  ) : null;
+
 
   if (variant === 'inline') {
     return (
