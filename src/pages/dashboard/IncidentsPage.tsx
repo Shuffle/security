@@ -2645,22 +2645,8 @@ const IncidentsPage = () => {
             </IconButton>
           </Tooltip>
           )}
-          {threadContinuationBusy && (
-            <Tooltip title="Continuing existing merge thread in the background">
-              <Box sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 36,
-                height: 36,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-              }}>
-                <CircularProgress size={12} thickness={5} sx={{ color: 'text.secondary' }} />
-              </Box>
-            </Tooltip>
-          )}
+          {/* Thread continuation runs silently in the background — no indicator. */}
+
           <Tooltip title="Refresh">
             <IconButton 
               onClick={() => { sessionStorage.removeItem('shuffle_auto_resync_done'); autoResyncQueueRef.current.clear(); fetchItems(); fetchSubOrgIncidents(); }} 
