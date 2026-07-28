@@ -11464,8 +11464,16 @@ const IncidentDetailPage = () => {
         run={selectedAgentRun}
         onSchedule={handleScheduleAgentRun}
       />
+
+      {/* Workflow-run explorer — opened when clicking a "Workflow run" pill in the timeline */}
+      <WorkflowRunExplorerDrawer
+        open={!!selectedWorkflowExecutionId}
+        executionId={selectedWorkflowExecutionId || ''}
+        onClose={() => setSelectedWorkflowExecutionId(null)}
+      />
     </motion.div>
   );
 };
+
 
 export default IncidentDetailPage;
