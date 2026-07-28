@@ -494,9 +494,16 @@ export const IncidentCardView = ({
                     ? (incident as any)
                     : (incident as any).rawOCSF || (incident as any);
                   const linked = getLinkedPointers(rawSource);
-                  // Thread count always includes the current incident plus the merged ones.
-                  const count = linked.length + 1;
+                  // Thread count = merged pointers + self, OR the number of
+                  // siblings sharing the same email thread_id in the loaded
+                  // list (whichever is larger). This surfaces the badge even
+                  // when incidents share a thread but have not yet been
+                  // persistently merged.
+                  const pointerCount = linked.length + 1;
+                  const siblingCount = threadCounts?.[incident.id] || 0;
+                  const count = Math.max(pointerCount, siblingCount);
                   if (count <= 1) return null;
+
                   return (
                     <Tooltip title={`${count} incident${count !== 1 ? 's' : ''} in this thread`} arrow>
                       <Avatar
