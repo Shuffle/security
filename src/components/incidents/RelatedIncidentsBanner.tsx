@@ -9,7 +9,7 @@
 import { Box, Typography, Chip, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import { GitMerge, ExternalLink, Link2Off, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { toast } from '@/lib/toast';
 import { unlinkMergePair } from '@/lib/incidentRelations';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
