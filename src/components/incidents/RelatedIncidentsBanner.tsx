@@ -20,6 +20,8 @@ interface RelatedIncidentsBannerProps {
   invisibleCount: number;
   loading?: boolean;
   onUnlinked?: () => void;
+  /** If set, flash the matching linked row (auto-expanding the list when needed). */
+  highlightId?: string | null;
 }
 
 const readTs = (raw: any): number => {
