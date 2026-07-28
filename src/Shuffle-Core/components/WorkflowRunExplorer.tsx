@@ -544,7 +544,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                     src={deepParseJson(
                       debugResult?.__isExecutionArgument ? debugResult.result : debugResult
                     ) as object}
-                    baseName={actionName || label}
+                    baseName={debugResult?.__isExecutionArgument ? '$exec' : (actionName || label)}
                     dark
                     collapsed={1}
                     collapseStringMode="word"
