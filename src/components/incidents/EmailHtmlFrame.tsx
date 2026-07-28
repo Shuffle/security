@@ -442,6 +442,9 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
           border: 'none',
           display: 'block',
           backgroundColor: '#ffffff',
+          // Hide until first stable measurement to avoid the visible
+          // "growing" effect while fonts/images/late layout settle.
+          visibility: ready ? 'visible' : 'hidden',
         }}
       />
     </Box>
