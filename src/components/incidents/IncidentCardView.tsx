@@ -91,7 +91,12 @@ interface IncidentCardViewProps {
   /** Whether the current org has sub-tenants. When false, per-incident
    *  tenant chips are hidden because there is only one tenant in play. */
   isParentOrg?: boolean;
+  /** Optional map of incident id -> total number of incidents sharing the
+   *  same email thread_id across the loaded list. Used to surface the thread
+   *  badge for siblings that have not yet been persistently merged. */
+  threadCounts?: Record<string, number>;
 }
+
 
 // Skeleton card component for loading state
 const IncidentCardSkeleton = ({ index }: { index: number }) => (
