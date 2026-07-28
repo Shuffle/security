@@ -6,9 +6,11 @@
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { GitMerge, ArrowRight, Link2Off } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/lib/toast';
 import { unlinkMergePair } from '@/lib/incidentRelations';
+import { UnmergeConfirmDialog } from '@/components/incidents/UnmergeConfirmDialog';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 
 interface MergedIncidentBannerProps {
@@ -27,6 +29,7 @@ export const MergedIncidentBanner = ({
   onUnlinked,
 }: MergedIncidentBannerProps) => {
   const navigate = useNavigate();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const primaryId = primary?.id || primaryPointerId;
   if (!primaryId) return null;
 
@@ -42,7 +45,7 @@ export const MergedIncidentBanner = ({
   };
 
 
-  const unmerge = async () => {
+  const doUnmerge = async () => {
     if (!primaryId) return;
     const res = await unlinkMergePair({
       primaryId,
@@ -92,11 +95,17 @@ export const MergedIncidentBanner = ({
               : `Primary: ${primaryId}`}
         </Typography>
       </Box>
-      <Tooltip title="Unmerge">
-        <IconButton size="small" onClick={unmerge} sx={{ color: 'hsl(var(--muted-foreground))' }}>
+      <Tooltip title="Unmerge (rarely recommended)">
+        <IconButton size="small" onClick={() => setConfirmOpen(true)} sx={{ color: 'hsl(var(--muted-foreground))' }}>
           <Link2Off size={16} />
         </IconButton>
       </Tooltip>
+      <UnmergeConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        targetLabel={primary?.title || `incident ${primaryId}`}
+        onConfirm={doUnmerge}
+      />
       <Button
         asChild
         className="bg-[#ff6600] hover:bg-[#e55c00] text-white h-9"

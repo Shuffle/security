@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from '@/lib/toast';
 import { unlinkMergePair } from '@/lib/incidentRelations';
+import { UnmergeConfirmDialog } from '@/components/incidents/UnmergeConfirmDialog';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 
 interface RelatedIncidentsBannerProps {
@@ -47,6 +48,9 @@ export const RelatedIncidentsBanner = ({
 }: RelatedIncidentsBannerProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  // Pending confirmation target: null = closed, string = single sourceId,
+  // 'all' = unlink every merged source in one confirm.
+  const [pendingUnmerge, setPendingUnmerge] = useState<string | null>(null);
   const highlightMatch = useMemo(
     () => (highlightId ? linked.find((l) => l.id === highlightId) : null),
     [highlightId, linked],
@@ -77,6 +81,25 @@ export const RelatedIncidentsBanner = ({
       toast.error(res.error || 'Failed to unmerge');
     }
   };
+
+  const confirmLabel = (() => {
+    if (!pendingUnmerge) return '';
+    if (pendingUnmerge === 'all') {
+      return `${sorted.length} merged incident${sorted.length === 1 ? '' : 's'}`;
+    }
+    const hit = sorted.find((l) => l.id === pendingUnmerge);
+    return hit?.title || `incident ${pendingUnmerge}`;
+  })();
+
+  const runPendingUnmerge = async () => {
+    if (!pendingUnmerge) return;
+    if (pendingUnmerge === 'all') {
+      for (const l of sorted) await handleUnlink(l.id);
+    } else {
+      await handleUnlink(pendingUnmerge);
+    }
+  };
+
 
   const openIncident = (id: string) => navigate(`/incidents/${encodeURIComponent(id)}`);
 
@@ -147,10 +170,10 @@ export const RelatedIncidentsBanner = ({
                   <ExternalLink size={14} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Unmerge">
+              <Tooltip title="Unmerge (rarely recommended)">
                 <IconButton
                   size="small"
-                  onClick={() => handleUnlink(latest.id)}
+                  onClick={() => setPendingUnmerge(latest.id)}
                   sx={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   <Link2Off size={14} />
@@ -169,14 +192,10 @@ export const RelatedIncidentsBanner = ({
                   {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Unmerge all sources">
+              <Tooltip title="Unmerge all sources (rarely recommended)">
                 <IconButton
                   size="small"
-                  onClick={async () => {
-                    for (const l of sorted) {
-                      await handleUnlink(l.id);
-                    }
-                  }}
+                  onClick={() => setPendingUnmerge('all')}
                   sx={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   <Link2Off size={14} />
@@ -233,10 +252,10 @@ export const RelatedIncidentsBanner = ({
                   <ExternalLink size={14} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Unmerge">
+              <Tooltip title="Unmerge (rarely recommended)">
                 <IconButton
                   size="small"
-                  onClick={() => handleUnlink(l.id)}
+                  onClick={() => setPendingUnmerge(l.id)}
                   sx={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   <Link2Off size={14} />
@@ -247,6 +266,12 @@ export const RelatedIncidentsBanner = ({
           })}
         </Box>
       )}
+      <UnmergeConfirmDialog
+        open={pendingUnmerge !== null}
+        onOpenChange={(next) => { if (!next) setPendingUnmerge(null); }}
+        targetLabel={confirmLabel}
+        onConfirm={runPendingUnmerge}
+      />
     </Box>
   );
 };
