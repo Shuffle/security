@@ -4,7 +4,7 @@
  * cyberpunk neon palette, KPI tiles with sparklines, Panel wrapper with
  * uppercase title, EmptyState CTA, and shared chart tooltip.
  */
-import { Box, Typography, Skeleton, useTheme } from '@mui/material';
+import { Box, Typography, Skeleton, Tooltip as MuiTooltip, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
@@ -242,13 +242,14 @@ export interface KpiTileProps {
   value: number | string;
   label: string;
   delta?: { value: string; positive: boolean } | null;
+  /** Optional tooltip describing what the delta percentage represents. */
+  deltaTooltip?: string;
   spark?: number[];
   isLoading?: boolean;
   onClick?: () => void;
   delay?: number;
 }
-
-export const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoading, onClick, delay = 0 }: KpiTileProps) => {
+export const KpiTile = ({ icon: Icon, glow, value, label, delta, deltaTooltip, spark, isLoading, onClick, delay = 0 }: KpiTileProps) => {
   const sparkData = (spark ?? []).map((v, i) => ({ i, v }));
   const sparkId = `spark-${label.replace(/\s/g, '')}`;
   return (
@@ -318,17 +319,20 @@ export const KpiTile = ({ icon: Icon, glow, value, label, delta, spark, isLoadin
             </Typography>
           )}
           {delta && (
-            <Box sx={{
-              display: 'inline-flex', alignItems: 'center', gap: 0.25,
-              px: 0.6, py: 0.15,
-              borderRadius: 1,
-              fontSize: '0.65rem',
-              fontWeight: 600,
-              color: delta.positive ? NEON.green : NEON.red,
-              backgroundColor: delta.positive ? `${NEON.green}1A` : `${NEON.red}1A`,
-            }}>
-              {delta.positive ? '↓' : '↑'} {delta.value}
-            </Box>
+            <MuiTooltip title={deltaTooltip || 'Change vs the previous period'} arrow placement="top">
+              <Box sx={{
+                display: 'inline-flex', alignItems: 'center', gap: 0.25,
+                px: 0.6, py: 0.15,
+                borderRadius: 1,
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                cursor: 'help',
+                color: delta.positive ? NEON.green : NEON.red,
+                backgroundColor: delta.positive ? `${NEON.green}1A` : `${NEON.red}1A`,
+              }}>
+                {delta.positive ? '↓' : '↑'} {delta.value}
+              </Box>
+            </MuiTooltip>
           )}
         </Box>
         <Typography sx={{

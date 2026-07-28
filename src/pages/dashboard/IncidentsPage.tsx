@@ -3012,25 +3012,23 @@ const IncidentsPage = () => {
               )}
             </Box>
 
-            <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap' }}>
-              {(() => {
-                const localCount = sortedIncidents.length;
-                // Total = real number of incidents the user has access to.
-                // Prefer the post-filter pool size as the denominator only when
-                // no filter is active; otherwise show "<filtered> of <total>"
-                // where total is the ACTIVE (pre-filter) pool so the user can
-                // see how many are hidden by their filters.
-                const activeTotal = activeIncidents.length;
-                const apiTotal = totalAmount ?? 0;
-                const totalIncidents = Math.max(activeTotal, apiTotal, incidents.length);
-                const totalPages = Math.max(1, Math.ceil(localCount / ITEMS_PER_PAGE));
-                const isNarrowed = !isDefaultFilter && totalIncidents > localCount;
-                const countLabel = isNarrowed
-                  ? `${localCount} of ${totalIncidents} incidents (filtered)`
-                  : `${totalIncidents} incident${totalIncidents !== 1 ? 's' : ''}`;
-                return `${countLabel}${totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ''}`;
-              })()}
-            </Typography>
+            <Tooltip title={hasMore ? 'More incidents exist beyond the fetch cap — narrow filters or load more to see the exact total.' : 'Total incidents matching the current organization scope'} arrow placement="top">
+              <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap', cursor: 'help' }}>
+                {(() => {
+                  const localCount = sortedIncidents.length;
+                  const activeTotal = activeIncidents.length;
+                  const apiTotal = totalAmount ?? 0;
+                  const totalIncidents = Math.max(activeTotal, apiTotal, incidents.length);
+                  const totalDisplay = hasMore ? `${totalIncidents}+` : `${totalIncidents}`;
+                  const totalPages = Math.max(1, Math.ceil(localCount / ITEMS_PER_PAGE));
+                  const isNarrowed = !isDefaultFilter && totalIncidents > localCount;
+                  const countLabel = isNarrowed
+                    ? `${localCount} of ${totalDisplay} incidents (filtered)`
+                    : `${totalDisplay} incident${totalIncidents !== 1 ? 's' : ''}`;
+                  return `${countLabel}${totalPages > 1 ? ` · Page ${currentPage} of ${totalPages}` : ''}`;
+                })()}
+              </Typography>
+            </Tooltip>
 
             {/* Organization multi-select dropdown */}
             {isParentOrg && (
