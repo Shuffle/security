@@ -321,7 +321,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             Raw payload
           </Typography>
           <Box sx={{ mt: 0.5, maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1 }}>
-            <ReactJson src={exec} name={false} collapsed={2} theme="monokai" />
+            <ReactJson src={deepParseJson(exec) as object} name={false} collapsed={2} theme="monokai" />
           </Box>
         </Box>
       )}
