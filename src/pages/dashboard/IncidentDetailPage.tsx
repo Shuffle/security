@@ -7284,7 +7284,89 @@ const IncidentDetailPage = () => {
       );
     };
 
-    return topLevel.map((item) => renderThread(item, 0, false));
+    // ─── Fresh-incident agent prediction ────────────────────────────────
+    // If the incident is very fresh AND the AI Agent automation is enabled,
+    // there is a good chance the backend workflow is already running against
+    // it (indexing, enriching, deciding), but the resulting agent run has
+    // not landed in the datastore yet. Instead of silence, show a
+    // top-of-timeline "probably running" pill so users know something is
+    // happening. It self-clears the moment any real agent activity arrives
+    // or the incident stops being "fresh".
+    const AGENT_PREDICTION_WINDOW_MS = 3 * 60 * 1000;
+    const hasAgentActivity = items.some((it) => {
+      if (it.type === 'agent') return true;
+      if (it.type === 'manual') {
+        const u = String((it.data as any)?.user || '');
+        return /agent|ai\s*agent|aiagent/i.test(u);
+      }
+      return false;
+    });
+    const showAgentPrediction =
+      agentReadiness.active
+      && activeTimelineFilters.has('agent')
+      && Number.isFinite(incidentAgeMs)
+      && incidentAgeMs < AGENT_PREDICTION_WINDOW_MS
+      && !hasAgentActivity;
+
+    const agentPredictionNode = showAgentPrediction ? (
+      <Box
+        key="ai-prediction-fresh"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.75,
+          alignSelf: 'flex-start',
+          pl: 0.4,
+          pr: 1,
+          py: 0.4,
+          borderRadius: 999,
+          fontSize: '0.7rem',
+          background: 'var(--agent-gradient-subtle)',
+          border: '1px solid rgba(156, 90, 242, 0.35)',
+          color: 'text.primary',
+          maxWidth: '100%',
+        }}
+      >
+        <Tooltip title="Open Agent activity" arrow disableInteractive>
+          <Box
+            component={Link}
+            to="/agents"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Open Agent activity"
+            sx={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              background: 'rgba(0, 0, 0, 0.25)',
+              color: 'inherit',
+              textDecoration: 'none',
+              transition: 'background 0.15s ease, transform 0.15s ease',
+              '&:hover': { background: 'rgba(0, 0, 0, 0.4)', transform: 'scale(1.05)' },
+            }}
+          >
+            <AgentIcon size={11} />
+          </Box>
+        </Tooltip>
+        <CircularProgress size={10} thickness={6} sx={{ color: 'rgba(156, 90, 242, 0.9)', flexShrink: 0 }} />
+        <Typography
+          variant="caption"
+          sx={{ fontSize: '0.7rem', fontWeight: 500, color: 'inherit', lineHeight: 1 }}
+        >
+          AI Agent is likely running — waiting for the first update…
+        </Typography>
+      </Box>
+    ) : null;
+
+    return (
+      <>
+        {agentPredictionNode}
+        {topLevel.map((item) => renderThread(item, 0, false))}
+      </>
+    );
   };
 
   return (
