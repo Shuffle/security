@@ -7548,8 +7548,9 @@ const IncidentDetailPage = () => {
               const unavailable = relatedIncidents?.invisibleCount || 0;
               const suffix = unavailable ? ` (${unavailable} unavailable)` : '';
               return (
-                <Tooltip title={`${total} incident${total !== 1 ? 's' : ''} in this thread${suffix}`} arrow>
+                <Tooltip title={`${total} incident${total !== 1 ? 's' : ''} in this thread${suffix} — click to view`} arrow>
                   <Avatar
+                    onClick={(e) => { e.stopPropagation(); focusRelatedIncident(null); }}
                     sx={{
                       position: 'absolute',
                       bottom: -5,
@@ -7562,6 +7563,9 @@ const IncidentDetailPage = () => {
                       color: 'hsl(var(--primary-foreground))',
                       border: '2px solid hsl(var(--background))',
                       boxSizing: 'border-box',
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s ease',
+                      '&:hover': { transform: 'scale(1.08)' },
                     }}
                   >
                     {total}
