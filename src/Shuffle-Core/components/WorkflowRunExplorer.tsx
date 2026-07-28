@@ -38,11 +38,15 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LinkIcon from '@mui/icons-material/Link';
 import { getApiUrl, getAuthHeader } from '../api';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import JsonView from 'react18-json-view';
+import type { JsonViewProps } from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
+
 
 export interface WorkflowExecution {
   execution_id?: string;
@@ -282,7 +286,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--muted-foreground))' }}>
                 Execution argument
               </Typography>
-              <ResultRenderer value={exec.execution_argument} />
+              <ResultRenderer value={exec.execution_argument} baseName={exec.workflow?.name} />
             </Box>
           )}
 
@@ -387,7 +391,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               </Box>
               {r?.result && (
                 <Box sx={{ mt: 0.5 }}>
-                  <ResultRenderer value={r.result} />
+                  <ResultRenderer value={r.result} baseName={r?.action?.name || r?.action?.label} />
                 </Box>
               )}
             </Box>
@@ -430,8 +434,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               bgcolor: 'hsl(var(--muted) / 0.4)',
             }}
           >
-            <JsonView
+            <JsonViewWithReference
               src={deepParseJson(debugResult) as object}
+              baseName={debugResult?.action?.name || debugResult?.action?.label}
               dark
               collapsed={1}
               collapseStringMode="word"
@@ -498,12 +503,79 @@ const deepParseJson = (input: unknown, depth = 0): unknown => {
   return input;
 };
 
-const ResultRenderer: React.FC<{ value: unknown }> = ({ value }) => {
+const safeBaseName = (name?: string | null): string => {
+  if (!name) return 'workflow';
+  const normalized = name
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return normalized || 'workflow';
+};
+
+type JsonViewWithReferenceProps = JsonViewProps & { baseName?: string };
+
+const JsonViewWithReference: React.FC<JsonViewWithReferenceProps> = ({ baseName, ...props }) => {
+  const copyModeRef = useRef<'value' | 'reference'>('value');
+  const effectiveBaseName = safeBaseName(baseName);
+
+  const customizeCopy = React.useCallback(
+    (node: any, nodeMeta?: any) => {
+      const mode = copyModeRef.current;
+      copyModeRef.current = 'value';
+
+      if (mode === 'reference') {
+        const path = nodeMeta?.currentPath ?? nodeMeta?.parentPath ?? [];
+        const segments = path.map((seg: string | number) =>
+          typeof seg === 'number' || /^\d+$/.test(String(seg)) ? '#' : seg
+        );
+        return segments.length ? `$${effectiveBaseName}.${segments.join('.')}` : `$${effectiveBaseName}`;
+      }
+
+      if (typeof node === 'string') return node;
+      if (node === null || node === undefined) return '';
+      try {
+        return JSON.stringify(node, null, 2);
+      } catch {
+        return String(node);
+      }
+    },
+    [effectiveBaseName]
+  );
+
+  const CopyComponent = React.useCallback(
+    ({ onClick, className }: { onClick: (e: React.MouseEvent) => void; className: string }) => (
+      <span className={className} style={{ display: 'inline-flex', gap: 2, alignItems: 'center', verticalAlign: 'middle' }}>
+        <Tooltip title="Copy value" arrow>
+          <ContentCopyIcon
+            fontSize="inherit"
+            onClick={onClick}
+            sx={{ cursor: 'pointer', width: 14, height: 14, opacity: 0.7, '&:hover': { opacity: 1 } }}
+          />
+        </Tooltip>
+        <Tooltip title="Copy reference" arrow>
+          <LinkIcon
+            fontSize="inherit"
+            onClick={(e) => {
+              copyModeRef.current = 'reference';
+              onClick(e);
+            }}
+            sx={{ cursor: 'pointer', width: 14, height: 14, opacity: 0.7, '&:hover': { opacity: 1 } }}
+          />
+        </Tooltip>
+      </span>
+    ),
+    []
+  );
+
+  return <JsonView {...props} customizeCopy={customizeCopy} CopyComponent={CopyComponent} />;
+};
+
+const ResultRenderer: React.FC<{ value: unknown; baseName?: string }> = ({ value, baseName }) => {
   const parsed = deepParseJson(value);
   if (parsed && typeof parsed === 'object') {
     return (
       <Box sx={{ maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1, bgcolor: 'hsl(var(--muted) / 0.4)' }}>
-        <JsonView src={parsed as object} dark collapsed={1} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
+        <JsonViewWithReference src={parsed as object} baseName={baseName} dark collapsed={1} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
       </Box>
     );
   }
@@ -527,6 +599,7 @@ const ResultRenderer: React.FC<{ value: unknown }> = ({ value }) => {
     </Box>
   );
 };
+
 
 export interface WorkflowRunExplorerDrawerProps extends WorkflowRunExplorerProps {
   open: boolean;
