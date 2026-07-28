@@ -7237,49 +7237,72 @@ const IncidentDetailPage = () => {
     // Standardised "indicator check running" pill — same shape/placement as the
     // AI Agent processing pill so all in-flight loaders attach BELOW the
     // message that triggered them instead of floating at the top of the feed.
-    const renderIndicatorCheckPlaceholder = (key: string) => (
-      <Box
-        key={`indicator-check-${key}`}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.75,
-          alignSelf: 'flex-start',
-          pl: 0.4,
-          pr: 1,
-          py: 0.4,
-          borderRadius: 999,
-          fontSize: '0.7rem',
-          background: 'rgba(255, 102, 0, 0.08)',
-          border: '1px solid rgba(255, 102, 0, 0.35)',
-          color: 'text.primary',
-          maxWidth: '100%',
-        }}
-      >
+    const renderIndicatorCheckPlaceholder = (key: string) => {
+      // While the observable check is running we scan the freshly-polled
+      // workflow-run list for the newest execution that touched this incident
+      // in the last ~60 seconds. When one appears the pill turns into a
+      // direct link to that execution so users can jump to the run itself.
+      const now = Date.now();
+      const recentRun: any = (allIncidentWorkflowRuns || [])
+        .filter((r: any) => {
+          const ts = normalizeToMs(r?.started_at);
+          return ts > 0 && (now - ts) < 90_000;
+        })
+        .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0];
+      const wfId = recentRun?.workflow_id || recentRun?.workflow?.id || '';
+      const execId = recentRun?.execution_id || '';
+      const execUrl = wfId && execId
+        ? `https://shuffler.io/workflows/${wfId}?execution_id=${execId}`
+        : '';
+      const isClickable = !!execUrl;
+      return (
         <Box
+          key={`indicator-check-${key}`}
+          onClick={isClickable ? () => window.open(execUrl, '_blank', 'noopener,noreferrer') : undefined}
           sx={{
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
             display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            background: 'rgba(0, 0, 0, 0.25)',
-            position: 'relative',
+            gap: 0.75,
+            alignSelf: 'flex-start',
+            pl: 0.4,
+            pr: 1,
+            py: 0.4,
+            borderRadius: 999,
+            fontSize: '0.7rem',
+            background: 'rgba(255, 102, 0, 0.08)',
+            border: '1px solid rgba(255, 102, 0, 0.35)',
+            color: 'text.primary',
+            maxWidth: '100%',
+            cursor: isClickable ? 'pointer' : 'default',
+            transition: 'background-color 0.15s ease',
+            '&:hover': isClickable ? { background: 'rgba(255, 102, 0, 0.15)' } : undefined,
           }}
         >
-          <FingerprintIcon size={11} style={{ color: 'hsl(var(--muted-foreground))' }} />
+          <Box
+            sx={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              background: 'rgba(0, 0, 0, 0.25)',
+              position: 'relative',
+            }}
+          >
+            <FingerprintIcon size={11} style={{ color: 'hsl(var(--muted-foreground))' }} />
+          </Box>
+          <CircularProgress size={10} thickness={6} sx={{ color: '#ff6600', flexShrink: 0 }} />
+          <Typography
+            variant="caption"
+            sx={{ fontSize: '0.7rem', fontWeight: 500, color: 'inherit', lineHeight: 1 }}
+          >
+            {isClickable ? 'Checking your message for observables — view run' : 'Checking your message for observables…'}
+          </Typography>
         </Box>
-        <CircularProgress size={10} thickness={6} sx={{ color: '#ff6600', flexShrink: 0 }} />
-        <Typography
-          variant="caption"
-          sx={{ fontSize: '0.7rem', fontWeight: 500, color: 'inherit', lineHeight: 1 }}
-        >
-          Checking your message for observables…
-        </Typography>
-      </Box>
-    );
+      );
+    };
 
     // Identify the most recent top-level manual comment so the indicator-check
     // pill attaches under the latest user message (which triggered the check).
