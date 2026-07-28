@@ -2135,7 +2135,7 @@ const IncidentDetailPage = () => {
   const { fields: customFields } = useCustomFields();
   const { observableTypeNames, iocTypes, refetch: refetchIOCTypes } = useIOCTypes();
   const { templates: caseTemplates, trackUsage: trackTemplateUsage } = useCaseTemplates();
-  const { addItem, getItem } = useDatastore({
+  const { getItem } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
     orgId: crossOrgId || undefined,
   });
@@ -3590,7 +3590,8 @@ const IncidentDetailPage = () => {
     };
 
     try {
-      const saveSuccess = await addItem(incident.id, updatedData);
+      const saveResult = await writeIncidentSafe(incident.id, updatedData, crossOrgId || undefined);
+      const saveSuccess = saveResult.success;
       if (!saveSuccess) {
         toast.error('Failed to save changes');
         return;
@@ -4132,7 +4133,7 @@ const IncidentDetailPage = () => {
     }
 
     if (targetOrgId !== sourceOrgId) {
-      const write = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
+      const write = await writeIncidentSafe(incident.id, value as object, targetOrgId);
       if (!write.success) throw new Error(`Could not write incident to ${targetName}`);
       const check = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
       if (!(check?.success && check.item?.value)) throw new Error(`Could not verify incident in ${targetName}`);
@@ -4343,11 +4344,11 @@ const IncidentDetailPage = () => {
     };
 
     if (changed) {
-      const ok = await addItem(incident.id, updatedData);
+      const ok = (await writeIncidentSafe(incident.id, updatedData, crossOrgId || undefined)).success;
       if (!ok) throw new Error('Failed to apply routing rule actions');
       if (sharedOrgs.length > 0) {
         await Promise.allSettled(sharedOrgs.map((org) =>
-          setDatastoreItem(incident.id, updatedData, DATASTORE_CATEGORIES.INCIDENTS, org.id)
+          writeIncidentSafe(incident.id, updatedData, org.id)
         ));
       }
       setEditedTitle(nextTitle);
@@ -4442,7 +4443,7 @@ const IncidentDetailPage = () => {
       customFields: editedCustomFields,
     };
 
-    await addItem(incident.id, resolvedData);
+    await writeIncidentSafe(incident.id, resolvedData, crossOrgId || undefined);
     setIsSaving(false);
     setShowResolveDialog(false);
     toast.success(t('Incident resolved'));
@@ -6860,7 +6861,7 @@ const IncidentDetailPage = () => {
 
       try {
         pendingSaveRef.current = true;
-        await addItem(incident.id, { ...incident.rawOCSF, activity: updatedActivity });
+        await writeIncidentSafe(incident.id, { ...incident.rawOCSF, activity: updatedActivity }, crossOrgId || undefined);
         toast.success('Re-running AI Agent');
       } catch (err) {
         console.error('[Rerun] Failed to persist rerun:', err);
@@ -10435,7 +10436,7 @@ const IncidentDetailPage = () => {
                   try {
                     const parsed = JSON.parse(rawJsonText);
                     setIsSaving(true);
-                    const result = await setDatastoreItem(incident.id, parsed, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
+                    const result = await writeIncidentSafe(incident.id, parsed, crossOrgId || undefined);
                     if (result.success) {
                       toast.success('Raw data saved');
                       setSelectedRevisionIdx(null);
@@ -11033,7 +11034,7 @@ const IncidentDetailPage = () => {
                     console.log(`[MoveTenant] add -> ${targetOrgId}`);
                     let written = false;
                     try {
-                      const wr = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
+                      const wr = await writeIncidentSafe(incident.id, value as object, targetOrgId);
                       written = !!wr.success;
                     } catch { written = false; }
                     if (written) addedOk.push(targetOrgId); else addFailures.push(targetOrgId);
