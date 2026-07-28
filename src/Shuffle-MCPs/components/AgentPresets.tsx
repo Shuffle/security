@@ -10,9 +10,9 @@
  * frontend no longer seeds the prompt or pre-selects tools locally. Disabled
  * presets render with a "coming soon" chip and are not clickable.
  */
-import { useState } from 'react';
-import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
-import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Autocomplete, Box, Button, ClickAwayListener, Paper, Popper, TextField, Typography } from '@mui/material';
+import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 
 export interface AgentPreset {
   id: string;
