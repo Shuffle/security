@@ -128,6 +128,19 @@ const shuffleUrlForExecution = (exec: WorkflowExecution): string | null => {
   return `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${execId}`;
 };
 
+/** Make action labels readable in the sidebar while leaving action names as-is
+ *  because they are function references (e.g., `get_health`, `runQuestions`). */
+const humanizeLabel = (label?: string | null): string | null => {
+  if (!label || typeof label !== 'string') return null;
+  const spaced = label
+    .replace(/[_\-]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .trim();
+  if (!spaced) return null;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+
 export interface WorkflowRunExplorerProps {
   /** Execution id to inspect. Required. */
   executionId: string;
