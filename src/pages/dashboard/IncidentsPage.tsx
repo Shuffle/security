@@ -3148,6 +3148,29 @@ const IncidentsPage = () => {
           <IncidentCardView
             incidents={sortedIncidents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)}
             getIncidentUrl={getIncidentUrl}
+            threadCounts={(() => {
+              // Group all loaded incidents by shared email thread_id from
+              // the raw OCSF payload. Any group with 2+ members contributes
+              // a count to every member so the thread badge shows on the
+              // list even before persistent merging catches up.
+              const buckets = new Map<string, string[]>();
+              for (const inc of sortedIncidents) {
+                const raw = (inc as any).rawOCSF || (inc as any);
+                const tid = extractThreadId(raw);
+                if (!tid) continue;
+                const key = String(tid).toLowerCase();
+                const arr = buckets.get(key) || [];
+                arr.push(inc.id);
+                buckets.set(key, arr);
+              }
+              const out: Record<string, number> = {};
+              for (const ids of buckets.values()) {
+                if (ids.length < 2) continue;
+                for (const id of ids) out[id] = ids.length;
+              }
+              return out;
+            })()}
+
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             isLoading={isLoading}
