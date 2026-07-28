@@ -242,7 +242,8 @@ export const RelatedIncidentsBanner = ({
                 </IconButton>
               </Tooltip>
             </Box>
-          ))}
+            );
+          })}
         </Box>
       )}
     </Box>
