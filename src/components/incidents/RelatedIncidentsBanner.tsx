@@ -43,9 +43,18 @@ export const RelatedIncidentsBanner = ({
   invisibleCount,
   loading,
   onUnlinked,
+  highlightId,
 }: RelatedIncidentsBannerProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const highlightMatch = useMemo(
+    () => (highlightId ? linked.find((l) => l.id === highlightId) : null),
+    [highlightId, linked],
+  );
+  // Auto-expand the full list when the highlight target isn't the summary row.
+  useEffect(() => {
+    if (highlightMatch && linked.length > 1) setExpanded(true);
+  }, [highlightMatch, linked.length]);
   if (!loading && linked.length === 0 && invisibleCount === 0) return null;
 
   const sorted = useMemo(() => {
