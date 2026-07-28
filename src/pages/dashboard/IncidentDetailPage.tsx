@@ -6427,7 +6427,9 @@ const IncidentDetailPage = () => {
               alignItems: 'center',
               gap: 1,
               px: 1.25,
-              py: 0.75,
+              height: 30,
+              boxSizing: 'border-box',
+              lineHeight: 1,
               borderRadius: 1.5,
               border: isFailed
                 ? '1px solid hsl(var(--destructive) / 0.5)'
