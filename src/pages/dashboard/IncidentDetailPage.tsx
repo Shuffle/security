@@ -333,7 +333,16 @@ const getMissingCriticalFields = (data: unknown): string[] => {
   const missing: string[] = [];
   const title = d.title || fi.title;
   if (!title || (typeof title === 'string' && !title.trim())) missing.push('title');
-  const desc = d.desc || d.message || d.description || fi.desc;
+  const desc = d.desc
+    || d.description
+    || d.message
+    || d.summary
+    || fi.desc
+    || fi.description
+    || fi.summary
+    || d.remediation?.desc
+    || d.metadata?.extensions?.custom_attributes?.description
+    || d.metadata?.extensions?.custom_attributes?.desc;
   if (!desc || (typeof desc === 'string' && !desc.trim())) missing.push('description');
   const id = d.finding_uid || d.id || fi.uid || fi.finding_uid;
   if (!id || (typeof id === 'string' && !id.trim())) missing.push('id');
