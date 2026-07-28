@@ -705,8 +705,13 @@ const IncidentDetailPage = () => {
   const publicOrg = searchParams.get('org');
   const isPublicView = !!(publicAuth && publicOrg);
 
-  const [incident, setIncident] = useState<DisplayIncident | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Seed with the list-row fallback when present so click-through from
+  // /incidents renders the ticket shell (title, severity, source) instantly
+  // instead of flashing a black skeleton while the datastore recovery path
+  // (transient retries + list_cache pagination) grinds through ~10s.
+  const [incident, setIncident] = useState<DisplayIncident | null>(() => listFallbackIncident);
+  const [loading, setLoading] = useState(!listFallbackIncident);
+
 
   // When a demo incident was seeded with static fallback IOCs (because the
   // live `ioc_*` datastore categories were empty at seed time), the seeder
