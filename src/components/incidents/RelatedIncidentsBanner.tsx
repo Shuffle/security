@@ -55,11 +55,12 @@ export const RelatedIncidentsBanner = ({
   useEffect(() => {
     if (highlightMatch && linked.length > 1) setExpanded(true);
   }, [highlightMatch, linked.length]);
-  if (!loading && linked.length === 0 && invisibleCount === 0) return null;
 
   const sorted = useMemo(() => {
     return [...linked].sort((a, b) => (readTs(b.raw) - readTs(a.raw)) || b.id.localeCompare(a.id));
   }, [linked]);
+
+  if (!loading && linked.length === 0 && invisibleCount === 0) return null;
 
   const latest = sorted[0];
   const total = linked.length + invisibleCount;
