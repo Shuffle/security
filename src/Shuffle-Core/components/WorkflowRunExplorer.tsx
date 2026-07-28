@@ -485,7 +485,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                   )}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                      {typeof label === 'string' ? label.replaceAll('_', ' ') : label}
+                      {typeof label === 'string' ? label.split('_').join(' ') : label}
                     </Typography>
                     {actionName && (
                       <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
