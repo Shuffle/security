@@ -6317,6 +6317,11 @@ const IncidentDetailPage = () => {
               '&:hover': {
                 borderColor: 'hsl(var(--muted-foreground) / 0.4)',
                 bgcolor: 'hsl(var(--muted) / 0.3)',
+                ...(isFailed || isRunning ? {} : {
+                  '& .wf-status-icon svg': { color: 'hsl(var(--severity-low))' },
+                  '& .wf-status-icon svg *': { stroke: 'hsl(var(--severity-low))' },
+                  '& .wf-status-text': { color: 'hsl(var(--severity-low))' },
+                }),
               },
             }}
           >
@@ -6325,7 +6330,7 @@ const IncidentDetailPage = () => {
                 <Box sx={{ position: 'absolute', left: -28, top: 0, width: 24, height: 24, cursor: 'help', zIndex: 2 }} />
               </Tooltip>
             )}
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.7 }}>
+            <Box className="wf-status-icon" sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.7, transition: 'color 0.15s ease' }}>
               {isRunning
                 ? <CircularProgress size={12} thickness={5} sx={{ color: 'hsl(var(--muted-foreground))' }} />
                 : <ZapIcon size={14} color={isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />}
@@ -6334,7 +6339,7 @@ const IncidentDetailPage = () => {
               {wfName}{shortId ? ` · ${shortId}` : ''}
             </Typography>
             {status && (
-              <Typography sx={{ fontSize: '0.7rem', color: isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', flexShrink: 0, textTransform: 'lowercase' }}>
+              <Typography className="wf-status-text" sx={{ fontSize: '0.7rem', color: isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', flexShrink: 0, textTransform: 'lowercase', transition: 'color 0.15s ease' }}>
                 · {status.toLowerCase()}
               </Typography>
             )}
