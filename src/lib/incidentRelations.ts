@@ -554,8 +554,20 @@ export const unlinkMergePair = async ({
   const prevStatusId = sourcePointer?.previous_status_id;
   const prevStatus = sourcePointer?.previous_status;
 
-  const nextPrimary = removePointer(primaryRaw, sourceId);
-  const nextSource: any = removePointer(sourceRaw, primaryId);
+  const now = Date.now();
+
+  const stampUnmerged = (raw: any, otherId: string): any => {
+    const next: any = { ...(raw || {}) };
+    const existing: string[] = Array.isArray(next._unmerged_from) ? next._unmerged_from : [];
+    if (!existing.includes(otherId)) next._unmerged_from = [...existing, otherId];
+    else next._unmerged_from = existing;
+    return next;
+  };
+
+  let nextPrimary: any = removePointer(primaryRaw, sourceId);
+  nextPrimary = stampUnmerged(nextPrimary, sourceId);
+  let nextSource: any = removePointer(sourceRaw, primaryId);
+  nextSource = stampUnmerged(nextSource, primaryId);
   // Restore the source's previous status. If none was recorded, fall back
   // to "new" — never leave an incident stuck in Merged after unlink.
   nextSource.status_id = typeof prevStatusId === 'number' ? prevStatusId : 1;
@@ -563,7 +575,6 @@ export const unlinkMergePair = async ({
   delete nextSource.merged_into;
   delete nextSource.merged_at;
 
-  const now = Date.now();
   const activity = Array.isArray(nextSource.activity) ? nextSource.activity : [];
   nextSource.activity = [
     ...activity,
@@ -573,6 +584,17 @@ export const unlinkMergePair = async ({
       user: unlinkedBy || 'System',
       timestamp: now,
       content: `Unmerged from "${primaryId}"`,
+    },
+  ];
+  const pActivity = Array.isArray(nextPrimary.activity) ? nextPrimary.activity : [];
+  nextPrimary.activity = [
+    ...pActivity,
+    {
+      id: `unmerge-out-${now}`,
+      type: 'system',
+      user: unlinkedBy || 'System',
+      timestamp: now,
+      content: `Unmerged "${sourceId}" from this incident (auto-merge disabled for this pair)`,
     },
   ];
 
@@ -590,6 +612,24 @@ export const unlinkMergePair = async ({
   if (!r2.success) return { success: false, error: r2.error || 'Failed to update merged incident' };
   return { success: true };
 };
+
+/**
+ * True when `raw` has an explicit user-recorded unmerge against `otherId`.
+ * Auto-merge paths MUST honour this so a merge the analyst manually undid
+ * does not silently reappear on the next background pass.
+ */
+export const wasUnmergedFrom = (raw: any, otherId: string): boolean => {
+  if (!raw || typeof raw !== 'object' || !otherId) return false;
+  const list = raw._unmerged_from;
+  if (!Array.isArray(list)) return false;
+  const key = otherId.toLowerCase();
+  return list.some((x) => typeof x === 'string' && x.toLowerCase() === key);
+};
+
+/** True if EITHER side of the (a, b) pair has recorded an unmerge against the other. */
+export const pairWasUnmerged = (rawA: any, idA: string, rawB: any, idB: string): boolean =>
+  wasUnmergedFrom(rawA, idB) || wasUnmergedFrom(rawB, idA);
+
 
 // ---------------------------------------------------------------------------
 // Lazy migration for legacy tombstones (smartMerge era)
