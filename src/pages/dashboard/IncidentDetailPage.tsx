@@ -7654,8 +7654,22 @@ const IncidentDetailPage = () => {
       </Box>
     ) : null;
 
+    // Any open agent Question scoped to this incident renders at the very top
+    // of the timeline so the user can always answer without hunting for the
+    // stuck row (the notification's execution_id often points to a child agent
+    // execution that is not itself listed on the timeline).
+    const questionBanners = (incidentQuestions || []).map((n) => (
+      <Box key={`inc-question-${n.id}`} sx={{ mb: 1 }}>
+        <InlineAgentQuestion
+          notification={n}
+          onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+        />
+      </Box>
+    ));
+
     return (
       <>
+        {questionBanners}
         {agentPredictionNode}
         {topLevel.map((item) => renderThread(item, 0, false))}
       </>
