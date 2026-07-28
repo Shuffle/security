@@ -1920,7 +1920,7 @@ const IncidentDetailPage = () => {
     // primary (either direction). Auto-merge must never resurrect a pair
     // that was manually taken apart.
     const sources = pool.slice(1).filter((s) => !pairWasUnmerged(primary.raw, primary.id, s.raw, s.id));
-    if (sources.length === 0) { setAutoMergeBusy(false); return; }
+    if (sources.length === 0) return;
 
 
 
