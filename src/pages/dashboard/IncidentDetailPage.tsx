@@ -2579,7 +2579,7 @@ const IncidentDetailPage = () => {
       }
 
       const stage = isEmptyStub ? 'no-item' : (result.success ? 'no-item' : 'no-success');
-      if (listFallbackIncident && stage === 'no-success') {
+      if (listFallbackIncident) {
         setIncident(listFallbackIncident);
       }
       setLoadDebug({
