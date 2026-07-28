@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, useTheme } from '@mui/material';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import { requestExternalLinkConfirm } from '@/utils/safeExternalLinks';
 
 interface EmailHtmlFrameProps {
   html: string;
@@ -197,6 +198,25 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
             img.addEventListener('load', measure, { once: true });
             img.addEventListener('error', measure, { once: true });
           }
+        });
+
+        // Intercept every link click inside the email so untrusted links
+        // cannot navigate inside the iframe. Show the global external-link
+        // confirmation dialog and open approved links in a new tab.
+        doc.querySelectorAll('a').forEach((anchor) => {
+          anchor.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const raw = anchor.getAttribute('href')?.trim();
+            if (!raw || raw.startsWith('#')) return;
+            if (/^(javascript|vbscript|data):/i.test(raw)) return;
+            try {
+              const resolved = new URL(raw, window.location.href).toString();
+              requestExternalLinkConfirm(resolved);
+            } catch {
+              requestExternalLinkConfirm(raw);
+            }
+          });
         });
 
         // Bridge text selections inside the email iframe up to the parent so
