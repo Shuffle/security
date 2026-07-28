@@ -170,10 +170,10 @@ export const RelatedIncidentsBanner = ({
                   <ExternalLink size={14} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Unmerge">
+              <Tooltip title="Unmerge (rarely recommended)">
                 <IconButton
                   size="small"
-                  onClick={() => handleUnlink(latest.id)}
+                  onClick={() => setPendingUnmerge(latest.id)}
                   sx={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   <Link2Off size={14} />
@@ -192,14 +192,10 @@ export const RelatedIncidentsBanner = ({
                   {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Unmerge all sources">
+              <Tooltip title="Unmerge all sources (rarely recommended)">
                 <IconButton
                   size="small"
-                  onClick={async () => {
-                    for (const l of sorted) {
-                      await handleUnlink(l.id);
-                    }
-                  }}
+                  onClick={() => setPendingUnmerge('all')}
                   sx={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   <Link2Off size={14} />
