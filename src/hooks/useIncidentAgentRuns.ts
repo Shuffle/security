@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { searchAgentActivity, AgentRun } from '@/services/agentActivity';
 import { getAgentRunsForIncident } from '@/lib/agentParsers';
 
