@@ -164,6 +164,15 @@ export const useBackgroundThreadContinuation = (
           );
           const siblings = siblingLoads
             .filter((s): s is { id: string; raw: any; title: string } => !!s)
+            // The list snapshot can lag behind the latest datastore write.
+            // Skip anything that already points back to this primary so we do
+            // not call linkMergePair just to rediscover the pair is done.
+            .filter((s) => {
+              const sourcePrimary = getPrimaryPointer(s.raw);
+              if (sourcePrimary?.id?.toLowerCase() === candidate.id.toLowerCase()) return false;
+              if (String(s.raw?.merged_into || '').toLowerCase() === candidate.id.toLowerCase()) return false;
+              return true;
+            })
             // Skip siblings that were explicitly unmerged from this primary
             // (either direction). The analyst chose to keep them apart.
             .filter((s) => !pairWasUnmerged(raw, candidate.id, s.raw, s.id));
