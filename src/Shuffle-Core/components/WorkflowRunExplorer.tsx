@@ -258,22 +258,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--muted-foreground))' }}>
                 Execution argument
               </Typography>
-              <Box
-                sx={{
-                  bgcolor: 'hsl(var(--muted) / 0.4)',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 1,
-                  p: 1,
-                  maxHeight: 220,
-                  overflow: 'auto',
-                  fontFamily: 'monospace',
-                  fontSize: '0.8rem',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {exec.execution_argument}
-              </Box>
+              <ResultRenderer value={exec.execution_argument} />
             </Box>
           )}
 
@@ -336,7 +321,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             Raw payload
           </Typography>
           <Box sx={{ mt: 0.5, maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1 }}>
-            <ReactJson src={exec} name={false} collapsed={2} theme="monokai" />
+            <ReactJson src={deepParseJson(exec) as object} name={false} collapsed={2} theme="monokai" />
           </Box>
         </Box>
       )}
@@ -353,18 +338,50 @@ const MetaRow: React.FC<{ label: string; value: React.ReactNode; accent?: boolea
   </Box>
 );
 
-const ResultRenderer: React.FC<{ value: string }> = ({ value }) => {
-  const trimmed = (value || '').trim();
-  let parsed: any = null;
-  try {
-    parsed = trimmed && (trimmed.startsWith('{') || trimmed.startsWith('[')) ? JSON.parse(trimmed) : null;
-  } catch {
-    parsed = null;
+/** Try hard to turn a value into structured JSON. Handles double-encoded
+ *  strings, code-fenced blocks, and recursively parses string properties
+ *  whose contents also look like JSON. */
+const deepParseJson = (input: unknown, depth = 0): unknown => {
+  if (depth > 5) return input;
+  if (input == null) return input;
+  if (typeof input === 'string') {
+    let s = input.trim();
+    if (!s) return input;
+    // Strip ```json fences
+    if (s.startsWith('```')) {
+      s = s.replace(/^```(?:json)?\s*/i, '').replace(/```$/i, '').trim();
+    }
+    // Unwrap surrounding quotes on already-quoted JSON strings
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      try { const inner = JSON.parse(s); if (typeof inner === 'string') s = inner; } catch { /* ignore */ }
+    }
+    if (s.startsWith('{') || s.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(s);
+        return deepParseJson(parsed, depth + 1);
+      } catch { /* fall through */ }
+    }
+    return input;
   }
+  if (Array.isArray(input)) {
+    return input.map((v) => deepParseJson(v, depth + 1));
+  }
+  if (typeof input === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      out[k] = deepParseJson(v, depth + 1);
+    }
+    return out;
+  }
+  return input;
+};
+
+const ResultRenderer: React.FC<{ value: unknown }> = ({ value }) => {
+  const parsed = deepParseJson(value);
   if (parsed && typeof parsed === 'object') {
     return (
-      <Box sx={{ maxHeight: 260, overflow: 'auto' }}>
-        <ReactJson src={parsed} name={false} collapsed={1} theme="monokai" />
+      <Box sx={{ maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1, bgcolor: 'hsl(var(--muted) / 0.4)' }}>
+        <ReactJson src={parsed as object} name={false} collapsed={1} theme="monokai" />
       </Box>
     );
   }
@@ -378,9 +395,13 @@ const ResultRenderer: React.FC<{ value: string }> = ({ value }) => {
         color: 'hsl(var(--muted-foreground))',
         maxHeight: 260,
         overflow: 'auto',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: 1,
+        p: 1,
+        bgcolor: 'hsl(var(--muted) / 0.4)',
       }}
     >
-      {value}
+      {typeof value === 'string' ? value : String(value ?? '')}
     </Box>
   );
 };
