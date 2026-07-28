@@ -173,6 +173,11 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
+    let resizeObserver: ResizeObserver | null = null;
+    let mutationObserver: MutationObserver | null = null;
+    const retryTimers: number[] = [];
+    let cancelled = false;
+
     const measure = () => {
       try {
         const doc = iframe.contentDocument;
@@ -181,18 +186,33 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
           Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight),
           maxHeight,
         );
-        setHeight(h + 4);
+        if (h > 0) setHeight(h + 4);
       } catch {
         setHeight(400);
       }
     };
 
-    measure();
-    const onLoad = () => {
-      measure();
+    const wireDocument = () => {
       try {
         const doc = iframe.contentDocument;
         if (!doc) return;
+
+        // Observe body size changes so late-loading fonts, images and
+        // reflows keep the iframe height in sync. Without this, an initial
+        // measurement of 0/near-zero (srcDoc parsing hadn't finished when
+        // the load event fired) would leave the frame collapsed until the
+        // user popped out and docked back.
+        if (doc.body) {
+          try {
+            resizeObserver = new ResizeObserver(measure);
+            resizeObserver.observe(doc.body);
+          } catch { /* ignore */ }
+          try {
+            mutationObserver = new MutationObserver(measure);
+            mutationObserver.observe(doc.body, { childList: true, subtree: true, characterData: true });
+          } catch { /* ignore */ }
+        }
+
         doc.querySelectorAll('img').forEach((img) => {
           if (!(img as HTMLImageElement).complete) {
             img.addEventListener('load', measure, { once: true });
@@ -247,8 +267,37 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
         /* ignore */
       }
     };
+
+    const onLoad = () => {
+      measure();
+      wireDocument();
+      // A few staggered remeasurements catch late layout (webfonts, images,
+      // slow srcDoc parsing) where a single measure() right after load
+      // still reports 0.
+      [50, 200, 600, 1500].forEach((delay) => {
+        const t = window.setTimeout(() => { if (!cancelled) measure(); }, delay);
+        retryTimers.push(t);
+      });
+    };
+
     iframe.addEventListener('load', onLoad);
-    return () => iframe.removeEventListener('load', onLoad);
+    // If the srcDoc already finished parsing before this effect attached
+    // the listener (React re-mount, HMR, fast navigation), the load event
+    // never fires again — invoke onLoad manually so height and wiring get
+    // applied on the very first render.
+    try {
+      if (iframe.contentDocument?.readyState === 'complete') {
+        onLoad();
+      }
+    } catch { /* ignore */ }
+
+    return () => {
+      cancelled = true;
+      iframe.removeEventListener('load', onLoad);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      retryTimers.forEach((t) => window.clearTimeout(t));
+    };
   }, [srcDoc, maxHeight]);
 
   return (
