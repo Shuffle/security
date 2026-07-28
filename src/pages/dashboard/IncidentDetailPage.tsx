@@ -1896,10 +1896,17 @@ const IncidentDetailPage = () => {
       })),
     ];
 
-    // Latest wins, but never pick a draft-only incident as primary — drafts
-    // are unsent and must not become the source of truth. Sort non-draft
-    // first, then by newest timestamp, then by id (stable tiebreaker).
+    // Primary selection order:
+    //   1. If any pool member ALREADY anchors merges (has linked pointers),
+    //      it stays the primary. Threads keep a stable ID across time —
+    //      new siblings fold into the existing anchor instead of rotating
+    //      the primary to whichever incident happens to be newest.
+    //   2. Otherwise (first merge on this thread), never pick a draft as
+    //      primary; latest non-draft wins; id breaks ties.
     pool.sort((a, b) => {
+      const aAnchor = getLinkedPointers(a.raw).length > 0 ? 0 : 1;
+      const bAnchor = getLinkedPointers(b.raw).length > 0 ? 0 : 1;
+      if (aAnchor !== bAnchor) return aAnchor - bAnchor;
       const ad = isDraftOnlyIncident(a.raw) ? 1 : 0;
       const bd = isDraftOnlyIncident(b.raw) ? 1 : 0;
       if (ad !== bd) return ad - bd;
@@ -1907,6 +1914,7 @@ const IncidentDetailPage = () => {
     });
     const primary = pool[0];
     const sources = pool.slice(1);
+
 
 
     setAutoMergeBusy(true);
@@ -1947,9 +1955,10 @@ const IncidentDetailPage = () => {
       if (failures.length === 0) {
         toast.success(
           sources.length === 1
-            ? 'Merged 1 thread sibling into the latest incident'
-            : `Merged ${sources.length} thread siblings into the latest incident`,
+            ? 'Merged 1 thread sibling into the existing incident'
+            : `Merged ${sources.length} thread siblings into the existing incident`,
         );
+
       } else {
         // Surface the actual failure reason(s) so the analyst can act:
         // group by error message, then show up to 2 sample titles per group.
