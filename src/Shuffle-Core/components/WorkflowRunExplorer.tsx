@@ -460,13 +460,14 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               (r?.action?.app_name && a?.app_name === r.action.app_name) ||
               (r?.action?.label && a?.label === r.action.label)
             );
-            const imgSrc =
-              r?.action?.large_image ||
-              (wfAction as any)?.large_image ||
-              r?.action?.small_image ||
-              (wfAction as any)?.small_image ||
-              '';
             const appName = r?.action?.app_name || (wfAction as any)?.app_name;
+            const imgSrc = isAiAgentName(appName)
+              ? singulAgentIcon
+              : (r?.action?.large_image ||
+                (wfAction as any)?.large_image ||
+                r?.action?.small_image ||
+                (wfAction as any)?.small_image ||
+                '');
             return (
             <Box
               key={r?.action?.id || idx}
