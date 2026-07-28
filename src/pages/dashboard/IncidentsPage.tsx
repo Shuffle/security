@@ -33,7 +33,7 @@ import { useSubOrgs } from '@/hooks/useSubOrgs';
 import { useUsers } from '@/hooks/useUsers';
 import { DATASTORE_CATEGORIES, getDatastoreByCategory, getDatastoreItem, setDatastoreItem, setDatastoreItems, CategoryAutomation, deleteDatastoreItem, deleteDatastoreItems } from '@/Shuffle-MCPs/datastore';
 import { sweepOrphanDemoIncidents } from '@/services/demoMode';
-import { writeIncidentSafe } from '@/lib/incidentRelations';
+import { enforceMergedStatusInvariant, writeIncidentSafe } from '@/lib/incidentRelations';
 import { extractThreadId } from '@/hooks/useThreadCorrelatedIncidents';
 
 import { CreateIncidentDialog, ActivityItem } from '@/components/incidents/CreateIncidentDialog';
@@ -295,7 +295,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
       };
     }
 
-    const data = JSON.parse(item.value);
+    const data = enforceMergedStatusInvariant(JSON.parse(item.value));
     
     // Check if this is new OCSF format (has finding_uid at root)
     const isNewFormat = 'finding_uid' in data && 'title' in data;
