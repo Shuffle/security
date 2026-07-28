@@ -694,6 +694,9 @@ const IncidentDetailPage = () => {
     valueLength?: number;
     valuePreview?: string;
     error?: string;
+    httpStatus?: number;
+    httpStatusText?: string;
+    responsePreview?: string;
     timestamp?: string;
   } | null>(null);
   // Demo-mode self-heal: when the user lands on a demo focus incident URL
@@ -2540,6 +2543,10 @@ const IncidentDetailPage = () => {
         isPublicView,
         httpSuccess: !!result.success,
         reason: (result as { reason?: string }).reason,
+        error: result.error,
+        httpStatus: result.diagnostics?.status,
+        httpStatusText: result.diagnostics?.statusText,
+        responsePreview: result.diagnostics?.bodyPreview,
         valueLength: result.item?.value?.length || 0,
         timestamp: new Date().toISOString(),
       });
@@ -2575,6 +2582,23 @@ const IncidentDetailPage = () => {
     suborgRetryRef.current = true;
     loadIncidentRef.current?.();
   }, [loading, incident, isPublicView, id, loadDebug?.stage, subOrgs.length, parentOrg]);
+
+  // Transport failures are not the same as a missing incident. Keep retrying a
+  // few times before showing any terminal state so transient backend/circuit
+  // breaker responses do not become a false "not found" screen.
+  const transientLoadRetryRef = useRef(0);
+  useEffect(() => {
+    if (loading || incident || isPublicView || !id) return;
+    const transient = loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success';
+    if (!transient) return;
+    if (transientLoadRetryRef.current >= 4) return;
+    transientLoadRetryRef.current += 1;
+    const retryDelay = Math.min(1500 * transientLoadRetryRef.current, 6000);
+    const timer = window.setTimeout(() => {
+      loadIncidentRef.current?.();
+    }, retryDelay);
+    return () => window.clearTimeout(timer);
+  }, [loading, incident, isPublicView, id, loadDebug?.stage, loadDebug?.timestamp]);
 
   // Cross-org merge: once we know shared orgs and have the primary incident loaded,
   // fetch all other org versions and deep-merge them into the current data.
@@ -4664,11 +4688,34 @@ const IncidentDetailPage = () => {
 
   if (!incident) {
     const isSupport = userInfo?.support === true;
+    const isTransientLoadFailure = loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success';
+    const retryingTransientLoad = isTransientLoadFailure && transientLoadRetryRef.current < 4;
     return (
       <Box sx={{ p: 4, textAlign: 'center', maxWidth: 900, mx: 'auto' }}>
         <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2 }}>
-          {entitySingular} not found
+          {isTransientLoadFailure ? `Loading ${entitySingular.toLowerCase()}` : `${entitySingular} not found`}
         </Typography>
+        {isTransientLoadFailure && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+            {retryingTransientLoad
+              ? 'Retrying after a temporary API response…'
+              : 'The API did not return the incident yet. Refresh to retry.'}
+          </Typography>
+        )}
+        {retryingTransientLoad && <CircularProgress size={22} sx={{ mb: 2 }} />}
+        {isTransientLoadFailure && !retryingTransientLoad && (
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => {
+              transientLoadRetryRef.current = 0;
+              loadIncidentRef.current?.();
+            }}
+            sx={{ mr: 1 }}
+          >
+            Refresh
+          </Button>
+        )}
         <Button 
           component={Link} 
           to={entityBasePath} 
