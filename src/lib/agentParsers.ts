@@ -64,7 +64,7 @@ export const isIncidentReference = (ref: DatastoreReference): boolean => {
  * Collect every string field from an agent run that might reference an incident.
  * Includes execution_argument, every result.result, decisions, and the result blob.
  */
-const collectRunText = (run: AgentRun): string => {
+export const collectRunText = (run: AgentRun): string => {
   const parts: string[] = [];
   if (typeof run.execution_argument === 'string') parts.push(run.execution_argument);
   if (typeof run.result === 'string') parts.push(run.result);
