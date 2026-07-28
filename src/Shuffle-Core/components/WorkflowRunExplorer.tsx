@@ -485,14 +485,23 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                   <IconButton size="small" onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
                     <ArrowLeftIcon />
                   </IconButton>
-                  {(appName || imgSrc) && (
-                    <AppFallbackIcon
-                      name={appName || label}
-                      imageUrl={imgSrc}
-                      size={40}
-                      alt={appName || label}
-                      style={{ borderRadius: 8, border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
+                  {debugResult?.__isExecutionArgument ? (
+                    <Box
+                      component="img"
+                      src={shuffleLogo}
+                      alt="Shuffle Core"
+                      sx={{ width: 40, height: 40, borderRadius: 1, border: '1px solid hsl(var(--border))', objectFit: 'contain', bgcolor: 'hsl(var(--muted))' }}
                     />
+                  ) : (
+                    (appName || imgSrc) && (
+                      <AppFallbackIcon
+                        name={appName || label}
+                        imageUrl={imgSrc}
+                        size={40}
+                        alt={appName || label}
+                        style={{ borderRadius: 8, border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
+                      />
+                    )
                   )}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
