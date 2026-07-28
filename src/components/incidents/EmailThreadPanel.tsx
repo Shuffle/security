@@ -483,13 +483,14 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const headerActions = (
     <>
       {onReply && (
-        <Tooltip title="Reply">
-          <IconButton size="small" onClick={() => setShowReplyBox(!showReplyBox)} sx={{
-            color: showReplyBox ? primaryColor : 'text.secondary',
-            '&:hover': { color: primaryColor },
-          }}>
-            <ReplyIcon size={18} />
-          </IconButton>
+        <Tooltip title="Reply (disabled)">
+          <span>
+            <IconButton size="small" disabled sx={{
+              color: 'text.secondary',
+            }}>
+              <ReplyIcon size={18} />
+            </IconButton>
+          </span>
         </Tooltip>
       )}
       {onForward && (
