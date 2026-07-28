@@ -2561,6 +2561,21 @@ const IncidentDetailPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, crossOrgId, isPublicView, publicOrg, publicAuth]);
 
+  // Retry once when sub-org / parent-org lists arrive after an empty first
+  // load. Navigating from /incidents mounts this page before useSubOrgs has
+  // resolved, so the initial cross-tenant probe has zero targets and reports
+  // "not found". As soon as new probe targets become available, try again —
+  // this makes click-through match the behaviour of a hard refresh.
+  const suborgRetryRef = useRef(false);
+  useEffect(() => {
+    if (suborgRetryRef.current) return;
+    if (loading || incident || isPublicView || !id) return;
+    if (loadDebug?.stage !== 'no-item' && loadDebug?.stage !== 'no-success') return;
+    if (subOrgs.length === 0 && !parentOrg) return;
+    suborgRetryRef.current = true;
+    loadIncidentRef.current?.();
+  }, [loading, incident, isPublicView, id, loadDebug?.stage, subOrgs.length, parentOrg]);
+
   // Cross-org merge: once we know shared orgs and have the primary incident loaded,
   // fetch all other org versions and deep-merge them into the current data.
   const crossOrgMergedRef = useRef(false);
