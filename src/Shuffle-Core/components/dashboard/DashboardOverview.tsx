@@ -44,6 +44,9 @@ interface OverviewIncident {
 export interface OverviewProps extends ShuffleCoreHostProps {
   incidents: OverviewIncident[];
   incidentsLoading?: boolean;
+  /** True when the incidents source has more items beyond what was fetched
+   *  (e.g. hit the page/fetch cap). Renders counts as "N+". */
+  incidentsHasMore?: boolean;
   vulnSeverityCounts: { critical: number; high: number; medium: number; low: number; info: number };
   vulnLoading?: boolean;
   monitorHostCount: number | null;
@@ -72,6 +75,7 @@ const STATUS_COLORS = {
 export const DashboardOverview = ({
   incidents,
   incidentsLoading,
+  incidentsHasMore,
   vulnSeverityCounts,
   vulnLoading,
   monitorHostCount,
@@ -243,9 +247,10 @@ export const DashboardOverview = ({
           icon={AlertTriangle}
           glow={NEON.magenta}
 
-          value={incidentStats.openCount}
+          value={incidentsHasMore ? `${incidentStats.openCount}+` : incidentStats.openCount}
           label="Open Incidents"
           delta={incidentStats.delta}
+          deltaTooltip="Change in open incidents vs the previous 24 hours"
           isLoading={incidentsLoading}
           onClick={() => incidentStats.openCount === 0
             ? navigateSetup('siem_case_management_1', '/incidents?highlight=ingest', 'area=automatic_ingestion&category=case_management')
