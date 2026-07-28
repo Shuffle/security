@@ -311,8 +311,46 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         </Typography>
       )}
 
-      {exec && (
+      {exec && (() => {
+        const startedMs = exec.started_at ? exec.started_at * 1000 : 0;
+        const longRunning = isRunning(exec.status) && startedMs > 0 && (Date.now() - startedMs) > 5 * 60 * 1000;
+        const notifCount = Number(exec.notifications_created) || 0;
+        const hasNotifications = notifCount > 0;
+        const showWarning = hasNotifications || longRunning;
+        return (
         <Box sx={{ px: 1 }}>
+          {showWarning && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 1,
+                px: 1.25,
+                py: 1,
+                mb: 1.5,
+                border: '1px solid hsl(var(--severity-medium) / 0.6)',
+                bgcolor: 'hsl(var(--severity-medium) / 0.1)',
+                borderRadius: 1.5,
+                color: 'hsl(var(--foreground))',
+              }}
+            >
+              <Box sx={{ color: 'hsl(var(--severity-medium))', mt: '2px', fontSize: 16, lineHeight: 1 }}>!</Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'hsl(var(--severity-medium))' }}>
+                  Needs attention
+                </Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
+                  {hasNotifications && (
+                    <>Created {notifCount} notification{notifCount === 1 ? '' : 's'} — the workflow reported an issue.</>
+                  )}
+                  {hasNotifications && longRunning && ' '}
+                  {longRunning && (
+                    <>Still executing after more than 5 minutes — may be stuck.</>
+                  )}
+                </Typography>
+              </Box>
+            </Box>
+          )}
           {exec.status && (
             <MetaRow
               label="Status"
@@ -320,8 +358,18 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   {exec.status}
                   {isRunning(exec.status) && (
-                    <CircularProgress size={12} thickness={4} sx={{ color: '#FF8544' }} />
+                    <CircularProgress size={12} thickness={4} sx={{ color: longRunning ? 'hsl(var(--severity-medium))' : '#FF8544' }} />
                   )}
+                </Box>
+              }
+            />
+          )}
+          {hasNotifications && (
+            <MetaRow
+              label="Notifications"
+              value={
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--severity-medium))', fontWeight: 600 }}>
+                  {notifCount}
                 </Box>
               }
             />
@@ -344,6 +392,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
           {exec.workflow?.actions?.[0]?.environment && (
             <MetaRow label="Location" value={exec.workflow.actions[0].environment} accent />
           )}
+
 
           {exec.execution_argument && exec.execution_argument.length > 1 && (
             <Box sx={{ mt: 2 }}>
@@ -497,7 +546,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             );
           })}
         </Box>
-      )}
+        );
+      })()}
+
 
 
       <Dialog

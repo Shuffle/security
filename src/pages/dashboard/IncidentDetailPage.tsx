@@ -6284,6 +6284,11 @@ const IncidentDetailPage = () => {
         const status = String(run.status || '').toUpperCase();
         const isRunning = status === 'EXECUTING' || status === 'WAITING' || status === 'RUNNING';
         const isFailed = status === 'FAILED' || status === 'ERROR' || status === 'ABORTED';
+        const startedMs = run.started_at ? normalizeToMs(run.started_at) : 0;
+        const isLongRunning = isRunning && startedMs > 0 && (Date.now() - startedMs) > 5 * 60 * 1000;
+        const notifCount = Number(run.notifications_created) || 0;
+        const hasNotifications = notifCount > 0;
+        const isWarning = !isFailed && (hasNotifications || isLongRunning);
         const timeAgo = run.started_at ? getAgentTimeAgo(run.started_at) : '';
         const exactTs = run.started_at ? new Date(normalizeToMs(run.started_at)).toLocaleString() : '';
         const wfName = run.workflow?.name || run.workflow_name || 'Workflow';
@@ -6294,11 +6299,16 @@ const IncidentDetailPage = () => {
           : run.execution_id
             ? `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${run.execution_id}`
             : '';
+        const warnTitle = hasNotifications && isLongRunning
+          ? `${notifCount} notification${notifCount === 1 ? '' : 's'} created · running >5 min`
+          : hasNotifications
+            ? `${notifCount} notification${notifCount === 1 ? '' : 's'} created — may indicate an issue`
+            : 'Executing for more than 5 minutes';
         return (
           <Box
             key={`wfexec-${run.execution_id}`}
             data-timeline-compact="true"
-            data-timeline-quiet={!isFailed && !isRunning ? 'true' : undefined}
+            data-timeline-quiet={!isFailed && !isRunning && !isWarning ? 'true' : undefined}
             onClick={() => {
               if (run.execution_id) setSelectedWorkflowExecutionId(String(run.execution_id));
               else if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer');
@@ -6312,14 +6322,18 @@ const IncidentDetailPage = () => {
               px: 1.25,
               py: 0.75,
               borderRadius: 1.5,
-              border: isFailed ? '1px solid hsl(var(--destructive) / 0.5)' : '1px solid transparent',
-              bgcolor: 'transparent',
+              border: isFailed
+                ? '1px solid hsl(var(--destructive) / 0.5)'
+                : isWarning
+                  ? '1px solid hsl(var(--severity-medium) / 0.6)'
+                  : '1px solid transparent',
+              bgcolor: isWarning ? 'hsl(var(--severity-medium) / 0.08)' : 'transparent',
               cursor: execUrl ? 'pointer' : 'default',
               transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
               '&:hover': {
-                borderColor: 'hsl(var(--muted-foreground) / 0.4)',
-                bgcolor: 'hsl(var(--muted) / 0.3)',
-                ...(isFailed || isRunning ? {} : {
+                borderColor: isWarning ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground) / 0.4)',
+                bgcolor: isWarning ? 'hsl(var(--severity-medium) / 0.14)' : 'hsl(var(--muted) / 0.3)',
+                ...(isFailed || isRunning || isWarning ? {} : {
                   '& .wf-status-icon svg': { color: 'hsl(var(--severity-low))' },
                   '& .wf-status-icon svg *': { stroke: 'hsl(var(--severity-low))' },
                   '& .wf-status-text': { color: 'hsl(var(--severity-low))' },
@@ -6332,18 +6346,30 @@ const IncidentDetailPage = () => {
                 <Box sx={{ position: 'absolute', left: -28, top: 0, width: 24, height: 24, cursor: 'help', zIndex: 2 }} />
               </Tooltip>
             )}
-            <Box className="wf-status-icon" sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.7, transition: 'color 0.15s ease' }}>
+            <Box className="wf-status-icon" sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.8, transition: 'color 0.15s ease' }}>
               {isRunning
-                ? <CircularProgress size={12} thickness={5} sx={{ color: 'hsl(var(--muted-foreground))' }} />
-                : <ZapIcon size={14} color={isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />}
+                ? <CircularProgress size={12} thickness={5} sx={{ color: isWarning ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))' }} />
+                : <ZapIcon size={14} color={isFailed ? 'hsl(var(--destructive))' : isWarning ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))'} />}
             </Box>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1 }}>
+            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: isWarning ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1 }}>
               {wfName}{shortId ? ` · ${shortId}` : ''}
             </Typography>
             {status && (
-              <Typography className="wf-status-text" sx={{ fontSize: '0.7rem', color: isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', flexShrink: 0, textTransform: 'lowercase', transition: 'color 0.15s ease' }}>
+              <Typography className="wf-status-text" sx={{ fontSize: '0.7rem', color: isFailed ? 'hsl(var(--destructive))' : isWarning ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))', flexShrink: 0, textTransform: 'lowercase', transition: 'color 0.15s ease' }}>
                 · {status.toLowerCase()}
               </Typography>
+            )}
+            {isWarning && (
+              <Tooltip title={warnTitle} arrow>
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, flexShrink: 0, color: 'hsl(var(--severity-medium))' }}>
+                  <WarningAmberIcon size={13} />
+                  {hasNotifications && (
+                    <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--severity-medium))', fontWeight: 600 }}>
+                      {notifCount}
+                    </Typography>
+                  )}
+                </Box>
+              </Tooltip>
             )}
             {timeAgo && (
               <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 'auto', flexShrink: 0 }}>
@@ -6353,6 +6379,7 @@ const IncidentDetailPage = () => {
           </Box>
         );
       }
+
 
       if (item.type === 'step') {
         // Compact "step" pill — these are derived events (task created /
