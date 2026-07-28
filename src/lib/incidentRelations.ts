@@ -414,6 +414,9 @@ export const linkMergePair = async ({
   // At most, repair the source-side tombstone/status so both sides agree.
   if (primaryAlreadyLinksSource) {
     let nextPrimary: any = primaryRaw || {};
+    if (Array.isArray(nextPrimary.activity)) {
+      nextPrimary = { ...nextPrimary, activity: dedupeMergeAuditActivity(nextPrimary.activity) };
+    }
     const foldedFrom = Array.isArray(nextPrimary._merged_data_from) ? nextPrimary._merged_data_from : [];
     if (!foldedFrom.some((x: string) => incidentIdKey(x) === sourceKey)) {
       nextPrimary = { ...nextPrimary, _merged_data_from: [...foldedFrom, sourceId] };
@@ -873,6 +876,9 @@ const unionPointers = (
  */
 export const preserveRelationFields = (existing: any, next: any): any => {
   const out: any = { ...(next || {}) };
+  if (Array.isArray(out.activity)) {
+    out.activity = dedupeMergeAuditActivity(out.activity);
+  }
   if (!existing || typeof existing !== 'object') return out;
 
   const merged = unionPointers(
@@ -993,6 +999,8 @@ export const reconcileRelatedFromRevisions = (
   const merged = unionPointers(currentPointers, revPointers);
   const foldedUnion = new Set<string>([...currentFolded, ...revFolded]);
   const currentRelationRefs = getRelationRefs(currentRaw);
+  const currentActivity = Array.isArray(currentRaw.activity) ? currentRaw.activity : [];
+  const dedupedActivity = currentActivity.length > 0 ? dedupeMergeAuditActivity(currentActivity) : currentActivity;
   const mergedRelationRefs = unionRelationRefs(
     currentRelationRefs,
     merged.filter((p) => p.relation === 'merged').map((p) => p.id),
@@ -1002,15 +1010,17 @@ export const reconcileRelatedFromRevisions = (
     merged.length !== currentPointers.length ||
     merged.some(p => !currentPointers.find(cp => cp.id === p.id && cp.primary === p.primary));
   const foldedChanged = foldedUnion.size !== currentFolded.size;
+  const activityChanged = dedupedActivity.length !== currentActivity.length;
   const relatedRefsChanged =
     mergedRelationRefs.length !== currentRelationRefs.length ||
     mergedRelationRefs.some((ref) => !currentRelationRefs.find((current) => relationRefKey(current) === relationRefKey(ref)));
 
-  if (!pointersChanged && !foldedChanged && !relatedRefsChanged) return { raw: currentRaw, changed: false };
+  if (!pointersChanged && !foldedChanged && !relatedRefsChanged && !activityChanged) return { raw: currentRaw, changed: false };
 
   const next: any = { ...currentRaw };
   if (merged.length > 0) next.related_incidents = merged;
   if (foldedUnion.size > 0) next._merged_data_from = Array.from(foldedUnion);
   if (mergedRelationRefs.length > 0) next.related_events = mergedRelationRefs;
+  if (activityChanged) next.activity = dedupedActivity;
   return { raw: next, changed: true };
 };
