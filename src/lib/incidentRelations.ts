@@ -194,14 +194,39 @@ export const getRelatedIncidents = (raw: any): RelatedIncidentPointer[] => {
     p && typeof p.id === 'string' && typeof p.relation === 'string');
 };
 
+/** True when this row actively points at another incident as its primary. */
+export const hasActiveMergedSourceRelation = (raw: any): boolean => {
+  if (!raw || typeof raw !== 'object') return false;
+  // Legacy destructive merge tombstone.
+  if (raw.status_id === 99) return true;
+  const primaryPointer = getRelatedIncidents(raw).find(
+    (p) => p.relation === 'merged' && p.primary && !wasUnmergedFrom(raw, p.id),
+  );
+  if (primaryPointer) return true;
+  const mergedInto = relationRefId(raw.merged_into);
+  return !!mergedInto && !wasUnmergedFrom(raw, mergedInto);
+};
+
+/**
+ * Hard invariant: if an incident is the non-primary side of a merge, its
+ * status must be Merged. This prevents stale detail/list saves from preserving
+ * the merge pointer while accidentally restoring an older "New" status.
+ */
+export const enforceMergedStatusInvariant = (raw: any): any => {
+  if (!hasActiveMergedSourceRelation(raw)) return raw;
+  if (raw?.status_id === MERGED_STATUS_ID && raw?.status === MERGED_STATUS_LABEL) return raw;
+  return {
+    ...(raw || {}),
+    status_id: MERGED_STATUS_ID,
+    status: MERGED_STATUS_LABEL,
+  };
+};
+
 /** True when this incident is the non-primary side of a merge pair. */
 export const isMergedIncident = (raw: any): boolean => {
   if (!raw || typeof raw !== 'object') return false;
   if (raw.status_id === MERGED_STATUS_ID) return true;
-  // Legacy tombstones from the old destructive smartMerge writer.
-  if (raw.status_id === 99) return true;
-  if (raw.merged_into) return true;
-  return getRelatedIncidents(raw).some(p => p.relation === 'merged' && p.primary);
+  return hasActiveMergedSourceRelation(raw);
 };
 
 /** Returns the pointer that leads to the primary, or null if this is the primary.
@@ -919,7 +944,7 @@ export const preserveRelationFields = (existing: any, next: any): any => {
     if (!out.merged_into && existing.merged_into) out.merged_into = existing.merged_into;
     if (!out.merged_at && existing.merged_at) out.merged_at = existing.merged_at;
   }
-  return out;
+  return enforceMergedStatusInvariant(out);
 };
 
 /**

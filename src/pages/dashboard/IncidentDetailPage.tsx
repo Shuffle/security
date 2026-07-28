@@ -95,7 +95,7 @@ import { RelatedIncidentsBanner } from '@/components/incidents/RelatedIncidentsB
 import { ThreadCorrelatedBanner } from '@/components/incidents/ThreadCorrelatedBanner';
 import { useRelatedIncidents } from '@/hooks/useRelatedIncidents';
 import { useThreadCorrelatedIncidents } from '@/hooks/useThreadCorrelatedIncidents';
-import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePair, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged } from '@/lib/incidentRelations';
+import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePair, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant } from '@/lib/incidentRelations';
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
@@ -480,7 +480,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
   const parseStart = performance.now();
   try {
     const jsonStart = performance.now();
-    const data = JSON.parse(item.value);
+    const data = enforceMergedStatusInvariant(JSON.parse(item.value));
     const jsonTime = performance.now() - jsonStart;
     if (jsonTime > 5) {
       console.warn(`[Perf] JSON.parse took ${jsonTime.toFixed(1)}ms for incident ${item.key} (${(item.value.length / 1024).toFixed(1)}KB)`);
@@ -2099,6 +2099,15 @@ const IncidentDetailPage = () => {
   // to the symmetric pointer model so the banners can render.
   useEffect(() => {
     if (!incident?.id || !incident.rawOCSF) return;
+    const invariantRaw = enforceMergedStatusInvariant(incident.rawOCSF);
+    if (invariantRaw !== incident.rawOCSF) {
+      setIncident(prev => prev ? { ...prev, status: 'merged', rawOCSF: invariantRaw } : prev);
+      setEditedStatus('merged');
+      setRawJsonText(JSON.stringify(invariantRaw, null, 2));
+      writeIncidentSafe(incident.id, invariantRaw, crossOrgId || undefined)
+        .catch((err) => console.warn('[IncidentDetail] Failed to repair merged status invariant:', err));
+      return;
+    }
     maybeMigrateLegacyMerge(incident.id, incident.rawOCSF).then(migrated => {
       if (migrated) { void loadIncident?.(false); }
     }).catch(() => {/* non-fatal */});
@@ -2126,7 +2135,7 @@ const IncidentDetailPage = () => {
   const { fields: customFields } = useCustomFields();
   const { observableTypeNames, iocTypes, refetch: refetchIOCTypes } = useIOCTypes();
   const { templates: caseTemplates, trackUsage: trackTemplateUsage } = useCaseTemplates();
-  const { addItem, getItem } = useDatastore({
+  const { getItem } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
     orgId: crossOrgId || undefined,
   });
@@ -3581,7 +3590,8 @@ const IncidentDetailPage = () => {
     };
 
     try {
-      const saveSuccess = await addItem(incident.id, updatedData);
+      const saveResult = await writeIncidentSafe(incident.id, updatedData, crossOrgId || undefined);
+      const saveSuccess = saveResult.success;
       if (!saveSuccess) {
         toast.error('Failed to save changes');
         return;
@@ -3732,7 +3742,7 @@ const IncidentDetailPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, editedStakeholders, activity, tasks, addItem, getItem, sharedOrgs, loadRevisions]);
+  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, editedStakeholders, activity, tasks, getItem, sharedOrgs, loadRevisions, crossOrgId]);
 
   // Cache stringified complex values to avoid re-serializing on every render
   const tasksJsonRef = useRef('');
@@ -4040,7 +4050,7 @@ const IncidentDetailPage = () => {
         },
       },
     };
-    await addItem(incident.id, updatedOCSF);
+    await writeIncidentSafe(incident.id, updatedOCSF, crossOrgId || undefined);
     // No success toast — the new comment renders immediately in the timeline.
     // Demo Mode signal — lets the tour mark "ask the agent" as complete.
     try { window.dispatchEvent(new CustomEvent('demo:incident-comment-sent')); } catch { /* no-op */ }
@@ -4123,7 +4133,7 @@ const IncidentDetailPage = () => {
     }
 
     if (targetOrgId !== sourceOrgId) {
-      const write = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
+      const write = await writeIncidentSafe(incident.id, value as object, targetOrgId);
       if (!write.success) throw new Error(`Could not write incident to ${targetName}`);
       const check = await getDatastoreItem(incident.id, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
       if (!(check?.success && check.item?.value)) throw new Error(`Could not verify incident in ${targetName}`);
@@ -4334,11 +4344,11 @@ const IncidentDetailPage = () => {
     };
 
     if (changed) {
-      const ok = await addItem(incident.id, updatedData);
+      const ok = (await writeIncidentSafe(incident.id, updatedData, crossOrgId || undefined)).success;
       if (!ok) throw new Error('Failed to apply routing rule actions');
       if (sharedOrgs.length > 0) {
         await Promise.allSettled(sharedOrgs.map((org) =>
-          setDatastoreItem(incident.id, updatedData, DATASTORE_CATEGORIES.INCIDENTS, org.id)
+          writeIncidentSafe(incident.id, updatedData, org.id)
         ));
       }
       setEditedTitle(nextTitle);
@@ -4433,7 +4443,7 @@ const IncidentDetailPage = () => {
       customFields: editedCustomFields,
     };
 
-    await addItem(incident.id, resolvedData);
+    await writeIncidentSafe(incident.id, resolvedData, crossOrgId || undefined);
     setIsSaving(false);
     setShowResolveDialog(false);
     toast.success(t('Incident resolved'));
@@ -6851,7 +6861,7 @@ const IncidentDetailPage = () => {
 
       try {
         pendingSaveRef.current = true;
-        await addItem(incident.id, { ...incident.rawOCSF, activity: updatedActivity });
+        await writeIncidentSafe(incident.id, { ...incident.rawOCSF, activity: updatedActivity }, crossOrgId || undefined);
         toast.success('Re-running AI Agent');
       } catch (err) {
         console.error('[Rerun] Failed to persist rerun:', err);
@@ -10426,7 +10436,7 @@ const IncidentDetailPage = () => {
                   try {
                     const parsed = JSON.parse(rawJsonText);
                     setIsSaving(true);
-                    const result = await setDatastoreItem(incident.id, parsed, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
+                    const result = await writeIncidentSafe(incident.id, parsed, crossOrgId || undefined);
                     if (result.success) {
                       toast.success('Raw data saved');
                       setSelectedRevisionIdx(null);
@@ -11024,7 +11034,7 @@ const IncidentDetailPage = () => {
                     console.log(`[MoveTenant] add -> ${targetOrgId}`);
                     let written = false;
                     try {
-                      const wr = await setDatastoreItem(incident.id, value as object, DATASTORE_CATEGORIES.INCIDENTS, targetOrgId);
+                      const wr = await writeIncidentSafe(incident.id, value as object, targetOrgId);
                       written = !!wr.success;
                     } catch { written = false; }
                     if (written) addedOk.push(targetOrgId); else addFailures.push(targetOrgId);

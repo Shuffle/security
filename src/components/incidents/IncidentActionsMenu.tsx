@@ -18,12 +18,12 @@ import {
 } from '@mui/material';
 import { toast } from '@/lib/toast';
 
-import { DATASTORE_CATEGORIES, getDatastoreItem, setDatastoreItem } from '@/Shuffle-MCPs/datastore';
-import { useDatastore } from '@/hooks/useDatastore';
+import { DATASTORE_CATEGORIES, getDatastoreItem } from '@/Shuffle-MCPs/datastore';
 import { useAuth } from '@/context/AuthContext';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { resyncState } from '@/lib/resyncState';
 import { useEntityText } from '@/hooks/useEntityLabel';
+import { writeIncidentSafe } from '@/lib/incidentRelations';
 import {
   ResolveIncidentDialog,
   ResolutionData,
@@ -84,11 +84,6 @@ export const IncidentActionsMenu = ({
   const currentUsername = userInfo?.username || '';
 
   const crossOrgHeaders: Record<string, string> = crossOrgId ? { 'Org-Id': crossOrgId } : {};
-
-  const { addItem } = useDatastore({
-    category: DATASTORE_CATEGORIES.INCIDENTS,
-    orgId: crossOrgId || undefined,
-  });
 
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -340,12 +335,12 @@ export const IncidentActionsMenu = ({
         };
 
     try {
-      await addItem(incident.id, resolvedData);
+      await writeIncidentSafe(incident.id, resolvedData, crossOrgId || undefined);
       // Sync to other orgs (fire-and-forget) when relevant
       if (sharedOrgs.length > 0) {
         Promise.allSettled(
           sharedOrgs.map((org) =>
-            setDatastoreItem(incident.id, resolvedData, DATASTORE_CATEGORIES.INCIDENTS, org.id),
+            writeIncidentSafe(incident.id, resolvedData, org.id),
           ),
         );
       }
