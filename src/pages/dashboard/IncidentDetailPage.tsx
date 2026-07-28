@@ -2,7 +2,7 @@ import { readTenantStamp, isTenantGhost, type TenantStamp } from '@/utils/tenant
 import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'react';
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEntityLabel, useTaskStatuses, useEntityText, useAutoMergeThread } from '@/hooks/useEntityLabel';
 import {
   Box,
@@ -193,6 +193,14 @@ interface DisplayIncident {
   tasks?: IncidentTask[];
   rawOCSF?: any; // Use any to support both new and legacy formats
   labels?: string[];
+}
+
+interface IncidentListFallbackState {
+  incidentListFallback?: Partial<DisplayIncident> & {
+    id: string;
+    orgId?: string;
+    orgName?: string;
+  };
 }
 
 // Status and severity colors now imported from shared config
@@ -620,6 +628,7 @@ const IncidentDetailPage = () => {
   });
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { plural: entityPlural, singular: entitySingular, basePath: entityBasePath } = useEntityLabel();
   const t = useEntityText();
@@ -645,6 +654,44 @@ const IncidentDetailPage = () => {
     if (!rawId) return rawId;
     return rawId.includes('::') ? (rawId.split('::').filter(Boolean).pop() || rawId) : rawId;
   }, [rawId]);
+  const listFallbackIncident = useMemo(() => {
+    const fallback = (location.state as IncidentListFallbackState | null)?.incidentListFallback;
+    if (!fallback || !id) return null;
+    if (fallback.id !== id && fallback.id !== rawId) return null;
+    const createdTs = normalizeToMs(fallback.createdTs || fallback.created) || Date.now();
+    if (fallback.rawOCSF) {
+      const parsed = parseIncidentFromDatastore({
+        key: id,
+        value: JSON.stringify(fallback.rawOCSF),
+        created: createdTs,
+        edited: fallback.editedTs,
+      });
+      if (parsed) return parsed;
+    }
+    return {
+      id,
+      title: fallback.title || id,
+      source: fallback.source,
+      severity: fallback.severity || 'informational',
+      status: fallback.status || 'new',
+      assignee: fallback.assignee ?? null,
+      created: fallback.created || formatTimestamp(createdTs),
+      createdTs,
+      edited: fallback.edited,
+      editedTs: fallback.editedTs,
+      tlp: fallback.tlp,
+      labels: fallback.labels,
+      rawOCSF: {
+        finding_uid: id,
+        title: fallback.title || id,
+        product: fallback.source ? { name: fallback.source } : undefined,
+      },
+      activity: [],
+      tasks: [],
+      observables: [],
+      enrichments: [],
+    } as DisplayIncident;
+  }, [location.state, id, rawId]);
   const isCrossOrg = !!crossOrgId && crossOrgId !== userInfo?.active_org?.id;
 
   // Headers to include on every API call when viewing a cross-org incident
@@ -694,6 +741,9 @@ const IncidentDetailPage = () => {
     valueLength?: number;
     valuePreview?: string;
     error?: string;
+    httpStatus?: number;
+    httpStatusText?: string;
+    responsePreview?: string;
     timestamp?: string;
   } | null>(null);
   // Demo-mode self-heal: when the user lands on a demo focus incident URL
@@ -2241,6 +2291,9 @@ const IncidentDetailPage = () => {
         : await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
     } catch (err) {
       console.error('[IncidentDetail] Failed to fetch incident:', err);
+      if (listFallbackIncident) {
+        setIncident(listFallbackIncident);
+      }
       setLoadDebug({
         stage: 'fetch-error',
         message: 'Network/transport failure while fetching incident',
@@ -2468,7 +2521,7 @@ const IncidentDetailPage = () => {
       // (or the URL was seeded before the source tenant existed) and only
       // lives elsewhere now. If found, redirect to the correct key so a
       // page refresh always lands on a real copy.
-      if (!isPublicView && id) {
+      if (!isPublicView && id && result.success) {
         const activeId = userInfo?.active_org?.id;
         const probeTargets: string[] = [];
         const seenProbe = new Set<string>();
@@ -2526,6 +2579,9 @@ const IncidentDetailPage = () => {
       }
 
       const stage = isEmptyStub ? 'no-item' : (result.success ? 'no-item' : 'no-success');
+      if (listFallbackIncident) {
+        setIncident(listFallbackIncident);
+      }
       setLoadDebug({
         stage,
         message: isEmptyStub
@@ -2540,13 +2596,17 @@ const IncidentDetailPage = () => {
         isPublicView,
         httpSuccess: !!result.success,
         reason: (result as { reason?: string }).reason,
+        error: result.error,
+        httpStatus: result.diagnostics?.status,
+        httpStatusText: result.diagnostics?.statusText,
+        responsePreview: result.diagnostics?.bodyPreview,
         valueLength: result.item?.value?.length || 0,
         timestamp: new Date().toISOString(),
       });
     }
     
     setLoading(false);
-  }, [id, rawId, isPublicView, publicOrg, publicAuth, crossOrgId, userInfo?.active_org?.id, parentOrg, subOrgs, navigate, entityBasePath]);
+  }, [id, rawId, isPublicView, publicOrg, publicAuth, crossOrgId, userInfo?.active_org?.id, parentOrg, subOrgs, navigate, entityBasePath, listFallbackIncident]);
 
   // Initial load. Only re-run when the underlying identity of the incident
   // changes (route id, cross-org override, or public-view auth). Depending on
@@ -2556,7 +2616,9 @@ const IncidentDetailPage = () => {
   // the initial load.
   const loadIncidentRef = useRef(loadIncident);
   useEffect(() => { loadIncidentRef.current = loadIncident; }, [loadIncident]);
+  const transientLoadRetryRef = useRef(0);
   useEffect(() => {
+    transientLoadRetryRef.current = 0;
     loadIncidentRef.current?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, crossOrgId, isPublicView, publicOrg, publicAuth]);
@@ -2575,6 +2637,22 @@ const IncidentDetailPage = () => {
     suborgRetryRef.current = true;
     loadIncidentRef.current?.();
   }, [loading, incident, isPublicView, id, loadDebug?.stage, subOrgs.length, parentOrg]);
+
+  // Transport failures are not the same as a missing incident. Keep retrying a
+  // few times before showing any terminal state so transient backend/circuit
+  // breaker responses do not become a false "not found" screen.
+  useEffect(() => {
+    if (loading || incident || isPublicView || !id) return;
+    const transient = loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success';
+    if (!transient) return;
+    if (transientLoadRetryRef.current >= 4) return;
+    transientLoadRetryRef.current += 1;
+    const retryDelay = Math.min(1500 * transientLoadRetryRef.current, 6000);
+    const timer = window.setTimeout(() => {
+      loadIncidentRef.current?.();
+    }, retryDelay);
+    return () => window.clearTimeout(timer);
+  }, [loading, incident, isPublicView, id, loadDebug?.stage, loadDebug?.timestamp]);
 
   // Cross-org merge: once we know shared orgs and have the primary incident loaded,
   // fetch all other org versions and deep-merge them into the current data.
@@ -4664,11 +4742,34 @@ const IncidentDetailPage = () => {
 
   if (!incident) {
     const isSupport = userInfo?.support === true;
+    const isTransientLoadFailure = loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success';
+    const retryingTransientLoad = isTransientLoadFailure && transientLoadRetryRef.current < 4;
     return (
       <Box sx={{ p: 4, textAlign: 'center', maxWidth: 900, mx: 'auto' }}>
         <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2 }}>
-          {entitySingular} not found
+          {isTransientLoadFailure ? `Loading ${entitySingular.toLowerCase()}` : `${entitySingular} not found`}
         </Typography>
+        {isTransientLoadFailure && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+            {retryingTransientLoad
+              ? 'Retrying after a temporary API response…'
+              : 'The API did not return the incident yet. Refresh to retry.'}
+          </Typography>
+        )}
+        {retryingTransientLoad && <CircularProgress size={22} sx={{ mb: 2 }} />}
+        {isTransientLoadFailure && !retryingTransientLoad && (
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => {
+              transientLoadRetryRef.current = 0;
+              loadIncidentRef.current?.();
+            }}
+            sx={{ mr: 1 }}
+          >
+            Refresh
+          </Button>
+        )}
         <Button 
           component={Link} 
           to={entityBasePath} 
