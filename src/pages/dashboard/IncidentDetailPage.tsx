@@ -2324,7 +2324,40 @@ const IncidentDetailPage = () => {
       return !replied;
     });
   }, [activity]);
-  const { runsForIncident: agentRuns, isLoading: agentRunsLoading, refetch: refetchAgentRuns } = useIncidentAgentRuns(!loading ? id : undefined, hasPendingAgentMention);
+  // Scope the workflow-search API to the incident's lifecycle so older runs
+  // that would otherwise fall outside the recent-100 window are still found.
+  // Window = incident.createdTs → last observed "change" event (activity max
+  // timestamp / edited time), padded on both sides for clock skew. If the
+  // incident is still active (pending mention or an in-flight run), we drop
+  // the upper bound so new runs keep landing in the results.
+  const runsWindow = useMemo(() => {
+    if (loading || !incident) return {};
+    const PAD_MS = 5 * 60 * 1000;
+    const createdMs = Number(incident.createdTs) || 0;
+    if (!createdMs) return {};
+    const activityMax = Array.isArray(incident.activity)
+      ? incident.activity.reduce((m: number, a: any) => {
+          const t = Number(a?.timestamp) || 0;
+          return t > m ? t : m;
+        }, 0)
+      : 0;
+    const editedMs = Number((incident as any).editedTs) || 0;
+    const lastChange = Math.max(createdMs, activityMax, editedMs);
+    const startTime = new Date(Math.max(0, createdMs - PAD_MS)).toISOString();
+    const endTime = new Date(lastChange + PAD_MS).toISOString();
+    return { startTime, endTime };
+  }, [loading, incident]);
+
+  // While we expect new runs to arrive, drop the upper bound so the search
+  // covers "up to now" instead of freezing at the last activity timestamp.
+  const activeRunsWindow = useMemo(() => {
+    if (hasPendingAgentMention || refreshingObservables) {
+      return { startTime: runsWindow.startTime };
+    }
+    return runsWindow;
+  }, [runsWindow, hasPendingAgentMention, refreshingObservables]);
+
+  const { runsForIncident: agentRuns, isLoading: agentRunsLoading, refetch: refetchAgentRuns } = useIncidentAgentRuns(!loading ? id : undefined, hasPendingAgentMention, activeRunsWindow);
   // Every OTHER workflow execution that touched this incident (datastore
   // triggers, enrichment / indicator-check workflows, forward-to-tool runs).
   // The list is polled at 60s and folded into the timeline as a "workflow
@@ -2333,6 +2366,7 @@ const IncidentDetailPage = () => {
   const { runsForIncident: allIncidentWorkflowRuns, refetch: refetchWorkflowRuns } = useIncidentWorkflowRuns(
     !loading ? id : undefined,
     hasPendingAgentMention || refreshingObservables,
+    activeRunsWindow,
   );
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
