@@ -1916,7 +1916,11 @@ const IncidentDetailPage = () => {
       return (b.ts - a.ts) || b.id.localeCompare(a.id);
     });
     const primary = pool[0];
-    const sources = pool.slice(1);
+    // Skip sources the analyst has explicitly unmerged from the chosen
+    // primary (either direction). Auto-merge must never resurrect a pair
+    // that was manually taken apart.
+    const sources = pool.slice(1).filter((s) => !pairWasUnmerged(primary.raw, primary.id, s.raw, s.id));
+    if (sources.length === 0) { setAutoMergeBusy(false); return; }
 
 
 
