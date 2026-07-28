@@ -201,27 +201,53 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
     let cancelled = false;
     (async () => {
+      const resolved: Record<string, { name: string; image: string }> = {};
+
+      // Pass 1 — local /api/v1/apps cache. Covers built-in / locally installed
+      // apps (e.g. Shuffle Datastore) that aren't in the authenticated list
+      // and works even when Algolia is blocked/offline.
       try {
-        const { algoliasearch } = await import('algoliasearch');
-        const client = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957bed552');
-        const res: any = await (client as any).getObjects({
-          requests: missing.map(objectID => ({ indexName: 'appsearch', objectID })),
-        });
-        if (cancelled) return;
-        const next: Record<string, { name: string; image: string }> = {};
-        (res?.results || []).forEach((hit: any) => {
-          if (hit?.objectID) {
-            next[hit.objectID] = {
-              name: hit.name || hit.objectID,
-              image: hit.image_url || '',
-            };
+        const { fetchAppsViaApiConfig } = await import('@/Shuffle-MCPs/appsCache');
+        const apps = await fetchAppsViaApiConfig();
+        if (!cancelled && Array.isArray(apps)) {
+          const byId = new Map<string, any>();
+          for (const a of apps) if (a?.id) byId.set(String(a.id), a);
+          for (const id of missing) {
+            const hit = byId.get(id);
+            if (hit) {
+              resolved[id] = {
+                name: hit.name || id,
+                image: hit.large_image || hit.image_url || hit.image || '',
+              };
+            }
           }
-        });
-        if (Object.keys(next).length > 0) {
-          setAlgoliaAppMeta(prev => ({ ...prev, ...next }));
         }
-      } catch {
-        /* ignore — image lookup is optional */
+      } catch { /* fall through to Algolia */ }
+
+      // Pass 2 — Algolia for anything still missing.
+      const stillMissing = missing.filter(id => !resolved[id]);
+      if (stillMissing.length > 0) {
+        try {
+          const { algoliasearch } = await import('algoliasearch');
+          const client = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957bed552');
+          const res: any = await (client as any).getObjects({
+            requests: stillMissing.map(objectID => ({ indexName: 'appsearch', objectID })),
+          });
+          if (!cancelled) {
+            (res?.results || []).forEach((hit: any) => {
+              if (hit?.objectID) {
+                resolved[hit.objectID] = {
+                  name: hit.name || hit.objectID,
+                  image: hit.image_url || '',
+                };
+              }
+            });
+          }
+        } catch { /* ignore — image lookup is optional */ }
+      }
+
+      if (!cancelled && Object.keys(resolved).length > 0) {
+        setAlgoliaAppMeta(prev => ({ ...prev, ...resolved }));
       }
     })();
     return () => { cancelled = true; };
