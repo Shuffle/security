@@ -636,6 +636,7 @@ const IncidentDetailPage = () => {
   const t = useEntityText();
   const taskStatuses = useTaskStatuses();
   const { userInfo } = useAuth();
+  const { resolvedTheme } = useTheme();
   const { openApp } = useAppDetail();
   const currentUsername = userInfo?.username || '';
   const scheduleAgentRun = useScheduleAgentRun();
