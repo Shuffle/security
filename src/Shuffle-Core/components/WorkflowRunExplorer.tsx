@@ -404,6 +404,57 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
           </Box>
         </Box>
       )}
+
+      <Dialog
+        open={Boolean(debugResult)}
+        onClose={() => setDebugResult(null)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'hsl(var(--card))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid hsl(var(--border))' }}>
+          <ArrowLeftIcon />
+          <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
+            Debug: {debugResult?.action?.label || debugResult?.action?.name || 'Step result'}
+          </Typography>
+          <IconButton size="small" onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 2, minHeight: 300 }}>
+          <Box
+            sx={{
+              maxHeight: '70vh',
+              overflow: 'auto',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1,
+              p: 1,
+              bgcolor: 'hsl(var(--muted) / 0.4)',
+            }}
+          >
+            <JsonView
+              src={deepParseJson(debugResult) as object}
+              dark
+              collapsed={1}
+              collapseStringMode="word"
+              collapseStringsAfterLength={120}
+              enableClipboard
+              displaySize
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ borderTop: '1px solid hsl(var(--border))' }}>
+          <Button onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
