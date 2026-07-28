@@ -6447,6 +6447,13 @@ const IncidentDetailPage = () => {
               </Typography>
             )}
           </Box>
+          {questionNotif && (
+            <InlineAgentQuestion
+              notification={questionNotif}
+              onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+            />
+          )}
+          </Box>
         );
       }
 
