@@ -1116,6 +1116,27 @@ const IncidentDetailPage = () => {
     };
 
     /**
+     * Jump to the Correlations tab and flash the linked (merged) incident row
+     * with the given ID. Used by "thread-auto-merge" activity entries so
+     * clicking a merge audit line takes the analyst straight to the source.
+     */
+    const [flashedRelatedId, setFlashedRelatedId] = useState<string | null>(null);
+    const flashedRelatedTimerRef = useRef<any>(null);
+    const focusRelatedIncident = (relatedId: string | null) => {
+      setActiveTab(3);
+      if (!relatedId) return;
+      setFlashedRelatedId(relatedId);
+      if (flashedRelatedTimerRef.current) clearTimeout(flashedRelatedTimerRef.current);
+      flashedRelatedTimerRef.current = setTimeout(() => setFlashedRelatedId(null), 2200);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-related-id="${CSS.escape(relatedId)}"]`) as HTMLElement | null;
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    };
+
+
+
+    /**
      * Demo-style "Ask the agent" affordance: when the user clicks a Known IOC
      * pill on the Timeline, prefill the comment input with an @agent question
      * about that observable, switch to the Details/Timeline tab so the input
