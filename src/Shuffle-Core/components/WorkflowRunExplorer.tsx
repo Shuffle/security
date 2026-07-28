@@ -286,7 +286,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--muted-foreground))' }}>
                 Execution argument
               </Typography>
-              <ResultRenderer value={exec.execution_argument} />
+              <ResultRenderer value={exec.execution_argument} baseName={exec.workflow?.name} />
             </Box>
           )}
 
