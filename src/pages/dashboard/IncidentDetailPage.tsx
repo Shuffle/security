@@ -1955,9 +1955,10 @@ const IncidentDetailPage = () => {
       if (failures.length === 0) {
         toast.success(
           sources.length === 1
-            ? 'Merged 1 thread sibling into the latest incident'
-            : `Merged ${sources.length} thread siblings into the latest incident`,
+            ? 'Merged 1 thread sibling into the existing incident'
+            : `Merged ${sources.length} thread siblings into the existing incident`,
         );
+
       } else {
         // Surface the actual failure reason(s) so the analyst can act:
         // group by error message, then show up to 2 sample titles per group.
