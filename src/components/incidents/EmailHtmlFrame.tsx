@@ -372,7 +372,30 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
           </Button>
         </Box>
       )}
+      {unresolvableCount > 0 && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1.5,
+            py: 0.75,
+            borderBottom: '1px solid #e5e7eb',
+            backgroundColor: '#f3f4f6',
+            color: '#4b5563',
+            fontSize: 12.5,
+          }}
+        >
+          <ImageOutlinedIcon sx={{ fontSize: 16 }} />
+          <span>
+            {unresolvableCount === 1
+              ? '1 image could not be displayed — it references an attachment that was not included with the email.'
+              : `${unresolvableCount} images could not be displayed — they reference attachments that were not included with the email.`}
+          </span>
+        </Box>
+      )}
       <iframe
+
         ref={iframeRef}
         title="Email body"
         srcDoc={srcDoc}
