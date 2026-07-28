@@ -630,7 +630,7 @@ const DashboardPage = () => {
   const isViewingChild = !!viewOrgId && viewOrgId !== currentOrgId;
 
   // Default datastore/vulnerability hooks — only used when viewing the active org.
-  const { items: incidentItems, isLoading: incidentsLoadingDefault, fetchItems: fetchIncidents, hasFetched: incidentsFetched } = useDatastore({
+  const { items: incidentItems, isLoading: incidentsLoadingDefault, fetchItems: fetchIncidents, hasFetched: incidentsFetched, hasMore: incidentsHasMoreDefault } = useDatastore({
     category: DATASTORE_CATEGORIES.INCIDENTS,
   });
   const { severityCounts: vulnSeverityCountsDefault, isLoading: vulnLoadingDefault } = useVulnerabilities({ tab: 'assets' });
