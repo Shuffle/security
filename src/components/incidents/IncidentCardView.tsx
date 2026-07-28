@@ -254,7 +254,9 @@ export const IncidentCardView = ({
   totalOrgCount,
   onResetOrgFilter,
   isParentOrg = false,
+  threadCounts,
 }: IncidentCardViewProps) => {
+
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hasRendered, setHasRendered] = useState(false);
   const renderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
