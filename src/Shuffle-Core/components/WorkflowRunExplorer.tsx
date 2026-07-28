@@ -312,7 +312,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                   Execution argument
                 </Typography>
               </Box>
-              <ResultRenderer value={exec.execution_argument} baseName={exec.workflow?.name} />
+              <ResultRenderer value={exec.execution_argument} baseName="$exec" />
             </Box>
           )}
 
