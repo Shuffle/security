@@ -3742,7 +3742,7 @@ const IncidentDetailPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, editedStakeholders, activity, tasks, addItem, getItem, sharedOrgs, loadRevisions]);
+  }, [incident, editedTitle, editedMessage, editedSeverity, editedAssignee, editedStatus, editedTlp, editedReferences, editedObservables, editedCustomFields, editedLabels, editedStakeholders, activity, tasks, getItem, sharedOrgs, loadRevisions, crossOrgId]);
 
   // Cache stringified complex values to avoid re-serializing on every render
   const tasksJsonRef = useRef('');
@@ -4050,7 +4050,7 @@ const IncidentDetailPage = () => {
         },
       },
     };
-    await addItem(incident.id, updatedOCSF);
+    await writeIncidentSafe(incident.id, updatedOCSF, crossOrgId || undefined);
     // No success toast — the new comment renders immediately in the timeline.
     // Demo Mode signal — lets the tour mark "ask the agent" as complete.
     try { window.dispatchEvent(new CustomEvent('demo:incident-comment-sent')); } catch { /* no-op */ }
