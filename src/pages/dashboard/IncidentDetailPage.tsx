@@ -1072,8 +1072,28 @@ const IncidentDetailPage = () => {
     }
     return false;
   };
-  const mergeActivity = activity.filter(isMergeActivityItem);
-  const commentActivity = activity.filter((a) => !isMergeActivityItem(a));
+  const getMergeActivityDisplayKey = (item: any): string | null => {
+    if (!isMergeActivityItem(item)) return null;
+    const id = String(item.id || '');
+    if (id.startsWith('merge-in-')) {
+      const sourcePart = id.replace(/^merge-in-/, '').replace(/-\d{10,}$/, '');
+      if (sourcePart) return `merge-in:${sourcePart.toLowerCase()}`;
+    }
+    const content = String(item.content || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    return content ? `merge-content:${content}` : null;
+  };
+  const displayActivity = useMemo(() => {
+    const seenMergeKeys = new Set<string>();
+    return activity.filter((item) => {
+      const key = getMergeActivityDisplayKey(item);
+      if (!key) return true;
+      if (seenMergeKeys.has(key)) return false;
+      seenMergeKeys.add(key);
+      return true;
+    });
+  }, [activity]);
+  const mergeActivity = displayActivity.filter(isMergeActivityItem);
+  const commentActivity = displayActivity.filter((a) => !isMergeActivityItem(a));
   // Legacy compatibility shim — a few render branches used to special-case
   // the single-select "revisions" tab to relabel the oldest revision as
   // "Incident created". The equivalent in the new multi-select model is
@@ -1919,7 +1939,17 @@ const IncidentDetailPage = () => {
     // Skip sources the analyst has explicitly unmerged from the chosen
     // primary (either direction). Auto-merge must never resurrect a pair
     // that was manually taken apart.
-    const sources = pool.slice(1).filter((s) => !pairWasUnmerged(primary.raw, primary.id, s.raw, s.id));
+    const primaryLinkedIds = new Set(getLinkedPointers(primary.raw).map((p) => p.id.toLowerCase()));
+    const primaryIdLower = primary.id.toLowerCase();
+    const sources = pool.slice(1).filter((s) => {
+      const sourceIdLower = s.id.toLowerCase();
+      if (primaryLinkedIds.has(sourceIdLower)) return false;
+      const sourcePrimary = getPrimaryPointer(s.raw);
+      if (sourcePrimary?.id?.toLowerCase() === primaryIdLower) return false;
+      if (String(s.raw?.merged_into || '').toLowerCase() === primaryIdLower) return false;
+      if (sourcePrimary || s.raw?.status_id === 6 || String(s.raw?.status || '').toLowerCase() === 'merged') return false;
+      return !pairWasUnmerged(primary.raw, primary.id, s.raw, s.id);
+    });
     if (sources.length === 0) return;
 
 
@@ -5500,7 +5530,7 @@ const IncidentDetailPage = () => {
     // Comments (user-authored activity) and merge/threading audit entries
     // are stored in the same `activity` array but gate on separate filters
     // so users can hide auto-merge noise without also hiding conversation.
-    activity.forEach((item) => {
+    displayActivity.forEach((item) => {
       const isMerge = isMergeActivityItem(item);
       if (isMerge ? !isFilterActive('merges') : !isFilterActive('manual')) return;
       items.push({ type: 'manual', timestamp: normalizeToMs(item.timestamp), data: item });
