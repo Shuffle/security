@@ -1979,25 +1979,72 @@ const IncidentsPage = () => {
   // the list view (with stale/demo items) and the "No incidents yet" empty state.
   if (!hasFetched && !demoActive && !error) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 16, gap: 2 }}>
-        <Box
-          aria-label="Loading incidents"
-          sx={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            border: '3px solid hsl(var(--primary) / 0.22)',
-            borderTopColor: 'hsl(var(--primary))',
-            animation: 'incidentsInitialSpin 0.8s linear infinite',
-            '@keyframes incidentsInitialSpin': {
-              '0%': { transform: 'rotate(0deg)' },
-              '100%': { transform: 'rotate(360deg)' },
-            },
-          }}
-        />
-        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-          Loading {entityPlural.toLowerCase()}…
-        </Typography>
+      <Box aria-label={`Loading ${entityPlural.toLowerCase()}`}>
+        {/* Header skeleton — mirrors the real page header (title + actions row) */}
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+          <Skeleton variant="text" width={180} height={36} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)' }} />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Skeleton variant="rounded" width={36} height={36} sx={{ bgcolor: 'hsl(var(--muted) / 0.25)' }} />
+            <Skeleton variant="rounded" width={36} height={36} sx={{ bgcolor: 'hsl(var(--muted) / 0.25)' }} />
+            <Skeleton variant="rounded" width={140} height={36} sx={{ bgcolor: 'hsl(var(--muted) / 0.25)' }} />
+          </Box>
+        </Box>
+
+        {/* Stats cards skeleton */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 1.5, mb: 3 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              height={78}
+              sx={{ bgcolor: 'hsl(var(--muted) / 0.2)', borderRadius: 2 }}
+            />
+          ))}
+        </Box>
+
+        {/* Filter bar skeleton */}
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          <Skeleton variant="rounded" width={280} height={40} sx={{ bgcolor: 'hsl(var(--muted) / 0.25)' }} />
+          <Skeleton variant="rounded" width={120} height={40} sx={{ bgcolor: 'hsl(var(--muted) / 0.2)' }} />
+          <Skeleton variant="rounded" width={120} height={40} sx={{ bgcolor: 'hsl(var(--muted) / 0.2)' }} />
+        </Box>
+
+        {/* Card list skeleton — same 6-row layout as the loaded list */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                animation: 'incidentsSkelPulse 1.5s ease-in-out infinite',
+                animationDelay: `${index * 0.08}s`,
+                '@keyframes incidentsSkelPulse': {
+                  '0%, 100%': { opacity: 1 },
+                  '50%': { opacity: 0.6 },
+                },
+              }}
+            >
+              <Skeleton variant="rounded" width={48} height={48} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)', flexShrink: 0 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Skeleton variant="text" width="60%" height={24} sx={{ bgcolor: 'hsl(var(--muted) / 0.3)', mb: 0.5 }} />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Skeleton variant="rounded" width={70} height={22} sx={{ bgcolor: 'hsl(var(--muted) / 0.2)', borderRadius: 3 }} />
+                  <Skeleton variant="rounded" width={85} height={22} sx={{ bgcolor: 'hsl(var(--muted) / 0.2)', borderRadius: 3 }} />
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                <Skeleton variant="text" width={100} height={16} sx={{ bgcolor: 'hsl(var(--muted) / 0.2)' }} />
+                <Skeleton variant="text" width={80} height={14} sx={{ bgcolor: 'hsl(var(--muted) / 0.15)' }} />
+              </Box>
+            </Box>
+          ))}
+        </Box>
       </Box>
     );
   }
