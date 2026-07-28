@@ -185,7 +185,8 @@ const upsertPointer = (
 const removePointer = (raw: any, targetId: string): any => {
   const next = { ...(raw || {}) };
   const existing = getRelatedIncidents(next);
-  next.related_incidents = existing.filter(p => p.id !== targetId);
+  const key = String(targetId || '').toLowerCase();
+  next.related_incidents = existing.filter(p => String(p.id || '').toLowerCase() !== key);
   return next;
 };
 
