@@ -2322,7 +2322,21 @@ const IncidentDetailPage = () => {
     });
   }, [activity]);
   const { runsForIncident: agentRuns, isLoading: agentRunsLoading, refetch: refetchAgentRuns } = useIncidentAgentRuns(!loading ? id : undefined, hasPendingAgentMention);
+  // Every OTHER workflow execution that touched this incident (datastore
+  // triggers, enrichment / indicator-check workflows, forward-to-tool runs).
+  // The list is polled at 60s and folded into the timeline as a "workflow
+  // run" pill; the observable-check pill also uses it to become a link to
+  // the actual execution once its id shows up.
+  const { runsForIncident: allIncidentWorkflowRuns, refetch: refetchWorkflowRuns } = useIncidentWorkflowRuns(
+    !loading ? id : undefined,
+    hasPendingAgentMention || refreshingObservables,
+  );
+  const workflowOnlyRuns = useMemo(() => {
+    const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
+    return (allIncidentWorkflowRuns || []).filter((r: any) => r?.execution_id && !agentIds.has(r.execution_id));
+  }, [allIncidentWorkflowRuns, agentRuns]);
   const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
+
 
   // Load incident function (reusable for refresh)
   const loadIncident = useCallback(async (showLoading = true) => {
