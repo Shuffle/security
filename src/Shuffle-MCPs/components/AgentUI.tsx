@@ -4162,7 +4162,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
               mb: 2,
             }}>
               <AvatarGroup max={4} sx={{ '& .MuiAvatar-root': { width: 28, height: 28, borderColor: 'hsl(var(--border))', fontSize: '0.7rem' } }}>
-                {(executionApps.length > 0 ? executionApps : chosenApps).map((app, i) => (
+                {(() => {
+                  // When viewing a real run, `allowed_actions` on the agent is
+                  // authoritative — even if it's a non-app entry like ["API"]
+                  // that parses to zero apps, do NOT fall back to the picker's
+                  // built-in defaults (`http`, `shuffle_tools`), which would
+                  // misrepresent what the run was actually allowed to do.
+                  const hasAllowed = Array.isArray((agentData as any)?.allowed_actions)
+                    && ((agentData as any).allowed_actions as unknown[]).length > 0;
+                  const list = hasAllowed ? executionApps : chosenApps;
+                  return list;
+                })().map((app, i) => (
                   <Tooltip key={i} title={(app.name || '').replace(/_/g, ' ')}>
                     <Avatar
                       src={app.icon || undefined}
