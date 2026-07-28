@@ -247,6 +247,33 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         }}
       >
         <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>Details</Typography>
+        {exec && isRunning(exec.status) && (
+          <Tooltip title="Abort workflow" arrow>
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={abortExecution}
+                disabled={aborting}
+                startIcon={aborting ? <CircularProgress size={12} /> : <StopIcon fontSize="small" />}
+                sx={{
+                  height: 28,
+                  textTransform: 'none',
+                  mr: 0.5,
+                  borderColor: 'hsl(var(--destructive))',
+                  color: 'hsl(var(--destructive))',
+                  '&:hover': {
+                    borderColor: 'hsl(var(--destructive))',
+                    bgcolor: 'hsla(var(--destructive) / 0.1)',
+                  },
+                }}
+              >
+                {aborting ? 'Aborting…' : 'Abort Workflow'}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <Tooltip title="Refresh" arrow>
           <span>
             <IconButton size="small" onClick={load} disabled={loading}>
