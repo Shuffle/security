@@ -38,6 +38,14 @@ export const AGENT_PRESETS: AgentPreset[] = [
     defaultApps: [{ name: 'shuffle_workflows' }, { name: 'shuffles_app_management' }],
   },
   {
+    id: 'handle-notifications',
+    label: 'Handle Notifications',
+    description: 'Automatically handles incoming incidents for you — triages, enriches, and resolves or escalates based on your rules.',
+    defaultPrompt: 'Automatically handle incoming incidents by ',
+    icon: <BellRing size={16} />,
+    enabled: true,
+  },
+  {
     id: 'incident-response',
     label: 'Incident Response Agent',
     description: 'Triages incidents: enriches observables, correlates related cases, and proposes next actions with rationale.',
