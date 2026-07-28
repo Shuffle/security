@@ -2,7 +2,7 @@ import { readTenantStamp, isTenantGhost, type TenantStamp } from '@/utils/tenant
 import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'react';
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEntityLabel, useTaskStatuses, useEntityText, useAutoMergeThread } from '@/hooks/useEntityLabel';
 import {
   Box,
@@ -193,6 +193,14 @@ interface DisplayIncident {
   tasks?: IncidentTask[];
   rawOCSF?: any; // Use any to support both new and legacy formats
   labels?: string[];
+}
+
+interface IncidentListFallbackState {
+  incidentListFallback?: Partial<DisplayIncident> & {
+    id: string;
+    orgId?: string;
+    orgName?: string;
+  };
 }
 
 // Status and severity colors now imported from shared config
