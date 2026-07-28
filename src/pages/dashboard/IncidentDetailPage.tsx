@@ -122,6 +122,8 @@ import { useIncidentAgentRuns } from '@/hooks/useIncidentAgentRuns';
 import { useIncidentWorkflowRuns } from '@/hooks/useIncidentWorkflowRuns';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
+import { WorkflowRunExplorerDrawer } from '@/Shuffle-Core';
+
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import AgentRunDiagnosisBanner from '@/components/agent/AgentRunDiagnosisBanner';
 import { getRunTitle, getRunIconColor, formatDuration as formatAgentRunDuration, getTimeAgo as getAgentTimeAgo, STATUS_CONFIG as AGENT_STATUS_CONFIG } from '@/components/agent/AgentRunHeader';
@@ -2337,6 +2339,8 @@ const IncidentDetailPage = () => {
     return (allIncidentWorkflowRuns || []).filter((r: any) => r?.execution_id && !agentIds.has(r.execution_id));
   }, [allIncidentWorkflowRuns, agentRuns]);
   const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
+  const [selectedWorkflowExecutionId, setSelectedWorkflowExecutionId] = useState<string | null>(null);
+
 
 
   // Load incident function (reusable for refresh)
@@ -6252,7 +6256,11 @@ const IncidentDetailPage = () => {
             key={`wfexec-${run.execution_id}`}
             data-timeline-compact="true"
             data-timeline-quiet={!isFailed && !isRunning ? 'true' : undefined}
-            onClick={() => { if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer'); }}
+            onClick={() => {
+              if (run.execution_id) setSelectedWorkflowExecutionId(String(run.execution_id));
+              else if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer');
+            }}
+
             sx={{
               position: 'relative',
               display: 'flex',
@@ -11456,8 +11464,16 @@ const IncidentDetailPage = () => {
         run={selectedAgentRun}
         onSchedule={handleScheduleAgentRun}
       />
+
+      {/* Workflow-run explorer — opened when clicking a "Workflow run" pill in the timeline */}
+      <WorkflowRunExplorerDrawer
+        open={!!selectedWorkflowExecutionId}
+        executionId={selectedWorkflowExecutionId || ''}
+        onClose={() => setSelectedWorkflowExecutionId(null)}
+      />
     </motion.div>
   );
 };
+
 
 export default IncidentDetailPage;
