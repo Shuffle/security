@@ -297,7 +297,9 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
   const presetPath =
     request.presetId === 'build-workflows'
       ? '/api/v1/agent/workflow-edit'
-      : null;
+      : request.presetId === 'handle-notifications'
+        ? '/api/v1/agent/handle-notifications'
+        : null;
 
   // Pass selected preset to the backend so it can apply the prompt and tools.
   if (request.presetId && !presetPath) {
