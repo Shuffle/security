@@ -119,6 +119,7 @@ import { FileAttachments } from '@/components/incidents/FileAttachments';
 import { toast } from '@/lib/toast';
 import { isAIAssignee, deduplicateTasks, htmlToPlainText, decodeHtmlEntities, decodeIfBase64, deepMergeIncidents } from '@/lib/utils';
 import { useIncidentAgentRuns } from '@/hooks/useIncidentAgentRuns';
+import { useIncidentWorkflowRuns } from '@/hooks/useIncidentWorkflowRuns';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
 import { SegmentedControl } from '@/components/ui/segmented-control';
