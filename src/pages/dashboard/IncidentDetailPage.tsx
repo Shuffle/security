@@ -327,23 +327,12 @@ const isOcsfShapedData = (data: unknown): boolean => {
 // upstream pipeline drop) often clears title/desc/id while leaving severity_id
 // intact, which would silently slip past `isOcsfShapedData`.
 const getMissingCriticalFields = (data: unknown): string[] => {
-  if (!data || typeof data !== 'object' || Array.isArray(data)) return ['title', 'description', 'id'];
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return ['title', 'id'];
   const d = data as any;
   const fi = d.finding_info_list?.[0] || d.finding_info || {};
   const missing: string[] = [];
   const title = d.title || fi.title;
   if (!title || (typeof title === 'string' && !title.trim())) missing.push('title');
-  const desc = d.desc
-    || d.description
-    || d.message
-    || d.summary
-    || fi.desc
-    || fi.description
-    || fi.summary
-    || d.remediation?.desc
-    || d.metadata?.extensions?.custom_attributes?.description
-    || d.metadata?.extensions?.custom_attributes?.desc;
-  if (!desc || (typeof desc === 'string' && !desc.trim())) missing.push('description');
   const id = d.finding_uid || d.id || fi.uid || fi.finding_uid;
   if (!id || (typeof id === 'string' && !id.trim())) missing.push('id');
   return missing;
