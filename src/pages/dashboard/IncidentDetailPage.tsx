@@ -6217,7 +6217,75 @@ const IncidentDetailPage = () => {
         );
       }
 
-      if (item.type === 'step') {
+      if (item.type === 'workflow-exec') {
+        // Non-agent workflow execution that touched this incident (datastore
+        // trigger, enrichment workflow, forward-to-tool run, etc.). Rendered
+        // as a quiet neutral pill with a direct link out to the Shuffle
+        // execution view — clicking opens the workflow run in a new tab.
+        const run: any = item.data;
+        const status = String(run.status || '').toUpperCase();
+        const isRunning = status === 'EXECUTING' || status === 'WAITING' || status === 'RUNNING';
+        const isFailed = status === 'FAILED' || status === 'ERROR' || status === 'ABORTED';
+        const timeAgo = run.started_at ? getAgentTimeAgo(run.started_at) : '';
+        const exactTs = run.started_at ? new Date(normalizeToMs(run.started_at)).toLocaleString() : '';
+        const wfName = run.workflow?.name || run.workflow_name || 'Workflow';
+        const shortId = String(run.execution_id || '').slice(0, 8);
+        const wfId = run.workflow_id || run.workflow?.id || '';
+        const execUrl = wfId && run.execution_id
+          ? `https://shuffler.io/workflows/${wfId}?execution_id=${run.execution_id}`
+          : run.execution_id
+            ? `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${run.execution_id}`
+            : '';
+        return (
+          <Box
+            key={`wfexec-${run.execution_id}`}
+            data-timeline-compact="true"
+            data-timeline-quiet={!isFailed && !isRunning ? 'true' : undefined}
+            onClick={() => { if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer'); }}
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.25,
+              py: 0.75,
+              borderRadius: 1.5,
+              border: isFailed ? '1px solid hsl(var(--destructive) / 0.5)' : '1px solid transparent',
+              bgcolor: 'transparent',
+              cursor: execUrl ? 'pointer' : 'default',
+              transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
+              '&:hover': {
+                borderColor: 'hsl(var(--muted-foreground) / 0.4)',
+                bgcolor: 'hsl(var(--muted) / 0.3)',
+              },
+            }}
+          >
+            {exactTs && (
+              <Tooltip title={exactTs} arrow placement="left">
+                <Box sx={{ position: 'absolute', left: -28, top: 0, width: 24, height: 24, cursor: 'help', zIndex: 2 }} />
+              </Tooltip>
+            )}
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.7 }}>
+              {isRunning
+                ? <CircularProgress size={12} thickness={5} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                : <PlayArrow sx={{ fontSize: 14, color: isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }} />}
+            </Box>
+            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1 }}>
+              {wfName}{shortId ? ` · ${shortId}` : ''}
+            </Typography>
+            {status && (
+              <Typography sx={{ fontSize: '0.7rem', color: isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', flexShrink: 0, textTransform: 'lowercase' }}>
+                · {status.toLowerCase()}
+              </Typography>
+            )}
+            {timeAgo && (
+              <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 'auto', flexShrink: 0 }}>
+                {timeAgo}
+              </Typography>
+            )}
+          </Box>
+        );
+      }
         // Compact "step" pill — these are derived events (task created /
         // observable added / correlation found) injected on the frontend so
         // the user can see *when* every artefact appeared on the timeline.
