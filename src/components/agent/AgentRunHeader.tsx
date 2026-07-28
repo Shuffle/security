@@ -98,7 +98,55 @@ export const getTimeAgo = (dateStr: string): string => {
   }
 };
 
+// Extract the "TASK: <text>" line that datastore automations and workflow
+// agent presets include in `execution_argument` / nested agent input. This
+// is the actual human-readable purpose of the run — much more useful in a
+// timeline than "Execution abc12345".
+const extractTaskLine = (text: unknown): string | null => {
+  if (typeof text !== 'string' || !text) return null;
+  const m = text.match(/(?:^|\n)\s*TASK\s*:\s*([^\n]+)/i);
+  if (!m) return null;
+  const line = m[1].trim().replace(/[."'\s]+$/, '');
+  return line.length > 0 ? line : null;
+};
+
+const findTaskLineInRun = (run: AgentRun): string | null => {
+  const anyRun = run as any;
+  const candidates: unknown[] = [
+    anyRun.original_input,
+    anyRun.input,
+    run.execution_argument,
+    run.result,
+  ];
+  if (Array.isArray(anyRun.results)) {
+    for (const r of anyRun.results) {
+      if (!r || typeof r !== 'object') continue;
+      candidates.push((r as any).result);
+      const inner = (r as any).result;
+      if (typeof inner === 'string') {
+        try {
+          const parsed = JSON.parse(inner);
+          if (parsed && typeof parsed === 'object') {
+            candidates.push((parsed as any).original_input, (parsed as any).input);
+          }
+        } catch { /* ignore */ }
+      } else if (inner && typeof inner === 'object') {
+        candidates.push((inner as any).original_input, (inner as any).input);
+      }
+    }
+  }
+  for (const c of candidates) {
+    const hit = extractTaskLine(c);
+    if (hit) return hit;
+  }
+  return null;
+};
+
 export const getRunTitle = (run: AgentRun): string => {
+  const taskLine = findTaskLineInRun(run);
+  if (taskLine) {
+    return taskLine.length > 100 ? taskLine.slice(0, 100).trimEnd() + '…' : taskLine;
+  }
   if (run.workflow?.name) return run.workflow.name;
   if (run.execution_argument) {
     try {
@@ -113,6 +161,7 @@ export const getRunTitle = (run: AgentRun): string => {
   }
   return `Execution ${run.execution_id?.slice(0, 8) || '—'}`;
 };
+
 
 const truncateValue = (val: unknown, maxLen = 80): string => {
   if (val === null || val === undefined) return '';
