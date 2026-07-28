@@ -153,15 +153,18 @@ export const isMergedIncident = (raw: any): boolean => {
   return getRelatedIncidents(raw).some(p => p.relation === 'merged' && p.primary);
 };
 
-/** Returns the pointer that leads to the primary, or null if this is the primary. */
+/** Returns the pointer that leads to the primary, or null if this is the primary.
+ *  Skips any pointer that has been explicitly unmerged — those tombstones must
+ *  never resurrect the "merged into" banner. */
 export const getPrimaryPointer = (raw: any): RelatedIncidentPointer | null => {
   const pointers = getRelatedIncidents(raw);
-  return pointers.find(p => p.relation === 'merged' && p.primary) || null;
+  return pointers.find(p => p.relation === 'merged' && p.primary && !wasUnmergedFrom(raw, p.id)) || null;
 };
 
-/** Returns pointers to the non-primary linked incidents (this incident is primary). */
+/** Returns pointers to the non-primary linked incidents (this incident is primary).
+ *  Also filters unmerged pointers for the same reason as above. */
 export const getLinkedPointers = (raw: any): RelatedIncidentPointer[] => {
-  return getRelatedIncidents(raw).filter(p => p.relation === 'merged' && !p.primary);
+  return getRelatedIncidents(raw).filter(p => p.relation === 'merged' && !p.primary && !wasUnmergedFrom(raw, p.id));
 };
 
 // ---------------------------------------------------------------------------
@@ -182,7 +185,8 @@ const upsertPointer = (
 const removePointer = (raw: any, targetId: string): any => {
   const next = { ...(raw || {}) };
   const existing = getRelatedIncidents(next);
-  next.related_incidents = existing.filter(p => p.id !== targetId);
+  const key = String(targetId || '').toLowerCase();
+  next.related_incidents = existing.filter(p => String(p.id || '').toLowerCase() !== key);
   return next;
 };
 
