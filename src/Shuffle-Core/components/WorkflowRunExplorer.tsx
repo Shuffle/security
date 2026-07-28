@@ -393,17 +393,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             </Box>
             );
           })}
-
-
-          <Divider sx={{ my: 2, bgcolor: 'hsl(var(--border))' }} />
-          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-            Raw payload
-          </Typography>
-          <Box sx={{ mt: 0.5, maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1 }}>
-            <JsonView src={deepParseJson(exec) as object} dark collapsed={2} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
-          </Box>
         </Box>
       )}
+
 
       <Dialog
         open={Boolean(debugResult)}
