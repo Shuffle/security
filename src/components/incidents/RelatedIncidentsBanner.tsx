@@ -82,6 +82,25 @@ export const RelatedIncidentsBanner = ({
     }
   };
 
+  const confirmLabel = (() => {
+    if (!pendingUnmerge) return '';
+    if (pendingUnmerge === 'all') {
+      return `${sorted.length} merged incident${sorted.length === 1 ? '' : 's'}`;
+    }
+    const hit = sorted.find((l) => l.id === pendingUnmerge);
+    return hit?.title || `incident ${pendingUnmerge}`;
+  })();
+
+  const runPendingUnmerge = async () => {
+    if (!pendingUnmerge) return;
+    if (pendingUnmerge === 'all') {
+      for (const l of sorted) await handleUnlink(l.id);
+    } else {
+      await handleUnlink(pendingUnmerge);
+    }
+  };
+
+
   const openIncident = (id: string) => navigate(`/incidents/${encodeURIComponent(id)}`);
 
   return (
