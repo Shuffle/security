@@ -441,8 +441,50 @@ export const linkMergePair = async ({
   if (!r1.success) return { success: false, error: r1.error || 'Failed to update primary' };
   if (r1.raw) nextPrimary = r1.raw;
 
-  const r2 = await writeIncidentSafe(sourceId, nextSource);
-  if (!r2.success) return { success: false, error: r2.error || 'Failed to update source' };
+  // Symmetric verification for the source side. Without a read-back, a
+  // silent write failure (or a stale read swallowing the status flip)
+  // leaves the source stuck in its prior status while the primary already
+  // lists it as a child — exactly the "still open after merge" bug.
+  const verifySourceMerged = async (): Promise<{ success: boolean; error?: string }> => {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const write = await writeIncidentSafe(sourceId, nextSource);
+      if (!write.success) return { success: false, error: write.error || 'Failed to update source' };
+      try {
+        const read = await getDatastoreItem(sourceId, DATASTORE_CATEGORIES.INCIDENTS);
+        if (read.success && read.item?.value) {
+          const stored = JSON.parse(read.item.value);
+          const flipped = stored?.status_id === MERGED_STATUS_ID;
+          const hasPrimaryPtr = getRelatedIncidents(stored).some(
+            (p) => p.id === primaryId && p.relation === 'merged' && p.primary,
+          );
+          if (flipped && hasPrimaryPtr) return { success: true };
+        }
+      } catch { /* fall through to retry */ }
+      if (attempt === 1) {
+        return { success: false, error: 'Merged incident did not verify (status flip did not persist)' };
+      }
+    }
+    return { success: false, error: 'Merged incident did not verify' };
+  };
+
+  const r2 = await verifySourceMerged();
+  if (!r2.success) {
+    // Roll back the pointer we just added to the primary so the primary
+    // never lists a source that is still open. Best-effort — if the
+    // rollback itself fails, the analyst can repair from the UI.
+    try {
+      let rollback: any = removePointer(nextPrimary, sourceId);
+      for (const c of childRaws) {
+        rollback = removePointer(rollback, c.id);
+      }
+      const rolledFolded = Array.isArray(rollback._merged_data_from)
+        ? rollback._merged_data_from.filter((x: string) => x !== sourceId && !childRaws.some(c => c.id === x))
+        : [];
+      rollback._merged_data_from = rolledFolded;
+      await writeIncidentSafe(primaryId, rollback);
+    } catch { /* leave primary as-is; surface the source error below */ }
+    return { success: false, error: r2.error || 'Failed to update source' };
+  }
 
   // Re-parent each grandchild: drop pointer to source, add pointer to
   // new primary. Errors are non-fatal.
@@ -469,6 +511,7 @@ export const linkMergePair = async ({
 
   return { success: true, foldedPrimary: nextPrimary };
 };
+
 
 
 
