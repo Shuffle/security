@@ -6,9 +6,11 @@
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { GitMerge, ArrowRight, Link2Off } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/lib/toast';
 import { unlinkMergePair } from '@/lib/incidentRelations';
+import { UnmergeConfirmDialog } from '@/components/incidents/UnmergeConfirmDialog';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 
 interface MergedIncidentBannerProps {
