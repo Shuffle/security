@@ -8,11 +8,20 @@
  * List/non-detail callers do not poll; they rely on a 60s staleTime.
  */
 
+import { useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { searchAgentActivity, AgentRun } from '@/services/agentActivity';
 import { getAgentRunsForIncident } from '@/lib/agentParsers';
 
 const AGENT_RUNS_QUERY_KEY = ['agent-activity-incidents'];
+
+// Monotonic per-incident cache of matched agent runs. The search endpoint
+// only returns the most recent ~100 executions, so an older matching run
+// can scroll off the window between polls — which used to make the "Agent"
+// count flap from N back to 0. We keep every run we have ever matched for
+// a given incident, keyed by execution_id, and union it with the freshest
+// results on every render.
+const stickyRuns = new Map<string, Map<string, AgentRun>>();
 
 export const useIncidentAgentRuns = (
   incidentKey?: string,
@@ -42,9 +51,43 @@ export const useIncidentAgentRuns = (
     gcTime: 5 * 60_000,
   });
 
-  const runsForIncident = incidentKey
-    ? getAgentRunsForIncident(allRuns, incidentKey)
-    : [];
+  const freshMatches = useMemo(
+    () => (incidentKey ? getAgentRunsForIncident(allRuns, incidentKey) : []),
+    [allRuns, incidentKey],
+  );
+
+  // Fold fresh matches into the sticky cache so a run we have already
+  // associated with this incident never disappears from the count just
+  // because it aged out of the recent-100 search window.
+  const runsForIncident = useMemo(() => {
+    if (!incidentKey) return [] as AgentRun[];
+    let bucket = stickyRuns.get(incidentKey);
+    if (!bucket) {
+      bucket = new Map();
+      stickyRuns.set(incidentKey, bucket);
+    }
+    for (const run of freshMatches) {
+      const id = (run as any)?.execution_id;
+      if (id) bucket.set(String(id), run);
+    }
+    // Return newest first (by started_at when present, else insertion order).
+    return Array.from(bucket.values()).sort((a: any, b: any) => {
+      const ta = Date.parse(a?.started_at || '') || 0;
+      const tb = Date.parse(b?.started_at || '') || 0;
+      return tb - ta;
+    });
+  }, [incidentKey, freshMatches]);
+
+  // Never let the sticky cache grow unbounded — cap each incident at 200.
+  useEffect(() => {
+    if (!incidentKey) return;
+    const bucket = stickyRuns.get(incidentKey);
+    if (bucket && bucket.size > 200) {
+      const excess = bucket.size - 200;
+      const keys = Array.from(bucket.keys()).slice(0, excess);
+      keys.forEach((k) => bucket!.delete(k));
+    }
+  }, [incidentKey, runsForIncident.length]);
 
   return {
     allRuns,
@@ -54,3 +97,4 @@ export const useIncidentAgentRuns = (
     refetch,
   };
 };
+
