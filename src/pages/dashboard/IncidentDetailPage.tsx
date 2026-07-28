@@ -2471,7 +2471,7 @@ const IncidentDetailPage = () => {
       // (or the URL was seeded before the source tenant existed) and only
       // lives elsewhere now. If found, redirect to the correct key so a
       // page refresh always lands on a real copy.
-      if (!isPublicView && id) {
+      if (!isPublicView && id && result.success) {
         const activeId = userInfo?.active_org?.id;
         const probeTargets: string[] = [];
         const seenProbe = new Set<string>();
