@@ -12,7 +12,7 @@
  * indicator-check runs, forward-to-tool runs, etc.).
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { searchAgentActivity, AgentRun } from '@/services/agentActivity';
 import { collectRunText, parseDatastoreReference, isIncidentReference } from '@/lib/agentParsers';
 
@@ -57,6 +57,7 @@ export const useIncidentWorkflowRuns = (
       : false,
     refetchOnWindowFocus: isDetailContext,
     gcTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
   });
 
   const runsForIncident = (() => {

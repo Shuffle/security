@@ -2402,13 +2402,31 @@ const IncidentDetailPage = () => {
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
 
-    return (allIncidentWorkflowRuns || []).filter((r: any) => {
+    const filtered = (allIncidentWorkflowRuns || []).filter((r: any) => {
       if (!r?.execution_id || agentIds.has(r.execution_id)) return false;
       // Hide throwaway executions: single-app one-shots and unnamed "Tmp" scratch flows.
       const wfName = String(r.workflow?.name || r.workflow_name || '').trim();
       if (/single app run/i.test(wfName)) return false;
       if (wfName.toLowerCase() === 'tmp') return false;
       return true;
+    });
+
+    // Ingest Tickets typically runs on a schedule and will re-fire many times
+    // within the incident window. Only surface the FIRST (earliest) execution
+    // that touched this incident — the subsequent runs are noise for the
+    // timeline.
+    const ingestRuns = filtered
+      .filter((r: any) => String(r.workflow?.name || r.workflow_name || '').trim().toLowerCase() === 'ingest tickets')
+      .sort((a: any, b: any) => {
+        const ta = new Date(a.started_at || a.completed_at || 0).getTime();
+        const tb = new Date(b.started_at || b.completed_at || 0).getTime();
+        return ta - tb;
+      });
+    const keepIngestId = ingestRuns[0]?.execution_id;
+    return filtered.filter((r: any) => {
+      const wfName = String(r.workflow?.name || r.workflow_name || '').trim().toLowerCase();
+      if (wfName !== 'ingest tickets') return true;
+      return r.execution_id === keepIngestId;
     });
   }, [allIncidentWorkflowRuns, agentRuns]);
   const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
