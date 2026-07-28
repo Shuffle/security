@@ -378,21 +378,31 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                   );
                 })()}
                 {appName ? (
-                  <AppFallbackIcon
-                    name={appName}
-                    imageUrl={imgSrc}
-                    size={28}
-                    alt={appName}
-                    style={{ borderRadius: '50%', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
-                  />
+                  <Tooltip title={appName} arrow>
+                    <Box
+                      component={r?.action?.app_id ? 'a' : 'span'}
+                      {...(r?.action?.app_id
+                        ? { href: `/apps/${r.action.app_id}`, target: '_blank', rel: 'noopener noreferrer' }
+                        : {})}
+                      sx={{ display: 'inline-flex', lineHeight: 0, cursor: r?.action?.app_id ? 'pointer' : 'default' }}
+                    >
+                      <AppFallbackIcon
+                        name={appName}
+                        imageUrl={imgSrc}
+                        size={28}
+                        alt={appName}
+                        style={{ borderRadius: '50%', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
+                      />
+                    </Box>
+                  </Tooltip>
                 ) : null}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
                     {r?.action?.label || r?.action?.name || `Step ${idx + 1}`}
                   </Typography>
-                  {appName && (
+                  {r?.action?.name && r?.action?.label && r.action.name !== r.action.label && (
                     <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                      {appName}
+                      {r.action.name}
                     </Typography>
                   )}
                 </Box>
