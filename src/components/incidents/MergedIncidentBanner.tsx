@@ -30,7 +30,7 @@ export const MergedIncidentBanner = ({
 }: MergedIncidentBannerProps) => {
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const primaryId = primary?.id || primary?.raw ? (primary?.id || primaryPointerId) : primaryPointerId;
+  const primaryId = primary?.id || primaryPointerId;
   if (!primaryId) return null;
 
   const primaryHref = `/incidents/${encodeURIComponent(primaryId)}`;
