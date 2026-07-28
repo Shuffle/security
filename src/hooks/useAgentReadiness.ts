@@ -261,7 +261,7 @@ export const useAgentReadiness = (): AgentReadinessStatus => {
     hasAiAgentAutomation,
     hasWorkflow,
     hasCategoryAutomation,
-    isLoading: wfLoading || cfgLoading,
+    isLoading: wfLoading || cfgLoading || assign.isLoading,
     enable,
     isEnabling,
   };
