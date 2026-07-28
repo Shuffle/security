@@ -65,6 +65,18 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
     }
   }, [sidebarCollapsed, isOnboarding]);
 
+  // Expose the sidebar's right edge as a CSS variable so global styles can
+  // clip MUI backdrops and keep the sidebar clickable while drawers are open.
+  useEffect(() => {
+    const width = sidebarCollapsed ? collapsedWidth : drawerWidth;
+    // sidebar sits at left:10 with a small breathing gap; match DashboardLayout marginLeft (+20)
+    const right = 10 + width + 10;
+    document.documentElement.style.setProperty('--app-sidebar-right', `${right}px`);
+    return () => {
+      document.documentElement.style.setProperty('--app-sidebar-right', '0px');
+    };
+  }, [sidebarCollapsed]);
+
   // Hydrate the agent-tools cache from the datastore once we have an active
   // org. This keeps "Assigned tools" in sync across browsers/devices instead
   // of being a per-browser localStorage list.
