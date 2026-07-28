@@ -277,7 +277,20 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               </Typography>
             </Box>
           )}
-          {exec.results?.map((r, idx) => (
+          {exec.results?.map((r, idx) => {
+            const wfAction = exec.workflow?.actions?.find((a: any) =>
+              (r?.action?.id && a?.id === r.action.id) ||
+              (r?.action?.app_name && a?.app_name === r.action.app_name) ||
+              (r?.action?.label && a?.label === r.action.label)
+            );
+            const imgSrc =
+              r?.action?.large_image ||
+              (wfAction as any)?.large_image ||
+              r?.action?.small_image ||
+              (wfAction as any)?.small_image ||
+              '';
+            const appName = r?.action?.app_name || (wfAction as any)?.app_name;
+            return (
             <Box
               key={r?.action?.id || idx}
               sx={{
@@ -289,9 +302,33 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, flex: 1 }}>
-                  {r?.action?.label || r?.action?.name || `Step ${idx + 1}`}
-                </Typography>
+                {imgSrc ? (
+                  <Box
+                    component="img"
+                    src={imgSrc}
+                    alt={appName || 'app'}
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      border: '1px solid hsl(var(--border))',
+                      bgcolor: 'hsl(var(--muted))',
+                      objectFit: 'contain',
+                      flexShrink: 0,
+                    }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : null}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                    {r?.action?.label || r?.action?.name || `Step ${idx + 1}`}
+                  </Typography>
+                  {appName && (
+                    <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                      {appName}
+                    </Typography>
+                  )}
+                </Box>
                 {r?.status && (
                   <Typography
                     variant="caption"
@@ -316,7 +353,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                 </Box>
               )}
             </Box>
-          ))}
+            );
+          })}
+
 
           <Divider sx={{ my: 2, bgcolor: 'hsl(var(--border))' }} />
           <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
