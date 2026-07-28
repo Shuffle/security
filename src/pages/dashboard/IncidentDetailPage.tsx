@@ -2563,7 +2563,9 @@ const IncidentDetailPage = () => {
   // the initial load.
   const loadIncidentRef = useRef(loadIncident);
   useEffect(() => { loadIncidentRef.current = loadIncident; }, [loadIncident]);
+  const transientLoadRetryRef = useRef(0);
   useEffect(() => {
+    transientLoadRetryRef.current = 0;
     loadIncidentRef.current?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, crossOrgId, isPublicView, publicOrg, publicAuth]);
@@ -2586,7 +2588,6 @@ const IncidentDetailPage = () => {
   // Transport failures are not the same as a missing incident. Keep retrying a
   // few times before showing any terminal state so transient backend/circuit
   // breaker responses do not become a false "not found" screen.
-  const transientLoadRetryRef = useRef(0);
   useEffect(() => {
     if (loading || incident || isPublicView || !id) return;
     const transient = loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success';
