@@ -383,7 +383,7 @@ const ResultRenderer: React.FC<{ value: unknown }> = ({ value }) => {
   if (parsed && typeof parsed === 'object') {
     return (
       <Box sx={{ maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1, bgcolor: 'hsl(var(--muted) / 0.4)' }}>
-        <ReactJson src={parsed as object} name={false} collapsed={1} theme="monokai" />
+        <JsonView src={parsed as object} dark collapsed={1} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
       </Box>
     );
   }
