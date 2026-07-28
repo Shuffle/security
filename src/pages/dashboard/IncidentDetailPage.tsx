@@ -5078,7 +5078,7 @@ const IncidentDetailPage = () => {
               {!isFilterActive('revisions') && (
                 <Button
                   size="small"
-                  onClick={() => setActiveTimelineFilters(new Set(['revisions']))}
+                  onClick={() => setActiveTimelineFilters((prev) => new Set([...prev, 'revisions']))}
                   sx={{
                     textTransform: 'none',
                     fontSize: '0.7rem',
