@@ -188,9 +188,13 @@ export const RelatedIncidentsBanner = ({
 
       {expanded && linked.length > 1 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1.5, maxHeight: 260, overflowY: 'auto', pr: 0.5 }}>
-          {sorted.map((l) => (
+          {sorted.map((l) => {
+            const isFlashed = highlightId === l.id;
+            return (
             <Box
               key={l.id}
+              data-related-id={l.id}
+              className={isFlashed ? 'incident-new-flash' : undefined}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -198,7 +202,9 @@ export const RelatedIncidentsBanner = ({
                 px: 1.25,
                 py: 0.75,
                 borderRadius: 1.5,
-                bgcolor: 'hsl(var(--background) / 0.5)',
+                bgcolor: isFlashed ? 'hsl(var(--primary) / 0.12)' : 'hsl(var(--background) / 0.5)',
+                border: isFlashed ? '1px solid hsl(var(--primary) / 0.5)' : '1px solid transparent',
+                transition: 'background-color 0.3s, border-color 0.3s',
                 '&:hover': { bgcolor: 'hsl(var(--muted) / 0.4)' },
               }}
             >
