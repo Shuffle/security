@@ -5829,6 +5829,7 @@ const IncidentDetailPage = () => {
         return `rev-${explicitId || `${ts}-${valueHash}`}-${it.idx}`;
       }
       if (it.type === 'agent') return `agent-${it.data.execution_id}`;
+      if (it.type === 'workflow-exec') return `wfexec-${it.data.execution_id}`;
       if (it.type === 'step') return it.id;
       return it.data.id;
     };
@@ -5838,6 +5839,7 @@ const IncidentDetailPage = () => {
         return `Change #${revisions.length - it.idx}`;
       }
       if (it.type === 'agent') return 'Agent run';
+      if (it.type === 'workflow-exec') return 'Workflow run';
       if (it.type === 'step') return it.label;
       return `${it.data.user || 'Comment'}`;
     };
@@ -5846,7 +5848,7 @@ const IncidentDetailPage = () => {
         const t = it.parsedCurrent?.title || it.parsedCurrent?.finding_info?.title || '';
         return String(t).slice(0, 80);
       }
-      if (it.type === 'agent') {
+      if (it.type === 'agent' || it.type === 'workflow-exec') {
         const r: any = it.data;
         return String(r.run_input || r.summary || r.status || '').slice(0, 80);
       }
