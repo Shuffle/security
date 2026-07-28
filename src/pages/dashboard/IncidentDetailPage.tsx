@@ -2339,6 +2339,8 @@ const IncidentDetailPage = () => {
     return (allIncidentWorkflowRuns || []).filter((r: any) => r?.execution_id && !agentIds.has(r.execution_id));
   }, [allIncidentWorkflowRuns, agentRuns]);
   const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
+  const [selectedWorkflowExecutionId, setSelectedWorkflowExecutionId] = useState<string | null>(null);
+
 
 
   // Load incident function (reusable for refresh)
