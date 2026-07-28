@@ -6447,7 +6447,7 @@ const IncidentDetailPage = () => {
         ? actItem.id.match(/^merge-in-(.+)-(\d+)$/)
         : null;
       const mergeSourceIdFromId = mergeInMatch ? mergeInMatch[1] : null;
-      const isMergeItem = actItem.type === 'system'
+      const isMergeItem = (actItem.type as string) === 'system'
         && typeof actItem.id === 'string'
         && (actItem.id.startsWith('merge-in-') || actItem.id.startsWith('merge-'));
       return (
