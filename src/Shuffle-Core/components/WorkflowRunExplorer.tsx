@@ -38,11 +38,15 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LinkIcon from '@mui/icons-material/Link';
 import { getApiUrl, getAuthHeader } from '../api';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import JsonView from 'react18-json-view';
+import type { JsonViewProps } from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
+
 
 export interface WorkflowExecution {
   execution_id?: string;
