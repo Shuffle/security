@@ -28,11 +28,16 @@ import {
   Divider,
   Tooltip,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
+import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
 import { getApiUrl, getAuthHeader } from '../api';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import JsonView from 'react18-json-view';
