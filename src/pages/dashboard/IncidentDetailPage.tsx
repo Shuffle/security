@@ -628,6 +628,7 @@ const IncidentDetailPage = () => {
   });
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { plural: entityPlural, singular: entitySingular, basePath: entityBasePath } = useEntityLabel();
   const t = useEntityText();
@@ -653,6 +654,35 @@ const IncidentDetailPage = () => {
     if (!rawId) return rawId;
     return rawId.includes('::') ? (rawId.split('::').filter(Boolean).pop() || rawId) : rawId;
   }, [rawId]);
+  const listFallbackIncident = useMemo(() => {
+    const fallback = (location.state as IncidentListFallbackState | null)?.incidentListFallback;
+    if (!fallback || !id) return null;
+    if (fallback.id !== id && fallback.id !== rawId) return null;
+    const createdTs = normalizeToMs(fallback.createdTs || fallback.created) || Date.now();
+    return {
+      id,
+      title: fallback.title || id,
+      source: fallback.source,
+      severity: fallback.severity || 'informational',
+      status: fallback.status || 'new',
+      assignee: fallback.assignee ?? null,
+      created: fallback.created || formatTimestamp(createdTs),
+      createdTs,
+      edited: fallback.edited,
+      editedTs: fallback.editedTs,
+      tlp: fallback.tlp,
+      labels: fallback.labels,
+      rawOCSF: {
+        finding_uid: id,
+        title: fallback.title || id,
+        product: fallback.source ? { name: fallback.source } : undefined,
+      },
+      activity: [],
+      tasks: [],
+      observables: [],
+      enrichments: [],
+    } as DisplayIncident;
+  }, [location.state, id, rawId]);
   const isCrossOrg = !!crossOrgId && crossOrgId !== userInfo?.active_org?.id;
 
   // Headers to include on every API call when viewing a cross-org incident
