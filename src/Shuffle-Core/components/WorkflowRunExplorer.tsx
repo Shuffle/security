@@ -34,7 +34,9 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
 import { getApiUrl, getAuthHeader } from '../api';
-import { ReactJson } from './stubs';
+import JsonView from 'react18-json-view';
+import 'react18-json-view/src/style.css';
+import 'react18-json-view/src/dark.css';
 
 export interface WorkflowExecution {
   execution_id?: string;
@@ -321,7 +323,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             Raw payload
           </Typography>
           <Box sx={{ mt: 0.5, maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1 }}>
-            <ReactJson src={deepParseJson(exec) as object} name={false} collapsed={2} theme="monokai" />
+            <JsonView src={deepParseJson(exec) as object} dark collapsed={2} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
           </Box>
         </Box>
       )}
@@ -381,7 +383,7 @@ const ResultRenderer: React.FC<{ value: unknown }> = ({ value }) => {
   if (parsed && typeof parsed === 'object') {
     return (
       <Box sx={{ maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1, bgcolor: 'hsl(var(--muted) / 0.4)' }}>
-        <ReactJson src={parsed as object} name={false} collapsed={1} theme="monokai" />
+        <JsonView src={parsed as object} dark collapsed={1} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
       </Box>
     );
   }
