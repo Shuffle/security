@@ -18,17 +18,29 @@ import { collectRunText, parseDatastoreReference, isIncidentReference } from '@/
 
 const WORKFLOW_RUNS_QUERY_KEY = ['workflow-activity-incidents'];
 
+export interface IncidentRunsWindow {
+  startTime?: string;
+  endTime?: string;
+}
+
 export const useIncidentWorkflowRuns = (
   incidentKey?: string,
   hasInFlight = false,
+  window: IncidentRunsWindow = {},
 ) => {
   const isDetailContext = !!incidentKey;
+  const { startTime, endTime } = window;
 
   const { data: allRuns = [], isLoading, error, refetch } = useQuery<AgentRun[]>({
-    queryKey: WORKFLOW_RUNS_QUERY_KEY,
+    queryKey: [...WORKFLOW_RUNS_QUERY_KEY, incidentKey || '_global', startTime || '', endTime || ''],
     queryFn: async () => {
       // Empty workflow_id → search across every workflow the user can see.
-      const result = await searchAgentActivity({ workflowId: '', limit: 100 });
+      const result = await searchAgentActivity({
+        workflowId: '',
+        limit: 100,
+        startTime,
+        endTime,
+      });
       return result.success ? result.runs : [];
     },
     staleTime: isDetailContext ? 0 : 60_000,
