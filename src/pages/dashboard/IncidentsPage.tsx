@@ -22,6 +22,7 @@ import {
   Alert,
   Dialog,
   DialogContent,
+  Skeleton,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { normalizeStatus } from '@/config/incidentConfig';
