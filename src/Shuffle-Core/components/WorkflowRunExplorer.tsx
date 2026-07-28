@@ -324,6 +324,30 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                {(() => {
+                  const errorCount = countRelevantErrors(r);
+                  return (
+                    <Tooltip
+                      title={
+                        <Typography variant="body2">
+                          Expand debug window. Errors: {errorCount}
+                        </Typography>
+                      }
+                      arrow
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => setDebugResult(r)}
+                        sx={{
+                          color: errorCount > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--foreground))',
+                          p: 0.5,
+                        }}
+                      >
+                        <ArrowLeftIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  );
+                })()}
                 {appName ? (
                   <AppFallbackIcon
                     name={appName}
