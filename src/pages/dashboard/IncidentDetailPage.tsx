@@ -7692,9 +7692,29 @@ const IncidentDetailPage = () => {
               )}
             </Box>
             {(() => {
-              const mergedCount = relatedIncidents?.linked?.length || 0;
-              // Thread count always includes the current incident plus the merged ones.
-              const total = mergedCount + 1;
+              // Stable thread badge: take the LARGEST count we can prove,
+              // so a background reload race after auto-merge cannot make
+              // the badge shrink or disappear.
+              //
+              //   1. Resolved linked incidents (best case, includes titles).
+              //   2. Raw `related_incidents` pointers on the current OCSF
+              //      (survives even if the cross-load fetches are still
+              //      pending or blocked).
+              //   3. `_merged_data_from` audit list (persisted by
+              //      linkMergePair, survives write-verify races).
+              //   4. Visible thread siblings sharing the same email
+              //      thread_id in the loaded list (pre-merge view).
+              const resolvedCount = relatedIncidents?.linked?.length || 0;
+              const pointerCount = (() => {
+                try { return getLinkedPointers(incident?.rawOCSF).length; }
+                catch { return 0; }
+              })();
+              const foldedFrom = Array.isArray((incident?.rawOCSF as any)?._merged_data_from)
+                ? (incident?.rawOCSF as any)._merged_data_from.length
+                : 0;
+              const siblingCount = threadCorrelated?.incidents?.length || 0;
+              const linkedFloor = Math.max(resolvedCount, pointerCount, foldedFrom, siblingCount);
+              const total = linkedFloor + 1;
               if (total <= 1) return null;
               const unavailable = relatedIncidents?.invisibleCount || 0;
               const suffix = unavailable ? ` (${unavailable} unavailable)` : '';
