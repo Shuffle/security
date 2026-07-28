@@ -525,7 +525,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                 ) : null}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-                    {r?.action?.label || r?.action?.name || `Step ${idx + 1}`}
+                    {humanizeLabel(r?.action?.label) || r?.action?.name || `Step ${idx + 1}`}
                   </Typography>
                   {r?.action?.name && r?.action?.label && r.action.name !== r.action.label && (
                     <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
