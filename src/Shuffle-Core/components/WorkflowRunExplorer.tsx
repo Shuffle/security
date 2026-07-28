@@ -34,7 +34,9 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
 import { getApiUrl, getAuthHeader } from '../api';
-import { ReactJson } from './stubs';
+import JsonView from 'react18-json-view';
+import 'react18-json-view/src/style.css';
+import 'react18-json-view/src/dark.css';
 
 export interface WorkflowExecution {
   execution_id?: string;
