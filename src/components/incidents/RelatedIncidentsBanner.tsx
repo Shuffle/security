@@ -1,11 +1,15 @@
 /**
- * Banner shown at the top of a PRIMARY incident's detail page. Lists the
- * incidents that were merged INTO this one, with an unlink action per row.
+ * Banner shown at the top of a PRIMARY incident's detail page. Merges are
+ * meant to be almost invisible: instead of listing every incident that was
+ * folded into this one, we show a single compact summary line with the latest
+ * merged incident and a count. The full list can be expanded if an analyst
+ * ever needs to unmerge or inspect a specific source.
  */
 
 import { Box, Typography, Chip, IconButton, Tooltip, CircularProgress } from '@mui/material';
-import { GitMerge, ExternalLink, Link2Off } from 'lucide-react';
+import { GitMerge, ExternalLink, Link2Off, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import { toast } from '@/lib/toast';
 import { unlinkMergePair } from '@/lib/incidentRelations';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
@@ -18,6 +22,19 @@ interface RelatedIncidentsBannerProps {
   onUnlinked?: () => void;
 }
 
+const readTs = (raw: any): number => {
+  if (!raw) return 0;
+  const cs = [raw.time, raw.event_time, raw.created_time_dt, raw.created_time, raw.created_at, raw.metadata?.extensions?.custom_attributes?.created];
+  for (const c of cs) {
+    if (typeof c === 'number' && Number.isFinite(c) && c > 0) return c < 1e12 ? c * 1000 : c;
+    if (typeof c === 'string' && c) {
+      const p = Date.parse(c);
+      if (Number.isFinite(p) && p > 0) return p;
+    }
+  }
+  return 0;
+};
+
 export const RelatedIncidentsBanner = ({
   currentIncidentId,
   linked,
@@ -26,7 +43,15 @@ export const RelatedIncidentsBanner = ({
   onUnlinked,
 }: RelatedIncidentsBannerProps) => {
   const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
   if (!loading && linked.length === 0 && invisibleCount === 0) return null;
+
+  const sorted = useMemo(() => {
+    return [...linked].sort((a, b) => (readTs(b.raw) - readTs(a.raw)) || b.id.localeCompare(a.id));
+  }, [linked]);
+
+  const latest = sorted[0];
+  const total = linked.length + invisibleCount;
 
   const handleUnlink = async (sourceId: string) => {
     const res = await unlinkMergePair({
@@ -41,28 +66,53 @@ export const RelatedIncidentsBanner = ({
     }
   };
 
+  const openIncident = (id: string) => navigate(`/incidents/${encodeURIComponent(id)}`);
+
   return (
     <Box
       sx={{
         px: 2.5,
-        py: 1.75,
+        py: 1.25,
         mb: 2,
         borderRadius: 2,
         bgcolor: 'hsl(var(--muted) / 0.35)',
         border: '1px solid hsl(var(--border))',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: linked.length > 0 ? 1 : 0 }}>
-        <GitMerge size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-          {(() => {
-            const total = linked.length + invisibleCount;
-            return total === 1
-              ? '1 incident merged into this one'
-              : `${total} incidents merged into this one`;
-          })()}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <GitMerge size={16} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+
+        <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 0, flex: '1 1 auto' }}>
+          {total === 1 && linked.length === 1 && latest ? (
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', minWidth: 0, maxWidth: '100%' }}>
+              <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {latest.title}
+              </Box>
+              <Box component="span" sx={{ whiteSpace: 'nowrap', ml: 0.5, color: 'text.secondary' }}>
+                merged into this one
+              </Box>
+            </Box>
+          ) : latest ? (
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', minWidth: 0, maxWidth: '100%' }}>
+              <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {latest.title}
+              </Box>
+              <Box component="span" sx={{ whiteSpace: 'nowrap', ml: 0.5, color: 'text.secondary' }}>
+                merged into this one
+              </Box>
+              <Chip
+                size="small"
+                label={`+${linked.length - 1} more`}
+                sx={{ height: 18, fontSize: '0.65rem', ml: 1, flexShrink: 0 }}
+              />
+            </Box>
+          ) : (
+            `${total} merged incident${total === 1 ? '' : 's'} not available`
+          )}
         </Typography>
-        {loading && <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />}
+
+        {loading && <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />}
+
         {invisibleCount > 0 && (
           <Tooltip title="Merged sources that could not be loaded (deleted or inaccessible)">
             <Chip
@@ -72,58 +122,112 @@ export const RelatedIncidentsBanner = ({
             />
           </Tooltip>
         )}
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto', flexShrink: 0 }}>
+          {linked.length === 1 && latest && (
+            <>
+              <Tooltip title="Open merged incident">
+                <IconButton
+                  size="small"
+                  onClick={() => openIncident(latest.id)}
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  <ExternalLink size={14} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Unmerge">
+                <IconButton
+                  size="small"
+                  onClick={() => handleUnlink(latest.id)}
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  <Link2Off size={14} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+          {linked.length > 1 && (
+            <>
+              <Tooltip title={expanded ? 'Hide merged sources' : 'Show merged sources'}>
+                <IconButton
+                  size="small"
+                  onClick={() => setExpanded((v) => !v)}
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Unmerge all sources">
+                <IconButton
+                  size="small"
+                  onClick={async () => {
+                    for (const l of sorted) {
+                      await handleUnlink(l.id);
+                    }
+                  }}
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  <Link2Off size={14} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
       </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxHeight: 260, overflowY: 'auto', pr: 0.5 }}>
-        {linked.map((l) => (
-          <Box
-            key={l.id}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 1.25,
-              py: 0.75,
-              borderRadius: 1.5,
-              bgcolor: 'hsl(var(--background) / 0.5)',
-              '&:hover': { bgcolor: 'hsl(var(--muted) / 0.4)' },
-            }}
-          >
-            <Typography
-              variant="body2"
+
+      {expanded && linked.length > 1 && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1.5, maxHeight: 260, overflowY: 'auto', pr: 0.5 }}>
+          {sorted.map((l) => (
+            <Box
+              key={l.id}
               sx={{
-                flex: 1,
-                minWidth: 0,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 1.25,
+                py: 0.75,
+                borderRadius: 1.5,
+                bgcolor: 'hsl(var(--background) / 0.5)',
+                '&:hover': { bgcolor: 'hsl(var(--muted) / 0.4)' },
               }}
             >
-              {l.title}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-              {l.id.substring(0, 10)}…
-            </Typography>
-            <Tooltip title="Open">
-              <IconButton
-                size="small"
-                onClick={() => navigate(`/incidents/${encodeURIComponent(l.id)}`)}
-                sx={{ color: 'hsl(var(--muted-foreground))' }}
+              <Typography
+                variant="body2"
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
               >
-                <ExternalLink size={14} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Unmerge">
-              <IconButton
-                size="small"
-                onClick={() => handleUnlink(l.id)}
-                sx={{ color: 'hsl(var(--muted-foreground))' }}
-              >
-                <Link2Off size={14} />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        ))}
-      </Box>
+                {l.title}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                {l.id.substring(0, 10)}…
+              </Typography>
+              <Tooltip title="Open">
+                <IconButton
+                  size="small"
+                  onClick={() => openIncident(l.id)}
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  <ExternalLink size={14} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Unmerge">
+                <IconButton
+                  size="small"
+                  onClick={() => handleUnlink(l.id)}
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  <Link2Off size={14} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ))}
+        </Box>
+      )}
     </Box>
   );
 };
