@@ -122,6 +122,8 @@ import { useIncidentAgentRuns } from '@/hooks/useIncidentAgentRuns';
 import { useIncidentWorkflowRuns } from '@/hooks/useIncidentWorkflowRuns';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
+import { WorkflowRunExplorerDrawer } from '@/Shuffle-Core';
+
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import AgentRunDiagnosisBanner from '@/components/agent/AgentRunDiagnosisBanner';
 import { getRunTitle, getRunIconColor, formatDuration as formatAgentRunDuration, getTimeAgo as getAgentTimeAgo, STATUS_CONFIG as AGENT_STATUS_CONFIG } from '@/components/agent/AgentRunHeader';
