@@ -6373,10 +6373,10 @@ const IncidentDetailPage = () => {
             ? `${notifCount} notification${notifCount === 1 ? '' : 's'} created — may indicate an issue`
             : 'Executing for more than 5 minutes';
         const questionNotif = run.execution_id ? questionByExecId[String(run.execution_id)] : undefined;
-        const hasInlineQuestion = !!questionNotif;
-        const pill = (
+        return (
+          <Box key={`wfexec-${run.execution_id}`} sx={{ display: 'flex', flexDirection: 'column' }}>
           <Box
-            key={`wfexec-${run.execution_id}`}
+            data-timeline-compact="true"
             data-timeline-compact="true"
             data-timeline-quiet={!isFailed && !isRunning && !isWarning ? 'true' : undefined}
             onClick={() => {
