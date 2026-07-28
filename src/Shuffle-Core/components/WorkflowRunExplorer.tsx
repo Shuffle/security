@@ -585,13 +585,14 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             (debugResult?.action?.app_name && a?.app_name === debugResult.action.app_name) ||
             (debugResult?.action?.label && a?.label === debugResult.action.label)
           );
-          const imgSrc =
-            debugResult?.action?.large_image ||
-            (wfAction as any)?.large_image ||
-            debugResult?.action?.small_image ||
-            (wfAction as any)?.small_image ||
-            '';
           const appName = debugResult?.action?.app_name || (wfAction as any)?.app_name;
+          const imgSrc = isAiAgentName(appName)
+            ? singulAgentIcon
+            : (debugResult?.action?.large_image ||
+              (wfAction as any)?.large_image ||
+              debugResult?.action?.small_image ||
+              (wfAction as any)?.small_image ||
+              '');
           const label = debugResult?.action?.label || debugResult?.action?.name || 'Step result';
           const actionName = debugResult?.action?.name;
           const allParams: any[] = Array.isArray(debugResult?.action?.parameters) ? debugResult.action.parameters : [];
