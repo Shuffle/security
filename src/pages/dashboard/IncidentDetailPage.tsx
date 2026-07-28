@@ -6441,11 +6441,21 @@ const IncidentDetailPage = () => {
       }
 
       const isActHighlighted = !!actItem.id && newlyArrivedActivity.has(actItem.id);
+      // Merge/threading audit entries — clicking them jumps to the
+      // Correlations tab and flashes the matching linked incident row.
+      const mergeInMatch = typeof actItem.id === 'string'
+        ? actItem.id.match(/^merge-in-(.+)-(\d+)$/)
+        : null;
+      const mergeSourceIdFromId = mergeInMatch ? mergeInMatch[1] : null;
+      const isMergeItem = actItem.type === 'system'
+        && typeof actItem.id === 'string'
+        && (actItem.id.startsWith('merge-in-') || actItem.id.startsWith('merge-'));
       return (
         <Box
           key={actItem.id}
           id={actItem.id ? `activity-item-${actItem.id}` : undefined}
           className={isActHighlighted ? 'incident-new-flash' : undefined}
+          onClick={isMergeItem ? () => focusRelatedIncident(mergeSourceIdFromId) : undefined}
           sx={{
             display: 'flex',
             gap: 1.5,
@@ -6460,6 +6470,14 @@ const IncidentDetailPage = () => {
               : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--border-subtle))',
             position: 'relative',
             opacity: isDeleted ? 0.7 : 1,
+            cursor: isMergeItem ? 'pointer' : 'default',
+            transition: 'background-color 0.15s ease, border-color 0.15s ease',
+            ...(isMergeItem && {
+              '&:hover': {
+                bgcolor: 'hsl(var(--muted) / 0.75)',
+                borderColor: 'hsl(var(--primary) / 0.4)',
+              },
+            }),
             '&:hover .delete-btn': { opacity: 1 },
             '&:hover .reply-btn': { opacity: 1 },
           }}
