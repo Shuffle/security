@@ -1027,12 +1027,12 @@ const IncidentDetailPage = () => {
   // localStorage so the same set is restored across page loads. Substep
   // filters (`tasks`, `observables`, `correlations`) split the legacy
   // "steps" bucket so each artefact type can be hidden individually.
-  type TimelineFilterKey = 'revisions' | 'agent' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
-  const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
-  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
+  type TimelineFilterKey = 'revisions' | 'agent' | 'workflows' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
+  const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
+  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
   // Bumped when the default set changes so existing localStorage entries
   // re-default rather than persist the old "all on" baseline.
-  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v3';
+  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v4';
   const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
     if (typeof window === 'undefined') return new Set(DEFAULT_TIMELINE_FILTERS);
     try {
