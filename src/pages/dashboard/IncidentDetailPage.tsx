@@ -6377,7 +6377,6 @@ const IncidentDetailPage = () => {
           <Box key={`wfexec-${run.execution_id}`} sx={{ display: 'flex', flexDirection: 'column' }}>
           <Box
             data-timeline-compact="true"
-            data-timeline-compact="true"
             data-timeline-quiet={!isFailed && !isRunning && !isWarning ? 'true' : undefined}
             onClick={() => {
               if (run.execution_id) setSelectedWorkflowExecutionId(String(run.execution_id));
