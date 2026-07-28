@@ -52,6 +52,7 @@ import { CorrelationRow, getEffectiveCorrelationCount, filterMeaningfulCorrelati
 import CorrelationContextStrip from '@/components/incidents/CorrelationContextStrip';
 import { IocDetailsCard } from '@/components/incidents/IocDetailsCard';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
 import { useDemo } from '@/context/DemoContext';
 import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
