@@ -1072,8 +1072,28 @@ const IncidentDetailPage = () => {
     }
     return false;
   };
-  const mergeActivity = activity.filter(isMergeActivityItem);
-  const commentActivity = activity.filter((a) => !isMergeActivityItem(a));
+  const getMergeActivityDisplayKey = (item: any): string | null => {
+    if (!isMergeActivityItem(item)) return null;
+    const id = String(item.id || '');
+    if (id.startsWith('merge-in-')) {
+      const sourcePart = id.replace(/^merge-in-/, '').replace(/-\d{10,}$/, '');
+      if (sourcePart) return `merge-in:${sourcePart.toLowerCase()}`;
+    }
+    const content = String(item.content || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    return content ? `merge-content:${content}` : null;
+  };
+  const displayActivity = useMemo(() => {
+    const seenMergeKeys = new Set<string>();
+    return activity.filter((item) => {
+      const key = getMergeActivityDisplayKey(item);
+      if (!key) return true;
+      if (seenMergeKeys.has(key)) return false;
+      seenMergeKeys.add(key);
+      return true;
+    });
+  }, [activity]);
+  const mergeActivity = displayActivity.filter(isMergeActivityItem);
+  const commentActivity = displayActivity.filter((a) => !isMergeActivityItem(a));
   // Legacy compatibility shim — a few render branches used to special-case
   // the single-select "revisions" tab to relabel the oldest revision as
   // "Incident created". The equivalent in the new multi-select model is
