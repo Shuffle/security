@@ -1027,12 +1027,12 @@ const IncidentDetailPage = () => {
   // localStorage so the same set is restored across page loads. Substep
   // filters (`tasks`, `observables`, `correlations`) split the legacy
   // "steps" bucket so each artefact type can be hidden individually.
-  type TimelineFilterKey = 'revisions' | 'agent' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
-  const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
-  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
+  type TimelineFilterKey = 'revisions' | 'agent' | 'workflows' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
+  const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
+  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
   // Bumped when the default set changes so existing localStorage entries
   // re-default rather than persist the old "all on" baseline.
-  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v3';
+  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v4';
   const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
     if (typeof window === 'undefined') return new Set(DEFAULT_TIMELINE_FILTERS);
     try {
@@ -4933,6 +4933,7 @@ const IncidentDetailPage = () => {
     const filterDefs = [
       { key: 'revisions' as const, label: 'Changes', count: revisions.length },
       { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
+      { key: 'workflows' as const, label: 'Workflow runs', count: workflowOnlyRuns.length },
       { key: 'manual' as const, label: 'Comments', count: commentActivity.length },
       { key: 'merges' as const, label: 'Threading', count: mergeActivity.length },
       { key: 'tasks' as const, label: 'Tasks', count: visibleTasks.length },
@@ -5020,6 +5021,7 @@ const IncidentDetailPage = () => {
         {([
           { key: 'revisions' as const, label: 'Changes', count: revisions.length },
           { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
+          { key: 'workflows' as const, label: 'Workflow runs', count: workflowOnlyRuns.length },
           { key: 'manual' as const, label: 'Comments', count: commentActivity.length },
           { key: 'merges' as const, label: 'Threading', count: mergeActivity.length },
           { key: 'tasks' as const, label: 'Tasks', count: visibleTasks.length },
@@ -5526,9 +5528,11 @@ const IncidentDetailPage = () => {
         const ts = normalizeToMs(run.started_at);
         items.push({ type: 'agent', timestamp: ts, data: run });
       });
-      // Non-agent workflow executions that touched this incident. Rides along
-      // with the Agent filter so a single "Automation" toggle covers every
-      // machine-driven event in the timeline.
+    }
+    // Non-agent workflow executions that touched this incident. Independent
+    // "Workflow runs" toggle so users can hide automation noise without also
+    // hiding agent activity.
+    if (isFilterActive('workflows')) {
       workflowOnlyRuns.forEach((run: any) => {
         const ts = normalizeToMs(run.started_at);
         items.push({ type: 'workflow-exec', timestamp: ts, data: run });
