@@ -162,7 +162,11 @@ export const useBackgroundThreadContinuation = (
               } catch { return null; }
             }),
           );
-          const siblings = siblingLoads.filter((s): s is { id: string; raw: any; title: string } => !!s);
+          const siblings = siblingLoads
+            .filter((s): s is { id: string; raw: any; title: string } => !!s)
+            // Skip siblings that were explicitly unmerged from this primary
+            // (either direction). The analyst chose to keep them apart.
+            .filter((s) => !pairWasUnmerged(raw, candidate.id, s.raw, s.id));
           if (siblings.length === 0) continue;
 
           // Retain the primary that already anchors the thread. Chain
