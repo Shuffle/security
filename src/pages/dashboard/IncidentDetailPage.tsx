@@ -2383,8 +2383,9 @@ const IncidentDetailPage = () => {
     return () => window.removeEventListener('workflow-run:changed', onChanged as EventListener);
   }, [refetchWorkflowRuns, refetchAgentRuns]);
 
-
+  const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
+
     return (allIncidentWorkflowRuns || []).filter((r: any) => {
       if (!r?.execution_id || agentIds.has(r.execution_id)) return false;
       // Hide throwaway executions: single-app one-shots and unnamed "Tmp" scratch flows.
