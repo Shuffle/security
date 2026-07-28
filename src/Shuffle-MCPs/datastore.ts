@@ -151,6 +151,93 @@ const serializeDatastoreValue = (value: unknown): string => {
   }
 };
 
+// Datastore payload size ceiling. The backend rejects large values with a
+// generic 500 whose body mentions "Value" / size. Keep some headroom below the
+// hard limit so we can retry with a slimmed payload before the backend errors.
+const DATASTORE_VALUE_SOFT_LIMIT_BYTES = 900_000; // ~900 KB
+const DATASTORE_VALUE_HARD_LIMIT_BYTES = 1_400_000; // ~1.4 MB — abort past this
+
+const byteLength = (s: string): number => {
+  try { return new Blob([s]).size; } catch { return s.length; }
+};
+
+const looksLikeValueTooBig = (status: number, body: string): boolean => {
+  if (status < 500) return false;
+  const b = (body || '').toLowerCase();
+  return b.includes('value') && (b.includes('too big') || b.includes('too large') || b.includes('size') || b.includes('limit'));
+};
+
+/**
+ * Trim heavy fields from an incident payload so it fits under the datastore
+ * value ceiling. Removes cross-loaded activity, embedded base64 attachments,
+ * raw MIME dumps, and huge HTML bodies — anything the UI can recompute or
+ * re-fetch on demand. Returns the modified value (as a JSON string) and a
+ * short list of what was dropped for logging.
+ */
+const slimIncidentValueForWrite = (
+  raw: string,
+): { value: string; dropped: string[] } | null => {
+  let obj: any;
+  try { obj = JSON.parse(raw); } catch { return null; }
+  if (!obj || typeof obj !== 'object') return null;
+  const dropped: string[] = [];
+
+  const stripBase64Attachments = (node: any) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node.attachments)) {
+      for (const a of node.attachments) {
+        if (a && typeof a === 'object' && typeof a.data === 'string' && a.data.length > 4000) {
+          a.data = '';
+          a._truncated = true;
+        }
+      }
+    }
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (v && typeof v === 'object') stripBase64Attachments(v);
+    }
+  };
+
+  // 1. Drop base64 attachment bodies anywhere in the payload.
+  stripBase64Attachments(obj);
+  dropped.push('attachments.data');
+
+  // 2. Cap oversized HTML/body strings inside email messages.
+  const capString = (s: string, cap = 200_000) =>
+    typeof s === 'string' && s.length > cap ? s.slice(0, cap) + '…[truncated]' : s;
+  if (obj.email && typeof obj.email === 'object') {
+    if (typeof obj.email.body_html === 'string') obj.email.body_html = capString(obj.email.body_html);
+    if (typeof obj.email.body === 'string') obj.email.body = capString(obj.email.body);
+    if (Array.isArray(obj.email.messages)) {
+      for (const m of obj.email.messages) {
+        if (m && typeof m === 'object') {
+          if (typeof m.body_html === 'string') m.body_html = capString(m.body_html);
+          if (typeof m.body === 'string') m.body = capString(m.body);
+        }
+      }
+    }
+    dropped.push('email.body_html');
+  }
+
+  // 3. Drop the raw OCSF unmapped original — it's recoverable from the source.
+  if (obj.rawOCSF?.unmapped_original) {
+    obj.rawOCSF = { ...obj.rawOCSF };
+    delete obj.rawOCSF.unmapped_original;
+    dropped.push('rawOCSF.unmapped_original');
+  }
+
+  // 4. Trim activity/timeline history to the most recent entries.
+  if (Array.isArray(obj.activity) && obj.activity.length > 200) {
+    obj.activity = obj.activity.slice(-200);
+    dropped.push('activity[older]');
+  }
+  if (Array.isArray(obj.timeline) && obj.timeline.length > 200) {
+    obj.timeline = obj.timeline.slice(-200);
+    dropped.push('timeline[older]');
+  }
+
+  return { value: JSON.stringify(obj), dropped };
+};
 
 /**
  * Set a single item in the datastore
@@ -167,49 +254,86 @@ export const setDatastoreItem = async (
   }
 
   const rawKey = normalizeDatastoreKey(key);
-  // Use the v2 datastore endpoint as a single-item array. This is the same
-  // endpoint the bulk writer uses; set_cache has been retired for incident
-  // updates because it stringifies the payload differently and caused
-  // double-encoded JSON to land in the datastore.
-  //
-  // IMPORTANT: pin the org_id INSIDE the payload item as well as on the
-  // Org-Id header. The v2 endpoint reads org_id from the payload when
-  // present; without it, the backend falls back to the session's active
-  // org and the write silently lands in the wrong tenant.
-  const payload = [{
+  let serialized = serializeDatastoreValue(value);
+
+  // Pre-flight size guard: if the value is already over the soft limit and
+  // this is an incident write, slim it before hitting the backend at all.
+  if (
+    category === 'shuffle-security_incidents' &&
+    byteLength(serialized) > DATASTORE_VALUE_SOFT_LIMIT_BYTES
+  ) {
+    const slim = slimIncidentValueForWrite(serialized);
+    if (slim) {
+      console.warn(
+        `[datastore.set] pre-slim incident ${rawKey} bytes=${byteLength(serialized)} -> ${byteLength(slim.value)} dropped=${slim.dropped.join(',')}`,
+      );
+      serialized = slim.value;
+    }
+  }
+
+  if (byteLength(serialized) > DATASTORE_VALUE_HARD_LIMIT_BYTES) {
+    return {
+      success: false,
+      error: `Datastore value too large (${byteLength(serialized)} bytes) after slimming; write aborted for ${rawKey}`,
+    };
+  }
+
+  const buildPayload = (v: string) => ([{
     key: rawKey,
-    value: serializeDatastoreValue(value),
+    value: v,
     category,
     org_id: orgId,
-    // Incident category is governed by automation/security rules that would
-    // otherwise reject programmatic edits — bypass them for our own writes.
     ...(category === 'shuffle-security_incidents' ? { ignore_security_rules: true } : {}),
-  }];
+  }]);
 
-  // NOTE: pass `orgId` to getAuthHeader so its Org-Id matches the target
-  // tenant. Spreading getAuthHeader() AFTER a manual 'Org-Id' would let the
-  // session's active org overwrite the target and silently mis-route writes.
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...getAuthHeader(orgId),
   };
 
+  console.log(`[datastore.set] key=${rawKey} category=${category} orgId=${orgId} bytes=${byteLength(serialized)}${overrideOrgId ? ' (override)' : ''}`);
 
-  console.log(`[datastore.set] key=${rawKey} category=${category} orgId=${orgId}${overrideOrgId ? ' (override)' : ''}`);
-
-  const response = await fetch(getApiUrl('/api/v2/datastore'), {
+  const send = (v: string) => fetch(getApiUrl('/api/v2/datastore'), {
     method: 'POST',
     credentials: 'include',
     headers,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(buildPayload(v)),
   });
 
+  let response = await send(serialized);
   if (!response.ok) {
-    return { success: false, error: `Failed to set datastore item: ${response.statusText}` };
+    const bodyText = await response.text().catch(() => '');
+    // Backend rejected because the value is too big — try one slimming pass
+    // and retry. Only meaningful for incidents (structured object with the
+    // heavy optional fields we know how to drop).
+    if (
+      category === 'shuffle-security_incidents' &&
+      looksLikeValueTooBig(response.status, bodyText)
+    ) {
+      const slim = slimIncidentValueForWrite(serialized);
+      if (slim && slim.value.length < serialized.length) {
+        console.warn(
+          `[datastore.set] backend rejected large value for ${rawKey}; retrying slimmed bytes=${byteLength(slim.value)} dropped=${slim.dropped.join(',')}`,
+        );
+        response = await send(slim.value);
+        if (response.ok) return { success: true };
+        const retryBody = await response.text().catch(() => '');
+        return {
+          success: false,
+          error: `Datastore value too large for ${rawKey} even after slimming: ${response.status} ${truncateResponsePreview(retryBody) || response.statusText}`,
+        };
+      }
+      return {
+        success: false,
+        error: `Datastore value too large for ${rawKey}: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}`,
+      };
+    }
+    return { success: false, error: `Failed to set datastore item: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}` };
   }
 
   return { success: true };
 };
+
 
 
 /**
