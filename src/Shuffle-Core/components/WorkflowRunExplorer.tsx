@@ -66,6 +66,21 @@ export interface WorkflowExecution {
 const IN_PROGRESS = new Set(['EXECUTING', 'WAITING', 'RUNNING']);
 const isRunning = (s?: string) => IN_PROGRESS.has((s || '').toUpperCase());
 
+const countRelevantErrors = (result: any): number => {
+  if (!result?.action?.parameters?.length) return 0;
+  const params = result.action.parameters;
+  let count = 0;
+  for (const param of params) {
+    if (
+      param?.name?.endsWith('_error') &&
+      (param?.name?.startsWith('shuffle_') || param?.name?.startsWith('liquid_'))
+    ) {
+      count += 1;
+    }
+  }
+  return count || 0;
+};
+
 const fetchExecution = async (executionId: string): Promise<WorkflowExecution | null> => {
   try {
     const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
