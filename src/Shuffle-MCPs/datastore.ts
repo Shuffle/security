@@ -422,25 +422,12 @@ export const getDatastoreItem = async (
   
   // API returns success: false if key not found
   if (data.success === false && !data.value) {
-    if (category === 'shuffle-security_incidents') {
-      const fallbackItem = await findDatastoreItemInCategoryPages(rawKey, category, orgId);
-      if (fallbackItem) {
-        return {
-          success: true,
-          item: fallbackItem,
-          diagnostics: {
-            ...baseDiagnostics,
-            status: response.status,
-            statusText: `${response.statusText || 'success=false'}; recovered via list_cache`,
-            contentType: response.headers.get('content-type'),
-            bodyPreview: truncateResponsePreview(rawBody),
-            responseShape: 'unknown',
-            itemCount: 1,
-            timestamp: new Date().toISOString(),
-          },
-        };
-      }
-    }
+    // NOTE: do NOT trigger list_cache pagination here. A `success:false` with
+    // no value is the normal "key does not exist" response, and paginating the
+    // whole category for every miss makes the /incidents list crawl because
+    // background hooks legitimately probe many missing keys. The list_cache
+    // fallback is only for real transient HTTP failures (handled above).
+
 
     return {
       success: true,
