@@ -439,43 +439,142 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
           },
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid hsl(var(--border))' }}>
-          <ArrowLeftIcon />
-          <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
-            Debug: {debugResult?.action?.label || debugResult?.action?.name || 'Step result'}
-          </Typography>
-          <IconButton size="small" onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 2, minHeight: 300 }}>
-          <Box
-            sx={{
-              maxHeight: '70vh',
-              overflow: 'auto',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 1,
-              p: 1,
-              bgcolor: 'hsl(var(--muted) / 0.4)',
-            }}
-          >
-            <JsonViewWithReference
-              src={deepParseJson(debugResult) as object}
-              baseName={debugResult?.action?.name || debugResult?.action?.label}
-              dark
-              collapsed={1}
-              collapseStringMode="word"
-              collapseStringsAfterLength={120}
-              enableClipboard
-              displaySize
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ borderTop: '1px solid hsl(var(--border))' }}>
-          <Button onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
-            Close
-          </Button>
-        </DialogActions>
+        {(() => {
+          if (!debugResult) return null;
+          const wfAction = exec?.workflow?.actions?.find((a: any) =>
+            (debugResult?.action?.id && a?.id === debugResult.action.id) ||
+            (debugResult?.action?.app_name && a?.app_name === debugResult.action.app_name) ||
+            (debugResult?.action?.label && a?.label === debugResult.action.label)
+          );
+          const imgSrc =
+            debugResult?.action?.large_image ||
+            (wfAction as any)?.large_image ||
+            debugResult?.action?.small_image ||
+            (wfAction as any)?.small_image ||
+            '';
+          const appName = debugResult?.action?.app_name || (wfAction as any)?.app_name;
+          const label = debugResult?.action?.label || debugResult?.action?.name || 'Step result';
+          const actionName = debugResult?.action?.name;
+          const allParams: any[] = Array.isArray(debugResult?.action?.parameters) ? debugResult.action.parameters : [];
+          const variableParams = allParams.filter((p) =>
+            p && p.name && !(p.name.endsWith('_error') && (p.name.startsWith('shuffle_') || p.name.startsWith('liquid_')))
+          );
+          const errorParams = allParams.filter((p) =>
+            p && p.name && p.name.endsWith('_error') && (p.name.startsWith('shuffle_') || p.name.startsWith('liquid_'))
+          );
+          const status = debugResult?.status;
+          const statusColor =
+            status === 'SUCCESS' || status === 'FINISHED' ? 'hsl(140 60% 55%)'
+              : status === 'FAILURE' || status === 'ABORTED' ? 'hsl(var(--destructive))'
+              : 'hsl(45 90% 55%)';
+          return (
+            <>
+              <DialogTitle sx={{ borderBottom: '1px solid hsl(var(--border))', p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <IconButton size="small" onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
+                    <ArrowLeftIcon />
+                  </IconButton>
+                  {(appName || imgSrc) && (
+                    <AppFallbackIcon
+                      name={appName || label}
+                      imageUrl={imgSrc}
+                      size={40}
+                      alt={appName || label}
+                      style={{ borderRadius: 8, border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
+                    />
+                  )}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                      {typeof label === 'string' ? label.replaceAll('_', ' ') : label}
+                    </Typography>
+                    {actionName && (
+                      <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                        {actionName}
+                      </Typography>
+                    )}
+                  </Box>
+                  {status && (
+                    <Typography
+                      variant="caption"
+                      sx={{ textTransform: 'uppercase', fontWeight: 600, color: statusColor, mr: 1 }}
+                    >
+                      Status {status}
+                    </Typography>
+                  )}
+                  <IconButton size="small" onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 2, minHeight: 300 }}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--muted-foreground))' }}>
+                  Result
+                </Typography>
+                <Box
+                  sx={{
+                    maxHeight: '55vh',
+                    overflow: 'auto',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 1,
+                    p: 1,
+                    bgcolor: 'hsl(var(--muted) / 0.4)',
+                  }}
+                >
+                  <JsonViewWithReference
+                    src={deepParseJson(
+                      debugResult?.__isExecutionArgument ? debugResult.result : debugResult
+                    ) as object}
+                    baseName={actionName || label}
+                    dark
+                    collapsed={1}
+                    collapseStringMode="word"
+                    collapseStringsAfterLength={120}
+                    enableClipboard
+                    displaySize
+                  />
+                </Box>
+
+                {(variableParams.length > 0 || errorParams.length > 0) && (
+                  <>
+                    <Typography variant="subtitle1" sx={{ mt: 2.5, mb: 1, fontWeight: 700 }}>
+                      Variable &amp; Debug info{' '}
+                      <Typography component="span" variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                        ({variableParams.length + errorParams.length})
+                      </Typography>
+                    </Typography>
+                    <Box sx={{ border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1.25, bgcolor: 'hsl(var(--muted) / 0.4)' }}>
+                      {variableParams.map((p, i) => (
+                        <Box key={`v-${i}`} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', py: 0.5, borderBottom: i < variableParams.length - 1 || errorParams.length > 0 ? '1px dashed hsl(var(--border))' : 'none' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 160, wordBreak: 'break-all' }}>
+                            {p.name}:
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
+                            {typeof p.value === 'string' ? p.value : JSON.stringify(p.value)}
+                          </Typography>
+                        </Box>
+                      ))}
+                      {errorParams.map((p, i) => (
+                        <Box key={`e-${i}`} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', py: 0.5, borderBottom: i < errorParams.length - 1 ? '1px dashed hsl(var(--border))' : 'none' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 160, wordBreak: 'break-all', color: 'hsl(var(--destructive))' }}>
+                            {p.name}:
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
+                            {typeof p.value === 'string' ? p.value : JSON.stringify(p.value)}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </>
+                )}
+              </DialogContent>
+              <DialogActions sx={{ borderTop: '1px solid hsl(var(--border))' }}>
+                <Button onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
+                  Close
+                </Button>
+              </DialogActions>
+            </>
+          );
+        })()}
       </Dialog>
     </Box>
   );
