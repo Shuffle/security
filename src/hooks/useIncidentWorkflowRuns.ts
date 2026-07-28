@@ -1,0 +1,62 @@
+/**
+ * Hook to fetch workflow executions related to a specific incident.
+ *
+ * Uses the same `POST /api/v1/workflows/search` endpoint as agent activity
+ * but with an empty workflow_id so results span every workflow the caller
+ * can see. Results are then filtered client-side to those that mention the
+ * incident id in any of their argument / result text fields.
+ *
+ * This is the counterpart to `useIncidentAgentRuns` — where that hook is
+ * scoped to AI Agent runs, this one surfaces every OTHER workflow execution
+ * that touched the incident (datastore triggers, enrichment workflows,
+ * indicator-check runs, forward-to-tool runs, etc.).
+ */
+
+import { useQuery } from '@tanstack/react-query';
+import { searchAgentActivity, AgentRun } from '@/services/agentActivity';
+import { collectRunText, parseDatastoreReference, isIncidentReference } from '@/lib/agentParsers';
+
+const WORKFLOW_RUNS_QUERY_KEY = ['workflow-activity-incidents'];
+
+export const useIncidentWorkflowRuns = (
+  incidentKey?: string,
+  hasInFlight = false,
+) => {
+  const isDetailContext = !!incidentKey;
+
+  const { data: allRuns = [], isLoading, error, refetch } = useQuery<AgentRun[]>({
+    queryKey: WORKFLOW_RUNS_QUERY_KEY,
+    queryFn: async () => {
+      // Empty workflow_id → search across every workflow the user can see.
+      const result = await searchAgentActivity({ workflowId: '', limit: 100 });
+      return result.success ? result.runs : [];
+    },
+    staleTime: isDetailContext ? 0 : 60_000,
+    refetchInterval: isDetailContext
+      ? (query) => {
+          if (hasInFlight) return 5_000;
+          const runs = (query.state.data as AgentRun[] | undefined) || [];
+          const anyRunning = runs.some((r) => {
+            const s = (r.status || '').toUpperCase();
+            return s === 'EXECUTING' || s === 'WAITING' || s === 'RUNNING';
+          });
+          return anyRunning ? 10_000 : 60_000;
+        }
+      : false,
+    refetchOnWindowFocus: isDetailContext,
+    gcTime: 5 * 60_000,
+  });
+
+  const runsForIncident = (() => {
+    if (!incidentKey) return [] as AgentRun[];
+    const needle = incidentKey.toLowerCase();
+    return allRuns.filter((run) => {
+      const ref = parseDatastoreReference(run);
+      if (ref && isIncidentReference(ref) && ref.key === incidentKey) return true;
+      const haystack = collectRunText(run).toLowerCase();
+      return !!haystack && haystack.includes(needle);
+    });
+  })();
+
+  return { allRuns, runsForIncident, isLoading, error, refetch };
+};

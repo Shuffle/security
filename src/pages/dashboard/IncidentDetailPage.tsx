@@ -119,6 +119,7 @@ import { FileAttachments } from '@/components/incidents/FileAttachments';
 import { toast } from '@/lib/toast';
 import { isAIAssignee, deduplicateTasks, htmlToPlainText, decodeHtmlEntities, decodeIfBase64, deepMergeIncidents } from '@/lib/utils';
 import { useIncidentAgentRuns } from '@/hooks/useIncidentAgentRuns';
+import { useIncidentWorkflowRuns } from '@/hooks/useIncidentWorkflowRuns';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
 import { SegmentedControl } from '@/components/ui/segmented-control';
@@ -2322,7 +2323,21 @@ const IncidentDetailPage = () => {
     });
   }, [activity]);
   const { runsForIncident: agentRuns, isLoading: agentRunsLoading, refetch: refetchAgentRuns } = useIncidentAgentRuns(!loading ? id : undefined, hasPendingAgentMention);
+  // Every OTHER workflow execution that touched this incident (datastore
+  // triggers, enrichment / indicator-check workflows, forward-to-tool runs).
+  // The list is polled at 60s and folded into the timeline as a "workflow
+  // run" pill; the observable-check pill also uses it to become a link to
+  // the actual execution once its id shows up.
+  const { runsForIncident: allIncidentWorkflowRuns, refetch: refetchWorkflowRuns } = useIncidentWorkflowRuns(
+    !loading ? id : undefined,
+    hasPendingAgentMention || refreshingObservables,
+  );
+  const workflowOnlyRuns = useMemo(() => {
+    const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
+    return (allIncidentWorkflowRuns || []).filter((r: any) => r?.execution_id && !agentIds.has(r.execution_id));
+  }, [allIncidentWorkflowRuns, agentRuns]);
   const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
+
 
   // Load incident function (reusable for refresh)
   const loadIncident = useCallback(async (showLoading = true) => {
@@ -5443,6 +5458,7 @@ const IncidentDetailPage = () => {
     type TimelineItem =
       | { type: 'revision'; timestamp: number; data: any; idx: number; parsedCurrent: any; parsedPrevious: any | null }
       | { type: 'agent'; timestamp: number; data: typeof agentRuns[number] }
+      | { type: 'workflow-exec'; timestamp: number; data: typeof agentRuns[number] }
       | { type: 'manual'; timestamp: number; data: ActivityItem }
       | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsKeys?: string[]; obsType?: string; obsValue?: string };
 
@@ -5509,6 +5525,13 @@ const IncidentDetailPage = () => {
         if (skip.skipped && !onlyAgent) return;
         const ts = normalizeToMs(run.started_at);
         items.push({ type: 'agent', timestamp: ts, data: run });
+      });
+      // Non-agent workflow executions that touched this incident. Rides along
+      // with the Agent filter so a single "Automation" toggle covers every
+      // machine-driven event in the timeline.
+      workflowOnlyRuns.forEach((run: any) => {
+        const ts = normalizeToMs(run.started_at);
+        items.push({ type: 'workflow-exec', timestamp: ts, data: run });
       });
     }
 
@@ -5813,6 +5836,7 @@ const IncidentDetailPage = () => {
         return `rev-${explicitId || `${ts}-${valueHash}`}-${it.idx}`;
       }
       if (it.type === 'agent') return `agent-${it.data.execution_id}`;
+      if (it.type === 'workflow-exec') return `wfexec-${it.data.execution_id}`;
       if (it.type === 'step') return it.id;
       return it.data.id;
     };
@@ -5822,6 +5846,7 @@ const IncidentDetailPage = () => {
         return `Change #${revisions.length - it.idx}`;
       }
       if (it.type === 'agent') return 'Agent run';
+      if (it.type === 'workflow-exec') return 'Workflow run';
       if (it.type === 'step') return it.label;
       return `${it.data.user || 'Comment'}`;
     };
@@ -5830,7 +5855,7 @@ const IncidentDetailPage = () => {
         const t = it.parsedCurrent?.title || it.parsedCurrent?.finding_info?.title || '';
         return String(t).slice(0, 80);
       }
-      if (it.type === 'agent') {
+      if (it.type === 'agent' || it.type === 'workflow-exec') {
         const r: any = it.data;
         return String(r.run_input || r.summary || r.status || '').slice(0, 80);
       }
@@ -6195,6 +6220,76 @@ const IncidentDetailPage = () => {
               </Typography>
             )}
             
+          </Box>
+        );
+      }
+
+      if (item.type === 'workflow-exec') {
+        // Non-agent workflow execution that touched this incident (datastore
+        // trigger, enrichment workflow, forward-to-tool run, etc.). Rendered
+        // as a quiet neutral pill with a direct link out to the Shuffle
+        // execution view — clicking opens the workflow run in a new tab.
+        const run: any = item.data;
+        const status = String(run.status || '').toUpperCase();
+        const isRunning = status === 'EXECUTING' || status === 'WAITING' || status === 'RUNNING';
+        const isFailed = status === 'FAILED' || status === 'ERROR' || status === 'ABORTED';
+        const timeAgo = run.started_at ? getAgentTimeAgo(run.started_at) : '';
+        const exactTs = run.started_at ? new Date(normalizeToMs(run.started_at)).toLocaleString() : '';
+        const wfName = run.workflow?.name || run.workflow_name || 'Workflow';
+        const shortId = String(run.execution_id || '').slice(0, 8);
+        const wfId = run.workflow_id || run.workflow?.id || '';
+        const execUrl = wfId && run.execution_id
+          ? `https://shuffler.io/workflows/${wfId}?execution_id=${run.execution_id}`
+          : run.execution_id
+            ? `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${run.execution_id}`
+            : '';
+        return (
+          <Box
+            key={`wfexec-${run.execution_id}`}
+            data-timeline-compact="true"
+            data-timeline-quiet={!isFailed && !isRunning ? 'true' : undefined}
+            onClick={() => { if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer'); }}
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.25,
+              py: 0.75,
+              borderRadius: 1.5,
+              border: isFailed ? '1px solid hsl(var(--destructive) / 0.5)' : '1px solid transparent',
+              bgcolor: 'transparent',
+              cursor: execUrl ? 'pointer' : 'default',
+              transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
+              '&:hover': {
+                borderColor: 'hsl(var(--muted-foreground) / 0.4)',
+                bgcolor: 'hsl(var(--muted) / 0.3)',
+              },
+            }}
+          >
+            {exactTs && (
+              <Tooltip title={exactTs} arrow placement="left">
+                <Box sx={{ position: 'absolute', left: -28, top: 0, width: 24, height: 24, cursor: 'help', zIndex: 2 }} />
+              </Tooltip>
+            )}
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.7 }}>
+              {isRunning
+                ? <CircularProgress size={12} thickness={5} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                : <ZapIcon size={14} color={isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />}
+            </Box>
+            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1 }}>
+              {wfName}{shortId ? ` · ${shortId}` : ''}
+            </Typography>
+            {status && (
+              <Typography sx={{ fontSize: '0.7rem', color: isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', flexShrink: 0, textTransform: 'lowercase' }}>
+                · {status.toLowerCase()}
+              </Typography>
+            )}
+            {timeAgo && (
+              <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', ml: 'auto', flexShrink: 0 }}>
+                {timeAgo}
+              </Typography>
+            )}
           </Box>
         );
       }
@@ -7142,49 +7237,72 @@ const IncidentDetailPage = () => {
     // Standardised "indicator check running" pill — same shape/placement as the
     // AI Agent processing pill so all in-flight loaders attach BELOW the
     // message that triggered them instead of floating at the top of the feed.
-    const renderIndicatorCheckPlaceholder = (key: string) => (
-      <Box
-        key={`indicator-check-${key}`}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.75,
-          alignSelf: 'flex-start',
-          pl: 0.4,
-          pr: 1,
-          py: 0.4,
-          borderRadius: 999,
-          fontSize: '0.7rem',
-          background: 'rgba(255, 102, 0, 0.08)',
-          border: '1px solid rgba(255, 102, 0, 0.35)',
-          color: 'text.primary',
-          maxWidth: '100%',
-        }}
-      >
+    const renderIndicatorCheckPlaceholder = (key: string) => {
+      // While the observable check is running we scan the freshly-polled
+      // workflow-run list for the newest execution that touched this incident
+      // in the last ~60 seconds. When one appears the pill turns into a
+      // direct link to that execution so users can jump to the run itself.
+      const now = Date.now();
+      const recentRun: any = (allIncidentWorkflowRuns || [])
+        .filter((r: any) => {
+          const ts = normalizeToMs(r?.started_at);
+          return ts > 0 && (now - ts) < 90_000;
+        })
+        .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0];
+      const wfId = recentRun?.workflow_id || recentRun?.workflow?.id || '';
+      const execId = recentRun?.execution_id || '';
+      const execUrl = wfId && execId
+        ? `https://shuffler.io/workflows/${wfId}?execution_id=${execId}`
+        : '';
+      const isClickable = !!execUrl;
+      return (
         <Box
+          key={`indicator-check-${key}`}
+          onClick={isClickable ? () => window.open(execUrl, '_blank', 'noopener,noreferrer') : undefined}
           sx={{
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
             display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            background: 'rgba(0, 0, 0, 0.25)',
-            position: 'relative',
+            gap: 0.75,
+            alignSelf: 'flex-start',
+            pl: 0.4,
+            pr: 1,
+            py: 0.4,
+            borderRadius: 999,
+            fontSize: '0.7rem',
+            background: 'rgba(255, 102, 0, 0.08)',
+            border: '1px solid rgba(255, 102, 0, 0.35)',
+            color: 'text.primary',
+            maxWidth: '100%',
+            cursor: isClickable ? 'pointer' : 'default',
+            transition: 'background-color 0.15s ease',
+            '&:hover': isClickable ? { background: 'rgba(255, 102, 0, 0.15)' } : undefined,
           }}
         >
-          <FingerprintIcon size={11} style={{ color: 'hsl(var(--muted-foreground))' }} />
+          <Box
+            sx={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              background: 'rgba(0, 0, 0, 0.25)',
+              position: 'relative',
+            }}
+          >
+            <FingerprintIcon size={11} style={{ color: 'hsl(var(--muted-foreground))' }} />
+          </Box>
+          <CircularProgress size={10} thickness={6} sx={{ color: '#ff6600', flexShrink: 0 }} />
+          <Typography
+            variant="caption"
+            sx={{ fontSize: '0.7rem', fontWeight: 500, color: 'inherit', lineHeight: 1 }}
+          >
+            {isClickable ? 'Checking your message for observables — view run' : 'Checking your message for observables…'}
+          </Typography>
         </Box>
-        <CircularProgress size={10} thickness={6} sx={{ color: '#ff6600', flexShrink: 0 }} />
-        <Typography
-          variant="caption"
-          sx={{ fontSize: '0.7rem', fontWeight: 500, color: 'inherit', lineHeight: 1 }}
-        >
-          Checking your message for observables…
-        </Typography>
-      </Box>
-    );
+      );
+    };
 
     // Identify the most recent top-level manual comment so the indicator-check
     // pill attaches under the latest user message (which triggered the check).
