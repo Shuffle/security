@@ -95,7 +95,7 @@ import { RelatedIncidentsBanner } from '@/components/incidents/RelatedIncidentsB
 import { ThreadCorrelatedBanner } from '@/components/incidents/ThreadCorrelatedBanner';
 import { useRelatedIncidents } from '@/hooks/useRelatedIncidents';
 import { useThreadCorrelatedIncidents } from '@/hooks/useThreadCorrelatedIncidents';
-import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePair, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged } from '@/lib/incidentRelations';
+import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePair, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant } from '@/lib/incidentRelations';
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
@@ -480,7 +480,7 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
   const parseStart = performance.now();
   try {
     const jsonStart = performance.now();
-    const data = JSON.parse(item.value);
+    const data = enforceMergedStatusInvariant(JSON.parse(item.value));
     const jsonTime = performance.now() - jsonStart;
     if (jsonTime > 5) {
       console.warn(`[Perf] JSON.parse took ${jsonTime.toFixed(1)}ms for incident ${item.key} (${(item.value.length / 1024).toFixed(1)}KB)`);
@@ -2099,6 +2099,15 @@ const IncidentDetailPage = () => {
   // to the symmetric pointer model so the banners can render.
   useEffect(() => {
     if (!incident?.id || !incident.rawOCSF) return;
+    const invariantRaw = enforceMergedStatusInvariant(incident.rawOCSF);
+    if (invariantRaw !== incident.rawOCSF) {
+      setIncident(prev => prev ? { ...prev, status: 'merged', rawOCSF: invariantRaw } : prev);
+      setEditedStatus('merged');
+      setRawJsonText(JSON.stringify(invariantRaw, null, 2));
+      writeIncidentSafe(incident.id, invariantRaw, crossOrgId || undefined)
+        .catch((err) => console.warn('[IncidentDetail] Failed to repair merged status invariant:', err));
+      return;
+    }
     maybeMigrateLegacyMerge(incident.id, incident.rawOCSF).then(migrated => {
       if (migrated) { void loadIncident?.(false); }
     }).catch(() => {/* non-fatal */});
