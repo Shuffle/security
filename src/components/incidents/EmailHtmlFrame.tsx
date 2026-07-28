@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, useTheme } from '@mui/material';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import { requestExternalLinkConfirm } from '@/utils/safeExternalLinks';
 
 interface EmailHtmlFrameProps {
   html: string;
