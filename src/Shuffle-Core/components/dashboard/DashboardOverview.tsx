@@ -261,7 +261,7 @@ export const DashboardOverview = ({
           icon={Flame}
           glow={NEON.red}
 
-          value={incidentStats.criticalCount}
+          value={incidentsHasMore ? `${incidentStats.criticalCount}+` : incidentStats.criticalCount}
           label="Critical / High"
           isLoading={incidentsLoading}
           onClick={() => incidentStats.criticalCount === 0
