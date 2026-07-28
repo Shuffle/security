@@ -6268,7 +6268,7 @@ const IncidentDetailPage = () => {
             <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.7 }}>
               {isRunning
                 ? <CircularProgress size={12} thickness={5} sx={{ color: 'hsl(var(--muted-foreground))' }} />
-                : <PlayArrow sx={{ fontSize: 14, color: isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }} />}
+                : <ZapIcon size={14} color={isFailed ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />}
             </Box>
             <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1 }}>
               {wfName}{shortId ? ` · ${shortId}` : ''}
