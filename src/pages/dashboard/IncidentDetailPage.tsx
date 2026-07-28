@@ -4745,7 +4745,30 @@ const IncidentDetailPage = () => {
     })();
   }, [loading, incident, demoActive, isPublicView, id, navigate, entityBasePath]);
 
-  if (loading || demoRecovering) {
+  // A "full retry" replays exactly what mounting the page from scratch does:
+  // reset every "run once per mount" guard, clear the retry counter, and
+  // re-invoke the primary loader. This is what the Refresh button should do
+  // when we are on the not-found screen — otherwise the button ends up
+  // strictly weaker than a hard reload because the guarded effects (suborg
+  // retry, cross-org merge, demo recovery) never get a second chance.
+  const retryFullLoad = useCallback(() => {
+    transientLoadRetryRef.current = 0;
+    suborgRetryRef.current = false;
+    crossOrgMergedRef.current = false;
+    demoRecoveryTriedRef.current = false;
+    setLoadDebug(null);
+    setLoading(true);
+    loadIncidentRef.current?.();
+  }, []);
+
+  const isTransientLoadFailure = !incident && (loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success');
+  const retryingTransientLoad = isTransientLoadFailure && transientLoadRetryRef.current < 4;
+
+  // Render the same skeleton for both the initial load AND the transient
+  // auto-retry window. From the user's perspective these are the same state
+  // ("we are still trying to fetch this incident"), and the previous mix of
+  // a tiny inline spinner + heading looked broken.
+  if (loading || demoRecovering || retryingTransientLoad) {
     return (
       <Box sx={{ p: 4 }}>
         <Skeleton variant="rectangular" height={120} sx={{ mb: 3, borderRadius: 2 }} />
@@ -4759,8 +4782,6 @@ const IncidentDetailPage = () => {
 
   if (!incident) {
     const isSupport = userInfo?.support === true;
-    const isTransientLoadFailure = loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success';
-    const retryingTransientLoad = isTransientLoadFailure && transientLoadRetryRef.current < 4;
     return (
       <Box sx={{ p: 4, textAlign: 'center', maxWidth: 900, mx: 'auto' }}>
         <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2 }}>
@@ -4768,25 +4789,17 @@ const IncidentDetailPage = () => {
         </Typography>
         {isTransientLoadFailure && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-            {retryingTransientLoad
-              ? 'Retrying after a temporary API response…'
-              : 'The API did not return the incident yet. Refresh to retry.'}
+            The API did not return the incident yet. Refresh to retry.
           </Typography>
         )}
-        {retryingTransientLoad && <CircularProgress size={22} sx={{ mb: 2 }} />}
-        {isTransientLoadFailure && !retryingTransientLoad && (
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={() => {
-              transientLoadRetryRef.current = 0;
-              loadIncidentRef.current?.();
-            }}
-            sx={{ mr: 1 }}
-          >
-            Refresh
-          </Button>
-        )}
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={retryFullLoad}
+          sx={{ mr: 1 }}
+        >
+          Refresh
+        </Button>
         <Button 
           component={Link} 
           to={entityBasePath} 
@@ -4795,6 +4808,7 @@ const IncidentDetailPage = () => {
         >
           Back to {entityPlural}
         </Button>
+
         {isSupport && loadDebug && (
           <Box
             sx={{
