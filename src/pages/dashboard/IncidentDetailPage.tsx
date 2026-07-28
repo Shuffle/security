@@ -4933,6 +4933,7 @@ const IncidentDetailPage = () => {
     const filterDefs = [
       { key: 'revisions' as const, label: 'Changes', count: revisions.length },
       { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
+      { key: 'workflows' as const, label: 'Workflow runs', count: workflowOnlyRuns.length },
       { key: 'manual' as const, label: 'Comments', count: commentActivity.length },
       { key: 'merges' as const, label: 'Threading', count: mergeActivity.length },
       { key: 'tasks' as const, label: 'Tasks', count: visibleTasks.length },
