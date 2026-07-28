@@ -659,6 +659,15 @@ const IncidentDetailPage = () => {
     if (!fallback || !id) return null;
     if (fallback.id !== id && fallback.id !== rawId) return null;
     const createdTs = normalizeToMs(fallback.createdTs || fallback.created) || Date.now();
+    if (fallback.rawOCSF) {
+      const parsed = parseIncidentFromDatastore({
+        key: id,
+        value: JSON.stringify(fallback.rawOCSF),
+        created: createdTs,
+        edited: fallback.editedTs,
+      });
+      if (parsed) return parsed;
+    }
     return {
       id,
       title: fallback.title || id,
