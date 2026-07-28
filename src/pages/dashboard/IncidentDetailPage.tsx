@@ -2419,6 +2419,18 @@ const IncidentDetailPage = () => {
     return map;
   }, [agentNotifications]);
 
+  // Questions scoped to this incident that we could not attach to a specific
+  // execution row (e.g. the parent workflow row is visible but the child agent
+  // execution is not). Rendered as a standalone card at the top of the
+  // timeline so the user can always answer without hunting.
+  const incidentQuestions = useMemo(() => {
+    return (agentNotifications || []).filter((n) => {
+      if (isApprovalNotification(n)) return;
+      if (!n.incident_id || !id) return false;
+      return String(n.incident_id) === String(id);
+    });
+  }, [agentNotifications, id]);
+
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
 
@@ -7642,8 +7654,22 @@ const IncidentDetailPage = () => {
       </Box>
     ) : null;
 
+    // Any open agent Question scoped to this incident renders at the very top
+    // of the timeline so the user can always answer without hunting for the
+    // stuck row (the notification's execution_id often points to a child agent
+    // execution that is not itself listed on the timeline).
+    const questionBanners = (incidentQuestions || []).map((n) => (
+      <Box key={`inc-question-${n.id}`} sx={{ mb: 1 }}>
+        <InlineAgentQuestion
+          notification={n}
+          onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+        />
+      </Box>
+    ));
+
     return (
       <>
+        {questionBanners}
         {agentPredictionNode}
         {topLevel.map((item) => renderThread(item, 0, false))}
       </>
