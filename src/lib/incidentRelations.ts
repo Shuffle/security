@@ -91,11 +91,12 @@ const extractIncidentTs = (raw: any): number => {
  * row becomes the union of every merged sibling.
  */
 const foldSourceIntoPrimary = (primaryRaw: any, sourceRaw: any): any => {
+  const cleanSourceRaw = stripMergeAuditActivity(sourceRaw);
   const pTs = extractIncidentTs(primaryRaw);
-  const sTs = extractIncidentTs(sourceRaw);
+  const sTs = extractIncidentTs(cleanSourceRaw);
   const folded: any = deepMergeIncidents(
     primaryRaw || {},
-    sourceRaw || {},
+    cleanSourceRaw || {},
     pTs,
     sTs,
   );
@@ -130,6 +131,56 @@ export interface RelatedIncidentPointer {
 
 const MERGED_STATUS_ID = statusConfig.merged?.id ?? 6;
 const MERGED_STATUS_LABEL = statusConfig.merged?.label ?? 'Merged';
+
+const incidentIdKey = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.includes('|')) return trimmed.split('|').pop()?.toLowerCase() || trimmed.toLowerCase();
+  if (trimmed.includes('/')) return trimmed.split('/').pop()?.toLowerCase() || trimmed.toLowerCase();
+  return trimmed.toLowerCase();
+};
+
+const isMergeAuditActivityItem = (item: any): boolean => {
+  if (!item || typeof item !== 'object' || item.type !== 'system') return false;
+  const id = String(item.id || '');
+  if (id.startsWith('merge-') || id.startsWith('merge-in-')) return true;
+  return /^Merged (data )?(from|into) /i.test(String(item.content || ''));
+};
+
+const mergeAuditDedupeKey = (item: any): string | null => {
+  if (!isMergeAuditActivityItem(item)) return null;
+  const id = String(item.id || '');
+  if (id.startsWith('merge-in-')) {
+    const sourcePart = id.replace(/^merge-in-/, '').replace(/-\d{10,}$/, '');
+    if (sourcePart) return `merge-in:${sourcePart.toLowerCase()}`;
+  }
+  const content = String(item.content || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  if (content) return `merge-content:${content}`;
+  return null;
+};
+
+const dedupeMergeAuditActivity = (activity: any[]): any[] => {
+  const seen = new Set<string>();
+  const out: any[] = [];
+  for (const item of activity) {
+    const key = mergeAuditDedupeKey(item);
+    if (key) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    out.push(item);
+  }
+  return out;
+};
+
+const stripMergeAuditActivity = (raw: any): any => {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.activity)) return raw;
+  return {
+    ...raw,
+    activity: raw.activity.filter((item: any) => !isMergeAuditActivityItem(item)),
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Read helpers
@@ -177,7 +228,8 @@ const upsertPointer = (
 ): any => {
   const next = { ...(raw || {}) };
   const existing = getRelatedIncidents(next);
-  const filtered = existing.filter(p => p.id !== pointer.id);
+  const pointerKey = incidentIdKey(pointer.id);
+  const filtered = existing.filter(p => incidentIdKey(p.id) !== pointerKey);
   next.related_incidents = [...filtered, pointer];
   return next;
 };
@@ -317,6 +369,8 @@ export const linkMergePair = async ({
   linkedBy,
 }: LinkArgs): Promise<{ success: boolean; error?: string; foldedPrimary?: any }> => {
   const now = Date.now();
+  const primaryKey = incidentIdKey(primaryId);
+  const sourceKey = incidentIdKey(sourceId);
 
   // Snapshot the source's current status so unmerge can restore it.
   const prevStatus: string | undefined =
@@ -344,6 +398,71 @@ export const linkMergePair = async ({
     previous_status: prevStatus,
     previous_status_id: prevStatusId,
   };
+
+  const primaryAlreadyLinksSource = getRelatedIncidents(primaryRaw).some(
+    (p) => p.relation === 'merged' && !p.primary && incidentIdKey(p.id) === sourceKey && !wasUnmergedFrom(primaryRaw, sourceId),
+  );
+  const sourceAlreadyPointsToPrimary = getRelatedIncidents(sourceRaw).some(
+    (p) => p.relation === 'merged' && p.primary && incidentIdKey(p.id) === primaryKey && !wasUnmergedFrom(sourceRaw, primaryId),
+  );
+  const sourceHasMergedStatus = sourceRaw?.status_id === MERGED_STATUS_ID || String(sourceRaw?.status || '').toLowerCase() === 'merged';
+  const sourceMergedIntoPrimary = sourceAlreadyPointsToPrimary || incidentIdKey(sourceRaw?.merged_into) === primaryKey;
+
+  // Idempotency guard: background thread continuation may ask to merge the
+  // same pair again while list/detail refreshes race. If the primary already
+  // records this source, never fold the payload or append another audit line.
+  // At most, repair the source-side tombstone/status so both sides agree.
+  if (primaryAlreadyLinksSource) {
+    let nextPrimary: any = primaryRaw || {};
+    const foldedFrom = Array.isArray(nextPrimary._merged_data_from) ? nextPrimary._merged_data_from : [];
+    if (!foldedFrom.some((x: string) => incidentIdKey(x) === sourceKey)) {
+      nextPrimary = { ...nextPrimary, _merged_data_from: [...foldedFrom, sourceId] };
+    }
+    nextPrimary = upsertRelatedEventRefs(nextPrimary, [sourceId]);
+    const primaryVerify = await writeAndVerifyPrimaryMerge(primaryId, nextPrimary, [primaryPointer]);
+    if (!primaryVerify.success) {
+      return { success: false, error: primaryVerify.error || 'Failed to verify existing merge metadata' };
+    }
+    if (primaryVerify.raw) nextPrimary = primaryVerify.raw;
+
+    if (sourceMergedIntoPrimary && sourceHasMergedStatus) {
+      return { success: true, foldedPrimary: nextPrimary };
+    }
+
+    let nextSource: any = sourceRaw || {};
+    if (!sourceAlreadyPointsToPrimary) nextSource = upsertPointer(nextSource, sourcePointer);
+    nextSource = upsertRelatedEventRefs(nextSource, [primaryId]);
+    nextSource = {
+      ...nextSource,
+      status_id: MERGED_STATUS_ID,
+      status: MERGED_STATUS_LABEL,
+      merged_into: primaryId,
+      merged_at: sourceRaw?.merged_at || now,
+    };
+    const sourceActivity = Array.isArray(nextSource.activity) ? dedupeMergeAuditActivity(nextSource.activity) : [];
+    const hasSourceAudit = sourceActivity.some((item: any) => {
+      const content = String(item?.content || '');
+      return item?.type === 'system' && content.includes(`Merged into "${primaryTitle || primaryId}"`);
+    });
+    if (!hasSourceAudit) {
+      nextSource.activity = [
+        ...sourceActivity,
+        {
+          id: `merge-${now}`,
+          type: 'system',
+          user: linkedBy || 'System',
+          timestamp: now,
+          content: `Merged into "${primaryTitle || primaryId}"`,
+        },
+      ];
+    } else {
+      nextSource.activity = sourceActivity;
+    }
+
+    const write = await writeIncidentSafe(sourceId, nextSource);
+    if (!write.success) return { success: false, error: write.error || 'Failed to repair merged incident' };
+    return { success: true, foldedPrimary: nextPrimary };
+  }
 
   // If the source was itself the primary of a prior merge, it already
   // owns a set of transitively-linked children. Re-parent them to the
@@ -394,20 +513,23 @@ export const linkMergePair = async ({
   nextPrimary._merged_data_from = Array.from(foldedSet);
 
   // Attach a single audit entry summarising the fold.
-  const primaryActivity = Array.isArray(nextPrimary.activity) ? nextPrimary.activity : [];
+  const primaryActivity = Array.isArray(nextPrimary.activity) ? dedupeMergeAuditActivity(nextPrimary.activity) : [];
   const foldedLabel = childRaws.length > 0
     ? `Merged data from "${sourceTitle || sourceId}" (+${childRaws.length} chained)`
     : `Merged data from "${sourceTitle || sourceId}"`;
-  nextPrimary.activity = [
-    ...primaryActivity,
-    {
-      id: `merge-in-${sourceId}-${now}`,
-      type: 'system',
-      user: linkedBy || 'System',
-      timestamp: now,
-      content: foldedLabel,
-    },
-  ];
+  const alreadyHasPrimaryAudit = primaryActivity.some((item: any) => mergeAuditDedupeKey(item) === `merge-in:${sourceId.toLowerCase()}`);
+  nextPrimary.activity = alreadyHasPrimaryAudit
+    ? primaryActivity
+    : [
+        ...primaryActivity,
+        {
+          id: `merge-in-${sourceId}-${now}`,
+          type: 'system',
+          user: linkedBy || 'System',
+          timestamp: now,
+          content: foldedLabel,
+        },
+      ];
 
   // The source now points at the new primary and drops its own children
   // pointers (they belong to the new primary now).
@@ -425,17 +547,23 @@ export const linkMergePair = async ({
   };
 
   // Attach a marker activity entry to the source for audit trail.
-  const sourceActivity = Array.isArray(nextSource.activity) ? nextSource.activity : [];
-  nextSource.activity = [
-    ...sourceActivity,
-    {
-      id: `merge-${now}`,
-      type: 'system',
-      user: linkedBy || 'System',
-      timestamp: now,
-      content: `Merged into "${primaryTitle || primaryId}"`,
-    },
-  ];
+  const sourceActivity = Array.isArray(nextSource.activity) ? dedupeMergeAuditActivity(nextSource.activity) : [];
+  const sourceAuditExists = sourceActivity.some((item: any) => {
+    const content = String(item?.content || '');
+    return item?.type === 'system' && content.includes(`Merged into "${primaryTitle || primaryId}"`);
+  });
+  nextSource.activity = sourceAuditExists
+    ? sourceActivity
+    : [
+        ...sourceActivity,
+        {
+          id: `merge-${now}`,
+          type: 'system',
+          user: linkedBy || 'System',
+          timestamp: now,
+          content: `Merged into "${primaryTitle || primaryId}"`,
+        },
+      ];
 
   // Write and verify the primary's merge metadata BEFORE marking any child
   // as merged. If the primary cannot prove it has both related_incidents and
@@ -727,12 +855,13 @@ const unionPointers = (
   const byId = new Map<string, RelatedIncidentPointer>();
   for (const p of [...a, ...b]) {
     if (!p || typeof p.id !== 'string') continue;
-    const prev = byId.get(p.id);
-    if (!prev) { byId.set(p.id, p); continue; }
+    const key = incidentIdKey(p.id);
+    const prev = byId.get(key);
+    if (!prev) { byId.set(key, p); continue; }
     const preferPrimary = p.primary && !prev.primary ? p
       : (!p.primary && prev.primary ? prev : null);
-    if (preferPrimary) { byId.set(p.id, preferPrimary); continue; }
-    byId.set(p.id, (p.linked_at || 0) >= (prev.linked_at || 0) ? p : prev);
+    if (preferPrimary) { byId.set(key, preferPrimary); continue; }
+    byId.set(key, (p.linked_at || 0) >= (prev.linked_at || 0) ? p : prev);
   }
   return Array.from(byId.values());
 };
