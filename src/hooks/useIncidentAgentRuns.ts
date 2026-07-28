@@ -8,7 +8,7 @@
  * List/non-detail callers do not poll; they rely on a 60s staleTime.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { searchAgentActivity, AgentRun } from '@/services/agentActivity';
 import { getAgentRunsForIncident } from '@/lib/agentParsers';
