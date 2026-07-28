@@ -42,6 +42,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LinkIcon from '@mui/icons-material/Link';
 import { getApiUrl, getAuthHeader } from '../api';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
+import shuffleLogo from '@/assets/shuffle-logo.png';
 import JsonView from 'react18-json-view';
 import type { JsonViewProps } from 'react18-json-view';
 import 'react18-json-view/src/style.css';
