@@ -136,3 +136,17 @@ import {
 export const AddAppDialog = withTheme(AddAppDialogRaw, 'AddAppDialog');
 export const AddAppButton = withTheme(AddAppButtonRaw, 'AddAppButton');
 export type { AddAppDialogProps, AddAppButtonProps } from './components/AddAppDialog';
+
+// Workflow run explorer — shared between Shuffle Automation and Shuffle Security.
+import {
+  WorkflowRunExplorer as WorkflowRunExplorerRaw,
+  WorkflowRunExplorerDrawer as WorkflowRunExplorerDrawerRaw,
+} from './components/WorkflowRunExplorer';
+export const WorkflowRunExplorer = withTheme(WorkflowRunExplorerRaw, 'WorkflowRunExplorer');
+export const WorkflowRunExplorerDrawer = withTheme(WorkflowRunExplorerDrawerRaw, 'WorkflowRunExplorerDrawer');
+export type {
+  WorkflowRunExplorerProps,
+  WorkflowRunExplorerDrawerProps,
+  WorkflowExecution,
+} from './components/WorkflowRunExplorer';
+
