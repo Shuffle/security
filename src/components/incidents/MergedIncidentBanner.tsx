@@ -29,7 +29,8 @@ export const MergedIncidentBanner = ({
   onUnlinked,
 }: MergedIncidentBannerProps) => {
   const navigate = useNavigate();
-  const primaryId = primary?.id || primaryPointerId;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const primaryId = primary?.id || primary?.raw ? (primary?.id || primaryPointerId) : primaryPointerId;
   if (!primaryId) return null;
 
   const primaryHref = `/incidents/${encodeURIComponent(primaryId)}`;
@@ -44,7 +45,7 @@ export const MergedIncidentBanner = ({
   };
 
 
-  const unmerge = async () => {
+  const doUnmerge = async () => {
     if (!primaryId) return;
     const res = await unlinkMergePair({
       primaryId,
@@ -94,11 +95,17 @@ export const MergedIncidentBanner = ({
               : `Primary: ${primaryId}`}
         </Typography>
       </Box>
-      <Tooltip title="Unmerge">
-        <IconButton size="small" onClick={unmerge} sx={{ color: 'hsl(var(--muted-foreground))' }}>
+      <Tooltip title="Unmerge (rarely recommended)">
+        <IconButton size="small" onClick={() => setConfirmOpen(true)} sx={{ color: 'hsl(var(--muted-foreground))' }}>
           <Link2Off size={16} />
         </IconButton>
       </Tooltip>
+      <UnmergeConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        targetLabel={primary?.title || `incident ${primaryId}`}
+        onConfirm={doUnmerge}
+      />
       <Button
         asChild
         className="bg-[#ff6600] hover:bg-[#e55c00] text-white h-9"
