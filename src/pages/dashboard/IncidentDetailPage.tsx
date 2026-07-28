@@ -6286,6 +6286,8 @@ const IncidentDetailPage = () => {
           </Box>
         );
       }
+
+      if (item.type === 'step') {
         // Compact "step" pill — these are derived events (task created /
         // observable added / correlation found) injected on the frontend so
         // the user can see *when* every artefact appeared on the timeline.
