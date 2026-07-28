@@ -1218,6 +1218,7 @@ const DashboardPage = () => {
                     <DashboardOverview
                       incidents={overviewIncidents}
                       incidentsLoading={incidentsLoading}
+                      incidentsHasMore={!isViewingChild && incidentsHasMoreDefault}
                       vulnSeverityCounts={vulnSeverityCounts}
                       vulnLoading={vulnLoading}
                       monitorHostCount={hostMonitorCount}
