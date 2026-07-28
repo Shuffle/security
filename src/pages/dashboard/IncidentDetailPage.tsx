@@ -2402,6 +2402,23 @@ const IncidentDetailPage = () => {
     return () => window.removeEventListener('workflow-run:changed', onChanged as EventListener);
   }, [refetchWorkflowRuns, refetchAgentRuns]);
 
+  // Pull open agent-handoff notifications so any workflow execution that is
+  // stuck on a Question can render the answer form inline in the timeline.
+  const { notifications: agentNotifications, refresh: refreshAgentNotifications } = useAgentNotifications();
+  const questionByExecId = useMemo(() => {
+    const map: Record<string, AgentNotification> = {};
+    (agentNotifications || []).forEach((n) => {
+      if (!n.execution_id) return;
+      if (isApprovalNotification(n)) return;
+      // Prefer the newest question for a given execution id.
+      const existing = map[n.execution_id];
+      if (!existing || (n.updated_at || n.created_at) > (existing.updated_at || existing.created_at)) {
+        map[n.execution_id] = n;
+      }
+    });
+    return map;
+  }, [agentNotifications]);
+
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
 
