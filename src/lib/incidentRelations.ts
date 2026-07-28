@@ -314,9 +314,9 @@ const writeAndVerifyPrimaryMerge = async (
       return { success: false, error: 'Failed to verify primary merge metadata' };
     }
 
-    const linkedKeys = new Set(getLinkedPointers(storedRaw).map((p) => p.id.toLowerCase()));
+    const linkedKeys = new Set(getLinkedPointers(storedRaw).map((p) => incidentIdKey(p.id)));
     const relatedKeys = new Set(getRelationRefs(storedRaw).map((ref) => relationRefKey(ref)));
-    const missingPointerIds = requiredIds.filter((id) => !linkedKeys.has(id.toLowerCase()));
+    const missingPointerIds = requiredIds.filter((id) => !linkedKeys.has(incidentIdKey(id)));
     const missingRelatedIds = requiredIds.filter((id) => !relatedKeys.has(id.toLowerCase()));
 
     if (missingPointerIds.length === 0 && missingRelatedIds.length === 0) {
