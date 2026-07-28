@@ -754,6 +754,13 @@ export const preserveRelationFields = (existing: any, next: any): any => {
     out._merged_data_from = Array.from(new Set<string>([...existingFolded, ...nextFolded]));
   }
 
+  // _unmerged_from is a monotonic tombstone — never lose it, always union.
+  const existingUnmerged = Array.isArray(existing._unmerged_from) ? existing._unmerged_from : [];
+  const nextUnmerged = Array.isArray(out._unmerged_from) ? out._unmerged_from : [];
+  if (existingUnmerged.length || nextUnmerged.length) {
+    out._unmerged_from = Array.from(new Set<string>([...existingUnmerged, ...nextUnmerged]));
+  }
+
   const pointerRefs = getRelatedIncidents(out)
     .filter((p) => p.relation === 'merged')
     .map((p) => p.id);
