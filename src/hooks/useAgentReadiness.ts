@@ -16,17 +16,16 @@ import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuf
  * never disagree about whether the agent is "connected".
 
  *
- *   A. The new built-in "Run AI Agent" automation (type=ai_agent) is enabled.
- *      No workflow plumbing is needed — Shuffle runs the agent directly.
+ * Rule (from useAssignEscalateStatus.isOrgActive):
+ *   The "Assign & Escalate" background workflow exists AND a "Run workflow"
+ *   automation on the incidents category is enabled AND points at that
+ *   workflow id. A disabled "Run workflow" automation means the @AIAgent
+ *   comment never fires, even if a "Run AI Agent" (type=ai_agent) automation
+ *   is toggled on — so we do NOT short-circuit on that alone.
  *
- *   B. The legacy path: the "Assign & Escalate" background workflow exists
- *      (background_processing=true) AND a "Run workflow" automation is
- *      enabled and points at that workflow's id.
- *
- * If neither is in place the @AIAgent comment never triggers anything.
- * This hook is the single source of truth and exposes `enable()` which
- * fixes the legacy path (mirroring /onboarding/automate).
+ * `enable()` fixes this path end-to-end (mirroring /onboarding/automate).
  */
+
 
 export interface AgentReadinessStatus {
   /** Either path A or path B is satisfied */
