@@ -9897,6 +9897,7 @@ const IncidentDetailPage = () => {
               invisibleCount={relatedIncidents.invisibleCount}
               loading={relatedIncidents.loading}
               onUnlinked={() => loadIncident(false)}
+              highlightId={flashedRelatedId}
             />
           )}
           {correlationsLoading ? (
