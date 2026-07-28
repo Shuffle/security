@@ -177,6 +177,30 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  const abortExecution = async () => {
+    if (!exec?.execution_id || !exec?.workflow?.id) return;
+    if (!window.confirm('Abort this workflow execution? Any pending actions will be stopped.')) return;
+    setAborting(true);
+    try {
+      const resp = await fetch(
+        getApiUrl(`/api/v1/workflows/${exec.workflow.id}/executions/${exec.execution_id}/abort`),
+        {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        },
+      );
+      if (!resp.ok) {
+        console.error('Abort failed', resp.status, await resp.text().catch(() => ''));
+      }
+      await load();
+    } catch (e) {
+      console.error('Abort error', e);
+    } finally {
+      setAborting(false);
+    }
+  };
+
   return (
     <Box
       sx={{
