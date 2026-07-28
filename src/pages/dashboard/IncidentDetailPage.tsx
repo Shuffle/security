@@ -121,6 +121,9 @@ import { toast } from '@/lib/toast';
 import { isAIAssignee, deduplicateTasks, htmlToPlainText, decodeHtmlEntities, decodeIfBase64, deepMergeIncidents } from '@/lib/utils';
 import { useIncidentAgentRuns } from '@/hooks/useIncidentAgentRuns';
 import { useIncidentWorkflowRuns } from '@/hooks/useIncidentWorkflowRuns';
+import { useAgentNotifications } from '@/hooks/useNotifications';
+import { isApprovalNotification, type AgentNotification } from '@/services/notifications';
+import InlineAgentQuestion from '@/components/agent/InlineAgentQuestion';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
 import { WorkflowRunExplorerDrawer } from '@/Shuffle-Core';
@@ -2398,6 +2401,23 @@ const IncidentDetailPage = () => {
     window.addEventListener('workflow-run:changed', onChanged as EventListener);
     return () => window.removeEventListener('workflow-run:changed', onChanged as EventListener);
   }, [refetchWorkflowRuns, refetchAgentRuns]);
+
+  // Pull open agent-handoff notifications so any workflow execution that is
+  // stuck on a Question can render the answer form inline in the timeline.
+  const { notifications: agentNotifications, refresh: refreshAgentNotifications } = useAgentNotifications();
+  const questionByExecId = useMemo(() => {
+    const map: Record<string, AgentNotification> = {};
+    (agentNotifications || []).forEach((n) => {
+      if (!n.execution_id) return;
+      if (isApprovalNotification(n)) return;
+      // Prefer the newest question for a given execution id.
+      const existing = map[n.execution_id];
+      if (!existing || (n.updated_at || n.created_at) > (existing.updated_at || existing.created_at)) {
+        map[n.execution_id] = n;
+      }
+    });
+    return map;
+  }, [agentNotifications]);
 
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
@@ -6352,9 +6372,10 @@ const IncidentDetailPage = () => {
           : hasNotifications
             ? `${notifCount} notification${notifCount === 1 ? '' : 's'} created — may indicate an issue`
             : 'Executing for more than 5 minutes';
+        const questionNotif = run.execution_id ? questionByExecId[String(run.execution_id)] : undefined;
         return (
+          <Box key={`wfexec-${run.execution_id}`} sx={{ display: 'flex', flexDirection: 'column' }}>
           <Box
-            key={`wfexec-${run.execution_id}`}
             data-timeline-compact="true"
             data-timeline-quiet={!isFailed && !isRunning && !isWarning ? 'true' : undefined}
             onClick={() => {
@@ -6424,6 +6445,13 @@ const IncidentDetailPage = () => {
                 {timeAgo}
               </Typography>
             )}
+          </Box>
+          {questionNotif && (
+            <InlineAgentQuestion
+              notification={questionNotif}
+              onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+            />
+          )}
           </Box>
         );
       }
