@@ -19,7 +19,6 @@ import {
 import { toast } from '@/lib/toast';
 
 import { DATASTORE_CATEGORIES, getDatastoreItem } from '@/Shuffle-MCPs/datastore';
-import { useDatastore } from '@/hooks/useDatastore';
 import { useAuth } from '@/context/AuthContext';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { resyncState } from '@/lib/resyncState';
@@ -85,11 +84,6 @@ export const IncidentActionsMenu = ({
   const currentUsername = userInfo?.username || '';
 
   const crossOrgHeaders: Record<string, string> = crossOrgId ? { 'Org-Id': crossOrgId } : {};
-
-  const { addItem } = useDatastore({
-    category: DATASTORE_CATEGORIES.INCIDENTS,
-    orgId: crossOrgId || undefined,
-  });
 
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
