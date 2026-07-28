@@ -6372,7 +6372,9 @@ const IncidentDetailPage = () => {
           : hasNotifications
             ? `${notifCount} notification${notifCount === 1 ? '' : 's'} created — may indicate an issue`
             : 'Executing for more than 5 minutes';
-        return (
+        const questionNotif = run.execution_id ? questionByExecId[String(run.execution_id)] : undefined;
+        const hasInlineQuestion = !!questionNotif;
+        const pill = (
           <Box
             key={`wfexec-${run.execution_id}`}
             data-timeline-compact="true"
