@@ -152,6 +152,7 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
   const theme = useTheme();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [height, setHeight] = useState(80);
+  const [ready, setReady] = useState(false);
   const [imagesAllowed, setImagesAllowed] = useState(false);
 
   // Reset the opt-in whenever the underlying message changes so we don't
@@ -188,6 +189,12 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
   }, [html, imagesAllowed]);
 
 
+  // srcDoc changes reset the "ready" gate so a new email starts hidden until
+  // its own first stable measurement lands.
+  useEffect(() => {
+    setReady(false);
+  }, [srcDoc]);
+
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -196,6 +203,25 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
     let mutationObserver: MutationObserver | null = null;
     const retryTimers: number[] = [];
     let cancelled = false;
+    // Monotonic max — once we've observed a taller layout, never shrink
+    // back to a smaller one. Prevents the visible "growing" effect where
+    // an early partial measurement pops small, then jumps up as fonts and
+    // late layout finish.
+    let maxObserved = 0;
+    // Settle window: coalesce many observer-driven measurements into a
+    // single commit so the iframe height doesn't animate up in steps.
+    let settleTimer: number | null = null;
+    const scheduleCommit = (h: number) => {
+      if (h > maxObserved) maxObserved = h;
+      if (settleTimer !== null) window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        settleTimer = null;
+        if (cancelled) return;
+        setHeight(maxObserved + 4);
+        // Reveal on the first non-trivial commit.
+        if (maxObserved > 40) setReady(true);
+      }, 60);
+    };
 
     const measure = () => {
       try {
@@ -205,9 +231,10 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
           Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight),
           maxHeight,
         );
-        if (h > 0) setHeight(h + 4);
+        if (h > 0) scheduleCommit(h);
       } catch {
         setHeight(400);
+        setReady(true);
       }
     };
 
@@ -288,15 +315,21 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
     };
 
     const onLoad = () => {
-      measure();
       wireDocument();
-      // A few staggered remeasurements catch late layout (webfonts, images,
-      // slow srcDoc parsing) where a single measure() right after load
-      // still reports 0.
-      [50, 200, 600, 1500].forEach((delay) => {
+      // A short burst of remeasurements catches late layout (webfonts,
+      // images, slow srcDoc parsing). They all funnel through
+      // scheduleCommit so the iframe only commits the final settled
+      // height, hiding the intermediate growth.
+      [0, 60, 180, 400, 900].forEach((delay) => {
         const t = window.setTimeout(() => { if (!cancelled) measure(); }, delay);
         retryTimers.push(t);
       });
+      // Guarantee we eventually reveal even if measurements never grow
+      // past the "large enough" threshold (very short emails).
+      const revealFallback = window.setTimeout(() => {
+        if (!cancelled) setReady(true);
+      }, 700);
+      retryTimers.push(revealFallback);
     };
 
     iframe.addEventListener('load', onLoad);
@@ -315,9 +348,11 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
       iframe.removeEventListener('load', onLoad);
       resizeObserver?.disconnect();
       mutationObserver?.disconnect();
+      if (settleTimer !== null) window.clearTimeout(settleTimer);
       retryTimers.forEach((t) => window.clearTimeout(t));
     };
   }, [srcDoc, maxHeight]);
+
 
   return (
     <Box
