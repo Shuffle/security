@@ -387,17 +387,27 @@ const ResultRenderer: React.FC<{ value: string }> = ({ value }) => {
 
 export interface WorkflowRunExplorerDrawerProps extends WorkflowRunExplorerProps {
   open: boolean;
-  /** Drawer width in px. Defaults to 560. */
+  /** Drawer width in px. Defaults to 720. */
   width?: number;
+  /** Minimum drawer width in px. Defaults to 480. */
+  minWidth?: number;
+  /** Maximum drawer width in px. Defaults to 900. */
+  maxWidth?: number;
 }
 
 export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps> = ({
   open,
   executionId,
   onClose,
-  width = 560,
+  width = 720,
+  minWidth = 480,
+  maxWidth = 900,
   pollIntervalMs,
 }) => {
+  const drawerWidth = `min(${width}px, 100vw)`;
+  const drawerMinWidth = `min(${minWidth}px, 100vw)`;
+  const drawerMaxWidth = `min(${maxWidth}px, 100vw)`;
+
   return (
     <Drawer
       anchor="right"
@@ -405,10 +415,22 @@ export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps>
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: '100vw', sm: width },
+          width: drawerWidth,
+          minWidth: drawerMinWidth,
+          maxWidth: drawerMaxWidth,
+          flex: `0 0 ${drawerWidth}`,
           bgcolor: 'hsl(var(--card))',
           color: 'hsl(var(--foreground))',
           borderLeft: '1px solid hsl(var(--border))',
+        },
+      }}
+      sx={{
+        '& .MuiDrawer-paper': {
+          boxSizing: 'border-box',
+          width: `${drawerWidth} !important`,
+          minWidth: `${drawerMinWidth} !important`,
+          maxWidth: `${drawerMaxWidth} !important`,
+          flex: `0 0 ${drawerWidth} !important`,
         },
       }}
     >
