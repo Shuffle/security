@@ -38,6 +38,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
+import StopIcon from '@mui/icons-material/Stop';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LinkIcon from '@mui/icons-material/Link';
 import { getApiUrl, getAuthHeader } from '../api';
@@ -139,6 +140,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
 }) => {
   const [exec, setExec] = useState<WorkflowExecution | null>(null);
   const [loading, setLoading] = useState(true);
+  const [aborting, setAborting] = useState(false);
   const [debugResult, setDebugResult] = useState<any | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
@@ -173,6 +175,30 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
     if (!exec) return;
     const url = shuffleUrlForExecution(exec);
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const abortExecution = async () => {
+    if (!exec?.execution_id || !exec?.workflow?.id) return;
+    if (!window.confirm('Abort this workflow execution? Any pending actions will be stopped.')) return;
+    setAborting(true);
+    try {
+      const resp = await fetch(
+        getApiUrl(`/api/v1/workflows/${exec.workflow.id}/executions/${exec.execution_id}/abort`),
+        {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        },
+      );
+      if (!resp.ok) {
+        console.error('Abort failed', resp.status, await resp.text().catch(() => ''));
+      }
+      await load();
+    } catch (e) {
+      console.error('Abort error', e);
+    } finally {
+      setAborting(false);
+    }
   };
 
   return (
@@ -221,6 +247,33 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         }}
       >
         <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>Details</Typography>
+        {exec && isRunning(exec.status) && (
+          <Tooltip title="Abort workflow" arrow>
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={abortExecution}
+                disabled={aborting}
+                startIcon={aborting ? <CircularProgress size={12} /> : <StopIcon fontSize="small" />}
+                sx={{
+                  height: 28,
+                  textTransform: 'none',
+                  mr: 0.5,
+                  borderColor: 'hsl(var(--destructive))',
+                  color: 'hsl(var(--destructive))',
+                  '&:hover': {
+                    borderColor: 'hsl(var(--destructive))',
+                    bgcolor: 'hsla(var(--destructive) / 0.1)',
+                  },
+                }}
+              >
+                {aborting ? 'Aborting…' : 'Abort Workflow'}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <Tooltip title="Refresh" arrow>
           <span>
             <IconButton size="small" onClick={load} disabled={loading}>
