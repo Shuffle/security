@@ -52,6 +52,7 @@ import { CorrelationRow, getEffectiveCorrelationCount, filterMeaningfulCorrelati
 import CorrelationContextStrip from '@/components/incidents/CorrelationContextStrip';
 import { IocDetailsCard } from '@/components/incidents/IocDetailsCard';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
 import { useDemo } from '@/context/DemoContext';
 import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
@@ -635,6 +636,7 @@ const IncidentDetailPage = () => {
   const t = useEntityText();
   const taskStatuses = useTaskStatuses();
   const { userInfo } = useAuth();
+  const { resolvedTheme } = useTheme();
   const { openApp } = useAppDetail();
   const currentUsername = userInfo?.username || '';
   const scheduleAgentRun = useScheduleAgentRun();
@@ -11516,6 +11518,7 @@ const IncidentDetailPage = () => {
         open={!!selectedWorkflowExecutionId}
         executionId={selectedWorkflowExecutionId || ''}
         onClose={() => setSelectedWorkflowExecutionId(null)}
+        theme={resolvedTheme}
       />
     </motion.div>
   );
