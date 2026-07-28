@@ -252,10 +252,10 @@ export const RelatedIncidentsBanner = ({
                   <ExternalLink size={14} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Unmerge">
+              <Tooltip title="Unmerge (rarely recommended)">
                 <IconButton
                   size="small"
-                  onClick={() => handleUnlink(l.id)}
+                  onClick={() => setPendingUnmerge(l.id)}
                   sx={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   <Link2Off size={14} />
@@ -266,6 +266,12 @@ export const RelatedIncidentsBanner = ({
           })}
         </Box>
       )}
+      <UnmergeConfirmDialog
+        open={pendingUnmerge !== null}
+        onOpenChange={(next) => { if (!next) setPendingUnmerge(null); }}
+        targetLabel={confirmLabel}
+        onConfirm={runPendingUnmerge}
+      />
     </Box>
   );
 };
