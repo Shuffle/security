@@ -5530,7 +5530,7 @@ const IncidentDetailPage = () => {
     // Comments (user-authored activity) and merge/threading audit entries
     // are stored in the same `activity` array but gate on separate filters
     // so users can hide auto-merge noise without also hiding conversation.
-    activity.forEach((item) => {
+    displayActivity.forEach((item) => {
       const isMerge = isMergeActivityItem(item);
       if (isMerge ? !isFilterActive('merges') : !isFilterActive('manual')) return;
       items.push({ type: 'manual', timestamp: normalizeToMs(item.timestamp), data: item });
