@@ -28,11 +28,16 @@ import {
   Divider,
   Tooltip,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
+import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
 import { getApiUrl, getAuthHeader } from '../api';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import JsonView from 'react18-json-view';
@@ -60,6 +65,21 @@ export interface WorkflowExecution {
 
 const IN_PROGRESS = new Set(['EXECUTING', 'WAITING', 'RUNNING']);
 const isRunning = (s?: string) => IN_PROGRESS.has((s || '').toUpperCase());
+
+const countRelevantErrors = (result: any): number => {
+  if (!result?.action?.parameters?.length) return 0;
+  const params = result.action.parameters;
+  let count = 0;
+  for (const param of params) {
+    if (
+      param?.name?.endsWith('_error') &&
+      (param?.name?.startsWith('shuffle_') || param?.name?.startsWith('liquid_'))
+    ) {
+      count += 1;
+    }
+  }
+  return count || 0;
+};
 
 const fetchExecution = async (executionId: string): Promise<WorkflowExecution | null> => {
   try {
@@ -114,6 +134,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
 }) => {
   const [exec, setExec] = useState<WorkflowExecution | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debugResult, setDebugResult] = useState<any | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
 
@@ -303,6 +324,30 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                {(() => {
+                  const errorCount = countRelevantErrors(r);
+                  return (
+                    <Tooltip
+                      title={
+                        <Typography variant="body2">
+                          Expand debug window. Errors: {errorCount}
+                        </Typography>
+                      }
+                      arrow
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => setDebugResult(r)}
+                        sx={{
+                          color: errorCount > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--foreground))',
+                          p: 0.5,
+                        }}
+                      >
+                        <ArrowLeftIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  );
+                })()}
                 {appName ? (
                   <AppFallbackIcon
                     name={appName}
@@ -359,6 +404,57 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
           </Box>
         </Box>
       )}
+
+      <Dialog
+        open={Boolean(debugResult)}
+        onClose={() => setDebugResult(null)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'hsl(var(--card))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid hsl(var(--border))' }}>
+          <ArrowLeftIcon />
+          <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
+            Debug: {debugResult?.action?.label || debugResult?.action?.name || 'Step result'}
+          </Typography>
+          <IconButton size="small" onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 2, minHeight: 300 }}>
+          <Box
+            sx={{
+              maxHeight: '70vh',
+              overflow: 'auto',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1,
+              p: 1,
+              bgcolor: 'hsl(var(--muted) / 0.4)',
+            }}
+          >
+            <JsonView
+              src={deepParseJson(debugResult) as object}
+              dark
+              collapsed={1}
+              collapseStringMode="word"
+              collapseStringsAfterLength={120}
+              enableClipboard
+              displaySize
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ borderTop: '1px solid hsl(var(--border))' }}>
+          <Button onClick={() => setDebugResult(null)} sx={{ color: 'hsl(var(--foreground))' }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
