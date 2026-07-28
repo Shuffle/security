@@ -5526,6 +5526,13 @@ const IncidentDetailPage = () => {
         const ts = normalizeToMs(run.started_at);
         items.push({ type: 'agent', timestamp: ts, data: run });
       });
+      // Non-agent workflow executions that touched this incident. Rides along
+      // with the Agent filter so a single "Automation" toggle covers every
+      // machine-driven event in the timeline.
+      workflowOnlyRuns.forEach((run: any) => {
+        const ts = normalizeToMs(run.started_at);
+        items.push({ type: 'workflow-exec', timestamp: ts, data: run });
+      });
     }
 
     // Routing rule matches — synthetic step pills anchored to incident creation
