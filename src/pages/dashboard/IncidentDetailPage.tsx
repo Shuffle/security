@@ -2359,12 +2359,21 @@ const IncidentDetailPage = () => {
 
   // Non-agent workflow executions can change after the incident itself stops
   // changing (for example, an abort happens from the execution drawer and does
-  // not necessarily write incident activity). Passing the old incident-derived
-  // end_time can make the workflow disappear after reload, so keep only the
-  // lower bound for the workflow-run timeline search.
-  const workflowRunsWindow = useMemo(() => ({
-    startTime: runsWindow.startTime,
-  }), [runsWindow.startTime]);
+  // not necessarily write incident activity). Extend the upper bound by an
+  // extra 30 minute buffer on top of the last event, capped at "now", so late
+  // status transitions (aborted, finished) still fall inside the search window
+  // without dropping the bound entirely.
+  const workflowRunsWindow = useMemo(() => {
+    if (!runsWindow.endTime) return { startTime: runsWindow.startTime };
+    const EXTRA_MS = 30 * 60 * 1000;
+    const extended = new Date(runsWindow.endTime).getTime() + EXTRA_MS;
+    const capped = Math.min(extended, Date.now());
+    return {
+      startTime: runsWindow.startTime,
+      endTime: new Date(capped).toISOString(),
+    };
+  }, [runsWindow.startTime, runsWindow.endTime]);
+
 
   const { runsForIncident: agentRuns, isLoading: agentRunsLoading, refetch: refetchAgentRuns } = useIncidentAgentRuns(!loading ? id : undefined, hasPendingAgentMention, activeRunsWindow);
   // Every OTHER workflow execution that touched this incident (datastore
