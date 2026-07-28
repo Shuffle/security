@@ -546,7 +546,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             );
           })}
         </Box>
-      )}
+        );
+      })()}
+
 
 
       <Dialog
