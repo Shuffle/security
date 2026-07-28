@@ -301,7 +301,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           borderRadius: 1,
           width: 24,
           height: 24,
-          zIndex: 1300,
+          zIndex: 1400,
           display: { xs: 'none', sm: hoverExpanded ? 'none' : 'flex' },
           transition: 'left 0.2s ease',
           '&:hover': {
@@ -328,7 +328,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           flexDirection: 'column',
           transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           overflow: 'hidden',
-          zIndex: hoverExpanded ? 1250 : 1200,
+          zIndex: hoverExpanded ? 1450 : 1400,
         }}
       >
       {/* Header with Logo and Toggle */}
