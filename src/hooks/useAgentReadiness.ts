@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkflows } from './useWorkflows';
+import { useAssignEscalateStatus } from './useAssignEscalateStatus';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getAutomationLabels } from '@/config/usecases';
 import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 
 /**
- * "Ask agent" / @AIAgent handling is satisfied by EITHER of these paths on
- * the `shuffle-security_incidents` category:
+ * "Ask agent" / @AIAgent readiness — SINGLE SOURCE OF TRUTH for whether
+ * a @AIAgent comment will actually trigger anything on this incident.
+ *
+ * The definitive check lives in useAssignEscalateStatus (same rule the
+ * Automation Readiness banner on /incidents shows). We reuse it here so
+ * the incident page, the readiness banner, and any other consumer can
+ * never disagree about whether the agent is "connected".
+
  *
  *   A. The new built-in "Run AI Agent" automation (type=ai_agent) is enabled.
  *      No workflow plumbing is needed — Shuffle runs the agent directly.
