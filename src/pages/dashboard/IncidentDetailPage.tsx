@@ -2282,6 +2282,9 @@ const IncidentDetailPage = () => {
         : await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
     } catch (err) {
       console.error('[IncidentDetail] Failed to fetch incident:', err);
+      if (listFallbackIncident) {
+        setIncident(listFallbackIncident);
+      }
       setLoadDebug({
         stage: 'fetch-error',
         message: 'Network/transport failure while fetching incident',
@@ -2567,6 +2570,9 @@ const IncidentDetailPage = () => {
       }
 
       const stage = isEmptyStub ? 'no-item' : (result.success ? 'no-item' : 'no-success');
+      if (listFallbackIncident && stage === 'no-success') {
+        setIncident(listFallbackIncident);
+      }
       setLoadDebug({
         stage,
         message: isEmptyStub
@@ -2591,7 +2597,7 @@ const IncidentDetailPage = () => {
     }
     
     setLoading(false);
-  }, [id, rawId, isPublicView, publicOrg, publicAuth, crossOrgId, userInfo?.active_org?.id, parentOrg, subOrgs, navigate, entityBasePath]);
+  }, [id, rawId, isPublicView, publicOrg, publicAuth, crossOrgId, userInfo?.active_org?.id, parentOrg, subOrgs, navigate, entityBasePath, listFallbackIncident]);
 
   // Initial load. Only re-run when the underlying identity of the incident
   // changes (route id, cross-org override, or public-view auth). Depending on
