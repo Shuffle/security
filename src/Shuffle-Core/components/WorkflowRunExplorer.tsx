@@ -258,22 +258,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--muted-foreground))' }}>
                 Execution argument
               </Typography>
-              <Box
-                sx={{
-                  bgcolor: 'hsl(var(--muted) / 0.4)',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 1,
-                  p: 1,
-                  maxHeight: 220,
-                  overflow: 'auto',
-                  fontFamily: 'monospace',
-                  fontSize: '0.8rem',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {exec.execution_argument}
-              </Box>
+              <ResultRenderer value={exec.execution_argument} />
             </Box>
           )}
 
