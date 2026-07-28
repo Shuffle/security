@@ -23,16 +23,30 @@ const AGENT_RUNS_QUERY_KEY = ['agent-activity-incidents'];
 // results on every render.
 const stickyRuns = new Map<string, Map<string, AgentRun>>();
 
+export interface IncidentRunsWindow {
+  /** ISO timestamp; usually the incident's created time (minus a small pad). */
+  startTime?: string;
+  /** ISO timestamp; usually the last "change" event on the incident (plus a pad).
+   *  Omit to search up to "now" (e.g. when a run is still in-flight). */
+  endTime?: string;
+}
+
 export const useIncidentAgentRuns = (
   incidentKey?: string,
   hasPendingAgentMention = false,
+  window: IncidentRunsWindow = {},
 ) => {
   const isDetailContext = !!incidentKey;
+  const { startTime, endTime } = window;
 
   const { data: allRuns = [], isLoading, error, refetch } = useQuery<AgentRun[]>({
-    queryKey: AGENT_RUNS_QUERY_KEY,
+    queryKey: [...AGENT_RUNS_QUERY_KEY, incidentKey || '_global', startTime || '', endTime || ''],
     queryFn: async () => {
-      const result = await searchAgentActivity({ limit: isDetailContext ? 100 : 50 });
+      const result = await searchAgentActivity({
+        limit: isDetailContext ? 100 : 50,
+        startTime,
+        endTime,
+      });
       return result.success ? result.runs : [];
     },
     staleTime: isDetailContext ? 0 : 60_000,
