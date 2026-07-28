@@ -119,6 +119,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
 }) => {
   const [exec, setExec] = useState<WorkflowExecution | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debugResult, setDebugResult] = useState<any | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
 
