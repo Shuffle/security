@@ -391,7 +391,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               </Box>
               {r?.result && (
                 <Box sx={{ mt: 0.5 }}>
-                  <ResultRenderer value={r.result} />
+                  <ResultRenderer value={r.result} baseName={r?.action?.name || r?.action?.label} />
                 </Box>
               )}
             </Box>
@@ -434,8 +434,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               bgcolor: 'hsl(var(--muted) / 0.4)',
             }}
           >
-            <JsonView
+            <JsonViewWithReference
               src={deepParseJson(debugResult) as object}
+              baseName={debugResult?.action?.name || debugResult?.action?.label}
               dark
               collapsed={1}
               collapseStringMode="word"
