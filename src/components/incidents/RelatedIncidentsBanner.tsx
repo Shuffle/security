@@ -9,7 +9,7 @@
 import { Box, Typography, Chip, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import { GitMerge, ExternalLink, Link2Off, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { toast } from '@/lib/toast';
 import { unlinkMergePair } from '@/lib/incidentRelations';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
@@ -20,6 +20,8 @@ interface RelatedIncidentsBannerProps {
   invisibleCount: number;
   loading?: boolean;
   onUnlinked?: () => void;
+  /** If set, flash the matching linked row (auto-expanding the list when needed). */
+  highlightId?: string | null;
 }
 
 const readTs = (raw: any): number => {
@@ -41,9 +43,18 @@ export const RelatedIncidentsBanner = ({
   invisibleCount,
   loading,
   onUnlinked,
+  highlightId,
 }: RelatedIncidentsBannerProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const highlightMatch = useMemo(
+    () => (highlightId ? linked.find((l) => l.id === highlightId) : null),
+    [highlightId, linked],
+  );
+  // Auto-expand the full list when the highlight target isn't the summary row.
+  useEffect(() => {
+    if (highlightMatch && linked.length > 1) setExpanded(true);
+  }, [highlightMatch, linked.length]);
   if (!loading && linked.length === 0 && invisibleCount === 0) return null;
 
   const sorted = useMemo(() => {
@@ -177,9 +188,13 @@ export const RelatedIncidentsBanner = ({
 
       {expanded && linked.length > 1 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1.5, maxHeight: 260, overflowY: 'auto', pr: 0.5 }}>
-          {sorted.map((l) => (
+          {sorted.map((l) => {
+            const isFlashed = highlightId === l.id;
+            return (
             <Box
               key={l.id}
+              data-related-id={l.id}
+              className={isFlashed ? 'incident-new-flash' : undefined}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -187,7 +202,9 @@ export const RelatedIncidentsBanner = ({
                 px: 1.25,
                 py: 0.75,
                 borderRadius: 1.5,
-                bgcolor: 'hsl(var(--background) / 0.5)',
+                bgcolor: isFlashed ? 'hsl(var(--primary) / 0.12)' : 'hsl(var(--background) / 0.5)',
+                border: isFlashed ? '1px solid hsl(var(--primary) / 0.5)' : '1px solid transparent',
+                transition: 'background-color 0.3s, border-color 0.3s',
                 '&:hover': { bgcolor: 'hsl(var(--muted) / 0.4)' },
               }}
             >
@@ -225,7 +242,8 @@ export const RelatedIncidentsBanner = ({
                 </IconButton>
               </Tooltip>
             </Box>
-          ))}
+            );
+          })}
         </Box>
       )}
     </Box>

@@ -1116,6 +1116,27 @@ const IncidentDetailPage = () => {
     };
 
     /**
+     * Jump to the Correlations tab and flash the linked (merged) incident row
+     * with the given ID. Used by "thread-auto-merge" activity entries so
+     * clicking a merge audit line takes the analyst straight to the source.
+     */
+    const [flashedRelatedId, setFlashedRelatedId] = useState<string | null>(null);
+    const flashedRelatedTimerRef = useRef<any>(null);
+    const focusRelatedIncident = (relatedId: string | null) => {
+      setActiveTab(3);
+      if (!relatedId) return;
+      setFlashedRelatedId(relatedId);
+      if (flashedRelatedTimerRef.current) clearTimeout(flashedRelatedTimerRef.current);
+      flashedRelatedTimerRef.current = setTimeout(() => setFlashedRelatedId(null), 2200);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-related-id="${CSS.escape(relatedId)}"]`) as HTMLElement | null;
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    };
+
+
+
+    /**
      * Demo-style "Ask the agent" affordance: when the user clicks a Known IOC
      * pill on the Timeline, prefill the comment input with an @agent question
      * about that observable, switch to the Details/Timeline tab so the input
@@ -6420,11 +6441,21 @@ const IncidentDetailPage = () => {
       }
 
       const isActHighlighted = !!actItem.id && newlyArrivedActivity.has(actItem.id);
+      // Merge/threading audit entries — clicking them jumps to the
+      // Correlations tab and flashes the matching linked incident row.
+      const mergeInMatch = typeof actItem.id === 'string'
+        ? actItem.id.match(/^merge-in-(.+)-(\d+)$/)
+        : null;
+      const mergeSourceIdFromId = mergeInMatch ? mergeInMatch[1] : null;
+      const isMergeItem = (actItem.type as string) === 'system'
+        && typeof actItem.id === 'string'
+        && (actItem.id.startsWith('merge-in-') || actItem.id.startsWith('merge-'));
       return (
         <Box
           key={actItem.id}
           id={actItem.id ? `activity-item-${actItem.id}` : undefined}
           className={isActHighlighted ? 'incident-new-flash' : undefined}
+          onClick={isMergeItem ? () => focusRelatedIncident(mergeSourceIdFromId) : undefined}
           sx={{
             display: 'flex',
             gap: 1.5,
@@ -6439,6 +6470,14 @@ const IncidentDetailPage = () => {
               : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--border-subtle))',
             position: 'relative',
             opacity: isDeleted ? 0.7 : 1,
+            cursor: isMergeItem ? 'pointer' : 'default',
+            transition: 'background-color 0.15s ease, border-color 0.15s ease',
+            ...(isMergeItem && {
+              '&:hover': {
+                bgcolor: 'hsl(var(--muted) / 0.75)',
+                borderColor: 'hsl(var(--primary) / 0.4)',
+              },
+            }),
             '&:hover .delete-btn': { opacity: 1 },
             '&:hover .reply-btn': { opacity: 1 },
           }}
@@ -7527,8 +7566,9 @@ const IncidentDetailPage = () => {
               const unavailable = relatedIncidents?.invisibleCount || 0;
               const suffix = unavailable ? ` (${unavailable} unavailable)` : '';
               return (
-                <Tooltip title={`${total} incident${total !== 1 ? 's' : ''} in this thread${suffix}`} arrow>
+                <Tooltip title={`${total} incident${total !== 1 ? 's' : ''} in this thread${suffix} — click to view`} arrow>
                   <Avatar
+                    onClick={(e) => { e.stopPropagation(); focusRelatedIncident(null); }}
                     sx={{
                       position: 'absolute',
                       bottom: -5,
@@ -7541,6 +7581,9 @@ const IncidentDetailPage = () => {
                       color: 'hsl(var(--primary-foreground))',
                       border: '2px solid hsl(var(--background))',
                       boxSizing: 'border-box',
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s ease',
+                      '&:hover': { transform: 'scale(1.08)' },
                     }}
                   >
                     {total}
@@ -9876,6 +9919,7 @@ const IncidentDetailPage = () => {
               invisibleCount={relatedIncidents.invisibleCount}
               loading={relatedIncidents.loading}
               onUnlinked={() => loadIncident(false)}
+              highlightId={flashedRelatedId}
             />
           )}
           {correlationsLoading ? (
