@@ -261,7 +261,17 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
       {exec && (
         <Box sx={{ px: 1 }}>
           {exec.status && (
-            <MetaRow label="Status" value={exec.status} />
+            <MetaRow
+              label="Status"
+              value={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  {exec.status}
+                  {isRunning(exec.status) && (
+                    <CircularProgress size={12} thickness={4} sx={{ color: '#FF8544' }} />
+                  )}
+                </Box>
+              }
+            />
           )}
           {(exec.execution_source || exec.authgroup) && (
             <MetaRow label="Source" value={sourceLabel(exec)} accent />
