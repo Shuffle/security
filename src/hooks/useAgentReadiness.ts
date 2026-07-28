@@ -1,25 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkflows } from './useWorkflows';
+import { useAssignEscalateStatus } from './useAssignEscalateStatus';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getAutomationLabels } from '@/config/usecases';
 import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 
 /**
- * "Ask agent" / @AIAgent handling is satisfied by EITHER of these paths on
- * the `shuffle-security_incidents` category:
+ * "Ask agent" / @AIAgent readiness — SINGLE SOURCE OF TRUTH for whether
+ * a @AIAgent comment will actually trigger anything on this incident.
  *
- *   A. The new built-in "Run AI Agent" automation (type=ai_agent) is enabled.
- *      No workflow plumbing is needed — Shuffle runs the agent directly.
+ * The definitive check lives in useAssignEscalateStatus (same rule the
+ * Automation Readiness banner on /incidents shows). We reuse it here so
+ * the incident page, the readiness banner, and any other consumer can
+ * never disagree about whether the agent is "connected".
+
  *
- *   B. The legacy path: the "Assign & Escalate" background workflow exists
- *      (background_processing=true) AND a "Run workflow" automation is
- *      enabled and points at that workflow's id.
+ * Rule (from useAssignEscalateStatus.isOrgActive):
+ *   The "Assign & Escalate" background workflow exists AND a "Run workflow"
+ *   automation on the incidents category is enabled AND points at that
+ *   workflow id. A disabled "Run workflow" automation means the @AIAgent
+ *   comment never fires, even if a "Run AI Agent" (type=ai_agent) automation
+ *   is toggled on — so we do NOT short-circuit on that alone.
  *
- * If neither is in place the @AIAgent comment never triggers anything.
- * This hook is the single source of truth and exposes `enable()` which
- * fixes the legacy path (mirroring /onboarding/automate).
+ * `enable()` fixes this path end-to-end (mirroring /onboarding/automate).
  */
+
 
 export interface AgentReadinessStatus {
   /** Either path A or path B is satisfied */
@@ -122,15 +128,15 @@ export const useAgentReadiness = (): AgentReadinessStatus => {
     return matchingWorkflow ? ids.includes(matchingWorkflow.id) : false;
   }, [categoryConfig, hasWorkflow, matchingWorkflow]);
 
-  // Mirror useAssignEscalateStatus exactly: the agent is active only when
-  // either the built-in "Run AI Agent" automation is enabled, OR the legacy
-  // path is fully wired (workflow exists AND "Run workflow" automation is
-  // enabled AND points at that workflow id). A disabled "Run workflow"
-  // automation means the @AIAgent comment never triggers anything.
-  const serverActive = categoryConfigMissing
-    ? hasWorkflow
-    : hasAiAgentAutomation || hasCategoryAutomation;
+  // SINGLE SOURCE OF TRUTH: defer the "is the agent actually wired up?"
+  // decision to useAssignEscalateStatus — the same hook that powers the
+  // Automation Readiness banner. Any consumer that reads agentReadiness.active
+  // now agrees with that banner by construction (no more "AI Agent is on but
+  // Assign & Escalate is off" mismatches).
+  const assign = useAssignEscalateStatus();
+  const serverActive = assign.active;
   const active = optimistic !== null ? optimistic : serverActive;
+
 
   const refetchAll = useCallback(async () => {
     await Promise.allSettled([
@@ -255,7 +261,7 @@ export const useAgentReadiness = (): AgentReadinessStatus => {
     hasAiAgentAutomation,
     hasWorkflow,
     hasCategoryAutomation,
-    isLoading: wfLoading || cfgLoading,
+    isLoading: wfLoading || cfgLoading || assign.isLoading,
     enable,
     isEnabling,
   };
