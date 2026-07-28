@@ -34,6 +34,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
 import { getApiUrl, getAuthHeader } from '../api';
+import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
@@ -302,21 +303,13 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                {imgSrc ? (
-                  <Box
-                    component="img"
-                    src={imgSrc}
-                    alt={appName || 'app'}
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: '1px solid hsl(var(--border))',
-                      bgcolor: 'hsl(var(--muted))',
-                      objectFit: 'contain',
-                      flexShrink: 0,
-                    }}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                {appName ? (
+                  <AppFallbackIcon
+                    name={appName}
+                    imageUrl={imgSrc}
+                    size={28}
+                    alt={appName}
+                    style={{ borderRadius: '50%', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
                   />
                 ) : null}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
