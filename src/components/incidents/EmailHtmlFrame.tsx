@@ -160,14 +160,33 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
     setImagesAllowed(false);
   }, [html]);
 
-  const { srcDoc, blockedCount } = useMemo(() => {
+  const { srcDoc, blockedCount, unresolvableCount } = useMemo(() => {
     const hardened = hardenHtmlForSandbox(html || '');
+    // Count <img> tags whose src is missing, empty, or a `cid:` reference we
+    // cannot resolve (attachment not inlined). These render as broken image
+    // placeholders and would otherwise be invisible to the user.
+    const countUnresolvable = (input: string): number => {
+      let n = 0;
+      const re = /<img\b([^>]*)>/gi;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(input)) !== null) {
+        const attrs = m[1] || '';
+        const srcMatch = attrs.match(/\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+        const raw = srcMatch ? (srcMatch[1] ?? srcMatch[2] ?? srcMatch[3] ?? '') : '';
+        const v = raw.trim();
+        if (!srcMatch || !v) { n += 1; continue; }
+        if (/^cid:/i.test(v)) { n += 1; continue; }
+      }
+      return n;
+    };
+    const unresolvable = countUnresolvable(hardened);
     if (imagesAllowed) {
-      return { srcDoc: buildDocument(hardened), blockedCount: 0 };
+      return { srcDoc: buildDocument(hardened), blockedCount: 0, unresolvableCount: unresolvable };
     }
     const { html: blocked, blocked: count } = blockRemoteImages(hardened);
-    return { srcDoc: buildDocument(blocked), blockedCount: count };
+    return { srcDoc: buildDocument(blocked), blockedCount: count, unresolvableCount: unresolvable };
   }, [html, imagesAllowed]);
+
 
   useEffect(() => {
     const iframe = iframeRef.current;
