@@ -11518,6 +11518,7 @@ const IncidentDetailPage = () => {
         open={!!selectedWorkflowExecutionId}
         executionId={selectedWorkflowExecutionId || ''}
         onClose={() => setSelectedWorkflowExecutionId(null)}
+        theme={resolvedTheme}
       />
     </motion.div>
   );
