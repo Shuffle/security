@@ -2650,17 +2650,14 @@ const IncidentsPage = () => {
               <Box sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 0.75,
+                justifyContent: 'center',
+                width: 36,
                 height: 36,
-                px: 1.25,
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 1,
-                color: 'text.secondary',
-                fontSize: 12,
               }}>
                 <CircularProgress size={12} thickness={5} sx={{ color: 'text.secondary' }} />
-                <span>Merging thread</span>
               </Box>
             </Tooltip>
           )}
