@@ -2434,12 +2434,38 @@ const IncidentDetailPage = () => {
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
 
+    // Build [start, end] windows for every agent run on this incident. Any
+    // workflow execution that fully contains one of these windows is treated
+    // as the parent that spawned the agent — we hide it from the timeline so
+    // the agent row itself becomes the single source of truth for that
+    // activity (stuck agents are handled inline on the agent row).
+    const agentWindows: Array<[number, number]> = (agentRuns || [])
+      .map((r: any) => {
+        const s = r.started_at ? normalizeToMs(r.started_at) : 0;
+        const e = r.completed_at ? normalizeToMs(r.completed_at) : Date.now();
+        return [s, e] as [number, number];
+      })
+      .filter(([s]) => s > 0);
+
     const filtered = (allIncidentWorkflowRuns || []).filter((r: any) => {
       if (!r?.execution_id || agentIds.has(r.execution_id)) return false;
       // Hide throwaway executions: single-app one-shots and unnamed "Tmp" scratch flows.
       const wfName = String(r.workflow?.name || r.workflow_name || '').trim();
       if (/single app run/i.test(wfName)) return false;
       if (wfName.toLowerCase() === 'tmp') return false;
+      // Hide workflow executions that contain a child agent run — the agent
+      // row already represents that work (and handles stuck/question states
+      // inline). Adds a small overlap tolerance so clock drift does not
+      // leak the parent workflow row back in.
+      const wfStart = r.started_at ? normalizeToMs(r.started_at) : 0;
+      const wfEnd = r.completed_at ? normalizeToMs(r.completed_at) : Date.now();
+      if (wfStart > 0) {
+        const tol = 5_000; // 5s tolerance either side
+        const hasChildAgent = agentWindows.some(([as, ae]) =>
+          as >= wfStart - tol && as <= wfEnd + tol
+        );
+        if (hasChildAgent) return false;
+      }
       return true;
     });
 
@@ -6401,7 +6427,9 @@ const IncidentDetailPage = () => {
               alignItems: 'center',
               gap: 1,
               px: 1.25,
-              py: 0.75,
+              height: 30,
+              boxSizing: 'border-box',
+              lineHeight: 1,
               borderRadius: 1.5,
               border: isFailed
                 ? '1px solid hsl(var(--destructive) / 0.5)'
