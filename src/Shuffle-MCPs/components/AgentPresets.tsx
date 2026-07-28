@@ -38,19 +38,18 @@ export const AGENT_PRESETS: AgentPreset[] = [
     defaultApps: [{ name: 'shuffle_workflows' }, { name: 'shuffles_app_management' }],
   },
   {
-    id: 'handle-notifications',
-    label: 'Handle Notifications',
-    description: 'Automatically handles incoming incidents for you — triages, enriches, and resolves or escalates based on your rules.',
-    defaultPrompt: 'Automatically handle incoming incidents by ',
-    icon: <BellRing size={16} />,
-    enabled: true,
-  },
-  {
     id: 'incident-response',
     label: 'Incident Response Agent',
     description: 'Triages incidents: enriches observables, correlates related cases, and proposes next actions with rationale.',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     icon: <ShieldAlert size={16} />,
+  },
+  {
+    id: 'host-monitor-control',
+    label: 'Host Monitor Control',
+    description: 'Controls a host computer with screenshots and mouse/keyboard input — useful for hands-on remediation or guided walkthroughs.',
+    defaultPrompt: 'Take control of this host and help me with: ',
+    icon: <Monitor size={16} />,
   },
   {
     id: 'support',
@@ -74,11 +73,11 @@ export const AGENT_PRESETS: AgentPreset[] = [
     icon: <Radar size={16} />,
   },
   {
-    id: 'host-monitor-control',
-    label: 'Host Monitor Control',
-    description: 'Controls a host computer with screenshots and mouse/keyboard input — useful for hands-on remediation or guided walkthroughs.',
-    defaultPrompt: 'Take control of this host and help me with: ',
-    icon: <Monitor size={16} />,
+    id: 'handle-notifications',
+    label: 'Handle Notifications',
+    description: 'Automatically handles incoming incidents for you — triages, enriches, and resolves or escalates based on your rules.',
+    defaultPrompt: 'Automatically handle incoming incidents by ',
+    icon: <BellRing size={16} />,
   },
 ];
 
