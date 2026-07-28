@@ -2370,7 +2370,20 @@ const IncidentDetailPage = () => {
     hasPendingAgentMention || refreshingObservables,
     activeRunsWindow,
   );
-  const workflowOnlyRuns = useMemo(() => {
+  // When a workflow execution changes state from within the run explorer
+  // (e.g. the user aborts it), refetch both the workflow-run and agent-run
+  // lists immediately so the timeline reflects the new status without
+  // waiting for the next 60s poll.
+  useEffect(() => {
+    const onChanged = () => {
+      refetchWorkflowRuns();
+      refetchAgentRuns();
+    };
+    window.addEventListener('workflow-run:changed', onChanged as EventListener);
+    return () => window.removeEventListener('workflow-run:changed', onChanged as EventListener);
+  }, [refetchWorkflowRuns, refetchAgentRuns]);
+
+
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
     return (allIncidentWorkflowRuns || []).filter((r: any) => {
       if (!r?.execution_id || agentIds.has(r.execution_id)) return false;
