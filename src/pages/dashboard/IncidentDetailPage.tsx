@@ -2098,8 +2098,13 @@ const IncidentDetailPage = () => {
           description: `Primary: "${(primary.title || primary.id).slice(0, 60)}"\n${lines.join('\n')}`,
           duration: 15000,
         };
-        if (successful > 0) toast.warning(headline, toastOptions);
-        else toast.error(headline, toastOptions);
+        if (successful > 0) {
+          toast.warning(headline, toastOptions);
+          const retryKey = `${threadCorrelated.threadId || ''}:${incident.id}`;
+          window.setTimeout(() => autoMergedThreadsRef.current.delete(retryKey), 15_000);
+        } else {
+          toast.error(headline, toastOptions);
+        }
         console.error('[auto-merge] failures', { primaryId: primary.id, primaryTitle: primary.title, failures });
       }
 
