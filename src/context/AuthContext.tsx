@@ -54,17 +54,45 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Optimistic hydration: if a previous session's userInfo is cached in
+  // localStorage, assume the user is still logged in and render immediately.
+  // /api/v1/getinfo is by far the slowest boot request; blocking every page
+  // (tickets, dashboard, ...) on it means seconds of blank UI even though
+  // every other API works. We revalidate in the background and only tear
+  // down auth if getinfo actually says the session is gone.
+  const cachedUserInfo: UserInfo | null = (() => {
+    try {
+      const raw = localStorage.getItem('shuffle_user_info');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed as UserInfo : null;
+    } catch { return null; }
+  })();
+  const cachedToken = (() => {
+    try { return localStorage.getItem('session_token'); } catch { return null; }
+  })();
+  const hasCachedSession = !!(cachedUserInfo && (cachedToken || cachedUserInfo.active_org?.id));
+
+  const [sessionToken, setSessionToken] = useState<string | null>(cachedToken);
+  const [isAuthenticated, setIsAuthenticated] = useState(hasCachedSession);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(hasCachedSession ? cachedUserInfo : null);
+  // Only block UI on the initial getinfo when we have nothing cached. If we
+  // already have a cached session, render optimistically and revalidate in
+  // the background.
+  const [isLoading, setIsLoading] = useState(!hasCachedSession);
   const [orgMismatchWarning, setOrgMismatchWarning] = useState(false);
+
+  // Seed the runtime org id from cache synchronously so datastore calls
+  // fired on the very first render don't get "no org" and 401.
+  if (hasCachedSession && cachedUserInfo?.active_org?.id) {
+    try { setRuntimeOrgId(cachedUserInfo.active_org.id); } catch { /* ignore */ }
+  }
 
   const dismissOrgMismatch = useCallback(() => {
     setOrgMismatchWarning(false);
   }, []);
 
-  const fetchUserInfo = useCallback(async (token?: string | null) => {
+  const fetchUserInfo = useCallback(async (_token?: string | null): Promise<'ok' | 'unauthenticated' | 'error'> => {
     try {
       const response = await fetch(getApiUrl('/api/v1/getinfo'), {
         method: 'GET',
@@ -75,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({} as any));
       console.log('getinfo response:', response.status, data);
 
       if (response.ok && data.success === true) {
@@ -102,55 +130,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           sync_features: data.sync_features,
         };
         setUserInfo(info);
-        // Make org ID available to non-React modules (e.g. datastore service)
-        // synchronously, BEFORE consumers re-render and start fetching.
         setRuntimeOrgId(newOrgId);
-        // Store in localStorage so datastore service can access org ID
-        // across reloads / new tabs.
         localStorage.setItem('shuffle_user_info', JSON.stringify(info));
-        // Broadcast the raw getinfo payload so other contexts (e.g. ThemeContext)
-        // can read fields like `theme` without firing their own duplicate request.
         try {
           window.dispatchEvent(new CustomEvent('shuffle:getinfo', { detail: data }));
         } catch { /* ignore */ }
-        return true;
-      } else {
-        console.warn('getinfo failed:', data.reason || 'Unknown error');
-        return false;
+        return 'ok';
       }
+      // Only treat explicit auth failures (401/403) as logged-out. Other
+      // non-ok statuses (500, 502, gateway timeouts, ...) are transient and
+      // must NOT wipe a working cached session.
+      if (response.status === 401 || response.status === 403) {
+        console.warn('getinfo unauthenticated:', data.reason || response.status);
+        return 'unauthenticated';
+      }
+      console.warn('getinfo transient failure:', response.status, data.reason);
+      return 'error';
     } catch (err) {
       console.error('Failed to fetch user info:', err);
-      return false;
+      return 'error';
     }
   }, []);
 
-  // Verify authentication on mount (runs once when app loads)
-  // Always calls getinfo — cookies (credentials: 'include') may authenticate
-  // even without a localStorage session token.
+  // Verify authentication on mount (runs once when app loads).
+  // If we already hydrated from cache, this runs in the background and only
+  // tears down auth on an explicit unauthenticated response — transient
+  // errors (slow getinfo, 5xx) leave the cached session in place.
   useEffect(() => {
     const verifyAuth = async () => {
-      console.log('AuthContext: verifyAuth running on mount');
+      console.log('AuthContext: verifyAuth running on mount', { hadCachedSession: hasCachedSession });
       const token = localStorage.getItem('session_token');
-      setSessionToken(token);
+      if (token !== sessionToken) setSessionToken(token);
 
-      // Always attempt getinfo — works with API key, session token, OR cookie
-      const success = await fetchUserInfo(token);
-      if (success) {
+      const result = await fetchUserInfo(token);
+      if (result === 'ok') {
         setIsAuthenticated(true);
-      } else {
-        // Clear stale token if present
+      } else if (result === 'unauthenticated') {
         if (token) {
           localStorage.removeItem('session_token');
           setSessionToken(null);
         }
+        localStorage.removeItem('shuffle_user_info');
         setIsAuthenticated(false);
         setUserInfo(null);
       }
+      // 'error' → keep whatever we optimistically hydrated (or nothing).
       setIsLoading(false);
     };
 
     verifyAuth();
-  }, [fetchUserInfo]);
+    // Only run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Re-check org on tab focus to detect out-of-band org switches
   useEffect(() => {
