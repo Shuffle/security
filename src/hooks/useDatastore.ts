@@ -85,6 +85,12 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
         console.log(`[useDatastore] fetchItems category=${category} page=${page} success=${response.success} dataLength=${response.data?.length} cursor=${response.cursor || 'none'}`);
 
         if (!response.success) {
+          // Client-side circuit breaker: transient self-throttle. Don't spam
+          // errors — just stop this pass silently and let the next fetch retry.
+          if (response.error === 'circuit_breaker_open') {
+            console.debug('[useDatastore] fetchItems paused by client-side circuit breaker', { category });
+            break;
+          }
           console.error('[useDatastore] fetchItems failed', {
             category,
             error: response.error,
