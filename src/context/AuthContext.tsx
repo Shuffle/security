@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setOrgMismatchWarning(false);
   }, []);
 
-  const fetchUserInfo = useCallback(async (token?: string | null) => {
+  const fetchUserInfo = useCallback(async (_token?: string | null): Promise<'ok' | 'unauthenticated' | 'error'> => {
     try {
       const response = await fetch(getApiUrl('/api/v1/getinfo'), {
         method: 'GET',
@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({} as any));
       console.log('getinfo response:', response.status, data);
 
       if (response.ok && data.success === true) {
@@ -130,55 +130,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           sync_features: data.sync_features,
         };
         setUserInfo(info);
-        // Make org ID available to non-React modules (e.g. datastore service)
-        // synchronously, BEFORE consumers re-render and start fetching.
         setRuntimeOrgId(newOrgId);
-        // Store in localStorage so datastore service can access org ID
-        // across reloads / new tabs.
         localStorage.setItem('shuffle_user_info', JSON.stringify(info));
-        // Broadcast the raw getinfo payload so other contexts (e.g. ThemeContext)
-        // can read fields like `theme` without firing their own duplicate request.
         try {
           window.dispatchEvent(new CustomEvent('shuffle:getinfo', { detail: data }));
         } catch { /* ignore */ }
-        return true;
-      } else {
-        console.warn('getinfo failed:', data.reason || 'Unknown error');
-        return false;
+        return 'ok';
       }
+      // Only treat explicit auth failures (401/403) as logged-out. Other
+      // non-ok statuses (500, 502, gateway timeouts, ...) are transient and
+      // must NOT wipe a working cached session.
+      if (response.status === 401 || response.status === 403) {
+        console.warn('getinfo unauthenticated:', data.reason || response.status);
+        return 'unauthenticated';
+      }
+      console.warn('getinfo transient failure:', response.status, data.reason);
+      return 'error';
     } catch (err) {
       console.error('Failed to fetch user info:', err);
-      return false;
+      return 'error';
     }
   }, []);
 
-  // Verify authentication on mount (runs once when app loads)
-  // Always calls getinfo — cookies (credentials: 'include') may authenticate
-  // even without a localStorage session token.
+  // Verify authentication on mount (runs once when app loads).
+  // If we already hydrated from cache, this runs in the background and only
+  // tears down auth on an explicit unauthenticated response — transient
+  // errors (slow getinfo, 5xx) leave the cached session in place.
   useEffect(() => {
     const verifyAuth = async () => {
-      console.log('AuthContext: verifyAuth running on mount');
+      console.log('AuthContext: verifyAuth running on mount', { hadCachedSession: hasCachedSession });
       const token = localStorage.getItem('session_token');
-      setSessionToken(token);
+      if (token !== sessionToken) setSessionToken(token);
 
-      // Always attempt getinfo — works with API key, session token, OR cookie
-      const success = await fetchUserInfo(token);
-      if (success) {
+      const result = await fetchUserInfo(token);
+      if (result === 'ok') {
         setIsAuthenticated(true);
-      } else {
-        // Clear stale token if present
+      } else if (result === 'unauthenticated') {
         if (token) {
           localStorage.removeItem('session_token');
           setSessionToken(null);
         }
+        localStorage.removeItem('shuffle_user_info');
         setIsAuthenticated(false);
         setUserInfo(null);
       }
+      // 'error' → keep whatever we optimistically hydrated (or nothing).
       setIsLoading(false);
     };
 
     verifyAuth();
-  }, [fetchUserInfo]);
+    // Only run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Re-check org on tab focus to detect out-of-band org switches
   useEffect(() => {
