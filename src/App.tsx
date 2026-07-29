@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, lazy, Suspense } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline, Box } from '@mui/material';
 import { Navigate } from 'react-router-dom';
 import { AppDetailProvider } from '@/Shuffle-MCPs/AppDetailContext';
