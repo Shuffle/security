@@ -2424,12 +2424,21 @@ const IncidentDetailPage = () => {
   // execution is not). Rendered as a standalone card at the top of the
   // timeline so the user can always answer without hunting.
   const incidentQuestions = useMemo(() => {
+    // Build a set of every execution id known to belong to this incident —
+    // covers both direct agent runs and workflow executions the incident
+    // triggered. Agent-handoff notifications carry the *workflow* execution
+    // id, so matching against both surfaces the question even when the
+    // notification has no incident_id set (older backends / manual runs).
+    const execIds = new Set<string>();
+    (agentRuns || []).forEach((r: any) => { if (r?.execution_id) execIds.add(String(r.execution_id)); });
+    (allIncidentWorkflowRuns || []).forEach((r: any) => { if (r?.execution_id) execIds.add(String(r.execution_id)); });
     return (agentNotifications || []).filter((n) => {
-      if (isApprovalNotification(n)) return;
-      if (!n.incident_id || !id) return false;
-      return String(n.incident_id) === String(id);
+      if (isApprovalNotification(n)) return false;
+      const matchesIncident = n.incident_id && id && String(n.incident_id) === String(id);
+      const matchesExec = n.execution_id && execIds.has(String(n.execution_id));
+      return matchesIncident || matchesExec;
     });
-  }, [agentNotifications, id]);
+  }, [agentNotifications, id, agentRuns, allIncidentWorkflowRuns]);
 
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
