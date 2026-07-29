@@ -29,6 +29,7 @@ import {
   TimerOff as HourglassDisabledIcon,
   Lock as LockIcon,
   ExternalLink as OpenInNewIcon,
+  PanelRightOpen as PanelRightOpenIcon,
   Pause as PauseIcon,
   Play as PlayArrowRoundedIcon,
   RefreshCw as RefreshIcon,
