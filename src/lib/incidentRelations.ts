@@ -705,6 +705,244 @@ export const linkMergePair = async ({
 };
 
 
+/**
+ * Batched variant of `linkMergePair` for merging N siblings into ONE
+ * primary in a single write cycle instead of N sequential ones.
+ *
+ * Why: `linkMergePair` runs ~5 sequential datastore round-trips per
+ * source (write primary → read-back verify → write source → read-back
+ * verify). With 30-50 siblings on a hot thread and per-request latency
+ * in the seconds, that turns into minutes of blocking work.
+ *
+ * This batch:
+ *   1. Folds every "simple" source (no transitive grandchildren) into
+ *      an in-memory `nextPrimary` payload — one pass.
+ *   2. Writes the primary ONCE via writeAndVerifyPrimaryMerge (single
+ *      write+verify covers every sibling pointer).
+ *   3. Writes all source-side rows in PARALLEL (each is independent —
+ *      they only mutate their own row).
+ *   4. Sources that carry their own transitive children fall back to
+ *      per-source `linkMergePair` (rare — needs chain-reparent logic).
+ *
+ * Result: ~2 network round-trips for the primary + one round-trip
+ * per source, fully parallel. From O(N × 5) sequential to ~O(1 + 1)
+ * wall-clock time for the common case.
+ */
+export interface BatchMergeSource {
+  id: string;
+  raw: any;
+  title?: string;
+}
+
+export interface BatchMergeResult {
+  success: boolean;
+  foldedPrimary?: any;
+  mergedIds: string[];
+  errors: Array<{ id: string; error: string }>;
+}
+
+export const linkMergePairsBatch = async ({
+  primaryId,
+  primaryRaw,
+  primaryTitle,
+  sources,
+  linkedBy,
+}: {
+  primaryId: string;
+  primaryRaw: any;
+  primaryTitle?: string;
+  sources: BatchMergeSource[];
+  linkedBy?: string;
+}): Promise<BatchMergeResult> => {
+  const errors: Array<{ id: string; error: string }> = [];
+  const mergedIds: string[] = [];
+  if (sources.length === 0) {
+    return { success: true, foldedPrimary: primaryRaw, mergedIds, errors };
+  }
+
+  const primaryKey = incidentIdKey(primaryId);
+  const now = Date.now();
+
+  // Split into simple vs complex (has transitive children — needs
+  // chain-reparent). Complex sources are rare; fall back to serial.
+  const simple: BatchMergeSource[] = [];
+  const complex: BatchMergeSource[] = [];
+  for (const s of sources) {
+    if (incidentIdKey(s.id) === primaryKey) continue;
+    const hasTransitiveChildren = getRelatedIncidents(s.raw).some(
+      (p) => p.relation === 'merged' && !p.primary && incidentIdKey(p.id) !== primaryKey,
+    );
+    if (hasTransitiveChildren) complex.push(s);
+    else simple.push(s);
+  }
+
+  let nextPrimary: any = primaryRaw || {};
+  const requiredPointers: RelatedIncidentPointer[] = [];
+  const sourceWrites: Array<{ id: string; raw: any }> = [];
+  const foldedSet = new Set<string>(
+    Array.isArray(nextPrimary._merged_data_from) ? nextPrimary._merged_data_from : [],
+  );
+  const alreadyLinkedKeys = new Set(
+    getLinkedPointers(nextPrimary).map((p) => incidentIdKey(p.id)),
+  );
+  let primaryActivity: any[] = Array.isArray(nextPrimary.activity)
+    ? dedupeMergeAuditActivity(nextPrimary.activity)
+    : [];
+
+  for (const src of simple) {
+    if (pairWasUnmerged(nextPrimary, primaryId, src.raw, src.id)) {
+      errors.push({ id: src.id, error: 'manually unmerged from this pair' });
+      continue;
+    }
+    const sourceKey = incidentIdKey(src.id);
+    const primaryPointer: RelatedIncidentPointer = {
+      id: src.id,
+      relation: 'merged',
+      primary: false,
+      linked_at: now,
+      linked_by: linkedBy,
+    };
+    const sourcePointer: RelatedIncidentPointer = {
+      id: primaryId,
+      relation: 'merged',
+      primary: true,
+      linked_at: now,
+      linked_by: linkedBy,
+      previous_status: typeof src.raw?.status === 'string' ? src.raw.status : undefined,
+      previous_status_id:
+        typeof src.raw?.status_id === 'number' && src.raw.status_id !== MERGED_STATUS_ID
+          ? src.raw.status_id
+          : undefined,
+    };
+    requiredPointers.push(primaryPointer);
+
+    // Only fold data once per source key — idempotent across retries.
+    if (!alreadyLinkedKeys.has(sourceKey) && !foldedSet.has(src.id)) {
+      nextPrimary = foldSourceIntoPrimary(nextPrimary, src.raw);
+      // foldSourceIntoPrimary may have refreshed activity; re-sync.
+      primaryActivity = Array.isArray(nextPrimary.activity)
+        ? dedupeMergeAuditActivity(nextPrimary.activity)
+        : primaryActivity;
+    }
+    nextPrimary = upsertPointer(nextPrimary, primaryPointer);
+    alreadyLinkedKeys.add(sourceKey);
+    foldedSet.add(src.id);
+
+    // Single audit entry per source; dedup by mergeAuditDedupeKey.
+    const auditKey = `merge-in:${src.id.toLowerCase()}`;
+    if (!primaryActivity.some((item: any) => mergeAuditDedupeKey(item) === auditKey)) {
+      primaryActivity = [
+        ...primaryActivity,
+        {
+          id: `merge-in-${src.id}-${now}`,
+          type: 'system',
+          user: linkedBy || 'System',
+          timestamp: now,
+          content: `Merged data from "${src.title || src.id}"`,
+        },
+      ];
+    }
+
+    // Prepare source-side payload — written in parallel below.
+    let nextSource: any = upsertPointer(src.raw, sourcePointer);
+    nextSource = upsertRelatedEventRefs(nextSource, [primaryId]);
+    nextSource = {
+      ...nextSource,
+      status_id: MERGED_STATUS_ID,
+      status: MERGED_STATUS_LABEL,
+      merged_into: primaryId,
+      merged_at: now,
+    };
+    const srcActivity = Array.isArray(nextSource.activity)
+      ? dedupeMergeAuditActivity(nextSource.activity)
+      : [];
+    const hasSourceAudit = srcActivity.some((item: any) => {
+      const content = String(item?.content || '');
+      return item?.type === 'system' && content.includes(`Merged into "${primaryTitle || primaryId}"`);
+    });
+    nextSource.activity = hasSourceAudit
+      ? srcActivity
+      : [
+          ...srcActivity,
+          {
+            id: `merge-${now}-${src.id}`,
+            type: 'system',
+            user: linkedBy || 'System',
+            timestamp: now,
+            content: `Merged into "${primaryTitle || primaryId}"`,
+          },
+        ];
+    sourceWrites.push({ id: src.id, raw: nextSource });
+  }
+
+  if (requiredPointers.length > 0) {
+    nextPrimary.activity = primaryActivity;
+    nextPrimary._merged_data_from = Array.from(foldedSet);
+    nextPrimary = upsertRelatedEventRefs(nextPrimary, requiredPointers.map((p) => p.id));
+
+    // ONE primary write+verify for the whole batch.
+    const pRes = await writeAndVerifyPrimaryMerge(primaryId, nextPrimary, requiredPointers);
+    if (!pRes.success) {
+      // Primary write failed — every simple source in this batch fails.
+      for (const sw of sourceWrites) {
+        errors.push({ id: sw.id, error: pRes.error || 'primary write/verify failed' });
+      }
+    } else {
+      if (pRes.raw) nextPrimary = pRes.raw;
+      // PARALLEL source-side writes.
+      const results = await Promise.all(
+        sourceWrites.map(async (sw) => {
+          try {
+            const w = await writeIncidentSafe(sw.id, sw.raw);
+            if (!w.success) return { id: sw.id, error: w.error || 'source write failed' };
+            return { id: sw.id, error: null as string | null };
+          } catch (e: any) {
+            return { id: sw.id, error: e?.message || String(e) };
+          }
+        }),
+      );
+      for (const r of results) {
+        if (r.error) errors.push({ id: r.id, error: r.error });
+        else mergedIds.push(r.id);
+      }
+    }
+  }
+
+  // Fall back to serial linkMergePair for sources with transitive children.
+  for (const src of complex) {
+    try {
+      const r = await linkMergePair({
+        primaryId,
+        primaryRaw: nextPrimary,
+        primaryTitle,
+        sourceId: src.id,
+        sourceRaw: src.raw,
+        sourceTitle: src.title,
+        linkedBy,
+      });
+      if (r.success) {
+        mergedIds.push(src.id);
+        if (r.foldedPrimary) nextPrimary = r.foldedPrimary;
+      } else {
+        errors.push({ id: src.id, error: r.error || 'linkMergePair failed' });
+      }
+    } catch (e: any) {
+      errors.push({ id: src.id, error: e?.message || String(e) });
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    foldedPrimary: nextPrimary,
+    mergedIds,
+    errors,
+  };
+};
+
+
+
+
+
 
 
 interface UnlinkArgs {
