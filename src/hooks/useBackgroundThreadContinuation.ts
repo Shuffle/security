@@ -178,33 +178,26 @@ export const useBackgroundThreadContinuation = (
             .filter((s) => !pairWasUnmerged(raw, candidate.id, s.raw, s.id));
           if (siblings.length === 0) continue;
 
-          // Retain the primary that already anchors the thread. Chain
-          // the folded raw through each iteration so successive sources
-          // fold on top of the enriched primary (identical to detail-page
-          // handleAutoMergeThread behavior).
-          let currentPrimaryRaw = raw;
+          // Batched merge: 1 primary write+verify + parallel source
+          // writes replaces the per-sibling sequential linkMergePair chain.
           const primaryTitle = raw?.title || raw?.finding_info_list?.[0]?.title || candidate.id;
-          for (const src of siblings) {
-            const res = await linkMergePair({
+          try {
+            const batch = await linkMergePairsBatch({
               primaryId: candidate.id,
-              primaryRaw: currentPrimaryRaw,
+              primaryRaw: raw,
               primaryTitle,
-              sourceId: src.id,
-              sourceRaw: src.raw,
-              sourceTitle: src.title,
+              sources: siblings.map((s) => ({ id: s.id, raw: s.raw, title: s.title })),
               linkedBy: 'thread-auto-merge-list',
             });
-            if (res.success) {
-              totalMerged += 1;
-              if (res.foldedPrimary) currentPrimaryRaw = res.foldedPrimary;
-            }
-          }
+            totalMerged += batch.mergedIds.length;
+          } catch { /* silent — cooldown will let us retry later */ }
           // Update cooldown record with the new linked count so a later
           // pass only reprocesses if MORE siblings arrive.
           lastCheckRef.current.set(key, {
             at: Date.now(),
             linked: (alreadyLinked.size - 1) + siblings.length,
           });
+
         }
       } catch { /* silent */ } finally {
         busyRef.current = false;
