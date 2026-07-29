@@ -2014,37 +2014,30 @@ const IncidentDetailPage = () => {
 
     setAutoMergeBusy(true);
     try {
-      const failures: { id: string; title: string; error: string }[] = [];
-      // Chain the folded primary through each iteration so successive
-      // sources fold on top of the already-enriched primary. Without
-      // this, iteration N would clobber the fold from iteration N-1
-      // because primaryRaw would still be the pre-merge snapshot.
-      let currentPrimaryRaw = primary.raw;
-      for (const src of sources) {
-        let res: { success: boolean; error?: string; foldedPrimary?: any };
-        try {
-          res = await linkMergePair({
-            primaryId: primary.id,
-            primaryRaw: currentPrimaryRaw,
-            primaryTitle: primary.title,
-            sourceId: src.id,
-            sourceRaw: src.raw,
-            sourceTitle: src.title,
-            linkedBy: 'thread-auto-merge',
-          });
-        } catch (err: any) {
-          res = { success: false, error: err?.message || 'Threw an unexpected error' };
-        }
-        if (!res.success) {
-          failures.push({
-            id: src.id,
-            title: src.title || src.id,
-            error: res.error || 'Unknown reason',
-          });
-        } else if (res.foldedPrimary) {
-          currentPrimaryRaw = res.foldedPrimary;
-        }
+      // Batched merge: one primary write+verify + parallel source writes,
+      // instead of N sequential linkMergePair round trips. Cuts a 30-sibling
+      // thread from ~150 round-trips to ~1 + N (parallel).
+      let batchResult: Awaited<ReturnType<typeof linkMergePairsBatch>>;
+      try {
+        batchResult = await linkMergePairsBatch({
+          primaryId: primary.id,
+          primaryRaw: primary.raw,
+          primaryTitle: primary.title,
+          sources: sources.map((s) => ({ id: s.id, raw: s.raw, title: s.title })),
+          linkedBy: 'thread-auto-merge',
+        });
+      } catch (err: any) {
+        batchResult = {
+          success: false,
+          mergedIds: [],
+          errors: sources.map((s) => ({ id: s.id, error: err?.message || 'Threw an unexpected error' })),
+        };
       }
+      const failures: { id: string; title: string; error: string }[] = batchResult.errors.map((e) => {
+        const src = sources.find((s) => s.id === e.id);
+        return { id: e.id, title: src?.title || e.id, error: e.error };
+      });
+
 
 
       if (failures.length === 0) {
