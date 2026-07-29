@@ -172,6 +172,21 @@ export const getQuestionFieldText = (field: any, decision?: any, category?: stri
 };
 
 /**
+ * When an ask/question decision arrives without any usable question field
+ * value (all fields empty, or only control keys like approve/deny), fall
+ * back to the decision's own free-form `reason` or `description`. The agent
+ * often writes a full sentence there explaining what it needs, so we surface
+ * that as the effective question instead of an empty prompt.
+ */
+export const getAskFallbackQuestion = (decision?: any): string => {
+  const reason = typeof decision?.reason === 'string' ? decision.reason.trim() : '';
+  if (reason) return reason;
+  const description = typeof decision?.description === 'string' ? decision.description.trim() : '';
+  if (description) return description;
+  return '';
+};
+
+/**
  * Extract every unanswered question from an agent run's decisions using the
  * same detection helpers the AgentUI timeline uses. Returns pending "ask"
  * decisions that are still WAITING (or RUNNING) with at least one question
