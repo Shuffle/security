@@ -123,7 +123,7 @@ export const useBackgroundThreadContinuation = (
       }
       const existingTs = readTs(existing.rawOCSF) || existing.createdTs || 0;
       const candidateTs = readTs(raw) || inc.createdTs || 0;
-      if ((candidateTs - existingTs) || inc.id.localeCompare(existing.id) > 0) {
+      if (candidateTs > existingTs || (candidateTs === existingTs && inc.id.localeCompare(existing.id) > 0)) {
         byThread.set(threadKey, candidate);
       }
     }
