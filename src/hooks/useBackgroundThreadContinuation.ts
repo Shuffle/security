@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { linkMergePairsBatch, getLinkedPointers, isMergedIncident, getPrimaryPointer, pairWasUnmerged } from '@/lib/incidentRelations';
+import { linkMergePairsIncremental, getLinkedPointers, isMergedIncident, getPrimaryPointer, pairWasUnmerged } from '@/lib/incidentRelations';
 import { useAutoMergeThread } from '@/hooks/useEntityLabel';
 import { extractThreadId } from '@/hooks/useThreadCorrelatedIncidents';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
@@ -178,24 +178,30 @@ export const useBackgroundThreadContinuation = (
             .filter((s) => !pairWasUnmerged(raw, candidate.id, s.raw, s.id));
           if (siblings.length === 0) continue;
 
-          // Batched merge: 1 primary write+verify + parallel source
-          // writes replaces the per-sibling sequential linkMergePair chain.
+          // Incremental batched merge: process large threads in bounded
+          // chunks and split failed chunks smaller so one bad sibling does
+          // not block the rest of the thread.
           const primaryTitle = raw?.title || raw?.finding_info_list?.[0]?.title || candidate.id;
+          let mergedThisPass = 0;
           try {
-            const batch = await linkMergePairsBatch({
+            const batch = await linkMergePairsIncremental({
               primaryId: candidate.id,
               primaryRaw: raw,
               primaryTitle,
               sources: siblings.map((s) => ({ id: s.id, raw: s.raw, title: s.title })),
               linkedBy: 'thread-auto-merge-list',
+              chunkSize: 10,
             });
-            totalMerged += batch.mergedIds.length;
+            mergedThisPass = batch.mergedIds.length;
+            totalMerged += mergedThisPass;
           } catch { /* silent — cooldown will let us retry later */ }
           // Update cooldown record with the new linked count so a later
-          // pass only reprocesses if MORE siblings arrive.
+          // pass only suppresses work that actually succeeded. Previously
+          // this used siblings.length, which made a partial failure look
+          // fully processed and left large threads stuck.
           lastCheckRef.current.set(key, {
             at: Date.now(),
-            linked: (alreadyLinked.size - 1) + siblings.length,
+            linked: (alreadyLinked.size - 1) + mergedThisPass,
           });
 
         }
