@@ -1037,10 +1037,10 @@ const IncidentDetailPage = () => {
   // "steps" bucket so each artefact type can be hidden individually.
   type TimelineFilterKey = 'revisions' | 'agent' | 'workflows' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
   const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
-  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
+  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'tasks', 'observables', 'correlations'];
   // Bumped when the default set changes so existing localStorage entries
   // re-default rather than persist the old "all on" baseline.
-  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v4';
+  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v5';
   const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
     if (typeof window === 'undefined') return new Set(DEFAULT_TIMELINE_FILTERS);
     try {
@@ -2022,14 +2022,17 @@ const IncidentDetailPage = () => {
           const more = items.length > 2 ? ` +${items.length - 2} more` : '';
           return `• ${reason} — ${sample}${more}`;
         });
-        const headline = failures.length === sources.length
-          ? `Auto-merge failed for all ${sources.length} sibling${sources.length === 1 ? '' : 's'}`
+        const allFailed = failures.length === sources.length;
+        const headline = allFailed
+          ? (sources.length === 1
+              ? 'Auto-merge failed for the sibling incident'
+              : `Auto-merge failed for all ${sources.length} sibling incidents`)
           : `Auto-merge partial: ${failures.length} of ${sources.length} failed`;
         toast.error(headline, {
-          description: lines.join('\n'),
-          duration: 12000,
+          description: `Primary: "${(primary.title || primary.id).slice(0, 60)}"\n${lines.join('\n')}`,
+          duration: 15000,
         });
-        console.error('[auto-merge] failures', failures);
+        console.error('[auto-merge] failures', { primaryId: primary.id, primaryTitle: primary.title, failures });
       }
 
       // If the current view is now non-primary, jump to the primary so

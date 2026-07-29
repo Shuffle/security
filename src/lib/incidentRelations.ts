@@ -322,21 +322,41 @@ const writeAndVerifyPrimaryMerge = async (
   ));
   let payload = upsertRelatedEventRefs(nextPrimary, requiredIds);
 
+  let lastReadError: string | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const write = await writeIncidentSafe(primaryId, payload);
-    if (!write.success) return { success: false, error: write.error || 'Failed to update primary' };
+    if (!write.success) {
+      return { success: false, error: write.error || `Failed to update primary ${primaryId} (attempt ${attempt + 1}/2)` };
+    }
 
     let storedRaw: any = null;
+    let readErr: string | null = null;
+    let readOk = false;
     try {
       const read = await getDatastoreItem(primaryId, DATASTORE_CATEGORIES.INCIDENTS);
-      if (read.success && read.item?.value) storedRaw = JSON.parse(read.item.value);
-    } catch {
-      storedRaw = null;
+      readOk = !!read?.success;
+      if (!readOk) {
+        readErr = (read as any)?.error || 'read-back returned success=false';
+      } else if (!read.item?.value) {
+        readErr = 'read-back returned no value';
+      } else {
+        try {
+          storedRaw = JSON.parse(read.item.value);
+        } catch (parseErr: any) {
+          readErr = `read-back JSON parse failed: ${parseErr?.message || String(parseErr)}`;
+        }
+      }
+    } catch (e: any) {
+      readErr = `read-back threw: ${e?.message || String(e)}`;
     }
+    lastReadError = readErr;
 
     if (!storedRaw || typeof storedRaw !== 'object') {
       if (attempt === 0) continue;
-      return { success: false, error: 'Failed to verify primary merge metadata' };
+      return {
+        success: false,
+        error: `Failed to verify primary merge metadata for ${primaryId}: ${readErr || 'stored value not an object'}`,
+      };
     }
 
     const linkedKeys = new Set(getLinkedPointers(storedRaw).map((p) => incidentIdKey(p.id)));
@@ -349,9 +369,18 @@ const writeAndVerifyPrimaryMerge = async (
     }
 
     if (attempt === 1) {
+      const samplePointer = missingPointerIds[0];
+      const sampleRelated = missingRelatedIds[0];
+      const bits: string[] = [];
+      if (missingPointerIds.length > 0) {
+        bits.push(`${missingPointerIds.length} missing pointer${missingPointerIds.length === 1 ? '' : 's'}${samplePointer ? ` (e.g. ${samplePointer})` : ''}`);
+      }
+      if (missingRelatedIds.length > 0) {
+        bits.push(`${missingRelatedIds.length} missing related event${missingRelatedIds.length === 1 ? '' : 's'}${sampleRelated ? ` (e.g. ${sampleRelated})` : ''}`);
+      }
       return {
         success: false,
-        error: `Primary merge metadata did not verify (${missingPointerIds.length} missing pointers, ${missingRelatedIds.length} missing related events)`,
+        error: `Primary merge metadata did not verify on ${primaryId} after 2 write/read cycles — ${bits.join(', ')}`,
       };
     }
 
@@ -361,7 +390,10 @@ const writeAndVerifyPrimaryMerge = async (
     }
   }
 
-  return { success: false, error: 'Failed to verify primary merge metadata' };
+  return {
+    success: false,
+    error: `Failed to verify primary merge metadata for ${primaryId}${lastReadError ? `: ${lastReadError}` : ''}`,
+  };
 };
 
 interface LinkArgs {
