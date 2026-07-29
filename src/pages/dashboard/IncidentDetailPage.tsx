@@ -10653,6 +10653,7 @@ const IncidentDetailPage = () => {
               currentIncidentId={incident.id}
               linked={relatedIncidents.linked}
               invisibleCount={relatedIncidents.invisibleCount}
+              expectedCount={getLinkedPointers(incident?.rawOCSF).length}
               loading={relatedIncidents.loading}
               onUnlinked={() => loadIncident(false)}
               highlightId={flashedRelatedId}
