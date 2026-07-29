@@ -6,6 +6,7 @@
  */
 
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { isCircuitBreakerResponse } from '@/Shuffle-Core/fetchBreaker';
 
 export interface DatastoreItem {
   key: string;
