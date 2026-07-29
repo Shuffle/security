@@ -2024,8 +2024,6 @@ const IncidentDetailPage = () => {
             },
           },
         );
-      } else {
-        toast.info(`Nothing to auto-merge — ${reasonSummary}. See console for per-incident details.`);
       }
       return;
     }
