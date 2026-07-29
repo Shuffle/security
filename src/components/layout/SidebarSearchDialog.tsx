@@ -350,7 +350,7 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="p-0 gap-0 overflow-hidden border-0"
-        overlayClassName="!z-[1500]"
+        
         style={{
           background: 'hsl(var(--card))',
           border: '1px solid hsl(var(--border))',
