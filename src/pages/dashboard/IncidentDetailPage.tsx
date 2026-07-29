@@ -2101,7 +2101,10 @@ const IncidentDetailPage = () => {
         if (successful > 0) {
           toast.warning(headline, toastOptions);
           const retryKey = `${threadCorrelated.threadId || ''}:${incident.id}`;
-          window.setTimeout(() => autoMergedThreadsRef.current.delete(retryKey), 15_000);
+          window.setTimeout(() => {
+            autoMergedThreadsRef.current.delete(retryKey);
+            threadCorrelated.refresh();
+          }, 15_000);
         } else {
           toast.error(headline, toastOptions);
         }
