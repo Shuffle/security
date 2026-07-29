@@ -404,13 +404,43 @@ const getRunPrompt = (run: AgentRun): string | null => {
 
 
 
+/**
+ * Strip Markdown syntax so a prompt/answer reads as plain text in single-line
+ * title/subtitle rows. Prompts often come in with bold/italic/heading/inline
+ * code markers (e.g. "**Answer this question:** @AIAgent ..."), which look
+ * noisy when truncated and ellipsised. We render titles as text (not HTML),
+ * so we normalize to plain text rather than rendering Markdown.
+ */
+const stripMarkdown = (input: string): string => {
+  if (!input) return '';
+  let s = input;
+  // Fenced/inline code
+  s = s.replace(/```[\s\S]*?```/g, ' ');
+  s = s.replace(/`([^`]*)`/g, '$1');
+  // Images ![alt](url) → alt
+  s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+  // Links [text](url) → text
+  s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+  // Bold/italic markers (**, __, *, _)
+  s = s.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  s = s.replace(/(\*|_)(?=\S)([^*_\n]+?)\1/g, '$2');
+  // Headings, blockquotes, list bullets at line start
+  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  s = s.replace(/^\s{0,3}>\s?/gm, '');
+  s = s.replace(/^\s*[-*+]\s+/gm, '');
+  s = s.replace(/^\s*\d+\.\s+/gm, '');
+  // Collapse whitespace
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+};
+
 const getRunTitle = (run: AgentRun): string => {
   const prompt = getRunPrompt(run);
   if (prompt) {
-    const oneLine = prompt.replace(/\s+/g, ' ').trim();
+    const oneLine = stripMarkdown(prompt);
     return oneLine.length > 80 ? oneLine.slice(0, 80) + '…' : oneLine;
   }
-  if (run.workflow?.name) return run.workflow.name;
+  if (run.workflow?.name) return stripMarkdown(run.workflow.name);
   return `Execution ${run.execution_id?.slice(0, 8) || '—'}`;
 };
 
@@ -425,14 +455,16 @@ const getRunSubtitle = (run: AgentRun): string => {
     try {
       const p = JSON.parse(run.result);
       if (p.output && typeof p.output === 'string') {
-        return p.output.length > 120 ? p.output.slice(0, 120) + '…' : p.output;
+        const out = stripMarkdown(p.output);
+        return out.length > 120 ? out.slice(0, 120) + '…' : out;
       }
       if (p.original_input && typeof p.original_input === 'string') {
-        return p.original_input.length > 120 ? p.original_input.slice(0, 120) + '…' : p.original_input;
+        const inp = stripMarkdown(p.original_input);
+        return inp.length > 120 ? inp.slice(0, 120) + '…' : inp;
       }
-      if (p.message && typeof p.message === 'string') return p.message;
+      if (p.message && typeof p.message === 'string') return stripMarkdown(p.message);
     } catch {
-      if (run.result.length < 120) return run.result;
+      if (run.result.length < 120) return stripMarkdown(run.result);
     }
   }
   const status = getEffectiveStatus(run);
