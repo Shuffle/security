@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { linkMergePair, getLinkedPointers, isMergedIncident, getPrimaryPointer, pairWasUnmerged } from '@/lib/incidentRelations';
+import { linkMergePairsBatch, getLinkedPointers, isMergedIncident, getPrimaryPointer, pairWasUnmerged } from '@/lib/incidentRelations';
 import { useAutoMergeThread } from '@/hooks/useEntityLabel';
 import { extractThreadId } from '@/hooks/useThreadCorrelatedIncidents';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
