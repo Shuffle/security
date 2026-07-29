@@ -85,6 +85,12 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
         console.log(`[useDatastore] fetchItems category=${category} page=${page} success=${response.success} dataLength=${response.data?.length} cursor=${response.cursor || 'none'}`);
 
         if (!response.success) {
+          // Client-side circuit breaker: transient self-throttle. Don't spam
+          // errors — just stop this pass silently and let the next fetch retry.
+          if (response.error === 'circuit_breaker_open') {
+            console.debug('[useDatastore] fetchItems paused by client-side circuit breaker', { category });
+            break;
+          }
           console.error('[useDatastore] fetchItems failed', {
             category,
             error: response.error,
@@ -139,10 +145,16 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
         setCursor(currentCursor || null);
         setHasMore(!!currentCursor);
       } else {
-        setError(lastResponse?.error || 'Failed to fetch items');
+        // Don't surface breaker no-ops as a user-visible failure.
+        if (lastResponse?.error && lastResponse.error !== 'circuit_breaker_open') {
+          setError(lastResponse.error || 'Failed to fetch items');
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      if (!/circuit[_ ]breaker/i.test(msg)) {
+        setError(msg);
+      }
       setLastDiagnostics({
         operation: 'list',
         category,

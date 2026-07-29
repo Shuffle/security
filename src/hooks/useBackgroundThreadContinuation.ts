@@ -171,23 +171,32 @@ export const useBackgroundThreadContinuation = (
           }
           if (siblingIds.size === 0) continue;
 
-          // Cross-load each sibling; skip already-merged sides.
-          const siblingLoads = await Promise.all(
-            Array.from(siblingIds).map(async (sid) => {
+          // Cross-load each sibling with bounded concurrency so we don't
+          // burst the client-side fetch breaker (30 calls / 1s per URL).
+          const siblingIdList = Array.from(siblingIds);
+          const CONCURRENCY = 4;
+          const siblingLoads: (null | { id: string; raw: any; title: string })[] = new Array(siblingIdList.length).fill(null);
+          let nextIdx = 0;
+          const workers = Array.from({ length: Math.min(CONCURRENCY, siblingIdList.length) }, async () => {
+            while (true) {
+              const myIdx = nextIdx++;
+              if (myIdx >= siblingIdList.length) return;
+              const sid = siblingIdList[myIdx];
               try {
                 const res = await getDatastoreItem(sid, DATASTORE_CATEGORIES.INCIDENTS);
-                if (!res.success || !res.item) return null;
+                if (!res.success || !res.item) continue;
                 const sRaw = JSON.parse(res.item.value);
-                if (isMergedIncident(sRaw)) return null;
+                if (isMergedIncident(sRaw)) continue;
                 const title =
                   sRaw.title
                   || sRaw.finding_info_list?.[0]?.title
                   || sRaw.finding_info?.title
                   || sid;
-                return { id: sid, raw: sRaw, title };
-              } catch { return null; }
-            }),
-          );
+                siblingLoads[myIdx] = { id: sid, raw: sRaw, title };
+              } catch { /* skip */ }
+            }
+          });
+          await Promise.all(workers);
           const siblings = siblingLoads
             .filter((s): s is { id: string; raw: any; title: string } => !!s)
             // The list snapshot can lag behind the latest datastore write.

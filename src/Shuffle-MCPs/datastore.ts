@@ -6,6 +6,7 @@
  */
 
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { isCircuitBreakerResponse } from '@/Shuffle-Core/fetchBreaker';
 
 export interface DatastoreItem {
   key: string;
@@ -490,7 +491,7 @@ export const getDatastoreItem = async (
       };
     }
 
-    if (category === 'shuffle-security_incidents' && isTransientDatastoreStatus(response.status)) {
+    if (category === 'shuffle-security_incidents' && isTransientDatastoreStatus(response.status) && !isCircuitBreakerResponse(response)) {
       const fallbackItem = await findDatastoreItemInCategoryPages(rawKey, category, orgId);
       if (fallbackItem) {
         return {
@@ -507,6 +508,25 @@ export const getDatastoreItem = async (
           },
         };
       }
+    }
+
+    // Client-side circuit breaker: this never touched the network. Treat as a
+    // soft "try again shortly" rather than a hard error so callers can leave
+    // existing UI state intact instead of flashing a red failure screen.
+    if (isCircuitBreakerResponse(response)) {
+      return {
+        success: false,
+        error: 'circuit_breaker_open',
+        diagnostics: {
+          ...baseDiagnostics,
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type'),
+          bodyPreview: truncateResponsePreview(rawBody),
+          errorStage: 'response',
+          timestamp: new Date().toISOString(),
+        },
+      };
     }
 
     return {
@@ -813,7 +833,9 @@ export const getDatastoreByCategory = async (
 
     return {
       success: false,
-      error: `Failed to get datastore items: ${response.status} ${response.statusText}`.trim(),
+      error: isCircuitBreakerResponse(response)
+        ? 'circuit_breaker_open'
+        : `Failed to get datastore items: ${response.status} ${response.statusText}`.trim(),
       diagnostics: {
         ...baseDiagnostics,
         status: response.status,
