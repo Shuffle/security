@@ -2125,7 +2125,7 @@ const IncidentsPage = () => {
           </Box>
         </Box>
 
-        {error ? (
+        {error && datastoreItems.length === 0 ? (
           <Box
             sx={{
               display: 'flex',
