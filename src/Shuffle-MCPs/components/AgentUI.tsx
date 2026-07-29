@@ -868,12 +868,20 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // user has typed an answer locally in `questionAnswers`.
   const questions: { question: string; index: number; preAnswer?: string }[] = [];
   if (isAskDecision(details, item.category)) {
+    let anyPreAnswered = false;
     for (const f of details?.fields || []) {
+      const preAnswer = typeof (f as any).answer === 'string' ? (f as any).answer.trim() : '';
+      if (preAnswer) anyPreAnswered = true;
       const questionText = getQuestionFieldText(f, details, item.category);
       if (questionText) {
-        const preAnswer = typeof (f as any).answer === 'string' ? (f as any).answer.trim() : '';
         questions.push({ question: questionText, index: questions.length + 1, preAnswer: preAnswer || undefined });
       }
+    }
+    // No usable question text on any field — fall back to the decision's
+    // reason/description so the analyst still has something to answer.
+    if (!questions.length && !anyPreAnswered) {
+      const fallback = getAskFallbackQuestion(details);
+      if (fallback) questions.push({ question: fallback, index: 1 });
     }
   }
   const questionsAnswered = questions.every(
