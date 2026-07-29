@@ -2138,13 +2138,20 @@ const IncidentDetailPage = () => {
     const excluded = new Set<string>();
     if (relatedIncidents.primary?.id) excluded.add(relatedIncidents.primary.id.toLowerCase());
     relatedIncidents.linked.forEach((l) => excluded.add(l.id.toLowerCase()));
-    const mergeable = threadCorrelated.incidents.filter((inc) => {
+    const previewMergeable = threadCorrelated.incidents.filter((inc) => {
       if (excluded.has(inc.id.toLowerCase())) return false;
       const s = String(inc.status || '').toLowerCase();
       if (s === 'merged' || inc.status_id === 6) return false;
       return true;
     });
-    if (mergeable.length === 0) return;
+    // Trigger if either the preview has mergeable siblings OR the raw
+    // correlation count exceeds what we've resolved locally — in the
+    // latter case handleAutoMergeThread() will loadAll() and evaluate
+    // the full set. Skipping here would leave large threads unmerged
+    // whenever their first 20 preview slots happen to be already-linked.
+    const hasUnresolvedSiblings =
+      threadCorrelated.discoveredCount > threadCorrelated.incidents.length;
+    if (previewMergeable.length === 0 && !hasUnresolvedSiblings) return;
 
     const key = `${threadId}:${incident.id}`;
     if (autoMergedThreadsRef.current.has(key)) return;
@@ -2160,9 +2167,11 @@ const IncidentDetailPage = () => {
     threadCorrelated.threadId,
     threadCorrelated.loading,
     threadCorrelated.incidents,
+    threadCorrelated.discoveredCount,
     relatedIncidents.primary?.id,
     relatedIncidents.linked,
   ]);
+
 
 
 
