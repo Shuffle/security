@@ -73,9 +73,26 @@ const synthetic503 = (key: string, retryInMs: number): Response =>
     {
       status: 503,
       statusText: 'Service Unavailable (circuit breaker)',
-      headers: { 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil(retryInMs / 1000)) },
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(Math.ceil(retryInMs / 1000)),
+        'X-Circuit-Breaker': 'open',
+      },
     },
   );
+
+/** True when a Response was synthesized by this client-side breaker (never hit the network). */
+export const isCircuitBreakerResponse = (res: Response | null | undefined): boolean => {
+  if (!res) return false;
+  if (res.headers?.get?.('X-Circuit-Breaker') === 'open') return true;
+  return res.status === 503 && /circuit breaker/i.test(res.statusText || '');
+};
+
+/** True when an error string/message originated from the client-side breaker. */
+export const isCircuitBreakerError = (err: unknown): boolean => {
+  const msg = typeof err === 'string' ? err : (err as any)?.message || '';
+  return /circuit[_ ]breaker|Service Unavailable \(circuit breaker\)/i.test(msg);
+};
 
 /** Register a backend origin as one we should guard. Idempotent. */
 export const registerProtectedOrigin = (url: string | undefined | null) => {
