@@ -160,8 +160,14 @@ const getQuestionFieldText = (field: any, decision?: Partial<AgentDecision> | nu
   const key = String(field?.key || '').trim().toLowerCase();
   const value = typeof field?.value === 'string' ? field.value.trim() : '';
   if (!value) return '';
+  // For ask/question decisions the field key ("question", "question_text",
+  // "name", …) is decorative — the value IS the question. Only exclude
+  // approve/deny style controls we know are not free-form answers.
+  if (isAskDecision(decision, category)) {
+    if (key === 'approve' || key === 'deny' || key === 'decision') return '';
+    return value;
+  }
   if (key === 'question') return value;
-  if (!key && isAskDecision(decision, category)) return value;
   return '';
 };
 
