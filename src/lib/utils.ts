@@ -111,7 +111,14 @@ export function decodeHtmlEntities(text: string): string {
  */
 export function decodeIfBase64(text: string): string {
   if (!text || text.length < 8) return text;
-  // Strip all whitespace (base64 from email clients often has line breaks, spaces)
+
+  // If the original text contains inner whitespace, it's almost certainly
+  // normal prose — not a base64 blob. Bail out early so short subjects like
+  // "Fw: some ticket" don't get force-decoded into garbage.
+  if (/\S\s+\S/.test(text.trim())) return text;
+
+  // Strip surrounding whitespace only (base64 from email clients sometimes has
+  // trailing newlines, but real base64 never has embedded spaces).
   let stripped = text.replace(/\s+/g, '');
   if (stripped.length < 8) return text;
 
@@ -130,23 +137,37 @@ export function decodeIfBase64(text: string): string {
   try {
     const decoded = atob(stripped);
     if (decoded.length === 0) return text;
-    // Check that the result is mostly printable ASCII/UTF-8
-    let printable = 0;
+
+    // Only count STRICT ASCII printable / common whitespace as "safe".
+    // High-bit (>127) bytes are treated as suspicious because random binary
+    // data (short IDs, compressed/encrypted blobs) is mostly >127 and would
+    // otherwise render as gibberish like ":ë[¢éÝ¦)hμú+J ~W".
+    let asciiPrintable = 0;
+    let hasLetter = false;
+    let highBit = 0;
     for (let i = 0; i < decoded.length; i++) {
       const code = decoded.charCodeAt(i);
-      if ((code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 || code > 127) {
-        printable++;
+      if ((code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9) {
+        asciiPrintable++;
+        if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) hasLetter = true;
+      } else if (code > 127) {
+        highBit++;
       }
     }
-    const printableRatio = printable / decoded.length;
-    // If ≥85% printable, it's likely real text
-    if (printableRatio >= 0.85) {
-      // Try UTF-8 decode for multi-byte chars
-      try {
-        return decodeURIComponent(escape(decoded));
-      } catch {
-        return decoded;
-      }
+    const asciiRatio = asciiPrintable / decoded.length;
+    const highBitRatio = highBit / decoded.length;
+
+    // Require the decoded output to look like real text: mostly ASCII
+    // printable, contain at least one letter, and not be dominated by
+    // high-bit bytes. Otherwise treat it as not-actually-base64.
+    if (asciiRatio < 0.9 || !hasLetter || highBitRatio > 0.1) return text;
+
+    // Try UTF-8 decode for multi-byte chars (safe now that we've confirmed
+    // the decoded content is dominantly ASCII text).
+    try {
+      return decodeURIComponent(escape(decoded));
+    } catch {
+      return decoded;
     }
   } catch {
     // Not valid base64
