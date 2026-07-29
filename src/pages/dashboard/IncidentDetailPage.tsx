@@ -2022,14 +2022,17 @@ const IncidentDetailPage = () => {
           const more = items.length > 2 ? ` +${items.length - 2} more` : '';
           return `• ${reason} — ${sample}${more}`;
         });
-        const headline = failures.length === sources.length
-          ? `Auto-merge failed for all ${sources.length} sibling${sources.length === 1 ? '' : 's'}`
+        const allFailed = failures.length === sources.length;
+        const headline = allFailed
+          ? (sources.length === 1
+              ? 'Auto-merge failed for the sibling incident'
+              : `Auto-merge failed for all ${sources.length} sibling incidents`)
           : `Auto-merge partial: ${failures.length} of ${sources.length} failed`;
         toast.error(headline, {
-          description: lines.join('\n'),
-          duration: 12000,
+          description: `Primary: "${(primary.title || primary.id).slice(0, 60)}"\n${lines.join('\n')}`,
+          duration: 15000,
         });
-        console.error('[auto-merge] failures', failures);
+        console.error('[auto-merge] failures', { primaryId: primary.id, primaryTitle: primary.title, failures });
       }
 
       // If the current view is now non-primary, jump to the primary so
