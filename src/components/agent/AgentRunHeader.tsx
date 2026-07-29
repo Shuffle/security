@@ -142,20 +142,40 @@ const findTaskLineInRun = (run: AgentRun): string | null => {
   return null;
 };
 
+// Strip Markdown syntax so a prompt reads as plain text in a single-line
+// row (matches AgentActivityList.stripMarkdown).
+const stripMarkdown = (input: string): string => {
+  if (!input) return '';
+  let s = input;
+  s = s.replace(/```[\s\S]*?```/g, ' ');
+  s = s.replace(/`([^`]*)`/g, '$1');
+  s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+  s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+  s = s.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  s = s.replace(/(\*|_)(?=\S)([^*_\n]+?)\1/g, '$2');
+  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  s = s.replace(/^\s{0,3}>\s?/gm, '');
+  s = s.replace(/^\s*[-*+]\s+/gm, '');
+  s = s.replace(/^\s*\d+\.\s+/gm, '');
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+};
+
 export const getRunTitle = (run: AgentRun): string => {
   const taskLine = findTaskLineInRun(run);
   if (taskLine) {
-    return taskLine.length > 100 ? taskLine.slice(0, 100).trimEnd() + '…' : taskLine;
+    const clean = stripMarkdown(taskLine);
+    return clean.length > 100 ? clean.slice(0, 100).trimEnd() + '…' : clean;
   }
-  if (run.workflow?.name) return run.workflow.name;
+  if (run.workflow?.name) return stripMarkdown(run.workflow.name);
   if (run.execution_argument) {
     try {
       const parsed = JSON.parse(run.execution_argument);
-      if (parsed.title) return parsed.title;
-      if (parsed.action) return parsed.action;
-      if (parsed.name) return parsed.name;
+      if (parsed.title) return stripMarkdown(String(parsed.title));
+      if (parsed.action) return stripMarkdown(String(parsed.action));
+      if (parsed.name) return stripMarkdown(String(parsed.name));
     } catch {
-      const clean = run.execution_argument.replace(/[{}"]/g, '').trim();
+      const clean = stripMarkdown(run.execution_argument.replace(/[{}"]/g, '').trim());
       if (clean.length > 0 && clean.length < 80) return clean;
     }
   }
