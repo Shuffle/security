@@ -145,10 +145,16 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
         setCursor(currentCursor || null);
         setHasMore(!!currentCursor);
       } else {
-        setError(lastResponse?.error || 'Failed to fetch items');
+        // Don't surface breaker no-ops as a user-visible failure.
+        if (lastResponse?.error && lastResponse.error !== 'circuit_breaker_open') {
+          setError(lastResponse.error || 'Failed to fetch items');
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      if (!/circuit[_ ]breaker/i.test(msg)) {
+        setError(msg);
+      }
       setLastDiagnostics({
         operation: 'list',
         category,
