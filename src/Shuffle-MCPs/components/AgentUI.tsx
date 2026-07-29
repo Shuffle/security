@@ -150,13 +150,13 @@ const stripSingleCodeFence = (raw: string): string => {
   return m ? m[1] : raw;
 };
 
-const isAskDecision = (decision?: Partial<AgentDecision> | null, category?: string): boolean => {
+export const isAskDecision = (decision?: any, category?: string): boolean => {
   const action = String(decision?.action || '').toLowerCase();
   const decisionCategory = String(decision?.category || category || '').toLowerCase();
   return action === 'ask' || action === 'question' || decisionCategory === 'ask' || decisionCategory === 'question';
 };
 
-const getQuestionFieldText = (field: any, decision?: Partial<AgentDecision> | null, category?: string): string => {
+export const getQuestionFieldText = (field: any, decision?: any, category?: string): string => {
   const key = String(field?.key || '').trim().toLowerCase();
   const value = typeof field?.value === 'string' ? field.value.trim() : '';
   if (!value) return '';
@@ -169,6 +169,43 @@ const getQuestionFieldText = (field: any, decision?: Partial<AgentDecision> | nu
   }
   if (key === 'question') return value;
   return '';
+};
+
+/**
+ * Extract every unanswered question from an agent run's decisions using the
+ * same detection helpers the AgentUI timeline uses. Returns pending "ask"
+ * decisions that are still WAITING (or RUNNING) with at least one question
+ * field. Callers can render an inline answer form for each entry.
+ */
+export const extractPendingAgentQuestions = (
+  run: { decisions?: any[] } | null | undefined,
+): Array<{ decisionId: string; questions: string[]; description?: string; reason?: string }> => {
+  if (!run || !Array.isArray(run.decisions)) return [];
+  const out: Array<{ decisionId: string; questions: string[]; description?: string; reason?: string }> = [];
+  for (const decision of run.decisions) {
+    if (!isAskDecision(decision)) continue;
+    const status = String(decision?.run_details?.status || '').toUpperCase();
+    // Only surface decisions that are still awaiting an answer.
+    if (status && status !== 'WAITING' && status !== 'RUNNING' && status !== '') continue;
+    const questions: string[] = [];
+    for (const f of (decision.fields as any[]) || []) {
+      // Skip fields that already carry an answer — those have been resolved.
+      const preAnswer = typeof (f as any).answer === 'string' ? (f as any).answer.trim() : '';
+      if (preAnswer) continue;
+      const q = getQuestionFieldText(f, decision);
+      if (q) questions.push(q);
+    }
+    if (!questions.length) continue;
+    const decisionId = String(decision?.run_details?.id || decision?.id || '');
+    if (!decisionId) continue;
+    out.push({
+      decisionId,
+      questions,
+      description: typeof decision?.description === 'string' ? decision.description : undefined,
+      reason: typeof decision?.reason === 'string' ? decision.reason : undefined,
+    });
+  }
+  return out;
 };
 
 const truncateReason = (reason?: string, maxLength = 280): string => {
