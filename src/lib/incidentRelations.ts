@@ -741,6 +741,10 @@ export interface BatchMergeResult {
   errors: Array<{ id: string; error: string }>;
 }
 
+export interface IncrementalBatchMergeResult extends BatchMergeResult {
+  attemptedIds: string[];
+}
+
 export const linkMergePairsBatch = async ({
   primaryId,
   primaryRaw,
@@ -936,6 +940,84 @@ export const linkMergePairsBatch = async ({
     foldedPrimary: nextPrimary,
     mergedIds,
     errors,
+  };
+};
+
+/**
+ * Merge larger thread sets in bounded chunks. If an entire chunk fails, split
+ * it and retry smaller groups so one bad sibling or oversized primary payload
+ * does not block the rest of the thread from being folded in.
+ */
+export const linkMergePairsIncremental = async ({
+  primaryId,
+  primaryRaw,
+  primaryTitle,
+  sources,
+  linkedBy,
+  chunkSize = 10,
+}: {
+  primaryId: string;
+  primaryRaw: any;
+  primaryTitle?: string;
+  sources: BatchMergeSource[];
+  linkedBy?: string;
+  chunkSize?: number;
+}): Promise<IncrementalBatchMergeResult> => {
+  const mergedIds: string[] = [];
+  const mergedKeys = new Set<string>();
+  const errorById = new Map<string, string>();
+  const attemptedIds: string[] = [];
+  let currentPrimary = primaryRaw;
+  const boundedChunkSize = Math.max(1, Math.min(25, Math.floor(chunkSize || 10)));
+
+  const recordSuccess = (id: string) => {
+    const key = incidentIdKey(id);
+    if (!key || mergedKeys.has(key)) return;
+    mergedKeys.add(key);
+    mergedIds.push(id);
+    errorById.delete(id);
+  };
+
+  const recordError = (id: string, error: string) => {
+    const key = incidentIdKey(id);
+    if (!key || mergedKeys.has(key)) return;
+    errorById.set(id, error || 'merge failed');
+  };
+
+  const mergeChunk = async (chunk: BatchMergeSource[]): Promise<void> => {
+    if (chunk.length === 0) return;
+    attemptedIds.push(...chunk.map((s) => s.id));
+    const result = await linkMergePairsBatch({
+      primaryId,
+      primaryRaw: currentPrimary,
+      primaryTitle,
+      sources: chunk,
+      linkedBy,
+    });
+    if (result.foldedPrimary) currentPrimary = result.foldedPrimary;
+    for (const id of result.mergedIds) recordSuccess(id);
+
+    const wholeChunkFailed = result.mergedIds.length === 0 && result.errors.length >= chunk.length;
+    if (wholeChunkFailed && chunk.length > 1) {
+      const mid = Math.ceil(chunk.length / 2);
+      await mergeChunk(chunk.slice(0, mid));
+      await mergeChunk(chunk.slice(mid));
+      return;
+    }
+
+    for (const err of result.errors) recordError(err.id, err.error);
+  };
+
+  for (let i = 0; i < sources.length; i += boundedChunkSize) {
+    await mergeChunk(sources.slice(i, i + boundedChunkSize));
+  }
+
+  return {
+    success: errorById.size === 0,
+    foldedPrimary: currentPrimary,
+    mergedIds,
+    attemptedIds,
+    errors: Array.from(errorById.entries()).map(([id, error]) => ({ id, error })),
   };
 };
 
