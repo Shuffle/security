@@ -4236,7 +4236,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </span>
               </Tooltip>
               {execution?.execution_id && (
-                <Tooltip title="Open full workflow execution">
+                <Tooltip title="View full execution">
                   <span>
                     <IconButton
                       size="small"
@@ -4252,7 +4252,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--muted))' },
                       }}
                     >
-                      <OpenInNewIcon size={18} />
+                      <PanelRightOpenIcon size={18} />
                     </IconButton>
                   </span>
                 </Tooltip>
