@@ -347,7 +347,7 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
   const appStartIdx = correlationStartIdx + otherCorrelations.length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent
         className="p-0 gap-0 overflow-hidden border-0"
         
