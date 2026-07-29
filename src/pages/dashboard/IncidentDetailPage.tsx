@@ -2063,10 +2063,11 @@ const IncidentDetailPage = () => {
 
 
       if (failures.length === 0) {
+        const mergedCount = batchResult.mergedIds.length || sources.length;
         toast.success(
-          sources.length === 1
+          mergedCount === 1
             ? 'Merged 1 thread sibling into the existing incident'
-            : `Merged ${sources.length} thread siblings into the existing incident`,
+            : `Merged ${mergedCount} thread siblings into the existing incident`,
         );
 
       } else {
@@ -2093,10 +2094,12 @@ const IncidentDetailPage = () => {
               : `Auto-merge failed for all ${sources.length} sibling incidents`)
           : `Auto-merge partial: ${failures.length} of ${sources.length} failed`;
         const successful = batchResult.mergedIds.length;
-        toast[successful > 0 ? 'warning' : 'error'](headline, {
+        const toastOptions = {
           description: `Primary: "${(primary.title || primary.id).slice(0, 60)}"\n${lines.join('\n')}`,
           duration: 15000,
-        });
+        };
+        if (successful > 0) toast.warning(headline, toastOptions);
+        else toast.error(headline, toastOptions);
         console.error('[auto-merge] failures', { primaryId: primary.id, primaryTitle: primary.title, failures });
       }
 
