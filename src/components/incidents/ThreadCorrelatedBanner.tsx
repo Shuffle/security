@@ -70,7 +70,7 @@ export const ThreadCorrelatedBanner = ({
         </Tooltip>
         {loading && <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />}
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {onAutoMerge && incidents.length > 0 && (
+          {onAutoMerge && total > 0 && (
             <Button
               size="small"
               variant="outlined"
