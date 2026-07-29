@@ -1037,10 +1037,10 @@ const IncidentDetailPage = () => {
   // "steps" bucket so each artefact type can be hidden individually.
   type TimelineFilterKey = 'revisions' | 'agent' | 'workflows' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
   const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
-  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
+  const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'tasks', 'observables', 'correlations'];
   // Bumped when the default set changes so existing localStorage entries
   // re-default rather than persist the old "all on" baseline.
-  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v4';
+  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v5';
   const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
     if (typeof window === 'undefined') return new Set(DEFAULT_TIMELINE_FILTERS);
     try {
