@@ -40,8 +40,10 @@ import OnboardingPage from './pages/OnboardingPage';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import ExternalLinkConfirmDialog from '@/components/common/ExternalLinkConfirmDialog';
-import IncidentsPage from '@/pages/dashboard/IncidentsPage';
-import IncidentDetailPageImpl from '@/pages/dashboard/IncidentDetailPage';
+// Lazy-load the heaviest pages so route transitions render an immediate
+// Suspense fallback instead of appearing to hang while the new page mounts.
+const IncidentsPage = lazy(() => import('@/pages/dashboard/IncidentsPage'));
+const IncidentDetailPageImpl = lazy(() => import('@/pages/dashboard/IncidentDetailPage'));
 import { useParams } from 'react-router-dom';
 const IncidentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
