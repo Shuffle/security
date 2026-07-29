@@ -1882,6 +1882,10 @@ const IncidentDetailPage = () => {
     incident?.rawOCSF,
     crossOrgHeaders,
   );
+  const localEmailThreadMessageCount = useMemo(
+    () => getLocalEmailThreadMessageCount(incident?.rawOCSF),
+    [incident?.rawOCSF],
+  );
 
   // Auto-merge state — busy flag for the "Auto-merge into latest" CTA in
   // the thread banner.
@@ -8270,7 +8274,7 @@ const IncidentDetailPage = () => {
               );
               const linkedFloor = Math.max(resolvedCount, pointerCount, foldedFrom, siblingCount);
               const linkedTotal = linkedFloor + 1;
-              const localSourceCount = getLocalEmailThreadMessageCount(incident?.rawOCSF);
+              const localSourceCount = localEmailThreadMessageCount;
               const total = Math.max(linkedTotal, localSourceCount);
               if (total <= 1) return null;
               const unavailable = (relatedIncidents?.invisibleCount || 0) + (threadCorrelated?.invisibleCount || 0);
