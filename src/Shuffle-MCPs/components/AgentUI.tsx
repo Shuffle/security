@@ -4438,6 +4438,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         pendingQuestions.push({ question: questionText, index: pendingQuestions.length + 1 });
                       }
                     }
+                    // Fallback to reason/description when no field text.
+                    if (pendingAsk && !pendingQuestions.length) {
+                      const fallback = getAskFallbackQuestion(pendingAsk);
+                      if (fallback) pendingQuestions.push({ question: fallback, index: 1 });
+                    }
                   }
                   const pendingAnswered = pendingQuestions.every((q) => questionAnswers[q.question]?.value);
 
