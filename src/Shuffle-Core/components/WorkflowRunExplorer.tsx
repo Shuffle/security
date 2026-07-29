@@ -710,9 +710,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                           <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 160, wordBreak: 'break-all' }}>
                             {p.name}:
                           </Typography>
-                          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
-                            {typeof p.value === 'string' ? p.value : JSON.stringify(p.value)}
-                          </Typography>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <DebugParamValue value={p.value} baseName={p.name} />
+                          </Box>
                         </Box>
                       ))}
                       {errorParams.map((p, i) => (
@@ -720,9 +720,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                           <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 160, wordBreak: 'break-all', color: 'hsl(var(--destructive))' }}>
                             {p.name}:
                           </Typography>
-                          <Typography variant="body2" sx={{ color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
-                            {typeof p.value === 'string' ? p.value : JSON.stringify(p.value)}
-                          </Typography>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <DebugParamValue value={p.value} baseName={p.name} destructive />
+                          </Box>
                         </Box>
                       ))}
                     </Box>
