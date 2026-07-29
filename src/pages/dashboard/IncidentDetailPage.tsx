@@ -2138,13 +2138,20 @@ const IncidentDetailPage = () => {
     const excluded = new Set<string>();
     if (relatedIncidents.primary?.id) excluded.add(relatedIncidents.primary.id.toLowerCase());
     relatedIncidents.linked.forEach((l) => excluded.add(l.id.toLowerCase()));
-    const mergeable = threadCorrelated.incidents.filter((inc) => {
+    const previewMergeable = threadCorrelated.incidents.filter((inc) => {
       if (excluded.has(inc.id.toLowerCase())) return false;
       const s = String(inc.status || '').toLowerCase();
       if (s === 'merged' || inc.status_id === 6) return false;
       return true;
     });
-    if (mergeable.length === 0) return;
+    // Trigger if either the preview has mergeable siblings OR the raw
+    // correlation count exceeds what we've resolved locally — in the
+    // latter case handleAutoMergeThread() will loadAll() and evaluate
+    // the full set. Skipping here would leave large threads unmerged
+    // whenever their first 20 preview slots happen to be already-linked.
+    const hasUnresolvedSiblings =
+      threadCorrelated.discoveredCount > threadCorrelated.incidents.length;
+    if (previewMergeable.length === 0 && !hasUnresolvedSiblings) return;
 
     const key = `${threadId}:${incident.id}`;
     if (autoMergedThreadsRef.current.has(key)) return;
@@ -2160,9 +2167,11 @@ const IncidentDetailPage = () => {
     threadCorrelated.threadId,
     threadCorrelated.loading,
     threadCorrelated.incidents,
+    threadCorrelated.discoveredCount,
     relatedIncidents.primary?.id,
     relatedIncidents.linked,
   ]);
+
 
 
 
@@ -8248,9 +8257,12 @@ const IncidentDetailPage = () => {
               )}
             </Box>
             {(() => {
-              // Stable thread badge: take the LARGEST count we can prove,
-              // so a background reload race after auto-merge cannot make
-              // the badge shrink or disappear.
+              // Stable thread badge — counts what is ACTUALLY merged into
+              // this incident, not the raw thread population. Discovered
+              // siblings that share a thread_id but haven't been merged
+              // yet are surfaced by the ThreadCorrelatedBanner instead;
+              // conflating them here inflates the badge to numbers the
+              // user can't reconcile with the visible merge list.
               //
               //   1. Resolved linked incidents (best case, includes titles).
               //   2. Raw `related_incidents` pointers on the current OCSF
@@ -8258,8 +8270,6 @@ const IncidentDetailPage = () => {
               //      pending or blocked).
               //   3. `_merged_data_from` audit list (persisted by
               //      linkMergePair, survives write-verify races).
-              //   4. Visible thread siblings sharing the same email
-              //      thread_id in the loaded list (pre-merge view).
               const resolvedCount = relatedIncidents?.linked?.length || 0;
               const pointerCount = (() => {
                 try { return getLinkedPointers(incident?.rawOCSF).length; }
@@ -8268,11 +8278,7 @@ const IncidentDetailPage = () => {
               const foldedFrom = Array.isArray((incident?.rawOCSF as any)?._merged_data_from)
                 ? (incident?.rawOCSF as any)._merged_data_from.length
                 : 0;
-              const siblingCount = Math.max(
-                threadCorrelated?.discoveredCount || 0,
-                threadCorrelated?.incidents?.length || 0,
-              );
-              const linkedFloor = Math.max(resolvedCount, pointerCount, foldedFrom, siblingCount);
+              const linkedFloor = Math.max(resolvedCount, pointerCount, foldedFrom);
               const linkedTotal = linkedFloor + 1;
               const localSourceCount = localEmailThreadMessageCount;
               const total = Math.max(linkedTotal, localSourceCount);
@@ -8280,8 +8286,9 @@ const IncidentDetailPage = () => {
               const unavailable = (relatedIncidents?.invisibleCount || 0) + (threadCorrelated?.invisibleCount || 0);
               const suffix = unavailable ? ` (${unavailable} unavailable)` : '';
               const tooltipTitle = localSourceCount > linkedTotal
-                ? `${localSourceCount} source message${localSourceCount !== 1 ? 's' : ''} in this email thread${linkedTotal > 1 ? `, ${linkedTotal} incident${linkedTotal !== 1 ? 's' : ''} currently linked` : ''}`
-                : `${linkedTotal} incident${linkedTotal !== 1 ? 's' : ''} in this thread${suffix} — click to view`;
+                ? `${localSourceCount} source message${localSourceCount !== 1 ? 's' : ''} in this email thread${linkedTotal > 1 ? `, ${linkedTotal} incident${linkedTotal !== 1 ? 's' : ''} currently merged` : ''}`
+                : `${linkedTotal} incident${linkedTotal !== 1 ? 's' : ''} merged into this thread${suffix} — click to view`;
+
               return (
                 <Tooltip title={tooltipTitle} arrow>
                   <Avatar
