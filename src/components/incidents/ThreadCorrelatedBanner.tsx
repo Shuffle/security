@@ -14,6 +14,7 @@ import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 interface ThreadCorrelatedBannerProps {
   threadId: string | null;
   incidents: LinkedIncidentSummary[];
+  discoveredCount?: number;
   invisibleCount: number;
   loading?: boolean;
   /** Optional callback to auto-merge all thread siblings into the latest. */
@@ -25,6 +26,7 @@ interface ThreadCorrelatedBannerProps {
 export const ThreadCorrelatedBanner = ({
   threadId,
   incidents,
+  discoveredCount = 0,
   invisibleCount,
   loading,
   onAutoMerge,
@@ -33,9 +35,9 @@ export const ThreadCorrelatedBanner = ({
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   if (!threadId) return null;
-  if (!loading && incidents.length === 0 && invisibleCount === 0) return null;
+  const total = Math.max(discoveredCount, incidents.length + invisibleCount);
+  if (!loading && total === 0) return null;
 
-  const total = incidents.length + invisibleCount;
 
   return (
     <Box
@@ -68,7 +70,7 @@ export const ThreadCorrelatedBanner = ({
         </Tooltip>
         {loading && <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />}
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {onAutoMerge && incidents.length > 0 && (
+          {onAutoMerge && total > 0 && (
             <Button
               size="small"
               variant="outlined"

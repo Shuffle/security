@@ -16,7 +16,7 @@
  * without collapsing the records.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getDatastoreItem,
   DATASTORE_CATEGORIES,
@@ -29,8 +29,11 @@ import { extractReadableTitle, extractReadableDescription } from '@/hooks/useRel
 export interface UseThreadCorrelatedIncidentsResult {
   threadId: string | null;
   incidents: LinkedIncidentSummary[];
+  /** Sibling count from /correlations, available before datastore summaries finish loading. */
+  discoveredCount: number;
   invisibleCount: number;
   loading: boolean;
+  loadAll: () => Promise<LinkedIncidentSummary[]>;
   refresh: () => void;
 }
 
@@ -83,6 +86,34 @@ const parseSummary = (id: string, value: string): LinkedIncidentSummary | null =
   }
 };
 
+const SUMMARY_PREVIEW_LIMIT = 20;
+const SUMMARY_FETCH_CONCURRENCY = 6;
+
+const loadIncidentSummaries = async (ids: string[]) => {
+  let missed = 0;
+  const resolved: LinkedIncidentSummary[] = [];
+  for (let i = 0; i < ids.length; i += SUMMARY_FETCH_CONCURRENCY) {
+    const batch = ids.slice(i, i + SUMMARY_FETCH_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async (rid) => {
+        try {
+          const res = await getDatastoreItem(rid, DATASTORE_CATEGORIES.INCIDENTS);
+          if (!res.success || !res.item) return null;
+          const s = parseSummary(rid, res.item.value);
+          return s;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    for (const result of results) {
+      if (result) resolved.push(result);
+      else missed++;
+    }
+  }
+  return { resolved, missed };
+};
+
 export const useThreadCorrelatedIncidents = (
   incidentId: string | undefined,
   raw: any,
@@ -92,22 +123,38 @@ export const useThreadCorrelatedIncidents = (
 
 
   const [incidents, setIncidents] = useState<LinkedIncidentSummary[]>([]);
+  const [discoveredCount, setDiscoveredCount] = useState(0);
   const [invisibleCount, setInvisibleCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
   const cancelled = useRef(false);
+  const runIdRef = useRef(0);
+  const identityRef = useRef<string>('');
+  const discoveredIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!incidentId || !threadId) {
       setIncidents([]);
+      setDiscoveredCount(0);
       setInvisibleCount(0);
+      discoveredIdsRef.current = [];
+      identityRef.current = '';
       return;
     }
+    const identity = `${incidentId}:${threadId}`;
+    if (identityRef.current !== identity) {
+      identityRef.current = identity;
+      discoveredIdsRef.current = [];
+      setIncidents([]);
+      setDiscoveredCount(0);
+      setInvisibleCount(0);
+    }
     cancelled.current = false;
+    const runId = ++runIdRef.current;
+    const isStale = () => cancelled.current || runIdRef.current !== runId;
     setLoading(true);
 
     (async () => {
-      let missed = 0;
       const foundIds = new Set<string>();
       try {
         const resp = await fetch(getApiUrl('/api/v2/correlations'), {
@@ -124,7 +171,7 @@ export const useThreadCorrelatedIncidents = (
           // Transient — keep whatever we had so the banner and the
           // "N linked" badge on the source-app logo don't blink to
           // zero on every flaky /correlations response.
-          if (!cancelled.current) setLoading(false);
+          if (!isStale()) setLoading(false);
           return;
         }
         const data = await resp.json();
@@ -142,8 +189,14 @@ export const useThreadCorrelatedIncidents = (
       } catch (err) {
         // Network error — same policy as !resp.ok above: don't wipe
         // the last-known-good sibling list on a transient failure.
-        if (!cancelled.current) setLoading(false);
+        if (!isStale()) setLoading(false);
         return;
+      }
+
+      const ids = Array.from(foundIds);
+      if (!isStale()) {
+        discoveredIdsRef.current = ids;
+        setDiscoveredCount(ids.length);
       }
 
       // If the correlation endpoint returned zero refs, the thread
@@ -151,41 +204,28 @@ export const useThreadCorrelatedIncidents = (
       // them). Clearing here is correct — this is a successful
       // "empty" response, not a fetch failure.
       if (foundIds.size === 0) {
-        if (!cancelled.current) {
+        if (!isStale()) {
           setIncidents([]);
+          setDiscoveredCount(0);
+          discoveredIdsRef.current = [];
           setInvisibleCount(0);
           setLoading(false);
         }
         return;
       }
 
-      const results = await Promise.all(
-        Array.from(foundIds).map(async (rid) => {
-          try {
-            const res = await getDatastoreItem(rid, DATASTORE_CATEGORIES.INCIDENTS);
-            if (!res.success || !res.item) {
-              missed++;
-              return null;
-            }
-            const s = parseSummary(rid, res.item.value);
-            if (!s) missed++;
-            return s;
-          } catch {
-            missed++;
-            return null;
-          }
-        }),
-      );
+      const idsToResolve = ids.slice(0, SUMMARY_PREVIEW_LIMIT);
+      const skipped = Math.max(0, ids.length - idsToResolve.length);
+      const { resolved, missed } = await loadIncidentSummaries(idsToResolve);
 
-      if (cancelled.current) return;
-      const resolved = results.filter((x): x is LinkedIncidentSummary => x !== null);
+      if (isStale()) return;
       // Only overwrite `incidents` when we actually resolved something.
       // If every per-sibling fetch failed (datastore hiccup) keep the
       // previous list so the banner + Gmail-logo badge stay visible.
       if (resolved.length > 0 || missed === 0) {
         setIncidents(resolved);
       }
-      setInvisibleCount(missed);
+      setInvisibleCount(missed + skipped);
       setLoading(false);
     })();
 
@@ -197,11 +237,27 @@ export const useThreadCorrelatedIncidents = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incidentId, threadId, tick]);
 
+  const loadAll = useCallback(async (): Promise<LinkedIncidentSummary[]> => {
+    const ids = discoveredIdsRef.current;
+    if (ids.length === 0) return incidents;
+    setLoading(true);
+    const { resolved, missed } = await loadIncidentSummaries(ids);
+    if (!cancelled.current && identityRef.current === `${incidentId}:${threadId}`) {
+      if (resolved.length > 0 || missed === 0) setIncidents(resolved);
+      setInvisibleCount(missed);
+      setDiscoveredCount(ids.length);
+      setLoading(false);
+    }
+    return resolved;
+  }, [incidentId, incidents, threadId]);
+
   return {
     threadId,
     incidents,
+    discoveredCount,
     invisibleCount,
     loading,
+    loadAll,
     refresh: () => setTick(t => t + 1),
   };
 };
