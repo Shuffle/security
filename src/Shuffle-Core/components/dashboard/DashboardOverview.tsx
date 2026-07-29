@@ -181,8 +181,6 @@ export const DashboardOverview = ({
     if (previousCount > 0) {
       const pct = Math.round(((currentCount - previousCount) / previousCount) * 100);
       if (pct !== 0) delta = { value: `${Math.abs(pct)}%`, positive: pct < 0 };
-    } else if (currentCount > 0) {
-      delta = { value: 'new', positive: false };
     }
     return { openCount: open.length, criticalCount: critical, last24h: currentCount, delta };
   }, [incidents, days, customRange]);
