@@ -54,11 +54,39 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Optimistic hydration: if a previous session's userInfo is cached in
+  // localStorage, assume the user is still logged in and render immediately.
+  // /api/v1/getinfo is by far the slowest boot request; blocking every page
+  // (tickets, dashboard, ...) on it means seconds of blank UI even though
+  // every other API works. We revalidate in the background and only tear
+  // down auth if getinfo actually says the session is gone.
+  const cachedUserInfo: UserInfo | null = (() => {
+    try {
+      const raw = localStorage.getItem('shuffle_user_info');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed as UserInfo : null;
+    } catch { return null; }
+  })();
+  const cachedToken = (() => {
+    try { return localStorage.getItem('session_token'); } catch { return null; }
+  })();
+  const hasCachedSession = !!(cachedUserInfo && (cachedToken || cachedUserInfo.active_org?.id));
+
+  const [sessionToken, setSessionToken] = useState<string | null>(cachedToken);
+  const [isAuthenticated, setIsAuthenticated] = useState(hasCachedSession);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(hasCachedSession ? cachedUserInfo : null);
+  // Only block UI on the initial getinfo when we have nothing cached. If we
+  // already have a cached session, render optimistically and revalidate in
+  // the background.
+  const [isLoading, setIsLoading] = useState(!hasCachedSession);
   const [orgMismatchWarning, setOrgMismatchWarning] = useState(false);
+
+  // Seed the runtime org id from cache synchronously so datastore calls
+  // fired on the very first render don't get "no org" and 401.
+  if (hasCachedSession && cachedUserInfo?.active_org?.id) {
+    try { setRuntimeOrgId(cachedUserInfo.active_org.id); } catch { /* ignore */ }
+  }
 
   const dismissOrgMismatch = useCallback(() => {
     setOrgMismatchWarning(false);
