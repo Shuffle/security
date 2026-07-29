@@ -833,7 +833,9 @@ export const getDatastoreByCategory = async (
 
     return {
       success: false,
-      error: `Failed to get datastore items: ${response.status} ${response.statusText}`.trim(),
+      error: isCircuitBreakerResponse(response)
+        ? 'circuit_breaker_open'
+        : `Failed to get datastore items: ${response.status} ${response.statusText}`.trim(),
       diagnostics: {
         ...baseDiagnostics,
         status: response.status,
