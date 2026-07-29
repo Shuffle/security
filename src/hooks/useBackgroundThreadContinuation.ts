@@ -1,20 +1,20 @@
 /**
- * useBackgroundThreadContinuation — silently keeps existing merge threads
- * on the /incidents list up to date.
+ * useBackgroundThreadContinuation — silently keeps email-thread merges on the
+ * /incidents list up to date.
  *
  * Rule of engagement:
- *   1. Only act on incidents that ALREADY have merges under them
- *      (i.e. `getLinkedPointers(raw).length > 0`). We never initiate a
- *      brand-new thread here — that is still the detail page's job. This
- *      keeps the list-page work bounded even in noisy tenants.
- *   2. For each such "thread primary" that carries a `thread_id`, ask
+ *   1. Pick at most one candidate per `thread_id` from the current list,
+ *      preferring an existing primary and otherwise the newest visible row.
+ *      This lets bulk-ingested threads start collapsing before an analyst
+ *      opens the detail page, without querying once per row.
+ *   2. For each candidate that carries a `thread_id`, ask
  *      /api/v2/correlations for every incident referencing that value,
  *      subtract the ones already merged/linked, and fold the remainder
  *      into the primary via linkMergePair. This is exactly what the
  *      detail page does — reused so the UX stays consistent.
  *   3. Runs behind the org's "Auto Merge Thread" preference. Rate-limits
- *      to one primary per tick, remembers processed threads per session
- *      to avoid re-hitting the correlation endpoint in a loop.
+ *      to a few thread groups per tick, remembers processed threads per
+ *      session to avoid re-hitting the correlation endpoint in a loop.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -29,6 +29,13 @@ interface IncidentListItem {
   rawOCSF?: any;
   createdTs?: number;
   title?: string;
+}
+
+interface ThreadCandidate extends IncidentListItem {
+  rawOCSF: any;
+  threadId: string;
+  linked: number;
+  checkKey: string;
 }
 
 const refToIncidentId = (ref: string): string => {
@@ -56,6 +63,7 @@ const readTs = (raw: any): number => {
 // picked up; long enough that we don't spam /correlations on every
 // re-render or poll.
 const CHECK_COOLDOWN_MS = 20_000;
+const MAX_THREAD_GROUPS_PER_PASS = 3;
 
 interface CheckRecord {
   at: number;
@@ -81,27 +89,45 @@ export const useBackgroundThreadContinuation = (
     if (busyRef.current) return;
     if (!incidents || incidents.length === 0) return;
 
-    // Collect every thread-primary in the current list view that is
-    // (a) not itself a merged side, (b) already anchors ≥1 merge, and
-    // (c) carries a thread_id. Skip anything checked within the cooldown
-    // window unless its linked-pointer count grew since last check.
+    // Collect at most one candidate per thread in the current list view.
+    // Existing anchors win; otherwise the newest visible row starts the
+    // merge. This avoids the old behavior where a brand-new 77-row thread
+    // would sit untouched until someone opened an incident detail page.
     const now = Date.now();
-    const candidates = incidents.filter((inc) => {
+    const byThread = new Map<string, ThreadCandidate>();
+    for (const inc of incidents) {
       const raw = inc.rawOCSF;
-      if (!raw) return false;
-      if (isMergedIncident(raw)) return false;
-      if (getPrimaryPointer(raw)) return false;
+      if (!raw) continue;
+      if (isMergedIncident(raw)) continue;
+      if (getPrimaryPointer(raw)) continue;
       const linked = getLinkedPointers(raw).length;
-      if (linked === 0) return false;
       const tid = extractThreadId(raw);
-      if (!tid) return false;
-      const key = `${tid}:${inc.id}`;
+      if (!tid) continue;
+      const threadKey = String(tid).toLowerCase();
+      const key = linked > 0 ? `${threadKey}:${inc.id}` : `${threadKey}:new`;
       const prev = lastCheckRef.current.get(key);
       if (prev && now - prev.at < CHECK_COOLDOWN_MS && prev.linked >= linked) {
-        return false;
+        continue;
       }
-      return true;
-    });
+      const candidate: ThreadCandidate = { ...inc, rawOCSF: raw, threadId: tid, linked, checkKey: key };
+      const existing = byThread.get(threadKey);
+      if (!existing) {
+        byThread.set(threadKey, candidate);
+        continue;
+      }
+      const existingIsAnchor = existing.linked > 0;
+      const candidateIsAnchor = linked > 0;
+      if (candidateIsAnchor !== existingIsAnchor) {
+        if (candidateIsAnchor) byThread.set(threadKey, candidate);
+        continue;
+      }
+      const existingTs = readTs(existing.rawOCSF) || existing.createdTs || 0;
+      const candidateTs = readTs(raw) || inc.createdTs || 0;
+      if ((candidateTs - existingTs) || inc.id.localeCompare(existing.id) > 0) {
+        byThread.set(threadKey, candidate);
+      }
+    }
+    const candidates = Array.from(byThread.values()).slice(0, MAX_THREAD_GROUPS_PER_PASS);
     if (candidates.length === 0) return;
 
     busyRef.current = true;
@@ -112,8 +138,8 @@ export const useBackgroundThreadContinuation = (
       try {
         for (const candidate of candidates) {
           const raw = candidate.rawOCSF;
-          const threadId = extractThreadId(raw)!;
-          const key = `${threadId}:${candidate.id}`;
+          const threadId = candidate.threadId;
+          const key = candidate.checkKey;
           const alreadyLinked = new Set<string>(
             getLinkedPointers(raw).map((p) => p.id.toLowerCase()),
           );
