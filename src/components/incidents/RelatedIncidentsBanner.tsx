@@ -45,6 +45,7 @@ export const RelatedIncidentsBanner = ({
   currentIncidentId,
   linked,
   invisibleCount,
+  expectedCount = 0,
   loading,
   onUnlinked,
   highlightId,
