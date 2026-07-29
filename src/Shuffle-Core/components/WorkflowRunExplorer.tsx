@@ -710,9 +710,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                           <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 160, wordBreak: 'break-all' }}>
                             {p.name}:
                           </Typography>
-                          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
-                            {typeof p.value === 'string' ? p.value : JSON.stringify(p.value)}
-                          </Typography>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <DebugParamValue value={p.value} baseName={p.name} />
+                          </Box>
                         </Box>
                       ))}
                       {errorParams.map((p, i) => (
@@ -720,9 +720,9 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                           <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 160, wordBreak: 'break-all', color: 'hsl(var(--destructive))' }}>
                             {p.name}:
                           </Typography>
-                          <Typography variant="body2" sx={{ color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
-                            {typeof p.value === 'string' ? p.value : JSON.stringify(p.value)}
-                          </Typography>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <DebugParamValue value={p.value} baseName={p.name} destructive />
+                          </Box>
                         </Box>
                       ))}
                     </Box>
@@ -750,6 +750,35 @@ const MetaRow: React.FC<{ label: string; value: React.ReactNode; accent?: boolea
     </Typography>
   </Box>
 );
+
+/** Renders a debug param value. If the value is (or contains) JSON,
+ *  parse it and render with the interactive JSON viewer so users can
+ *  drill in and copy references. Falls back to plain text otherwise. */
+const DebugParamValue: React.FC<{ value: unknown; baseName?: string; destructive?: boolean }> = ({ value, baseName, destructive }) => {
+  const parsed = React.useMemo(() => deepParseJson(value), [value]);
+  const isStructured = parsed !== null && typeof parsed === 'object';
+  if (isStructured) {
+    return (
+      <JsonViewWithReference
+        src={parsed as object}
+        baseName={baseName}
+        dark
+        collapsed={1}
+        collapseStringMode="word"
+        collapseStringsAfterLength={120}
+        enableClipboard
+        displaySize
+      />
+    );
+  }
+  const text = typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
+  return (
+    <Typography variant="body2" sx={{ color: destructive ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+      {text}
+    </Typography>
+  );
+};
+
 
 /** Try hard to turn a value into structured JSON. Handles double-encoded
  *  strings, code-fenced blocks, and recursively parses string properties
