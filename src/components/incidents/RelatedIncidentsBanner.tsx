@@ -19,6 +19,9 @@ interface RelatedIncidentsBannerProps {
   currentIncidentId: string;
   linked: LinkedIncidentSummary[];
   invisibleCount: number;
+  /** Total pointer count from the OCSF payload; used as a fallback when
+   *  resolution is still loading or rate-limited. */
+  expectedCount?: number;
   loading?: boolean;
   onUnlinked?: () => void;
   /** If set, flash the matching linked row (auto-expanding the list when needed). */
