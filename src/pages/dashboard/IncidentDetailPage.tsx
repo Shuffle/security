@@ -96,7 +96,7 @@ import { RelatedIncidentsBanner } from '@/components/incidents/RelatedIncidentsB
 import { ThreadCorrelatedBanner } from '@/components/incidents/ThreadCorrelatedBanner';
 import { useRelatedIncidents } from '@/hooks/useRelatedIncidents';
 import { useThreadCorrelatedIncidents } from '@/hooks/useThreadCorrelatedIncidents';
-import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePair, linkMergePairsBatch, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant } from '@/lib/incidentRelations';
+import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePairsIncremental, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant } from '@/lib/incidentRelations';
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
@@ -2034,22 +2034,24 @@ const IncidentDetailPage = () => {
 
     setAutoMergeBusy(true);
     try {
-      // Batched merge: one primary write+verify + parallel source writes,
-      // instead of N sequential linkMergePair round trips. Cuts a 30-sibling
-      // thread from ~150 round-trips to ~1 + N (parallel).
-      let batchResult: Awaited<ReturnType<typeof linkMergePairsBatch>>;
+      // Incremental batched merge: process large threads in bounded chunks.
+      // If one chunk fails, it splits smaller so a single bad sibling or
+      // oversized folded payload does not block the rest of the thread.
+      let batchResult: Awaited<ReturnType<typeof linkMergePairsIncremental>>;
       try {
-        batchResult = await linkMergePairsBatch({
+        batchResult = await linkMergePairsIncremental({
           primaryId: primary.id,
           primaryRaw: primary.raw,
           primaryTitle: primary.title,
           sources: sources.map((s) => ({ id: s.id, raw: s.raw, title: s.title })),
           linkedBy: 'thread-auto-merge',
+          chunkSize: 10,
         });
       } catch (err: any) {
         batchResult = {
           success: false,
           mergedIds: [],
+          attemptedIds: sources.map((s) => s.id),
           errors: sources.map((s) => ({ id: s.id, error: err?.message || 'Threw an unexpected error' })),
         };
       }
@@ -2061,10 +2063,11 @@ const IncidentDetailPage = () => {
 
 
       if (failures.length === 0) {
+        const mergedCount = batchResult.mergedIds.length || sources.length;
         toast.success(
-          sources.length === 1
+          mergedCount === 1
             ? 'Merged 1 thread sibling into the existing incident'
-            : `Merged ${sources.length} thread siblings into the existing incident`,
+            : `Merged ${mergedCount} thread siblings into the existing incident`,
         );
 
       } else {
@@ -2090,10 +2093,21 @@ const IncidentDetailPage = () => {
               ? 'Auto-merge failed for the sibling incident'
               : `Auto-merge failed for all ${sources.length} sibling incidents`)
           : `Auto-merge partial: ${failures.length} of ${sources.length} failed`;
-        toast.error(headline, {
+        const successful = batchResult.mergedIds.length;
+        const toastOptions = {
           description: `Primary: "${(primary.title || primary.id).slice(0, 60)}"\n${lines.join('\n')}`,
           duration: 15000,
-        });
+        };
+        if (successful > 0) {
+          toast.warning(headline, toastOptions);
+          const retryKey = `${threadCorrelated.threadId || ''}:${incident.id}`;
+          window.setTimeout(() => {
+            autoMergedThreadsRef.current.delete(retryKey);
+            threadCorrelated.refresh();
+          }, 15_000);
+        } else {
+          toast.error(headline, toastOptions);
+        }
         console.error('[auto-merge] failures', { primaryId: primary.id, primaryTitle: primary.title, failures });
       }
 
