@@ -4234,6 +4234,28 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </IconButton>
                 </span>
               </Tooltip>
+              {execution?.execution_id && (
+                <Tooltip title="Open full workflow execution">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        try {
+                          window.dispatchEvent(new CustomEvent('workflow-run:open', {
+                            detail: { executionId: execution.execution_id },
+                          }));
+                        } catch { /* noop */ }
+                      }}
+                      sx={{
+                        color: 'hsl(var(--muted-foreground))',
+                        '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--muted))' },
+                      }}
+                    >
+                      <OpenInNewIcon size={18} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
             </Box>
 
             {error && (
