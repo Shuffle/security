@@ -172,6 +172,21 @@ export const getQuestionFieldText = (field: any, decision?: any, category?: stri
 };
 
 /**
+ * When an ask/question decision arrives without any usable question field
+ * value (all fields empty, or only control keys like approve/deny), fall
+ * back to the decision's own free-form `reason` or `description`. The agent
+ * often writes a full sentence there explaining what it needs, so we surface
+ * that as the effective question instead of an empty prompt.
+ */
+export const getAskFallbackQuestion = (decision?: any): string => {
+  const reason = typeof decision?.reason === 'string' ? decision.reason.trim() : '';
+  if (reason) return reason;
+  const description = typeof decision?.description === 'string' ? decision.description.trim() : '';
+  if (description) return description;
+  return '';
+};
+
+/**
  * Extract every unanswered question from an agent run's decisions using the
  * same detection helpers the AgentUI timeline uses. Returns pending "ask"
  * decisions that are still WAITING (or RUNNING) with at least one question
@@ -188,12 +203,20 @@ export const extractPendingAgentQuestions = (
     // Only surface decisions that are still awaiting an answer.
     if (status && status !== 'WAITING' && status !== 'RUNNING' && status !== '') continue;
     const questions: string[] = [];
+    let anyFieldAnswered = false;
     for (const f of (decision.fields as any[]) || []) {
       // Skip fields that already carry an answer — those have been resolved.
       const preAnswer = typeof (f as any).answer === 'string' ? (f as any).answer.trim() : '';
-      if (preAnswer) continue;
+      if (preAnswer) { anyFieldAnswered = true; continue; }
       const q = getQuestionFieldText(f, decision);
       if (q) questions.push(q);
+    }
+    // Fallback: if the agent supplied no usable question text (empty value
+    // fields, or only control keys) surface `reason`/`description` as the
+    // question so the analyst still sees WHAT is being asked.
+    if (!questions.length && !anyFieldAnswered) {
+      const fallback = getAskFallbackQuestion(decision);
+      if (fallback) questions.push(fallback);
     }
     if (!questions.length) continue;
     const decisionId = String(decision?.run_details?.id || decision?.id || '');
@@ -845,12 +868,20 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // user has typed an answer locally in `questionAnswers`.
   const questions: { question: string; index: number; preAnswer?: string }[] = [];
   if (isAskDecision(details, item.category)) {
+    let anyPreAnswered = false;
     for (const f of details?.fields || []) {
+      const preAnswer = typeof (f as any).answer === 'string' ? (f as any).answer.trim() : '';
+      if (preAnswer) anyPreAnswered = true;
       const questionText = getQuestionFieldText(f, details, item.category);
       if (questionText) {
-        const preAnswer = typeof (f as any).answer === 'string' ? (f as any).answer.trim() : '';
         questions.push({ question: questionText, index: questions.length + 1, preAnswer: preAnswer || undefined });
       }
+    }
+    // No usable question text on any field — fall back to the decision's
+    // reason/description so the analyst still has something to answer.
+    if (!questions.length && !anyPreAnswered) {
+      const fallback = getAskFallbackQuestion(details);
+      if (fallback) questions.push({ question: fallback, index: 1 });
     }
   }
   const questionsAnswered = questions.every(
@@ -4406,6 +4437,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       if (questionText) {
                         pendingQuestions.push({ question: questionText, index: pendingQuestions.length + 1 });
                       }
+                    }
+                    // Fallback to reason/description when no field text.
+                    if (pendingAsk && !pendingQuestions.length) {
+                      const fallback = getAskFallbackQuestion(pendingAsk);
+                      if (fallback) pendingQuestions.push({ question: fallback, index: 1 });
                     }
                   }
                   const pendingAnswered = pendingQuestions.every((q) => questionAnswers[q.question]?.value);
