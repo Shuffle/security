@@ -6552,7 +6552,7 @@ const IncidentDetailPage = () => {
           {questionNotif && (
             <InlineAgentQuestion
               notification={questionNotif}
-              onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+              onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
             />
           )}
           </Box>
@@ -7762,7 +7762,7 @@ const IncidentDetailPage = () => {
       <Box key={`inc-question-${n.id}`} sx={{ mb: 1 }}>
         <InlineAgentQuestion
           notification={n}
-          onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+          onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
         />
       </Box>
     ));
