@@ -214,6 +214,23 @@ const ThemedApp = () => {
           <DemoSpotlight />
           <DemoCompletionWatcher />
           <DemoResumePill />
+          <Suspense
+            fallback={
+              <Box
+                sx={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  zIndex: 2000,
+                  backgroundColor: 'hsl(var(--primary))',
+                  opacity: 0.85,
+                  animation: 'shuffle-route-progress 1s ease-in-out infinite',
+                }}
+              />
+            }
+          >
           <Routes>
             <Route path="/articles" element={<ShufflerExternalRedirect />} />
             <Route path="/articles/:name" element={<ShufflerExternalRedirect />} />
