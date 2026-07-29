@@ -126,6 +126,7 @@ import { isApprovalNotification, type AgentNotification } from '@/services/notif
 import InlineAgentQuestion from '@/components/agent/InlineAgentQuestion';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
+import { extractPendingAgentQuestions } from '@/Shuffle-MCPs/components/AgentUI';
 import { WorkflowRunExplorerDrawer } from '@/Shuffle-Core';
 
 import { SegmentedControl } from '@/components/ui/segmented-control';
@@ -2432,13 +2433,52 @@ const IncidentDetailPage = () => {
     const execIds = new Set<string>();
     (agentRuns || []).forEach((r: any) => { if (r?.execution_id) execIds.add(String(r.execution_id)); });
     (allIncidentWorkflowRuns || []).forEach((r: any) => { if (r?.execution_id) execIds.add(String(r.execution_id)); });
-    return (agentNotifications || []).filter((n) => {
+    const fromNotifications = (agentNotifications || []).filter((n) => {
       if (isApprovalNotification(n)) return false;
       const matchesIncident = n.incident_id && id && String(n.incident_id) === String(id);
       const matchesExec = n.execution_id && execIds.has(String(n.execution_id));
       return matchesIncident || matchesExec;
     });
+
+    // Also surface pending questions directly discovered on this incident's
+    // agent runs — using the SAME `extractPendingAgentQuestions` helper the
+    // Agent run drawer uses — so the timeline shows an inline answer form
+    // even before the backend emits a corresponding notification.
+    const notifiedDecisionIds = new Set(
+      fromNotifications
+        .map((n) => {
+          try {
+            const u = new URL(n.reference_url || '', 'https://x.local');
+            return u.searchParams.get('decision_id') || '';
+          } catch { return ''; }
+        })
+        .filter(Boolean),
+    );
+    const synthetic: AgentNotification[] = [];
+    (agentRuns || []).forEach((run: any) => {
+      const execId = String(run?.execution_id || '');
+      const auth = String(run?.authorization || '');
+      if (!execId || !auth) return;
+      for (const pending of extractPendingAgentQuestions(run)) {
+        if (notifiedDecisionIds.has(pending.decisionId)) continue;
+        const startedMs = run?.started_at ? Math.floor(new Date(run.started_at).getTime() / 1000) : Math.floor(Date.now() / 1000);
+        synthetic.push({
+          id: `agent-run-question-${execId}-${pending.decisionId}`,
+          title: pending.reason || 'Agent needs your input',
+          description: pending.description || '',
+          reference_url: `/forms/inline?execution_id=${encodeURIComponent(execId)}&authorization=${encodeURIComponent(auth)}&decision_id=${encodeURIComponent(pending.decisionId)}`,
+          created_at: startedMs,
+          updated_at: startedMs,
+          execution_id: execId,
+          questions: pending.questions,
+          severity: 'low',
+        });
+      }
+    });
+
+    return [...fromNotifications, ...synthetic];
   }, [agentNotifications, id, agentRuns, allIncidentWorkflowRuns]);
+
 
   const workflowOnlyRuns = useMemo(() => {
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
@@ -6512,7 +6552,7 @@ const IncidentDetailPage = () => {
           {questionNotif && (
             <InlineAgentQuestion
               notification={questionNotif}
-              onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+              onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
             />
           )}
           </Box>
@@ -7722,7 +7762,7 @@ const IncidentDetailPage = () => {
       <Box key={`inc-question-${n.id}`} sx={{ mb: 1 }}>
         <InlineAgentQuestion
           notification={n}
-          onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); }}
+          onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
         />
       </Box>
     ));
