@@ -474,3 +474,13 @@
 .MuiBackdrop-root:not(.MuiBackdrop-invisible) {
   clip-path: inset(0 0 0 var(--app-sidebar-right, 0px));
 }
+
+/* MUI popovers/menus/tooltips must sit above the global left sidebar
+   (zIndex 1400, hover-expanded 1450). Default MUI modal z-index is 1300,
+   which puts menus behind the sidebar. */
+.MuiPopover-root,
+.MuiMenu-root,
+.MuiTooltip-popper,
+.MuiAutocomplete-popper {
+  z-index: 1500 !important;
+}
