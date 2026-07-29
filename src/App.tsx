@@ -343,6 +343,7 @@ const ThemedApp = () => {
             
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </DemoProvider>
         </BrowserRouter>
       </AuthProvider>
