@@ -1950,16 +1950,32 @@ const IncidentDetailPage = () => {
     // that was manually taken apart.
     const primaryLinkedIds = new Set(getLinkedPointers(primary.raw).map((p) => p.id.toLowerCase()));
     const primaryIdLower = primary.id.toLowerCase();
+    const skipped: { id: string; reason: string }[] = [];
     const sources = pool.slice(1).filter((s) => {
       const sourceIdLower = s.id.toLowerCase();
-      if (primaryLinkedIds.has(sourceIdLower)) return false;
+      if (primaryLinkedIds.has(sourceIdLower)) { skipped.push({ id: s.id, reason: 'already linked to primary' }); return false; }
       const sourcePrimary = getPrimaryPointer(s.raw);
-      if (sourcePrimary?.id?.toLowerCase() === primaryIdLower) return false;
-      if (String(s.raw?.merged_into || '').toLowerCase() === primaryIdLower) return false;
-      if (sourcePrimary || s.raw?.status_id === 6 || String(s.raw?.status || '').toLowerCase() === 'merged') return false;
-      return !pairWasUnmerged(primary.raw, primary.id, s.raw, s.id);
+      if (sourcePrimary?.id?.toLowerCase() === primaryIdLower) { skipped.push({ id: s.id, reason: 'already points to primary' }); return false; }
+      if (String(s.raw?.merged_into || '').toLowerCase() === primaryIdLower) { skipped.push({ id: s.id, reason: 'legacy merged_into primary' }); return false; }
+      if (sourcePrimary || s.raw?.status_id === 6 || String(s.raw?.status || '').toLowerCase() === 'merged') {
+        skipped.push({ id: s.id, reason: `already merged into ${sourcePrimary?.id || s.raw?.merged_into || 'another incident'}` });
+        return false;
+      }
+      if (pairWasUnmerged(primary.raw, primary.id, s.raw, s.id)) {
+        skipped.push({ id: s.id, reason: 'manually unmerged from this pair' });
+        return false;
+      }
+      return true;
     });
-    if (sources.length === 0) return;
+    if (sources.length === 0) {
+      console.info('[auto-merge] Nothing to merge on thread', { primaryId: primary.id, poolSize: pool.length, skipped });
+      const reasons = new Set(skipped.map(s => s.reason));
+      const reasonSummary = reasons.size === 1
+        ? Array.from(reasons)[0]
+        : `${skipped.length} sibling${skipped.length === 1 ? '' : 's'} skipped for mixed reasons`;
+      toast.info(`Nothing to auto-merge — ${reasonSummary}. See console for per-incident details.`);
+      return;
+    }
 
 
 
