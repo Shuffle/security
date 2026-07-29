@@ -19,6 +19,9 @@ interface RelatedIncidentsBannerProps {
   currentIncidentId: string;
   linked: LinkedIncidentSummary[];
   invisibleCount: number;
+  /** Total pointer count from the OCSF payload; used as a fallback when
+   *  resolution is still loading or rate-limited. */
+  expectedCount?: number;
   loading?: boolean;
   onUnlinked?: () => void;
   /** If set, flash the matching linked row (auto-expanding the list when needed). */
@@ -42,6 +45,7 @@ export const RelatedIncidentsBanner = ({
   currentIncidentId,
   linked,
   invisibleCount,
+  expectedCount = 0,
   loading,
   onUnlinked,
   highlightId,
@@ -64,10 +68,11 @@ export const RelatedIncidentsBanner = ({
     return [...linked].sort((a, b) => (readTs(b.raw) - readTs(a.raw)) || b.id.localeCompare(a.id));
   }, [linked]);
 
-  if (!loading && linked.length === 0 && invisibleCount === 0) return null;
+  if (!loading && linked.length === 0 && invisibleCount === 0 && expectedCount === 0) return null;
 
   const latest = sorted[0];
-  const total = linked.length + invisibleCount;
+  const resolvedTotal = linked.length + invisibleCount;
+  const total = Math.max(resolvedTotal, expectedCount);
 
   const handleUnlink = async (sourceId: string) => {
     const res = await unlinkMergePair({
@@ -142,7 +147,7 @@ export const RelatedIncidentsBanner = ({
               />
             </Box>
           ) : (
-            `${total} merged incident${total === 1 ? '' : 's'} not available`
+            `${total} merged incident${total === 1 ? '' : 's'}${loading ? ' (loading…)' : ''}`
           )}
         </Typography>
 
