@@ -140,7 +140,7 @@ import type { AgentRun } from '@/services/agentActivity';
 import { getAgentSkipInfo } from '@/lib/agentParsers';
 import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor';
 import EmailThreadPanel, { isEmailContent } from '@/components/incidents/EmailThreadPanel';
-import { isDraftOnlyIncident } from '@/lib/emailThreadAdapters';
+import { isDraftOnlyIncident, resolveEmailThread } from '@/lib/emailThreadAdapters';
 
 import { IncidentSection } from '@/components/incidents/IncidentSection';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
@@ -482,6 +482,20 @@ const deduplicateEnrichments = (
     seen.add(key);
     return true;
   });
+};
+
+const getLocalEmailThreadMessageCount = (raw: any): number => {
+  if (!raw || typeof raw !== 'object') return 0;
+  const counts: number[] = [];
+  try {
+    const resolved = resolveEmailThread(raw);
+    if (resolved?.messages?.length) counts.push(resolved.messages.length);
+  } catch { /* ignore malformed provider payloads */ }
+  const unmapped = raw.unmapped_original;
+  if (Array.isArray(unmapped?.messages)) counts.push(unmapped.messages.length);
+  if (Array.isArray(unmapped?.emails)) counts.push(unmapped.emails.length);
+  if (Array.isArray(raw.email?.messages)) counts.push(raw.email.messages.length);
+  return counts.length ? Math.max(...counts) : 0;
 };
 
 const parseIncidentFromDatastore = (item: { key: string; value: string; created?: number; edited?: number; enrichments?: Array<{ type: string; value?: string; data?: string }> }): DisplayIncident | null => {
@@ -1907,7 +1921,9 @@ const IncidentDetailPage = () => {
 
   const handleAutoMergeThread = useCallback(async () => {
     if (!incident?.id || !incident.rawOCSF) return;
-    const siblings = threadCorrelated.incidents;
+    const siblings = threadCorrelated.discoveredCount > threadCorrelated.incidents.length
+      ? await threadCorrelated.loadAll()
+      : threadCorrelated.incidents;
     if (siblings.length === 0) return;
 
     // Build the pool: current incident + every visible sibling.
@@ -2286,77 +2302,21 @@ const IncidentDetailPage = () => {
       }
     }
     
-    // Fallback: probe each org
-    const orgsToProbe = allKnownOrgs.filter(o => {
-      const viewingOrgId = crossOrgId || userInfo.active_org?.id;
-      return o.id !== viewingOrgId;
-    });
-    if (orgsToProbe.length === 0) return;
-
-    const probeOrgs = async () => {
-      // Collect every copy along with its raw value so we can compute the
-      // authoritative tenant stamp before deciding which tenants are real.
-      const raw: Array<{ id: string; name: string; image?: string; value: string | null }> = [];
-
-      const results = await Promise.allSettled(
-        orgsToProbe.map(async (org) => {
-          try {
-            const result = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, org.id);
-            if (result.success && result.item?.value && result.item.value.length > 2) {
-              return { id: org.id, name: org.name, image: org.image, value: result.item.value };
-            }
-          } catch {
-            // Ignore probe failures
-          }
-          return null;
-        })
-      );
-
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) {
-          raw.push(r.value);
-        }
-      }
-
-      // Also include the currently-viewed tenant when computing the stamp so
-      // its `_tenants` list wins if it's the newest. This is critical when
-      // the ONLY other copy is an auto-recovered ghost in a tenant we just
-      // removed from — without this read, `authStamp` would be null and the
-      // ghost would count as a real shared copy.
+    const stamp = readTenantStamp(incident?.rawOCSF);
+    if (stamp?.tenants?.length) {
       const viewingOrgId = crossOrgId || userInfo.active_org?.id || '';
-      let authStamp: TenantStamp | null = null;
-      const consider = (value: string | null) => {
-        if (!value) return;
-        try {
-          const parsed = JSON.parse(value);
-          const s = readTenantStamp(parsed);
-          if (s && (!authStamp || s.updatedAt > authStamp.updatedAt)) authStamp = s;
-        } catch { /* ignore parse errors */ }
-      };
-      for (const c of raw) consider(c.value);
-      try {
-        const selfRead = await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, viewingOrgId || undefined);
-        if (selfRead?.success && selfRead.item?.value) {
-          consider(typeof selfRead.item.value === 'string' ? selfRead.item.value : JSON.stringify(selfRead.item.value));
-        }
-      } catch { /* ignore */ }
+      const knownOrgById = new Map(allKnownOrgs.map((org) => [org.id, org]));
+      const stamped = stamp.tenants
+        .filter((oid) => oid && oid !== viewingOrgId && !isTenantGhost(oid, stamp))
+        .map((oid) => {
+          const org = knownOrgById.get(oid);
+          return org ? { id: org.id, name: org.name, image: org.image } : { id: oid, name: oid.slice(0, 8) + '…' };
+        });
+      setSharedOrgs(stamped);
+      return;
+    }
 
-      // A copy is a ghost when the authoritative stamp explicitly excludes
-      // its tenant (i.e. it was removed but auto-recovered from history).
-      const ghostIds = raw.filter(c => isTenantGhost(c.id, authStamp)).map(c => c.id);
-      const filtered = raw.filter(c => !ghostIds.includes(c.id));
-      // If the viewing tenant is a ghost per the stamp, the user is looking
-      // at a stale copy — leave that decision to the load logic. Just make
-      // sure we don't count ghost tenants as "shared".
-      if (isTenantGhost(viewingOrgId, authStamp)) {
-        console.warn(`[CrossOrg] viewing tenant ${viewingOrgId} is flagged as a ghost by authoritative stamp`);
-      }
-
-      const found = filtered.map(({ id: oid, name, image }) => ({ id: oid, name, image }));
-      console.log(`[CrossOrg] Probed ${orgsToProbe.length} orgs for key "${id}", found in ${found.length} additional orgs${authStamp ? ' (stamp-filtered)' : ''}:`, found.map(o => o.name));
-      setSharedOrgs(found);
-    };
-    probeOrgs();
+    setSharedOrgs([]);
   }, [id, subOrgs, parentOrg, userInfo?.active_org?.id, crossOrgId, searchParams]);
 
   // Fetch agent runs for this incident — deferred until incident loaded.
@@ -7907,11 +7867,12 @@ const IncidentDetailPage = () => {
         // Nothing meaningful to show — bail. Reporting only an invisible
         // count with zero visible siblings ("0 share this thread, 1 not
         // visible") is confusing and adds no signal.
-        if (filtered.length === 0) return null;
+        if (filtered.length === 0 && threadCorrelated.discoveredCount === 0) return null;
         return (
           <ThreadCorrelatedBanner
             threadId={threadCorrelated.threadId}
             incidents={filtered}
+            discoveredCount={threadCorrelated.discoveredCount}
             invisibleCount={threadCorrelated.invisibleCount}
             loading={threadCorrelated.loading}
             onAutoMerge={handleAutoMergeThread}
@@ -8304,14 +8265,22 @@ const IncidentDetailPage = () => {
               const foldedFrom = Array.isArray((incident?.rawOCSF as any)?._merged_data_from)
                 ? (incident?.rawOCSF as any)._merged_data_from.length
                 : 0;
-              const siblingCount = threadCorrelated?.incidents?.length || 0;
+              const siblingCount = Math.max(
+                threadCorrelated?.discoveredCount || 0,
+                threadCorrelated?.incidents?.length || 0,
+              );
               const linkedFloor = Math.max(resolvedCount, pointerCount, foldedFrom, siblingCount);
-              const total = linkedFloor + 1;
+              const linkedTotal = linkedFloor + 1;
+              const localSourceCount = getLocalEmailThreadMessageCount(incident?.rawOCSF);
+              const total = Math.max(linkedTotal, localSourceCount);
               if (total <= 1) return null;
-              const unavailable = relatedIncidents?.invisibleCount || 0;
+              const unavailable = (relatedIncidents?.invisibleCount || 0) + (threadCorrelated?.invisibleCount || 0);
               const suffix = unavailable ? ` (${unavailable} unavailable)` : '';
+              const tooltipTitle = localSourceCount > linkedTotal
+                ? `${localSourceCount} source message${localSourceCount !== 1 ? 's' : ''} in this email thread${linkedTotal > 1 ? `, ${linkedTotal} incident${linkedTotal !== 1 ? 's' : ''} currently linked` : ''}`
+                : `${linkedTotal} incident${linkedTotal !== 1 ? 's' : ''} in this thread${suffix} — click to view`;
               return (
-                <Tooltip title={`${total} incident${total !== 1 ? 's' : ''} in this thread${suffix} — click to view`} arrow>
+                <Tooltip title={tooltipTitle} arrow>
                   <Avatar
                     onClick={(e) => { e.stopPropagation(); focusRelatedIncident(null); }}
                     sx={{
