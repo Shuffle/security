@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, lazy, Suspense } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline, Box } from '@mui/material';
 import { Navigate } from 'react-router-dom';
 import { AppDetailProvider } from '@/Shuffle-MCPs/AppDetailContext';
@@ -40,8 +40,10 @@ import OnboardingPage from './pages/OnboardingPage';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import ExternalLinkConfirmDialog from '@/components/common/ExternalLinkConfirmDialog';
-import IncidentsPage from '@/pages/dashboard/IncidentsPage';
-import IncidentDetailPageImpl from '@/pages/dashboard/IncidentDetailPage';
+// Lazy-load the heaviest pages so route transitions render an immediate
+// Suspense fallback instead of appearing to hang while the new page mounts.
+const IncidentsPage = lazy(() => import('@/pages/dashboard/IncidentsPage'));
+const IncidentDetailPageImpl = lazy(() => import('@/pages/dashboard/IncidentDetailPage'));
 import { useParams } from 'react-router-dom';
 const IncidentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,7 +93,7 @@ const UsecasesPage = () => {
 import AppDetailPage from '@/pages/dashboard/AppDetailPage';
 import DocsPage from '@/pages/docs/DocsPage';
 import PipelinesPage from '@/pages/dashboard/PipelinesPage';
-import DashboardPage from '@/pages/dashboard/DashboardPage';
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 import DashboardViewPage from '@/pages/dashboard/DashboardViewPage';
 import VulnerabilitiesPage from '@/pages/dashboard/VulnerabilitiesPage';
 import MonitorsPage from '@/pages/dashboard/MonitorsPage';
@@ -212,6 +214,23 @@ const ThemedApp = () => {
           <DemoSpotlight />
           <DemoCompletionWatcher />
           <DemoResumePill />
+          <Suspense
+            fallback={
+              <Box
+                sx={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  zIndex: 2000,
+                  backgroundColor: 'hsl(var(--primary))',
+                  opacity: 0.85,
+                  animation: 'shuffle-route-progress 1s ease-in-out infinite',
+                }}
+              />
+            }
+          >
           <Routes>
             <Route path="/articles" element={<ShufflerExternalRedirect />} />
             <Route path="/articles/:name" element={<ShufflerExternalRedirect />} />
@@ -324,6 +343,7 @@ const ThemedApp = () => {
             
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </DemoProvider>
         </BrowserRouter>
       </AuthProvider>
