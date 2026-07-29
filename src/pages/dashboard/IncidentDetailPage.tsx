@@ -7224,10 +7224,19 @@ const IncidentDetailPage = () => {
     const toolsSummary = buildToolsSummary();
 
     const formatRelativeShort = (ms: number): string => {
+      if (!Number.isFinite(ms) || ms < 0) return 'just now';
       if (ms < 60_000) return `${Math.max(1, Math.floor(ms / 1000))}s ago`;
       if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
       if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
       return `${Math.floor(ms / 86_400_000)}d ago`;
+    };
+    // Timestamps in this codebase come from a mix of Unix-seconds (Go backend)
+    // and Unix-millis (JS). Normalize to millis so "20642d ago" cannot happen.
+    const normalizeTs = (ts: number | undefined | null): number => {
+      const n = Number(ts);
+      if (!Number.isFinite(n) || n <= 0) return 0;
+      // Anything below year ~2001 in ms is clearly seconds — bump to ms.
+      return n < 1e12 ? n * 1000 : n;
     };
 
     const renderAgentProcessingPlaceholder = (
@@ -7317,7 +7326,7 @@ const IncidentDetailPage = () => {
                   }}
                 >
                   {rerunCount > 0 && `· ${rerunCount} rerun${rerunCount === 1 ? '' : 's'}`}
-                  {lastActionTs > 0 && ` · ${formatRelativeShort(Date.now() - lastActionTs)} ago`}
+                  {lastActionTs > 0 && ` · ${formatRelativeShort(Date.now() - normalizeTs(lastActionTs))}`}
                 </Box>
               )}
             </>
