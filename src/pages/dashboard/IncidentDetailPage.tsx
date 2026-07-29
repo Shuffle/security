@@ -2270,10 +2270,9 @@ const IncidentDetailPage = () => {
   );
 
 
-  // Detect which other orgs share the same incident key
-  // Primary source: shared_orgs query param from the list page (most reliable)
-  // Fallback: probe each org via get_cache
-  // (see hoisted declaration above)
+  // Detect which other orgs share the same incident key without probing every
+  // tenant on load. Prefer the list page's shared_orgs query param, then the
+  // authoritative tenant stamp persisted on the loaded incident.
   
   useEffect(() => {
     if (!id || !userInfo?.active_org?.id) return;
@@ -2317,7 +2316,7 @@ const IncidentDetailPage = () => {
     }
 
     setSharedOrgs([]);
-  }, [id, subOrgs, parentOrg, userInfo?.active_org?.id, crossOrgId, searchParams]);
+  }, [id, subOrgs, parentOrg, userInfo?.active_org?.id, crossOrgId, searchParams, incident?.rawOCSF]);
 
   // Fetch agent runs for this incident — deferred until incident loaded.
   // While an @AIAgent comment is awaiting a reply, poll fast (5s); otherwise
