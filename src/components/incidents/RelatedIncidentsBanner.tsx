@@ -68,10 +68,11 @@ export const RelatedIncidentsBanner = ({
     return [...linked].sort((a, b) => (readTs(b.raw) - readTs(a.raw)) || b.id.localeCompare(a.id));
   }, [linked]);
 
-  if (!loading && linked.length === 0 && invisibleCount === 0) return null;
+  if (!loading && linked.length === 0 && invisibleCount === 0 && expectedCount === 0) return null;
 
   const latest = sorted[0];
-  const total = linked.length + invisibleCount;
+  const resolvedTotal = linked.length + invisibleCount;
+  const total = Math.max(resolvedTotal, expectedCount);
 
   const handleUnlink = async (sourceId: string) => {
     const res = await unlinkMergePair({
