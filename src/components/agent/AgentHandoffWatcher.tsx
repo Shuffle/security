@@ -38,6 +38,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import AgentQuestionDialog from './AgentQuestionDialog';
 
+const HANDOFF_TOAST_ID = 'agent-handoff-active';
+
 const AgentHandoffWatcher = () => {
   const { isAuthenticated, userInfo } = useAuth();
   // GATING: while this flow is still being validated, only surface the
@@ -61,6 +63,9 @@ const AgentHandoffWatcher = () => {
   // every existing open handoff the moment they sign in. Treat the first
   // batch as the baseline and only toast genuinely new arrivals.
   const seededRef = useRef(false);
+  // Snapshot of the last notification IDs we rendered into the single toast,
+  // so we don't reset its auto-dismiss timer every poll when nothing changed.
+  const lastToastedIds = useRef<string>('');
 
   // Submit handler for the question dialog. Mirrors DashboardPage.handleSubmitAnswers
   // exactly so the two entry points stay in lockstep.
@@ -101,11 +106,14 @@ const AgentHandoffWatcher = () => {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    // Beta gate — only support users see the global handoff toasts for now.
-    if (!isSupport) return;
+    if (!isAuthenticated || !isSupport) {
+      toast.dismiss(HANDOFF_TOAST_ID);
+      return;
+    }
     if (!notifications || notifications.length === 0) {
-      // Mark as seeded even on empty so subsequent arrivals do toast.
+      // No open handoffs — make sure the single toast is gone.
+      toast.dismiss(HANDOFF_TOAST_ID);
+      lastToastedIds.current = '';
       seededRef.current = true;
       return;
     }
@@ -113,42 +121,44 @@ const AgentHandoffWatcher = () => {
     if (!seededRef.current) {
       notifications.forEach((n) => toastedIds.current.add(n.id));
       seededRef.current = true;
+      toast.dismiss(HANDOFF_TOAST_ID);
+      lastToastedIds.current = '';
       return;
     }
 
     // Avoid double-toasting on the dashboard — it already shows these inline.
     const onDashboard = location.pathname === '/dashboard' || location.pathname === '/';
-    if (onDashboard) {
-      // Still mark them seen so we don't burst-toast when navigating away.
-      notifications.forEach((n) => toastedIds.current.add(n.id));
-      return;
-    }
-
-    // User dismissed for the rest of the day — stay quiet, but mark as seen
-    // so we don't burst-toast the backlog tomorrow.
-    if (isDismissedToday()) {
+    if (onDashboard || isDismissedToday()) {
+      toast.dismiss(HANDOFF_TOAST_ID);
+      lastToastedIds.current = '';
       notifications.forEach((n) => toastedIds.current.add(n.id));
       return;
     }
 
     // Collect every notification we have not toasted yet.
     const fresh = notifications.filter((n) => !toastedIds.current.has(n.id));
-    if (fresh.length === 0) return;
     fresh.forEach((n) => toastedIds.current.add(n.id));
 
-    // BURST PROTECTION: when the agent dumps several handoffs at once
-    // (common for noisy runs), collapse them into a single summary toast
-    // instead of stacking N modals. Only show inline Approve/Deny when
-    // there is exactly one fresh approval and nothing else.
-    const approvals = fresh.filter((n) => isApprovalNotification(n));
-    const questions = fresh.filter((n) => !isApprovalNotification(n));
+    // Decide whether to show/update the single handoff toast. We only render
+    // when there are fresh notifications, or when the set of notifications has
+    // changed (so resolving one updates the toast rather than leaving it stale).
+    const currentIds = notifications.map((n) => n.id).sort().join(',');
+    const shouldRender = fresh.length > 0 || currentIds !== lastToastedIds.current;
+    if (!shouldRender) return;
+    lastToastedIds.current = currentIds;
 
-    if (fresh.length > 1) {
+    const approvals = notifications.filter((n) => isApprovalNotification(n));
+    const questions = notifications.filter((n) => !isApprovalNotification(n));
+
+    // When there is more than one pending handoff, collapse into one summary
+    // toast with a single CTA. The same canonical ID ensures it never stacks
+    // with a single handoff toast.
+    if (notifications.length > 1) {
       const parts: string[] = [];
       if (approvals.length) parts.push(`${approvals.length} approval${approvals.length === 1 ? '' : 's'}`);
       if (questions.length) parts.push(`${questions.length} question${questions.length === 1 ? '' : 's'}`);
       toast('AI Agent needs your attention (beta — support only)', {
-        id: 'agent-handoff-batch',
+        id: HANDOFF_TOAST_ID,
         description: `${parts.join(' and ')} pending. Review them on the Agent page.`,
         duration: 15000,
         icon: <Sparkles size={18} />,
@@ -164,14 +174,14 @@ const AgentHandoffWatcher = () => {
       return;
     }
 
-    // Single new handoff — keep the rich inline experience.
-    const n = fresh[0];
+    // Single new handoff — keep the rich inline experience, but always share
+    // the canonical toast ID so multiple single toasts can never stack.
+    const n = notifications[0];
     const isApproval = isApprovalNotification(n);
-    const toastId = `agent-handoff-${n.id}`;
 
     if (isApproval) {
       toast('AI Agent needs approval (beta — support only)', {
-        id: toastId,
+        id: HANDOFF_TOAST_ID,
         description: n.title || n.description || 'An agent action is paused waiting on you.',
         duration: 15000,
         icon: <Sparkles size={18} />,
@@ -206,7 +216,7 @@ const AgentHandoffWatcher = () => {
       });
     } else {
       toast('AI Agent has a question (beta — support only)', {
-        id: toastId,
+        id: HANDOFF_TOAST_ID,
         description: n.title || n.description || 'An agent run is paused waiting on your input.',
         duration: 15000,
         icon: <Sparkles size={18} />,
