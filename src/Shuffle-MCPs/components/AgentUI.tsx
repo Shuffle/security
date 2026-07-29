@@ -203,12 +203,20 @@ export const extractPendingAgentQuestions = (
     // Only surface decisions that are still awaiting an answer.
     if (status && status !== 'WAITING' && status !== 'RUNNING' && status !== '') continue;
     const questions: string[] = [];
+    let anyFieldAnswered = false;
     for (const f of (decision.fields as any[]) || []) {
       // Skip fields that already carry an answer — those have been resolved.
       const preAnswer = typeof (f as any).answer === 'string' ? (f as any).answer.trim() : '';
-      if (preAnswer) continue;
+      if (preAnswer) { anyFieldAnswered = true; continue; }
       const q = getQuestionFieldText(f, decision);
       if (q) questions.push(q);
+    }
+    // Fallback: if the agent supplied no usable question text (empty value
+    // fields, or only control keys) surface `reason`/`description` as the
+    // question so the analyst still sees WHAT is being asked.
+    if (!questions.length && !anyFieldAnswered) {
+      const fallback = getAskFallbackQuestion(decision);
+      if (fallback) questions.push(fallback);
     }
     if (!questions.length) continue;
     const decisionId = String(decision?.run_details?.id || decision?.id || '');
