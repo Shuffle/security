@@ -147,7 +147,7 @@ export const RelatedIncidentsBanner = ({
               />
             </Box>
           ) : (
-            `${total} merged incident${total === 1 ? '' : 's'} not available`
+            `${total} merged incident${total === 1 ? '' : 's'}${loading ? ' (loading…)' : ''}`
           )}
         </Typography>
 
