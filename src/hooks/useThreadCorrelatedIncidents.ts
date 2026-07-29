@@ -121,11 +121,10 @@ export const useThreadCorrelatedIncidents = (
           body: JSON.stringify({ type: 'value', key: String(threadId).toLowerCase() }),
         });
         if (!resp.ok) {
-          if (!cancelled.current) {
-            setIncidents([]);
-            setInvisibleCount(0);
-            setLoading(false);
-          }
+          // Transient — keep whatever we had so the banner and the
+          // "N linked" badge on the source-app logo don't blink to
+          // zero on every flaky /correlations response.
+          if (!cancelled.current) setLoading(false);
           return;
         }
         const data = await resp.json();
@@ -141,6 +140,17 @@ export const useThreadCorrelatedIncidents = (
           }
         }
       } catch (err) {
+        // Network error — same policy as !resp.ok above: don't wipe
+        // the last-known-good sibling list on a transient failure.
+        if (!cancelled.current) setLoading(false);
+        return;
+      }
+
+      // If the correlation endpoint returned zero refs, the thread
+      // really has no siblings right now (or the backend just lost
+      // them). Clearing here is correct — this is a successful
+      // "empty" response, not a fetch failure.
+      if (foundIds.size === 0) {
         if (!cancelled.current) {
           setIncidents([]);
           setInvisibleCount(0);
@@ -168,10 +178,17 @@ export const useThreadCorrelatedIncidents = (
       );
 
       if (cancelled.current) return;
-      setIncidents(results.filter((x): x is LinkedIncidentSummary => x !== null));
+      const resolved = results.filter((x): x is LinkedIncidentSummary => x !== null);
+      // Only overwrite `incidents` when we actually resolved something.
+      // If every per-sibling fetch failed (datastore hiccup) keep the
+      // previous list so the banner + Gmail-logo badge stay visible.
+      if (resolved.length > 0 || missed === 0) {
+        setIncidents(resolved);
+      }
       setInvisibleCount(missed);
       setLoading(false);
     })();
+
 
     return () => {
       cancelled.current = true;
