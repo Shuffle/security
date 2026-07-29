@@ -164,15 +164,28 @@ export const DashboardOverview = ({
       (i.severity === 'critical' || i.severity === 'high') &&
       i.status !== 'resolved' && i.status !== 'closed'
     ).length;
-    const last24h = incidents.filter(i => i.createdTs && Date.now() - i.createdTs < 86400_000).length;
-    const prev24h = incidents.filter(i => i.createdTs && Date.now() - i.createdTs >= 86400_000 && Date.now() - i.createdTs < 172800_000).length;
+    // Compare selected window (customRange or `days`) against the previous
+    // same-sized window. E.g. "Last 30 days" → previous 30 days before that.
+    const now = Date.now();
+    const windowMs = customRange
+      ? Math.max(1, customRange.toMs - customRange.fromMs)
+      : Math.max(1, days) * 86400_000;
+    const currentEnd = customRange ? customRange.toMs : now;
+    const currentStart = currentEnd - windowMs;
+    const previousEnd = currentStart;
+    const previousStart = previousEnd - windowMs;
+    const isOpen = (i: OverviewIncident) => i.status !== 'resolved' && i.status !== 'closed';
+    const currentCount = incidents.filter(i => i.createdTs && i.createdTs >= currentStart && i.createdTs < currentEnd && isOpen(i)).length;
+    const previousCount = incidents.filter(i => i.createdTs && i.createdTs >= previousStart && i.createdTs < previousEnd && isOpen(i)).length;
     let delta: { value: string; positive: boolean } | null = null;
-    if (prev24h > 0) {
-      const pct = Math.round(((last24h - prev24h) / prev24h) * 100);
+    if (previousCount > 0) {
+      const pct = Math.round(((currentCount - previousCount) / previousCount) * 100);
       if (pct !== 0) delta = { value: `${Math.abs(pct)}%`, positive: pct < 0 };
+    } else if (currentCount > 0) {
+      delta = { value: 'new', positive: false };
     }
-    return { openCount: open.length, criticalCount: critical, last24h, delta };
-  }, [incidents]);
+    return { openCount: open.length, criticalCount: critical, last24h: currentCount, delta };
+  }, [incidents, days, customRange]);
 
   const incidentSpark = useMemo(() => {
     const days = 14;
@@ -247,10 +260,12 @@ export const DashboardOverview = ({
           icon={AlertTriangle}
           glow={NEON.magenta}
 
-          value={incidentsHasMore ? `${incidentStats.openCount}+` : incidentStats.openCount}
+          value={incidentsHasMore && incidentStats.openCount > 0 ? `${incidentStats.openCount}+` : incidentStats.openCount}
           label="Open Incidents"
           delta={incidentStats.delta}
-          deltaTooltip="Change in open incidents vs the previous 24 hours"
+          deltaTooltip={customRange
+            ? 'Change in open incidents vs the previous same-sized window'
+            : `Change in open incidents vs the previous ${days} day${days === 1 ? '' : 's'}`}
           isLoading={incidentsLoading}
           onClick={() => incidentStats.openCount === 0
             ? navigateSetup('siem_case_management_1', '/incidents?highlight=ingest', 'area=automatic_ingestion&category=case_management')
@@ -261,7 +276,7 @@ export const DashboardOverview = ({
           icon={Flame}
           glow={NEON.red}
 
-          value={incidentsHasMore ? `${incidentStats.criticalCount}+` : incidentStats.criticalCount}
+          value={incidentsHasMore && incidentStats.criticalCount > 0 ? `${incidentStats.criticalCount}+` : incidentStats.criticalCount}
           label="Critical / High"
           isLoading={incidentsLoading}
           onClick={() => incidentStats.criticalCount === 0
