@@ -260,10 +260,12 @@ export const DashboardOverview = ({
           icon={AlertTriangle}
           glow={NEON.magenta}
 
-          value={incidentsHasMore ? `${incidentStats.openCount}+` : incidentStats.openCount}
+          value={incidentsHasMore && incidentStats.openCount > 0 ? `${incidentStats.openCount}+` : incidentStats.openCount}
           label="Open Incidents"
           delta={incidentStats.delta}
-          deltaTooltip="Change in open incidents vs the previous 24 hours"
+          deltaTooltip={customRange
+            ? 'Change in open incidents vs the previous same-sized window'
+            : `Change in open incidents vs the previous ${days} day${days === 1 ? '' : 's'}`}
           isLoading={incidentsLoading}
           onClick={() => incidentStats.openCount === 0
             ? navigateSetup('siem_case_management_1', '/incidents?highlight=ingest', 'area=automatic_ingestion&category=case_management')
