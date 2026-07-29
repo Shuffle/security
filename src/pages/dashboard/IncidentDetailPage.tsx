@@ -126,6 +126,7 @@ import { isApprovalNotification, type AgentNotification } from '@/services/notif
 import InlineAgentQuestion from '@/components/agent/InlineAgentQuestion';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
 import { AgentExecutionDrawer } from '@/Shuffle-MCPs';
+import { extractPendingAgentQuestions } from '@/Shuffle-MCPs/components/AgentUI';
 import { WorkflowRunExplorerDrawer } from '@/Shuffle-Core';
 
 import { SegmentedControl } from '@/components/ui/segmented-control';
