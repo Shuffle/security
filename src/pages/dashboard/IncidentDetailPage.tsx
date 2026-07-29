@@ -1969,11 +1969,44 @@ const IncidentDetailPage = () => {
     });
     if (sources.length === 0) {
       console.info('[auto-merge] Nothing to merge on thread', { primaryId: primary.id, poolSize: pool.length, skipped });
+
+      // Detect a common external anchor: every skipped sibling already
+      // merged into the SAME other incident (not the current pool's
+      // primary). In that case the thread already has a real anchor
+      // that just isn't in our visible pool — offer to jump there
+      // instead of leaving the analyst with a dead-end warning.
+      const externalAnchors = new Map<string, number>();
+      for (const s of skipped) {
+        const m = s.reason.match(/already merged into ([^\s]+)/);
+        if (!m) continue;
+        const anchor = m[1].toLowerCase();
+        if (anchor === primary.id.toLowerCase()) continue;
+        externalAnchors.set(anchor, (externalAnchors.get(anchor) || 0) + 1);
+      }
+      const dominant = Array.from(externalAnchors.entries())
+        .sort((a, b) => b[1] - a[1])[0];
+      const isDominant = dominant && dominant[1] >= Math.max(1, Math.floor(skipped.length * 0.6));
+
       const reasons = new Set(skipped.map(s => s.reason));
       const reasonSummary = reasons.size === 1
         ? Array.from(reasons)[0]
-        : `${skipped.length} sibling${skipped.length === 1 ? '' : 's'} skipped for mixed reasons`;
-      toast.info(`Nothing to auto-merge — ${reasonSummary}. See console for per-incident details.`);
+        : `${skipped.length} sibling${skipped.length === 1 ? '' : 's'} already merged or unmerged elsewhere`;
+
+      if (isDominant) {
+        const anchorId = dominant[0];
+        toast.info(
+          `This thread is already anchored on another incident (${anchorId.slice(0, 10)}…). ${dominant[1]} of ${skipped.length} sibling${skipped.length === 1 ? '' : 's'} point there.`,
+          {
+            duration: 12000,
+            action: {
+              label: 'Open anchor',
+              onClick: () => navigate(`/incidents/${encodeURIComponent(anchorId)}`),
+            },
+          },
+        );
+      } else {
+        toast.info(`Nothing to auto-merge — ${reasonSummary}. See console for per-incident details.`);
+      }
       return;
     }
 
