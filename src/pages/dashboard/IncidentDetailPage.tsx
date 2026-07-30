@@ -1384,21 +1384,7 @@ const IncidentDetailPage = () => {
     }
   };
 
-  // Auto-repair: when the stored payload drifted from OCSF but a known-good
-  // reconstruction exists, write it back silently instead of nagging the user
-  // with a warning banner. Skipped for read-only / merged-pointer views.
-  const ocsfAutoRestoredRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!id || !ocsfFallbackInfo?.recoveredValue) return;
-    if (isPublicView || primaryPointer || ocsfRestoring) return;
-    if (ocsfAutoRestoredRef.current === id) return;
-    // Freshly created incidents have nothing meaningful to roll back to.
-    const createdMs = incident?.createdTs || 0;
-    if (createdMs && Date.now() - createdMs < 10 * 60 * 1000) return;
-    ocsfAutoRestoredRef.current = id;
-    void handleRestoreOcsfFallback(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, ocsfFallbackInfo, isPublicView, primaryPointer]);
+
 
 
 
