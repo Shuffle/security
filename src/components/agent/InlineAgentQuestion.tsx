@@ -248,7 +248,11 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
+          helperText="Shift + Enter to submit"
+          FormHelperTextProps={{ sx: { fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))', mx: 0.5 } }}
           disabled={submitting}
+
           sx={{
             '& .MuiOutlinedInput-root': {
               fontSize: '0.85rem',
