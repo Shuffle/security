@@ -113,22 +113,35 @@ interface GmailMessage {
 }
 
 
-/** Walk Gmail MIME tree and collect first text/plain and text/html bodies. */
+/**
+ * Walk the Gmail MIME tree and keep the most complete plain/HTML body.
+ * Some payloads contain several same-type MIME leaves (signatures, previews,
+ * partial alternatives). Taking the first leaf can truncate an otherwise
+ * complete message, so prefer the largest decoded candidate of each type.
+ */
 const extractGmailBodies = (part: GmailPart | undefined): { text: string; html: string } => {
-  let text = '';
-  let html = '';
+  const textCandidates: string[] = [];
+  const htmlCandidates: string[] = [];
   const walk = (p: GmailPart | undefined) => {
     if (!p) return;
     const mime = (p.mimeType || '').toLowerCase();
     const data = p.body?.data;
     if (data) {
       const decoded = decodeBase64Url(data);
-      if (mime === 'text/plain' && !text) text = decoded;
-      else if (mime === 'text/html' && !html) html = decoded;
+      if (decoded.trim()) {
+        if (mime === 'text/plain') textCandidates.push(decoded);
+        else if (mime === 'text/html') htmlCandidates.push(decoded);
+      }
     }
     if (Array.isArray(p.parts)) p.parts.forEach(walk);
   };
   walk(part);
+  const longest = (values: string[]) => values.reduce(
+    (best, current) => current.length > best.length ? current : best,
+    '',
+  );
+  let text = longest(textCandidates);
+  const html = longest(htmlCandidates);
   if (!text && html) text = htmlToText(html);
   return { text, html };
 };
