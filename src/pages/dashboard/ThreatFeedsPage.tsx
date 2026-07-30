@@ -181,11 +181,7 @@ const ThreatFeedsPage = () => {
     ['url', 'ipv4', 'domain', 'hash_md5', 'hash_sha256'].forEach((n) => set.add(n));
     return Array.from(set);
   }, [feeds]);
-  const { data: iocCounts = {}, isLoading: countsLoading } = useObservableCounts(trackedIocNames);
-  const totalIocs = useMemo(
-    () => Object.values(iocCounts).reduce((sum, n) => sum + (n || 0), 0),
-    [iocCounts],
-  );
+  const { data: iocCounts = {} } = useObservableCounts(trackedIocNames);
   const topIocs = useMemo(
     () => Object.entries(iocCounts)
       .filter(([, n]) => n > 0)
@@ -195,6 +191,9 @@ const ThreatFeedsPage = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+      {/* Threat Intel automation CTA — placed at the top, only shown when not already active. */}
+      {feeds.length > 0 && !automationEnabled && <ThreatIntelAutomationBanner />}
+
       {/* Header — matches the standard page header used on Incidents / Vulnerabilities */}
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -248,7 +247,7 @@ const ThreatFeedsPage = () => {
         </Box>
       </Box>
 
-      {/* Compact stat strip — active feeds + collected IOCs, no cards. */}
+      {/* Compact stat strip — active feeds + top IOC categories, no cards. */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         {!isLoading && (
           <Chip
@@ -265,21 +264,6 @@ const ThreatFeedsPage = () => {
             }}
           />
         )}
-        {feeds.length > 0 && (countsLoading ? (
-          <CircularProgress size={14} />
-        ) : (
-          <Chip
-            label={`${totalIocs.toLocaleString()} IOCs collected`}
-            size="small"
-            variant="outlined"
-            sx={{
-              height: 24,
-              borderColor: 'hsl(var(--primary) / 0.35)',
-              bgcolor: 'hsl(var(--primary) / 0.06)',
-              color: 'hsl(var(--primary))',
-            }}
-          />
-        ))}
         {feeds.length > 0 && topIocs.slice(0, 6).map(([name, count]) => (
           <Tooltip key={name} title={`Datastore category: ioc_${name}`} arrow>
             <Chip
@@ -299,8 +283,6 @@ const ThreatFeedsPage = () => {
         ))}
       </Box>
 
-      {/* Automation Status Alert (shared with /incidents/observables) */}
-      {feeds.length > 0 && <ThreatIntelAutomationBanner />}
 
 
       <Card elevation={0} sx={{ bgcolor: 'transparent', backgroundImage: 'none', border: '1px solid hsl(var(--border))' }}>
@@ -443,11 +425,11 @@ const ThreatFeedsPage = () => {
                             </Typography>
                           </Box>
                           <Button
-                            variant="contained"
+                            variant="outlined"
                             onClick={handleEnableThreatFeeds}
                             disabled={isInitializing}
-                            startIcon={isInitializing ? <CircularProgress size={16} color="inherit" /> : <RssFeedIcon />}
-                            sx={{ height: 36, mt: 1 }}
+                            startIcon={isInitializing ? <CircularProgress size={16} color="inherit" /> : <RssFeedIcon size={16} />}
+                            sx={{ height: 32, mt: 1 }}
                           >
                             Enable Threat Feeds
                           </Button>
