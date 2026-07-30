@@ -621,20 +621,32 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   // untouched HTML (the structured adapter keeps the whole quoted chain),
   // and only fall back to the incident description when no payload exists.
   const rawHtml = useMemo(() => {
+    const join = (parts: string[]) =>
+      wrapRawEmailHtml(
+        parts.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />'),
+      );
+
     const fromProvider = (resolved?.messages || [])
       .map((m) => m.bodyHtml)
       .filter((h): h is string => !!h && !!h.trim())
       .map(extractHtmlBody);
-    if (fromProvider.length) {
-      return wrapRawEmailHtml(
-        fromProvider.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />'),
-      );
-    }
+    if (fromProvider.length) return join(fromProvider);
+
     if (descriptionHtml && descriptionHtml.trim()) {
       return wrapRawEmailHtml(extractHtmlBody(descriptionHtml));
     }
+
+    // Last resort: the threaded parser often recovered HTML slices even when
+    // no provider payload / description HTML exists. Without this, raw mode
+    // silently rendered nothing at all.
+    const fromParsed = messages
+      .map((m) => m.bodyHtml)
+      .filter((h): h is string => !!h && !!h.trim())
+      .map(extractHtmlBody);
+    if (fromParsed.length) return join(fromParsed);
+
     return '';
-  }, [resolved, descriptionHtml]);
+  }, [resolved, descriptionHtml, messages]);
 
 
   const rawText = useMemo(() => {

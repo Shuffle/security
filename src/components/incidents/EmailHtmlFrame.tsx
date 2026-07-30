@@ -208,19 +208,32 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
     // an early partial measurement pops small, then jumps up as fonts and
     // late layout finish.
     let maxObserved = 0;
-    // Settle window: coalesce many observer-driven measurements into a
-    // single commit so the iframe height doesn't animate up in steps.
+    // Settle window: coalesce many observer-driven measurements and only
+    // reveal the frame once the measured height has stopped changing, so the
+    // user never sees the white box grow in steps.
     let settleTimer: number | null = null;
+    let lastCommitted = -1;
     const scheduleCommit = (h: number) => {
       if (h > maxObserved) maxObserved = h;
       if (settleTimer !== null) window.clearTimeout(settleTimer);
       settleTimer = window.setTimeout(() => {
         settleTimer = null;
         if (cancelled) return;
+        if (maxObserved === lastCommitted) {
+          // Stable across a full settle window — safe to show.
+          setReady(true);
+          return;
+        }
+        lastCommitted = maxObserved;
         setHeight(maxObserved + 4);
-        // Reveal on the first non-trivial commit.
-        if (maxObserved > 40) setReady(true);
-      }, 60);
+        // Re-arm one more settle window to confirm stability before reveal.
+        settleTimer = window.setTimeout(() => {
+          settleTimer = null;
+          if (cancelled) return;
+          if (maxObserved === lastCommitted) setReady(true);
+          else scheduleCommit(maxObserved);
+        }, 200);
+      }, 120);
     };
 
     const measure = () => {
@@ -328,7 +341,7 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
       // past the "large enough" threshold (very short emails).
       const revealFallback = window.setTimeout(() => {
         if (!cancelled) setReady(true);
-      }, 700);
+      }, 1400);
       retryTimers.push(revealFallback);
     };
 
@@ -365,6 +378,11 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
           theme.palette.mode === 'dark'
             ? '0 1px 2px rgba(0,0,0,0.4)'
             : '0 1px 2px rgba(0,0,0,0.06)',
+        // Keep the whole white card collapsed until the measured height has
+        // settled — otherwise the card itself is what visibly grows.
+        ...(ready
+          ? {}
+          : { height: 0, opacity: 0, border: 'none', boxShadow: 'none', pointerEvents: 'none' }),
       }}
     >
       {!imagesAllowed && blockedCount > 0 && (
