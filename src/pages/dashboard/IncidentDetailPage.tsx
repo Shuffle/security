@@ -2600,6 +2600,20 @@ const IncidentDetailPage = () => {
   const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
   const [selectedWorkflowExecutionId, setSelectedWorkflowExecutionId] = useState<string | null>(null);
 
+  // "Show agent run details" from an inline question: prefer the AI Agent run
+  // for that execution, and only fall back to the raw workflow execution when
+  // no agent run matches.
+  const openAgentRunDetails = useCallback((execId: string) => {
+    const match = (agentRuns || []).find((r: any) => String(r?.execution_id) === String(execId));
+    if (match) {
+      setSelectedAgentRun(match as AgentRun);
+      return;
+    }
+    setSelectedWorkflowExecutionId(String(execId));
+  }, [agentRuns]);
+
+
+
   // Global listener: any AgentUI (Simple/Detailed) instance can request opening
   // the workflow-run explorer for its current execution by dispatching a
   // `workflow-run:open` window event with `{ executionId }` in `detail`.
@@ -6620,7 +6634,7 @@ const IncidentDetailPage = () => {
           {questionNotif && (
             <InlineAgentQuestion
               notification={questionNotif}
-              onOpenDetails={(execId) => setSelectedWorkflowExecutionId(execId)}
+              onOpenDetails={openAgentRunDetails}
               onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
             />
           )}
@@ -7833,7 +7847,7 @@ const IncidentDetailPage = () => {
       <Box key={`inc-question-${n.id}`} sx={{ mb: 1 }}>
         <InlineAgentQuestion
           notification={n}
-          onOpenDetails={(execId) => setSelectedWorkflowExecutionId(execId)}
+          onOpenDetails={openAgentRunDetails}
           onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
         />
       </Box>
