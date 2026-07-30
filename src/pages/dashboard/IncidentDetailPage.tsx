@@ -3909,12 +3909,19 @@ const IncidentDetailPage = () => {
       // Post-save verification: pull back the data after a short delay and verify key fields
       setTimeout(async () => {
         try {
-          const verified = await getItem(incident.id);
+          // Fetch-back can transiently fail (circuit breaker, eventual
+          // consistency). Retry once before giving up, and never alarm the
+          // user — the save itself already reported success/failure.
+          let verified = await getItem(incident.id);
           if (!verified) {
-            console.warn('[SaveVerify] Could not fetch back saved incident');
-            toast.error('Save verification failed — could not confirm changes were persisted');
+            await new Promise(r => setTimeout(r, 2000));
+            verified = await getItem(incident.id);
+          }
+          if (!verified) {
+            console.warn('[SaveVerify] Could not fetch back saved incident (transient, ignored)');
             return;
           }
+
           const savedData = typeof verified.value === 'string' ? JSON.parse(verified.value) : verified.value;
           const issues: string[] = [];
 
