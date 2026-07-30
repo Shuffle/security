@@ -50,7 +50,28 @@ export const IncidentMetaChips = ({
 }: IncidentMetaChipsProps) => {
   const { users, loading: usersLoading } = useUsers();
 
+  /**
+   * Autocorrect: incidents ingested from email can end up with an assignee that
+   * is really a sender header ("Google Cloud Alerting <x@y.com>") rather than a
+   * real Shuffle user. Once the user list is known, silently reset any assignee
+   * that matches no existing user back to Unassigned.
+   */
+  const correctedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (readOnly || usersLoading || users.length === 0) return;
+    if (!assignee || isAIAssignee(assignee)) return;
+    if (correctedRef.current === assignee) return;
+    const known = users.some(
+      (u) => (u.username || '').trim().toLowerCase() === assignee.trim().toLowerCase(),
+    );
+    if (!known) {
+      correctedRef.current = assignee;
+      onAssigneeChange('');
+    }
+  }, [assignee, users, usersLoading, readOnly, onAssigneeChange]);
+
   const statusInfo = statusConfig[status];
+
 
   return (
     <Box
