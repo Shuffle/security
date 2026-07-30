@@ -1925,6 +1925,12 @@ const IncidentDetailPage = () => {
 
   const handleAutoMergeThread = useCallback(async () => {
     if (!incident?.id || !incident.rawOCSF) return;
+    // A resolved/closed thread anchor stops absorbing new incidents.
+    if (isClosedIncident(incident.rawOCSF)) {
+      toast.info('This incident is resolved or closed — new thread items are kept separate.');
+      return;
+    }
+
     const siblings = threadCorrelated.discoveredCount > threadCorrelated.incidents.length
       ? await threadCorrelated.loadAll()
       : threadCorrelated.incidents;
@@ -1981,10 +1987,15 @@ const IncidentDetailPage = () => {
         skipped.push({ id: s.id, reason: `already merged into ${sourcePrimary?.id || s.raw?.merged_into || 'another incident'}` });
         return false;
       }
+      if (isClosedIncident(s.raw)) {
+        skipped.push({ id: s.id, reason: 'resolved/closed — kept separate' });
+        return false;
+      }
       if (pairWasUnmerged(primary.raw, primary.id, s.raw, s.id)) {
         skipped.push({ id: s.id, reason: 'manually unmerged from this pair' });
         return false;
       }
+
       return true;
     });
     if (sources.length === 0) {
