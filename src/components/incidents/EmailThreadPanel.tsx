@@ -337,6 +337,10 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const [replyBcc, setReplyBcc] = useState('');
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
+  // Raw mode renders the original email content in one block (the pre-threading
+  // rendering) so a mis-parsed thread can always be read as-is.
+  const [rawMode, setRawMode] = useState(false);
+
   // Default the thread to OPEN — for email-related incidents the email is
   // the primary narrative, so it should be visible immediately without an
   // extra click. Persisted in localStorage so a user who prefers it
