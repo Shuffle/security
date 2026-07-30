@@ -117,6 +117,7 @@ import { DemoSpotlight } from '@/components/demo/DemoSpotlight';
 import { DemoCompletionWatcher } from '@/components/demo/DemoCompletionWatcher';
 import { DemoResumePill } from '@/components/demo/DemoResumePill';
 import GlobalAgentDrawer from '@/components/agent/GlobalAgentDrawer';
+import GlobalWorkflowRunDrawer from '@/components/agent/GlobalWorkflowRunDrawer';
 
 
 
@@ -209,6 +210,7 @@ const ThemedApp = () => {
         <BrowserRouter>
           <ScrollToTop />
           <GlobalAgentDrawer />
+          <GlobalWorkflowRunDrawer />
           <DemoProvider>
           <DemoTourDrawer />
           <DemoSpotlight />
