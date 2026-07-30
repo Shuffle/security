@@ -6634,7 +6634,7 @@ const IncidentDetailPage = () => {
           {questionNotif && (
             <InlineAgentQuestion
               notification={questionNotif}
-              onOpenDetails={(execId) => setSelectedWorkflowExecutionId(execId)}
+              onOpenDetails={openAgentRunDetails}
               onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
             />
           )}
@@ -7847,7 +7847,7 @@ const IncidentDetailPage = () => {
       <Box key={`inc-question-${n.id}`} sx={{ mb: 1 }}>
         <InlineAgentQuestion
           notification={n}
-          onOpenDetails={(execId) => setSelectedWorkflowExecutionId(execId)}
+          onOpenDetails={openAgentRunDetails}
           onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
         />
       </Box>
