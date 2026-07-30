@@ -258,9 +258,18 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     // Drop empty fragments entirely rather than rendering a blank bubble.
     if (!body && !from) continue;
 
+    // Never invent an anonymous "Earlier message": if we cannot attribute the
+    // fragment to a sender, it is continuation text of the previous message.
+    if (!from && messages.length > 0) {
+      const prev = messages[messages.length - 1];
+      prev.body = `${prev.body}\n${body}`.trim();
+      continue;
+    }
+
     messages.push({
       id: `email-${i}`,
-      from: from || (messages.length === 0 ? 'Sender' : 'Earlier message'),
+      from: from || 'Sender',
+
       fromEmail: fromMatch
         ? extractEmail(fromMatch[1].trim()).email
         : (wroteMatch ? extractEmail(wroteMatch[1]).email : undefined),
