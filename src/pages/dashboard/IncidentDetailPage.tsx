@@ -96,7 +96,7 @@ import { RelatedIncidentsBanner } from '@/components/incidents/RelatedIncidentsB
 import { ThreadCorrelatedBanner } from '@/components/incidents/ThreadCorrelatedBanner';
 import { useRelatedIncidents } from '@/hooks/useRelatedIncidents';
 import { useThreadCorrelatedIncidents } from '@/hooks/useThreadCorrelatedIncidents';
-import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePairsIncremental, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant } from '@/lib/incidentRelations';
+import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePairsIncremental, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant, isClosedIncident } from '@/lib/incidentRelations';
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
@@ -1925,6 +1925,12 @@ const IncidentDetailPage = () => {
 
   const handleAutoMergeThread = useCallback(async () => {
     if (!incident?.id || !incident.rawOCSF) return;
+    // A resolved/closed thread anchor stops absorbing new incidents.
+    if (isClosedIncident(incident.rawOCSF)) {
+      toast.info('This incident is resolved or closed — new thread items are kept separate.');
+      return;
+    }
+
     const siblings = threadCorrelated.discoveredCount > threadCorrelated.incidents.length
       ? await threadCorrelated.loadAll()
       : threadCorrelated.incidents;
@@ -1981,10 +1987,15 @@ const IncidentDetailPage = () => {
         skipped.push({ id: s.id, reason: `already merged into ${sourcePrimary?.id || s.raw?.merged_into || 'another incident'}` });
         return false;
       }
+      if (isClosedIncident(s.raw)) {
+        skipped.push({ id: s.id, reason: 'resolved/closed — kept separate' });
+        return false;
+      }
       if (pairWasUnmerged(primary.raw, primary.id, s.raw, s.id)) {
         skipped.push({ id: s.id, reason: 'manually unmerged from this pair' });
         return false;
       }
+
       return true;
     });
     if (sources.length === 0) {
@@ -2140,7 +2151,10 @@ const IncidentDetailPage = () => {
     if (isPublicView) return;
     if (autoMergeBusy) return;
     if (!incident?.id || !incident.rawOCSF) return;
+    // Thread is finished — new arrivals stay separate incidents.
+    if (isClosedIncident(incident.rawOCSF)) return;
     if (primaryPointer) return; // Already merged into another incident.
+
     const threadId = threadCorrelated.threadId;
     if (!threadId) return;
     if (threadCorrelated.loading) return;

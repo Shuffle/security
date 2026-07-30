@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { linkMergePairsIncremental, getLinkedPointers, isMergedIncident, getPrimaryPointer, pairWasUnmerged } from '@/lib/incidentRelations';
+import { linkMergePairsIncremental, getLinkedPointers, isMergedIncident, isClosedIncident, getPrimaryPointer, pairWasUnmerged } from '@/lib/incidentRelations';
 import { useAutoMergeThread } from '@/hooks/useEntityLabel';
 import { extractThreadId } from '@/hooks/useThreadCorrelatedIncidents';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
@@ -99,7 +99,11 @@ export const useBackgroundThreadContinuation = (
       const raw = inc.rawOCSF;
       if (!raw) continue;
       if (isMergedIncident(raw)) continue;
+      // Never fold new arrivals into a thread whose anchor is already
+      // Resolved/Closed — they must stay separate incidents.
+      if (isClosedIncident(raw)) continue;
       if (getPrimaryPointer(raw)) continue;
+
       const linked = getLinkedPointers(raw).length;
       const tid = extractThreadId(raw);
       if (!tid) continue;
@@ -187,6 +191,9 @@ export const useBackgroundThreadContinuation = (
                 if (!res.success || !res.item) continue;
                 const sRaw = JSON.parse(res.item.value);
                 if (isMergedIncident(sRaw)) continue;
+                // A resolved/closed sibling keeps its own life-cycle.
+                if (isClosedIncident(sRaw)) continue;
+
                 const title =
                   sRaw.title
                   || sRaw.finding_info_list?.[0]?.title
