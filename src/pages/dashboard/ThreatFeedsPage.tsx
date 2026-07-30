@@ -181,11 +181,7 @@ const ThreatFeedsPage = () => {
     ['url', 'ipv4', 'domain', 'hash_md5', 'hash_sha256'].forEach((n) => set.add(n));
     return Array.from(set);
   }, [feeds]);
-  const { data: iocCounts = {}, isLoading: countsLoading } = useObservableCounts(trackedIocNames);
-  const totalIocs = useMemo(
-    () => Object.values(iocCounts).reduce((sum, n) => sum + (n || 0), 0),
-    [iocCounts],
-  );
+  const { data: iocCounts = {} } = useObservableCounts(trackedIocNames);
   const topIocs = useMemo(
     () => Object.entries(iocCounts)
       .filter(([, n]) => n > 0)
