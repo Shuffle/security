@@ -328,7 +328,7 @@ const PublicMonitorsView = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-transparent p-5">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/15 text-primary shrink-0">
             <Activity size={14} />
@@ -354,7 +354,7 @@ const PublicMonitorsView = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-transparent p-5">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/15 text-primary shrink-0">
             <HardDrive size={14} />
@@ -379,7 +379,7 @@ const PublicMonitorsView = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-transparent p-5">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/15 text-primary shrink-0">
             <Plus size={14} />
@@ -1262,7 +1262,7 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
       </div>
 
       {/* Host Monitors section */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="rounded-lg border border-border bg-transparent overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
