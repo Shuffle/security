@@ -2450,7 +2450,7 @@ const IncidentDetailPage = () => {
   // The list is polled at 60s and folded into the timeline as a "workflow
   // run" pill; the observable-check pill also uses it to become a link to
   // the actual execution once its id shows up.
-  const { runsForIncident: allIncidentWorkflowRuns, refetch: refetchWorkflowRuns } = useIncidentWorkflowRuns(
+  const { runsForIncident: allIncidentWorkflowRuns, isLoading: workflowRunsLoading, refetch: refetchWorkflowRuns } = useIncidentWorkflowRuns(
     !loading ? id : undefined,
     hasPendingAgentMention || refreshingObservables,
     workflowRunsWindow,
@@ -2564,6 +2564,11 @@ const IncidentDetailPage = () => {
 
 
   const workflowOnlyRuns = useMemo(() => {
+    // Do not render any workflow rows until BOTH the agent runs and the
+    // workflow runs have resolved. Workflow executions that spawned an agent
+    // are filtered out below, so rendering before agent runs arrive makes
+    // rows appear and then vanish (flicker).
+    if (agentRunsLoading || workflowRunsLoading) return [] as any[];
     const agentIds = new Set((agentRuns || []).map((r: any) => r.execution_id));
 
     // Build [start, end] windows for every agent run on this incident. Any
@@ -2618,7 +2623,7 @@ const IncidentDetailPage = () => {
       if (wfName !== 'ingest tickets') return true;
       return r.execution_id === keepIngestId;
     });
-  }, [allIncidentWorkflowRuns, agentRuns]);
+  }, [allIncidentWorkflowRuns, agentRuns, agentRunsLoading, workflowRunsLoading]);
   const [selectedAgentRun, setSelectedAgentRun] = useState<AgentRun | null>(null);
   const [selectedWorkflowExecutionId, setSelectedWorkflowExecutionId] = useState<string | null>(null);
 
