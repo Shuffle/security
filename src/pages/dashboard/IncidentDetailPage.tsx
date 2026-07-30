@@ -2521,7 +2521,7 @@ const IncidentDetailPage = () => {
       if (status && status !== 'EXECUTING' && status !== 'WAITING' && status !== 'RUNNING') return;
       for (const pending of extractPendingAgentQuestions({ decisions: decisionsForRun(run) })) {
         if (notifiedDecisionIds.has(pending.decisionId)) continue;
-        const startedMs = run?.started_at ? Math.floor(new Date(run.started_at).getTime() / 1000) : Math.floor(Date.now() / 1000);
+        const startedMs = Math.floor((run?.started_at ? normalizeToMs(run.started_at) : Date.now()) / 1000);
         synthetic.push({
           id: `agent-run-question-${execId}-${pending.decisionId}`,
           title: pending.reason || 'Agent needs your input',
