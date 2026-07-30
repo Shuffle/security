@@ -297,22 +297,21 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const [replyBcc, setReplyBcc] = useState('');
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
-  // Default the thread to collapsed — the Activity timeline is the primary
-  // narrative on the incident page; users can expand the email when they
-  // need to read it. This avoids the long forwarded chain pushing the
-  // timeline below the fold on first open. Persisted in localStorage so
-  // the user's chosen workflow (always-open vs always-collapsed) sticks
-  // across navigation between incidents.
+  // Default the thread to OPEN — for email-related incidents the email is
+  // the primary narrative, so it should be visible immediately without an
+  // extra click. Persisted in localStorage so a user who prefers it
+  // collapsed keeps that choice across incidents.
   const EMAIL_THREAD_OPEN_KEY = 'shuffle-incident-email-thread-open';
   const [threadCollapsed, setThreadCollapsedState] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
+    if (typeof window === 'undefined') return false;
     try {
       const v = localStorage.getItem(EMAIL_THREAD_OPEN_KEY);
       if (v === '1') return false; // stored "open" -> not collapsed
       if (v === '0') return true;
     } catch { /* ignore */ }
-    return true;
+    return false;
   });
+
   const setThreadCollapsed: typeof setThreadCollapsedState = (value) => {
     setThreadCollapsedState((prev) => {
       const next = typeof value === 'function' ? (value as (p: boolean) => boolean)(prev) : value;
