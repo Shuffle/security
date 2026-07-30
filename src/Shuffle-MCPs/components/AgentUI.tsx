@@ -3101,10 +3101,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
   };
 
-  // Schedule guardrails: do not allow scheduling when the run required a
-  // continuation (the oneshot prompt did not work) or did not perform any
-  // actual app/tool actions (nothing meaningful would run on a schedule).
-  const { scheduleDisabledReasons } = useMemo(() => {
+  // Schedule discovery: one shared mechanism for Start / Simple / Detailed.
+  // The only hard block is an unfinished run; everything else is advisory.
+  const { scheduleDisabledReasons, scheduleWarnings } = useMemo(() => {
     const decisions: any[] = (agentData?.decisions as any[]) || [];
     const runStatus = String(execution?.status || agentData?.status || '').toUpperCase();
     const isNotFinished = runStatus !== '' && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(runStatus);
