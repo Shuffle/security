@@ -1353,7 +1353,7 @@ const IncidentDetailPage = () => {
   // recovery. Writes the recovered snapshot back to the datastore so the
   // stored item stops being "broken" for other users as well, then reloads
   // the incident state from the server.
-  const handleRestoreOcsfFallback = async () => {
+  const handleRestoreOcsfFallback = async (silent = false) => {
     if (!id || !ocsfFallbackInfo?.recoveredValue || ocsfRestoring) return;
     setOcsfRestoring(true);
     try {
@@ -1361,28 +1361,32 @@ const IncidentDetailPage = () => {
       try {
         parsedRecovered = JSON.parse(ocsfFallbackInfo.recoveredValue);
       } catch (err) {
-        toast.error('Could not parse the recovered snapshot');
+        if (!silent) toast.error('Could not parse the recovered snapshot');
         setOcsfRestoring(false);
         return;
       }
       const res = await writeIncidentSafe(id, parsedRecovered, crossOrgId || undefined);
       if (!res.success) {
-        toast.error(res.error || 'Failed to restore the previous version');
+        if (!silent) toast.error(res.error || 'Failed to restore the previous version');
         setOcsfRestoring(false);
         return;
       }
-      toast.success('Incident restored from the last known-good version');
+      if (!silent) toast.success('Incident restored from the last known-good version');
       dismissOcsfFallback();
       // Reset the fallback attempt so a fresh load re-validates the payload.
       ocsfFallbackAttemptedRef.current = false;
       setOcsfFallbackInfo(null);
       await loadIncident(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to restore');
+      if (!silent) toast.error(err instanceof Error ? err.message : 'Failed to restore');
     } finally {
       setOcsfRestoring(false);
     }
   };
+
+
+
+
 
 
   const loadRevisions = useCallback(async () => {
@@ -1873,6 +1877,24 @@ const IncidentDetailPage = () => {
   // into another) and the incidents that were merged INTO this one.
   const relatedIncidents = useRelatedIncidents(incident?.id, incident?.rawOCSF);
   const primaryPointer = useMemo(() => getPrimaryPointer(incident?.rawOCSF), [incident?.rawOCSF]);
+
+  // Auto-repair: when the stored payload drifted from OCSF but a known-good
+  // reconstruction exists, write it back silently instead of nagging the user
+  // with a warning banner. Skipped for read-only / merged-pointer views.
+  const ocsfAutoRestoredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!id || !ocsfFallbackInfo?.recoveredValue) return;
+    if (isPublicView || primaryPointer || ocsfRestoring) return;
+    if (ocsfAutoRestoredRef.current === id) return;
+    // Freshly created incidents have nothing meaningful to roll back to.
+    const createdMs = incident?.createdTs || 0;
+    if (createdMs && Date.now() - createdMs < 10 * 60 * 1000) return;
+    ocsfAutoRestoredRef.current = id;
+    void handleRestoreOcsfFallback(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, ocsfFallbackInfo, isPublicView, primaryPointer]);
+
+
 
   // Thread-correlated incidents: when the current payload has a thread_id,
   // pull in every other incident that shares the value via the correlations
@@ -5352,122 +5374,9 @@ const IncidentDetailPage = () => {
       </Menu>
 
       {/* Body content. Collapse is handled by the surrounding IncidentSection. */}
-      {/* Bad-data warning — surfaced inside the Timeline so users notice the
-          drift right where they would inspect / roll back changes. Triggered
-          by the same OCSF-recovery fallback that powers the top-of-page banner. */}
-      {ocsfFallbackInfo && !ocsfFallbackDismissed && (() => {
-        // Suppress for freshly manually-created incidents — the minimal initial
-        // payload often trips the OCSF-missing-fields check, but there is nothing
-        // to "roll back" to. If the incident was created within the last 10 min,
-        // hide the banner.
-        const createdMs = incident?.createdTs || 0;
-        if (createdMs && Date.now() - createdMs < 10 * 60 * 1000) return null;
-        // If auto-recovery succeeded (no fields still missing and payload parses
-        // as OCSF), stay silent — the reconstruction is transparent to the user.
-        const stillMissing = ocsfFallbackInfo.stillMissingFields || [];
-        const stillHasProblem = stillMissing.length > 0 || ocsfFallbackInfo.reason === 'not-ocsf';
-        if (!stillHasProblem) return null;
-        return true;
-      })() && (
-        <Box sx={{
-          mx: 2,
-          mt: 2,
-          p: 1.25,
-          borderRadius: 2,
-          bgcolor: 'hsl(38 92% 50% / 0.10)',
-          border: '1px solid hsl(38 92% 50% / 0.40)',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1,
-        }}>
-          <HistoryIcon size={18} style={{ color: 'hsl(38 92% 50%)', marginTop: '0px' }} />
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            {(() => {
-              const stillMissing = ocsfFallbackInfo.stillMissingFields || [];
-              const stillHasProblem = stillMissing.length > 0 || ocsfFallbackInfo.reason === 'not-ocsf';
-              const missingList = stillMissing.slice(0, 6).join(', ')
-                + (stillMissing.length > 6 ? `, +${stillMissing.length - 6} more` : '');
-              return (
-                <>
-                  <Typography variant="body2" sx={{ color: 'hsl(38 92% 50%)', fontWeight: 600, fontSize: '0.78rem' }}>
-                    {stillMissing.length > 0
-                      ? (stillMissing.length === 1
-                          ? `This incident is missing a required OCSF field: ${stillMissing[0]}`
-                          : `This incident is missing required OCSF fields: ${missingList}`)
-                      : ocsfFallbackInfo.reason === 'not-ocsf'
-                        ? 'This incident is no longer valid OCSF'
-                        : 'This incident has been reconstructed from earlier revisions'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', display: 'block', mt: 0.25 }}>
-                    {stillHasProblem
-                      ? (ocsfFallbackInfo.reason === 'not-ocsf'
-                          ? 'The current stored payload does not match the OCSF 2005 incident schema. This usually happens after a manual edit to the underlying datastore item overwrote the structured fields.'
-                          : 'The stored payload parses as OCSF but the field(s) above could not be recovered from any revision. This usually happens after a manual edit to the datastore item removed them.')
-                      : 'The stored payload was broken, but earlier revisions had every required field — you are viewing a merged reconstruction and nothing is currently missing.'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', display: 'block', mt: 0.5 }}>
-                    You are currently viewing a merged reconstruction from earlier revisions
-                    {typeof ocsfFallbackInfo.overlaidFieldCount === 'number' && ocsfFallbackInfo.overlaidFieldCount > 0
-                      ? ` (${ocsfFallbackInfo.overlaidFieldCount} field${ocsfFallbackInfo.overlaidFieldCount === 1 ? '' : 's'} overlaid from the broken payload)`
-                      : ''}
-                    . The last known-good version{ocsfFallbackInfo.revisionTimestamp ? ` is from ${new Date(ocsfFallbackInfo.revisionTimestamp).toLocaleString()}` : ''}.
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', display: 'block', mt: 0.5, fontWeight: 600 }}>
-                    Restore rewrites the stored incident to that known-good version. Any unsaved edits made after it will be discarded, but the current broken payload remains in the change history so you can still recover it.
-                  </Typography>
-                </>
-              );
-            })()}
-            <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, flexWrap: 'wrap' }}>
-              <Button
-                size="small"
-                variant="contained"
-                disabled={!ocsfFallbackInfo.recoveredValue || ocsfRestoring || isPublicView || !!primaryPointer}
-                onClick={handleRestoreOcsfFallback}
-                startIcon={ocsfRestoring ? <Loader2Icon size={14} className="animate-spin" /> : <HistoryIcon size={14} />}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.7rem',
-                  bgcolor: 'hsl(38 92% 50%)',
-                  color: 'hsl(0 0% 0%)',
-                  px: 1.25,
-                  py: 0.35,
-                  minHeight: 0,
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: 'hsl(38 92% 45%)', boxShadow: 'none' },
-                }}
-              >
-                {ocsfRestoring ? 'Restoring…' : 'Restore last known-good version'}
-              </Button>
-              {!isFilterActive('revisions') && (
-                <Button
-                  size="small"
-                  onClick={() => setActiveTimelineFilters((prev) => new Set([...prev, 'revisions']))}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.7rem',
-                    color: 'hsl(38 92% 50%)',
-                    px: 1,
-                    py: 0.35,
-                    minHeight: 0,
-                    '&:hover': { bgcolor: 'hsl(38 92% 50% / 0.15)' },
-                  }}
-                >
-                  Review changes first
-                </Button>
-              )}
-            </Box>
-          </Box>
-          <IconButton
-            size="small"
-            onClick={dismissOcsfFallback}
-            aria-label="Dismiss"
-            sx={{ color: 'hsl(38 92% 50%)', p: 0.5, '&:hover': { bgcolor: 'hsl(38 92% 50% / 0.15)' } }}
-          >
-            <CloseIcon size={14} />
-          </IconButton>
-        </Box>
-      )}
+      {/* OCSF drift is auto-repaired silently (see the auto-restore effect) —
+          no warning banner is shown to the user. */}
+
       {/* Inline enrichment CTA — mirrors the Observables-tab banner so users
           can enable automatic extraction without leaving the timeline. Shown
           while the incident is fresh, just after a comment, or while the
