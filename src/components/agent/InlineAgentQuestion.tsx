@@ -14,8 +14,9 @@
  *    question dismisses the notification.
  */
 import { useState } from 'react';
-import { Box, Typography, Button, TextField, CircularProgress, Tooltip } from '@mui/material';
-import { HelpCircle, Send, X, Check } from 'lucide-react';
+import { Box, Typography, Button, TextField, CircularProgress, Tooltip, IconButton } from '@mui/material';
+import { Send, X, Check, ExternalLink } from 'lucide-react';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { toast } from '@/lib/toast';
 import InlineMarkdown from '@/components/shared/InlineMarkdown';
 import {
@@ -30,12 +31,28 @@ interface Props {
   notification: AgentNotification;
   /** Human label for where the question came from (e.g. workflow name). */
   sourceLabel?: string;
+  /** Opens the full agent run / execution details for this question. */
+  onOpenDetails?: (executionId: string) => void;
   onSubmitted?: () => void;
 }
 
-const relativeTime = (unixSeconds?: number): string => {
-  if (!unixSeconds) return '';
-  const ms = unixSeconds > 1e12 ? unixSeconds : unixSeconds * 1000;
+const toMs = (ts?: number | string): number => {
+  if (!ts) return 0;
+  if (typeof ts === 'string' && /[^0-9.]/.test(ts)) {
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+  const n = typeof ts === 'string' ? Number(ts) : ts;
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  if (n < 1e12) return n * 1000;
+  if (n < 1e15) return n;
+  if (n < 1e18) return n / 1000;
+  return n / 1e6;
+};
+
+const relativeTime = (raw?: number | string): string => {
+  const ms = toMs(raw);
+  if (!ms) return '';
   const diff = Date.now() - ms;
   if (!Number.isFinite(diff) || diff < 0) return '';
   const mins = Math.floor(diff / 60000);
@@ -46,7 +63,7 @@ const relativeTime = (unixSeconds?: number): string => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-const InlineAgentQuestion = ({ notification, sourceLabel, onSubmitted }: Props) => {
+const InlineAgentQuestion = ({ notification, sourceLabel, onOpenDetails, onSubmitted }: Props) => {
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -127,7 +144,7 @@ const InlineAgentQuestion = ({ notification, sourceLabel, onSubmitted }: Props) 
           gap: 1,
         }}
       >
-        <Check size={14} style={{ color: 'hsl(var(--severity-info))' }} />
+        <Check size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
         <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))' }}>
           {answeredCount > 0
             ? `${answeredCount} answer${answeredCount === 1 ? '' : 's'} submitted${ignoredCount ? `, ${ignoredCount} ignored` : ''}.`
@@ -144,76 +161,43 @@ const InlineAgentQuestion = ({ notification, sourceLabel, onSubmitted }: Props) 
         mt: 0.75,
         p: 2,
         borderRadius: 1.5,
-        border: '1px solid hsl(var(--severity-info) / 0.45)',
-        bgcolor: 'hsl(var(--severity-info) / 0.06)',
+        border: '1px solid hsl(var(--severity-info) / 0.5)',
+        bgcolor: 'transparent',
         display: 'flex',
         flexDirection: 'column',
         gap: 1.25,
       }}
     >
-      {/* Header — who is asking, from where, and when */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <HelpCircle size={16} style={{ color: 'hsl(var(--severity-info))' }} />
-        <Box
-          sx={{
-            px: 1,
-            py: 0.25,
-            borderRadius: 999,
-            fontSize: '0.68rem',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'hsl(var(--severity-info))',
-            bgcolor: 'hsl(var(--severity-info) / 0.12)',
-          }}
-        >
-          Question
-        </Box>
+      {/* Header — it is always the AI Agent asking */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <AgentIcon size={15} />
         <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
           The AI Agent needs your input to continue
         </Typography>
         {total > 1 && (
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--severity-info))', ml: 'auto' }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
             {index + 1} of {total}
           </Typography>
         )}
-      </Box>
-
-      {/* Provenance line */}
-      <Typography
-        sx={{
-          fontSize: '0.72rem',
-          color: 'hsl(var(--muted-foreground))',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.75,
-          flexWrap: 'wrap',
-        }}
-      >
-        <span>Asked by</span>
-        <Box component="span" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-          <InlineMarkdown text={origin} />
+        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {relativeTime(notification.created_at) && (
+            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
+              {relativeTime(notification.created_at)}
+            </Typography>
+          )}
+          {notification.execution_id && onOpenDetails && (
+            <Tooltip title="Show agent run details" arrow>
+              <IconButton
+                size="small"
+                onClick={(e) => { e.stopPropagation(); onOpenDetails(String(notification.execution_id)); }}
+                sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--foreground))' } }}
+              >
+                <ExternalLink size={14} />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
-        {shortExec && (
-          <Tooltip title={`Execution ${notification.execution_id}`} arrow>
-            <Box
-              component="span"
-              sx={{
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                fontSize: '0.68rem',
-                px: 0.75,
-                py: 0.1,
-                borderRadius: 0.75,
-                border: '1px solid hsl(var(--border))',
-                cursor: 'help',
-              }}
-            >
-              {shortExec}
-            </Box>
-          </Tooltip>
-        )}
-        {relativeTime(notification.created_at) && <span>· {relativeTime(notification.created_at)}</span>}
-      </Typography>
+      </Box>
 
       {notification.description && (
         <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.55 }}>
