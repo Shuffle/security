@@ -594,6 +594,19 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   // IncidentSection's `actions` slot.
   const headerActions = (
     <>
+      <Tooltip title={rawMode ? 'Show threaded view' : 'Show raw email'}>
+        <IconButton
+          size="small"
+          onClick={() => setRawMode(r => !r)}
+          sx={{
+            color: rawMode ? primaryColor : 'text.secondary',
+            '&:hover': { color: primaryColor },
+          }}
+        >
+          <CodeIcon size={17} />
+        </IconButton>
+      </Tooltip>
+
       {onReply && (
         <Tooltip title="Reply (disabled)">
           <span>
