@@ -359,38 +359,38 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   };
 
 
-  // Default the thread to OPEN — for email-related incidents the email is
-  // the primary narrative, so it should be visible immediately without an
-  // extra click. Persisted in localStorage so a user who prefers it
-  // collapsed keeps that choice across incidents.
-  const EMAIL_THREAD_OPEN_KEY = 'shuffle-incident-email-thread-open';
-  const [threadCollapsed, setThreadCollapsedState] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      const v = localStorage.getItem(EMAIL_THREAD_OPEN_KEY);
-      if (v === '1') return false; // stored "open" -> not collapsed
-      if (v === '0') return true;
-    } catch { /* ignore */ }
-    return false;
-  });
-
-  const setThreadCollapsed: typeof setThreadCollapsedState = (value) => {
-    setThreadCollapsedState((prev) => {
-      const next = typeof value === 'function' ? (value as (p: boolean) => boolean)(prev) : value;
-      try { localStorage.setItem(EMAIL_THREAD_OPEN_KEY, next ? '0' : '1'); } catch { /* ignore */ }
-      return next;
-    });
-  };
+  // Email incidents ALWAYS start with the thread visible — the email is the
+  // primary narrative, so it must be shown no matter what was stored before.
+  // The user can still collapse it manually for the current session.
+  const [threadCollapsed, setThreadCollapsed] = useState<boolean>(false);
 
   // Popout mode — like Gmail's "open in new window" button. When enabled the
   // entire panel is rendered into a draggable floating card via a React
   // portal, so the user can keep reading the email while they navigate
   // around the rest of the incident page.
   const [poppedOut, setPoppedOut] = useState(false);
-  const POP_W = 720;
-  const POP_H = 600;
+  const POP_SIZE_KEY = 'shuffle-incident-email-popout-size';
+  const MIN_POP_W = 360;
+  const MIN_POP_H = 240;
+  const [popSize, setPopSize] = useState<{ w: number; h: number }>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(POP_SIZE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { w?: number; h?: number };
+          if (typeof parsed.w === 'number' && typeof parsed.h === 'number') {
+            return {
+              w: Math.max(MIN_POP_W, parsed.w),
+              h: Math.max(MIN_POP_H, parsed.h),
+            };
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    return { w: 720, h: 600 };
+  });
   const [popPos, setPopPos] = useState<{ x: number; y: number }>(() => ({
-    x: typeof window !== 'undefined' ? Math.max(24, window.innerWidth - POP_W - 32) : 80,
+    x: typeof window !== 'undefined' ? Math.max(24, window.innerWidth - popSize.w - 32) : 80,
     y: 96,
   }));
   const dragRef = useRef<{ dx: number; dy: number } | null>(null);
@@ -405,7 +405,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       const maxX = window.innerWidth - 80;
       const maxY = window.innerHeight - 60;
       setPopPos({
-        x: Math.min(Math.max(-POP_W + 80, nx), maxX),
+        x: Math.min(Math.max(-popSize.w + 80, nx), maxX),
         y: Math.min(Math.max(0, ny), maxY),
       });
     };
@@ -416,7 +416,33 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [popPos.x, popPos.y]);
+  }, [popPos.x, popPos.y, popSize.w]);
+
+  // Resize from the bottom-right grip; the chosen size is remembered.
+  const onResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = popSize.w;
+    const startH = popSize.h;
+    let latest = { w: startW, h: startH };
+    const onMove = (ev: MouseEvent) => {
+      latest = {
+        w: Math.max(MIN_POP_W, Math.min(startW + (ev.clientX - startX), window.innerWidth - 24)),
+        h: Math.max(MIN_POP_H, Math.min(startH + (ev.clientY - startY), window.innerHeight - 24)),
+      };
+      setPopSize(latest);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      try { localStorage.setItem(POP_SIZE_KEY, JSON.stringify(latest)); } catch { /* ignore */ }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [popSize.w, popSize.h]);
+
 
   // Demo tour: keep the auto-collapse behaviour explicit so the spotlight on
   // step #5 lands on the timeline. Reset the one-shot guard between demo
@@ -1104,8 +1130,9 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
             position: 'fixed',
             top: popPos.y,
             left: popPos.x,
-            width: POP_W,
-            height: POP_H,
+            width: popSize.w,
+            height: popSize.h,
+
             zIndex: 1400,
             bgcolor: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
@@ -1144,6 +1171,30 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
           <Box sx={{ flex: 1, overflow: 'auto' }}>
             {panel}
           </Box>
+          {/* Resize grip (bottom-right) — size is remembered across sessions */}
+          <Box
+            onMouseDown={onResizeStart}
+            sx={{
+              position: 'absolute',
+              right: 0,
+              bottom: 0,
+              width: 18,
+              height: 18,
+              cursor: 'nwse-resize',
+              zIndex: 2,
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                right: 3,
+                bottom: 3,
+                width: 9,
+                height: 9,
+                borderRight: '2px solid hsl(var(--border))',
+                borderBottom: '2px solid hsl(var(--border))',
+              },
+            }}
+          />
+
         </Box>,
         document.body,
       )}
