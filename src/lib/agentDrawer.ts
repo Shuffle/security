@@ -15,8 +15,26 @@ export interface AgentDrawerOpenDetail {
   tab?: AgentDrawerTab;
 }
 
-export const openAgentDrawer = (tab: AgentDrawerTab = 'run') => {
+/**
+ * Fired to auto-open the "Add tool" picker inside the Permissions tab's
+ * Assigned tools section.
+ */
+export const AGENT_TOOL_PICKER_OPEN_EVENT = 'agent-tool-picker-open';
+
+export const openAgentToolPicker = () => {
+  window.dispatchEvent(new CustomEvent(AGENT_TOOL_PICKER_OPEN_EVENT));
+};
+
+export const openAgentDrawer = (
+  tab: AgentDrawerTab = 'run',
+  options?: { openToolPicker?: boolean },
+) => {
   window.dispatchEvent(
     new CustomEvent<AgentDrawerOpenDetail>(AGENT_DRAWER_OPEN_EVENT, { detail: { tab } }),
   );
+  if (options?.openToolPicker) {
+    // Let the drawer mount the Permissions tab before the picker opens.
+    window.setTimeout(openAgentToolPicker, 250);
+  }
 };
+
