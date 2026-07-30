@@ -1544,10 +1544,24 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Keep the input's first-line text-indent in sync with the actual chip width
   // so wrapping text starts at the left edge below the chip.
   useLayoutEffect(() => {
-    if (presetsChipRef.current) {
-      setPresetsChipWidth(presetsChipRef.current.getBoundingClientRect().width);
+    const el = presetsChipRef.current;
+    if (!el) {
+      setPresetsChipWidth(0);
+      return;
     }
+    const measure = () => setPresetsChipWidth(el.getBoundingClientRect().width);
+    measure();
+    // The chip's width changes after fonts load and when the template label
+    // changes; without observing it the prefilled text (e.g. on "Rerun")
+    // renders underneath the chip.
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    let cancelled = false;
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    fonts?.ready?.then(() => { if (!cancelled) measure(); }).catch(() => { /* ignore */ });
+    return () => { cancelled = true; ro.disconnect(); };
   }, [selectedPreset, hidePresets, presets]);
+
 
   // Pick ONE random autocomplete suggestion on mount and keep it stable, so
   // the placeholder does not rotate every render. If the caller supplied an
