@@ -284,7 +284,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   };
 
   const wrapperClass = variant === 'page'
-    ? 'rounded-lg border border-border bg-card p-5 space-y-5'
+    ? 'rounded-lg border border-border bg-transparent p-5 space-y-5'
     : 'border-b border-border bg-muted/10 px-5 py-4 space-y-4';
 
   return (
