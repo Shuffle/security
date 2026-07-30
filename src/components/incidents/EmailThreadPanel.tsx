@@ -153,12 +153,43 @@ const normalizeThreadText = (raw: string): string =>
  * render as raw <Typography> text — which feels like two different parsers.
  */
 const plainTextToEmailHtml = (text: string): string => {
-  const escaped = (text || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  return `<div style="white-space:pre-wrap;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;">${escaped}</div>`;
+  const esc = (s: string) =>
+    (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const lines = (text || '').split(/\r?\n/);
+  const quoteDepth = (line: string) => {
+    const m = line.match(/^(\s*(?:>\s?)+)/);
+    if (!m) return 0;
+    return (m[1].match(/>/g) || []).length;
+  };
+  const stripQuotes = (line: string) => line.replace(/^(\s*(?:>\s?)+)/, '');
+
+  // Group consecutive lines by quote depth so "> " markers become real,
+  // visually indented blockquotes instead of literal characters.
+  const groups: { depth: number; body: string[] }[] = [];
+  for (const line of lines) {
+    const depth = quoteDepth(line);
+    const content = depth > 0 ? stripQuotes(line) : line;
+    const last = groups[groups.length - 1];
+    if (last && last.depth === depth) last.body.push(content);
+    else groups.push({ depth, body: [content] });
+  }
+
+  const html = groups
+    .map(({ depth, body }) => {
+      const inner = `<div style="white-space:pre-wrap;">${esc(body.join('\n'))}</div>`;
+      if (depth === 0) return inner;
+      let out = inner;
+      for (let i = 0; i < depth; i += 1) {
+        out = `<blockquote style="margin:8px 0;padding:2px 0 2px 12px;border-left:2px solid #d1d5db;color:#4b5563;">${out}</blockquote>`;
+      }
+      return out;
+    })
+    .join('');
+
+  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;color:#111827;word-break:break-word;">${html}</div>`;
 };
+
 
 /**
  * Pull the body out of a full HTML document so several provider messages can
