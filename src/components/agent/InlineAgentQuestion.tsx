@@ -109,22 +109,50 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
       advance();
     } catch (err) {
       console.error('[InlineAgentQuestion] submit failed:', err);
-      toast.error('Failed to submit answer.');
+      toast.error('Failed to submit answer. Please contact support@shuffler.io if this persists.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleIgnore = async () => {
-    if (submitting) return;
-    setIgnoredCount((c) => c + 1);
-    if (index + 1 >= total && answeredCount === 0) {
-      // Nothing was answered at all — clear the notification entirely.
-      await dismissNotification(notification.id).catch(() => { /* non-fatal */ });
-      onSubmitted?.();
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit();
     }
-    advance();
   };
+
+  /** Ignoring a question aborts the underlying workflow execution. */
+  const handleIgnore = async () => {
+    if (submitting || aborting) return;
+    setAborting(true);
+    try {
+      if (notification.workflow_id && notification.execution_id) {
+        const resp = await shuffleFetch(
+          getApiUrl(`/api/v1/workflows/${notification.workflow_id}/executions/${notification.execution_id}/abort`),
+        );
+        if (!resp.ok) {
+          console.error('[InlineAgentQuestion] abort failed:', resp.status);
+        }
+        try {
+          window.dispatchEvent(new CustomEvent('workflow-run:changed', {
+            detail: { executionId: notification.execution_id, reason: 'aborted' },
+          }));
+        } catch { /* ignore */ }
+      }
+      await dismissNotification(notification.id).catch(() => { /* non-fatal */ });
+      setIgnoredCount((c) => c + 1);
+      toast.success('Execution aborted.');
+      onSubmitted?.();
+      setDone(true);
+    } catch (err) {
+      console.error('[InlineAgentQuestion] abort error:', err);
+      toast.error('Failed to abort the execution. Please contact support@shuffler.io if this persists.');
+    } finally {
+      setAborting(false);
+      setConfirmAbort(false);
+    }
+
 
   if (done) {
     return (
