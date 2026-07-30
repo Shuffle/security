@@ -52,11 +52,16 @@ interface EmailThreadPanelProps {
 
 /** Extract email address from "Name <email>" format */
 const extractEmail = (s: string): { name: string; email?: string } => {
-  const match = s.match(/^(.*?)\s*<([^>]+)>\s*$/);
-  if (match) return { name: match[1].trim() || match[2], email: match[2] };
-  if (s.includes('@')) return { name: s.split('@')[0], email: s };
-  return { name: s };
+  const cleaned = (s || '').replace(/\s+/g, ' ').trim();
+  // Pull the first real-looking address anywhere in the string. Quoted
+  // attribution lines often nest `<name <mailto:addr>>`, so a naive
+  // `<...>` capture returns garbage.
+  const addr = cleaned.match(/(?:mailto:)?([\w.!#$%&'*+/=?^`{|}~-]+@[\w-]+(?:\.[\w-]+)+)/);
+  const named = cleaned.match(/^"?([^"<]+?)"?\s*<[^>]*>$/);
+  const name = named?.[1]?.trim() || (addr ? cleaned.split('<')[0].trim() || addr[1] : cleaned);
+  return { name: name || cleaned, email: addr?.[1] };
 };
+
 
 /** Get initials for avatar */
 const getInitials = (name: string): string => {
