@@ -8555,7 +8555,7 @@ const IncidentDetailPage = () => {
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={() => openAgentDrawer('permissions')}
+                  onClick={() => { setAskAgentAnchor(null); openAgentDrawer('permissions', { openToolPicker: true }); }}
                   sx={{
                     flex: 1,
                     height: 32,
