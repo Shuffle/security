@@ -3101,10 +3101,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
   };
 
-  // Schedule guardrails: do not allow scheduling when the run required a
-  // continuation (the oneshot prompt did not work) or did not perform any
-  // actual app/tool actions (nothing meaningful would run on a schedule).
-  const { scheduleDisabledReasons } = useMemo(() => {
+  // Schedule discovery: one shared mechanism for Start / Simple / Detailed.
+  // The only hard block is an unfinished run; everything else is advisory.
+  const { scheduleDisabledReasons, scheduleWarnings } = useMemo(() => {
     const decisions: any[] = (agentData?.decisions as any[]) || [];
     const runStatus = String(execution?.status || agentData?.status || '').toUpperCase();
     const isNotFinished = runStatus !== '' && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(runStatus);
@@ -3158,29 +3157,28 @@ const AgentUI: React.FC<AgentUIProps> = ({
       return hasAnswerField || status === 'FINISHED';
     });
     const reasons: string[] = [];
+    const warnings: string[] = [];
     if (isNotFinished) {
+      // The ONLY hard block, and it is identical on Start / Simple / Detailed.
       reasons.push('Wait for the agent to finish before scheduling.');
-    } else if (showStarter) {
-      // On the Start view, a finished + validated run is always considered
-      // ready to schedule. Quality gates (continuations, missing actions,
-      // failed steps, manual answers) are only surfaced in Simple/Detailed
-      // views where the user is actively reviewing the run.
-    } else {
-      if (hadContinuation) {
-        reasons.push('This run needed a follow-up message to continue, so the one-shot prompt did not succeed on its own. Refine the prompt until it finishes in one go before scheduling.');
-      }
-      if (actionCount === 0) {
-        reasons.push('This run did not perform any app or tool actions, so a scheduled run would have nothing meaningful to do.');
-      }
-      if (failedDecision) {
-        reasons.push('A decision in this run failed. Fix the failing step (for example, authenticate the app or correct the input) and rerun successfully before scheduling.');
-      }
-      if (answeredQuestion) {
-        reasons.push('A question in this run was answered manually. Scheduled runs are unattended, so refine the prompt so the agent does not need to ask anything before scheduling.');
-      }
     }
-    return { scheduleDisabledReasons: reasons };
-  }, [agentData, execution?.status, showStarter]);
+    // Quality gates are advisory only — they surface in the tooltip but never
+    // disable the button, so scheduling behaves the same in every view.
+    if (hadContinuation) {
+      warnings.push('This run needed a follow-up message to continue, so the one-shot prompt did not succeed on its own.');
+    }
+    if (actionCount === 0) {
+      warnings.push('This run did not perform any app or tool actions, so a scheduled run may have nothing meaningful to do.');
+    }
+    if (failedDecision) {
+      warnings.push('A decision in this run failed. Consider fixing the failing step and rerunning before scheduling.');
+    }
+    if (answeredQuestion) {
+      warnings.push('A question in this run was answered manually. Scheduled runs are unattended.');
+    }
+    return { scheduleDisabledReasons: reasons, scheduleWarnings: warnings };
+  }, [agentData, execution?.status]);
+
 
   // Detect natural-language scheduling intent in the prompt (e.g. "daily at 6 am",
   // "next monday at 2am", "every 15 minutes"). Used to highlight the Schedule
@@ -3239,7 +3237,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
         ))}
       </Box>
     </Box>
-  ) : scheduleDisabledReasons.length === 1 ? `Cannot schedule: ${scheduleDisabledReasons[0]}` : '';
+  ) : scheduleDisabledReasons.length === 1 ? `Cannot schedule: ${scheduleDisabledReasons[0]}` : (
+    scheduleWarnings.length > 0 ? (
+      <Box>
+        <Box sx={{ fontWeight: 600, mb: 0.5 }}>Schedule this prompt to run repeatedly on a cron schedule</Box>
+        <Box sx={{ m: 0 }}>
+          {scheduleWarnings.map((r, i) => (
+            <Box key={i} sx={{ mb: 0.5, display: 'flex', gap: 0.75 }}>
+              <Box component="span" sx={{ fontWeight: 700, flexShrink: 0 }}>·</Box>
+              <Box component="span">{r}</Box>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    ) : ''
+  );
 
   // Rendered inline (not a nested component) so it isn't remounted on every
   // parent re-render — the live duration ticker would otherwise reset hover
