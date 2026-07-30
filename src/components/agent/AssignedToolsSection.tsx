@@ -184,6 +184,30 @@ const AssignedToolsSection = ({
 
   const icons = useAppIcons(useMemo(() => tools.map((t) => t.name), [tools]));
 
+  // Apps to highlight as already-assigned inside the picker.
+  const pickerSelectedApps = useMemo(
+    () => tools.map((t) => ({ name: t.name, id: t.id || null, icon: icons[t.name] || '' })),
+    [tools, icons],
+  );
+
+  // Snapshot taken when the picker OPENS so assigned apps sort first on the
+  // initial load only (later toggles do not reshuffle the list).
+  const [pinnedSnapshot, setPinnedSnapshot] = useState<
+    Array<{ name: string; image_url: string; objectID?: string }>
+  >([]);
+  useEffect(() => {
+    if (!pickerOpen) return;
+    setPinnedSnapshot(
+      tools.map((t) => ({
+        name: formatToolName(t.name),
+        image_url: icons[t.name] || '',
+        objectID: t.id || undefined,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickerOpen]);
+
+
   const labelText =
     agent === DEFAULT_AGENT
       ? 'Apps the default agent is allowed to use'
