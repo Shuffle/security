@@ -96,7 +96,7 @@ import { RelatedIncidentsBanner } from '@/components/incidents/RelatedIncidentsB
 import { ThreadCorrelatedBanner } from '@/components/incidents/ThreadCorrelatedBanner';
 import { useRelatedIncidents } from '@/hooks/useRelatedIncidents';
 import { useThreadCorrelatedIncidents } from '@/hooks/useThreadCorrelatedIncidents';
-import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePairsIncremental, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant } from '@/lib/incidentRelations';
+import { maybeMigrateLegacyMerge, getPrimaryPointer, linkMergePairsIncremental, writeIncidentSafe, reconcileRelatedFromRevisions, getLinkedPointers, pairWasUnmerged, enforceMergedStatusInvariant, isClosedIncident } from '@/lib/incidentRelations';
 import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAuditBanner';
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
