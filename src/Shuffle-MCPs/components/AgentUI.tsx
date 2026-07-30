@@ -2099,7 +2099,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const parts = entry.split(':');
       if (parts.length < 3 || parts[0] !== 'app') continue;
       const id = parts[1] || '';
-      const name = parts.slice(2).join(':') || '';
+      // Format is `app:<id>:<name>`; some backends append the action name as a
+      // 4th segment (`app:<id>:<name>:<action>`) — only take the app name.
+      const name = parts[2] || '';
+
       if (!name && !id) continue;
       const key = `${id}|${name}`;
       if (seen.has(key)) continue;
