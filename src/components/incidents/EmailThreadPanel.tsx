@@ -321,9 +321,21 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
       const emailMatch = attribution.match(/<?(?:mailto:)?([\w.+-]+@[\w.-]+\.\w+)/);
       const beforeEmail = emailMatch ? attribution.slice(0, attribution.indexOf(emailMatch[0])) : attribution;
       // Date part is everything up to (and including) the time.
-      const dateSplit = beforeEmail.match(/^(.*?\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(.*)$/i);
-      wroteDate = (dateSplit?.[1] || beforeEmail).trim().replace(/[,\s]+$/, '');
-      const namePart = (dateSplit?.[2] || '').trim().replace(/[<,\s]+$/, '');
+      // Split after the final clock time in the attribution. Using a single
+      // broad regex can leave pieces such as `:11 PM` attached to the sender.
+      const timePattern = /\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?(?:\s*[+-]\d{4})?/gi;
+      const timeMatches = Array.from(beforeEmail.matchAll(timePattern));
+      const finalTime = timeMatches[timeMatches.length - 1];
+      const splitAt = finalTime?.index !== undefined
+        ? finalTime.index + finalTime[0].length
+        : -1;
+      wroteDate = (splitAt >= 0 ? beforeEmail.slice(0, splitAt) : beforeEmail)
+        .trim()
+        .replace(/[,\s]+$/, '');
+      const namePart = (splitAt >= 0 ? beforeEmail.slice(splitAt) : '')
+        .replace(/^\s*(?:at\s+)?/i, '')
+        .trim()
+        .replace(/[<,\s]+$/, '');
       wroteFrom = namePart || emailMatch?.[1] || '';
     }
 
@@ -615,22 +627,24 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     [resolved, descriptionText, descriptionHtml],
   );
 
-  // Raw mode = "do not split the thread", NOT "show unrendered source".
-  // It must render the full original email through the exact same sanitized
-  // iframe used for a threaded message body. Prefer the provider payload's
-  // untouched HTML (the structured adapter keeps the whole quoted chain),
-  // and only fall back to the incident description when no payload exists.
+  // Raw mode = render the complete current provider message once, without
+  // turning its quoted history into UI rows. It is still parsed/rendered HTML;
+  // "raw" does not mean source code or concatenating every provider message.
   const rawHtml = useMemo(() => {
-    const join = (parts: string[]) =>
-      wrapRawEmailHtml(
-        parts.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />'),
-      );
-
-    const fromProvider = (resolved?.messages || [])
-      .map((m) => m.bodyHtml)
-      .filter((h): h is string => !!h && !!h.trim())
-      .map(extractHtmlBody);
-    if (fromProvider.length) return join(fromProvider);
+    const current = resolved?.messages.find((message) => message.isLatest)
+      || resolved?.messages[0];
+    if (current?.bodyHtml?.trim()) {
+      const htmlTextLength = htmlToPlainText(current.bodyHtml).trim().length;
+      const plainTextLength = current.body.trim().length;
+      // A materially shorter HTML alternative is a partial MIME fragment.
+      // Prefer the complete plain alternative rather than displaying a
+      // clipped message and implying that the missing content does not exist.
+      if (plainTextLength > 0 && htmlTextLength < plainTextLength * 0.75) {
+        return plainTextToEmailHtml(current.body);
+      }
+      return wrapRawEmailHtml(extractHtmlBody(current.bodyHtml));
+    }
+    if (current?.body?.trim()) return plainTextToEmailHtml(current.body);
 
     if (descriptionHtml && descriptionHtml.trim()) {
       return wrapRawEmailHtml(extractHtmlBody(descriptionHtml));
@@ -643,7 +657,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       .map((m) => m.bodyHtml)
       .filter((h): h is string => !!h && !!h.trim())
       .map(extractHtmlBody);
-    if (fromParsed.length) return join(fromParsed);
+    if (fromParsed.length) return wrapRawEmailHtml(fromParsed[0]);
 
     return '';
   }, [resolved, descriptionHtml, messages]);
