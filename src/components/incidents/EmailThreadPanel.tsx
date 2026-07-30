@@ -3,7 +3,7 @@
  * Detects email content (From/To/Subject headers, forwarded chains, "On … wrote:" markers)
  * and displays them as a threaded conversation. Stays within OCSF class_uid 2005.
  */
-import { Mail as EmailIcon, Reply as ReplyIcon, ChevronDown as ExpandMoreIcon, ChevronUp as ExpandLessIcon, Send as SendIcon, Forward as ForwardIcon, Paperclip as AttachFileIcon, User as PersonIcon, ExternalLink as OpenInNewIcon, X as CloseIcon, GripVertical as DragIndicatorIcon } from 'lucide-react';
+import { Mail as EmailIcon, Reply as ReplyIcon, ChevronDown as ExpandMoreIcon, ChevronUp as ExpandLessIcon, Send as SendIcon, Forward as ForwardIcon, Paperclip as AttachFileIcon, User as PersonIcon, ExternalLink as OpenInNewIcon, X as CloseIcon, GripVertical as DragIndicatorIcon, Code as CodeIcon } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
