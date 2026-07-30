@@ -569,11 +569,19 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const rawHtml = useMemo(() => {
     const fromProvider = (resolved?.messages || [])
       .map((m) => m.bodyHtml)
-      .filter((h): h is string => !!h && !!h.trim());
-    if (fromProvider.length) return fromProvider.join('<hr />');
-    if (descriptionHtml && descriptionHtml.trim()) return descriptionHtml;
+      .filter((h): h is string => !!h && !!h.trim())
+      .map(extractHtmlBody);
+    if (fromProvider.length) {
+      return wrapRawEmailHtml(
+        fromProvider.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />'),
+      );
+    }
+    if (descriptionHtml && descriptionHtml.trim()) {
+      return wrapRawEmailHtml(extractHtmlBody(descriptionHtml));
+    }
     return '';
   }, [resolved, descriptionHtml]);
+
 
   const rawText = useMemo(() => {
     const fromProvider = (resolved?.messages || [])
