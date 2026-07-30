@@ -662,9 +662,26 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
         </Box>
       )}
 
-      {/* Messages */}
+      {/* Messages — or the untouched original content in raw mode */}
       <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
-        {messages.map((msg, idx) => {
+        {rawMode ? (
+          <Box sx={{ px: 2, py: 1.5 }}>
+            {descriptionHtml ? (
+              <EmailHtmlFrame html={descriptionHtml} />
+            ) : (
+              <Typography variant="body2" sx={{
+                whiteSpace: 'pre-wrap',
+                fontSize: '0.82rem',
+                lineHeight: 1.7,
+                color: 'text.primary',
+                wordBreak: 'break-word',
+              }}>
+                {descriptionText}
+              </Typography>
+            )}
+          </Box>
+        ) : messages.map((msg, idx) => {
+
           const isExpanded = msg.isLatest ? !expandedMessages.has(msg.id) : expandedMessages.has(msg.id);
           const parsed = extractEmail(msg.from);
           const name = parsed.name;
