@@ -2051,17 +2051,9 @@ const IncidentDetailPage = () => {
         : `${skipped.length} sibling${skipped.length === 1 ? '' : 's'} already merged or unmerged elsewhere`;
 
       if (isDominant) {
-        const anchorId = dominant[0];
-        toast.info(
-          `This thread is already anchored on another incident (${anchorId.slice(0, 10)}…). ${dominant[1]} of ${skipped.length} sibling${skipped.length === 1 ? '' : 's'} point there.`,
-          {
-            duration: 12000,
-            action: {
-              label: 'Open anchor',
-              onClick: () => navigate(`/incidents/${encodeURIComponent(anchorId)}`),
-            },
-          },
-        );
+        // Informational only — no toast. Anchored threads are expected and
+        // surfacing them as a notification is pure noise.
+        console.log(`[Merge] Thread already anchored on ${dominant[0]} (${dominant[1]}/${skipped.length} siblings)`);
       }
       return;
     }
