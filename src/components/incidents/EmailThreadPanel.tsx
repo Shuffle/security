@@ -110,7 +110,25 @@ export const isEmailContent = (text: string, html: string, rawOCSF?: any): boole
   return false;
 };
 
+/** Minimal HTML -> text conversion used when a provider only sent HTML. */
+const htmlToPlainText = (html: string): string =>
+  (html || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
 /**
+
  * Normalise a raw email body before threading: CRLF -> LF, non-breaking
  * spaces -> spaces, and strip the "> " quote markers plain-text clients add
  * to replies (those markers break the `^From:` / `^On … wrote:` anchors).
