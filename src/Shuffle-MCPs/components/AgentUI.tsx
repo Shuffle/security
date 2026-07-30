@@ -2429,8 +2429,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
       ...(orgId ? { orgId } : {}),
       // Send a single comma-separated `tool_name` in the format
       // `app:<objectID>:<slug>,app:<objectID>:<slug>` so the backend resolves
-      // the exact app versions instead of guessing by slug.
-      ...(chosenApps.length > 0 ? { toolName: buildToolName(chosenApps) } : {}),
+      // the exact app versions instead of guessing by slug. When the current
+      // run already has resolved `allowed_actions` apps and the picker is
+      // still on the untouched built-in fallback, use those instead of
+      // sending `http,shuffle_tools`.
+      ...((() => {
+        const effectiveApps = executionApps.length > 0 && isBuiltinDefaultApps(chosenApps)
+          ? executionApps
+          : chosenApps;
+        return effectiveApps.length > 0 ? { toolName: buildToolName(effectiveApps) } : {};
+      })()),
+
       // Pass the selected preset so the backend can apply its prompt/tools.
       ...(selectedPreset ? { presetId: selectedPreset.id } : {}),
       ...(attachedImages.length > 0 ? { images: attachedImages.map((img) => {
