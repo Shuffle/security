@@ -1,4 +1,4 @@
-import { Wand2 as AutoFixHighIcon, Webhook as WebhookIcon, Network as AccountTreeIcon, Lock as EnhancedEncryptionIcon, Pencil as EditIcon, PlusCircle as AddCircleIcon, Trash2 as DeleteIcon, Zap as BoltIcon } from 'lucide-react';
+import { Wand2 as AutoFixHighIcon, Webhook as WebhookIcon, Network as AccountTreeIcon, Fingerprint as FingerprintIcon, Pencil as EditIcon, PlusCircle as AddCircleIcon, Trash2 as DeleteIcon, Zap as BoltIcon } from 'lucide-react';
 import React from 'react';
 import {
   Box,
@@ -46,7 +46,7 @@ const automationTypeConfig = {
     bgColor: 'rgba(16, 185, 129, 0.1)',
   },
   enrich: {
-    icon: EnhancedEncryptionIcon,
+    icon: FingerprintIcon,
     label: 'Enrich',
     color: '#f59e0b',
     bgColor: 'rgba(245, 158, 11, 0.1)',
