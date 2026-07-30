@@ -2614,17 +2614,8 @@ const IncidentDetailPage = () => {
 
 
 
-  // Global listener: any AgentUI (Simple/Detailed) instance can request opening
-  // the workflow-run explorer for its current execution by dispatching a
-  // `workflow-run:open` window event with `{ executionId }` in `detail`.
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ executionId?: string }>).detail;
-      if (detail?.executionId) setSelectedWorkflowExecutionId(String(detail.executionId));
-    };
-    window.addEventListener('workflow-run:open', handler as EventListener);
-    return () => window.removeEventListener('workflow-run:open', handler as EventListener);
-  }, []);
+  // `workflow-run:open` window events are handled app-wide by
+  // GlobalWorkflowRunDrawer, so no local listener is needed here.
 
 
 
