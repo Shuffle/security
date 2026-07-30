@@ -182,6 +182,52 @@ const extractHtmlBody = (html: string): string => {
 const wrapRawEmailHtml = (inner: string): string =>
   `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;color:#111827;word-break:break-word;">${inner}</div>`;
 
+/**
+ * Split the original rich HTML at provider quote containers while retaining
+ * the markup and style rules for every message. The text parser determines
+ * message boundaries and headers; these sections provide the corresponding
+ * rendered bodies instead of degrading older messages to plain text.
+ */
+const extractThreadHtmlSections = (html: string): string[] => {
+  if (!html || typeof DOMParser === 'undefined') return [];
+
+  const source = extractHtmlBody(html);
+  const styles = (html.match(/<style[\s\S]*?<\/style>/gi) || []).join('\n');
+  const selectors = [
+    '.gmail_quote',
+    '#divRplyFwdMsg',
+    '#appendonsend',
+    'blockquote[type="cite"]',
+    'blockquote',
+  ].join(',');
+  const sections: string[] = [];
+  let remaining = source;
+
+  // Quoted history is commonly nested, so peel off one provider quote
+  // container at a time. A cap protects against malformed/cyclic markup.
+  for (let depth = 0; depth < 30 && remaining.trim(); depth += 1) {
+    const doc = new DOMParser().parseFromString(`<body>${remaining}</body>`, 'text/html');
+    const quote = doc.body.querySelector(selectors);
+    if (!quote) {
+      const finalBody = doc.body.innerHTML.trim();
+      if (finalBody) sections.push(wrapRawEmailHtml(`${styles}${finalBody}`));
+      break;
+    }
+
+    const quotedHtml = quote.innerHTML.trim();
+    quote.remove();
+    const currentBody = doc.body.innerHTML.trim();
+    if (currentBody && htmlToPlainText(currentBody).trim()) {
+      sections.push(wrapRawEmailHtml(`${styles}${currentBody}`));
+    }
+
+    if (!quotedHtml || quotedHtml === remaining) break;
+    remaining = quotedHtml;
+  }
+
+  return sections;
+};
+
 
 
 /**
@@ -329,6 +375,15 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
       body: text,
       isLatest: true,
     });
+  }
+
+  // Attach the matching rich HTML slice to every parsed message. This keeps
+  // each section independently rendered with the provider's original markup
+  // rather than styling only the newest message and flattening the rest.
+  const htmlSections = extractThreadHtmlSections(html);
+  for (let i = 0; i < messages.length; i += 1) {
+    const section = htmlSections[i];
+    if (section) messages[i].bodyHtml = section;
   }
 
   return messages;
@@ -540,12 +595,11 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
           // then keep the inline-quoted older messages that follow.
           // The HTML body still holds the whole quoted chain, so cut it at
           // the first quote marker to avoid rendering history twice.
-          const topHtml = stripQuotedHtml(only.bodyHtml || '');
           const merged: EmailMessage[] = [
             {
               ...only,
               body: quoted[0].body,
-              bodyHtml: topHtml && topHtml.trim() ? topHtml : undefined,
+              bodyHtml: quoted[0].bodyHtml || (stripQuotedHtml(only.bodyHtml || '').trim() || undefined),
               isLatest: true,
             },
             ...quoted.slice(1).map((m, i) => ({ ...m, id: `email-quoted-${i}`, isLatest: false })),
