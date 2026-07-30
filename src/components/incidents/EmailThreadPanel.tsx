@@ -665,17 +665,23 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     const current = resolved?.messages.find((message) => message.isLatest)
       || resolved?.messages[0];
     if (current?.bodyHtml?.trim()) {
-      const htmlTextLength = htmlToPlainText(current.bodyHtml).trim().length;
-      const plainTextLength = current.body.trim().length;
-      // A materially shorter HTML alternative is a partial MIME fragment.
-      // Prefer the complete plain alternative rather than displaying a
-      // clipped message and implying that the missing content does not exist.
-      if (plainTextLength > 0 && htmlTextLength < plainTextLength * 0.75) {
+      // Compare readable content only. Marketing/notification emails (LinkedIn,
+      // Jira, etc.) carry a plain alternative stuffed with tracking URLs, which
+      // makes the plain part far "longer" than the rendered HTML even though the
+      // HTML is the complete, useful message. Strip URLs before comparing.
+      const readable = (s: string) =>
+        s.replace(/https?:\/\/\S+/gi, ' ').replace(/\s+/g, ' ').trim().length;
+      const htmlTextLength = readable(htmlToPlainText(current.bodyHtml));
+      const plainTextLength = readable(current.body);
+      // Only fall back to the plain alternative when the HTML part is
+      // essentially empty (a stub/partial MIME fragment).
+      if (plainTextLength > 0 && htmlTextLength < 40 && htmlTextLength < plainTextLength * 0.5) {
         return plainTextToEmailHtml(current.body);
       }
       return wrapRawEmailHtml(extractHtmlBody(current.bodyHtml));
     }
     if (current?.body?.trim()) return plainTextToEmailHtml(current.body);
+
 
     if (descriptionHtml && descriptionHtml.trim()) {
       return wrapRawEmailHtml(extractHtmlBody(descriptionHtml));
