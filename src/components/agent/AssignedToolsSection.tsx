@@ -22,6 +22,7 @@ import {
   formatToolName,
   getAgentTools,
   removeAgentTool,
+  setAgentTools,
   type ToolRef,
 } from '@/lib/agentTools';
 
