@@ -1353,7 +1353,7 @@ const IncidentDetailPage = () => {
   // recovery. Writes the recovered snapshot back to the datastore so the
   // stored item stops being "broken" for other users as well, then reloads
   // the incident state from the server.
-  const handleRestoreOcsfFallback = async () => {
+  const handleRestoreOcsfFallback = async (silent = false) => {
     if (!id || !ocsfFallbackInfo?.recoveredValue || ocsfRestoring) return;
     setOcsfRestoring(true);
     try {
@@ -1361,28 +1361,29 @@ const IncidentDetailPage = () => {
       try {
         parsedRecovered = JSON.parse(ocsfFallbackInfo.recoveredValue);
       } catch (err) {
-        toast.error('Could not parse the recovered snapshot');
+        if (!silent) toast.error('Could not parse the recovered snapshot');
         setOcsfRestoring(false);
         return;
       }
       const res = await writeIncidentSafe(id, parsedRecovered, crossOrgId || undefined);
       if (!res.success) {
-        toast.error(res.error || 'Failed to restore the previous version');
+        if (!silent) toast.error(res.error || 'Failed to restore the previous version');
         setOcsfRestoring(false);
         return;
       }
-      toast.success('Incident restored from the last known-good version');
+      if (!silent) toast.success('Incident restored from the last known-good version');
       dismissOcsfFallback();
       // Reset the fallback attempt so a fresh load re-validates the payload.
       ocsfFallbackAttemptedRef.current = false;
       setOcsfFallbackInfo(null);
       await loadIncident(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to restore');
+      if (!silent) toast.error(err instanceof Error ? err.message : 'Failed to restore');
     } finally {
       setOcsfRestoring(false);
     }
   };
+
 
 
   const loadRevisions = useCallback(async () => {
