@@ -1048,22 +1048,28 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         onClose={() => setAppPickerForIdx(null)}
         title="Allow App"
         subtitle="Restrict this AI Agent prompt to specific apps"
-        onQuickSelect={(app) => {
+        multiSelect
+        selectedApps={
+          appPickerForIdx === null
+            ? []
+            : (aiAgentApps[appPickerForIdx] || []).map((id) => {
+                const meta = resolveAppMeta(id);
+                return { name: meta.name, id, icon: meta.image };
+              })
+        }
+        onSelectionChange={(apps) => {
           if (appPickerForIdx === null) return;
-          if (!app.id) {
+          const ids = apps.map((a) => a.id).filter((id): id is string => !!id);
+          if (ids.length !== apps.length) {
             toast.error('Cannot allow app: missing canonical app ID');
-            return;
           }
-          const appId = app.id;
           const updated = [...aiAgentApps];
-          const current = updated[appPickerForIdx] || [];
-          if (!current.includes(appId)) {
-            updated[appPickerForIdx] = [...current, appId];
-            setAiAgentApps(updated);
-            setHasChanges(true);
-          }
+          updated[appPickerForIdx] = Array.from(new Set(ids));
+          setAiAgentApps(updated);
+          setHasChanges(true);
         }}
       />
+
     </Dialog>
   );
 };
