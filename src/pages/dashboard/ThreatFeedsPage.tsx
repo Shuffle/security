@@ -195,25 +195,17 @@ const ThreatFeedsPage = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {/* Header — matches the standard page header used on Incidents / Vulnerabilities */}
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <RssFeedIcon size={28} style={{ color: 'hsl(var(--primary))' }} />
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>Threat Feeds</Typography>
-          {isLoading && <CircularProgress size={20} />}
-          {!isLoading && (
-            <Chip
-              label={enabledCount === feeds.length || feeds.length === 0
-                ? `${enabledCount} active feeds`
-                : `${enabledCount}/${feeds.length} active feeds`}
-              size="small"
-              sx={{
-                bgcolor: enabledCount > 0 ? 'hsl(var(--severity-low) / 0.15)' : 'transparent',
-                color: enabledCount > 0 ? 'hsl(var(--severity-low))' : 'text.secondary',
-                borderColor: enabledCount > 0 ? 'hsl(var(--severity-low))' : undefined,
-              }}
-              variant="outlined"
-            />
-          )}
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>Threat Feeds</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              External intelligence sources that enrich incidents with indicators of compromise
+            </Typography>
+          </Box>
+          {isLoading && <CircularProgress size={18} />}
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
           <TextField
@@ -239,9 +231,9 @@ const ThreatFeedsPage = () => {
           {feeds.length > 0 && (
             <Tooltip title="Restore the curated default feed list without removing existing threat intelligence">
               <span>
-                <Button 
-                  variant="outlined" 
-                  onClick={handleResetDefaults} 
+                <Button
+                  variant="outlined"
+                  onClick={handleResetDefaults}
                   disabled={isInitializing}
                   sx={{ height: 36 }}
                 >
@@ -250,86 +242,66 @@ const ThreatFeedsPage = () => {
               </span>
             </Tooltip>
           )}
-          {/* Header CTA omitted when feeds are empty — the in-table CTA below
-              is the primary call-to-action in that state. */}
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => handleOpenDialog()} sx={{ height: 36 }}>
             Add Feed
           </Button>
         </Box>
       </Box>
 
-      {/* Automation Status Alert (shared with /detection/ioc-types) */}
+      {/* Compact stat strip — active feeds + collected IOCs, no cards. */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+        {!isLoading && (
+          <Chip
+            label={enabledCount === feeds.length || feeds.length === 0
+              ? `${enabledCount} active feeds`
+              : `${enabledCount}/${feeds.length} active feeds`}
+            size="small"
+            variant="outlined"
+            sx={{
+              height: 24,
+              bgcolor: enabledCount > 0 ? 'hsl(var(--severity-low) / 0.12)' : 'transparent',
+              color: enabledCount > 0 ? 'hsl(var(--severity-low))' : 'text.secondary',
+              borderColor: enabledCount > 0 ? 'hsl(var(--severity-low) / 0.4)' : undefined,
+            }}
+          />
+        )}
+        {feeds.length > 0 && (countsLoading ? (
+          <CircularProgress size={14} />
+        ) : (
+          <Chip
+            label={`${totalIocs.toLocaleString()} IOCs collected`}
+            size="small"
+            variant="outlined"
+            sx={{
+              height: 24,
+              borderColor: 'hsl(var(--primary) / 0.35)',
+              bgcolor: 'hsl(var(--primary) / 0.06)',
+              color: 'hsl(var(--primary))',
+            }}
+          />
+        ))}
+        {feeds.length > 0 && topIocs.slice(0, 6).map(([name, count]) => (
+          <Tooltip key={name} title={`Datastore category: ioc_${name}`} arrow>
+            <Chip
+              label={
+                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                  <Box component="span" sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>
+                    {name}
+                  </Box>
+                  <Box component="span" sx={{ fontWeight: 700 }}>{count.toLocaleString()}</Box>
+                </Box>
+              }
+              size="small"
+              variant="outlined"
+              sx={{ height: 24, '& .MuiChip-label': { px: 1 } }}
+            />
+          </Tooltip>
+        ))}
+      </Box>
+
+      {/* Automation Status Alert (shared with /incidents/observables) */}
       {feeds.length > 0 && <ThreatIntelAutomationBanner />}
 
-      {/* Info Card */}
-      <Card sx={{ mb: 2, p: 2, bgcolor: 'hsl(var(--primary) / 0.05)', border: '1px solid hsl(var(--primary) / 0.2)' }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Threat feeds are external intelligence sources that provide indicators of compromise (IOCs) such as malicious IPs, domains, and file hashes.
-          Enable feeds to automatically enrich incidents with threat intelligence data.
-        </Typography>
-        <Typography variant="body2" sx={{ mt: 1, color: 'hsl(var(--severity-medium))', fontWeight: 500 }}>
-          Note: IOC-based threat feeds alone are not enough for full protection. They do not cover adversary tactics and techniques (such as MITRE ATT&CK behaviors), which require detection rules, telemetry, and response automation.
-          {' '}For a complete coverage assessment, please reach out to{' '}
-          <Box component="a" href="mailto:support@shuffler.io" sx={{ color: 'hsl(var(--primary))', textDecoration: 'underline', fontWeight: 600 }}>
-            support@shuffler.io
-          </Box>.
-        </Typography>
-      </Card>
-
-      {/* IOC stats — totals per IOC category collected from active feeds */}
-      {feeds.length > 0 && (
-        <Card sx={{ mb: 2, p: 2, border: '1px solid hsl(var(--border))', bgcolor: 'transparent' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5, mb: topIocs.length > 0 ? 1.5 : 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-              <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.08em', fontWeight: 700 }}>
-                IOCs collected
-              </Typography>
-              {countsLoading ? (
-                <CircularProgress size={14} />
-              ) : (
-                <Typography sx={{ fontSize: '1.15rem', fontWeight: 700, color: 'hsl(var(--primary))' }}>
-                  {totalIocs.toLocaleString()}
-                </Typography>
-              )}
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                across {topIocs.length || trackedIocNames.length} categories
-              </Typography>
-            </Box>
-          </Box>
-          {topIocs.length > 0 ? (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {topIocs.map(([name, count]) => (
-                <Tooltip key={name} title={`Datastore category: ioc_${name}`} arrow>
-                  <Chip
-                    label={
-                      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                        <Box component="span" sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>
-                          {name}
-                        </Box>
-                        <Box component="span" sx={{ fontWeight: 700, color: 'hsl(var(--primary))' }}>
-                          {count.toLocaleString()}
-                        </Box>
-                      </Box>
-                    }
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      height: 24,
-                      borderColor: 'hsl(var(--primary) / 0.35)',
-                      bgcolor: 'hsl(var(--primary) / 0.06)',
-                      '& .MuiChip-label': { px: 1 },
-                    }}
-                  />
-                </Tooltip>
-              ))}
-            </Box>
-          ) : !countsLoading && (
-            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-              No IOCs collected yet — enable feeds and let the Threat Intel automation run.
-            </Typography>
-          )}
-        </Card>
-      )}
 
       <Card elevation={0} sx={{ bgcolor: 'transparent', backgroundImage: 'none', border: '1px solid hsl(var(--border))' }}>
         <CardContent sx={{ p: 0 }}>
