@@ -5,6 +5,7 @@
  * Uses the correct Shuffle cache API endpoints.
  */
 
+import { acquireDatastoreSlot } from './requestScheduler';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { isCircuitBreakerResponse } from '@/Shuffle-Core/fetchBreaker';
 
@@ -391,7 +392,8 @@ export const setDatastoreItems = async (
 export const getDatastoreItem = async (
   key: string,
   category: string,
-  overrideOrgId?: string
+  overrideOrgId?: string,
+  options?: { priority?: boolean }
 ): Promise<DatastoreResponse & { item?: DatastoreItem }> => {
   const orgId = overrideOrgId || getOrgId();
   if (!orgId) {
@@ -433,6 +435,10 @@ export const getDatastoreItem = async (
   const maxAttempts = category === 'shuffle-security_incidents' ? 3 : 2;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    // Bounded globally so background cross-loads cannot burst the client-side
+    // fetch breaker and starve user-initiated reads. Foreground reads are
+    // scheduled ahead of background work.
+    const release = await acquireDatastoreSlot(options?.priority === true);
     try {
       response = await fetch(requestUrl, {
         method: 'POST',
@@ -446,6 +452,7 @@ export const getDatastoreItem = async (
       }
     } catch (error) {
       if (attempt === maxAttempts - 1) {
+        release();
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to get datastore item',
@@ -456,6 +463,8 @@ export const getDatastoreItem = async (
           },
         };
       }
+    } finally {
+      release();
     }
 
     await wait(400 * (attempt + 1));

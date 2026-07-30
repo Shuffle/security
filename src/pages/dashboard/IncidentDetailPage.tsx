@@ -2669,7 +2669,7 @@ const IncidentDetailPage = () => {
     try {
       result = isPublicView
         ? await getDatastoreItemPublic(id, publicOrg!, publicAuth!)
-        : await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined);
+        : await getDatastoreItem(id, DATASTORE_CATEGORIES.INCIDENTS, crossOrgId || undefined, { priority: true });
     } catch (err) {
       console.error('[IncidentDetail] Failed to fetch incident:', err);
       if (listFallbackIncident) {
