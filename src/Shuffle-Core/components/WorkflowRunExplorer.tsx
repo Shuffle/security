@@ -950,7 +950,7 @@ export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps>
           minWidth: drawerMinWidth,
           maxWidth: drawerMaxWidth,
           flex: `0 0 ${drawerWidth}`,
-          bgcolor: 'hsl(var(--card))',
+          background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
           color: 'hsl(var(--foreground))',
           borderLeft: '1px solid hsl(var(--border))',
         },
