@@ -29,8 +29,6 @@ import {
 
 interface Props {
   notification: AgentNotification;
-  /** Human label for where the question came from (e.g. workflow name). */
-  sourceLabel?: string;
   /** Opens the full agent run / execution details for this question. */
   onOpenDetails?: (executionId: string) => void;
   onSubmitted?: () => void;
@@ -63,7 +61,7 @@ const relativeTime = (raw?: number | string): string => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-const InlineAgentQuestion = ({ notification, sourceLabel, onOpenDetails, onSubmitted }: Props) => {
+const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props) => {
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);

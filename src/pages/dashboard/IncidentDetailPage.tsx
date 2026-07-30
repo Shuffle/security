@@ -6620,7 +6620,7 @@ const IncidentDetailPage = () => {
           {questionNotif && (
             <InlineAgentQuestion
               notification={questionNotif}
-              sourceLabel={wfName}
+              onOpenDetails={(execId) => setSelectedWorkflowExecutionId(execId)}
               onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
             />
           )}
@@ -7827,10 +7827,13 @@ const IncidentDetailPage = () => {
     // of the timeline so the user can always answer without hunting for the
     // stuck row (the notification's execution_id often points to a child agent
     // execution that is not itself listed on the timeline).
-    const questionBanners = (incidentQuestions || []).map((n) => (
+    // Only ONE question is shown at a time — the next one appears once the
+    // current card is answered or ignored.
+    const questionBanners = (incidentQuestions || []).slice(0, 1).map((n) => (
       <Box key={`inc-question-${n.id}`} sx={{ mb: 1 }}>
         <InlineAgentQuestion
           notification={n}
+          onOpenDetails={(execId) => setSelectedWorkflowExecutionId(execId)}
           onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
         />
       </Box>
