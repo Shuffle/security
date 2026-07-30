@@ -6174,12 +6174,17 @@ const IncidentDetailPage = () => {
                   : null;
               if (!target) return;
               try {
-                const isOpen = localStorage.getItem(target.key) === '1';
-                if (!isOpen) {
-                  const header = target.el.querySelector(':scope > div') as HTMLElement | null;
-                  header?.click();
+                // Email Thread is always expanded on open, so only the
+                // Description needs a stored-state check before toggling.
+                if (target.key !== 'shuffle-incident-email-thread-open') {
+                  const isOpen = localStorage.getItem(target.key) === '1';
+                  if (!isOpen) {
+                    const header = target.el.querySelector(':scope > div') as HTMLElement | null;
+                    header?.click();
+                  }
                 }
               } catch { /* ignore */ }
+
               setTimeout(() => {
                 target.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }, 80);
