@@ -8600,6 +8600,39 @@ const IncidentDetailPage = () => {
                   Choose LLM
                 </Button>
               </Box>
+              {/* Currently assigned tools — mirrors the Permissions panel so it
+                  is clear what the agent can reach before asking. */}
+              <Box sx={{ mb: 1.5 }}>
+                <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', fontWeight: 600, mb: 0.75 }}>
+                  Assigned tools
+                </Typography>
+                {askAgentTools.length === 0 ? (
+                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
+                    No tools assigned — the agent will answer without apps.
+                  </Typography>
+                ) : (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {askAgentTools.map((name) => (
+                      <Box
+                        key={name}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          height: 24,
+                          px: 1,
+                          borderRadius: 1,
+                          border: '1px solid hsl(var(--border))',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                        }}
+                      >
+                        <Typography sx={{ fontSize: '0.7rem', fontWeight: 500, color: 'hsl(var(--foreground))' }}>
+                          {formatAgentToolName(name)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
               {!agentReadiness.isLoading && !agentReadiness.active && (
                 <Box
                   sx={{
