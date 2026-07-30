@@ -182,12 +182,7 @@ const ThreatFeedsPage = () => {
     return Array.from(set);
   }, [feeds]);
   const { data: iocCounts = {} } = useObservableCounts(trackedIocNames);
-  const topIocs = useMemo(
-    () => Object.entries(iocCounts)
-      .filter(([, n]) => n > 0)
-      .sort((a, b) => b[1] - a[1]),
-    [iocCounts],
-  );
+
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -205,6 +200,20 @@ const ThreatFeedsPage = () => {
             </Typography>
           </Box>
           {isLoading && <CircularProgress size={18} />}
+          {!isLoading && feeds.length > 0 && (
+            <Chip
+              label={enabledCount === feeds.length ? `${enabledCount} active feeds` : `${enabledCount}/${feeds.length} active feeds`}
+              size="small"
+              variant="outlined"
+              sx={{
+                height: 24,
+                ml: 1,
+                bgcolor: enabledCount > 0 ? 'hsl(var(--severity-low) / 0.12)' : 'transparent',
+                color: enabledCount > 0 ? 'hsl(var(--severity-low))' : 'text.secondary',
+                borderColor: enabledCount > 0 ? 'hsl(var(--severity-low) / 0.4)' : undefined,
+              }}
+            />
+          )}
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
           <TextField
@@ -247,41 +256,6 @@ const ThreatFeedsPage = () => {
         </Box>
       </Box>
 
-      {/* Compact stat strip — active feeds + top IOC categories, no cards. */}
-      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-        {!isLoading && (
-          <Chip
-            label={enabledCount === feeds.length || feeds.length === 0
-              ? `${enabledCount} active feeds`
-              : `${enabledCount}/${feeds.length} active feeds`}
-            size="small"
-            variant="outlined"
-            sx={{
-              height: 24,
-              bgcolor: enabledCount > 0 ? 'hsl(var(--severity-low) / 0.12)' : 'transparent',
-              color: enabledCount > 0 ? 'hsl(var(--severity-low))' : 'text.secondary',
-              borderColor: enabledCount > 0 ? 'hsl(var(--severity-low) / 0.4)' : undefined,
-            }}
-          />
-        )}
-        {feeds.length > 0 && topIocs.slice(0, 6).map(([name, count]) => (
-          <Tooltip key={name} title={`Datastore category: ioc_${name}`} arrow>
-            <Chip
-              label={
-                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                  <Box component="span" sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>
-                    {name}
-                  </Box>
-                  <Box component="span" sx={{ fontWeight: 700 }}>{count.toLocaleString()}</Box>
-                </Box>
-              }
-              size="small"
-              variant="outlined"
-              sx={{ height: 24, '& .MuiChip-label': { px: 1 } }}
-            />
-          </Tooltip>
-        ))}
-      </Box>
 
 
 
