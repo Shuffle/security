@@ -3,6 +3,7 @@
  * headers. Identical visual treatment between the full incident detail page
  * and the simplified kanban view so users get muscle memory across both.
  */
+import { useEffect, useRef } from 'react';
 import {
   Box,
   FormControl,
