@@ -214,7 +214,7 @@ interface IncidentListFallbackState {
 // Status and severity colors now imported from shared config
 import { statusConfig, severityColors, getOCSFStatus } from '@/config/incidentConfig';
 import { usePageMeta } from '@/hooks/usePageMeta';
-import { getAgentTools as getAssignedAgentTools } from '@/lib/agentTools';
+import { getAgentTools as getAssignedAgentTools, AGENT_TOOLS_CHANGED_EVENT, formatToolName as formatAgentToolName } from '@/lib/agentTools';
 import { openAgentDrawer } from '@/lib/agentDrawer';
 import { useScheduleAgentRun } from '@/hooks/useScheduleAgentRun';
 
