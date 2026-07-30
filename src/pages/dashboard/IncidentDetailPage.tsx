@@ -2140,7 +2140,10 @@ const IncidentDetailPage = () => {
     if (isPublicView) return;
     if (autoMergeBusy) return;
     if (!incident?.id || !incident.rawOCSF) return;
+    // Thread is finished — new arrivals stay separate incidents.
+    if (isClosedIncident(incident.rawOCSF)) return;
     if (primaryPointer) return; // Already merged into another incident.
+
     const threadId = threadCorrelated.threadId;
     if (!threadId) return;
     if (threadCorrelated.loading) return;

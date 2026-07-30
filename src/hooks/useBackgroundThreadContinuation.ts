@@ -191,6 +191,9 @@ export const useBackgroundThreadContinuation = (
                 if (!res.success || !res.item) continue;
                 const sRaw = JSON.parse(res.item.value);
                 if (isMergedIncident(sRaw)) continue;
+                // A resolved/closed sibling keeps its own life-cycle.
+                if (isClosedIncident(sRaw)) continue;
+
                 const title =
                   sRaw.title
                   || sRaw.finding_info_list?.[0]?.title
