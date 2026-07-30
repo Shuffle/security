@@ -2091,13 +2091,9 @@ const IncidentDetailPage = () => {
 
 
       if (failures.length === 0) {
+        // Silent success: background auto-merge is expected behaviour, so we do not toast.
         const mergedCount = batchResult.mergedIds.length || sources.length;
-        toast.success(
-          mergedCount === 1
-            ? 'Merged 1 thread sibling into the existing incident'
-            : `Merged ${mergedCount} thread siblings into the existing incident`,
-        );
-
+        console.log('[auto-merge] merged silently', { mergedCount, primaryId: primary.id });
       } else {
         // Surface the actual failure reason(s) so the analyst can act:
         // group by error message, then show up to 2 sample titles per group.
