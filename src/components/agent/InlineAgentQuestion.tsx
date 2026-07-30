@@ -78,11 +78,6 @@ const InlineAgentQuestion = ({ notification, sourceLabel, onOpenDetails, onSubmi
   const total = questions.length;
   const current = questions[index];
 
-  const shortExec = notification.execution_id ? String(notification.execution_id).slice(0, 8) : '';
-  const origin = sourceLabel
-    || stripAgentTitlePrefix(notification.title)
-    || 'AI Agent run';
-
   const advance = () => {
     if (index + 1 < total) {
       setIndex(index + 1);
