@@ -733,8 +733,8 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
         {rawMode ? (
           <Box sx={{ px: 2, py: 1.5 }}>
-            {descriptionHtml ? (
-              <EmailHtmlFrame html={descriptionHtml} />
+            {rawHtml ? (
+              <EmailHtmlFrame html={rawHtml} />
             ) : (
               <Typography variant="body2" sx={{
                 whiteSpace: 'pre-wrap',
@@ -743,7 +743,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                 color: 'text.primary',
                 wordBreak: 'break-word',
               }}>
-                {descriptionText}
+                {rawText}
               </Typography>
             )}
           </Box>
