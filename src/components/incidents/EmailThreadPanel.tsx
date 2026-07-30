@@ -192,6 +192,20 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     if (newParts.length >= parts.length) parts = newParts;
   }
 
+  // A split is only a real message boundary when the fragment actually starts
+  // with an attributable header ("From:" block or "On … wrote:"). Anything
+  // else is body text that got cut mid-message — glue it back onto the
+  // previous fragment instead of inventing a "Message N" bubble.
+  const HEADER_START = /^\s*(?:-{2,}\s*(?:Original Message|Forwarded message)|_{10,}|From:\s|On\s[\s\S]{5,300}?\swrote:)/i;
+  const merged: string[] = [];
+  for (const part of parts) {
+    if (merged.length > 0 && !HEADER_START.test(part)) {
+      merged[merged.length - 1] = `${merged[merged.length - 1]}\n${part}`;
+    } else {
+      merged.push(part);
+    }
+  }
+  parts = merged;
 
   // If no splits found, treat the whole thing as a single message
   for (let i = 0; i < parts.length; i++) {
@@ -206,8 +220,24 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     const dateMatch = part.match(/^(?:Date|Sent):\s*(.+)/mi);
     const wroteMatch = part.match(/^On\s([\s\S]{5,300}?)\swrote:/mi);
 
-    const from = fromMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].replace(/\n/g, ' ').replace(/,?\s*<[^>]+>\s*$/, '').trim() : '');
-    const date = dateMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].split(/\sat\s|,\s/).slice(0, 3).join(', ').trim() : '');
+    // "On <date> at <time> <Name> <email> wrote:" — the sender is the tail of
+    // the attribution line, not the whole date string. Prefer the address, and
+    // fall back to the words right before it.
+    let wroteFrom = '';
+    let wroteDate = '';
+    if (wroteMatch) {
+      const attribution = wroteMatch[1].replace(/\s+/g, ' ').trim();
+      const emailMatch = attribution.match(/<?(?:mailto:)?([\w.+-]+@[\w.-]+\.\w+)/);
+      const beforeEmail = emailMatch ? attribution.slice(0, attribution.indexOf(emailMatch[0])) : attribution;
+      // Date part is everything up to (and including) the time.
+      const dateSplit = beforeEmail.match(/^(.*?\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(.*)$/i);
+      wroteDate = (dateSplit?.[1] || beforeEmail).trim().replace(/[,\s]+$/, '');
+      const namePart = (dateSplit?.[2] || '').trim().replace(/[<,\s]+$/, '');
+      wroteFrom = namePart || emailMatch?.[1] || '';
+    }
+
+    const from = fromMatch?.[1]?.trim() || wroteFrom;
+    const date = dateMatch?.[1]?.trim() || wroteDate;
 
     // Extract body: remove the header block
     let body = part;
@@ -218,19 +248,24 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     body = body.replace(/^On\s[\s\S]{5,300}?wrote:\s*\n?/mi, '');
     body = body.trim();
 
+    // Drop empty fragments entirely rather than rendering a blank bubble.
+    if (!body && !from) continue;
 
     messages.push({
       id: `email-${i}`,
-      from: from || (i === 0 ? 'Sender' : `Message ${i + 1}`),
-      fromEmail: fromMatch ? extractEmail(fromMatch[1].trim()).email : undefined,
+      from: from || (messages.length === 0 ? 'Sender' : 'Earlier message'),
+      fromEmail: fromMatch
+        ? extractEmail(fromMatch[1].trim()).email
+        : (wroteMatch ? extractEmail(wroteMatch[1]).email : undefined),
       to: toMatch?.[1]?.trim(),
       cc: ccMatch?.[1]?.trim(),
       subject: subjectMatch?.[1]?.trim(),
       date,
       body,
-      isLatest: i === 0,
+      isLatest: messages.length === 0,
     });
   }
+
 
   // If we got nothing, create a single message
   if (messages.length === 0) {
