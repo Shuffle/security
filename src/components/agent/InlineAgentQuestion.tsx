@@ -70,6 +70,9 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
   const [answeredCount, setAnsweredCount] = useState(0);
   const [ignoredCount, setIgnoredCount] = useState(0);
   const [done, setDone] = useState(false);
+  const [confirmAbort, setConfirmAbort] = useState(false);
+  const [aborting, setAborting] = useState(false);
+
 
   const questions = notification.questions && notification.questions.length > 0
     ? notification.questions
