@@ -218,6 +218,11 @@ import { getAgentTools as getAssignedAgentTools } from '@/lib/agentTools';
 import { openAgentDrawer } from '@/lib/agentDrawer';
 import { useScheduleAgentRun } from '@/hooks/useScheduleAgentRun';
 
+// Transport failures (circuit-breaker 503s, flaky tunnels) are not the same as
+// a missing incident. Keep retrying quietly for ~30s before showing anything
+// terminal so the user only ever sees a loading state.
+const MAX_TRANSIENT_LOAD_RETRIES = 12;
+
 /**
  * Normalize any timestamp (Unix seconds, ms, µs, ns, ISO string, numeric string) to ms epoch.
  */
@@ -3029,9 +3034,10 @@ const IncidentDetailPage = () => {
     if (loading || incident || isPublicView || !id) return;
     const transient = loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success';
     if (!transient) return;
-    if (transientLoadRetryRef.current >= 4) return;
+    if (transientLoadRetryRef.current >= MAX_TRANSIENT_LOAD_RETRIES) return;
     transientLoadRetryRef.current += 1;
-    const retryDelay = Math.min(1500 * transientLoadRetryRef.current, 6000);
+    // Fast first retries (circuit-breaker cooldowns are ~5-10s), then back off.
+    const retryDelay = Math.min(800 * Math.pow(1.6, transientLoadRetryRef.current - 1), 5000);
     const timer = window.setTimeout(() => {
       loadIncidentRef.current?.();
     }, retryDelay);
@@ -5137,7 +5143,7 @@ const IncidentDetailPage = () => {
   }, []);
 
   const isTransientLoadFailure = !incident && (loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success');
-  const retryingTransientLoad = isTransientLoadFailure && transientLoadRetryRef.current < 4;
+  const retryingTransientLoad = isTransientLoadFailure && transientLoadRetryRef.current < MAX_TRANSIENT_LOAD_RETRIES;
 
   // Render the same skeleton for both the initial load AND the transient
   // auto-retry window. From the user's perspective these are the same state
@@ -5146,6 +5152,14 @@ const IncidentDetailPage = () => {
   if (loading || demoRecovering || retryingTransientLoad) {
     return (
       <Box sx={{ p: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <CircularProgress size={16} thickness={5} />
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {retryingTransientLoad
+              ? `Loading ${entitySingular.toLowerCase()} — the API is slow to respond, retrying…`
+              : `Loading ${entitySingular.toLowerCase()}…`}
+          </Typography>
+        </Box>
         <Skeleton variant="rectangular" height={120} sx={{ mb: 3, borderRadius: 2 }} />
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
@@ -5164,7 +5178,8 @@ const IncidentDetailPage = () => {
         </Typography>
         {isTransientLoadFailure && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-            The API did not return the incident yet. Refresh to retry.
+            The API is still not responding after several retries. This is usually
+            temporary — refresh to try again.
           </Typography>
         )}
         <Button
