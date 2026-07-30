@@ -229,6 +229,23 @@ export const isMergedIncident = (raw: any): boolean => {
   return hasActiveMergedSourceRelation(raw);
 };
 
+/**
+ * True when an incident is finished (Resolved or Closed).
+ *
+ * A finished thread must not keep absorbing new incidents: once an analyst
+ * has resolved/closed the anchor, later arrivals stay separate so they get
+ * their own triage instead of silently disappearing into a closed case.
+ */
+export const isClosedIncident = (raw: any): boolean => {
+  if (!raw || typeof raw !== 'object') return false;
+  const s = String(raw.status || '').toLowerCase().replace(/\s+/g, '_');
+  if (s === 'resolved' || s === 'closed') return true;
+  // OCSF mapping used across the app: 4 = Resolved/Closed.
+  return raw.status_id === 4;
+};
+
+
+
 /** Returns the pointer that leads to the primary, or null if this is the primary.
  *  Skips any pointer that has been explicitly unmerged — those tombstones must
  *  never resurrect the "merged into" banner. */
