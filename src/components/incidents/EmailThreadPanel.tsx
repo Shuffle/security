@@ -110,33 +110,88 @@ export const isEmailContent = (text: string, html: string, rawOCSF?: any): boole
   return false;
 };
 
+/** Minimal HTML -> text conversion used when a provider only sent HTML. */
+const htmlToPlainText = (html: string): string =>
+  (html || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+/**
+
+ * Normalise a raw email body before threading: CRLF -> LF, non-breaking
+ * spaces -> spaces, and strip the "> " quote markers plain-text clients add
+ * to replies (those markers break the `^From:` / `^On … wrote:` anchors).
+ */
+const normalizeThreadText = (raw: string): string =>
+  (raw || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .split('\n')
+    .map(l => l.replace(/^(?:\s*>)+\s?/, ''))
+    .join('\n');
+
+/**
+ * Split an HTML body at the first quoted-reply marker. Gmail wraps quoted
+ * history in `.gmail_quote` / `<blockquote>`, Outlook in `#divRplyFwdMsg`,
+ * `#appendonsend` or a horizontal rule. Returns the top (new) part only.
+ */
+export const stripQuotedHtml = (html: string): string => {
+  if (!html) return '';
+  const markers = [
+    /<div[^>]*class="[^"]*gmail_quote[^"]*"/i,
+    /<div[^>]*id="divRplyFwdMsg"/i,
+    /<div[^>]*id="appendonsend"/i,
+    /<blockquote/i,
+    /<hr[^>]*id="stopSpelling"/i,
+  ];
+  let cut = -1;
+  for (const m of markers) {
+    const idx = html.search(m);
+    if (idx >= 0 && (cut === -1 || idx < cut)) cut = idx;
+  }
+  if (cut <= 0) return html;
+  return html.slice(0, cut);
+};
+
 /**
  * Parse email content into individual messages in a thread.
  */
 const parseEmailThread = (text: string, html: string): EmailMessage[] => {
   const messages: EmailMessage[] = [];
+  const normalized = normalizeThreadText(text);
 
-  // Try to split by common thread delimiters
+  // Try to split by common thread delimiters. Every delimiter is applied
+  // (not just the first that matches) so a chain that mixes Gmail
+  // "On … wrote:" markers with Outlook "From:/Sent:" headers still splits.
   const delimiters = [
-    /(?=-----\s*Original Message\s*-----)/gi,
-    /(?=-----\s*Forwarded message\s*-----)/gi,
-    /(?=On\s[^\n]{10,80}\swrote:\s*\n)/gi,
-    /(?=From:\s[^\n]+\nSent:\s)/gi,
-    /(?=From:\s[^\n]+\nDate:\s)/gi,
+    /(?=^\s*-{2,}\s*Original Message\s*-{2,})/gim,
+    /(?=^\s*-{2,}\s*Forwarded message\s*-{2,})/gim,
+    /(?=^_{10,}\s*$)/gm,
+    /(?=^On\s[^\n]{5,200}(?:\n[^\n]{0,200})?wrote:)/gim,
+    /(?=^From:\s*.+\n\s*(?:Sent|Date|To|Subject):)/gim,
   ];
 
-  let parts: string[] = [text];
+  let parts: string[] = [normalized];
   for (const delim of delimiters) {
     const newParts: string[] = [];
     for (const part of parts) {
       const splits = part.split(delim).filter(s => s.trim());
       newParts.push(...splits);
     }
-    if (newParts.length > parts.length) {
-      parts = newParts;
-      break; // use first delimiter that produces splits
-    }
+    if (newParts.length >= parts.length) parts = newParts;
   }
+
 
   // If no splits found, treat the whole thing as a single message
   for (let i = 0; i < parts.length; i++) {
@@ -149,18 +204,20 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     const ccMatch = part.match(/^Cc:\s*(.+)/mi);
     const subjectMatch = part.match(/^Subject:\s*(.+)/mi);
     const dateMatch = part.match(/^(?:Date|Sent):\s*(.+)/mi);
-    const wroteMatch = part.match(/^On\s(.+?)\swrote:\s*$/mi);
+    const wroteMatch = part.match(/^On\s([\s\S]{5,300}?)\swrote:/mi);
 
-    const from = fromMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].replace(/,?\s*<[^>]+>$/, '').trim() : '');
-    const date = dateMatch?.[1]?.trim() || '';
+    const from = fromMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].replace(/\n/g, ' ').replace(/,?\s*<[^>]+>\s*$/, '').trim() : '');
+    const date = dateMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].split(/\sat\s|,\s/).slice(0, 3).join(', ').trim() : '');
 
     // Extract body: remove the header block
     let body = part;
     // Remove header lines from top
     body = body.replace(/^(From|To|Cc|Bcc|Subject|Date|Sent|Reply-To):\s*.+\n?/gmi, '');
-    body = body.replace(/^-----\s*(Original Message|Forwarded message)\s*-----\n?/gmi, '');
-    body = body.replace(/^On\s.+wrote:\s*\n?/gmi, '');
+    body = body.replace(/^-{2,}\s*(Original Message|Forwarded message)\s*-{2,}\n?/gmi, '');
+    body = body.replace(/^_{10,}\s*\n?/gm, '');
+    body = body.replace(/^On\s[\s\S]{5,300}?wrote:\s*\n?/mi, '');
     body = body.trim();
+
 
     messages.push({
       id: `email-${i}`,
@@ -240,22 +297,21 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const [replyBcc, setReplyBcc] = useState('');
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
-  // Default the thread to collapsed — the Activity timeline is the primary
-  // narrative on the incident page; users can expand the email when they
-  // need to read it. This avoids the long forwarded chain pushing the
-  // timeline below the fold on first open. Persisted in localStorage so
-  // the user's chosen workflow (always-open vs always-collapsed) sticks
-  // across navigation between incidents.
+  // Default the thread to OPEN — for email-related incidents the email is
+  // the primary narrative, so it should be visible immediately without an
+  // extra click. Persisted in localStorage so a user who prefers it
+  // collapsed keeps that choice across incidents.
   const EMAIL_THREAD_OPEN_KEY = 'shuffle-incident-email-thread-open';
   const [threadCollapsed, setThreadCollapsedState] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
+    if (typeof window === 'undefined') return false;
     try {
       const v = localStorage.getItem(EMAIL_THREAD_OPEN_KEY);
       if (v === '1') return false; // stored "open" -> not collapsed
       if (v === '0') return true;
     } catch { /* ignore */ }
-    return true;
+    return false;
   });
+
   const setThreadCollapsed: typeof setThreadCollapsedState = (value) => {
     setThreadCollapsedState((prev) => {
       const next = typeof value === 'function' ? (value as (p: boolean) => boolean)(prev) : value;
@@ -337,19 +393,31 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       // historical message instead of showing just the latest one.
       if (structured.length === 1) {
         const only = structured[0];
-        const quoted = parseEmailThread(only.body || '', only.bodyHtml || '');
+        // Prefer the plain-text body for splitting; when the provider only
+        // gave HTML, derive text from it so quoted replies are still found.
+        const sourceText = only.body || htmlToPlainText(only.bodyHtml || '');
+        const quoted = parseEmailThread(sourceText, only.bodyHtml || '');
         if (quoted.length > 1) {
           // Replace the first parsed piece with the structured header
           // (it already has accurate from/to/date/subject/isDraft metadata),
           // then keep the inline-quoted older messages that follow.
+          // The HTML body still holds the whole quoted chain, so cut it at
+          // the first quote marker to avoid rendering history twice.
+          const topHtml = stripQuotedHtml(only.bodyHtml || '');
           const merged: EmailMessage[] = [
-            { ...only, body: quoted[0].body, isLatest: true },
+            {
+              ...only,
+              body: quoted[0].body,
+              bodyHtml: topHtml && topHtml.trim() ? topHtml : undefined,
+              isLatest: true,
+            },
             ...quoted.slice(1).map((m, i) => ({ ...m, id: `email-quoted-${i}`, isLatest: false })),
           ];
           return merged;
         }
         return structured;
       }
+
       if (structured.length > 0) return structured;
       return parseEmailThread(descriptionText, descriptionHtml);
     },
