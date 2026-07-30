@@ -182,12 +182,7 @@ const ThreatFeedsPage = () => {
     return Array.from(set);
   }, [feeds]);
   const { data: iocCounts = {} } = useObservableCounts(trackedIocNames);
-  const topIocs = useMemo(
-    () => Object.entries(iocCounts)
-      .filter(([, n]) => n > 0)
-      .sort((a, b) => b[1] - a[1]),
-    [iocCounts],
-  );
+
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
