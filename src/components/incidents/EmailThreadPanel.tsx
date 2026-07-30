@@ -1171,6 +1171,30 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
           <Box sx={{ flex: 1, overflow: 'auto' }}>
             {panel}
           </Box>
+          {/* Resize grip (bottom-right) — size is remembered across sessions */}
+          <Box
+            onMouseDown={onResizeStart}
+            sx={{
+              position: 'absolute',
+              right: 0,
+              bottom: 0,
+              width: 18,
+              height: 18,
+              cursor: 'nwse-resize',
+              zIndex: 2,
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                right: 3,
+                bottom: 3,
+                width: 9,
+                height: 9,
+                borderRight: '2px solid hsl(var(--border))',
+                borderBottom: '2px solid hsl(var(--border))',
+              },
+            }}
+          />
+
         </Box>,
         document.body,
       )}
