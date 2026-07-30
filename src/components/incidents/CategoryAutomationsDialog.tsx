@@ -38,7 +38,7 @@ import { IngestionSourceButton } from '@/components/incidents/IngestionSourceBut
 interface AutomationApiFormat {
   name: string;
   description: string;
-  options: { key: string; value: string }[];
+  options: { key: string; value: string; apps?: string[] | null }[];
   icon: string;
   enabled: boolean;
   type?: string;
@@ -442,15 +442,20 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         const finalPrompts = prompts.length > 0 ? prompts : [''];
         setAiAgentPrompts(finalPrompts);
 
-        // Parse parallel "apps" / "apps-N" options (comma-separated app names)
-        const appsByIdx: string[][] = finalPrompts.map((_, i) => {
+        // Apps live inside the same option as the prompt (option.apps).
+        // Legacy fallback: parallel "apps" / "apps-N" options.
+        const appsByIdx: string[][] = actionOptions.map((opt, i) => {
+          const inline = (opt as any)?.apps;
+          if (Array.isArray(inline)) {
+            return inline.map((s: unknown) => String(s).trim()).filter(Boolean);
+          }
           const key = i === 0 ? 'apps' : `apps-${i + 1}`;
-          const opt = aiAutomation.options.find(o => o.key === key);
-          return opt?.value
-            ? opt.value.split(',').map(s => s.trim()).filter(Boolean)
+          const legacy = aiAutomation.options.find(o => o.key === key);
+          return legacy?.value
+            ? legacy.value.split(',').map(s => s.trim()).filter(Boolean)
             : [];
         });
-        setAiAgentApps(appsByIdx);
+        setAiAgentApps(appsByIdx.length > 0 ? appsByIdx : [[]]);
       } else {
         setAiAgentPrompts(['']);
         setAiAgentApps([[]]);
@@ -492,7 +497,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         const isEnabled = automation?.enabled || false;
         
         // Build options based on type
-        let options: { key: string; value: string }[] = [];
+        let options: { key: string; value: string; apps?: string[] | null }[] = [];
         if (config.type === 'workflow') {
           options = [{ key: config.optionKey || '', value: selectedWorkflows.map(w => w.id).join(',') }];
         } else if (config.type === 'webhook') {
@@ -500,25 +505,18 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         } else if (config.type === 'security_rules') {
           options = [{ key: config.optionKey || '', value: securityRulesText }];
         } else if (config.type === 'ai_agent') {
-          // Use "action", "action-2", "action-3" format, with parallel
-          // "apps", "apps-2", … entries holding the per-prompt allow-list
-          // of app names (comma-separated).
+          // Use "action", "action-2", "action-3" format. The per-prompt app
+          // allow-list lives INSIDE the same option object as `apps`.
           const pairs = aiAgentPrompts
             .map((prompt, idx) => ({ prompt, apps: aiAgentApps[idx] || [] }))
             .filter(p => p.prompt.trim());
-          options = [];
-          pairs.forEach((p, idx) => {
-            options.push({
-              key: idx === 0 ? 'action' : `action-${idx + 1}`,
-              value: p.prompt,
-            });
-            options.push({
-              key: idx === 0 ? 'apps' : `apps-${idx + 1}`,
-              value: p.apps.join(','),
-            });
-          });
+          options = pairs.map((p, idx) => ({
+            key: idx === 0 ? 'action' : `action-${idx + 1}`,
+            value: p.prompt,
+            apps: p.apps.length > 0 ? p.apps : null,
+          }));
           if (options.length === 0) {
-            options = [{ key: 'action', value: '' }, { key: 'apps', value: '' }];
+            options = [{ key: 'action', value: '', apps: null }];
           }
         } else {
           options = [{ key: config.optionKey || '', value: '' }];
