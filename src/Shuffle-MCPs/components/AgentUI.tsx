@@ -728,6 +728,19 @@ const buildToolName = (apps: AgentUIApp[]): string => {
     .join(',');
 };
 
+/**
+ * True when the app list is still the untouched built-in fallback
+ * (`http` + `shuffle_tools`, no ids). Used so a run that has real
+ * `allowed_actions` never sends `tool_name: "http,shuffle_tools"`.
+ */
+const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
+  if (!apps.length) return true;
+  return apps.every(
+    (a) => !a.id && ['http', 'shuffle_tools', 'shuffle-tools'].includes((a.name || '').toLowerCase()),
+  );
+};
+
+
 // ── Inner: timeline item ──────────────────────────────────────────────────────
 
 const StatusIcon: React.FC<{ status?: string }> = ({ status }) => {
@@ -2099,7 +2112,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const parts = entry.split(':');
       if (parts.length < 3 || parts[0] !== 'app') continue;
       const id = parts[1] || '';
-      const name = parts.slice(2).join(':') || '';
+      // Format is `app:<id>:<name>`; some backends append the action name as a
+      // 4th segment (`app:<id>:<name>:<action>`) — only take the app name.
+      const name = parts[2] || '';
+
       if (!name && !id) continue;
       const key = `${id}|${name}`;
       if (seen.has(key)) continue;
@@ -2413,8 +2429,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
       ...(orgId ? { orgId } : {}),
       // Send a single comma-separated `tool_name` in the format
       // `app:<objectID>:<slug>,app:<objectID>:<slug>` so the backend resolves
-      // the exact app versions instead of guessing by slug.
-      ...(chosenApps.length > 0 ? { toolName: buildToolName(chosenApps) } : {}),
+      // the exact app versions instead of guessing by slug. When the current
+      // run already has resolved `allowed_actions` apps and the picker is
+      // still on the untouched built-in fallback, use those instead of
+      // sending `http,shuffle_tools`.
+      ...((() => {
+        const effectiveApps = executionApps.length > 0 && isBuiltinDefaultApps(chosenApps)
+          ? executionApps
+          : chosenApps;
+        return effectiveApps.length > 0 ? { toolName: buildToolName(effectiveApps) } : {};
+      })()),
+
       // Pass the selected preset so the backend can apply its prompt/tools.
       ...(selectedPreset ? { presetId: selectedPreset.id } : {}),
       ...(attachedImages.length > 0 ? { images: attachedImages.map((img) => {
@@ -2508,7 +2533,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
       onRun?.({ input: text, success: true, executionId: eid });
     }
-  }, [chosenApps, getExecution, onRun, attachedImages, readUrlParams, viewMode]);
+  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, viewMode]);
 
   // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
   const autoSubmittedRef = useRef(false);
