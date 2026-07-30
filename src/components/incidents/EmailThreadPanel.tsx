@@ -376,19 +376,31 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       // historical message instead of showing just the latest one.
       if (structured.length === 1) {
         const only = structured[0];
-        const quoted = parseEmailThread(only.body || '', only.bodyHtml || '');
+        // Prefer the plain-text body for splitting; when the provider only
+        // gave HTML, derive text from it so quoted replies are still found.
+        const sourceText = only.body || htmlToPlainText(only.bodyHtml || '');
+        const quoted = parseEmailThread(sourceText, only.bodyHtml || '');
         if (quoted.length > 1) {
           // Replace the first parsed piece with the structured header
           // (it already has accurate from/to/date/subject/isDraft metadata),
           // then keep the inline-quoted older messages that follow.
+          // The HTML body still holds the whole quoted chain, so cut it at
+          // the first quote marker to avoid rendering history twice.
+          const topHtml = stripQuotedHtml(only.bodyHtml || '');
           const merged: EmailMessage[] = [
-            { ...only, body: quoted[0].body, isLatest: true },
+            {
+              ...only,
+              body: quoted[0].body,
+              bodyHtml: topHtml && topHtml.trim() ? topHtml : undefined,
+              isLatest: true,
+            },
             ...quoted.slice(1).map((m, i) => ({ ...m, id: `email-quoted-${i}`, isLatest: false })),
           ];
           return merged;
         }
         return structured;
       }
+
       if (structured.length > 0) return structured;
       return parseEmailThread(descriptionText, descriptionHtml);
     },
