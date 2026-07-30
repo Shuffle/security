@@ -268,11 +268,11 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
         <Button
-          onClick={handleIgnore}
-          disabled={submitting}
+          onClick={() => setConfirmAbort(true)}
+          disabled={submitting || aborting}
           size="small"
           variant="outlined"
-          startIcon={<X size={13} />}
+          startIcon={aborting ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : <X size={13} />}
           sx={{
             fontSize: '0.78rem',
             textTransform: 'none',
@@ -284,8 +284,9 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
             '&:hover': { borderColor: 'hsl(var(--border))', backgroundColor: 'hsl(var(--muted) / 0.4)' },
           }}
         >
-          Ignore
+          {aborting ? 'Aborting…' : 'Ignore'}
         </Button>
+
         <Button
           onClick={handleSubmit}
           disabled={!answer.trim() || submitting}
