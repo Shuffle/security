@@ -378,6 +378,11 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
           theme.palette.mode === 'dark'
             ? '0 1px 2px rgba(0,0,0,0.4)'
             : '0 1px 2px rgba(0,0,0,0.06)',
+        // Keep the whole white card collapsed until the measured height has
+        // settled — otherwise the card itself is what visibly grows.
+        ...(ready
+          ? {}
+          : { height: 0, opacity: 0, border: 'none', boxShadow: 'none', pointerEvents: 'none' }),
       }}
     >
       {!imagesAllowed && blockedCount > 0 && (
