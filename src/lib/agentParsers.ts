@@ -180,8 +180,26 @@ export const getAgentSkipInfo = (run: AgentRun): AgentSkipInfo => {
     }
   }
 
+  // 4) Text fallback — the workflow never reached the agent node. These are
+  //    routing/branch outcomes, NOT agent failures, so they must render as
+  //    "Skipped" rather than "Needs attention".
+  const haystack = collectRunText(run).toLowerCase();
+  if (haystack) {
+    const notReached = haystack.includes('did not start due to the workflow not reaching this point');
+    const branchFail = /minimum of one branch'?s? conditions must be correct to continue/.test(haystack);
+    if (notReached || branchFail) {
+      return {
+        skipped: true,
+        reason: branchFail
+          ? 'A workflow branch condition did not match, so the AI Agent was never reached. This is not an agent failure.'
+          : 'The workflow never reached the AI Agent node. This is not an agent failure.',
+      };
+    }
+  }
+
   return { skipped: false };
 };
+
 /**
  * Get the output text summary from an agent run result.
  */
