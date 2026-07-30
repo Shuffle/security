@@ -214,7 +214,7 @@ interface IncidentListFallbackState {
 // Status and severity colors now imported from shared config
 import { statusConfig, severityColors, getOCSFStatus } from '@/config/incidentConfig';
 import { usePageMeta } from '@/hooks/usePageMeta';
-import { getAgentTools as getAssignedAgentTools } from '@/lib/agentTools';
+import { getAgentTools as getAssignedAgentTools, AGENT_TOOLS_CHANGED_EVENT, formatToolName as formatAgentToolName } from '@/lib/agentTools';
 import { openAgentDrawer } from '@/lib/agentDrawer';
 import { useScheduleAgentRun } from '@/hooks/useScheduleAgentRun';
 
@@ -907,6 +907,19 @@ const IncidentDetailPage = () => {
   const [askAgentText, setAskAgentText] = useState('');
   const [askAgentSending, setAskAgentSending] = useState(false);
   const agentReadiness = useAgentReadiness();
+  // Assigned agent tools, mirrored into the "Ask the AI agent" popover so it
+  // is obvious which apps the agent may use before asking a question.
+  const [askAgentTools, setAskAgentTools] = useState<string[]>(() => getAssignedAgentTools().map((t) => t.name));
+  useEffect(() => {
+    const refresh = () => setAskAgentTools(getAssignedAgentTools().map((t) => t.name));
+    refresh();
+    window.addEventListener(AGENT_TOOLS_CHANGED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(AGENT_TOOLS_CHANGED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [askAgentAnchor]);
 
   // Builds the auto-attached context block sent with @AIAgent questions.
   // Lives as a closure so it always reads the latest scoped state.
@@ -8586,6 +8599,39 @@ const IncidentDetailPage = () => {
                 >
                   Choose LLM
                 </Button>
+              </Box>
+              {/* Currently assigned tools — mirrors the Permissions panel so it
+                  is clear what the agent can reach before asking. */}
+              <Box sx={{ mb: 1.5 }}>
+                <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', fontWeight: 600, mb: 0.75 }}>
+                  Assigned tools
+                </Typography>
+                {askAgentTools.length === 0 ? (
+                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
+                    No tools assigned — the agent will answer without apps.
+                  </Typography>
+                ) : (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {askAgentTools.map((name) => (
+                      <Box
+                        key={name}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          height: 24,
+                          px: 1,
+                          borderRadius: 1,
+                          border: '1px solid hsl(var(--border))',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                        }}
+                      >
+                        <Typography sx={{ fontSize: '0.7rem', fontWeight: 500, color: 'hsl(var(--foreground))' }}>
+                          {formatAgentToolName(name)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
               </Box>
               {!agentReadiness.isLoading && !agentReadiness.active && (
                 <Box
