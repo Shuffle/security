@@ -512,6 +512,29 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     [resolved, descriptionText, descriptionHtml],
   );
 
+  // Raw mode = "do not split the thread", NOT "show unrendered source".
+  // It must render the full original email through the exact same sanitized
+  // iframe used for a threaded message body. Prefer the provider payload's
+  // untouched HTML (the structured adapter keeps the whole quoted chain),
+  // and only fall back to the incident description when no payload exists.
+  const rawHtml = useMemo(() => {
+    const fromProvider = (resolved?.messages || [])
+      .map((m) => m.bodyHtml)
+      .filter((h): h is string => !!h && !!h.trim());
+    if (fromProvider.length) return fromProvider.join('<hr />');
+    if (descriptionHtml && descriptionHtml.trim()) return descriptionHtml;
+    return '';
+  }, [resolved, descriptionHtml]);
+
+  const rawText = useMemo(() => {
+    const fromProvider = (resolved?.messages || [])
+      .map((m) => m.body)
+      .filter((b): b is string => !!b && !!b.trim());
+    if (fromProvider.length) return fromProvider.join('\n\n');
+    return descriptionText;
+  }, [resolved, descriptionText]);
+
+
   const sourceLabel = resolved?.source === 'gmail'
     ? 'Gmail'
     : resolved?.source === 'outlook'
