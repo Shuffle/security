@@ -152,6 +152,9 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
       setAborting(false);
       setConfirmAbort(false);
     }
+  };
+
+
 
 
   if (done) {
