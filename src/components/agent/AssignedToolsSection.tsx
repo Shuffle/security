@@ -320,15 +320,20 @@ const AssignedToolsSection = ({
       <AppSearchDrawer
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        title="Assign tool"
-        subtitle="Pick an app the agent is allowed to use"
+        title="Assign tools"
+        subtitle="Pick the apps the agent is allowed to use"
+        multiSelect
         selectedApps={pickerSelectedApps}
         pinnedApps={pinnedSnapshot}
-        onQuickSelect={(app) => {
-          addAgentTool({ name: app.name, id: app.id || app.name }, agent, actionType);
-          setPickerOpen(false);
+        onSelectionChange={(apps) => {
+          setAgentTools(
+            apps.map((a) => ({ name: a.name, id: a.id || a.name })),
+            agent,
+            actionType,
+          );
         }}
       />
+
 
     </>
   );
