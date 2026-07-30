@@ -1521,7 +1521,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // Restore the last used preset from localStorage so the choice survives
   // reloads, matching how assigned agent tools are remembered.
+  // NOT when the input was prefilled by the caller (e.g. "Rerun" of an
+  // existing run) — that prompt is already complete and must not be
+  // silently wrapped in an unrelated template.
   useEffect(() => {
+    if (defaultInput && defaultInput.trim().length > 0) {
+      setSelectedPreset(null);
+      return;
+    }
     try {
       const lastId = localStorage.getItem(LAST_PRESET_STORAGE_KEY);
       if (!lastId) return;
@@ -1531,7 +1538,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     } catch {
       /* ignore storage errors */
     }
-  }, [presets]);
+  }, [presets, defaultInput]);
+
 
   // Keep the input's first-line text-indent in sync with the actual chip width
   // so wrapping text starts at the left edge below the chip.
