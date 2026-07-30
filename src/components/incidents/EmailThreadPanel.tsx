@@ -182,7 +182,6 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
   const delimiters = [
     /(?=^\s*-{2,}\s*Original Message\s*-{2,})/gim,
     /(?=^\s*-{2,}\s*Forwarded message\s*-{2,})/gim,
-    /(?=^_{10,}\s*$)/gm,
     /(?=^On\s[^\n]{5,200}(?:\n[^\n]{0,200})?wrote:)/gim,
     /(?=^From:\s*.+\n\s*(?:Sent|Date|To|Subject):)/gim,
   ];
@@ -197,11 +196,13 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     if (newParts.length >= parts.length) parts = newParts;
   }
 
-  // A split is only a real message boundary when the fragment actually starts
-  // with an attributable header ("From:" block or "On … wrote:"). Anything
-  // else is body text that got cut mid-message — glue it back onto the
-  // previous fragment instead of inventing a "Message N" bubble.
-  const HEADER_START = /^\s*(?:-{2,}\s*(?:Original Message|Forwarded message)|_{10,}|From:\s|On\s[\s\S]{5,300}?\swrote:)/i;
+  // A split is only a real message boundary when the fragment is actually
+  // attributable to a sender — i.e. it starts with a "From:" header block or a
+  // "On … wrote:" attribution (optionally preceded by an Original/Forwarded
+  // banner). Plain separators (horizontal rules, underscore lines, dividers in
+  // marketing templates) are NOT message boundaries: glue that text back onto
+  // the previous fragment instead of inventing an "Earlier message" bubble.
+  const HEADER_START = /^\s*(?:-{2,}\s*(?:Original Message|Forwarded message)\s*-{2,}\s*\n+\s*)?(?:From:\s*.+\n\s*(?:Sent|Date|To|Subject):|On\s[\s\S]{5,300}?\swrote:)/i;
   const merged: string[] = [];
   for (const part of parts) {
     if (merged.length > 0 && !HEADER_START.test(part)) {
@@ -211,6 +212,7 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     }
   }
   parts = merged;
+
 
   // If no splits found, treat the whole thing as a single message
   for (let i = 0; i < parts.length; i++) {
