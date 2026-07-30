@@ -147,6 +147,21 @@ const normalizeThreadText = (raw: string): string =>
     .join('\n');
 
 /**
+ * Wrap a plain-text body in a minimal HTML document so it can go through the
+ * exact same sandboxed EmailHtmlFrame as an HTML body. Without this, the first
+ * message (which usually has HTML) renders in the frame while quoted replies
+ * render as raw <Typography> text — which feels like two different parsers.
+ */
+const plainTextToEmailHtml = (text: string): string => {
+  const escaped = (text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return `<div style="white-space:pre-wrap;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;">${escaped}</div>`;
+};
+
+
+/**
  * Split an HTML body at the first quoted-reply marker. Gmail wraps quoted
  * history in `.gmail_quote` / `<blockquote>`, Outlook in `#divRplyFwdMsg`,
  * `#appendonsend` or a horizontal rule. Returns the top (new) part only.
