@@ -907,6 +907,19 @@ const IncidentDetailPage = () => {
   const [askAgentText, setAskAgentText] = useState('');
   const [askAgentSending, setAskAgentSending] = useState(false);
   const agentReadiness = useAgentReadiness();
+  // Assigned agent tools, mirrored into the "Ask the AI agent" popover so it
+  // is obvious which apps the agent may use before asking a question.
+  const [askAgentTools, setAskAgentTools] = useState<string[]>(() => getAssignedAgentTools().map((t) => t.name));
+  useEffect(() => {
+    const refresh = () => setAskAgentTools(getAssignedAgentTools().map((t) => t.name));
+    refresh();
+    window.addEventListener(AGENT_TOOLS_CHANGED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(AGENT_TOOLS_CHANGED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [askAgentAnchor]);
 
   // Builds the auto-attached context block sent with @AIAgent questions.
   // Lives as a closure so it always reads the latest scoped state.
