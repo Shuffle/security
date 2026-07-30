@@ -563,6 +563,19 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {isCatDisabled && (
+                      <Chip
+                        label="Coming soon"
+                        size="small"
+                        sx={{
+                          fontSize: '0.65rem',
+                          fontWeight: 500,
+                          height: 20,
+                          bgcolor: 'hsl(var(--muted) / 0.6)',
+                          color: 'hsl(var(--muted-foreground))',
+                        }}
+                      />
+                    )}
                     <Chip
                       label={`${stats.enabled}/${stats.total}`}
                       size="small"
@@ -860,6 +873,19 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', flex: 1 }}>
                       {cat.label}
                     </Typography>
+                    {isCatDisabled && (
+                      <Chip
+                        label="Coming soon"
+                        size="small"
+                        sx={{
+                          fontSize: '0.7rem',
+                          fontWeight: 500,
+                          height: 22,
+                          bgcolor: 'hsl(var(--muted) / 0.6)',
+                          color: 'hsl(var(--muted-foreground))',
+                        }}
+                      />
+                    )}
                     <Chip
                       label={`${stats.enabled}/${stats.total}`}
                       size="small"

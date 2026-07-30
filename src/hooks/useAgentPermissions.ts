@@ -35,6 +35,7 @@ export const DEFAULT_AGENT_PERMISSIONS: AgentPermissionCategory[] = [
     id: 'incident_response',
     label: 'Incident Response',
     icon: 'Zap',
+    disabled: true,
     permissions: [
       {
         id: 'block_ips',
