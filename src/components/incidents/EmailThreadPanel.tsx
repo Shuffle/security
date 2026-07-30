@@ -147,6 +147,21 @@ const normalizeThreadText = (raw: string): string =>
     .join('\n');
 
 /**
+ * Wrap a plain-text body in a minimal HTML document so it can go through the
+ * exact same sandboxed EmailHtmlFrame as an HTML body. Without this, the first
+ * message (which usually has HTML) renders in the frame while quoted replies
+ * render as raw <Typography> text — which feels like two different parsers.
+ */
+const plainTextToEmailHtml = (text: string): string => {
+  const escaped = (text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return `<div style="white-space:pre-wrap;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;">${escaped}</div>`;
+};
+
+
+/**
  * Split an HTML body at the first quoted-reply marker. Gmail wraps quoted
  * history in `.gmail_quote` / `<blockquote>`, Outlook in `#divRplyFwdMsg`,
  * `#appendonsend` or a horizontal rule. Returns the top (new) part only.
@@ -744,20 +759,9 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
         {rawMode ? (
           <Box sx={{ px: 2, py: 1.5 }}>
-            {rawHtml ? (
-              <EmailHtmlFrame html={rawHtml} />
-            ) : (
-              <Typography variant="body2" sx={{
-                whiteSpace: 'pre-wrap',
-                fontSize: '0.82rem',
-                lineHeight: 1.7,
-                color: 'text.primary',
-                wordBreak: 'break-word',
-              }}>
-                {rawText}
-              </Typography>
-            )}
+            <EmailHtmlFrame html={rawHtml || plainTextToEmailHtml(rawText)} />
           </Box>
+
         ) : messages.map((msg, idx) => {
 
           const isExpanded = msg.isLatest ? !expandedMessages.has(msg.id) : expandedMessages.has(msg.id);
@@ -886,22 +890,12 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                     </Box>
                   )}
                   <Box sx={{ pl: 5.5 }}>
-                    {msg.bodyHtml ? (
-                      <EmailHtmlFrame html={msg.bodyHtml} />
-
-
-                    ) : (
-                      <Typography variant="body2" sx={{
-                        whiteSpace: 'pre-wrap',
-                        fontSize: '0.82rem',
-                        lineHeight: 1.7,
-                        color: 'text.primary',
-                        wordBreak: 'break-word',
-                      }}>
-                        {msg.body}
-                      </Typography>
-                    )}
+                    {/* Every message body — HTML or plain text — goes through
+                        the same sandboxed frame so the thread renders
+                        consistently instead of only the first message. */}
+                    <EmailHtmlFrame html={msg.bodyHtml || plainTextToEmailHtml(msg.body)} />
                   </Box>
+
                 </Box>
               </Collapse>
             </Box>
