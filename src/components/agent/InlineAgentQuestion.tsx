@@ -14,11 +14,12 @@
  *    question dismisses the notification.
  */
 import { useState } from 'react';
-import { Box, Typography, Button, TextField, CircularProgress, Tooltip, IconButton } from '@mui/material';
+import { Box, Typography, Button, TextField, CircularProgress, Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { Send, X, Check, ExternalLink } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { toast } from '@/lib/toast';
 import InlineMarkdown from '@/components/shared/InlineMarkdown';
+import { getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
 import {
   approveAgentAction,
   continueAgentExecution,
@@ -26,6 +27,7 @@ import {
   stripAgentTitlePrefix,
   type AgentNotification,
 } from '@/services/notifications';
+
 
 interface Props {
   notification: AgentNotification;
