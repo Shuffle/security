@@ -6620,6 +6620,7 @@ const IncidentDetailPage = () => {
           {questionNotif && (
             <InlineAgentQuestion
               notification={questionNotif}
+              sourceLabel={wfName}
               onSubmitted={() => { refreshAgentNotifications(); refetchWorkflowRuns(); refetchAgentRuns(); }}
             />
           )}
