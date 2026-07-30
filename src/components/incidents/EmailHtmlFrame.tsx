@@ -341,7 +341,7 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
       // past the "large enough" threshold (very short emails).
       const revealFallback = window.setTimeout(() => {
         if (!cancelled) setReady(true);
-      }, 700);
+      }, 1400);
       retryTimers.push(revealFallback);
     };
 
