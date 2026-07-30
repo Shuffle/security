@@ -208,19 +208,32 @@ const EmailHtmlFrame = ({ html, maxHeight = 4000 }: EmailHtmlFrameProps) => {
     // an early partial measurement pops small, then jumps up as fonts and
     // late layout finish.
     let maxObserved = 0;
-    // Settle window: coalesce many observer-driven measurements into a
-    // single commit so the iframe height doesn't animate up in steps.
+    // Settle window: coalesce many observer-driven measurements and only
+    // reveal the frame once the measured height has stopped changing, so the
+    // user never sees the white box grow in steps.
     let settleTimer: number | null = null;
+    let lastCommitted = -1;
     const scheduleCommit = (h: number) => {
       if (h > maxObserved) maxObserved = h;
       if (settleTimer !== null) window.clearTimeout(settleTimer);
       settleTimer = window.setTimeout(() => {
         settleTimer = null;
         if (cancelled) return;
+        if (maxObserved === lastCommitted) {
+          // Stable across a full settle window — safe to show.
+          setReady(true);
+          return;
+        }
+        lastCommitted = maxObserved;
         setHeight(maxObserved + 4);
-        // Reveal on the first non-trivial commit.
-        if (maxObserved > 40) setReady(true);
-      }, 60);
+        // Re-arm one more settle window to confirm stability before reveal.
+        settleTimer = window.setTimeout(() => {
+          settleTimer = null;
+          if (cancelled) return;
+          if (maxObserved === lastCommitted) setReady(true);
+          else scheduleCommit(maxObserved);
+        }, 200);
+      }, 120);
     };
 
     const measure = () => {
