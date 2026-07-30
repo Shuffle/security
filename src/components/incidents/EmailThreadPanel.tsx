@@ -759,20 +759,9 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
         {rawMode ? (
           <Box sx={{ px: 2, py: 1.5 }}>
-            {rawHtml ? (
-              <EmailHtmlFrame html={rawHtml} />
-            ) : (
-              <Typography variant="body2" sx={{
-                whiteSpace: 'pre-wrap',
-                fontSize: '0.82rem',
-                lineHeight: 1.7,
-                color: 'text.primary',
-                wordBreak: 'break-word',
-              }}>
-                {rawText}
-              </Typography>
-            )}
+            <EmailHtmlFrame html={rawHtml || plainTextToEmailHtml(rawText)} />
           </Box>
+
         ) : messages.map((msg, idx) => {
 
           const isExpanded = msg.isLatest ? !expandedMessages.has(msg.id) : expandedMessages.has(msg.id);
