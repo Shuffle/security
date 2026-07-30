@@ -160,6 +160,29 @@ const plainTextToEmailHtml = (text: string): string => {
   return `<div style="white-space:pre-wrap;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;">${escaped}</div>`;
 };
 
+/**
+ * Pull the body out of a full HTML document so several provider messages can
+ * be concatenated into one raw view without nesting <html>/<body> elements
+ * (which browsers drop, leaving unstyled Times New Roman text).
+ */
+const extractHtmlBody = (html: string): string => {
+  const src = html || '';
+  const bodyMatch = src.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  const body = bodyMatch ? bodyMatch[1] : src.replace(/<\/?(?:!doctype|html|head)[^>]*>/gi, '');
+  // Keep any <style> blocks that lived in <head> — email templates rely on them.
+  const styles = (src.match(/<style[\s\S]*?<\/style>/gi) || []).join('\n');
+  return `${styles}${body}`;
+};
+
+/**
+ * Wrap raw email HTML in the same base typography the threaded view gets, so
+ * text nodes that carry no styling of their own do not fall back to the
+ * browser's serif default at document font size.
+ */
+const wrapRawEmailHtml = (inner: string): string =>
+  `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;color:#111827;word-break:break-word;">${inner}</div>`;
+
+
 
 /**
  * Split an HTML body at the first quoted-reply marker. Gmail wraps quoted
@@ -546,11 +569,19 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const rawHtml = useMemo(() => {
     const fromProvider = (resolved?.messages || [])
       .map((m) => m.bodyHtml)
-      .filter((h): h is string => !!h && !!h.trim());
-    if (fromProvider.length) return fromProvider.join('<hr />');
-    if (descriptionHtml && descriptionHtml.trim()) return descriptionHtml;
+      .filter((h): h is string => !!h && !!h.trim())
+      .map(extractHtmlBody);
+    if (fromProvider.length) {
+      return wrapRawEmailHtml(
+        fromProvider.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />'),
+      );
+    }
+    if (descriptionHtml && descriptionHtml.trim()) {
+      return wrapRawEmailHtml(extractHtmlBody(descriptionHtml));
+    }
     return '';
   }, [resolved, descriptionHtml]);
+
 
   const rawText = useMemo(() => {
     const fromProvider = (resolved?.messages || [])
