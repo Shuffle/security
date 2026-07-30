@@ -559,7 +559,7 @@ export default function AppSearchDrawer({
                     showCategories={true}
                     showCheckbox={multiSelect}
                     multiSelect={multiSelect}
-                    selectedApps={multiSelect ? projectedSelectedApps : undefined}
+                    selectedApps={selectedApps && selectedApps.length ? projectedSelectedApps : undefined}
                     disableAutoSelectValidatedApps
                     preventDefault={true}
                     onAppSelected={handleAppSelected}
