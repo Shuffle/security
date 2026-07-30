@@ -422,16 +422,33 @@ const IOCTypesPage = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-      {/* Threat Intel automation status — shared with /detection/threat-feeds */}
-      <ThreatIntelAutomationBanner />
+      {/* Header — matches the standard page header used on Incidents / Vulnerabilities */}
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>Observables</Typography>
-          {isLoading && <CircularProgress size={20} />}
-          <Chip label={`${iocTypes.length} types`} size="small" variant="outlined" />
-          <Chip label={`${enabledCount} enabled`} size="small" sx={{ bgcolor: 'hsl(var(--severity-low) / 0.12)', color: 'hsl(var(--severity-low))' }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>Observables</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Observable / indicator of compromise types used to extract and enrich incident data
+            </Typography>
+          </Box>
+          {isLoading && <CircularProgress size={18} />}
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          <TextField
+            size="small"
+            placeholder="Search IOC types..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon size={18} style={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+              sx: { height: 36 },
+            }}
+            sx={{ minWidth: 220 }}
+          />
           <Tooltip title="Reset all IOC types to defaults" arrow>
             <Button
               variant="outlined"
@@ -448,8 +465,9 @@ const IOCTypesPage = () => {
           </Button>
         </Box>
       </Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
-        {/* TODO Filter Toggle */}
+
+      {/* Compact controls strip — filter, counts and the inline regex tester. */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <SegmentedControl
           ariaLabel="Filter IOC types"
           value={filterMode}
@@ -459,68 +477,50 @@ const IOCTypesPage = () => {
             { value: 'todo', label: 'TODO', count: todoCount },
           ]}
         />
-
+        <Chip label={`${iocTypes.length} types`} size="small" variant="outlined" sx={{ height: 24 }} />
+        <Chip
+          label={`${enabledCount} enabled`}
+          size="small"
+          variant="outlined"
+          sx={{
+            height: 24,
+            bgcolor: 'hsl(var(--severity-low) / 0.12)',
+            color: 'hsl(var(--severity-low))',
+            borderColor: 'hsl(var(--severity-low) / 0.4)',
+          }}
+        />
+        <Box sx={{ flex: 1 }} />
         <TextField
           size="small"
-          placeholder="Search IOC types..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon size={18} style={{ color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-            sx: { height: 36 },
+          placeholder="Test a value against all patterns..."
+          value={testValue}
+          onChange={(e) => {
+            setTestValue(e.target.value);
+            setTestResults({});
           }}
-          sx={{ minWidth: 260, flex: 1, maxWidth: 480 }}
+          InputProps={{ sx: { height: 36, fontFamily: 'monospace' } }}
+          sx={{ minWidth: 260, maxWidth: 360 }}
         />
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<PlayArrowIcon />}
+          onClick={handleTestAll}
+          disabled={!testValue.trim()}
+          sx={{ whiteSpace: 'nowrap', height: 36 }}
+        >
+          Test All
+        </Button>
+        {Object.keys(testResults).length > 0 && (
+          <Chip
+            icon={<CheckCircleIcon size={14} />}
+            label={`${Object.values(testResults).filter(v => v === true).length} match`}
+            size="small"
+            sx={{ height: 24, bgcolor: 'hsl(var(--severity-low) / 0.15)', color: 'hsl(var(--severity-low))' }}
+          />
+        )}
       </Box>
 
-      {/* Regex Tester Bar */}
-      <Card elevation={0} sx={{ mb: 2, p: 1.5, bgcolor: 'transparent', backgroundImage: 'none', border: '1px solid hsl(var(--border))' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-            Test patterns:
-          </Typography>
-          <TextField
-            size="small"
-            placeholder="Enter a value to test against all patterns..."
-            value={testValue}
-            onChange={(e) => {
-              setTestValue(e.target.value);
-              setTestResults({});
-            }}
-            fullWidth
-            sx={{ 
-              '& .MuiOutlinedInput-root': { 
-                bgcolor: 'hsl(var(--input))',
-                fontFamily: 'monospace',
-              } 
-            }}
-          />
-          <Button 
-            variant="outlined" 
-            size="small" 
-            startIcon={<PlayArrowIcon />}
-            onClick={handleTestAll}
-            disabled={!testValue.trim()}
-            sx={{ whiteSpace: 'nowrap', height: 36 }}
-          >
-            Test All
-          </Button>
-          {Object.keys(testResults).length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                icon={<CheckCircleIcon size={16} />}
-                label={`${Object.values(testResults).filter(v => v === true).length} match`}
-                size="small"
-                sx={{ bgcolor: 'rgba(34, 197, 94, 0.15)', color: '#22c55e' }}
-              />
-            </Box>
-          )}
-        </Box>
-      </Card>
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>
