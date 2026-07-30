@@ -338,8 +338,26 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
   // Raw mode renders the original email content in one block (the pre-threading
-  // rendering) so a mis-parsed thread can always be read as-is.
-  const [rawMode, setRawMode] = useState(false);
+  // rendering) so a mis-parsed thread can always be read as-is. Persisted in
+  // localStorage so a user who prefers raw email keeps that choice across
+  // incidents.
+  const EMAIL_THREAD_RAW_KEY = 'shuffle-incident-email-thread-raw';
+  const [rawMode, setRawModeState] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem(EMAIL_THREAD_RAW_KEY) === '1';
+    } catch { /* ignore */ }
+    return false;
+  });
+
+  const setRawMode: typeof setRawModeState = (value) => {
+    setRawModeState((prev) => {
+      const next = typeof value === 'function' ? (value as (p: boolean) => boolean)(prev) : value;
+      try { localStorage.setItem(EMAIL_THREAD_RAW_KEY, next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
 
   // Default the thread to OPEN — for email-related incidents the email is
   // the primary narrative, so it should be visible immediately without an
