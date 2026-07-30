@@ -7871,39 +7871,9 @@ const IncidentDetailPage = () => {
           the Correlations tab instead of a loud page-level banner — see the
           `activeTab === 3` block below. */}
 
-      {/* Thread-correlated incidents — any other incidents that share the
-          same thread_id, pulled in live via the correlations API. Hidden on
-          merged incidents (the MergedIncidentBanner already points at the
-          primary, so this would be redundant/noisy). */}
-      {!isPublicView && incident?.id && !primaryPointer && (() => {
-        // Hide siblings that are already surfaced by the merge banners
-        // (primary or linked sources) and anything already in Merged status,
-        // so we don't double-list the same incident.
-        const excluded = new Set<string>();
-        if (relatedIncidents.primary?.id) excluded.add(relatedIncidents.primary.id.toLowerCase());
-        relatedIncidents.linked.forEach((l) => excluded.add(l.id.toLowerCase()));
-        const filtered = threadCorrelated.incidents.filter((inc) => {
-          if (excluded.has(inc.id.toLowerCase())) return false;
-          const s = String(inc.status || '').toLowerCase();
-          if (s === 'merged' || inc.status_id === 6) return false;
-          return true;
-        });
-        // Nothing meaningful to show — bail. Reporting only an invisible
-        // count with zero visible siblings ("0 share this thread, 1 not
-        // visible") is confusing and adds no signal.
-        if (filtered.length === 0 && threadCorrelated.discoveredCount === 0) return null;
-        return (
-          <ThreadCorrelatedBanner
-            threadId={threadCorrelated.threadId}
-            incidents={filtered}
-            discoveredCount={threadCorrelated.discoveredCount}
-            invisibleCount={threadCorrelated.invisibleCount}
-            loading={threadCorrelated.loading}
-            onAutoMerge={handleAutoMergeThread}
-            autoMergeBusy={autoMergeBusy}
-          />
-        );
-      })()}
+      {/* Thread-correlated incidents are surfaced inside the Correlations tab
+          instead of a page-level banner — see the `activeTab === 3` block. */}
+
 
 
 
@@ -10645,6 +10615,32 @@ const IncidentDetailPage = () => {
           border: '1px solid hsl(var(--border))',
           p: 2.5,
         }}>
+          {/* Thread-correlated incidents — other incidents sharing the same
+              thread_id. Lives here rather than above the page header. */}
+          {!isPublicView && incident?.id && !primaryPointer && (() => {
+            const excluded = new Set<string>();
+            if (relatedIncidents.primary?.id) excluded.add(relatedIncidents.primary.id.toLowerCase());
+            relatedIncidents.linked.forEach((l) => excluded.add(l.id.toLowerCase()));
+            const filtered = threadCorrelated.incidents.filter((inc) => {
+              if (excluded.has(inc.id.toLowerCase())) return false;
+              const s = String(inc.status || '').toLowerCase();
+              if (s === 'merged' || inc.status_id === 6) return false;
+              return true;
+            });
+            if (filtered.length === 0 && threadCorrelated.discoveredCount === 0) return null;
+            return (
+              <ThreadCorrelatedBanner
+                threadId={threadCorrelated.threadId}
+                incidents={filtered}
+                discoveredCount={threadCorrelated.discoveredCount}
+                invisibleCount={threadCorrelated.invisibleCount}
+                loading={threadCorrelated.loading}
+                onAutoMerge={handleAutoMergeThread}
+                autoMergeBusy={autoMergeBusy}
+              />
+            );
+          })()}
+
           {/* Incidents that have been merged INTO this one — surfaced quietly
               here at the top of the Correlations tab instead of a page-level
               banner. Auto-hides when there is nothing to show. */}
