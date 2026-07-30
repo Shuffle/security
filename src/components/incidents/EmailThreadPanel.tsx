@@ -186,18 +186,20 @@ const parseEmailThread = (text: string, html: string): EmailMessage[] => {
     const ccMatch = part.match(/^Cc:\s*(.+)/mi);
     const subjectMatch = part.match(/^Subject:\s*(.+)/mi);
     const dateMatch = part.match(/^(?:Date|Sent):\s*(.+)/mi);
-    const wroteMatch = part.match(/^On\s(.+?)\swrote:\s*$/mi);
+    const wroteMatch = part.match(/^On\s([\s\S]{5,300}?)\swrote:/mi);
 
-    const from = fromMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].replace(/,?\s*<[^>]+>$/, '').trim() : '');
-    const date = dateMatch?.[1]?.trim() || '';
+    const from = fromMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].replace(/\n/g, ' ').replace(/,?\s*<[^>]+>\s*$/, '').trim() : '');
+    const date = dateMatch?.[1]?.trim() || (wroteMatch ? wroteMatch[1].split(/\sat\s|,\s/).slice(0, 3).join(', ').trim() : '');
 
     // Extract body: remove the header block
     let body = part;
     // Remove header lines from top
     body = body.replace(/^(From|To|Cc|Bcc|Subject|Date|Sent|Reply-To):\s*.+\n?/gmi, '');
-    body = body.replace(/^-----\s*(Original Message|Forwarded message)\s*-----\n?/gmi, '');
-    body = body.replace(/^On\s.+wrote:\s*\n?/gmi, '');
+    body = body.replace(/^-{2,}\s*(Original Message|Forwarded message)\s*-{2,}\n?/gmi, '');
+    body = body.replace(/^_{10,}\s*\n?/gm, '');
+    body = body.replace(/^On\s[\s\S]{5,300}?wrote:\s*\n?/mi, '');
     body = body.trim();
+
 
     messages.push({
       id: `email-${i}`,
