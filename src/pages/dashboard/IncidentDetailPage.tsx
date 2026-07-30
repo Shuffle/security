@@ -2498,18 +2498,35 @@ const IncidentDetailPage = () => {
         .filter(Boolean),
     );
     const synthetic: AgentNotification[] = [];
+    // Agent decisions are NOT on the search result itself — they live inside
+    // the AI Agent action's `result` JSON blob (same source AgentUI parses).
+    // Read both so questions surface without opening the drawer.
+    const decisionsForRun = (run: any): any[] => {
+      if (Array.isArray(run?.decisions)) return run.decisions;
+      const results: any[] = Array.isArray(run?.results) ? run.results : [];
+      const actionResult =
+        results.find((r: any) => r?.action?.app_name === 'AI Agent') || results[0];
+      const raw = actionResult?.result;
+      if (typeof raw !== 'string' || !raw.trim().startsWith('{')) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed?.decisions) ? parsed.decisions : [];
+      } catch { return []; }
+    };
     (agentRuns || []).forEach((run: any) => {
       const execId = String(run?.execution_id || '');
       const auth = String(run?.authorization || '');
-      if (!execId || !auth) return;
-      for (const pending of extractPendingAgentQuestions(run)) {
+      if (!execId) return;
+      const status = String(run?.status || '').toUpperCase();
+      if (status && status !== 'EXECUTING' && status !== 'WAITING' && status !== 'RUNNING') return;
+      for (const pending of extractPendingAgentQuestions({ decisions: decisionsForRun(run) })) {
         if (notifiedDecisionIds.has(pending.decisionId)) continue;
         const startedMs = run?.started_at ? Math.floor(new Date(run.started_at).getTime() / 1000) : Math.floor(Date.now() / 1000);
         synthetic.push({
           id: `agent-run-question-${execId}-${pending.decisionId}`,
           title: pending.reason || 'Agent needs your input',
           description: pending.description || '',
-          reference_url: `/forms/inline?execution_id=${encodeURIComponent(execId)}&authorization=${encodeURIComponent(auth)}&decision_id=${encodeURIComponent(pending.decisionId)}`,
+          reference_url: `/forms/inline?execution_id=${encodeURIComponent(execId)}${auth ? `&authorization=${encodeURIComponent(auth)}` : ''}&decision_id=${encodeURIComponent(pending.decisionId)}`,
           created_at: startedMs,
           updated_at: startedMs,
           execution_id: execId,
@@ -2518,6 +2535,7 @@ const IncidentDetailPage = () => {
         });
       }
     });
+
 
     return [...fromNotifications, ...synthetic];
   }, [agentNotifications, id, agentRuns, allIncidentWorkflowRuns]);
