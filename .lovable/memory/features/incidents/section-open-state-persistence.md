@@ -10,8 +10,10 @@ them to re-toggle on every navigation is friction.
 
 ## Storage keys
 
-- `shuffle-incident-email-thread-open` — `'1'` open, `'0'` collapsed.
-  Read/written inside `EmailThreadPanel`.
+- Email Thread is NOT persisted: it always starts expanded on every email
+  incident (user rule). `shuffle-incident-email-popout-size` stores the
+  popout window's resized `{w,h}`.
+
 - `shuffle-incident-description-open` — same format. Passed via the
   `Section` component's `storageKey` prop on both Description renders
   (left column when no email, right column when an email thread exists).
