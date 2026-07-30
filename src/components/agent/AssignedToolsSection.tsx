@@ -171,6 +171,15 @@ const AssignedToolsSection = ({
     };
   }, [agent, actionType]);
 
+  // Allow callers (e.g. the incident "Assign tools" action) to jump straight
+  // into the app picker instead of making the user click "Add tool" again.
+  useEffect(() => {
+    const openPicker = () => setPickerOpen(true);
+    window.addEventListener(AGENT_TOOL_PICKER_OPEN_EVENT, openPicker);
+    return () => window.removeEventListener(AGENT_TOOL_PICKER_OPEN_EVENT, openPicker);
+  }, []);
+
+
   const icons = useAppIcons(useMemo(() => tools.map((t) => t.name), [tools]));
 
   const labelText =
