@@ -271,7 +271,6 @@ const IOCTypesPage = () => {
     })();
   };
 
-  const enabledCount = useMemo(() => iocTypes.filter(t => t.enabled).length, [iocTypes]);
   const enabledNames = useMemo(() => iocTypes.filter(t => t.enabled).map(t => t.name), [iocTypes]);
   const { data: observableCounts, isLoading: countsLoading } = useObservableCounts(enabledNames);
   const queryClient = useQueryClient();
@@ -422,8 +421,8 @@ const IOCTypesPage = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-      {/* Threat Intel automation status — shared with /incidents/threat-feeds */}
-      <ThreatIntelAutomationBanner />
+      {/* Threat Intel automation status — shown only when not already active. */}
+      {!enrichmentStatus.active && <ThreatIntelAutomationBanner />}
       {/* Header — matches the standard page header used on Incidents / Vulnerabilities */}
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -454,7 +453,6 @@ const IOCTypesPage = () => {
           <Tooltip title="Reset all IOC types to defaults" arrow>
             <Button
               variant="outlined"
-              color="warning"
               startIcon={<RestartAltIcon />}
               onClick={handleInitDefaults}
               sx={{ height: 36 }}
@@ -468,7 +466,7 @@ const IOCTypesPage = () => {
         </Box>
       </Box>
 
-      {/* Compact controls strip — filter, counts and the inline regex tester. */}
+      {/* Compact controls strip — filter and the inline regex tester. */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <SegmentedControl
           ariaLabel="Filter IOC types"
@@ -478,18 +476,6 @@ const IOCTypesPage = () => {
             { value: 'all', label: 'All' },
             { value: 'todo', label: 'TODO', count: todoCount },
           ]}
-        />
-        <Chip label={`${iocTypes.length} types`} size="small" variant="outlined" sx={{ height: 24 }} />
-        <Chip
-          label={`${enabledCount} enabled`}
-          size="small"
-          variant="outlined"
-          sx={{
-            height: 24,
-            bgcolor: 'hsl(var(--severity-low) / 0.12)',
-            color: 'hsl(var(--severity-low))',
-            borderColor: 'hsl(var(--severity-low) / 0.4)',
-          }}
         />
         <Box sx={{ flex: 1 }} />
         <TextField
@@ -522,6 +508,7 @@ const IOCTypesPage = () => {
           />
         )}
       </Box>
+
 
 
       {error && (
