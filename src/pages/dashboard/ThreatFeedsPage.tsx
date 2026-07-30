@@ -429,11 +429,11 @@ const ThreatFeedsPage = () => {
                             </Typography>
                           </Box>
                           <Button
-                            variant="contained"
+                            variant="outlined"
                             onClick={handleEnableThreatFeeds}
                             disabled={isInitializing}
-                            startIcon={isInitializing ? <CircularProgress size={16} color="inherit" /> : <RssFeedIcon />}
-                            sx={{ height: 36, mt: 1 }}
+                            startIcon={isInitializing ? <CircularProgress size={16} color="inherit" /> : <RssFeedIcon size={16} />}
+                            sx={{ height: 32, mt: 1 }}
                           >
                             Enable Threat Feeds
                           </Button>
