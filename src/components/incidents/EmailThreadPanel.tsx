@@ -111,32 +111,69 @@ export const isEmailContent = (text: string, html: string, rawOCSF?: any): boole
 };
 
 /**
+ * Normalise a raw email body before threading: CRLF -> LF, non-breaking
+ * spaces -> spaces, and strip the "> " quote markers plain-text clients add
+ * to replies (those markers break the `^From:` / `^On … wrote:` anchors).
+ */
+const normalizeThreadText = (raw: string): string =>
+  (raw || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .split('\n')
+    .map(l => l.replace(/^(?:\s*>)+\s?/, ''))
+    .join('\n');
+
+/**
+ * Split an HTML body at the first quoted-reply marker. Gmail wraps quoted
+ * history in `.gmail_quote` / `<blockquote>`, Outlook in `#divRplyFwdMsg`,
+ * `#appendonsend` or a horizontal rule. Returns the top (new) part only.
+ */
+export const stripQuotedHtml = (html: string): string => {
+  if (!html) return '';
+  const markers = [
+    /<div[^>]*class="[^"]*gmail_quote[^"]*"/i,
+    /<div[^>]*id="divRplyFwdMsg"/i,
+    /<div[^>]*id="appendonsend"/i,
+    /<blockquote/i,
+    /<hr[^>]*id="stopSpelling"/i,
+  ];
+  let cut = -1;
+  for (const m of markers) {
+    const idx = html.search(m);
+    if (idx >= 0 && (cut === -1 || idx < cut)) cut = idx;
+  }
+  if (cut <= 0) return html;
+  return html.slice(0, cut);
+};
+
+/**
  * Parse email content into individual messages in a thread.
  */
 const parseEmailThread = (text: string, html: string): EmailMessage[] => {
   const messages: EmailMessage[] = [];
+  const normalized = normalizeThreadText(text);
 
-  // Try to split by common thread delimiters
+  // Try to split by common thread delimiters. Every delimiter is applied
+  // (not just the first that matches) so a chain that mixes Gmail
+  // "On … wrote:" markers with Outlook "From:/Sent:" headers still splits.
   const delimiters = [
-    /(?=-----\s*Original Message\s*-----)/gi,
-    /(?=-----\s*Forwarded message\s*-----)/gi,
-    /(?=On\s[^\n]{10,80}\swrote:\s*\n)/gi,
-    /(?=From:\s[^\n]+\nSent:\s)/gi,
-    /(?=From:\s[^\n]+\nDate:\s)/gi,
+    /(?=^\s*-{2,}\s*Original Message\s*-{2,})/gim,
+    /(?=^\s*-{2,}\s*Forwarded message\s*-{2,})/gim,
+    /(?=^_{10,}\s*$)/gm,
+    /(?=^On\s[^\n]{5,200}(?:\n[^\n]{0,200})?wrote:)/gim,
+    /(?=^From:\s*.+\n\s*(?:Sent|Date|To|Subject):)/gim,
   ];
 
-  let parts: string[] = [text];
+  let parts: string[] = [normalized];
   for (const delim of delimiters) {
     const newParts: string[] = [];
     for (const part of parts) {
       const splits = part.split(delim).filter(s => s.trim());
       newParts.push(...splits);
     }
-    if (newParts.length > parts.length) {
-      parts = newParts;
-      break; // use first delimiter that produces splits
-    }
+    if (newParts.length >= parts.length) parts = newParts;
   }
+
 
   // If no splits found, treat the whole thing as a single message
   for (let i = 0; i < parts.length; i++) {
