@@ -728,6 +728,19 @@ const buildToolName = (apps: AgentUIApp[]): string => {
     .join(',');
 };
 
+/**
+ * True when the app list is still the untouched built-in fallback
+ * (`http` + `shuffle_tools`, no ids). Used so a run that has real
+ * `allowed_actions` never sends `tool_name: "http,shuffle_tools"`.
+ */
+const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
+  if (!apps.length) return true;
+  return apps.every(
+    (a) => !a.id && ['http', 'shuffle_tools', 'shuffle-tools'].includes((a.name || '').toLowerCase()),
+  );
+};
+
+
 // ── Inner: timeline item ──────────────────────────────────────────────────────
 
 const StatusIcon: React.FC<{ status?: string }> = ({ status }) => {
