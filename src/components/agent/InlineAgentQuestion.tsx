@@ -14,11 +14,12 @@
  *    question dismisses the notification.
  */
 import { useState } from 'react';
-import { Box, Typography, Button, TextField, CircularProgress, Tooltip, IconButton } from '@mui/material';
+import { Box, Typography, Button, TextField, CircularProgress, Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { Send, X, Check, ExternalLink } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { toast } from '@/lib/toast';
 import InlineMarkdown from '@/components/shared/InlineMarkdown';
+import { getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
 import {
   approveAgentAction,
   continueAgentExecution,
@@ -26,6 +27,7 @@ import {
   stripAgentTitlePrefix,
   type AgentNotification,
 } from '@/services/notifications';
+
 
 interface Props {
   notification: AgentNotification;
@@ -68,6 +70,9 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
   const [answeredCount, setAnsweredCount] = useState(0);
   const [ignoredCount, setIgnoredCount] = useState(0);
   const [done, setDone] = useState(false);
+  const [confirmAbort, setConfirmAbort] = useState(false);
+  const [aborting, setAborting] = useState(false);
+
 
   const questions = notification.questions && notification.questions.length > 0
     ? notification.questions
@@ -104,22 +109,53 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
       advance();
     } catch (err) {
       console.error('[InlineAgentQuestion] submit failed:', err);
-      toast.error('Failed to submit answer.');
+      toast.error('Failed to submit answer. Please contact support@shuffler.io if this persists.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleIgnore = async () => {
-    if (submitting) return;
-    setIgnoredCount((c) => c + 1);
-    if (index + 1 >= total && answeredCount === 0) {
-      // Nothing was answered at all — clear the notification entirely.
-      await dismissNotification(notification.id).catch(() => { /* non-fatal */ });
-      onSubmitted?.();
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit();
     }
-    advance();
   };
+
+  /** Ignoring a question aborts the underlying workflow execution. */
+  const handleIgnore = async () => {
+    if (submitting || aborting) return;
+    setAborting(true);
+    try {
+      if (notification.workflow_id && notification.execution_id) {
+        const resp = await shuffleFetch(
+          getApiUrl(`/api/v1/workflows/${notification.workflow_id}/executions/${notification.execution_id}/abort`),
+        );
+        if (!resp.ok) {
+          console.error('[InlineAgentQuestion] abort failed:', resp.status);
+        }
+        try {
+          window.dispatchEvent(new CustomEvent('workflow-run:changed', {
+            detail: { executionId: notification.execution_id, reason: 'aborted' },
+          }));
+        } catch { /* ignore */ }
+      }
+      await dismissNotification(notification.id).catch(() => { /* non-fatal */ });
+      setIgnoredCount((c) => c + 1);
+      toast.success('Execution aborted.');
+      onSubmitted?.();
+      setDone(true);
+    } catch (err) {
+      console.error('[InlineAgentQuestion] abort error:', err);
+      toast.error('Failed to abort the execution. Please contact support@shuffler.io if this persists.');
+    } finally {
+      setAborting(false);
+      setConfirmAbort(false);
+    }
+  };
+
+
+
 
   if (done) {
     return (
@@ -212,7 +248,11 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
+          helperText="Shift + Enter to submit"
+          FormHelperTextProps={{ sx: { fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))', mx: 0.5 } }}
           disabled={submitting}
+
           sx={{
             '& .MuiOutlinedInput-root': {
               fontSize: '0.85rem',
@@ -228,11 +268,11 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
         <Button
-          onClick={handleIgnore}
-          disabled={submitting}
+          onClick={() => setConfirmAbort(true)}
+          disabled={submitting || aborting}
           size="small"
           variant="outlined"
-          startIcon={<X size={13} />}
+          startIcon={aborting ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : <X size={13} />}
           sx={{
             fontSize: '0.78rem',
             textTransform: 'none',
@@ -244,8 +284,9 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
             '&:hover': { borderColor: 'hsl(var(--border))', backgroundColor: 'hsl(var(--muted) / 0.4)' },
           }}
         >
-          Ignore
+          {aborting ? 'Aborting…' : 'Ignore'}
         </Button>
+
         <Button
           onClick={handleSubmit}
           disabled={!answer.trim() || submitting}
@@ -268,7 +309,36 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
           {submitting ? 'Submitting…' : index + 1 < total ? 'Submit & next' : 'Submit answer'}
         </Button>
       </Box>
+
+      <Dialog open={confirmAbort} onClose={() => setConfirmAbort(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Abort this execution?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '0.85rem' }}>
+            Ignoring this question aborts the underlying workflow execution. Any pending actions will be stopped and the AI Agent will not continue.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setConfirmAbort(false)}
+            size="small"
+            sx={{ textTransform: 'none', fontWeight: 600, height: 32, color: 'hsl(var(--muted-foreground))' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleIgnore}
+            disabled={aborting}
+            size="small"
+            variant="contained"
+            color="error"
+            sx={{ textTransform: 'none', fontWeight: 600, height: 32, boxShadow: 'none' }}
+          >
+            {aborting ? 'Aborting…' : 'Abort execution'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
+
   );
 };
 
