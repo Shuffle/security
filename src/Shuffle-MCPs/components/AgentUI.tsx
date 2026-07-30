@@ -3237,7 +3237,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
         ))}
       </Box>
     </Box>
-  ) : scheduleDisabledReasons.length === 1 ? `Cannot schedule: ${scheduleDisabledReasons[0]}` : '';
+  ) : scheduleDisabledReasons.length === 1 ? `Cannot schedule: ${scheduleDisabledReasons[0]}` : (
+    scheduleWarnings.length > 0 ? (
+      <Box>
+        <Box sx={{ fontWeight: 600, mb: 0.5 }}>Schedule this prompt to run repeatedly on a cron schedule</Box>
+        <Box sx={{ m: 0 }}>
+          {scheduleWarnings.map((r, i) => (
+            <Box key={i} sx={{ mb: 0.5, display: 'flex', gap: 0.75 }}>
+              <Box component="span" sx={{ fontWeight: 700, flexShrink: 0 }}>·</Box>
+              <Box component="span">{r}</Box>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    ) : ''
+  );
 
   // Rendered inline (not a nested component) so it isn't remounted on every
   // parent re-render — the live duration ticker would otherwise reset hover
