@@ -309,7 +309,36 @@ const InlineAgentQuestion = ({ notification, onOpenDetails, onSubmitted }: Props
           {submitting ? 'Submitting…' : index + 1 < total ? 'Submit & next' : 'Submit answer'}
         </Button>
       </Box>
+
+      <Dialog open={confirmAbort} onClose={() => setConfirmAbort(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Abort this execution?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '0.85rem' }}>
+            Ignoring this question aborts the underlying workflow execution. Any pending actions will be stopped and the AI Agent will not continue.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setConfirmAbort(false)}
+            size="small"
+            sx={{ textTransform: 'none', fontWeight: 600, height: 32, color: 'hsl(var(--muted-foreground))' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleIgnore}
+            disabled={aborting}
+            size="small"
+            variant="contained"
+            color="error"
+            sx={{ textTransform: 'none', fontWeight: 600, height: 32, boxShadow: 'none' }}
+          >
+            {aborting ? 'Aborting…' : 'Abort execution'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
+
   );
 };
 
