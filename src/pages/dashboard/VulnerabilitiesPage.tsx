@@ -91,7 +91,7 @@ const PublicVulnerabilitiesView = () => {
         </div>
       </div>
 
-      <form onSubmit={handleLookup} className="rounded-lg border border-border bg-card p-5 space-y-3">
+      <form onSubmit={handleLookup} className="rounded-lg border border-border bg-transparent backdrop-blur-md p-5 space-y-3">
         <label htmlFor="vuln-id" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Vulnerability ID
         </label>
@@ -123,7 +123,7 @@ const PublicVulnerabilitiesView = () => {
         </p>
       </form>
 
-      <div className="rounded-lg border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-5">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/15 text-primary shrink-0">
             <LogIn size={14} />
@@ -320,7 +320,7 @@ const AuthenticatedVulnerabilitiesView = () => {
         {(['critical', 'high', 'medium', 'low'] as VulnSeverity[]).map(sev => (
           <div
             key={sev}
-            className="rounded-lg border border-border bg-card p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+            className="rounded-lg border border-border bg-transparent backdrop-blur-md p-4 cursor-pointer hover:bg-muted/50 transition-colors"
             onClick={() => setSeverityFilter(severityFilter === sev ? 'all' : sev)}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -396,7 +396,7 @@ const AuthenticatedVulnerabilitiesView = () => {
           />
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-12 text-center">
           <Shield size={48} className="text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-base font-medium text-foreground mb-1">No vulnerability data yet</h3>
           <p className="text-sm text-muted-foreground mb-1 max-w-md mx-auto">
@@ -453,7 +453,7 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
   };
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-border bg-card p-12 text-center">
+      <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-12 text-center">
         <RefreshCw size={24} className="animate-spin text-muted-foreground mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">Loading vulnerabilities...</p>
       </div>
@@ -462,7 +462,7 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
 
   if (vulnerabilities.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-12 text-center">
+      <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-12 text-center">
         {emptyIcon}
         <h3 className="text-base font-medium text-foreground mb-1">{emptyTitle}</h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">{emptyDescription}</p>
@@ -475,7 +475,7 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-lg border border-border bg-transparent backdrop-blur-md overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
