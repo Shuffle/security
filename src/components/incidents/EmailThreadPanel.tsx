@@ -901,22 +901,12 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                     </Box>
                   )}
                   <Box sx={{ pl: 5.5 }}>
-                    {msg.bodyHtml ? (
-                      <EmailHtmlFrame html={msg.bodyHtml} />
-
-
-                    ) : (
-                      <Typography variant="body2" sx={{
-                        whiteSpace: 'pre-wrap',
-                        fontSize: '0.82rem',
-                        lineHeight: 1.7,
-                        color: 'text.primary',
-                        wordBreak: 'break-word',
-                      }}>
-                        {msg.body}
-                      </Typography>
-                    )}
+                    {/* Every message body — HTML or plain text — goes through
+                        the same sandboxed frame so the thread renders
+                        consistently instead of only the first message. */}
+                    <EmailHtmlFrame html={msg.bodyHtml || plainTextToEmailHtml(msg.body)} />
                   </Box>
+
                 </Box>
               </Collapse>
             </Box>
