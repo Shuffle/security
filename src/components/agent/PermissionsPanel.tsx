@@ -563,6 +563,19 @@ const PermissionsPanel = ({ compact = false }: PermissionsPanelProps) => {
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {isCatDisabled && (
+                      <Chip
+                        label="Coming soon"
+                        size="small"
+                        sx={{
+                          fontSize: '0.65rem',
+                          fontWeight: 500,
+                          height: 20,
+                          bgcolor: 'hsl(var(--muted) / 0.6)',
+                          color: 'hsl(var(--muted-foreground))',
+                        }}
+                      />
+                    )}
                     <Chip
                       label={`${stats.enabled}/${stats.total}`}
                       size="small"
