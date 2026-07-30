@@ -322,11 +322,14 @@ const AssignedToolsSection = ({
         onClose={() => setPickerOpen(false)}
         title="Assign tool"
         subtitle="Pick an app the agent is allowed to use"
+        selectedApps={pickerSelectedApps}
+        pinnedApps={pinnedSnapshot}
         onQuickSelect={(app) => {
           addAgentTool({ name: app.name, id: app.id || app.name }, agent, actionType);
           setPickerOpen(false);
         }}
       />
+
     </>
   );
 };
