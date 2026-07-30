@@ -808,8 +808,14 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const itemEnd = item.end_time || itemStart;
   const hasTiming = itemStart > 0 && itemEnd >= itemStart;
   const dur = hasTiming ? Math.max(0, itemEnd - itemStart) : 0;
-  const offset = totalDuration > 0 && hasTiming ? ((itemStart - originalStartTime) / totalDuration) * maxWidth : 0;
-  const width = totalDuration > 0 && hasTiming ? Math.max(4, (dur / totalDuration) * maxWidth) : 0;
+  // Clamp the bar to the track. Timings coming back from the API are not
+  // always consistent (an item can start before the computed run start, or
+  // still be running so its end is "now" and exceeds the total), which would
+  // otherwise push the bar out of its track and over the duration column.
+  const rawOffset = totalDuration > 0 && hasTiming ? ((itemStart - originalStartTime) / totalDuration) * maxWidth : 0;
+  const offset = Number.isFinite(rawOffset) ? Math.min(Math.max(0, rawOffset), Math.max(0, maxWidth - 4)) : 0;
+  const rawWidth = totalDuration > 0 && hasTiming ? Math.max(4, (dur / totalDuration) * maxWidth) : 0;
+  const width = Number.isFinite(rawWidth) ? Math.min(rawWidth, Math.max(4, maxWidth - offset)) : 0;
 
   // Adapt label based on action/category
   let displayType = item.type as string;
@@ -1023,7 +1029,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             <span>Duration: {dur.toFixed(2)}s</span>
           </Box>
         ) : 'No timing data'}>
-          <Box sx={{ width: maxWidth, maxWidth, minWidth: 40, position: 'relative', height: 10, flexShrink: 1, flexBasis: maxWidth }}>
+          <Box sx={{ width: maxWidth, maxWidth, minWidth: 40, position: 'relative', height: 10, flexShrink: 1, flexBasis: maxWidth, overflow: 'hidden' }}>
             {dur > 0 && (
               <Box sx={{
                 position: 'absolute',
@@ -1038,7 +1044,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             )}
           </Box>
         </Tooltip>
-        <Box sx={{ width: 60, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
+        <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
           {dur > 0 ? `${dur.toFixed(2)}s` : ''}
         </Box>
         {/* Per-row actions: Approve/Deny, Rerun */}
