@@ -3,7 +3,7 @@
  * Detects email content (From/To/Subject headers, forwarded chains, "On … wrote:" markers)
  * and displays them as a threaded conversation. Stays within OCSF class_uid 2005.
  */
-import { Mail as EmailIcon, Reply as ReplyIcon, ChevronDown as ExpandMoreIcon, ChevronUp as ExpandLessIcon, Send as SendIcon, Forward as ForwardIcon, Paperclip as AttachFileIcon, User as PersonIcon, ExternalLink as OpenInNewIcon, X as CloseIcon, GripVertical as DragIndicatorIcon } from 'lucide-react';
+import { Mail as EmailIcon, Reply as ReplyIcon, ChevronDown as ExpandMoreIcon, ChevronUp as ExpandLessIcon, Send as SendIcon, Forward as ForwardIcon, Paperclip as AttachFileIcon, User as PersonIcon, ExternalLink as OpenInNewIcon, X as CloseIcon, GripVertical as DragIndicatorIcon, Code as CodeIcon } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
@@ -52,11 +52,16 @@ interface EmailThreadPanelProps {
 
 /** Extract email address from "Name <email>" format */
 const extractEmail = (s: string): { name: string; email?: string } => {
-  const match = s.match(/^(.*?)\s*<([^>]+)>\s*$/);
-  if (match) return { name: match[1].trim() || match[2], email: match[2] };
-  if (s.includes('@')) return { name: s.split('@')[0], email: s };
-  return { name: s };
+  const cleaned = (s || '').replace(/\s+/g, ' ').trim();
+  // Pull the first real-looking address anywhere in the string. Quoted
+  // attribution lines often nest `<name <mailto:addr>>`, so a naive
+  // `<...>` capture returns garbage.
+  const addr = cleaned.match(/(?:mailto:)?([\w.!#$%&'*+/=?^`{|}~-]+@[\w-]+(?:\.[\w-]+)+)/);
+  const named = cleaned.match(/^"?([^"<]+?)"?\s*<[^>]*>$/);
+  const name = named?.[1]?.trim() || (addr ? cleaned.split('<')[0].trim() || addr[1] : cleaned);
+  return { name: name || cleaned, email: addr?.[1] };
 };
+
 
 /** Get initials for avatar */
 const getInitials = (name: string): string => {
@@ -332,6 +337,10 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   const [replyBcc, setReplyBcc] = useState('');
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
+  // Raw mode renders the original email content in one block (the pre-threading
+  // rendering) so a mis-parsed thread can always be read as-is.
+  const [rawMode, setRawMode] = useState(false);
+
   // Default the thread to OPEN — for email-related incidents the email is
   // the primary narrative, so it should be visible immediately without an
   // extra click. Persisted in localStorage so a user who prefers it
@@ -585,6 +594,19 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   // IncidentSection's `actions` slot.
   const headerActions = (
     <>
+      <Tooltip title={rawMode ? 'Show threaded view' : 'Show raw email'}>
+        <IconButton
+          size="small"
+          onClick={() => setRawMode(r => !r)}
+          sx={{
+            color: rawMode ? primaryColor : 'text.secondary',
+            '&:hover': { color: primaryColor },
+          }}
+        >
+          <CodeIcon size={17} />
+        </IconButton>
+      </Tooltip>
+
       {onReply && (
         <Tooltip title="Reply (disabled)">
           <span>
@@ -640,9 +662,26 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
         </Box>
       )}
 
-      {/* Messages */}
+      {/* Messages — or the untouched original content in raw mode */}
       <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
-        {messages.map((msg, idx) => {
+        {rawMode ? (
+          <Box sx={{ px: 2, py: 1.5 }}>
+            {descriptionHtml ? (
+              <EmailHtmlFrame html={descriptionHtml} />
+            ) : (
+              <Typography variant="body2" sx={{
+                whiteSpace: 'pre-wrap',
+                fontSize: '0.82rem',
+                lineHeight: 1.7,
+                color: 'text.primary',
+                wordBreak: 'break-word',
+              }}>
+                {descriptionText}
+              </Typography>
+            )}
+          </Box>
+        ) : messages.map((msg, idx) => {
+
           const isExpanded = msg.isLatest ? !expandedMessages.has(msg.id) : expandedMessages.has(msg.id);
           const parsed = extractEmail(msg.from);
           const name = parsed.name;
