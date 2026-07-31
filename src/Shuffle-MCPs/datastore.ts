@@ -253,6 +253,38 @@ const slimIncidentValueForWrite = (
 };
 
 /**
+ * Parse the v2 datastore write response body.
+ * Backend format: {"success":bool,"keys_existed":[{"key":..,"existed":bool,"changed":bool}]}
+ * A single-key write that did not change anything returns HTTP 400 + success:false,
+ * which is a no-op rather than a real failure.
+ */
+const parseWriteResponseBody = (
+  bodyText: string,
+): { success?: boolean; keysExisted?: DatastoreKeyExisted[] } => {
+  if (!bodyText) return {};
+  try {
+    const parsed = JSON.parse(bodyText);
+    if (!parsed || typeof parsed !== 'object') return {};
+    const rawKeys = Array.isArray(parsed.keys_existed) ? parsed.keys_existed : undefined;
+    return {
+      success: typeof parsed.success === 'boolean' ? parsed.success : undefined,
+      keysExisted: rawKeys?.map((k: any) => ({
+        key: String(k?.key ?? ''),
+        existed: !!k?.existed,
+        changed: !!k?.changed,
+      })),
+    };
+  } catch {
+    return {};
+  }
+};
+
+/** True when the backend explicitly told us nothing changed (value identical). */
+const isUnchangedWrite = (keysExisted?: DatastoreKeyExisted[]) =>
+  !!keysExisted && keysExisted.length > 0 && keysExisted.every(k => k.existed && !k.changed);
+
+
+/**
  * Set a single item in the datastore
  */
 export const setDatastoreItem = async (
