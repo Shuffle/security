@@ -20,8 +20,6 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
-import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
-import { useVulnerabilityAutomationStatus } from '@/hooks/useVulnerabilityAutomationStatus';
 import { IngestionSourcesRow } from '@/components/ingestion/IngestionSourcesRow';
 import { AddVulnerabilityDialog } from '@/components/vulnerabilities/AddVulnerabilityDialog';
 import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
@@ -170,9 +168,6 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (categoryConfig?.automations) setCategoryAutomations(categoryConfig.automations);
   }, [categoryConfig]);
 
-  // Single source of truth for every vulnerability automation check —
-  // shared with the readiness banner, the automation banner and /usecases.
-  const vulnAutomation = useVulnerabilityAutomationStatus();
   const navigate = useNavigate();
 
 
@@ -230,10 +225,6 @@ const AuthenticatedVulnerabilitiesView = () => {
           <div>
             <h1 className="text-xl font-semibold text-foreground">Vulnerabilities</h1>
             <p className="text-sm text-muted-foreground">Track and manage vulnerabilities across your assets and users</p>
-            {/* Compact readiness strip — same hook as /usecases */}
-            <div className="mt-1.5">
-              <VulnerabilityReadinessBanner status={vulnAutomation} />
-            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
