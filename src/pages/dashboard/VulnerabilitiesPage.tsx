@@ -172,7 +172,7 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   const { data: workflows, refetch: refetchWorkflows } = useWorkflows();
   const vulnComparisonWorkflow = (workflows || []).find(
-    w => (w.name || '').toLowerCase() === 'vulnerability comparison'
+    w => (w.name || '').toLowerCase() === 'vulnerability correlation'
   );
   const automationEnabled = !!vulnComparisonWorkflow;
   const navigate = useNavigate();
@@ -184,13 +184,13 @@ const AuthenticatedVulnerabilitiesView = () => {
         method: 'POST',
         credentials: 'include',
         headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: 'Vulnerability Comparison' }),
+        body: JSON.stringify({ label: 'Vulnerability Correlation' }),
       });
       if (!res.ok) throw new Error('Failed');
       await refetchWorkflows();
-      toast.success('Vulnerability Comparison workflow enabled');
+      toast.success('Vulnerability Correlation workflow enabled');
     } catch {
-      toast.error('Failed to enable Vulnerability Comparison workflow');
+      toast.error('Failed to enable Vulnerability Correlation workflow');
     } finally {
       setEnablingAutomation(false);
     }
@@ -203,13 +203,13 @@ const AuthenticatedVulnerabilitiesView = () => {
         method: 'POST',
         credentials: 'include',
         headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: 'Vulnerability Comparison', action_name: 'remove' }),
+        body: JSON.stringify({ label: 'Vulnerability Correlation', action_name: 'remove' }),
       });
       if (!res.ok) throw new Error('Failed');
       await refetchWorkflows();
-      toast.success('Vulnerability Comparison workflow disabled');
+      toast.success('Vulnerability Correlation workflow disabled');
     } catch {
-      toast.error('Failed to disable Vulnerability Comparison workflow');
+      toast.error('Failed to disable Vulnerability Correlation workflow');
     } finally {
       setEnablingAutomation(false);
     }

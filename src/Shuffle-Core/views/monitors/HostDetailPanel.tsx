@@ -469,7 +469,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
             description={
               <>
                 No vulnerabilities are currently attached to this host. Until the{' '}
-                <span className="font-medium text-foreground">Vulnerability Comparison</span> automation is
+                <span className="font-medium text-foreground">Vulnerability Correlation</span> automation is
                 running, scanner results are not being correlated to hosts — so a clean state here may just
                 mean no scan has been imported yet.
               </>

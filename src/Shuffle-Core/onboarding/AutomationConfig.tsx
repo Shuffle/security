@@ -128,9 +128,9 @@ const baseEnrichmentOptions: (Omit<EnrichmentOption, 'connectedApps'> & { isDyna
     category: 'response',
   },
   {
-    id: 'vulnerability_comparison',
+    id: 'vulnerability_correlation',
     name: 'Vulnerability Automation',
-    description: 'Runs the Vulnerability Comparison workflow in the background to compare scanner results across runs and surface new findings. Automated remediation comes later.',
+    description: 'Runs the Vulnerability Correlation workflow in the background to compare scanner results across runs and surface new findings. Automated remediation comes later.',
     icon: <BugReportIcon />,
     color: '#f97316',
     category: 'response',
