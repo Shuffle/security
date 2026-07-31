@@ -170,50 +170,12 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (categoryConfig?.automations) setCategoryAutomations(categoryConfig.automations);
   }, [categoryConfig]);
 
-  const { data: workflows, refetch: refetchWorkflows } = useWorkflows();
-  const vulnComparisonWorkflow = (workflows || []).find(
-    w => (w.name || '').toLowerCase() === 'vulnerability correlation'
-  );
-  const automationEnabled = !!vulnComparisonWorkflow;
+  const { refetch: refetchWorkflows } = useWorkflows();
+  // Single source of truth for every vulnerability automation check —
+  // shared with the readiness banner, the automation banner and /usecases.
+  const vulnAutomation = useVulnerabilityAutomationStatus();
   const navigate = useNavigate();
 
-  const handleEnableAutomation = useCallback(async () => {
-    setEnablingAutomation(true);
-    try {
-      const res = await fetch(getApiUrl('/api/v2/workflows/generate'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: 'Vulnerability Correlation' }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      await refetchWorkflows();
-      toast.success('Vulnerability Correlation workflow enabled');
-    } catch {
-      toast.error('Failed to enable Vulnerability Correlation workflow');
-    } finally {
-      setEnablingAutomation(false);
-    }
-  }, [refetchWorkflows]);
-
-  const handleDisableAutomation = useCallback(async () => {
-    setEnablingAutomation(true);
-    try {
-      const res = await fetch(getApiUrl('/api/v2/workflows/generate'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: 'Vulnerability Correlation', action_name: 'remove' }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      await refetchWorkflows();
-      toast.success('Vulnerability Correlation workflow disabled');
-    } catch {
-      toast.error('Failed to disable Vulnerability Correlation workflow');
-    } finally {
-      setEnablingAutomation(false);
-    }
-  }, [refetchWorkflows]);
 
   const { vulnerabilities, severityCounts, isLoading, isRefreshing, refresh } = useVulnerabilities();
   const { authenticatedApps } = useAppAuth();
