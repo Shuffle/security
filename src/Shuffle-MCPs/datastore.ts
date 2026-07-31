@@ -453,6 +453,11 @@ export const setDatastoreItems = async (
   });
 
    if (!response.ok) {
+    const bodyText = await response.text().catch(() => '');
+    const parsed = parseWriteResponseBody(bodyText);
+    if (isUnchangedWrite(parsed.keysExisted)) {
+      return { success: true, changed: false, keysExisted: parsed.keysExisted };
+    }
     const fallbackResults = await Promise.all(items.map(item =>
       setDatastoreItem(item.key, item.value, category)
     ));
@@ -461,13 +466,32 @@ export const setDatastoreItems = async (
       return {
         success: false,
         error: failedWrites[0]?.error || `Failed to set datastore items: ${response.statusText}`,
+        keysExisted: fallbackResults.flatMap(r => r.keysExisted || []),
       };
     }
-    return { success: true };
+    const fallbackKeys = fallbackResults.flatMap(r => r.keysExisted || []);
+    return {
+      success: true,
+      keysExisted: fallbackKeys.length ? fallbackKeys : undefined,
+      changed: fallbackKeys.length ? fallbackKeys.some(k => k.changed) : undefined,
+    };
   }
 
-  return { success: true };
+  // Multi-key writes always return success:true; "changed" is per key.
+  const okParsed = parseWriteResponseBody(await response.text().catch(() => ''));
+  if (okParsed.keysExisted?.some(k => !k.changed)) {
+    console.warn(
+      `[datastore.setMany] category=${category} unchanged keys: ${okParsed.keysExisted.filter(k => !k.changed).map(k => k.key).join(', ')}`,
+    );
+  }
+  return {
+    success: okParsed.success !== false,
+    keysExisted: okParsed.keysExisted,
+    changed: okParsed.keysExisted ? okParsed.keysExisted.some(k => k.changed) : undefined,
+    ...(okParsed.success === false ? { error: 'Backend reported success=false for bulk datastore write' } : {}),
+  };
 };
+
 
 /**
  * Get a single item from the datastore
