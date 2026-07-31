@@ -276,7 +276,7 @@ const AuthenticatedVulnerabilitiesView = () => {
             <IngestionSourcesRow
               workflowLabel="Ingest Vulnerabilities"
               category="vulnerabilities"
-              webhookLabel="Ingest Vulnerabilities_webhook"
+              webhookLabel="vulnerabilities_webhook"
               webhookWorkflowName="Vulnerability Ingestion Webhook"
               titleTooltip="Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in vulnerabilities."
               addSubtitle="Search and authenticate a tool to ingest vulnerabilities from"
