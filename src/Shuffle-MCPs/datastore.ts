@@ -49,6 +49,12 @@ export interface CategoryConfig {
   };
 }
 
+export interface DatastoreKeyExisted {
+  key: string;
+  existed: boolean;
+  changed: boolean;
+}
+
 export interface DatastoreResponse {
   success: boolean;
   data?: DatastoreItem[];
@@ -57,7 +63,12 @@ export interface DatastoreResponse {
   totalAmount?: number;
   error?: string;
   diagnostics?: DatastoreDiagnostics;
+  /** Per-key write result reported by the backend (v2 datastore writes). */
+  keysExisted?: DatastoreKeyExisted[];
+  /** True when the backend reports the stored value actually changed. */
+  changed?: boolean;
 }
+
 
 export interface DatastoreDiagnostics {
   operation: string;
