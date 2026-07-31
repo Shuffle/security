@@ -20,6 +20,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
+import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
 import { IngestionSourcesRow } from '@/components/ingestion/IngestionSourcesRow';
 import { AddVulnerabilityDialog } from '@/components/vulnerabilities/AddVulnerabilityDialog';
 import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
@@ -215,8 +216,13 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Vulnerability Automation banner — admin only */}
-      <VulnerabilityAutomationBanner />
+      {/* Vulnerability Automation + readiness — support only, equal height */}
+      {isSupport && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-stretch">
+          <VulnerabilityAutomationBanner />
+          <VulnerabilityReadinessBanner />
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
