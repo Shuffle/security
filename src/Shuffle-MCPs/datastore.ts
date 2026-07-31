@@ -49,6 +49,12 @@ export interface CategoryConfig {
   };
 }
 
+export interface DatastoreKeyExisted {
+  key: string;
+  existed: boolean;
+  changed: boolean;
+}
+
 export interface DatastoreResponse {
   success: boolean;
   data?: DatastoreItem[];
@@ -57,7 +63,12 @@ export interface DatastoreResponse {
   totalAmount?: number;
   error?: string;
   diagnostics?: DatastoreDiagnostics;
+  /** Per-key write result reported by the backend (v2 datastore writes). */
+  keysExisted?: DatastoreKeyExisted[];
+  /** True when the backend reports the stored value actually changed. */
+  changed?: boolean;
 }
+
 
 export interface DatastoreDiagnostics {
   operation: string;
@@ -242,6 +253,38 @@ const slimIncidentValueForWrite = (
 };
 
 /**
+ * Parse the v2 datastore write response body.
+ * Backend format: {"success":bool,"keys_existed":[{"key":..,"existed":bool,"changed":bool}]}
+ * A single-key write that did not change anything returns HTTP 400 + success:false,
+ * which is a no-op rather than a real failure.
+ */
+const parseWriteResponseBody = (
+  bodyText: string,
+): { success?: boolean; keysExisted?: DatastoreKeyExisted[] } => {
+  if (!bodyText) return {};
+  try {
+    const parsed = JSON.parse(bodyText);
+    if (!parsed || typeof parsed !== 'object') return {};
+    const rawKeys = Array.isArray(parsed.keys_existed) ? parsed.keys_existed : undefined;
+    return {
+      success: typeof parsed.success === 'boolean' ? parsed.success : undefined,
+      keysExisted: rawKeys?.map((k: any) => ({
+        key: String(k?.key ?? ''),
+        existed: !!k?.existed,
+        changed: !!k?.changed,
+      })),
+    };
+  } catch {
+    return {};
+  }
+};
+
+/** True when the backend explicitly told us nothing changed (value identical). */
+const isUnchangedWrite = (keysExisted?: DatastoreKeyExisted[]) =>
+  !!keysExisted && keysExisted.length > 0 && keysExisted.every(k => k.existed && !k.changed);
+
+
+/**
  * Set a single item in the datastore
  */
 export const setDatastoreItem = async (
@@ -305,6 +348,16 @@ export const setDatastoreItem = async (
   let response = await send(serialized);
   if (!response.ok) {
     const bodyText = await response.text().catch(() => '');
+    const parsed = parseWriteResponseBody(bodyText);
+
+    // Single-key write where the backend says the key exists but nothing
+    // changed: it responds 400 + success:false. The stored value already
+    // matches what we sent, so treat it as a successful no-op.
+    if (isUnchangedWrite(parsed.keysExisted)) {
+      console.log(`[datastore.set] key=${rawKey} unchanged (value identical) — treated as no-op`);
+      return { success: true, changed: false, keysExisted: parsed.keysExisted };
+    }
+
     // Backend rejected because the value is too big — try one slimming pass
     // and retry. Only meaningful for incidents (structured object with the
     // heavy optional fields we know how to drop).
@@ -318,23 +371,53 @@ export const setDatastoreItem = async (
           `[datastore.set] backend rejected large value for ${rawKey}; retrying slimmed bytes=${byteLength(slim.value)} dropped=${slim.dropped.join(',')}`,
         );
         response = await send(slim.value);
-        if (response.ok) return { success: true };
+        if (response.ok) {
+          const retryOk = parseWriteResponseBody(await response.text().catch(() => ''));
+          return {
+            success: true,
+            keysExisted: retryOk.keysExisted,
+            changed: retryOk.keysExisted ? retryOk.keysExisted.some(k => k.changed) : undefined,
+          };
+        }
         const retryBody = await response.text().catch(() => '');
+        const retryParsed = parseWriteResponseBody(retryBody);
+        if (isUnchangedWrite(retryParsed.keysExisted)) {
+          return { success: true, changed: false, keysExisted: retryParsed.keysExisted };
+        }
         return {
           success: false,
           error: `Datastore value too large for ${rawKey} even after slimming: ${response.status} ${truncateResponsePreview(retryBody) || response.statusText}`,
+          keysExisted: retryParsed.keysExisted,
         };
       }
       return {
         success: false,
         error: `Datastore value too large for ${rawKey}: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}`,
+        keysExisted: parsed.keysExisted,
       };
     }
-    return { success: false, error: `Failed to set datastore item: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}` };
+    return {
+      success: false,
+      error: `Failed to set datastore item: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}`,
+      keysExisted: parsed.keysExisted,
+    };
   }
 
-  return { success: true };
+  const okParsed = parseWriteResponseBody(await response.text().catch(() => ''));
+  if (okParsed.success === false && !isUnchangedWrite(okParsed.keysExisted)) {
+    return {
+      success: false,
+      error: `Failed to set datastore item ${rawKey}: backend reported success=false`,
+      keysExisted: okParsed.keysExisted,
+    };
+  }
+  return {
+    success: true,
+    keysExisted: okParsed.keysExisted,
+    changed: okParsed.keysExisted ? okParsed.keysExisted.some(k => k.changed) : undefined,
+  };
 };
+
 
 
 
@@ -370,6 +453,11 @@ export const setDatastoreItems = async (
   });
 
    if (!response.ok) {
+    const bodyText = await response.text().catch(() => '');
+    const parsed = parseWriteResponseBody(bodyText);
+    if (isUnchangedWrite(parsed.keysExisted)) {
+      return { success: true, changed: false, keysExisted: parsed.keysExisted };
+    }
     const fallbackResults = await Promise.all(items.map(item =>
       setDatastoreItem(item.key, item.value, category)
     ));
@@ -378,13 +466,32 @@ export const setDatastoreItems = async (
       return {
         success: false,
         error: failedWrites[0]?.error || `Failed to set datastore items: ${response.statusText}`,
+        keysExisted: fallbackResults.flatMap(r => r.keysExisted || []),
       };
     }
-    return { success: true };
+    const fallbackKeys = fallbackResults.flatMap(r => r.keysExisted || []);
+    return {
+      success: true,
+      keysExisted: fallbackKeys.length ? fallbackKeys : undefined,
+      changed: fallbackKeys.length ? fallbackKeys.some(k => k.changed) : undefined,
+    };
   }
 
-  return { success: true };
+  // Multi-key writes always return success:true; "changed" is per key.
+  const okParsed = parseWriteResponseBody(await response.text().catch(() => ''));
+  if (okParsed.keysExisted?.some(k => !k.changed)) {
+    console.warn(
+      `[datastore.setMany] category=${category} unchanged keys: ${okParsed.keysExisted.filter(k => !k.changed).map(k => k.key).join(', ')}`,
+    );
+  }
+  return {
+    success: okParsed.success !== false,
+    keysExisted: okParsed.keysExisted,
+    changed: okParsed.keysExisted ? okParsed.keysExisted.some(k => k.changed) : undefined,
+    ...(okParsed.success === false ? { error: 'Backend reported success=false for bulk datastore write' } : {}),
+  };
 };
+
 
 /**
  * Get a single item from the datastore
