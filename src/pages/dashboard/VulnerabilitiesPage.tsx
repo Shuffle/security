@@ -19,7 +19,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import { useWorkflows } from '@/hooks/useWorkflows';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
 import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
 import { useVulnerabilityAutomationStatus } from '@/hooks/useVulnerabilityAutomationStatus';
@@ -162,7 +161,6 @@ const AuthenticatedVulnerabilitiesView = () => {
   const [aiScanOpen, setAiScanOpen] = useState(false);
   const [aiScanLoading, setAiScanLoading] = useState(false);
   const [aiScanResult, setAiScanResult] = useState<string | null>(null);
-  const [enablingAutomation, setEnablingAutomation] = useState(false);
   const [addVulnOpen, setAddVulnOpen] = useState(false);
 
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
@@ -172,7 +170,6 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (categoryConfig?.automations) setCategoryAutomations(categoryConfig.automations);
   }, [categoryConfig]);
 
-  const { refetch: refetchWorkflows } = useWorkflows();
   // Single source of truth for every vulnerability automation check —
   // shared with the readiness banner, the automation banner and /usecases.
   const vulnAutomation = useVulnerabilityAutomationStatus();
