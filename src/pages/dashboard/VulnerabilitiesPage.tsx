@@ -215,8 +215,13 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Vulnerability Automation banner — admin only */}
-      <VulnerabilityAutomationBanner />
+      {/* Vulnerability Automation + readiness — support only, equal height */}
+      {isSupport && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-stretch">
+          <VulnerabilityAutomationBanner />
+          <VulnerabilityReadinessBanner />
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
