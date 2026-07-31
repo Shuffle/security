@@ -220,11 +220,8 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Vulnerability Automation banner + readiness checker — admin only */}
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px] items-start">
-        <VulnerabilityAutomationBanner />
-        <VulnerabilityReadinessBanner status={vulnAutomation} />
-      </div>
+      {/* Vulnerability Automation banner — admin only */}
+      <VulnerabilityAutomationBanner />
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -233,6 +230,10 @@ const AuthenticatedVulnerabilitiesView = () => {
           <div>
             <h1 className="text-xl font-semibold text-foreground">Vulnerabilities</h1>
             <p className="text-sm text-muted-foreground">Track and manage vulnerabilities across your assets and users</p>
+            {/* Compact readiness strip — same hook as /usecases */}
+            <div className="mt-1.5">
+              <VulnerabilityReadinessBanner status={vulnAutomation} />
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
