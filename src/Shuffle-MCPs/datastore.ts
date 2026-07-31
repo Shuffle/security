@@ -348,6 +348,16 @@ export const setDatastoreItem = async (
   let response = await send(serialized);
   if (!response.ok) {
     const bodyText = await response.text().catch(() => '');
+    const parsed = parseWriteResponseBody(bodyText);
+
+    // Single-key write where the backend says the key exists but nothing
+    // changed: it responds 400 + success:false. The stored value already
+    // matches what we sent, so treat it as a successful no-op.
+    if (isUnchangedWrite(parsed.keysExisted)) {
+      console.log(`[datastore.set] key=${rawKey} unchanged (value identical) — treated as no-op`);
+      return { success: true, changed: false, keysExisted: parsed.keysExisted };
+    }
+
     // Backend rejected because the value is too big — try one slimming pass
     // and retry. Only meaningful for incidents (structured object with the
     // heavy optional fields we know how to drop).
@@ -361,23 +371,53 @@ export const setDatastoreItem = async (
           `[datastore.set] backend rejected large value for ${rawKey}; retrying slimmed bytes=${byteLength(slim.value)} dropped=${slim.dropped.join(',')}`,
         );
         response = await send(slim.value);
-        if (response.ok) return { success: true };
+        if (response.ok) {
+          const retryOk = parseWriteResponseBody(await response.text().catch(() => ''));
+          return {
+            success: true,
+            keysExisted: retryOk.keysExisted,
+            changed: retryOk.keysExisted ? retryOk.keysExisted.some(k => k.changed) : undefined,
+          };
+        }
         const retryBody = await response.text().catch(() => '');
+        const retryParsed = parseWriteResponseBody(retryBody);
+        if (isUnchangedWrite(retryParsed.keysExisted)) {
+          return { success: true, changed: false, keysExisted: retryParsed.keysExisted };
+        }
         return {
           success: false,
           error: `Datastore value too large for ${rawKey} even after slimming: ${response.status} ${truncateResponsePreview(retryBody) || response.statusText}`,
+          keysExisted: retryParsed.keysExisted,
         };
       }
       return {
         success: false,
         error: `Datastore value too large for ${rawKey}: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}`,
+        keysExisted: parsed.keysExisted,
       };
     }
-    return { success: false, error: `Failed to set datastore item: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}` };
+    return {
+      success: false,
+      error: `Failed to set datastore item: ${response.status} ${truncateResponsePreview(bodyText) || response.statusText}`,
+      keysExisted: parsed.keysExisted,
+    };
   }
 
-  return { success: true };
+  const okParsed = parseWriteResponseBody(await response.text().catch(() => ''));
+  if (okParsed.success === false && !isUnchangedWrite(okParsed.keysExisted)) {
+    return {
+      success: false,
+      error: `Failed to set datastore item ${rawKey}: backend reported success=false`,
+      keysExisted: okParsed.keysExisted,
+    };
+  }
+  return {
+    success: true,
+    keysExisted: okParsed.keysExisted,
+    changed: okParsed.keysExisted ? okParsed.keysExisted.some(k => k.changed) : undefined,
+  };
 };
+
 
 
 
