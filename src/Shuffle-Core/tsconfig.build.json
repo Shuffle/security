@@ -17,7 +17,8 @@
     "paths": {
       "@/Shuffle-Core": ["Shuffle-Core/index.ts"],
       "@/Shuffle-Core/*": ["Shuffle-Core/*"],
-      "@/assets/*": ["assets/*"]
+      "@/assets/*": ["assets/*"],
+      "@/Shuffle-MCPs/*": ["Shuffle-MCPs/*"]
     }
   },
   "include": ["index.ts", "Usecases.tsx", "UsecaseAlluvialDiagram.tsx", "usePageMeta.ts", "toast.ts", "assets.d.ts", "**/*.tsx", "**/*.ts"],
