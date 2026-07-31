@@ -168,9 +168,6 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (categoryConfig?.automations) setCategoryAutomations(categoryConfig.automations);
   }, [categoryConfig]);
 
-  // Single source of truth for every vulnerability automation check —
-  // shared with the readiness banner, the automation banner and /usecases.
-  const vulnAutomation = useVulnerabilityAutomationStatus();
   const navigate = useNavigate();
 
 
