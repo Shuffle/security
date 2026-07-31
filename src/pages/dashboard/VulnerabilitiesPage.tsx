@@ -17,6 +17,7 @@ import { toast } from '@/lib/toast';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
@@ -151,6 +152,7 @@ const PublicVulnerabilitiesView = () => {
 
 const AuthenticatedVulnerabilitiesView = () => {
   const isAdmin = useIsAdmin();
+  const isSupport = useIsSupport();
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -270,16 +272,18 @@ const AuthenticatedVulnerabilitiesView = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <IngestionSourcesRow
-            workflowLabel="Ingest Vulnerabilities"
-            category="vulnerabilities"
-            webhookLabel="Ingest Vulnerabilities_webhook"
-            webhookWorkflowName="Vulnerability Ingestion Webhook"
-            titleTooltip="Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in vulnerabilities."
-            addSubtitle="Search and authenticate a tool to ingest vulnerabilities from"
-            searchPriorityQuery="asset management cloud iam"
-            onSourcesChanged={() => refresh()}
-          />
+          {isSupport && (
+            <IngestionSourcesRow
+              workflowLabel="Ingest Vulnerabilities"
+              category="vulnerabilities"
+              webhookLabel="Ingest Vulnerabilities_webhook"
+              webhookWorkflowName="Vulnerability Ingestion Webhook"
+              titleTooltip="Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in vulnerabilities."
+              addSubtitle="Search and authenticate a tool to ingest vulnerabilities from"
+              searchPriorityQuery="asset management cloud iam"
+              onSourcesChanged={() => refresh()}
+            />
+          )}
           <Button size="sm" className="gap-1.5" onClick={() => navigate('/monitors?add_host=true')}>
             <MonitorCheck size={14} />
             Add Host Monitor
