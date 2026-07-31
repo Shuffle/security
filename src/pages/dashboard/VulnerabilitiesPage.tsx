@@ -19,8 +19,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import { useWorkflows } from '@/hooks/useWorkflows';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
+import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
+import { useVulnerabilityAutomationStatus } from '@/hooks/useVulnerabilityAutomationStatus';
 import { IngestionSourcesRow } from '@/components/ingestion/IngestionSourcesRow';
 import { AddVulnerabilityDialog } from '@/components/vulnerabilities/AddVulnerabilityDialog';
 import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
@@ -160,7 +161,6 @@ const AuthenticatedVulnerabilitiesView = () => {
   const [aiScanOpen, setAiScanOpen] = useState(false);
   const [aiScanLoading, setAiScanLoading] = useState(false);
   const [aiScanResult, setAiScanResult] = useState<string | null>(null);
-  const [enablingAutomation, setEnablingAutomation] = useState(false);
   const [addVulnOpen, setAddVulnOpen] = useState(false);
 
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
@@ -170,50 +170,11 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (categoryConfig?.automations) setCategoryAutomations(categoryConfig.automations);
   }, [categoryConfig]);
 
-  const { data: workflows, refetch: refetchWorkflows } = useWorkflows();
-  const vulnComparisonWorkflow = (workflows || []).find(
-    w => (w.name || '').toLowerCase() === 'vulnerability correlation'
-  );
-  const automationEnabled = !!vulnComparisonWorkflow;
+  // Single source of truth for every vulnerability automation check —
+  // shared with the readiness banner, the automation banner and /usecases.
+  const vulnAutomation = useVulnerabilityAutomationStatus();
   const navigate = useNavigate();
 
-  const handleEnableAutomation = useCallback(async () => {
-    setEnablingAutomation(true);
-    try {
-      const res = await fetch(getApiUrl('/api/v2/workflows/generate'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: 'Vulnerability Correlation' }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      await refetchWorkflows();
-      toast.success('Vulnerability Correlation workflow enabled');
-    } catch {
-      toast.error('Failed to enable Vulnerability Correlation workflow');
-    } finally {
-      setEnablingAutomation(false);
-    }
-  }, [refetchWorkflows]);
-
-  const handleDisableAutomation = useCallback(async () => {
-    setEnablingAutomation(true);
-    try {
-      const res = await fetch(getApiUrl('/api/v2/workflows/generate'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: 'Vulnerability Correlation', action_name: 'remove' }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      await refetchWorkflows();
-      toast.success('Vulnerability Correlation workflow disabled');
-    } catch {
-      toast.error('Failed to disable Vulnerability Correlation workflow');
-    } finally {
-      setEnablingAutomation(false);
-    }
-  }, [refetchWorkflows]);
 
   const { vulnerabilities, severityCounts, isLoading, isRefreshing, refresh } = useVulnerabilities();
   const { authenticatedApps } = useAppAuth();
@@ -259,8 +220,11 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Vulnerability Automation banner — admin only */}
-      <VulnerabilityAutomationBanner />
+      {/* Vulnerability Automation banner + readiness checker — admin only */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px] items-start">
+        <VulnerabilityAutomationBanner />
+        <VulnerabilityReadinessBanner status={vulnAutomation} />
+      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
