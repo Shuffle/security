@@ -17,6 +17,7 @@
     "paths": {
       "@/Shuffle-MCPs": ["Shuffle-MCPs/index.ts"],
       "@/Shuffle-MCPs/*": ["Shuffle-MCPs/*"],
+      "@/Shuffle-Core/*": ["Shuffle-Core/*"],
       "@/assets/*": ["assets/*"]
     }
   },
