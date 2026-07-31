@@ -33,14 +33,16 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import LaunchIcon from '@mui/icons-material/Launch';
-import CloseIcon from '@mui/icons-material/Close';
-import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
-import StopIcon from '@mui/icons-material/Stop';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import LinkIcon from '@mui/icons-material/Link';
+import {
+  ArrowBack as ArrowBackIcon,
+  Refresh as RefreshIcon,
+  Launch as LaunchIcon,
+  Close as CloseIcon,
+  ArrowLeft as ArrowLeftIcon,
+  Stop as StopIcon,
+  ContentCopy as ContentCopyIcon,
+  Link as LinkIcon,
+} from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import shuffleLogo from '@/assets/shuffle-logo.png';
