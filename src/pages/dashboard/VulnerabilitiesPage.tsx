@@ -20,6 +20,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
+import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
 import { IngestionSourcesRow } from '@/components/ingestion/IngestionSourcesRow';
 import { AddVulnerabilityDialog } from '@/components/vulnerabilities/AddVulnerabilityDialog';
 import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
