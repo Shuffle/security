@@ -229,10 +229,6 @@ const AuthenticatedVulnerabilitiesView = () => {
           <div>
             <h1 className="text-xl font-semibold text-foreground">Vulnerabilities</h1>
             <p className="text-sm text-muted-foreground">Track and manage vulnerabilities across your assets and users</p>
-            {/* Compact readiness strip — same hook as /usecases */}
-            <div className="mt-1.5">
-              <VulnerabilityReadinessBanner status={vulnAutomation} />
-            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
