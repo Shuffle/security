@@ -2474,6 +2474,42 @@ const IncidentDetailPage = () => {
     return () => window.removeEventListener('workflow-run:changed', onChanged as EventListener);
   }, [refetchWorkflowRuns, refetchAgentRuns]);
 
+  // The execution behind the "Checking your message for observables…" pill:
+  // the newest workflow run that touched this incident in the last ~90s.
+  // Both the pill and its auto-clear effect read the SAME run so the pill and
+  // the run drawer can never disagree about whether it is still executing.
+  const observableCheckRun = useMemo(() => {
+    const now = Date.now();
+    return (allIncidentWorkflowRuns || [])
+      .filter((r: any) => {
+        const ts = normalizeToMs(r?.started_at);
+        return ts > 0 && (now - ts) < 90_000;
+      })
+      .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0] as any;
+  }, [allIncidentWorkflowRuns]);
+
+  // As soon as that execution reports a terminal status, drop the spinner —
+  // previously the pill hung around until the enrichment count changed or the
+  // 7s safety timer fired, which could lag the drawer by up to 10 seconds.
+  useEffect(() => {
+    if (!refreshingObservables || !observableCheckRun) return;
+    const status = String(observableCheckRun.status || '').toUpperCase();
+    if (status && status !== 'EXECUTING' && status !== 'RUNNING' && status !== 'WAITING') {
+      setRefreshingObservables(false);
+      obsRefreshBaselineRef.current = null;
+    }
+  }, [refreshingObservables, observableCheckRun]);
+
+  // While the observable check is in flight, poll the run list immediately so
+  // the terminal status is picked up on the very next tick instead of waiting
+  // for the slow 60s cadence to catch up.
+  useEffect(() => {
+    if (!refreshingObservables) return;
+    refetchWorkflowRuns();
+  }, [refreshingObservables, refetchWorkflowRuns]);
+
+
+
   // Pull open agent-handoff notifications so any workflow execution that is
   // stuck on a Question can render the answer form inline in the timeline.
   const { notifications: agentNotifications, refresh: refreshAgentNotifications } = useAgentNotifications();
@@ -5988,8 +6024,19 @@ const IncidentDetailPage = () => {
       const bCreate = isCreationItem(b);
       if (aCreate && !bCreate) return 1;   // creation always goes last
       if (bCreate && !aCreate) return -1;
+      // Backend execution timestamps are second-granular, so an automation
+      // triggered BY a comment can normalize to a value slightly older than
+      // the comment itself and sink below it. Within a 3s window, treat
+      // automation rows as happening AFTER the manual message that caused
+      // them so the causal order reads correctly (newest first).
+      const isAutomation = (t: string) => t === 'workflow-exec' || t === 'agent';
+      if (Math.abs(a.timestamp - b.timestamp) <= 3000) {
+        if (a.type === 'manual' && isAutomation(b.type)) return 1;
+        if (b.type === 'manual' && isAutomation(a.type)) return -1;
+      }
       return b.timestamp - a.timestamp;     // otherwise newest first
     });
+
 
     if (items.length === 0) {
       const allHidden = activeTimelineFilters.size === 0;
@@ -7521,18 +7568,12 @@ const IncidentDetailPage = () => {
     // AI Agent processing pill so all in-flight loaders attach BELOW the
     // message that triggered them instead of floating at the top of the feed.
     const renderIndicatorCheckPlaceholder = (key: string) => {
-      // While the observable check is running we scan the freshly-polled
-      // workflow-run list for the newest execution that touched this incident
-      // in the last ~60 seconds. When one appears the pill turns into a
-      // direct link to that execution so users can jump to the run itself.
-      const now = Date.now();
-      const recentRun: any = (allIncidentWorkflowRuns || [])
-        .filter((r: any) => {
-          const ts = normalizeToMs(r?.started_at);
-          return ts > 0 && (now - ts) < 90_000;
-        })
-        .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0];
+      // The pill links to the SAME execution the auto-clear effect watches
+      // (`observableCheckRun`), so the pill and the run drawer always agree on
+      // which run is in flight and when it stopped.
+      const recentRun: any = observableCheckRun;
       const wfId = recentRun?.workflow_id || recentRun?.workflow?.id || '';
+
       const execId = recentRun?.execution_id || '';
       const isClickable = !!execId;
       return (
