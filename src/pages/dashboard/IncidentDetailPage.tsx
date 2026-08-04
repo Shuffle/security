@@ -2741,13 +2741,19 @@ const IncidentDetailPage = () => {
     // as the parent that spawned the agent — we hide it from the timeline so
     // the agent row itself becomes the single source of truth for that
     // activity (stuck agents are handled inline on the agent row).
-    const agentWindows: Array<[number, number]> = (agentRuns || [])
+    const agentWindows: Array<{ start: number; end: number; wfId: string; name: string }> = (agentRuns || [])
       .map((r: any) => {
         const s = r.started_at ? normalizeToMs(r.started_at) : 0;
         const e = r.completed_at ? normalizeToMs(r.completed_at) : Date.now();
-        return [s, e] as [number, number];
+        return {
+          start: s,
+          end: e,
+          wfId: String(r.workflow_id || r.workflow?.id || '').trim(),
+          name: String(r.workflow?.name || '').trim().toLowerCase(),
+        };
       })
-      .filter(([s]) => s > 0);
+      .filter((w) => w.start > 0);
+
 
     // Same-activity dedupe: an agent run and a workflow run that represent the
     // SAME work (same workflow id/name, overlapping window) must never both be
