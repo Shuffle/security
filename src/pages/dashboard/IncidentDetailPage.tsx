@@ -1337,6 +1337,17 @@ const IncidentDetailPage = () => {
   const [revisionsLoaded, setRevisionsLoaded] = useState(false);
   const [selectedRevisionIdx, setSelectedRevisionIdx] = useState<number | null>(null);
 
+  // "Not found" fallback: the live datastore lookup can come back empty when
+  // the item write timed out upstream. Before showing a dead end, check the
+  // revision history for the SAME key. We never auto-restore — the user
+  // decides whether to bring the snapshot back.
+  const [notFoundRevision, setNotFoundRevision] = useState<
+    { timestamp?: number; count: number; title?: string; value: any } | null
+  >(null);
+  const [notFoundRevisionLoading, setNotFoundRevisionLoading] = useState(false);
+  const [notFoundRestoring, setNotFoundRestoring] = useState(false);
+  const notFoundRevisionCheckedRef = useRef(false);
+
   // Tracks an OCSF-recovery fallback: when the live incident is not OCSF-shaped,
   // we look back through revisions for the most recent valid OCSF snapshot and
   // overlay any new top-level fields from the latest (non-OCSF but valid JSON)
@@ -1738,6 +1749,78 @@ const IncidentDetailPage = () => {
     }, 60_000);
     return () => clearInterval(interval);
   }, [id, loading, loadRevisions]);
+
+  // Fallback lookup when the incident itself cannot be found: the same key may
+  // still exist in the revision history (typical when the last write timed
+  // out). Look it up so we can offer the user a manual restore. Nothing is
+  // written automatically.
+  useEffect(() => {
+    if (loading || incident || isPublicView || !id) return;
+    if (loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success') return;
+    if (notFoundRevisionCheckedRef.current) return;
+    notFoundRevisionCheckedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      setNotFoundRevisionLoading(true);
+      try {
+        const categoryKey = DATASTORE_CATEGORIES.INCIDENTS;
+        const response = await fetch(
+          getApiUrl(`/api/v2/datastore/category/${encodeURIComponent(categoryKey)}/${encodeURIComponent(id)}/revisions`),
+          {
+            credentials: 'include',
+            headers: { ...getAuthHeader(), ...(crossOrgId ? { 'Org-Id': crossOrgId } : {}) },
+          },
+        );
+        if (!response.ok) return;
+        const result = await response.json();
+        const rawRevisions: any[] = Array.isArray(result) ? result : (result.data || result.revisions || []);
+        const sorted = [...rawRevisions].sort(
+          (a: any, b: any) => normalizeToMs(b.edited ?? b.created) - normalizeToMs(a.edited ?? a.created),
+        );
+        // Newest revision whose payload actually parses into something usable.
+        const usable = sorted
+          .map((rev) => ({ rev, parsed: parseRevisionValue(rev?.value) }))
+          .find((entry) => entry.parsed && typeof entry.parsed === 'object');
+        if (cancelled || !usable) return;
+        const p: any = usable.parsed;
+        const fi = p.finding_info_list?.[0] || p.finding_info || {};
+        setNotFoundRevision({
+          timestamp: normalizeToMs(usable.rev?.edited ?? usable.rev?.created) || undefined,
+          count: sorted.length,
+          title: p.title || fi.title || undefined,
+          value: p,
+        });
+      } catch {
+        /* ignore — the not-found screen stays as-is */
+      } finally {
+        if (!cancelled) setNotFoundRevisionLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [loading, incident, isPublicView, id, loadDebug?.stage, crossOrgId]);
+
+  // Manual restore from the not-found revision fallback. User-initiated only.
+  const handleRestoreFromNotFoundRevision = async () => {
+    if (!id || !notFoundRevision?.value || notFoundRestoring) return;
+    setNotFoundRestoring(true);
+    try {
+      const res = await writeIncidentSafe(id, notFoundRevision.value, crossOrgId || undefined);
+      if (!res.success) {
+        toast.error(res.error || 'Failed to restore this version');
+        return;
+      }
+      toast.success('Incident restored from its last revision');
+      setNotFoundRevision(null);
+      notFoundRevisionCheckedRef.current = false;
+      retryFullLoad();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to restore this version');
+    } finally {
+      setNotFoundRestoring(false);
+    }
+  };
+
+
 
   const [forwardingApps, setForwardingApps] = useState<Array<{ id: string; name: string; large_image: string; categories: string[] }>>([]);
   const [forwardingAppsLoading, setForwardingAppsLoading] = useState(false);
@@ -5220,6 +5303,7 @@ const IncidentDetailPage = () => {
     suborgRetryRef.current = false;
     crossOrgMergedRef.current = false;
     demoRecoveryTriedRef.current = false;
+    notFoundRevisionCheckedRef.current = false;
     setLoadDebug(null);
     setLoading(true);
     loadIncidentRef.current?.();
@@ -5281,6 +5365,50 @@ const IncidentDetailPage = () => {
         >
           Back to {entityPlural}
         </Button>
+
+        {!isTransientLoadFailure && notFoundRevisionLoading && (
+          <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <CircularProgress size={14} thickness={5} />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Checking the revision history for this key…
+            </Typography>
+          </Box>
+        )}
+
+        {!isTransientLoadFailure && !notFoundRevisionLoading && notFoundRevision && (
+          <Box
+            sx={{
+              mt: 4,
+              textAlign: 'left',
+              p: 2,
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1,
+              bgcolor: 'hsl(var(--card))',
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--foreground))' }}>
+              A previous version of this {entitySingular.toLowerCase()} exists in the revision history
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+              The stored item is missing, which usually means the last write timed out.
+              {notFoundRevision.title ? ` Last known title: "${notFoundRevision.title}".` : ''}
+              {notFoundRevision.timestamp
+                ? ` Last revision: ${new Date(notFoundRevision.timestamp).toLocaleString()}.`
+                : ''}
+              {` ${notFoundRevision.count} revision${notFoundRevision.count === 1 ? '' : 's'} found.`}
+              {' '}Nothing has been restored — you decide whether to bring it back.
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={notFoundRestoring}
+              onClick={handleRestoreFromNotFoundRevision}
+              startIcon={notFoundRestoring ? <CircularProgress size={14} thickness={5} /> : <RefreshIcon />}
+            >
+              {notFoundRestoring ? 'Restoring…' : 'Restore this version'}
+            </Button>
+          </Box>
+        )}
 
         {isSupport && loadDebug && (
           <Box
