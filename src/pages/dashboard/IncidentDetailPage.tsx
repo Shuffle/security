@@ -3462,6 +3462,7 @@ const IncidentDetailPage = () => {
   const relationsReconcileRef = useRef<string | null>(null);
   useEffect(() => {
     if (isPublicView) return;
+    if (revisionRestoredRef.current) return; // explicit rollback wins
     if (!id || !incident || !revisionsLoaded) return;
     if (relationsReconcileRef.current === id) return;
     relationsReconcileRef.current = id;
