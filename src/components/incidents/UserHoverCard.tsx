@@ -65,6 +65,7 @@ export const resolveUserAvatar = (
 export const UserHoverCard = ({ username, isAgent, className }: UserHoverCardProps) => {
   const { users } = useUsers();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
 
   const realUser = findRealUser(users, username);
   const looksLikeAgent = isAIAssignee(username);
@@ -72,11 +73,17 @@ export const UserHoverCard = ({ username, isAgent, className }: UserHoverCardPro
   const githubUrl = realUser?.public_profile?.github_url;
   const githubAvatar = realUser?.public_profile?.github_avatar;
 
-  const handleClick = (e: React.MouseEvent) => {
+  // Clicking the agent name should open the same hover popup instead of
+  // redirecting to another page. This keeps the interaction lightweight and
+  // consistent across the app.
+  const handleNameClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (verifiedAgent) {
-      navigate('/agents#agent-activity');
-    } else if (realUser) {
+    setOpen(true);
+  };
+
+  const handleOrgAdminClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (realUser) {
       navigate('/users');
     }
   };
@@ -96,11 +103,11 @@ export const UserHoverCard = ({ username, isAgent, className }: UserHoverCardPro
   }
 
   return (
-    <HoverCard openDelay={150} closeDelay={80}>
+    <HoverCard open={open} onOpenChange={setOpen} openDelay={150} closeDelay={80}>
       <HoverCardTrigger asChild>
         <Box
           component="span"
-          onClick={handleClick}
+          onClick={handleNameClick}
           sx={{
             display: 'inline-flex',
             alignItems: 'center',
