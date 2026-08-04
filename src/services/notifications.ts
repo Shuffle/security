@@ -130,6 +130,7 @@ export const parseAgentApprovalParams = (refUrl: string | undefined | null): {
   executionId: string;
   authorization: string;
   decisionId: string;
+  nodeId: string;
 } | null => {
   if (!refUrl) return null;
   try {
@@ -140,12 +141,47 @@ export const parseAgentApprovalParams = (refUrl: string | undefined | null): {
     const executionId = u.searchParams.get('execution_id') || '';
     const authorization = u.searchParams.get('authorization') || '';
     const decisionId = u.searchParams.get('decision_id') || '';
+    const nodeId = u.searchParams.get('node_id') || '';
     if (!executionId || !authorization) return null;
-    return { executionId, authorization, decisionId };
+    return { executionId, authorization, decisionId, nodeId };
   } catch {
     return null;
   }
 };
+
+/**
+ * Resolve the Agentic action (node) ID for an execution.
+ *
+ * Workflow continuation requires `&node_id={action.id}` — without it the
+ * backend logs "No Agentic Start node found for workflow … during workflow
+ * continuation". When the notification/reference URL does not carry it, we
+ * look it up from the execution results and pick the AI Agent action.
+ */
+export const resolveAgentNodeId = async (
+  executionId: string,
+  authorization: string,
+): Promise<string> => {
+  try {
+    const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ execution_id: executionId, authorization }),
+    });
+    if (!resp.ok) return '';
+    const data = await resp.json();
+    const results: Array<{ action?: { id?: string; app_name?: string } }> = Array.isArray(data?.results)
+      ? data.results
+      : [];
+    const agentAction =
+      results.find((r) => (r?.action?.app_name || '').toLowerCase() === 'ai agent') ||
+      results.find((r) => (r?.action?.app_name || '').toLowerCase().includes('agent'));
+    return agentAction?.action?.id || '';
+  } catch {
+    return '';
+  }
+};
+
 
 /**
  * Continue (or reject) an agent execution that is currently waiting on a
@@ -166,8 +202,10 @@ export const continueAgentExecution = async (params: {
   approve: boolean;
   /** Free-form note (e.g. modified-action text or a "question_N" map). */
   note?: string | Record<string, string>;
+  /** Explicit Agentic action (node) ID, when the caller already knows it. */
+  nodeId?: string;
 }): Promise<boolean> => {
-  const { notification, approve, note } = params;
+  const { notification, approve, note, nodeId } = params;
 
   // Prefer the params on the notification body, then fall back to the
   // ones embedded in the approval form URL (legacy / Shuffle Core path).
@@ -202,10 +240,14 @@ export const continueAgentExecution = async (params: {
     agentic: 'true',
   });
   if (decisionId) qs.set('decision_id', decisionId);
-  // Backend expects this param to be present (even when null) on the
-  // agent continuation endpoint — matches the working form URL exactly.
-  qs.set('node_id', 'null');
+  // The backend needs the Agentic action ID to find the start node. Use the
+  // explicit one, then the reference URL, then look it up on the execution.
+  const resolvedNodeId =
+    nodeId || fromUrl?.nodeId || (await resolveAgentNodeId(executionId, authorization));
+  qs.set('node_id', resolvedNodeId || 'null');
   if (noteParam) qs.set('note', noteParam);
+
+
 
   const res = await shuffleFetch(
     getApiUrl(`/api/v1/workflows/${executionId}/run?${qs.toString()}`),
