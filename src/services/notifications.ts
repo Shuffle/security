@@ -202,8 +202,10 @@ export const continueAgentExecution = async (params: {
   approve: boolean;
   /** Free-form note (e.g. modified-action text or a "question_N" map). */
   note?: string | Record<string, string>;
+  /** Explicit Agentic action (node) ID, when the caller already knows it. */
+  nodeId?: string;
 }): Promise<boolean> => {
-  const { notification, approve, note } = params;
+  const { notification, approve, note, nodeId } = params;
 
   // Prefer the params on the notification body, then fall back to the
   // ones embedded in the approval form URL (legacy / Shuffle Core path).
@@ -238,10 +240,14 @@ export const continueAgentExecution = async (params: {
     agentic: 'true',
   });
   if (decisionId) qs.set('decision_id', decisionId);
-  // Backend expects this param to be present (even when null) on the
-  // agent continuation endpoint — matches the working form URL exactly.
-  qs.set('node_id', 'null');
+  // The backend needs the Agentic action ID to find the start node. Use the
+  // explicit one, then the reference URL, then look it up on the execution.
+  const resolvedNodeId =
+    nodeId || fromUrl?.nodeId || (await resolveAgentNodeId(executionId, authorization));
+  qs.set('node_id', resolvedNodeId || 'null');
   if (noteParam) qs.set('note', noteParam);
+
+
 
   const res = await shuffleFetch(
     getApiUrl(`/api/v1/workflows/${executionId}/run?${qs.toString()}`),
