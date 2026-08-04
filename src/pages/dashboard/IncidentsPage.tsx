@@ -2084,23 +2084,14 @@ const IncidentsPage = () => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {showAutomation && (
-              <Tooltip title={(() => {
-                const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
-                const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
-                return wfId ? "Click to open automation workflow" : "Automation for Incidents";
-              })()}>
+              <Tooltip title="Automation for Incidents">
                 <IconButton
                   data-tour="incidents-automation-button"
                   onClick={() => {
-                    const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
-                    const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
-                    if (wfId) {
-                      window.open(`https://shuffler.io/workflows/${wfId}`, '_blank');
-                    } else {
-                      trackPredefinedEvent(GA_EVENTS.INCIDENT_AUTOMATION_CHANGE, 'open_dialog');
-                      setAutomationsDialogOpen(true);
-                    }
+                    trackPredefinedEvent(GA_EVENTS.INCIDENT_AUTOMATION_CHANGE, 'open_dialog');
+                    setAutomationsDialogOpen(true);
                   }}
+
                   sx={{
                     width: 36, height: 36,
                     color: categoryAutomations?.some(a => a.enabled) ? '#4ade80' : 'text.secondary',
@@ -2678,23 +2669,13 @@ const IncidentsPage = () => {
           )}
 
           {showAutomation && (
-          <Tooltip title={(() => {
-            const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
-            const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
-            return wfId ? "Click to open automation workflow" : "Automation for Incidents";
-          })()}>
+          <Tooltip title="Automation for Incidents">
             <IconButton 
               data-tour="incidents-automation-button"
               onClick={() => {
-                 console.log("Updated button clicked")
-                const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
-                const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
-                if (wfId) {
-                  window.open(`https://shuffler.io/workflows/${wfId}`, '_blank');
-                } else {
-                  trackPredefinedEvent(GA_EVENTS.INCIDENT_AUTOMATION_CHANGE, 'open_dialog');
-                  setAutomationsDialogOpen(true);
-                }
+                trackPredefinedEvent(GA_EVENTS.INCIDENT_AUTOMATION_CHANGE, 'open_dialog');
+                setAutomationsDialogOpen(true);
+
                 // Demo: the "Enable the AI Agent automation" sub-goal is
                 // tracked by watching the live automation state, not by a
                 // click — see the useEffect above.
