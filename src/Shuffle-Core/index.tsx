@@ -150,3 +150,8 @@ export type {
   WorkflowExecution,
 } from './components/WorkflowRunExplorer';
 
+// Category automations dialog — shared between Shuffle Core and Shuffle Security.
+import { CategoryAutomationsDialog as CategoryAutomationsDialogRaw } from './components/CategoryAutomationsDialog';
+export const CategoryAutomationsDialog = withTheme(CategoryAutomationsDialogRaw, 'CategoryAutomationsDialog');
+export type { CategoryAutomationsDialogProps } from './components/CategoryAutomationsDialog';
+

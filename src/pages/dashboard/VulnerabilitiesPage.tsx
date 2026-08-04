@@ -23,7 +23,7 @@ import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/Vuln
 import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
 import { IngestionSourcesRow } from '@/components/ingestion/IngestionSourcesRow';
 import { AddVulnerabilityDialog } from '@/components/vulnerabilities/AddVulnerabilityDialog';
-import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
+import { CategoryAutomationsDialog } from '@shuffleio/shuffle-core';
 import { useDatastore } from '@/hooks/useDatastore';
 import { DATASTORE_CATEGORIES, CategoryAutomation } from '@/Shuffle-MCPs/datastore';
 import { IconActionButton } from '@/components/common/IconActionButton';

@@ -41,7 +41,7 @@ import { OCSFIncidentFinding, Observable, TLP_LABELS, convertLegacyTlp, mapOCSFS
 import { deduplicateTasks, decodeHtmlEntities } from '@/lib/utils';
 import { autoCorrectTranslatedString } from '@/lib/translationFallback';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
-import { CategoryAutomationsDialog } from '@/components/incidents/CategoryAutomationsDialog';
+import { CategoryAutomationsDialog } from '@shuffleio/shuffle-core';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, findForwardTicketsWorkflow, extractWorkflowAppNames, normalizeAppName, isWorkflowScheduleStopped } from '@/Shuffle-MCPs/ingestionDetection';
 import { API_CONFIG, getApiUrl, getAuthHeader, isDevEnvironment } from '@/Shuffle-MCPs/api';
 import { IncidentCardView } from '@/components/incidents/IncidentCardView';
@@ -2667,6 +2667,7 @@ const IncidentsPage = () => {
             <IconButton 
               data-tour="incidents-automation-button"
               onClick={() => {
+                 console.log("Updated button clicked")
                 const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
                 const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
                 if (wfId) {

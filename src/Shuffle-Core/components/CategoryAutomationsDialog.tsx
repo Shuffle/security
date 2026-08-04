@@ -22,17 +22,16 @@ import {
   InputLabel,
 } from '@mui/material';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { toast } from '@/lib/toast';
+import { toast } from '../toast';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import PopupTextEditor from '@/components/shared/PopupTextEditor';
+import PopupTextEditor from './PopupTextEditor';
 import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
 import AiAgentPromptsEditor from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
-import { useAuthenticatedApps } from '@/hooks/useAuthenticatedApps';
+import { useAuthenticatedApps } from '../useAuthenticatedApps';
 import { Tooltip } from '@mui/material';
 
 import { CategoryAutomation } from '@/Shuffle-MCPs/datastore';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, extractWorkflowAppNames } from '@/Shuffle-MCPs/ingestionDetection';
-import { IngestionSourceButton } from '@/components/incidents/IngestionSourceButton';
 
 // API format for automations
 interface AutomationApiFormat {
@@ -50,7 +49,7 @@ interface Workflow {
   name: string;
 }
 
-interface CategoryAutomationsDialogProps {
+export interface CategoryAutomationsDialogProps {
   open: boolean;
   onClose: () => void;
   category: string;
@@ -59,6 +58,11 @@ interface CategoryAutomationsDialogProps {
   initialSettings?: { timeout?: number; public?: boolean };
   onSaved?: () => void;
   entityLabel?: { singular: string; plural: string };
+  /** Explicit org id to save against. Falls back to reading
+   *  `shuffle_user_info` from localStorage (shuffle-security's own auth
+   *  storage) when omitted — pass this explicitly on hosts that don't use
+   *  that storage key (e.g. shaffuru). */
+  orgId?: string | null;
 }
 
 const WEEKS_OPTIONS = [
@@ -151,6 +155,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   initialSettings,
   onSaved,
   entityLabel,
+  orgId: orgIdProp,
 }) => {
   const entitySingular = entityLabel?.singular || 'incident';
   const entityPlural = entityLabel?.plural || 'incidents';
@@ -466,7 +471,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   // Update selected workflows with names once workflows are loaded
   useEffect(() => {
     if (workflows.length > 0 && selectedWorkflows.length > 0) {
-      setSelectedWorkflows(prev => 
+      setSelectedWorkflows(prev =>
         prev.map(sw => {
           const found = workflows.find(w => w.id === sw.id);
           return found || sw;
@@ -476,14 +481,14 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   }, [workflows]);
 
   const handleToggleAutomation = (type: string) => {
-    setAutomations(automations.map(a => 
+    setAutomations(automations.map(a =>
       a.type === type ? { ...a, enabled: !a.enabled, trigger: 'on_edit' as CategoryAutomation['trigger'] } : a
     ));
     setHasChanges(true);
   };
 
   const handleSave = async () => {
-    const orgId = getOrgId();
+    const orgId = orgIdProp || getOrgId();
     if (!orgId) {
       toast.error('No tenant found');
       return;
@@ -495,7 +500,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       const apiAutomations: AutomationApiFormat[] = automationConfigs.map(config => {
         const automation = automations.find(a => a.type === config.type);
         const isEnabled = automation?.enabled || false;
-        
+
         // Build options based on type
         let options: { key: string; value: string; apps?: string[] | null }[] = [];
         if (config.type === 'workflow') {
@@ -521,7 +526,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         } else {
           options = [{ key: config.optionKey || '', value: '' }];
         }
-        
+
         const baseAutomation: AutomationApiFormat = {
           name: config.name,
           description: config.description,
@@ -552,12 +557,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         category,
         automations: apiAutomations,
       };
-      if (cleanupTimeout > 0) {
-        payload.settings = { timeout: cleanupTimeout };
-      } else {
-        payload.settings = { timeout: 0 };
-      }
-      
+      // Preserve any settings fields this dialog doesn't manage itself
+      // (e.g. `public`) — the backend overwrites the whole settings object,
+      // so dropping them here would silently reset them.
+      payload.settings = { ...(initialSettings || {}), timeout: cleanupTimeout > 0 ? cleanupTimeout : 0 };
+
       const response = await fetch(getApiUrl('/api/v2/datastore/automate'), {
         method: 'POST',
         credentials: 'include',
@@ -623,24 +627,24 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       <DialogContent sx={{ px: 4, pb: 3 }}>
         {/* Trigger Section */}
         <Box sx={{ mb: 4 }}>
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 1.5, 
-              fontWeight: 500, 
-              textTransform: 'uppercase', 
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 1.5,
+              fontWeight: 500,
+              textTransform: 'uppercase',
               letterSpacing: 0.5,
               fontSize: '0.75rem',
             }}
           >
             When
           </Typography>
-          <Box 
-            sx={{ 
-              py: 1.5, 
-              px: 2, 
-              bgcolor: 'hsl(var(--muted) / 0.4)', 
+          <Box
+            sx={{
+              py: 1.5,
+              px: 2,
+              bgcolor: 'hsl(var(--muted) / 0.4)',
               borderRadius: 1,
               border: '1px solid hsl(var(--border))',
             }}
@@ -655,13 +659,13 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
         {/* Actions Section */}
         <Box>
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 2, 
-              fontWeight: 500, 
-              textTransform: 'uppercase', 
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 2,
+              fontWeight: 500,
+              textTransform: 'uppercase',
               letterSpacing: 0.5,
               fontSize: '0.75rem',
             }}
@@ -720,8 +724,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                         transition: 'color 0.15s',
                       }}
                     />
-                    <Typography 
-                      sx={{ 
+                    <Typography
+                      sx={{
                         flex: 1,
                         fontSize: '0.95rem',
                         color: automation.enabled ? 'text.primary' : 'hsl(var(--muted-foreground))',
@@ -938,27 +942,27 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
         {/* Cleanup Section */}
         <Box>
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 1.5, 
-              fontWeight: 500, 
-              textTransform: 'uppercase', 
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 1.5,
+              fontWeight: 500,
+              textTransform: 'uppercase',
               letterSpacing: 0.5,
               fontSize: '0.75rem',
             }}
           >
             Cleanup
           </Typography>
-          <Box 
-            sx={{ 
+          <Box
+            sx={{
               display: 'flex',
               alignItems: 'center',
               gap: 2,
-              py: 1.5, 
-              px: 2, 
-              bgcolor: 'hsl(var(--muted) / 0.35)', 
+              py: 1.5,
+              px: 2,
+              bgcolor: 'hsl(var(--muted) / 0.35)',
               borderRadius: 1.5,
               border: '1px solid hsl(var(--border))',
             }}
