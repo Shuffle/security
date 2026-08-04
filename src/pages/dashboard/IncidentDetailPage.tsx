@@ -6304,7 +6304,7 @@ const IncidentDetailPage = () => {
     const getItemLabel = (it: TimelineItem): string => {
       if (it.type === 'revision') {
         if (it.idx === revisions.length - 1 && !isOnlyRevisionsFilter) return 'Incident created';
-        return `Change #${revisions.length - it.idx}`;
+        return `Change #${revisionNumber(it.idx)}`;
       }
       if (it.type === 'agent') return 'Agent run';
       if (it.type === 'workflow-exec') return 'Workflow run';
