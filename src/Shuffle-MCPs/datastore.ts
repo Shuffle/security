@@ -908,7 +908,7 @@ export const getDatastoreByCategory = async (
       console.warn(`[Datastore] ${response.status} response for category=${category} but body contained ${extracted.items.length} valid items — treating as success`);
       return {
         success: true,
-        data: extracted.items,
+        data: scopeItemsToOrg(extracted.items, orgId),
         categoryConfig: extracted.categoryConfig,
         cursor: extracted.cursor,
         totalAmount: extracted.totalAmount,
@@ -941,7 +941,7 @@ export const getDatastoreByCategory = async (
         const retryBody = await retryResponse.text();
         const retryExtracted = tryExtractItemsFromBody(retryBody);
         if (retryResponse.ok || (retryExtracted && retryExtracted.items.length > 0)) {
-          const items = retryExtracted?.items || [];
+          const items = scopeItemsToOrg(retryExtracted?.items || [], orgId);
           console.warn(`[Datastore] Retry succeeded for category=${category} (status=${retryResponse.status}, items=${items.length})`);
           return {
             success: true,
@@ -993,7 +993,7 @@ export const getDatastoreByCategory = async (
 
     return {
       success: true,
-      data: items,
+      data: scopeItemsToOrg(items, orgId),
       categoryConfig: data.category_config,
       cursor: data.cursor,
       totalAmount,
