@@ -3517,7 +3517,12 @@ const IncidentDetailPage = () => {
       });
     };
 
+    // Activity entries are appended when they happen, so an entry that is
+    // missing (or has an unresolved template) timestamp was added *now*, not
+    // back when its preceding sibling was written. Stamp it with the current
+    // time so it sorts to the top of the timeline instead of the bottom.
     const stampActivity = (list: any[]): any[] => {
+      const now = Date.now();
       let prev = incident.createdTs || fallbackTs;
       return list.map((entry) => {
         if (!entry || typeof entry !== 'object') return entry;
@@ -3527,9 +3532,10 @@ const IncidentDetailPage = () => {
           return entry;
         }
         repaired++;
-        return { ...entry, timestamp: prev || fallbackTs };
+        return { ...entry, timestamp: Math.max(now, prev + 1) };
       });
     };
+
 
     const nextRaw: any = { ...raw };
     if (Array.isArray(raw.tasks)) nextRaw.tasks = stampTasks(raw.tasks);
