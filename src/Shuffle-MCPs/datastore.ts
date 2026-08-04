@@ -804,7 +804,7 @@ const tryExtractItemsFromBody = (rawBody: string): { items: DatastoreItem[]; cat
  * (inherited/shared cache entries). Those must never surface inside a child
  * org. Items without an `org_id` are kept — older backends omit the field.
  */
-const scopeItemsToOrg = <T extends { org_id?: string; orgId?: string }>(items: T[], orgId: string): T[] => {
+const scopeItemsToOrg = <T,>(items: T[], orgId: string): T[] => {
   if (!Array.isArray(items)) return items;
   return items.filter((item) => {
     const owner = (item as any)?.org_id || (item as any)?.orgId;
