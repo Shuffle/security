@@ -13,6 +13,8 @@
 import { useMemo, useState } from 'react';
 import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
+import { AppFallbackIcon } from './AppFallbackIcon';
+
 
 export interface AgentPreset {
   id: string;
