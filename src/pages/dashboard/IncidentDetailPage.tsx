@@ -2626,6 +2626,20 @@ const IncidentDetailPage = () => {
       })
       .filter(([s]) => s > 0);
 
+    // Same-activity dedupe: an agent run and a workflow run that represent the
+    // SAME work (same workflow id/name, overlapping window) must never both be
+    // shown. The agent row wins — it can pivot to the workflow run via button.
+    const agentActivities = (agentRuns || []).map((r: any) => {
+      const s = r.started_at ? normalizeToMs(r.started_at) : 0;
+      const e = r.completed_at ? normalizeToMs(r.completed_at) : Date.now();
+      return {
+        wfId: String(r.workflow_id || '').trim(),
+        name: String(r.workflow?.name || '').trim().toLowerCase(),
+        start: s,
+        end: e,
+      };
+    });
+
     const filtered = (allIncidentWorkflowRuns || []).filter((r: any) => {
       if (!r?.execution_id || agentIds.has(r.execution_id)) return false;
       // Hide throwaway executions: single-app one-shots and unnamed "Tmp" scratch flows.
@@ -2647,6 +2661,21 @@ const IncidentDetailPage = () => {
         );
         if (hasChildAgent) return false;
       }
+
+      // Duplicate of an agent run for the same workflow within an overlapping
+      // window — prefer the agent row.
+      const wfId = String(r.workflow_id || r.workflow?.id || '').trim();
+      const nameKey = wfName.toLowerCase();
+      const dupTol = 60_000;
+      const isDuplicateOfAgent = agentActivities.some((a) => {
+        const sameFlow = (a.wfId && wfId && a.wfId === wfId) || (a.name && nameKey && a.name === nameKey);
+        if (!sameFlow) return false;
+        if (!a.start || !wfStart) return false;
+        // overlapping (or near-adjacent) time ranges
+        return a.start <= wfEnd + dupTol && wfStart <= a.end + dupTol;
+      });
+      if (isDuplicateOfAgent) return false;
+
 
       return true;
     });
