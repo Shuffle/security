@@ -894,7 +894,7 @@ const IncidentDetailPage = () => {
   const unignoreObservable = useCallback(
     async (type?: string, value?: string) => {
       const v = value || '';
-      if (isObservableIgnored(type || '', v)) await ignoredObs.unignore(type || '', v);
+      if (ignoredObs.isIgnored(type || '', v)) await ignoredObs.unignore(type || '', v);
       if (ignoredObs.isValueIgnored(v)) await ignoredObs.unignore('value', v);
     },
     [ignoredObs],
