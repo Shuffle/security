@@ -9,6 +9,7 @@ import {
   setDatastoreItems,
   getDatastoreItem,
   getDatastoreByCategory,
+  getDatastorePageSize,
   deleteDatastoreItem,
   DatastoreItem,
   DatastoreDiagnostics,
@@ -133,6 +134,14 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
         } else if (pageItems.length > 0) {
           // Manual pagination call — append each page as it arrives.
           setItems(prev => [...prev, ...pageItems]);
+        }
+
+        // The backend hands back a cursor even on the final page. A short
+        // page (fewer items than the page size) means there is nothing more
+        // to fetch, so stop instead of firing a pointless cursor request.
+        if (pageItems.length < getDatastorePageSize(category)) {
+          currentCursor = undefined;
+          break;
         }
 
         currentCursor = response.cursor || undefined;
