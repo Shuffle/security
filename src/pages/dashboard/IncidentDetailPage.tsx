@@ -11711,7 +11711,7 @@ const IncidentDetailPage = () => {
               <CircularProgress size={24} sx={{ color: '#ff6600' }} />
             </Box>
           ) : (
-            <HighlightedFileEditor value={fileContent} onChange={setFileContent} validateJson={true} onValidationChange={setFileJsonValid} />
+            <HighlightedFileEditor value={fileContent} onChange={setFileContent} validateJson={true} onValidationChange={setFileJsonValid} foldStateKey="incident-translation" />
           )}
         </Box>
       )}
