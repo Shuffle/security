@@ -1337,6 +1337,17 @@ const IncidentDetailPage = () => {
   const [revisionsLoaded, setRevisionsLoaded] = useState(false);
   const [selectedRevisionIdx, setSelectedRevisionIdx] = useState<number | null>(null);
 
+  // "Not found" fallback: the live datastore lookup can come back empty when
+  // the item write timed out upstream. Before showing a dead end, check the
+  // revision history for the SAME key. We never auto-restore — the user
+  // decides whether to bring the snapshot back.
+  const [notFoundRevision, setNotFoundRevision] = useState<
+    { timestamp?: number; count: number; title?: string; value: any } | null
+  >(null);
+  const [notFoundRevisionLoading, setNotFoundRevisionLoading] = useState(false);
+  const [notFoundRestoring, setNotFoundRestoring] = useState(false);
+  const notFoundRevisionCheckedRef = useRef(false);
+
   // Tracks an OCSF-recovery fallback: when the live incident is not OCSF-shaped,
   // we look back through revisions for the most recent valid OCSF snapshot and
   // overlay any new top-level fields from the latest (non-OCSF but valid JSON)
