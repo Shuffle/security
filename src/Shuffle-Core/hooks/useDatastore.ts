@@ -9,6 +9,7 @@ import {
   setDatastoreItems,
   getDatastoreItem,
   getDatastoreByCategory,
+  getDatastorePageSize,
   deleteDatastoreItem,
   DatastoreItem,
   DatastoreDiagnostics,
@@ -97,6 +98,13 @@ export const useDatastore = ({ category, orgId: overrideOrgId }: UseDatastoreOpt
         }
         if (response.totalAmount != null) {
           setTotalAmount(response.totalAmount);
+        }
+
+        // A short page means this was the last one — the backend still
+        // returns a cursor there, so don't chase it.
+        if ((response.data?.length || 0) < getDatastorePageSize(category)) {
+          currentCursor = undefined;
+          break;
         }
 
         currentCursor = response.cursor || undefined;

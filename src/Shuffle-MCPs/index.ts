@@ -187,6 +187,7 @@ export {
   getDatastoreItem,
   getDatastoreItemPublic,
   getDatastoreByCategory,
+  getDatastorePageSize,
   deleteDatastoreItem,
   deleteDatastoreItems,
   DATASTORE_CATEGORIES,
