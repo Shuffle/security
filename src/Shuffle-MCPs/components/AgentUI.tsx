@@ -4966,7 +4966,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
         <AppSearchDrawer
           open={appSearchOpen}
-          onClose={() => setAppSearchOpen(false)}
+          initialQuery={appSearchQuery || undefined}
+          onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); }}
           title={appPickerTitle}
           subtitle={appPickerSubtitle}
           multiSelect
