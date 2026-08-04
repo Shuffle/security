@@ -3,6 +3,7 @@
  * Shows: title, severity, timestamp, error explanation, action timeline, and pending action.
  */
 
+import InlineAgentQuestion from './InlineAgentQuestion';
 import { useState } from 'react';
 import {
   Box,
