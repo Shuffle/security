@@ -27,6 +27,15 @@ export interface AgentPreset {
   defaultApps?: Array<{ name: string; id?: string; icon?: string }>;
 }
 
+/** "shuffle_workflows" -> "Shuffle Workflows" */
+const prettyAppName = (name: string) =>
+  name
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
 export const AGENT_PRESETS: AgentPreset[] = [
   {
     id: 'build-workflows',
