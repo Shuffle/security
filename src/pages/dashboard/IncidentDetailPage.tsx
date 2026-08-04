@@ -5303,6 +5303,7 @@ const IncidentDetailPage = () => {
     suborgRetryRef.current = false;
     crossOrgMergedRef.current = false;
     demoRecoveryTriedRef.current = false;
+    notFoundRevisionCheckedRef.current = false;
     setLoadDebug(null);
     setLoading(true);
     loadIncidentRef.current?.();
