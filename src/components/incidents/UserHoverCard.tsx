@@ -138,7 +138,7 @@ export const UserHoverCard = ({ username, isAgent, className }: UserHoverCardPro
       <HoverCardContent
         align="start"
         sideOffset={6}
-        className="w-64 border border-border bg-popover p-3 text-popover-foreground shadow-xl z-[9999]"
+        className="w-[330px] border border-border bg-popover p-3 text-popover-foreground shadow-xl z-[9999]"
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.25 }}>
           <Avatar
