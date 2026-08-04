@@ -999,7 +999,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           {isRerunTarget ? (
             <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
           ) : isProcessing ? (
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
+            isLiveProcessing ? (
+              <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+            ) : (
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
+            )
           ) : (
             <StatusIcon status={effectiveStatus} />
           )}
