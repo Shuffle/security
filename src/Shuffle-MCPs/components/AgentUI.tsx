@@ -841,8 +841,16 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const details = item.details as AgentDecision | undefined;
   const isProcessing = item.category === 'processing';
   const isLiveProcessing = isProcessing && (item.status || '').toUpperCase() === 'EXECUTING';
+  // More than 60s without a new decision: the run is most likely stuck, not
+  // still thinking. Flag it as a likely (not definite) timeout.
+  const isLikelyTimedOut =
+    isLiveProcessing && (item.end_time || 0) - (item.start_time || 0) > 60;
   if (isProcessing) {
-    displayType = 'processing';
+    displayType = isLikelyTimedOut ? 'likely timed out' : 'processing';
+    if (isLikelyTimedOut) {
+      displayLabel = 'No new activity for over a minute — this run has most likely timed out.';
+    }
+  }
   } else if (details?.reason) {
     displayLabel = details.reason;
   }
