@@ -1335,6 +1335,36 @@ const IncidentDetailPage = () => {
   const [revisions, setRevisions] = useState<any[]>([]);
   const [revisionsLoading, setRevisionsLoading] = useState(false);
   const [revisionsLoaded, setRevisionsLoaded] = useState(false);
+
+  // Revisions that produce an empty diff (no-op writes) are never rendered in
+  // the timeline, so the "Changes" filter count must exclude them too —
+  // otherwise the count disagrees with the highest visible "Change #N".
+  const visibleRevisionCount = useMemo(() => {
+    if (!revisions.length) return 0;
+    const NOISE = new Set(['activity', 'updated_by', 'edited_time', 'updated_at', 'last_updated', 'comments']);
+    const parsed = revisions.map((rev) => {
+      try { return typeof rev.value === 'string' ? JSON.parse(rev.value) : rev.value; } catch { return null; }
+    });
+    const hasChanges = (current: any, previous: any): boolean => {
+      if (!current || !previous) return true;
+      const keys = new Set([...Object.keys(current), ...Object.keys(previous)]);
+      for (const key of keys) {
+        if (NOISE.has(key)) continue;
+        const inC = key in current;
+        const inP = key in previous;
+        if (inC !== inP) return true;
+        if (inC && inP && JSON.stringify(current[key]) !== JSON.stringify(previous[key])) return true;
+      }
+      return false;
+    };
+    let count = 0;
+    for (let i = revisions.length - 1; i >= 0; i--) {
+      const prev = i < revisions.length - 1 ? parsed[i + 1] : null;
+      const hidden = !isOnlyRevisionsFilter && i !== revisions.length - 1 && !!prev && !hasChanges(parsed[i], prev);
+      if (!hidden) count += 1;
+    }
+    return count;
+  }, [revisions, isOnlyRevisionsFilter]);
   const [selectedRevisionIdx, setSelectedRevisionIdx] = useState<number | null>(null);
 
   // "Not found" fallback: the live datastore lookup can come back empty when
@@ -5473,7 +5503,7 @@ const IncidentDetailPage = () => {
   const renderTimelineActionsChip = () => {
     if (timelineCollapsed) return null;
     const filterDefs = [
-      { key: 'revisions' as const, label: 'Changes', count: revisions.length },
+      { key: 'revisions' as const, label: 'Changes', count: visibleRevisionCount },
       { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
       { key: 'workflows' as const, label: 'Workflow runs', count: workflowOnlyRuns.length },
       { key: 'manual' as const, label: 'Comments', count: commentActivity.length },
@@ -5561,7 +5591,7 @@ const IncidentDetailPage = () => {
         }}
       >
         {([
-          { key: 'revisions' as const, label: 'Changes', count: revisions.length },
+          { key: 'revisions' as const, label: 'Changes', count: visibleRevisionCount },
           { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
           { key: 'workflows' as const, label: 'Workflow runs', count: workflowOnlyRuns.length },
           { key: 'manual' as const, label: 'Comments', count: commentActivity.length },
