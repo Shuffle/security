@@ -3481,6 +3481,95 @@ const IncidentDetailPage = () => {
       .catch(err => console.warn('[IncidentRelations] persist reconciliation failed:', err));
   }, [id, incident, revisionsLoaded, revisions, isPublicView, crossOrgId]);
 
+  // Agents (and some ingest pipelines) can append tasks or activity entries
+  // without a timestamp. Those render as "Invalid date" / sort to the epoch,
+  // so we stamp them silently: an entry inherits the timestamp of the closest
+  // preceding stamped sibling, falling back to the incident's edited/created
+  // time. The repair is persisted so it only ever happens once.
+  const timestampRepairRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isPublicView) return;
+    if (revisionRestoredRef.current) return;
+    if (!id || !incident || loading) return;
+    if (timestampRepairRef.current === id) return;
+    const raw = incident.rawOCSF;
+    if (!raw || typeof raw !== 'object') return;
+    timestampRepairRef.current = id;
+
+    const fallbackTs = incident.editedTs || incident.createdTs || Date.now();
+    const isMissing = (v: unknown) =>
+      v === undefined || v === null || v === 0 || v === '' ||
+      (typeof v === 'string' && Number.isNaN(Date.parse(v)));
+
+    let repaired = 0;
+
+    const stampTasks = (list: any[]): any[] => {
+      let prev = incident.createdTs || fallbackTs;
+      return list.map((task) => {
+        if (!task || typeof task !== 'object') return task;
+        if (!isMissing(task.createdAt)) {
+          const parsed = normalizeToMs(task.createdAt);
+          if (parsed) prev = parsed;
+          return task;
+        }
+        repaired++;
+        return { ...task, createdAt: prev || fallbackTs };
+      });
+    };
+
+    const stampActivity = (list: any[]): any[] => {
+      let prev = incident.createdTs || fallbackTs;
+      return list.map((entry) => {
+        if (!entry || typeof entry !== 'object') return entry;
+        if (!isMissing(entry.timestamp)) {
+          const parsed = normalizeToMs(entry.timestamp);
+          if (parsed) prev = parsed;
+          return entry;
+        }
+        repaired++;
+        return { ...entry, timestamp: prev || fallbackTs };
+      });
+    };
+
+    const nextRaw: any = { ...raw };
+    if (Array.isArray(raw.tasks)) nextRaw.tasks = stampTasks(raw.tasks);
+    if (Array.isArray(raw.activity)) nextRaw.activity = stampActivity(raw.activity);
+
+    const customAttrs = raw?.metadata?.extensions?.custom_attributes;
+    if (customAttrs && typeof customAttrs === 'object') {
+      const nextAttrs: any = { ...customAttrs };
+      if (Array.isArray(customAttrs.tasks)) nextAttrs.tasks = stampTasks(customAttrs.tasks);
+      if (Array.isArray((customAttrs as any).activity)) {
+        nextAttrs.activity = stampActivity((customAttrs as any).activity);
+      }
+      if (repaired > 0) {
+        nextRaw.metadata = {
+          ...(raw.metadata || {}),
+          extensions: {
+            ...((raw.metadata as any)?.extensions || {}),
+            custom_attributes: nextAttrs,
+          },
+        };
+      }
+    }
+
+    if (repaired === 0) return;
+
+    console.log(`[IncidentDetail] Stamped ${repaired} task/activity entr(ies) missing a timestamp`);
+
+    setIncident(prev => (prev ? { ...prev, rawOCSF: nextRaw } : prev));
+    if (Array.isArray(nextRaw.tasks)) {
+      setTasks(nextRaw.tasks as IncidentTask[]);
+      if (initialValuesRef.current) {
+        initialValuesRef.current.tasks = JSON.stringify(nextRaw.tasks);
+      }
+    }
+    if (Array.isArray(nextRaw.activity)) setActivity(nextRaw.activity as any);
+
+    writeIncidentSafe(id, nextRaw, crossOrgId || undefined)
+      .catch(err => console.warn('[IncidentDetail] Failed to persist timestamp repair:', err));
+  }, [id, incident, loading, isPublicView, crossOrgId]);
+
 
   // Show toast for invalid data incidents (no title + no source). We wait for
   // revisions to finish loading and for the OCSF-recovery fallback to attempt
