@@ -276,6 +276,51 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                     {p.description}
                   </Typography>
                 </Box>
+                {(p.defaultApps?.length ?? 0) > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, flexShrink: 0 }}>
+                    {p.defaultApps!.map((app) => (
+                      <Tooltip key={app.name} title={prettyAppName(app.name)} placement="top" arrow>
+                        <Box
+                          sx={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            bgcolor: 'hsl(var(--muted))',
+                            border: '1px solid hsl(var(--border))',
+                            color: 'hsl(var(--muted-foreground))',
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            filter: 'grayscale(1)',
+                            opacity: 0.65,
+                            transition: 'filter 120ms ease, opacity 120ms ease',
+                            '&:hover': { filter: 'none', opacity: 1, color: 'hsl(var(--foreground))' },
+                          }}
+                        >
+                          {app.icon ? (
+                            <Box
+                              component="img"
+                              src={app.icon}
+                              alt={prettyAppName(app.name)}
+                              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            prettyAppName(app.name)
+                              .split(' ')
+                              .slice(0, 2)
+                              .map((w) => w[0])
+                              .join('')
+                              .toUpperCase()
+                          )}
+                        </Box>
+                      </Tooltip>
+                    ))}
+                  </Box>
+                )}
+
               </Box>
             ))}
           </Box>
