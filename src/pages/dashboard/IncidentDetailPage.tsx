@@ -1337,6 +1337,7 @@ const IncidentDetailPage = () => {
     }, []);
 
     const [rawJsonText, setRawJsonText] = useState('');
+  const forceRawReloadRef = useRef(false);
    const [rawJsonValid, setRawJsonValid] = useState(true);
   // File editor state
   const [fileContent, setFileContent] = useState('');
