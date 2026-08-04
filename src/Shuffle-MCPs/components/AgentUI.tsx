@@ -1093,7 +1093,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         </Tooltip>
         <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
-          {dur > 0 ? `${dur.toFixed(2)}s` : ''}
+          {dur > 0 ? (isProcessing ? `${Math.round(dur)}s` : `${dur.toFixed(2)}s`) : ''}
         </Box>
         {/* Per-row actions: Approve/Deny, Rerun */}
         <Box
