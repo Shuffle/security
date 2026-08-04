@@ -5971,7 +5971,7 @@ const IncidentDetailPage = () => {
       | { type: 'agent'; timestamp: number; data: typeof agentRuns[number] }
       | { type: 'workflow-exec'; timestamp: number; data: typeof agentRuns[number] }
       | { type: 'manual'; timestamp: number; data: ActivityItem }
-      | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsKeys?: string[]; obsType?: string; obsValue?: string };
+      | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsKeys?: string[]; obsType?: string; obsValue?: string; taskId?: string; taskStatusLabel?: string };
 
     const items: TimelineItem[] = [];
 
