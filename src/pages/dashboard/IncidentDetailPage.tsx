@@ -2476,18 +2476,23 @@ const IncidentDetailPage = () => {
   }, [refetchWorkflowRuns, refetchAgentRuns]);
 
   // The execution behind the "Checking your message for observables…" pill:
-  // the newest workflow run that touched this incident in the last ~90s.
-  // Both the pill and its auto-clear effect read the SAME run so the pill and
-  // the run drawer can never disagree about whether it is still executing.
+  // the newest workflow run that started AFTER the check began (small
+  // tolerance for clock skew) and within the last ~90s. Anchoring on the
+  // check's own start time matters: without it, an unrelated run that already
+  // finished seconds before the comment was sent would be picked up and
+  // instantly flip the pill off — which looked like the run "flashed" under
+  // the comment and vanished again.
   const observableCheckRun = useMemo(() => {
     const now = Date.now();
+    const startedAt = obsCheckStartedAtRef.current;
+    const floor = startedAt ? startedAt - 5_000 : 0;
     return (allIncidentWorkflowRuns || [])
       .filter((r: any) => {
         const ts = normalizeToMs(r?.started_at);
-        return ts > 0 && (now - ts) < 90_000;
+        return ts > 0 && ts >= floor && (now - ts) < 90_000;
       })
       .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0] as any;
-  }, [allIncidentWorkflowRuns]);
+  }, [allIncidentWorkflowRuns, obsCheckTick]);
 
   // As soon as that execution reports a terminal status, drop the spinner —
   // previously the pill hung around until the enrichment count changed or the
