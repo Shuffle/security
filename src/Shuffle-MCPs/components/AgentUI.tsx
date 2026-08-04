@@ -1747,6 +1747,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   //   2) Algolia — match by objectID, then by name
   const [resolvedToolApps, setResolvedToolApps] = useState<Record<string, AgentUIApp>>({});
   const [appSearchOpen, setAppSearchOpen] = useState(false);
+  /** Pre-filled query for the Tools app search (e.g. "git" from a suggestion chip). */
+  const [appSearchQuery, setAppSearchQuery] = useState('');
   const [authDrawerApp, setAuthDrawerApp] = useState<{ name: string; id?: string | null } | null>(null);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
   // Optimistic UI: track which decision the user just clicked Rerun on so we
