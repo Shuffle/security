@@ -7249,6 +7249,28 @@ const IncidentDetailPage = () => {
                 {item.detail}
               </Typography>
             )}
+            {item.taskStatusLabel && (
+              <Typography
+                component="span"
+                sx={{
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.4,
+                  px: 0.6,
+                  py: 0.05,
+                  ml: 'auto',
+                  borderRadius: 999,
+                  bgcolor: 'hsl(var(--muted) / 0.6)',
+                  color: 'text.secondary',
+                  border: '1px solid hsl(var(--border-subtle))',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {item.taskStatusLabel}
+              </Typography>
+            )}
             {item.kind === 'observable-added' && !!item.corrCount && (
               <Tooltip
                 title={`${item.corrCount} correlation match${item.corrCount === 1 ? '' : 'es'} — click to view`}
