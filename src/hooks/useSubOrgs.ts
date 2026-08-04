@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { useAuth } from '@/context/AuthContext';
 
 export interface SubOrg {
   id: string;
@@ -28,6 +29,11 @@ export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn =
   const [parentOrg, setParentOrg] = useState<SubOrg | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { userInfo } = useAuth();
+  // When the active org is itself a child tenant, it must never fan out to
+  // other tenants. The /suborgs API can return siblings in some setups, which
+  // would make a child look like a parent and trigger cross-tenant fetching.
+  const isChildTenant = !!userInfo?.active_org?.creator_org && userInfo?.active_org?.id === currentOrgId;
 
   const fetchSubOrgs = useCallback(async () => {
     if (!currentOrgId) return;
@@ -67,7 +73,7 @@ export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn =
           if (org.creator_org) return org.creator_org === currentOrgId;
           return true;
         });
-        setSubOrgs(trueChildren.map((org: any) => ({
+        setSubOrgs(isChildTenant ? [] : trueChildren.map((org: any) => ({
           id: org.id,
           name: org.name || org.id,
           image: org.image,
@@ -99,7 +105,7 @@ export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn =
     } finally {
       setIsLoading(false);
     }
-  }, [currentOrgId]);
+  }, [currentOrgId, isChildTenant]);
 
   useEffect(() => {
     fetchSubOrgs();
