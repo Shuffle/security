@@ -237,7 +237,7 @@ const AgentHandoffWatcher = () => {
       open={!!questionNotification}
       onClose={() => setQuestionNotification(null)}
       notification={questionNotification}
-      onSubmit={handleSubmitAnswers}
+      onSubmitted={refreshNotifications}
     />
   );
 };

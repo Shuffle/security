@@ -1509,7 +1509,7 @@ const DashboardPage = () => {
         open={!!questionNotification}
         onClose={() => setQuestionNotification(null)}
         notification={questionNotification}
-        onSubmit={handleSubmitAnswers}
+        onSubmitted={refreshNotifications}
       />
 
       <AgentQuickViewDrawer
