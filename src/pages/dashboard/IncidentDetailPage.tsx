@@ -11309,7 +11309,7 @@ const IncidentDetailPage = () => {
                         const payload = typeof rev.value === 'string' ? JSON.parse(rev.value) : rev.value;
                         setRawJsonText(JSON.stringify(payload, null, 2));
                         setSelectedRevisionIdx(idx);
-                        toast.success('Change loaded — hit Save to persist');
+                        toast.success(`Change #${revisions.length - idx} loaded — hit Save to roll back to it`);
                       } catch {
                         setRawJsonText(typeof rev.value === 'string' ? rev.value : JSON.stringify(rev.value, null, 2));
                         setSelectedRevisionIdx(idx);
