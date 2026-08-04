@@ -7036,6 +7036,10 @@ const IncidentDetailPage = () => {
             const el = document.getElementById('routing-rule-preview-banner');
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           };
+        } else if (item.taskId) {
+          // Task pills jump to the Tasks tab and scroll to the task card.
+          const taskId = item.taskId;
+          pillOnClick = () => focusTaskFromTimeline(taskId);
         }
         const isClickable = !!pillOnClick;
         // Detect whether the pill represents (or correlates to) an observable
