@@ -73,6 +73,12 @@ import {
   getRandomAgentPromptPlaceholderForWidth,
   matchAgentPromptSuggestions,
 } from './agentPromptSuggestions';
+import {
+  getSuggestionAppRequirements,
+  prettySuggestionAppName,
+  type SuggestionAppRequirement,
+} from './agentSuggestionApps';
+import { AppFallbackIcon } from './AppFallbackIcon';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import AgentPresets, { AGENT_PRESETS, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
@@ -1697,6 +1703,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
+    // Pre-select the concrete apps this suggestion needs, so the task can run
+    // right away. Category requirements are left to the user (dashed chip).
+    try {
+      const reqs = getSuggestionAppRequirements(s);
+      const concrete = reqs.filter((r) => r.kind === 'app');
+      if (concrete.length > 0) {
+        setChosenApps((prev) => {
+          const next = [...prev];
+          for (const r of concrete) {
+            if (next.some((a) => (a.name || '').toLowerCase() === r.value.toLowerCase())) continue;
+            next.push({ name: r.value });
+          }
+          return next;
+        });
+      }
+    } catch { /* ignore */ }
     // Refocus the textarea so the user can keep editing / press ⌘+Enter.
     requestAnimationFrame(() => {
       try { inputRef.current?.focus(); } catch { /* ignore */ }
@@ -1725,6 +1747,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   //   2) Algolia — match by objectID, then by name
   const [resolvedToolApps, setResolvedToolApps] = useState<Record<string, AgentUIApp>>({});
   const [appSearchOpen, setAppSearchOpen] = useState(false);
+  /** Pre-filled query for the Tools app search (e.g. "git" from a suggestion chip). */
+  const [appSearchQuery, setAppSearchQuery] = useState('');
   const [authDrawerApp, setAuthDrawerApp] = useState<{ name: string; id?: string | null } | null>(null);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
   // Optimistic UI: track which decision the user just clicked Rerun on so we
@@ -4157,6 +4181,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       const before = idx >= 0 ? s.slice(0, idx) : s;
                       const match = idx >= 0 ? s.slice(idx, idx + q.length) : '';
                       const after = idx >= 0 ? s.slice(idx + q.length) : '';
+                      const reqs = getSuggestionAppRequirements(s);
                       return (
                         <MenuItem
                           key={s}
@@ -4168,16 +4193,84 @@ const AgentUI: React.FC<AgentUIProps> = ({
                             color: 'hsl(var(--foreground))',
                             py: 0.75,
                             px: 2,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1,
                             '&.Mui-selected, &.Mui-selected:hover': {
                               bgcolor: 'hsl(var(--muted) / 0.6)',
                             },
                           }}
                         >
-                          <SearchIcon size={14} style={{ marginRight: 10, color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                          <Box component="span" sx={{ whiteSpace: 'normal', lineHeight: 1.4 }}>
+                          <SearchIcon size={14} style={{ marginTop: 4, marginRight: 4, color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+                          <Box component="span" sx={{ whiteSpace: 'normal', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
                             {before}
                             <Box component="span" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>{match}</Box>
                             {after}
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 0.5 }}>
+                            {reqs.map((req: SuggestionAppRequirement) => (
+                              req.kind === 'app' ? (
+                                <Tooltip key={`${req.kind}:${req.value}`} title={`Uses ${req.label}`} arrow>
+                                  <Box
+                                    sx={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: 0.75,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      overflow: 'hidden',
+                                      bgcolor: 'hsl(var(--muted))',
+                                      border: '1px solid hsl(var(--border))',
+                                      filter: 'grayscale(1)',
+                                      opacity: 0.7,
+                                      transition: 'filter 120ms ease, opacity 120ms ease',
+                                      '&:hover': { filter: 'none', opacity: 1 },
+                                    }}
+                                  >
+                                    <AppFallbackIcon
+                                      name={prettySuggestionAppName(req.value)}
+                                      size={18}
+                                      style={{ borderRadius: 3 }}
+                                    />
+                                  </Box>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip key={`${req.kind}:${req.value}`} title={`Needs a ${req.label} — click to pick one`} arrow>
+                                  <Box
+                                    component="span"
+                                    role="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      acceptSuggestion(s);
+                                      setAppSearchQuery(req.value);
+                                      setAppSearchOpen(true);
+                                    }}
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      height: 22,
+                                      px: 0.875,
+                                      borderRadius: 999,
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap',
+                                      color: 'hsl(var(--muted-foreground))',
+                                      border: '1px dashed hsl(var(--border))',
+                                      cursor: 'pointer',
+                                      '&:hover': {
+                                        color: 'hsl(var(--primary))',
+                                        borderColor: 'hsl(var(--primary))',
+                                        bgcolor: 'hsl(var(--primary) / 0.08)',
+                                      },
+                                    }}
+                                  >
+                                    {req.label}
+                                  </Box>
+                                </Tooltip>
+                              )
+                            ))}
                           </Box>
                         </MenuItem>
                       );
@@ -4942,7 +5035,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
         <AppSearchDrawer
           open={appSearchOpen}
-          onClose={() => setAppSearchOpen(false)}
+          initialQuery={appSearchQuery || undefined}
+          onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); }}
           title={appPickerTitle}
           subtitle={appPickerSubtitle}
           multiSelect
