@@ -7980,7 +7980,9 @@ const IncidentDetailPage = () => {
       const itemKey = getItemKey(item);
       const replies = repliesByParent.get(itemKey) || [];
       const node = renderItem(item, { isReply });
-      if (!node) return null;
+      // A parent row can render nothing (e.g. a no-op revision). Never drop its
+      // replies with it — they still belong in the timeline.
+      if (!node && replies.length === 0) return null;
 
       // Show processing/timeout placeholder ONLY when this comment explicitly
       // @-mentions the AI Agent (e.g. @AIAgent / @aiagent / @ai_agent) and is
