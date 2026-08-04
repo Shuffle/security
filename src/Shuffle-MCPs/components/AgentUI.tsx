@@ -846,10 +846,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const isLikelyTimedOut =
     isLiveProcessing && (item.end_time || 0) - (item.start_time || 0) > 60;
   if (isProcessing) {
-    displayType = isLikelyTimedOut ? 'likely timed out' : 'processing';
-    if (isLikelyTimedOut) {
-      displayLabel = 'No new activity for over a minute — this run has most likely timed out.';
-    }
+    displayType = 'processing';
+    displayLabel = '';
   } else if (details?.reason) {
     displayLabel = details.reason;
   }
@@ -1008,7 +1006,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
           ) : isProcessing ? (
             isLikelyTimedOut ? (
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: STATUS_COLORS.warning }} />
+              <Tooltip title="No new activity for over a minute — this run has most likely timed out." arrow>
+                <Box sx={{ display: 'flex' }}>
+                  <WarningIcon size={14} color={STATUS_COLORS.warning} />
+                </Box>
+              </Tooltip>
             ) : isLiveProcessing ? (
               <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
             ) : (
@@ -1034,21 +1036,26 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           )}
         </Box>
 
-        <Chip
-          label={displayType}
-          size="small"
-          sx={{
-            height: 22,
-            bgcolor: isProcessing ? 'transparent' : 'hsl(var(--muted))',
-            color: isLikelyTimedOut ? STATUS_COLORS.warning : isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
-            border: isLikelyTimedOut ? `1px dashed ${STATUS_COLORS.warning}` : isProcessing ? '1px dashed hsl(var(--border))' : 'none',
-            fontSize: '0.7rem',
-            fontWeight: 500,
-            textTransform: 'capitalize',
-            minWidth: 80,
-            fontStyle: isProcessing ? 'italic' : 'normal',
-          }}
-        />
+        <Tooltip
+          title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : ''}
+          arrow
+        >
+          <Chip
+            label={displayType}
+            size="small"
+            sx={{
+              height: 22,
+              bgcolor: isProcessing ? 'transparent' : 'hsl(var(--muted))',
+              color: isLikelyTimedOut ? STATUS_COLORS.warning : isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+              border: isLikelyTimedOut ? `1px dashed ${STATUS_COLORS.warning}` : isProcessing ? '1px dashed hsl(var(--border))' : 'none',
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'capitalize',
+              minWidth: 80,
+              fontStyle: isProcessing ? 'italic' : 'normal',
+            }}
+          />
+        </Tooltip>
         <Box sx={{
           flex: 1,
           minWidth: 180,
@@ -1086,7 +1093,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         </Tooltip>
         <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
-          {dur > 0 ? `${dur.toFixed(2)}s` : ''}
+          {dur > 0 ? (isProcessing ? `${Math.round(dur)}s` : `${dur.toFixed(2)}s`) : ''}
         </Box>
         {/* Per-row actions: Approve/Deny, Rerun */}
         <Box
