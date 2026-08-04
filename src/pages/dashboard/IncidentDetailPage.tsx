@@ -7568,18 +7568,12 @@ const IncidentDetailPage = () => {
     // AI Agent processing pill so all in-flight loaders attach BELOW the
     // message that triggered them instead of floating at the top of the feed.
     const renderIndicatorCheckPlaceholder = (key: string) => {
-      // While the observable check is running we scan the freshly-polled
-      // workflow-run list for the newest execution that touched this incident
-      // in the last ~60 seconds. When one appears the pill turns into a
-      // direct link to that execution so users can jump to the run itself.
-      const now = Date.now();
-      const recentRun: any = (allIncidentWorkflowRuns || [])
-        .filter((r: any) => {
-          const ts = normalizeToMs(r?.started_at);
-          return ts > 0 && (now - ts) < 90_000;
-        })
-        .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0];
+      // The pill links to the SAME execution the auto-clear effect watches
+      // (`observableCheckRun`), so the pill and the run drawer always agree on
+      // which run is in flight and when it stopped.
+      const recentRun: any = observableCheckRun;
       const wfId = recentRun?.workflow_id || recentRun?.workflow?.id || '';
+
       const execId = recentRun?.execution_id || '';
       const isClickable = !!execId;
       return (
