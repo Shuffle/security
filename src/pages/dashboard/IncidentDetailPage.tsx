@@ -7535,14 +7535,17 @@ const IncidentDetailPage = () => {
         .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0];
       const wfId = recentRun?.workflow_id || recentRun?.workflow?.id || '';
       const execId = recentRun?.execution_id || '';
-      const execUrl = wfId && execId
-        ? `https://shuffler.io/workflows/${wfId}?execution_id=${execId}`
-        : '';
-      const isClickable = !!execUrl;
+      const isClickable = !!execId;
       return (
         <Box
           key={`indicator-check-${key}`}
-          onClick={isClickable ? () => window.open(execUrl, '_blank', 'noopener,noreferrer') : undefined}
+          onClick={isClickable
+            ? () => {
+                window.dispatchEvent(new CustomEvent('workflow-run:open', {
+                  detail: { executionId: String(execId), workflowId: wfId || undefined },
+                }));
+              }
+            : undefined}
           sx={{
             display: 'inline-flex',
             alignItems: 'center',
