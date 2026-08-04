@@ -840,6 +840,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   let displayLabel = item.label?.replace(/_/g, ' ') || '';
   const details = item.details as AgentDecision | undefined;
   const isProcessing = item.category === 'processing';
+  const isLiveProcessing = isProcessing && (item.status || '').toUpperCase() === 'EXECUTING';
   if (isProcessing) {
     displayType = 'processing';
   } else if (details?.reason) {
