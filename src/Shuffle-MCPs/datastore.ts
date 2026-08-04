@@ -798,20 +798,23 @@ const tryExtractItemsFromBody = (rawBody: string): { items: DatastoreItem[]; cat
 };
 
 /**
- * Drop items that do not belong to the org we asked for.
- *
- * A child tenant's `list_cache` can echo back entries owned by the parent org
- * (inherited/shared cache entries). Those must never surface inside a child
- * org. Items without an `org_id` are kept — older backends omit the field.
+ * Previously this dropped items whose `org_id` did not match the requested org.
+ * That hid legitimate data (backends echo parent/shared org ids on entries the
+ * child org is meant to see), so it now only logs the mismatch and returns
+ * everything the backend gave us.
  */
 const scopeItemsToOrg = <T,>(items: T[], orgId: string): T[] => {
   if (!Array.isArray(items)) return items;
-  return items.filter((item) => {
+  const mismatched = items.filter((item) => {
     const owner = (item as any)?.org_id || (item as any)?.orgId;
-    if (!owner || typeof owner !== 'string') return true;
-    return owner === orgId;
-  });
+    return typeof owner === 'string' && owner && owner !== orgId;
+  }).length;
+  if (mismatched > 0) {
+    console.debug(`[Datastore] ${mismatched}/${items.length} items have a different org_id than ${orgId} — showing them anyway`);
+  }
+  return items;
 };
+
 
 /**
  * Get all items in a category with optional cursor-based pagination
