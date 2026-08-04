@@ -13,6 +13,8 @@
 import { useMemo, useState } from 'react';
 import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
+import { AppFallbackIcon } from './AppFallbackIcon';
+
 
 export interface AgentPreset {
   id: string;
@@ -309,21 +311,13 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                             '&:hover': { filter: 'none', opacity: 1, color: 'hsl(var(--foreground))' },
                           }}
                         >
-                          {app.icon ? (
-                            <Box
-                              component="img"
-                              src={app.icon}
-                              alt={prettyAppName(app.name)}
-                              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            prettyAppName(app.name)
-                              .split(' ')
-                              .slice(0, 2)
-                              .map((w) => w[0])
-                              .join('')
-                              .toUpperCase()
-                          )}
+                          <AppFallbackIcon
+                            name={prettyAppName(app.name)}
+                            imageUrl={app.icon}
+                            size={22}
+                            style={{ borderRadius: 4 }}
+                          />
+
                         </Box>
                       </Tooltip>
                     ))}
