@@ -137,6 +137,25 @@ export const getAgentSkipInfo = (run: AgentRun): AgentSkipInfo => {
     }
   };
 
+  // A `success: false` decision is NOT always a routing skip. When the reason
+  // describes the agent itself blowing up (LLM call failed, agent could not be
+  // started, JSON could not be parsed from the model), it is a real failure and
+  // must render as "Needs attention" instead of a quiet "Skipped" row.
+  const isHardFailureReason = (reason: unknown): boolean => {
+    if (typeof reason !== 'string') return false;
+    const r = reason.toLowerCase();
+    return (
+      r.includes('failed to start ai agent')
+      || r.includes('failed to match json')
+      || r.includes('runactionai')
+      || r.includes('llm request failed')
+      || r.includes('failed to run llm')
+      || r.includes('no llm')
+      || r.includes('api key')
+      || r.includes('rate limit')
+    );
+  };
+
   // Inspect a candidate object for a decision_string — which itself may be
   // either a real object OR a JSON-encoded string.
   const inspect = (obj: any): AgentSkipInfo | null => {
@@ -145,6 +164,7 @@ export const getAgentSkipInfo = (run: AgentRun): AgentSkipInfo => {
     if (ds == null) return null;
     if (typeof ds === 'string') ds = safeParse(ds) ?? ds;
     if (ds && typeof ds === 'object' && ds.success === false) {
+      if (isHardFailureReason(ds.reason)) return { skipped: false };
       return {
         skipped: true,
         reason: typeof ds.reason === 'string' ? ds.reason : undefined,
@@ -152,6 +172,7 @@ export const getAgentSkipInfo = (run: AgentRun): AgentSkipInfo => {
     }
     return null;
   };
+
 
   // 1) Top-level run object (the viewer in the screenshot shows decision_string
   //    sitting at the root of the run alongside status/started_at).
