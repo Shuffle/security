@@ -6456,7 +6456,7 @@ const IncidentDetailPage = () => {
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.73rem' }}>
-                    {showAsCreation ? 'Incident created' : `Change #${revisions.length - item.idx}`}
+                    {showAsCreation ? 'Incident created' : `Change #${revisionNumber(item.idx)}`}
                   </Typography>
                   {isLatest && !showAsCreation && (
                     <Chip label="Latest" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.58rem', bgcolor: 'transparent', borderColor: 'hsl(var(--border))', color: 'text.secondary', fontWeight: 600 }} />
