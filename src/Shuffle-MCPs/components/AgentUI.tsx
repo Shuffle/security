@@ -808,6 +808,15 @@ interface TimelineRowProps {
   dimmedByRerun?: boolean;
 }
 
+/** Compact relative time, e.g. "44m ago". Input is Unix seconds. */
+const formatAgo = (sec: number): string => {
+  const diff = Math.max(0, Date.now() / 1000 - sec);
+  if (diff < 60) return `${Math.round(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+};
+
 const TimelineRow: React.FC<TimelineRowProps> = ({
   item, index, open, onToggle, appsById, totalDuration, originalStartTime,
   maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
