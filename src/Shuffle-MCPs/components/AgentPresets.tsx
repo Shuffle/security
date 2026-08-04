@@ -11,7 +11,7 @@
  * presets render with a "coming soon" chip and are not clickable.
  */
 import { useMemo, useState } from 'react';
-import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Typography } from '@mui/material';
+import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 
 export interface AgentPreset {
