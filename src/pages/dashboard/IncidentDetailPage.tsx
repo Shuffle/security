@@ -6723,12 +6723,12 @@ const IncidentDetailPage = () => {
         // Status pill (Skipped / Running / Failed-needs-attention / Needs-attention / clean)
         // is rendered by the shared <AgentRunStatusBadge /> component so the
         // timeline, agent activity list, and drawer all show the same thing.
-        // Completed/clean runs should be "quiet" on the timeline — no loud
-        // orange dot, no grey card background, no bright text — only chats
-        // and truly noteworthy states (failed / needs-attention) stand out.
+        // Completed/clean runs and skipped runs should be "quiet" on the timeline
+        // — no loud orange dot, no grey card background, no bright text. Only
+        // truly noteworthy states (failed / needs-attention) stand out.
         const isFailed = status === 'FAILED' || status === 'ERROR' || status === 'ABORTED';
         const needsAttention = !!(statusCfg && (statusCfg as any).needsAttention);
-        const isQuiet = !isFailed && !needsAttention && !skip.skipped;
+        const isQuiet = !isFailed && !needsAttention;
         return (
           <Box
             key={`agent-${run.execution_id}`}
