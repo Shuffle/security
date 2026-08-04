@@ -850,7 +850,6 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
     if (isLikelyTimedOut) {
       displayLabel = 'No new activity for over a minute — this run has most likely timed out.';
     }
-  }
   } else if (details?.reason) {
     displayLabel = details.reason;
   }
