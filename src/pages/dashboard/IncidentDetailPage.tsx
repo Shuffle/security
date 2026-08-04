@@ -7960,10 +7960,10 @@ const IncidentDetailPage = () => {
       );
     };
 
-    // Identify the most recent top-level manual comment so the indicator-check
-    // pill attaches under the latest user message (which triggered the check).
+    // Identify the most recent manual comment (top-level OR reply) so the
+    // indicator-check pill attaches under the message the user just posted.
     const latestManualKey: string | null = (() => {
-      const manuals = topLevel.filter((it) => it.type === 'manual');
+      const manuals = items.filter((it) => it.type === 'manual');
       if (manuals.length === 0) return null;
       const newest = manuals.reduce((a, b) => (a.timestamp >= b.timestamp ? a : b));
       return getItemKey(newest);
@@ -7980,7 +7980,9 @@ const IncidentDetailPage = () => {
       const itemKey = getItemKey(item);
       const replies = repliesByParent.get(itemKey) || [];
       const node = renderItem(item, { isReply });
-      if (!node) return null;
+      // A parent row can render nothing (e.g. a no-op revision). Never drop its
+      // replies with it — they still belong in the timeline.
+      if (!node && replies.length === 0) return null;
 
       // Show processing/timeout placeholder ONLY when this comment explicitly
       // @-mentions the AI Agent (e.g. @AIAgent / @aiagent / @ai_agent) and is
@@ -8019,15 +8021,15 @@ const IncidentDetailPage = () => {
       const showAgentProcessing = (aiHandled || hasPendingRerun || isManualActivity) && mentionsAgent && !hasAgentReply;
       const isTimedOut = showAgentProcessing && ageMs > AI_RESPONSE_TIMEOUT_MS;
 
-      // Indicator-check pill: attaches under the most recent top-level manual
-      // comment whenever a backend indicator scan is running.
+      // Indicator-check pill: attaches under the most recent manual comment
+      // (including replies) whenever a backend indicator scan is running.
       const showIndicatorCheck =
-        !isReply
-        && isManualActivity
+        isManualActivity
         && itemKey === latestManualKey
         && refreshingObservables
         && enrichmentStatus.active;
 
+      if (!node && replies.length === 0) return null;
       if (replies.length === 0 && !showAgentProcessing && !showIndicatorCheck) return node;
 
       const cappedDepth = Math.min(depth, 4);
