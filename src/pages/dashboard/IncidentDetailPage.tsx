@@ -1395,6 +1395,12 @@ const IncidentDetailPage = () => {
     return count;
   }, [revisions, isOnlyRevisionsFilter]);
   const [selectedRevisionIdx, setSelectedRevisionIdx] = useState<number | null>(null);
+  // Set once the user explicitly restores an older revision. While true, the
+  // background reconstruction passes (OCSF revision folding, relation
+  // reconciliation) are skipped for this page session — otherwise they would
+  // immediately fold dropped fields (activity, pointers) back in and the
+  // rollback would look like it never happened.
+  const revisionRestoredRef = useRef(false);
 
   // "Not found" fallback: the live datastore lookup can come back empty when
   // the item write timed out upstream. Before showing a dead end, check the
@@ -2409,7 +2415,8 @@ const IncidentDetailPage = () => {
     if (invariantRaw !== incident.rawOCSF) {
       setIncident(prev => prev ? { ...prev, status: 'merged', rawOCSF: invariantRaw } : prev);
       setEditedStatus('merged');
-      setRawJsonText(JSON.stringify(invariantRaw, null, 2));
+      // Don't clobber the editor while the user is previewing an older revision.
+      if (selectedRevisionIdx === null) setRawJsonText(JSON.stringify(invariantRaw, null, 2));
       writeIncidentSafe(incident.id, invariantRaw, crossOrgId || undefined)
         .catch((err) => console.warn('[IncidentDetail] Failed to repair merged status invariant:', err));
       return;
@@ -3455,6 +3462,7 @@ const IncidentDetailPage = () => {
   const relationsReconcileRef = useRef<string | null>(null);
   useEffect(() => {
     if (isPublicView) return;
+    if (revisionRestoredRef.current) return; // explicit rollback wins
     if (!id || !incident || !revisionsLoaded) return;
     if (relationsReconcileRef.current === id) return;
     relationsReconcileRef.current = id;
@@ -3501,6 +3509,12 @@ const IncidentDetailPage = () => {
   useEffect(() => {
     if (loading || !incident || !revisionsLoaded) return;
     if (ocsfFallbackAttemptedRef.current) return;
+    if (revisionRestoredRef.current) {
+      // The user deliberately rolled back to an older snapshot — never fold
+      // newer revisions back on top of it.
+      ocsfFallbackAttemptedRef.current = true;
+      return;
+    }
 
     const liveIsOcsf = isOcsfShapedData(incident.rawOCSF);
     const missingFields = liveIsOcsf ? getMissingCriticalFields(incident.rawOCSF) : [];
@@ -11295,7 +11309,7 @@ const IncidentDetailPage = () => {
                         const payload = typeof rev.value === 'string' ? JSON.parse(rev.value) : rev.value;
                         setRawJsonText(JSON.stringify(payload, null, 2));
                         setSelectedRevisionIdx(idx);
-                        toast.success('Change loaded — hit Save to persist');
+                        toast.success(`Change #${revisions.length - idx} loaded — hit Save to roll back to it`);
                       } catch {
                         setRawJsonText(typeof rev.value === 'string' ? rev.value : JSON.stringify(rev.value, null, 2));
                         setSelectedRevisionIdx(idx);
@@ -11432,10 +11446,21 @@ const IncidentDetailPage = () => {
                   }
                   try {
                     const parsed = JSON.parse(rawJsonText);
+                    const isRollback = selectedRevisionIdx !== null;
+                    if (isRollback) {
+                      // Lock out the background reconstruction passes so the
+                      // rolled-back payload is not re-hydrated from newer
+                      // revisions right after the write.
+                      revisionRestoredRef.current = true;
+                      ocsfFallbackAttemptedRef.current = true;
+                      setOcsfFallbackInfo(null);
+                    }
                     setIsSaving(true);
                     const result = await writeIncidentSafe(incident.id, parsed, crossOrgId || undefined);
                     if (result.success) {
-                      toast.success('Raw data saved');
+                      toast.success(isRollback
+                        ? `Rolled back to change #${revisions.length - (selectedRevisionIdx ?? 0)}`
+                        : 'Raw data saved');
                       setSelectedRevisionIdx(null);
                       setRawJsonText(JSON.stringify(parsed, null, 2));
                       loadIncident(false);
