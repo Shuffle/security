@@ -7960,10 +7960,10 @@ const IncidentDetailPage = () => {
       );
     };
 
-    // Identify the most recent top-level manual comment so the indicator-check
-    // pill attaches under the latest user message (which triggered the check).
+    // Identify the most recent manual comment (top-level OR reply) so the
+    // indicator-check pill attaches under the message the user just posted.
     const latestManualKey: string | null = (() => {
-      const manuals = topLevel.filter((it) => it.type === 'manual');
+      const manuals = items.filter((it) => it.type === 'manual');
       if (manuals.length === 0) return null;
       const newest = manuals.reduce((a, b) => (a.timestamp >= b.timestamp ? a : b));
       return getItemKey(newest);
