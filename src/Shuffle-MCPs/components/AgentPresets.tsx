@@ -11,7 +11,7 @@
  * presets render with a "coming soon" chip and are not clickable.
  */
 import { useMemo, useState } from 'react';
-import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Typography } from '@mui/material';
+import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 
 export interface AgentPreset {
@@ -26,6 +26,15 @@ export interface AgentPreset {
   /** Optional tools/apps to pre-select when this preset is clicked. */
   defaultApps?: Array<{ name: string; id?: string; icon?: string }>;
 }
+
+/** "shuffle_workflows" -> "Shuffle Workflows" */
+const prettyAppName = (name: string) =>
+  name
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 
 export const AGENT_PRESETS: AgentPreset[] = [
   {
@@ -247,7 +256,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                 >
                   {p.icon}
                 </Box>
-                <Box sx={{ minWidth: 0 }}>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                       {p.label}
@@ -276,6 +285,51 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                     {p.description}
                   </Typography>
                 </Box>
+                {(p.defaultApps?.length ?? 0) > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, flexShrink: 0 }}>
+                    {p.defaultApps!.map((app) => (
+                      <Tooltip key={app.name} title={prettyAppName(app.name)} placement="top" arrow>
+                        <Box
+                          sx={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            bgcolor: 'hsl(var(--muted))',
+                            border: '1px solid hsl(var(--border))',
+                            color: 'hsl(var(--muted-foreground))',
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            filter: 'grayscale(1)',
+                            opacity: 0.65,
+                            transition: 'filter 120ms ease, opacity 120ms ease',
+                            '&:hover': { filter: 'none', opacity: 1, color: 'hsl(var(--foreground))' },
+                          }}
+                        >
+                          {app.icon ? (
+                            <Box
+                              component="img"
+                              src={app.icon}
+                              alt={prettyAppName(app.name)}
+                              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            prettyAppName(app.name)
+                              .split(' ')
+                              .slice(0, 2)
+                              .map((w) => w[0])
+                              .join('')
+                              .toUpperCase()
+                          )}
+                        </Box>
+                      </Tooltip>
+                    ))}
+                  </Box>
+                )}
+
               </Box>
             ))}
           </Box>
