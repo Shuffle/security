@@ -4706,6 +4706,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               border: '1px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               overflow: 'hidden',
+              pb: 3,
             }}>
               {timeline.length === 0 || (timeline.length === 1 && agentRequestLoading) ? (
                 <Box sx={{ p: 4, textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
