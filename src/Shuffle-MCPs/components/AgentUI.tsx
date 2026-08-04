@@ -1693,18 +1693,27 @@ const AgentUI: React.FC<AgentUIProps> = ({
     [actionInput],
   );
   // Reset the highlighted item / dismiss flag whenever the input changes
-  // (typing should always reopen the list if matches exist).
+  // (typing should always reopen the list if matches exist). Programmatic
+  // changes from accepting a suggestion must NOT reopen the list.
+  const programmaticInputRef = useRef(false);
   useEffect(() => {
+    if (programmaticInputRef.current) {
+      programmaticInputRef.current = false;
+      return;
+    }
     setSuggestionIndex(-1);
     setSuggestionsDismissed(false);
   }, [actionInput]);
   const suggestionsOpen = promptSuggestions.length > 0 && !suggestionsDismissed;
+  /** Category requirements pending a concrete app pick, shown in the Tools bar. */
+  const [pendingCategories, setPendingCategories] = useState<SuggestionAppRequirement[]>([]);
   const acceptSuggestion = useCallback((s: string) => {
+    programmaticInputRef.current = true;
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
     // Pre-select the concrete apps this suggestion needs, so the task can run
-    // right away. Category requirements are left to the user (dashed chip).
+    // right away. Category requirements are surfaced as dashed chips.
     try {
       const reqs = getSuggestionAppRequirements(s);
       const concrete = reqs.filter((r) => r.kind === 'app');
@@ -1718,12 +1727,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
           return next;
         });
       }
+      const categories = reqs.filter((r) => r.kind !== 'app');
+      setPendingCategories(categories);
     } catch { /* ignore */ }
     // Refocus the textarea so the user can keep editing / press ⌘+Enter.
     requestAnimationFrame(() => {
       try { inputRef.current?.focus(); } catch { /* ignore */ }
     });
   }, []);
+
   const BUILTIN_DEFAULT_APPS: AgentUIApp[] = [
     { name: 'http' },
     { name: 'shuffle_tools' },
