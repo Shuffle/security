@@ -1971,7 +1971,7 @@ const IncidentDetailPage = () => {
     isValueIgnored: ignoredObs.isValueIgnored,
   }), [id, ignoredObs.isValueIgnored]);
 
-  const visibleCorrelations = useMemo(() => {
+  const mergedCorrelations = useMemo(() => {
     const merged = new Map<string, { key: string; amount: number; ref: string[] }>();
     const add = (c: { key: string; amount: number; ref: string[] }) => {
       if (!c?.key) return;
@@ -1988,8 +1988,30 @@ const IncidentDetailPage = () => {
     };
     correlations.forEach(add);
     Object.values(obsCorrelations).forEach(entry => (entry?.data || []).forEach(add));
-    return filterMeaningfulCorrelations(Array.from(merged.values()), correlationVisibilityOptions);
-  }, [correlations, obsCorrelations, correlationVisibilityOptions]);
+    return Array.from(merged.values());
+  }, [correlations, obsCorrelations]);
+
+  const visibleCorrelations = useMemo(
+    () => filterMeaningfulCorrelations(mergedCorrelations, correlationVisibilityOptions),
+    [mergedCorrelations, correlationVisibilityOptions],
+  );
+
+  // Correlations the user has hidden but that would otherwise show — revealed
+  // by the "Show hidden" toggle so hiding is always reversible.
+  const hiddenCorrelations = useMemo(
+    () => filterMeaningfulCorrelations(
+      mergedCorrelations.filter(c => ignoredObs.isValueIgnored(String(c.key || ''))),
+      { currentIncidentId: id },
+    ),
+    [mergedCorrelations, ignoredObs, id],
+  );
+
+  // What the Correlations tab actually renders — hidden rows appear (dimmed)
+  // when the shared "show ignored" toggle is on.
+  const correlationRows = useMemo(
+    () => (showIgnoredObs ? [...visibleCorrelations, ...hiddenCorrelations] : visibleCorrelations),
+    [showIgnoredObs, visibleCorrelations, hiddenCorrelations],
+  );
 
   // ---------------------------------------------------------------------
   // Merge candidate suggestions
