@@ -2868,7 +2868,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
     rerunDecisionsSigRef.current = JSON.stringify(
       (agentData?.decisions || []).map((d: any) => d?.run_details?.id || ''),
     );
-    toast({ title: 'Rerunning decision', description: 'The agent will continue from this step.' });
     setAgentRequestLoading(true);
     try {
       const resp = await fetch(resolveUrl(`/api/v1/apps/agent/run?rerun=true&decision_id=${encodeURIComponent(decisionId)}`), {
