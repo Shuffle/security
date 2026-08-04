@@ -1703,6 +1703,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
+    // Pre-select the concrete apps this suggestion needs, so the task can run
+    // right away. Category requirements are left to the user (dashed chip).
+    try {
+      const reqs = getSuggestionAppRequirements(s);
+      const concrete = reqs.filter((r) => r.kind === 'app');
+      if (concrete.length > 0) {
+        setChosenApps((prev) => {
+          const next = [...prev];
+          for (const r of concrete) {
+            if (next.some((a) => (a.name || '').toLowerCase() === r.value.toLowerCase())) continue;
+            next.push({ name: r.value });
+          }
+          return next;
+        });
+      }
+    } catch { /* ignore */ }
     // Refocus the textarea so the user can keep editing / press ⌘+Enter.
     requestAnimationFrame(() => {
       try { inputRef.current?.focus(); } catch { /* ignore */ }
