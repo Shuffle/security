@@ -20,6 +20,8 @@ import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import singulAgentIcon from '@/assets/singul-agent-icon.png';
 import { isAIAssignee } from '@/lib/utils';
 import { useUsers, type User } from '@/hooks/useUsers';
+import { openAgentDrawer } from '@/lib/agentDrawer';
+
 
 interface UserHoverCardProps {
   /** Username to display (e.g. "@AIAgent" or "frikky"). */
