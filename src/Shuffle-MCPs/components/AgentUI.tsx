@@ -840,6 +840,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   let displayLabel = item.label?.replace(/_/g, ' ') || '';
   const details = item.details as AgentDecision | undefined;
   const isProcessing = item.category === 'processing';
+  const isLiveProcessing = isProcessing && (item.status || '').toUpperCase() === 'EXECUTING';
   if (isProcessing) {
     displayType = 'processing';
   } else if (details?.reason) {
@@ -999,7 +1000,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           {isRerunTarget ? (
             <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
           ) : isProcessing ? (
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
+            isLiveProcessing ? (
+              <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+            ) : (
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
+            )
           ) : (
             <StatusIcon status={effectiveStatus} />
           )}
@@ -2865,7 +2870,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return () => clearTimeout(t);
   }, [agentData?.decisions, rerunningDecisionId]);
 
+  // Ticking clock so the trailing live "Processing" row keeps counting while
+  // the run is still executing.
+  const runStillExecuting = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(
+    (execution?.status || agentData?.status || '').toUpperCase()
+  );
+  const [liveNowSec, setLiveNowSec] = useState(() => Date.now() / 1000);
+  useEffect(() => {
+    if (!runStillExecuting) return;
+    setLiveNowSec(Date.now() / 1000);
+    const t = setInterval(() => setLiveNowSec(Date.now() / 1000), 1000);
+    return () => clearInterval(t);
+  }, [runStillExecuting]);
+
   // ── Build timeline ──
+
   const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer } = useMemo(() => {
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
@@ -3006,6 +3025,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // already ended in a Finalise — nothing is "processing" after the finish.
     if (runEnd > 0 && !lastWasFinalise) pushThinking(prevDecEnd, runEnd);
 
+    // Live tail: while the run is still executing, always show a "Processing"
+    // row after the last decision that counts up in realtime, so it is obvious
+    // how long ago the last step happened — even if that step is FINISHED.
+    if (runStillExecuting && prevDecEnd > 0 && liveNowSec > prevDecEnd) {
+      withProcessing.push({
+        label: '',
+        type: 'decision',
+        category: 'processing',
+        status: 'EXECUTING',
+        start_time: prevDecEnd,
+        end_time: liveNowSec,
+        details: undefined as any,
+      });
+    }
+
     items.length = 0;
     items.push(...withProcessing);
 
@@ -3014,7 +3048,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const startSafe = start === Infinity ? 0 : start;
     const total = Math.max(1, end - startSafe);
     return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns };
-  }, [agentData, execution?.status, execution?.started_at, execution?.completed_at]);
+  }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
+
 
 
   const toggleOpen = (i: number) =>
