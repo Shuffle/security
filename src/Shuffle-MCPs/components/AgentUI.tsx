@@ -4181,6 +4181,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       const before = idx >= 0 ? s.slice(0, idx) : s;
                       const match = idx >= 0 ? s.slice(idx, idx + q.length) : '';
                       const after = idx >= 0 ? s.slice(idx + q.length) : '';
+                      const reqs = getSuggestionAppRequirements(s);
                       return (
                         <MenuItem
                           key={s}
@@ -4192,16 +4193,84 @@ const AgentUI: React.FC<AgentUIProps> = ({
                             color: 'hsl(var(--foreground))',
                             py: 0.75,
                             px: 2,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1,
                             '&.Mui-selected, &.Mui-selected:hover': {
                               bgcolor: 'hsl(var(--muted) / 0.6)',
                             },
                           }}
                         >
-                          <SearchIcon size={14} style={{ marginRight: 10, color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                          <Box component="span" sx={{ whiteSpace: 'normal', lineHeight: 1.4 }}>
+                          <SearchIcon size={14} style={{ marginTop: 4, marginRight: 4, color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+                          <Box component="span" sx={{ whiteSpace: 'normal', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
                             {before}
                             <Box component="span" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>{match}</Box>
                             {after}
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 0.5 }}>
+                            {reqs.map((req: SuggestionAppRequirement) => (
+                              req.kind === 'app' ? (
+                                <Tooltip key={`${req.kind}:${req.value}`} title={`Uses ${req.label}`} arrow>
+                                  <Box
+                                    sx={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: 0.75,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      overflow: 'hidden',
+                                      bgcolor: 'hsl(var(--muted))',
+                                      border: '1px solid hsl(var(--border))',
+                                      filter: 'grayscale(1)',
+                                      opacity: 0.7,
+                                      transition: 'filter 120ms ease, opacity 120ms ease',
+                                      '&:hover': { filter: 'none', opacity: 1 },
+                                    }}
+                                  >
+                                    <AppFallbackIcon
+                                      name={prettySuggestionAppName(req.value)}
+                                      size={18}
+                                      style={{ borderRadius: 3 }}
+                                    />
+                                  </Box>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip key={`${req.kind}:${req.value}`} title={`Needs a ${req.label} — click to pick one`} arrow>
+                                  <Box
+                                    component="span"
+                                    role="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      acceptSuggestion(s);
+                                      setAppSearchQuery(req.value);
+                                      setAppSearchOpen(true);
+                                    }}
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      height: 22,
+                                      px: 0.875,
+                                      borderRadius: 999,
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap',
+                                      color: 'hsl(var(--muted-foreground))',
+                                      border: '1px dashed hsl(var(--border))',
+                                      cursor: 'pointer',
+                                      '&:hover': {
+                                        color: 'hsl(var(--primary))',
+                                        borderColor: 'hsl(var(--primary))',
+                                        bgcolor: 'hsl(var(--primary) / 0.08)',
+                                      },
+                                    }}
+                                  >
+                                    {req.label}
+                                  </Box>
+                                </Tooltip>
+                              )
+                            ))}
                           </Box>
                         </MenuItem>
                       );
