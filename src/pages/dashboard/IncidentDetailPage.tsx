@@ -6262,6 +6262,27 @@ const IncidentDetailPage = () => {
       return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
     };
 
+    // Revisions with an empty diff (no-op writes) are not rendered. Numbering
+    // them by raw index therefore produced visible gaps ("Change #5" followed
+    // by "Change #4" then "#2"). Number them by their VISIBLE sequence
+    // instead, oldest = 1, so the list always reads consecutively.
+    const revisionDisplayNumbers = new Map<number, number>();
+    {
+      let visibleCount = 0;
+      for (let i = revisions.length - 1; i >= 0; i--) {
+        const prev = i < revisions.length - 1 ? parsedRevisions[i + 1] : null;
+        const d = prev ? computeDiff(parsedRevisions[i], prev) : null;
+        const total = d ? d.added.length + d.removed.length + d.changed.length : 0;
+        const hidden = !isOnlyRevisionsFilter && i !== revisions.length - 1 && !!d && total === 0;
+        if (hidden) continue;
+        visibleCount += 1;
+        revisionDisplayNumbers.set(i, visibleCount);
+      }
+    }
+    const revisionNumber = (idx: number) => revisionDisplayNumbers.get(idx) ?? (revisions.length - idx);
+
+
+
     // ─── Reply threading helpers ────────────────────────────────────────────
     // Each timeline item gets a stable canonical id; manual comments may carry
     // a `replyToId` pointing at one of those ids. We then group replies under
@@ -6283,7 +6304,7 @@ const IncidentDetailPage = () => {
     const getItemLabel = (it: TimelineItem): string => {
       if (it.type === 'revision') {
         if (it.idx === revisions.length - 1 && !isOnlyRevisionsFilter) return 'Incident created';
-        return `Change #${revisions.length - it.idx}`;
+        return `Change #${revisionNumber(it.idx)}`;
       }
       if (it.type === 'agent') return 'Agent run';
       if (it.type === 'workflow-exec') return 'Workflow run';
@@ -6435,7 +6456,7 @@ const IncidentDetailPage = () => {
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.73rem' }}>
-                    {showAsCreation ? 'Incident created' : `Change #${revisions.length - item.idx}`}
+                    {showAsCreation ? 'Incident created' : `Change #${revisionNumber(item.idx)}`}
                   </Typography>
                   {isLatest && !showAsCreation && (
                     <Chip label="Latest" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.58rem', bgcolor: 'transparent', borderColor: 'hsl(var(--border))', color: 'text.secondary', fontWeight: 600 }} />
