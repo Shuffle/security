@@ -4,6 +4,7 @@
  */
 
 import { getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
+import { resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 
 export interface AgentNotification {
   id: string;
@@ -157,7 +158,7 @@ export const parseAgentApprovalParams = (refUrl: string | undefined | null): {
  * continuation". When the notification/reference URL does not carry it, we
  * look it up from the execution results and pick the AI Agent action.
  */
-export { resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
+export { resolveAgentNodeId };
 
 
 /**
