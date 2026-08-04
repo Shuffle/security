@@ -846,10 +846,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const isLikelyTimedOut =
     isLiveProcessing && (item.end_time || 0) - (item.start_time || 0) > 60;
   if (isProcessing) {
-    displayType = isLikelyTimedOut ? 'likely timed out' : 'processing';
-    if (isLikelyTimedOut) {
-      displayLabel = 'No new activity for over a minute — this run has most likely timed out.';
-    }
+    displayType = 'processing';
+    displayLabel = '';
   } else if (details?.reason) {
     displayLabel = details.reason;
   }
