@@ -11088,6 +11088,36 @@ const IncidentDetailPage = () => {
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   · linked across other datastore items
                 </Typography>
+                {/* Reveal hidden correlations — same per-org ignore list the
+                    Observables tab uses, so hiding is reversible from here. */}
+                {hiddenCorrelations.length > 0 && (
+                  <Tooltip
+                    title={showIgnoredObs
+                      ? 'Hide correlations you have marked as ignored'
+                      : 'Reveal correlations you have marked as ignored'}
+                    arrow
+                  >
+                    <Chip
+                      icon={showIgnoredObs ? <VisibilityIcon size={12} /> : <VisibilityOffIcon size={12} />}
+                      label={showIgnoredObs
+                        ? `Hide hidden (${hiddenCorrelations.length})`
+                        : `Show hidden (${hiddenCorrelations.length})`}
+                      size="small"
+                      onClick={() => setShowIgnoredObs(s => !s)}
+                      sx={{
+                        fontSize: '0.65rem',
+                        height: 22,
+                        cursor: 'pointer',
+                        color: showIgnoredObs ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                        bgcolor: showIgnoredObs ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                        border: '1px solid',
+                        borderColor: showIgnoredObs ? 'hsl(var(--primary) / 0.4)' : 'hsl(var(--border))',
+                        '& .MuiChip-icon': { ml: 0.75, mr: -0.25, color: 'inherit' },
+                        '&:hover': { bgcolor: showIgnoredObs ? 'hsl(var(--primary) / 0.18)' : 'hsl(var(--muted) / 0.25)' },
+                      }}
+                    />
+                  </Tooltip>
+                )}
                 <Tooltip title="Re-run correlation search" arrow>
                   <span>
                     <IconButton
