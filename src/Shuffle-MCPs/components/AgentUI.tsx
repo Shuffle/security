@@ -3020,6 +3020,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // already ended in a Finalise — nothing is "processing" after the finish.
     if (runEnd > 0 && !lastWasFinalise) pushThinking(prevDecEnd, runEnd);
 
+    // Live tail: while the run is still executing, always show a "Processing"
+    // row after the last decision that counts up in realtime, so it is obvious
+    // how long ago the last step happened — even if that step is FINISHED.
+    if (runStillExecuting && prevDecEnd > 0 && liveNowSec > prevDecEnd) {
+      withProcessing.push({
+        label: '',
+        type: 'decision',
+        category: 'processing',
+        status: 'EXECUTING',
+        start_time: prevDecEnd,
+        end_time: liveNowSec,
+        details: undefined as any,
+      });
+    }
+
     items.length = 0;
     items.push(...withProcessing);
 
@@ -3028,7 +3043,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const startSafe = start === Infinity ? 0 : start;
     const total = Math.max(1, end - startSafe);
     return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns };
-  }, [agentData, execution?.status, execution?.started_at, execution?.completed_at]);
+  }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
+
 
 
   const toggleOpen = (i: number) =>
