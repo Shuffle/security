@@ -3121,7 +3121,8 @@ const IncidentDetailPage = () => {
         }
         // Details is now tab 0 (default), no auto-switch needed
         // If arriving with ?tab=raw, populate rawJsonText now that data is loaded
-        if (showLoading && searchParams.get('tab') === 'raw') {
+        if ((showLoading && searchParams.get('tab') === 'raw') || forceRawReloadRef.current) {
+          forceRawReloadRef.current = false;
           setRawJsonText(JSON.stringify(parsed.rawOCSF || {}, null, 2));
         }
         setLoading(false);
