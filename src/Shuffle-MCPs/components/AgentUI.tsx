@@ -1712,21 +1712,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
-    // Pre-select the concrete apps this suggestion needs, so the task can run
-    // right away. Category requirements are surfaced as dashed chips.
+    // Replace the current selection with exactly the apps this suggestion
+    // needs. Category requirements are surfaced as dashed chips.
     try {
       const reqs = getSuggestionAppRequirements(s);
       const concrete = reqs.filter((r) => r.kind === 'app');
-      if (concrete.length > 0) {
-        setChosenApps((prev) => {
-          const next = [...prev];
-          for (const r of concrete) {
-            if (next.some((a) => (a.name || '').toLowerCase() === r.value.toLowerCase())) continue;
-            next.push({ name: r.value });
-          }
-          return next;
-        });
-      }
+      setChosenApps(concrete.map((r) => ({ name: r.value })));
       const categories = reqs.filter((r) => r.kind !== 'app');
       setPendingCategories(categories);
     } catch { /* ignore */ }
@@ -1761,6 +1752,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [appSearchOpen, setAppSearchOpen] = useState(false);
   /** Pre-filled query for the Tools app search (e.g. "git" from a suggestion chip). */
   const [appSearchQuery, setAppSearchQuery] = useState('');
+  /** Category chip the app search was opened for, so the pick can replace it. */
+  const [categoryTarget, setCategoryTarget] = useState<string | null>(null);
   const [authDrawerApp, setAuthDrawerApp] = useState<{ name: string; id?: string | null } | null>(null);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
   // Optimistic UI: track which decision the user just clicked Rerun on so we
@@ -4438,25 +4431,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   );
                 })}
                 {pendingCategories.map((req) => (
-                  <Tooltip key={`cat-${req.value}`} title={`Needs a ${req.label} — click to pick one`} arrow>
+                  <Tooltip key={`cat-${req.value}`} title={`Requires input — pick a ${req.label}`} arrow>
                     <Box
-                      onClick={!agentRequestLoading ? () => { setAppSearchQuery(req.value); setAppSearchOpen(true); } : undefined}
+                      onClick={!agentRequestLoading ? () => { setCategoryTarget(req.value); setAppSearchQuery(req.value); setAppSearchOpen(true); } : undefined}
                       sx={{
                         display: 'inline-flex', alignItems: 'center', gap: 0.5,
                         px: 1, py: 0.25,
                         borderRadius: 999,
-                        border: '1px dashed hsl(var(--border))',
+                        border: '1px dashed hsl(var(--severity-medium) / 0.7)',
+                        bgcolor: 'hsl(var(--severity-medium) / 0.12)',
                         fontSize: '0.8rem',
-                        color: 'hsl(var(--muted-foreground))',
+                        color: 'hsl(var(--foreground))',
                         cursor: !agentRequestLoading ? 'pointer' : 'default',
-                        transition: 'color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease',
+                        transition: 'border-color 0.12s ease, background-color 0.12s ease',
                         '&:hover': !agentRequestLoading ? {
-                          color: 'hsl(var(--primary))',
-                          borderColor: 'hsl(var(--primary))',
-                          bgcolor: 'hsl(var(--primary) / 0.08)',
+                          borderColor: 'hsl(var(--severity-medium))',
+                          bgcolor: 'hsl(var(--severity-medium) / 0.2)',
                         } : {},
                       }}
                     >
+                      <WarningIcon size={13} color={'hsl(var(--severity-medium))'} />
                       {req.label}
                       <IconButton
                         size="small"
@@ -5081,7 +5075,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         <AppSearchDrawer
           open={appSearchOpen}
           initialQuery={appSearchQuery || undefined}
-          onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); }}
+          onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); setCategoryTarget(null); }}
           title={appPickerTitle}
           subtitle={appPickerSubtitle}
           multiSelect
@@ -5090,6 +5084,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           theme={theme}
           colorMode={colorMode}
           onSelectionChange={(next) => {
+            const added = next.length > chosenApps.length;
             setChosenApps(
               next.map((app) => {
                 const known = availableApps.find(
@@ -5102,6 +5097,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 };
               }),
             );
+            // Picking an app for a category requirement resolves that chip
+            // and closes the picker.
+            if (categoryTarget && added) {
+              setPendingCategories((prev) => prev.filter((p) => p.value !== categoryTarget));
+              setCategoryTarget(null);
+              setAppSearchQuery('');
+              setAppSearchOpen(false);
+            }
           }}
         />
 
