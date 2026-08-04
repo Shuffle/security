@@ -2596,19 +2596,22 @@ const IncidentDetailPage = () => {
       const wfName = String(r.workflow?.name || r.workflow_name || '').trim();
       if (/single app run/i.test(wfName)) return false;
       if (wfName.toLowerCase() === 'tmp') return false;
-      // Hide workflow executions that contain a child agent run — the agent
-      // row already represents that work (and handles stuck/question states
-      // inline). Adds a small overlap tolerance so clock drift does not
-      // leak the parent workflow row back in.
+      // Hide workflow executions that WRAP a child agent run — the agent row
+      // already represents that work (and handles stuck/question states
+      // inline). This must be a strict containment check: a sibling workflow
+      // (e.g. the observable-check run) that merely happens to overlap an
+      // agent run is NOT its parent and must stay visible in the timeline.
       const wfStart = r.started_at ? normalizeToMs(r.started_at) : 0;
       const wfEnd = r.completed_at ? normalizeToMs(r.completed_at) : Date.now();
       if (wfStart > 0) {
         const tol = 5_000; // 5s tolerance either side
         const hasChildAgent = agentWindows.some(([as, ae]) =>
-          as >= wfStart - tol && as <= wfEnd + tol
+          // agent must start after the workflow began AND finish before it ended
+          as >= wfStart - tol && ae <= wfEnd + tol
         );
         if (hasChildAgent) return false;
       }
+
       return true;
     });
 
