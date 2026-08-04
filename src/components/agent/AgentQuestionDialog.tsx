@@ -1,47 +1,29 @@
 /**
- * Dialog for answering agent questions.
- * Displays the questions the AI agent needs answered to continue processing.
+ * AgentQuestionDialog — modal wrapper around the ONE shared agent question
+ * component (`InlineAgentQuestion`).
+ *
+ * There is deliberately no separate question form here: every place that
+ * answers an agent handoff (incident timeline, dashboard, handoff toasts,
+ * agent quick view) renders the same component, so submission behaviour —
+ * sequential questions, node_id resolution, abort/ignore — stays identical.
  */
 
-import { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  Dialog,
-  DialogContent,
-  TextField,
-} from '@mui/material';
-import { HelpCircle, Send, X as CloseIcon } from 'lucide-react';
+import { Box, Typography, IconButton, Dialog, DialogContent } from '@mui/material';
+import { X as CloseIcon } from 'lucide-react';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
+import InlineAgentQuestion from './InlineAgentQuestion';
 import { stripAgentTitlePrefix, type AgentNotification } from '@/services/notifications';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   notification: AgentNotification | null;
-  onSubmit: (notificationId: string, answers: Record<number, string>) => void;
+  /** Called after an answer is submitted (or the run is aborted). */
+  onSubmitted?: () => void;
 }
 
-const AgentQuestionDialog = ({ open, onClose, notification, onSubmit }: Props) => {
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-
+const AgentQuestionDialog = ({ open, onClose, notification, onSubmitted }: Props) => {
   if (!notification) return null;
-
-  // Fall back to the (cleaned) title when the backend did not send a
-  // discrete questions[] array — common for "input required" handoffs where
-  // the question itself lives in the notification title.
-  const rawQuestions = notification.questions && notification.questions.length > 0
-    ? notification.questions
-    : [stripAgentTitlePrefix(notification.title) || notification.description || 'Provide an answer to continue'];
-  const questions = rawQuestions;
-  const allAnswered = questions.every((_, i) => answers[i]?.trim());
-
-  const handleSubmit = () => {
-    onSubmit(notification.id, answers);
-    setAnswers({});
-    onClose();
-  };
 
   return (
     <Dialog
@@ -60,7 +42,6 @@ const AgentQuestionDialog = ({ open, onClose, notification, onSubmit }: Props) =
       }}
     >
       <DialogContent sx={{ p: 0 }}>
-        {/* Header */}
         <Box sx={{
           px: 3,
           pt: 2.5,
@@ -73,7 +54,7 @@ const AgentQuestionDialog = ({ open, onClose, notification, onSubmit }: Props) =
         }}>
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <HelpCircle size={18} style={{ color: 'hsl(var(--severity-info))' }} />
+              <AgentIcon size={16} />
               <Typography sx={{ fontWeight: 600, fontSize: '1.05rem', color: 'hsl(var(--foreground))' }}>
                 Agent Needs Your Input
               </Typography>
@@ -87,123 +68,11 @@ const AgentQuestionDialog = ({ open, onClose, notification, onSubmit }: Props) =
           </IconButton>
         </Box>
 
-        {/* Description */}
-        {notification.description && (
-          <Box sx={{ px: 3, pt: 2.5 }}>
-            <Box sx={{
-              px: 2.5,
-              py: 2,
-              borderRadius: 2,
-              backgroundColor: 'hsl(var(--muted) / 0.3)',
-              border: '1px solid hsl(var(--border))',
-            }}>
-              <Typography sx={{
-                fontSize: '0.85rem',
-                color: 'hsl(var(--foreground))',
-                lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
-              }}>
-                {notification.description}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
-        {/* Questions */}
         <Box sx={{ px: 3, py: 2.5 }}>
-          <Typography sx={{
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            color: 'hsl(var(--muted-foreground))',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            mb: 2,
-          }}>
-            Questions to Answer
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            {questions.map((question, index) => (
-              <Box key={index}>
-                <Typography sx={{
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  color: 'hsl(var(--foreground))',
-                  mb: 0.75,
-                }}>
-                  {index + 1}. {question}
-                </Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  maxRows={4}
-                  placeholder="Type your answer…"
-                  value={answers[index] || ''}
-                  onChange={(e) => setAnswers(prev => ({ ...prev, [index]: e.target.value }))}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      fontSize: '0.85rem',
-                      bgcolor: 'hsl(var(--background))',
-                      '& fieldset': { borderColor: 'hsl(var(--border))' },
-                      '&:hover fieldset': { borderColor: 'hsl(var(--primary) / 0.5)' },
-                      '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      color: 'hsl(var(--foreground))',
-                    },
-                  }}
-                />
-              </Box>
-            ))}
-          </Box>
-        </Box>
-
-        {/* Actions */}
-        <Box sx={{
-          px: 3,
-          pb: 3,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          justifyContent: 'flex-end',
-        }}>
-          <Button
-            onClick={onClose}
-            size="small"
-            sx={{
-              fontSize: '0.8rem',
-              textTransform: 'none',
-              color: 'hsl(var(--muted-foreground))',
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            size="small"
-            variant="contained"
-            disabled={!allAnswered}
-            startIcon={<Send size={14} />}
-            sx={{
-              fontSize: '0.8rem',
-              textTransform: 'none',
-              fontWeight: 600,
-              backgroundColor: 'hsl(var(--primary))',
-              color: 'hsl(var(--primary-foreground))',
-              px: 2.5,
-              boxShadow: 'none',
-              '&:hover': {
-                backgroundColor: 'hsl(var(--primary) / 0.9)',
-                boxShadow: 'none',
-              },
-              '&.Mui-disabled': {
-                backgroundColor: 'hsl(var(--muted))',
-                color: 'hsl(var(--muted-foreground))',
-              },
-            }}
-          >
-            Submit Answers
-          </Button>
+          <InlineAgentQuestion
+            notification={notification}
+            onSubmitted={onSubmitted}
+          />
         </Box>
       </DialogContent>
     </Dialog>
