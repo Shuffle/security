@@ -4437,7 +4437,40 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Tooltip>
                   );
                 })}
+                {pendingCategories.map((req) => (
+                  <Tooltip key={`cat-${req.value}`} title={`Needs a ${req.label} — click to pick one`} arrow>
+                    <Box
+                      onClick={!agentRequestLoading ? () => { setAppSearchQuery(req.value); setAppSearchOpen(true); } : undefined}
+                      sx={{
+                        display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                        px: 1, py: 0.25,
+                        borderRadius: 999,
+                        border: '1px dashed hsl(var(--border))',
+                        fontSize: '0.8rem',
+                        color: 'hsl(var(--muted-foreground))',
+                        cursor: !agentRequestLoading ? 'pointer' : 'default',
+                        transition: 'color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease',
+                        '&:hover': !agentRequestLoading ? {
+                          color: 'hsl(var(--primary))',
+                          borderColor: 'hsl(var(--primary))',
+                          bgcolor: 'hsl(var(--primary) / 0.08)',
+                        } : {},
+                      }}
+                    >
+                      {req.label}
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); setPendingCategories((prev) => prev.filter((p) => p.value !== req.value)); }}
+                        disabled={agentRequestLoading}
+                        sx={{ p: 0.125, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' }, '&.Mui-disabled': { opacity: 0.4 } }}
+                      >
+                        <CloseIcon size={12} />
+                      </IconButton>
+                    </Box>
+                  </Tooltip>
+                ))}
               </Box>
+
             </Box>
             )}
 
