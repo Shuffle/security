@@ -3,9 +3,10 @@ import { Box, Typography } from '@mui/material';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate, MatchDecorator } from '@codemirror/view';
-import { foldable, syntaxTree, foldAll, unfoldEffect } from '@codemirror/language';
+import { foldable, syntaxTree, foldAll, unfoldEffect, foldEffect, foldedRanges } from '@codemirror/language';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
+
 
 // Decorator that highlights $variable.path patterns inside strings
 const variableMark = Decoration.mark({ class: 'cm-variable-token' });
@@ -28,6 +29,12 @@ interface HighlightedFileEditorProps {
   validateJson?: boolean;
   onValidationChange?: (isValid: boolean) => void;
   editable?: boolean;
+  /**
+   * Identifier used to remember which top-level fields the user expanded or
+   * collapsed. The same key reuses the same layout across incidents/sessions.
+   */
+  foldStateKey?: string;
+
 }
 
 const jsonHighlight = HighlightStyle.define([
@@ -120,11 +127,79 @@ const getJsonError = (value: string, validateJson: boolean): string | null => {
   }
 };
 
-const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidationChange, editable = true }: HighlightedFileEditorProps) => {
+const FOLD_PREFS_PREFIX = 'shuffle-json-fold::';
+
+const readFoldPrefs = (key: string): string[] | null => {
+  try {
+    const raw = localStorage.getItem(`${FOLD_PREFS_PREFIX}${key}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeFoldPrefs = (key: string, expanded: string[]) => {
+  try {
+    localStorage.setItem(`${FOLD_PREFS_PREFIX}${key}`, JSON.stringify(expanded));
+  } catch {
+    /* storage unavailable */
+  }
+};
+
+/** Foldable ranges for the values of every top-level property, keyed by field name. */
+const collectTopLevelFields = (view: EditorView): Array<{ name: string; from: number; to: number }> => {
+  const out: Array<{ name: string; from: number; to: number }> = [];
+  const tree = syntaxTree(view.state);
+  let rootFrom: number | null = null;
+
+  tree.iterate({
+    enter: (node) => {
+      if (rootFrom === null && (node.type.name === 'Object' || node.type.name === 'Array') && node.node.parent?.type.name === 'JsonText') {
+        rootFrom = node.from;
+        return true;
+      }
+      if (rootFrom !== null && node.type.name === 'Property' && node.node.parent?.from === rootFrom) {
+        const nameNode = node.node.firstChild;
+        if (!nameNode) return false;
+        const name = view.state.doc.sliceString(nameNode.from, nameNode.to).replace(/^"|"$/g, '');
+        const line = view.state.doc.lineAt(node.from);
+        const range = foldable(view.state, line.from, line.to);
+        if (range) out.push({ name, from: range.from, to: range.to });
+        return false;
+      }
+      return true;
+    },
+  });
+
+  return out;
+};
+
+const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidationChange, editable = true, foldStateKey }: HighlightedFileEditorProps) => {
   const editorViewRef = useRef<EditorView | null>(null);
   const hasAutoFoldedRef = useRef(false);
   const jsonError = useMemo(() => getJsonError(value, validateJson), [value, validateJson]);
   const isValid = !validateJson || jsonError === null;
+
+  const persistFoldState = useCallback((view: EditorView) => {
+    if (!foldStateKey) return;
+    const fields = collectTopLevelFields(view);
+    if (!fields.length) return;
+    const folded = foldedRanges(view.state);
+    const expanded: string[] = [];
+    for (const field of fields) {
+      let isFolded = false;
+      folded.between(field.from, field.to, (from, to) => {
+        if (from === field.from && to === field.to) {
+          isFolded = true;
+          return false;
+        }
+      });
+      if (!isFolded) expanded.push(field.name);
+    }
+    writeFoldPrefs(foldStateKey, expanded);
+  }, [foldStateKey]);
 
   const autoFoldNested = useCallback((view: EditorView, attempt = 0) => {
     if (hasAutoFoldedRef.current) return;
@@ -161,6 +236,22 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
       view.dispatch({
         effects: unfoldEffect.of({ from: topLevelRange.from, to: topLevelRange.to }),
       });
+
+      // Re-apply the user's remembered expand/collapse layout for this view.
+      const prefs = foldStateKey ? readFoldPrefs(foldStateKey) : null;
+      if (prefs) {
+        const fields = collectTopLevelFields(view);
+        const effects = fields
+          .filter((field) => prefs.includes(field.name))
+          .map((field) => unfoldEffect.of({ from: field.from, to: field.to }));
+        const collapse = fields
+          .filter((field) => !prefs.includes(field.name))
+          .map((field) => foldEffect.of({ from: field.from, to: field.to }));
+        if (effects.length || collapse.length) {
+          view.dispatch({ effects: [...collapse, ...effects] });
+        }
+      }
+
       hasAutoFoldedRef.current = true;
       return;
     }
@@ -168,7 +259,7 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
     if (attempt < 50) {
       setTimeout(() => autoFoldNested(view, attempt + 1), 100);
     }
-  }, []);
+  }, [foldStateKey]);
 
   useEffect(() => {
     onValidationChange?.(isValid);
@@ -179,7 +270,21 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
     autoFoldNested(editorViewRef.current);
   }, [value, autoFoldNested]);
 
-  const extensions = useMemo(() => [json(), syntaxHighlighting(jsonHighlight), variableHighlighter, EditorView.lineWrapping], []);
+  const extensions = useMemo(() => {
+    const base = [json(), syntaxHighlighting(jsonHighlight), variableHighlighter, EditorView.lineWrapping];
+    if (!foldStateKey) return base;
+    return [
+      ...base,
+      EditorView.updateListener.of((update: ViewUpdate) => {
+        if (!hasAutoFoldedRef.current) return;
+        const changedFold = update.transactions.some((tr) =>
+          tr.effects.some((e) => e.is(foldEffect) || e.is(unfoldEffect))
+        );
+        if (changedFold) persistFoldState(update.view);
+      }),
+    ];
+  }, [foldStateKey, persistFoldState]);
+
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
