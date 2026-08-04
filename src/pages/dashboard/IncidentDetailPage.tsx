@@ -4102,6 +4102,8 @@ const IncidentDetailPage = () => {
       // Backend may update enrichments asynchronously after the save
       if (obsRefreshTimerRef.current) clearTimeout(obsRefreshTimerRef.current);
       setRefreshingObservables(true);
+      obsCheckStartedAtRef.current = Date.now();
+      setObsCheckTick((t) => t + 1);
       const refreshId = Date.now();
       (obsRefreshTimerRef as any)._activeId = refreshId;
       // Hard wall-clock safety: even if the refresh fetch hangs (the
