@@ -880,8 +880,23 @@ const IncidentDetailPage = () => {
   // Single source of truth for "is this observable hidden?" — used by the
   // Observables list filter, the Observables tab badge, and the Timeline
   // observables filter so the counts always agree.
+  //
+  // The Correlations tab hides by VALUE only (it has no OCSF type), so a value
+  // hidden there must also count as hidden here — otherwise the same indicator
+  // stays visible in one tab and hidden in the other.
   const isObservableIgnored = useCallback(
-    (type?: string, value?: string) => ignoredObs.isIgnored(type || '', value || ''),
+    (type?: string, value?: string) =>
+      ignoredObs.isIgnored(type || '', value || '') || ignoredObs.isValueIgnored(value || ''),
+    [ignoredObs],
+  );
+  // Un-hide an observable no matter which tab hid it: remove both the
+  // type-scoped row and the value-only row written by the Correlations tab.
+  const unignoreObservable = useCallback(
+    async (type?: string, value?: string) => {
+      const v = value || '';
+      if (ignoredObs.isIgnored(type || '', v)) await ignoredObs.unignore(type || '', v);
+      if (ignoredObs.isValueIgnored(v)) await ignoredObs.unignore('value', v);
+    },
     [ignoredObs],
   );
   const visibleObservablesCount = useMemo(() => {
