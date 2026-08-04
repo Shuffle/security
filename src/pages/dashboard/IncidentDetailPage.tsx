@@ -5736,14 +5736,10 @@ const IncidentDetailPage = () => {
 
     if (isFilterActive('agent')) {
       // Skipped runs (workflow-level decision_string.success === false) are
-      // hidden from the unified timeline by default because the agent itself
-      // never ran — only the routing check did. They become visible when the
-      // user has narrowed the timeline to *only* the Agent filter so
-      // debugging skipped runs is still possible.
-      const onlyAgent = activeTimelineFilters.size === 1 && activeTimelineFilters.has('agent');
+      // rendered quietly (greyed card + "Skipped" badge) rather than hidden —
+      // the Agent filter count includes them, so hiding them made the count
+      // disagree with what the timeline actually showed.
       agentRuns.forEach((run) => {
-        const skip = getAgentSkipInfo(run);
-        if (skip.skipped && !onlyAgent) return;
         const ts = normalizeToMs(run.started_at);
         items.push({ type: 'agent', timestamp: ts, data: run });
       });
