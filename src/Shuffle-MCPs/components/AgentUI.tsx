@@ -1012,8 +1012,6 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                 </Box>
               </Tooltip>
             ) : isLiveProcessing ? (
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: STATUS_COLORS.warning }} />
-            ) : isLiveProcessing ? (
               <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
             ) : (
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
