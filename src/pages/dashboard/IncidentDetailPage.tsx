@@ -886,7 +886,7 @@ const IncidentDetailPage = () => {
   // stays visible in one tab and hidden in the other.
   const isObservableIgnored = useCallback(
     (type?: string, value?: string) =>
-      isObservableIgnored(type || '', value || '') || ignoredObs.isValueIgnored(value || ''),
+      ignoredObs.isIgnored(type || '', value || '') || ignoredObs.isValueIgnored(value || ''),
     [ignoredObs],
   );
   // Un-hide an observable no matter which tab hid it: remove both the
