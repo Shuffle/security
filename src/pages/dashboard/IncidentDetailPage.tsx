@@ -2799,8 +2799,8 @@ const IncidentDetailPage = () => {
       // Duplicate of an agent run for the same workflow within an overlapping
       // window — prefer the agent row.
 
-      const nameKey = wfName.toLowerCase();
       const dupTol = 60_000;
+
       const isDuplicateOfAgent = agentActivities.some((a) => {
         const sameFlow = (a.wfId && wfId && a.wfId === wfId) || (a.name && nameKey && a.name === nameKey);
         if (!sameFlow) return false;
