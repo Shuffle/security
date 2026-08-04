@@ -810,6 +810,10 @@ const IncidentDetailPage = () => {
   // new enrichments/observables show up — even if the scheduled 7s refresh
   // has not fired yet.
   const obsRefreshBaselineRef = useRef<number | null>(null);
+  // Wall-clock moment the current indicator check started. Used to ignore
+  // workflow runs that already existed before the check began.
+  const obsCheckStartedAtRef = useRef<number | null>(null);
+  const [obsCheckTick, setObsCheckTick] = useState(0);
   const obsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Early-clear the comment loader as soon as the visible observable/
   // enrichment count grows past the baseline captured at send time. The
@@ -2476,18 +2480,23 @@ const IncidentDetailPage = () => {
   }, [refetchWorkflowRuns, refetchAgentRuns]);
 
   // The execution behind the "Checking your message for observables…" pill:
-  // the newest workflow run that touched this incident in the last ~90s.
-  // Both the pill and its auto-clear effect read the SAME run so the pill and
-  // the run drawer can never disagree about whether it is still executing.
+  // the newest workflow run that started AFTER the check began (small
+  // tolerance for clock skew) and within the last ~90s. Anchoring on the
+  // check's own start time matters: without it, an unrelated run that already
+  // finished seconds before the comment was sent would be picked up and
+  // instantly flip the pill off — which looked like the run "flashed" under
+  // the comment and vanished again.
   const observableCheckRun = useMemo(() => {
     const now = Date.now();
+    const startedAt = obsCheckStartedAtRef.current;
+    const floor = startedAt ? startedAt - 5_000 : 0;
     return (allIncidentWorkflowRuns || [])
       .filter((r: any) => {
         const ts = normalizeToMs(r?.started_at);
-        return ts > 0 && (now - ts) < 90_000;
+        return ts > 0 && ts >= floor && (now - ts) < 90_000;
       })
       .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0] as any;
-  }, [allIncidentWorkflowRuns]);
+  }, [allIncidentWorkflowRuns, obsCheckTick]);
 
   // As soon as that execution reports a terminal status, drop the spinner —
   // previously the pill hung around until the enrichment count changed or the
@@ -4093,6 +4102,8 @@ const IncidentDetailPage = () => {
       // Backend may update enrichments asynchronously after the save
       if (obsRefreshTimerRef.current) clearTimeout(obsRefreshTimerRef.current);
       setRefreshingObservables(true);
+      obsCheckStartedAtRef.current = Date.now();
+      setObsCheckTick((t) => t + 1);
       const refreshId = Date.now();
       (obsRefreshTimerRef as any)._activeId = refreshId;
       // Hard wall-clock safety: even if the refresh fetch hangs (the
@@ -4466,6 +4477,8 @@ const IncidentDetailPage = () => {
     // Backend may extract IOCs from comment text and create enrichments
     if (obsRefreshTimerRef.current) clearTimeout(obsRefreshTimerRef.current);
     setRefreshingObservables(true);
+    obsCheckStartedAtRef.current = Date.now();
+    setObsCheckTick((t) => t + 1);
     obsRefreshBaselineRef.current =
       editedObservables.filter(o => !o.archived).length + enrichments.length;
     const refreshId = Date.now();
