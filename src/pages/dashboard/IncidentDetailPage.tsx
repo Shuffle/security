@@ -4477,6 +4477,8 @@ const IncidentDetailPage = () => {
     // Backend may extract IOCs from comment text and create enrichments
     if (obsRefreshTimerRef.current) clearTimeout(obsRefreshTimerRef.current);
     setRefreshingObservables(true);
+    obsCheckStartedAtRef.current = Date.now();
+    setObsCheckTick((t) => t + 1);
     obsRefreshBaselineRef.current =
       editedObservables.filter(o => !o.archived).length + enrichments.length;
     const refreshId = Date.now();
