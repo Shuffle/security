@@ -798,6 +798,22 @@ const tryExtractItemsFromBody = (rawBody: string): { items: DatastoreItem[]; cat
 };
 
 /**
+ * Drop items that do not belong to the org we asked for.
+ *
+ * A child tenant's `list_cache` can echo back entries owned by the parent org
+ * (inherited/shared cache entries). Those must never surface inside a child
+ * org. Items without an `org_id` are kept — older backends omit the field.
+ */
+const scopeItemsToOrg = <T,>(items: T[], orgId: string): T[] => {
+  if (!Array.isArray(items)) return items;
+  return items.filter((item) => {
+    const owner = (item as any)?.org_id || (item as any)?.orgId;
+    if (!owner || typeof owner !== 'string') return true;
+    return owner === orgId;
+  });
+};
+
+/**
  * Get all items in a category with optional cursor-based pagination
  */
 export const getDatastoreByCategory = async (
@@ -892,7 +908,7 @@ export const getDatastoreByCategory = async (
       console.warn(`[Datastore] ${response.status} response for category=${category} but body contained ${extracted.items.length} valid items — treating as success`);
       return {
         success: true,
-        data: extracted.items,
+        data: scopeItemsToOrg(extracted.items, orgId),
         categoryConfig: extracted.categoryConfig,
         cursor: extracted.cursor,
         totalAmount: extracted.totalAmount,
@@ -925,7 +941,7 @@ export const getDatastoreByCategory = async (
         const retryBody = await retryResponse.text();
         const retryExtracted = tryExtractItemsFromBody(retryBody);
         if (retryResponse.ok || (retryExtracted && retryExtracted.items.length > 0)) {
-          const items = retryExtracted?.items || [];
+          const items = scopeItemsToOrg(retryExtracted?.items || [], orgId);
           console.warn(`[Datastore] Retry succeeded for category=${category} (status=${retryResponse.status}, items=${items.length})`);
           return {
             success: true,
@@ -977,7 +993,7 @@ export const getDatastoreByCategory = async (
 
     return {
       success: true,
-      data: items,
+      data: scopeItemsToOrg(items, orgId),
       categoryConfig: data.category_config,
       cursor: data.cursor,
       totalAmount,
