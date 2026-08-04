@@ -406,18 +406,23 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
 };
 
 /**
- * Resolve the Agentic action ("node") ID for a running execution.
+ * Resolve the Agentic action ("node") ID and the real workflow ID for a
+ * running execution.
  *
  * CANONICAL implementation — every agent continuation path (inline timeline
  * questions, dashboard dialog, handoff toasts, and the agent sidebar) must
  * pass `node_id`, otherwise the backend logs:
  *   "No Agentic Start node found for workflow … during workflow continuation"
+ *
+ * The workflow ID is NOT the execution ID — it lives on `execution.workflow.id`
+ * and must be used for the `/api/v1/workflows/{workflow_id}/run` path.
  */
-export const resolveAgentNodeId = async (
+export const resolveAgentContinuationTargets = async (
   executionId: string,
   authorization: string,
-): Promise<string> => {
-  if (!executionId || !authorization) return '';
+): Promise<{ nodeId: string; workflowId: string }> => {
+  const empty = { nodeId: '', workflowId: '' };
+  if (!executionId || !authorization) return empty;
   try {
     const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
       method: 'POST',
@@ -425,7 +430,7 @@ export const resolveAgentNodeId = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ execution_id: executionId, authorization }),
     });
-    if (!resp.ok) return '';
+    if (!resp.ok) return empty;
     const data = await resp.json();
     const results: Array<{ action?: { id?: string; app_name?: string } }> = Array.isArray(data?.results)
       ? data.results
@@ -433,8 +438,17 @@ export const resolveAgentNodeId = async (
     const agentAction =
       results.find((r) => (r?.action?.app_name || '').toLowerCase() === 'ai agent') ||
       results.find((r) => (r?.action?.app_name || '').toLowerCase().includes('agent'));
-    return agentAction?.action?.id || '';
+    return {
+      nodeId: agentAction?.action?.id || '',
+      workflowId: data?.workflow?.id || '',
+    };
   } catch {
-    return '';
+    return empty;
   }
 };
+
+export const resolveAgentNodeId = async (
+  executionId: string,
+  authorization: string,
+): Promise<string> => (await resolveAgentContinuationTargets(executionId, authorization)).nodeId;
+
