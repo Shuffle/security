@@ -11320,7 +11320,13 @@ const IncidentDetailPage = () => {
               <Button
                 size="small"
                 variant="outlined"
-                onClick={() => {
+                onClick={async () => {
+                  // Pull the stored record fresh from the datastore so Reload
+                  // always reflects server state, not just the in-memory copy.
+                  setSelectedRevisionIdx(null);
+                  forceRawReloadRef.current = true;
+                  await loadIncident(false);
+                  toast.success('Raw OCSF reloaded');
                   if (incident?.rawOCSF) {
                     const severityOption = severityOptions.find(s => s.value === editedSeverity);
                     const { label: statusLabel, id: statusId } = getOCSFStatus(editedStatus);
