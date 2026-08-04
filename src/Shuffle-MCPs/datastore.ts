@@ -817,6 +817,15 @@ const scopeItemsToOrg = <T,>(items: T[], orgId: string): T[] => {
 
 
 /**
+/**
+ * Page size used for a category. Exported so callers that follow cursors can
+ * tell a full page (more data may exist) from a short page (definitively the
+ * last one) — the backend returns a cursor even on the final page.
+ */
+export const getDatastorePageSize = (category: string, limit?: number): number =>
+  limit ?? (category === DATASTORE_CATEGORIES.INCIDENTS ? 50 : 100);
+
+/**
  * Get all items in a category with optional cursor-based pagination
  */
 export const getDatastoreByCategory = async (
@@ -844,7 +853,7 @@ export const getDatastoreByCategory = async (
   // Default page size is 100. Incidents specifically cap at 50 because their
   // payloads are far larger than other categories — pagination via cursor
   // handles the rest.
-  const effectiveLimit = limit ?? (category === DATASTORE_CATEGORIES.INCIDENTS ? 50 : 100);
+  const effectiveLimit = getDatastorePageSize(category, limit);
   let url = `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}&top=${effectiveLimit}`;
   if (cursor) {
     url += `&cursor=${encodeURIComponent(cursor)}`;
