@@ -11584,7 +11584,9 @@ const IncidentDetailPage = () => {
             onChange={setRawJsonText}
             validateJson={true}
             onValidationChange={setRawJsonValid}
+            foldStateKey="incident-ocsf"
           />
+
         </Box>
       )}
 
