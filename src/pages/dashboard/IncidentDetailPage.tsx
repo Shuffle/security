@@ -1337,6 +1337,7 @@ const IncidentDetailPage = () => {
     }, []);
 
     const [rawJsonText, setRawJsonText] = useState('');
+  const forceRawReloadRef = useRef(false);
    const [rawJsonValid, setRawJsonValid] = useState(true);
   // File editor state
   const [fileContent, setFileContent] = useState('');
@@ -3121,7 +3122,8 @@ const IncidentDetailPage = () => {
         }
         // Details is now tab 0 (default), no auto-switch needed
         // If arriving with ?tab=raw, populate rawJsonText now that data is loaded
-        if (showLoading && searchParams.get('tab') === 'raw') {
+        if ((showLoading && searchParams.get('tab') === 'raw') || forceRawReloadRef.current) {
+          forceRawReloadRef.current = false;
           setRawJsonText(JSON.stringify(parsed.rawOCSF || {}, null, 2));
         }
         setLoading(false);
@@ -11318,43 +11320,18 @@ const IncidentDetailPage = () => {
               <Button
                 size="small"
                 variant="outlined"
-                onClick={() => {
+                onClick={async () => {
+                  // Pull the stored record fresh from the datastore so Reload
+                  // always reflects server state, not just the in-memory copy.
+                  setSelectedRevisionIdx(null);
+                  forceRawReloadRef.current = true;
+                  await loadIncident(false);
+                  toast.success('Raw OCSF reloaded');
+                  // Fallback if the fetch did not repopulate the editor.
+                  if (!forceRawReloadRef.current) return;
+                  forceRawReloadRef.current = false;
                   if (incident?.rawOCSF) {
-                    const severityOption = severityOptions.find(s => s.value === editedSeverity);
-                    const { label: statusLabel, id: statusId } = getOCSFStatus(editedStatus);
-                    const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
-                    const liveSnapshot = {
-                      ...incident.rawOCSF,
-                      desc: editedMessage || editedTitle,
-                      severity_id: severityOption?.id || 3,
-                      severity: severityOption?.label || 'Medium',
-                      status_id: statusId,
-                      status: statusLabel,
-                      assignee: editedAssignee.trim() || '',
-                      types: editedLabels,
-                      observables: editedObservables,
-                      tasks,
-                      activity,
-                      finding_info_list: [{
-                        ...existingFindingInfo,
-                        title: editedTitle,
-                        references: editedReferences,
-                        src_url: editedReferences[0] || '',
-                      }],
-                      metadata: {
-                        ...incident.rawOCSF.metadata,
-                        extensions: {
-                          ...incident.rawOCSF.metadata?.extensions,
-                          custom_attributes: {
-                            ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
-                            tlp: editedTlp,
-                            assignee: editedAssignee.trim() || '',
-                            customFields: editedCustomFields,
-                          },
-                        },
-                      },
-                    };
-                    setRawJsonText(JSON.stringify(liveSnapshot, null, 2));
+                    setRawJsonText(JSON.stringify(incident.rawOCSF, null, 2));
                   }
                 }}
                 sx={{
