@@ -886,7 +886,7 @@ const IncidentDetailPage = () => {
   // stays visible in one tab and hidden in the other.
   const isObservableIgnored = useCallback(
     (type?: string, value?: string) =>
-      ignoredObs.isIgnored(type || '', value || '') || ignoredObs.isValueIgnored(value || ''),
+      isObservableIgnored(type || '', value || '') || ignoredObs.isValueIgnored(value || ''),
     [ignoredObs],
   );
   // Un-hide an observable no matter which tab hid it: remove both the
@@ -894,7 +894,7 @@ const IncidentDetailPage = () => {
   const unignoreObservable = useCallback(
     async (type?: string, value?: string) => {
       const v = value || '';
-      if (ignoredObs.isIgnored(type || '', v)) await ignoredObs.unignore(type || '', v);
+      if (isObservableIgnored(type || '', v)) await ignoredObs.unignore(type || '', v);
       if (ignoredObs.isValueIgnored(v)) await ignoredObs.unignore('value', v);
     },
     [ignoredObs],
@@ -10374,14 +10374,14 @@ const IncidentDetailPage = () => {
               const seen = new Set<string>();
               for (const o of editedObservables) {
                 if ((o as any).archived) continue;
-                if (ignoredObs.isIgnored(o.type, o.value)) {
+                if (isObservableIgnored(o.type, o.value)) {
                   seen.add(`${(o.type || '').toLowerCase()}::${(o.value || '').toLowerCase()}`);
                 }
               }
               for (const e of enrichments) {
                 const t = e.type || 'unknown';
                 const v = (e as any).value || (e as any).data || '';
-                if (ignoredObs.isIgnored(t, v)) {
+                if (isObservableIgnored(t, v)) {
                   seen.add(`${t.toLowerCase()}::${String(v).toLowerCase()}`);
                 }
               }
@@ -10514,7 +10514,7 @@ const IncidentDetailPage = () => {
             let allObs = allObsRaw.filter(obs => {
               if (obsFilterTypes.length > 0 && !obsFilterTypes.includes(obs.type)) return false;
               if (filterLower && !obs.value.toLowerCase().includes(filterLower) && !obs.type.toLowerCase().includes(filterLower)) return false;
-              if (!showIgnoredObs && ignoredObs.isIgnored(obs.type, obs.value)) return false;
+              if (!showIgnoredObs && isObservableIgnored(obs.type, obs.value)) return false;
               return true;
             });
             // When the user has explicitly toggled "Show ignored", surface those
@@ -10522,8 +10522,8 @@ const IncidentDetailPage = () => {
             // to reconsider whether they should stay ignored — burying them at
             // the bottom (or mixed in dimmed) makes the toggle pointless.
             if (showIgnoredObs) {
-              const ignored = allObs.filter(o => ignoredObs.isIgnored(o.type, o.value));
-              const rest = allObs.filter(o => !ignoredObs.isIgnored(o.type, o.value));
+              const ignored = allObs.filter(o => isObservableIgnored(o.type, o.value));
+              const rest = allObs.filter(o => !isObservableIgnored(o.type, o.value));
               allObs = [...ignored, ...rest];
             }
 
@@ -10580,7 +10580,7 @@ const IncidentDetailPage = () => {
                     const d = typeof ts === 'number' ? new Date(ts < 1e12 ? ts * 1000 : ts) : new Date(ts);
                     return isNaN(d.getTime()) ? String(ts) : d.toLocaleString();
                   };
-                  const isThisIgnored = ignoredObs.isIgnored(obs.type, obs.value);
+                  const isThisIgnored = isObservableIgnored(obs.type, obs.value);
                   return (
                     <Box
                       key={obsRowKey}
@@ -10688,14 +10688,14 @@ const IncidentDetailPage = () => {
                             observables, persisted in the `ignored-observables`
                             datastore category. Hidden by default in the list. */}
                         {(() => {
-                          const isIgn = ignoredObs.isIgnored(obs.type, obs.value);
+                          const isIgn = isObservableIgnored(obs.type, obs.value);
                           return (
                             <Tooltip title={isIgn ? 'Stop ignoring this observable' : 'Hide this observable from the default view'} arrow>
                               <IconButton
                                 size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (isIgn) ignoredObs.unignore(obs.type, obs.value);
+                                  if (isIgn) unignoreObservable(obs.type, obs.value);
                                   else ignoredObs.ignore(obs.type, obs.value);
                                 }}
                                 sx={{
