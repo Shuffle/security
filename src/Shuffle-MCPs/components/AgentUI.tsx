@@ -4431,25 +4431,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   );
                 })}
                 {pendingCategories.map((req) => (
-                  <Tooltip key={`cat-${req.value}`} title={`Needs a ${req.label} — click to pick one`} arrow>
+                  <Tooltip key={`cat-${req.value}`} title={`Requires input — pick a ${req.label}`} arrow>
                     <Box
-                      onClick={!agentRequestLoading ? () => { setAppSearchQuery(req.value); setAppSearchOpen(true); } : undefined}
+                      onClick={!agentRequestLoading ? () => { setCategoryTarget(req.value); setAppSearchQuery(req.value); setAppSearchOpen(true); } : undefined}
                       sx={{
                         display: 'inline-flex', alignItems: 'center', gap: 0.5,
                         px: 1, py: 0.25,
                         borderRadius: 999,
-                        border: '1px dashed hsl(var(--border))',
+                        border: '1px dashed hsl(var(--severity-medium) / 0.7)',
+                        bgcolor: 'hsl(var(--severity-medium) / 0.12)',
                         fontSize: '0.8rem',
-                        color: 'hsl(var(--muted-foreground))',
+                        color: 'hsl(var(--foreground))',
                         cursor: !agentRequestLoading ? 'pointer' : 'default',
-                        transition: 'color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease',
+                        transition: 'border-color 0.12s ease, background-color 0.12s ease',
                         '&:hover': !agentRequestLoading ? {
-                          color: 'hsl(var(--primary))',
-                          borderColor: 'hsl(var(--primary))',
-                          bgcolor: 'hsl(var(--primary) / 0.08)',
+                          borderColor: 'hsl(var(--severity-medium))',
+                          bgcolor: 'hsl(var(--severity-medium) / 0.2)',
                         } : {},
                       }}
                     >
+                      <WarningIcon size={13} color={'hsl(var(--severity-medium))'} />
                       {req.label}
                       <IconButton
                         size="small"
