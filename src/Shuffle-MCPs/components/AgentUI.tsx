@@ -2865,7 +2865,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return () => clearTimeout(t);
   }, [agentData?.decisions, rerunningDecisionId]);
 
+  // Ticking clock so the trailing live "Processing" row keeps counting while
+  // the run is still executing.
+  const runStillExecuting = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(
+    (execution?.status || agentData?.status || '').toUpperCase()
+  );
+  const [liveNowSec, setLiveNowSec] = useState(() => Date.now() / 1000);
+  useEffect(() => {
+    if (!runStillExecuting) return;
+    setLiveNowSec(Date.now() / 1000);
+    const t = setInterval(() => setLiveNowSec(Date.now() / 1000), 1000);
+    return () => clearInterval(t);
+  }, [runStillExecuting]);
+
   // ── Build timeline ──
+
   const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer } = useMemo(() => {
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
