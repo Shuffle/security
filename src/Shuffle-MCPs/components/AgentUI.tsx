@@ -845,6 +845,9 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // still thinking. Flag it as a likely (not definite) timeout.
   const isLikelyTimedOut =
     isLiveProcessing && (item.end_time || 0) - (item.start_time || 0) > 60;
+  // When this row is the run's Finalise, how long ago it completed.
+  const finishedAtSec = item.end_time || item.start_time || 0;
+
   if (isProcessing) {
     displayType = 'processing';
     displayLabel = '';
