@@ -5075,7 +5075,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         <AppSearchDrawer
           open={appSearchOpen}
           initialQuery={appSearchQuery || undefined}
-          onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); }}
+          onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); setCategoryTarget(null); }}
           title={appPickerTitle}
           subtitle={appPickerSubtitle}
           multiSelect
@@ -5084,6 +5084,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           theme={theme}
           colorMode={colorMode}
           onSelectionChange={(next) => {
+            const added = next.length > chosenApps.length;
             setChosenApps(
               next.map((app) => {
                 const known = availableApps.find(
@@ -5096,6 +5097,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 };
               }),
             );
+            // Picking an app for a category requirement resolves that chip
+            // and closes the picker.
+            if (categoryTarget && added) {
+              setPendingCategories((prev) => prev.filter((p) => p.value !== categoryTarget));
+              setCategoryTarget(null);
+              setAppSearchQuery('');
+              setAppSearchOpen(false);
+            }
           }}
         />
 
