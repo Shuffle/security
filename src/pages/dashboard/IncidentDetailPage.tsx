@@ -7410,7 +7410,18 @@ const IncidentDetailPage = () => {
         >
           {timedOut ? (
             <>
-              <span>AI Agent timed out</span>
+              {/* This state is INFERRED: no agent run and no agent reply have
+                  landed for this mention within the timeout window. It does
+                  not mean the backend reported a timeout, so always offer a
+                  way to inspect the underlying execution. */}
+              <Tooltip
+                title="No agent run or reply arrived for this mention within the timeout window. The backend did not report an error — open the debug view to inspect the execution."
+                arrow
+              >
+                <span style={{ borderBottom: '1px dotted hsl(var(--border))', cursor: 'help' }}>
+                  No agent response
+                </span>
+              </Tooltip>
               {(rerunCount > 0 || lastActionTs > 0) && (
                 <Box
                   component="span"
@@ -7424,8 +7435,48 @@ const IncidentDetailPage = () => {
                   {lastActionTs > 0 && ` · ${formatRelativeShort(Date.now() - normalizeTs(lastActionTs))}`}
                 </Box>
               )}
+              <Box
+                component="button"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Prefer the actual execution when one exists — that is the
+                  // only place the real failure/latency is visible. Fall back
+                  // to the agent sidebar when nothing was ever recorded.
+                  const latestRun: any = [...(allIncidentWorkflowRuns || [])]
+                    .sort((a: any, b: any) => normalizeToMs(b?.started_at) - normalizeToMs(a?.started_at))[0];
+                  const execId = latestRun?.execution_id;
+                  if (execId) {
+                    window.dispatchEvent(new CustomEvent('workflow-run:open', {
+                      detail: {
+                        executionId: String(execId),
+                        workflowId: latestRun?.workflow_id || latestRun?.workflow?.id || undefined,
+                      },
+                    }));
+                  } else {
+                    openAgentDrawer('run');
+                  }
+                }}
+                sx={{
+                  ml: 0.5,
+                  fontWeight: 600,
+                  color: 'rgba(236, 81, 124, 0.95)',
+                  background: 'transparent',
+                  border: 'none',
+                  p: 0,
+                  borderBottom: '1px dashed rgba(236, 81, 124, 0.5)',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: 'rgba(236, 81, 124, 1)',
+                    borderBottomColor: 'rgba(236, 81, 124, 0.9)',
+                  },
+                }}
+              >
+                Debug
+              </Box>
             </>
           ) : !agentReadiness.active && !agentReadiness.isLoading ? (
+
             <>
               <span>AI Agent automation is off —</span>
               <Box
