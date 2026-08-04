@@ -7464,7 +7464,7 @@ const IncidentDetailPage = () => {
               <Box
                 component="button"
                 type="button"
-                onClick={(e) => { e.stopPropagation(); openAgentDrawer('permissions'); }}
+                onClick={(e) => { e.stopPropagation(); openAgentDrawer('permissions', { openToolPicker: true }); }}
                 sx={{
                   fontWeight: 600,
                   color: 'rgba(236, 81, 124, 0.95)',
