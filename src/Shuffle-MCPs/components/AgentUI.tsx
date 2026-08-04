@@ -1068,13 +1068,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             }}
           />
         </Tooltip>
-        {displayType === 'finalise' && finishedAtSec > 0 && (
-          <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>
-            <Box component="span" sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', flexShrink: 0, whiteSpace: 'nowrap' }}>
-              {formatAgo(finishedAtSec)}
-            </Box>
-          </Tooltip>
-        )}
+
+
 
         <Box sx={{
           flex: 1,
@@ -1112,9 +1107,16 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             )}
           </Box>
         </Tooltip>
-        <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
-          {dur > 0 ? (isProcessing ? `${Math.round(dur)}s` : `${dur.toFixed(2)}s`) : ''}
+        <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right', lineHeight: 1.3 }}>
+          {dur > 0 ? `${dur.toFixed(2)}s` : ''}
+          {displayType === 'finalise' && finishedAtSec > 0 && (
+            <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>
+              <Box component="div" sx={{ whiteSpace: 'nowrap', opacity: 0.75 }}>{formatAgo(finishedAtSec)}</Box>
+            </Tooltip>
+          )}
         </Box>
+
+
         {/* Per-row actions: Approve/Deny, Rerun */}
         <Box
           sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1, minWidth: 96, justifyContent: 'flex-end' }}
