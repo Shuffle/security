@@ -11615,7 +11615,9 @@ const IncidentDetailPage = () => {
             onChange={() => {}}
             validateJson={false}
             editable={false}
+            foldStateKey="incident-original"
           />
+
         </Box>
       )}
 
