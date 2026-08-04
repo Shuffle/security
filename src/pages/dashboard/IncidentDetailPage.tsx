@@ -1750,6 +1750,78 @@ const IncidentDetailPage = () => {
     return () => clearInterval(interval);
   }, [id, loading, loadRevisions]);
 
+  // Fallback lookup when the incident itself cannot be found: the same key may
+  // still exist in the revision history (typical when the last write timed
+  // out). Look it up so we can offer the user a manual restore. Nothing is
+  // written automatically.
+  useEffect(() => {
+    if (loading || incident || isPublicView || !id) return;
+    if (loadDebug?.stage === 'fetch-error' || loadDebug?.stage === 'no-success') return;
+    if (notFoundRevisionCheckedRef.current) return;
+    notFoundRevisionCheckedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      setNotFoundRevisionLoading(true);
+      try {
+        const categoryKey = DATASTORE_CATEGORIES.INCIDENTS;
+        const response = await fetch(
+          getApiUrl(`/api/v2/datastore/category/${encodeURIComponent(categoryKey)}/${encodeURIComponent(id)}/revisions`),
+          {
+            credentials: 'include',
+            headers: { ...getAuthHeader(), ...(crossOrgId ? { 'Org-Id': crossOrgId } : {}) },
+          },
+        );
+        if (!response.ok) return;
+        const result = await response.json();
+        const rawRevisions: any[] = Array.isArray(result) ? result : (result.data || result.revisions || []);
+        const sorted = [...rawRevisions].sort(
+          (a: any, b: any) => normalizeToMs(b.edited ?? b.created) - normalizeToMs(a.edited ?? a.created),
+        );
+        // Newest revision whose payload actually parses into something usable.
+        const usable = sorted
+          .map((rev) => ({ rev, parsed: parseRevisionValue(rev?.value) }))
+          .find((entry) => entry.parsed && typeof entry.parsed === 'object');
+        if (cancelled || !usable) return;
+        const p: any = usable.parsed;
+        const fi = p.finding_info_list?.[0] || p.finding_info || {};
+        setNotFoundRevision({
+          timestamp: normalizeToMs(usable.rev?.edited ?? usable.rev?.created) || undefined,
+          count: sorted.length,
+          title: p.title || fi.title || undefined,
+          value: p,
+        });
+      } catch {
+        /* ignore — the not-found screen stays as-is */
+      } finally {
+        if (!cancelled) setNotFoundRevisionLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [loading, incident, isPublicView, id, loadDebug?.stage, crossOrgId]);
+
+  // Manual restore from the not-found revision fallback. User-initiated only.
+  const handleRestoreFromNotFoundRevision = async () => {
+    if (!id || !notFoundRevision?.value || notFoundRestoring) return;
+    setNotFoundRestoring(true);
+    try {
+      const res = await writeIncidentSafe(id, notFoundRevision.value, crossOrgId || undefined);
+      if (!res.success) {
+        toast.error(res.error || 'Failed to restore this version');
+        return;
+      }
+      toast.success('Incident restored from its last revision');
+      setNotFoundRevision(null);
+      notFoundRevisionCheckedRef.current = false;
+      retryFullLoad();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to restore this version');
+    } finally {
+      setNotFoundRestoring(false);
+    }
+  };
+
+
+
   const [forwardingApps, setForwardingApps] = useState<Array<{ id: string; name: string; large_image: string; categories: string[] }>>([]);
   const [forwardingAppsLoading, setForwardingAppsLoading] = useState(false);
   const sourceAppImage = useSourceAppImage(incident?.source ?? null, crossOrgId);
