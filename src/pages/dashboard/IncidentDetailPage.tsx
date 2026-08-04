@@ -11327,42 +11327,11 @@ const IncidentDetailPage = () => {
                   forceRawReloadRef.current = true;
                   await loadIncident(false);
                   toast.success('Raw OCSF reloaded');
+                  // Fallback if the fetch did not repopulate the editor.
+                  if (!forceRawReloadRef.current) return;
+                  forceRawReloadRef.current = false;
                   if (incident?.rawOCSF) {
-                    const severityOption = severityOptions.find(s => s.value === editedSeverity);
-                    const { label: statusLabel, id: statusId } = getOCSFStatus(editedStatus);
-                    const existingFindingInfo = incident.rawOCSF?.finding_info_list?.[0] || (incident.rawOCSF as any)?.finding_info;
-                    const liveSnapshot = {
-                      ...incident.rawOCSF,
-                      desc: editedMessage || editedTitle,
-                      severity_id: severityOption?.id || 3,
-                      severity: severityOption?.label || 'Medium',
-                      status_id: statusId,
-                      status: statusLabel,
-                      assignee: editedAssignee.trim() || '',
-                      types: editedLabels,
-                      observables: editedObservables,
-                      tasks,
-                      activity,
-                      finding_info_list: [{
-                        ...existingFindingInfo,
-                        title: editedTitle,
-                        references: editedReferences,
-                        src_url: editedReferences[0] || '',
-                      }],
-                      metadata: {
-                        ...incident.rawOCSF.metadata,
-                        extensions: {
-                          ...incident.rawOCSF.metadata?.extensions,
-                          custom_attributes: {
-                            ...incident.rawOCSF.metadata?.extensions?.custom_attributes,
-                            tlp: editedTlp,
-                            assignee: editedAssignee.trim() || '',
-                            customFields: editedCustomFields,
-                          },
-                        },
-                      },
-                    };
-                    setRawJsonText(JSON.stringify(liveSnapshot, null, 2));
+                    setRawJsonText(JSON.stringify(incident.rawOCSF, null, 2));
                   }
                 }}
                 sx={{
