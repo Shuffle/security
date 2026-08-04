@@ -913,10 +913,19 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // If the run as a whole has finished, treat any still-RUNNING/WAITING rows
   // (typically an unanswered ASK that the agent moved past) as ignored so we
   // don't keep highlighting them with the orange "running" bar.
-  const effectiveStatus =
-    runFinished && (item.status === 'RUNNING' || item.status === 'WAITING')
-      ? 'IGNORED'
-      : item.status;
+  const isFinaliseRow =
+    item.category === 'finalise' || item.category === 'finish' ||
+    details?.action === 'finalise' || details?.action === 'finish';
+  const effectiveStatus = (() => {
+    const s = (item.status || '').toUpperCase();
+    if (!runFinished) return item.status;
+    // The finalise row IS the run's completion — never leave it spinning once
+    // the run itself reports FINISHED, even if the row carries no status.
+    if (isFinaliseRow && (s === '' || s === 'RUNNING' || s === 'WAITING')) return 'FINISHED';
+    if (s === 'RUNNING' || s === 'WAITING') return 'IGNORED';
+    return item.status;
+  })();
+
   const isFailed = effectiveStatus === 'FAILURE' || effectiveStatus === 'ABORTED';
   // Default bar color: only failed executions stand out; everything else is
   // neutral so the timeline does not look like a color parade.
