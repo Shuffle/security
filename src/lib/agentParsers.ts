@@ -206,9 +206,13 @@ export const getAgentSkipInfo = (run: AgentRun): AgentSkipInfo => {
   //    "Skipped" rather than "Needs attention".
   const haystack = collectRunText(run).toLowerCase();
   if (haystack) {
+    // A genuine agent/LLM failure anywhere in the run text wins over any
+    // routing text — those runs need attention, not a quiet "Skipped" pill.
+    if (isHardFailureReason(haystack)) return { skipped: false };
     const notReached = haystack.includes('did not start due to the workflow not reaching this point');
     const branchFail = /minimum of one branch'?s? conditions must be correct to continue/.test(haystack);
     if (notReached || branchFail) {
+
       return {
         skipped: true,
         reason: branchFail
