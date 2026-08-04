@@ -2474,6 +2474,42 @@ const IncidentDetailPage = () => {
     return () => window.removeEventListener('workflow-run:changed', onChanged as EventListener);
   }, [refetchWorkflowRuns, refetchAgentRuns]);
 
+  // The execution behind the "Checking your message for observables…" pill:
+  // the newest workflow run that touched this incident in the last ~90s.
+  // Both the pill and its auto-clear effect read the SAME run so the pill and
+  // the run drawer can never disagree about whether it is still executing.
+  const observableCheckRun = useMemo(() => {
+    const now = Date.now();
+    return (allIncidentWorkflowRuns || [])
+      .filter((r: any) => {
+        const ts = normalizeToMs(r?.started_at);
+        return ts > 0 && (now - ts) < 90_000;
+      })
+      .sort((a: any, b: any) => normalizeToMs(b.started_at) - normalizeToMs(a.started_at))[0] as any;
+  }, [allIncidentWorkflowRuns]);
+
+  // As soon as that execution reports a terminal status, drop the spinner —
+  // previously the pill hung around until the enrichment count changed or the
+  // 7s safety timer fired, which could lag the drawer by up to 10 seconds.
+  useEffect(() => {
+    if (!refreshingObservables || !observableCheckRun) return;
+    const status = String(observableCheckRun.status || '').toUpperCase();
+    if (status && status !== 'EXECUTING' && status !== 'RUNNING' && status !== 'WAITING') {
+      setRefreshingObservables(false);
+      obsRefreshBaselineRef.current = null;
+    }
+  }, [refreshingObservables, observableCheckRun]);
+
+  // While the observable check is in flight, poll the run list immediately so
+  // the terminal status is picked up on the very next tick instead of waiting
+  // for the slow 60s cadence to catch up.
+  useEffect(() => {
+    if (!refreshingObservables) return;
+    refetchWorkflowRuns();
+  }, [refreshingObservables, refetchWorkflowRuns]);
+
+
+
   // Pull open agent-handoff notifications so any workflow execution that is
   // stuck on a Question can render the answer form inline in the timeline.
   const { notifications: agentNotifications, refresh: refreshAgentNotifications } = useAgentNotifications();
