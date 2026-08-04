@@ -103,6 +103,8 @@ interface CorrelationRowProps {
   compact?: boolean;
   /** When set, the matching incident chip in this row gets a pulse highlight (used when arriving via ?focus=…). */
   focusedIncidentKey?: string;
+  /** Render rows the user has hidden (dimmed) so they can be un-hidden again. */
+  revealIgnored?: boolean;
 }
 
 /**
@@ -111,7 +113,7 @@ interface CorrelationRowProps {
  * the Correlations page: groups refs by datastore category, dims the current
  * incident, and renders incident chips as links.
  */
-export const CorrelationRow = ({ correlation, currentIncidentId, ignoredObservables, className, compact = false, focusedIncidentKey }: CorrelationRowProps) => {
+export const CorrelationRow = ({ correlation, currentIncidentId, ignoredObservables, className, compact = false, focusedIncidentKey, revealIgnored = false }: CorrelationRowProps) => {
   // Pivot popover state — keyed by the incident key the user clicked so two
   // chips in the same row don't fight over the same anchor element.
   const [pivotAnchor, setPivotAnchor] = useState<{ el: HTMLElement; key: string; category: string } | null>(null);
@@ -129,7 +131,7 @@ export const CorrelationRow = ({ correlation, currentIncidentId, ignoredObservab
   // Group refs by category through the shared visibility filter so rendered
   // rows, badges, headers, and timeline pills all agree on what counts.
   const refsByCategory: Record<string, string[]> = {};
-  getVisibleCorrelationRefs(correlation, { currentIncidentId, isValueIgnored: ignoredObs.isValueIgnored }).forEach(({ category, key }) => {
+  getVisibleCorrelationRefs(correlation, { currentIncidentId, isValueIgnored: revealIgnored ? undefined : ignoredObs.isValueIgnored }).forEach(({ category, key }) => {
     if (!refsByCategory[category]) refsByCategory[category] = [];
     refsByCategory[category].push(key);
   });
@@ -161,7 +163,8 @@ export const CorrelationRow = ({ correlation, currentIncidentId, ignoredObservab
         border: iocMatch
           ? '1px solid hsl(var(--destructive) / 0.5)'
           : '1px solid hsl(var(--border))',
-        transition: 'border-color 120ms ease',
+        opacity: isHidden ? 0.55 : 1,
+        transition: 'border-color 120ms ease, opacity 120ms ease',
         '&:hover': {
           borderColor: iocMatch ? 'hsl(var(--destructive) / 0.7)' : 'hsl(var(--border) / 0.8)',
         },
