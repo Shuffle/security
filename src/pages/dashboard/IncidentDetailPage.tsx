@@ -7443,12 +7443,14 @@ const IncidentDetailPage = () => {
                   // Prefer the actual execution when one exists — that is the
                   // only place the real failure/latency is visible. Fall back
                   // to the agent sidebar when nothing was ever recorded.
-                  const execId = observableCheckRun?.execution_id;
+                  const latestRun: any = [...(allIncidentWorkflowRuns || [])]
+                    .sort((a: any, b: any) => normalizeToMs(b?.started_at) - normalizeToMs(a?.started_at))[0];
+                  const execId = latestRun?.execution_id;
                   if (execId) {
                     window.dispatchEvent(new CustomEvent('workflow-run:open', {
                       detail: {
                         executionId: String(execId),
-                        workflowId: observableCheckRun?.workflow_id || observableCheckRun?.workflow?.id || undefined,
+                        workflowId: latestRun?.workflow_id || latestRun?.workflow?.id || undefined,
                       },
                     }));
                   } else {
