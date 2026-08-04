@@ -4,6 +4,7 @@
  */
 
 import { getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
+import { resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 
 export interface AgentNotification {
   id: string;
@@ -157,30 +158,7 @@ export const parseAgentApprovalParams = (refUrl: string | undefined | null): {
  * continuation". When the notification/reference URL does not carry it, we
  * look it up from the execution results and pick the AI Agent action.
  */
-export const resolveAgentNodeId = async (
-  executionId: string,
-  authorization: string,
-): Promise<string> => {
-  try {
-    const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ execution_id: executionId, authorization }),
-    });
-    if (!resp.ok) return '';
-    const data = await resp.json();
-    const results: Array<{ action?: { id?: string; app_name?: string } }> = Array.isArray(data?.results)
-      ? data.results
-      : [];
-    const agentAction =
-      results.find((r) => (r?.action?.app_name || '').toLowerCase() === 'ai agent') ||
-      results.find((r) => (r?.action?.app_name || '').toLowerCase().includes('agent'));
-    return agentAction?.action?.id || '';
-  } catch {
-    return '';
-  }
-};
+export { resolveAgentNodeId };
 
 
 /**

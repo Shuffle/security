@@ -429,7 +429,7 @@ import { fetchApps } from '@/Shuffle-MCPs/appsCache';
 import { resolveApps } from '@/Shuffle-MCPs/resolveApp';
 import { toast } from '@/Shuffle-MCPs/toast';
 import { detectLLMProvider, getProviderLogoUrl } from '@/Shuffle-MCPs/llmProviderDetect';
-import { runAgent } from '@/Shuffle-MCPs/agentRun';
+import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
 
@@ -2598,6 +2598,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       agentic: 'true',
       decision_id: decisionId,
     });
+    // The backend needs the Agentic action ID to find the start node, or it
+    // fails with "No Agentic Start node found … during workflow continuation".
+    const nodeId = await resolveAgentNodeId(execution.execution_id, execution.authorization);
+    params.set('node_id', nodeId || 'null');
     try {
       const resp = await fetch(resolveUrl(`/api/v1/workflows/${wfId}/run?${params.toString()}`), {
         method: 'GET',

@@ -404,3 +404,37 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     };
   }
 };
+
+/**
+ * Resolve the Agentic action ("node") ID for a running execution.
+ *
+ * CANONICAL implementation — every agent continuation path (inline timeline
+ * questions, dashboard dialog, handoff toasts, and the agent sidebar) must
+ * pass `node_id`, otherwise the backend logs:
+ *   "No Agentic Start node found for workflow … during workflow continuation"
+ */
+export const resolveAgentNodeId = async (
+  executionId: string,
+  authorization: string,
+): Promise<string> => {
+  if (!executionId || !authorization) return '';
+  try {
+    const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ execution_id: executionId, authorization }),
+    });
+    if (!resp.ok) return '';
+    const data = await resp.json();
+    const results: Array<{ action?: { id?: string; app_name?: string } }> = Array.isArray(data?.results)
+      ? data.results
+      : [];
+    const agentAction =
+      results.find((r) => (r?.action?.app_name || '').toLowerCase() === 'ai agent') ||
+      results.find((r) => (r?.action?.app_name || '').toLowerCase().includes('agent'));
+    return agentAction?.action?.id || '';
+  } catch {
+    return '';
+  }
+};
