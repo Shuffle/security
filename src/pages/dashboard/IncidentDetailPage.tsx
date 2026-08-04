@@ -5988,8 +5988,19 @@ const IncidentDetailPage = () => {
       const bCreate = isCreationItem(b);
       if (aCreate && !bCreate) return 1;   // creation always goes last
       if (bCreate && !aCreate) return -1;
+      // Backend execution timestamps are second-granular, so an automation
+      // triggered BY a comment can normalize to a value slightly older than
+      // the comment itself and sink below it. Within a 3s window, treat
+      // automation rows as happening AFTER the manual message that caused
+      // them so the causal order reads correctly (newest first).
+      const isAutomation = (t: string) => t === 'workflow-exec' || t === 'agent';
+      if (Math.abs(a.timestamp - b.timestamp) <= 3000) {
+        if (a.type === 'manual' && isAutomation(b.type)) return 1;
+        if (b.type === 'manual' && isAutomation(a.type)) return -1;
+      }
       return b.timestamp - a.timestamp;     // otherwise newest first
     });
+
 
     if (items.length === 0) {
       const allHidden = activeTimelineFilters.size === 0;
