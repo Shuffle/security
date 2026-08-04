@@ -8021,15 +8021,15 @@ const IncidentDetailPage = () => {
       const showAgentProcessing = (aiHandled || hasPendingRerun || isManualActivity) && mentionsAgent && !hasAgentReply;
       const isTimedOut = showAgentProcessing && ageMs > AI_RESPONSE_TIMEOUT_MS;
 
-      // Indicator-check pill: attaches under the most recent top-level manual
-      // comment whenever a backend indicator scan is running.
+      // Indicator-check pill: attaches under the most recent manual comment
+      // (including replies) whenever a backend indicator scan is running.
       const showIndicatorCheck =
-        !isReply
-        && isManualActivity
+        isManualActivity
         && itemKey === latestManualKey
         && refreshingObservables
         && enrichmentStatus.active;
 
+      if (!node && replies.length === 0) return null;
       if (replies.length === 0 && !showAgentProcessing && !showIndicatorCheck) return node;
 
       const cappedDepth = Math.min(depth, 4);
