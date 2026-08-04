@@ -841,8 +841,15 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const details = item.details as AgentDecision | undefined;
   const isProcessing = item.category === 'processing';
   const isLiveProcessing = isProcessing && (item.status || '').toUpperCase() === 'EXECUTING';
+  // More than 60s without a new decision: the run is most likely stuck, not
+  // still thinking. Flag it as a likely (not definite) timeout.
+  const isLikelyTimedOut =
+    isLiveProcessing && (item.end_time || 0) - (item.start_time || 0) > 60;
   if (isProcessing) {
-    displayType = 'processing';
+    displayType = isLikelyTimedOut ? 'likely timed out' : 'processing';
+    if (isLikelyTimedOut) {
+      displayLabel = 'No new activity for over a minute — this run has most likely timed out.';
+    }
   } else if (details?.reason) {
     displayLabel = details.reason;
   }
@@ -1000,7 +1007,9 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           {isRerunTarget ? (
             <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
           ) : isProcessing ? (
-            isLiveProcessing ? (
+            isLikelyTimedOut ? (
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: STATUS_COLORS.warning }} />
+            ) : isLiveProcessing ? (
               <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
             ) : (
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
@@ -1031,8 +1040,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           sx={{
             height: 22,
             bgcolor: isProcessing ? 'transparent' : 'hsl(var(--muted))',
-            color: isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
-            border: isProcessing ? '1px dashed hsl(var(--border))' : 'none',
+            color: isLikelyTimedOut ? STATUS_COLORS.warning : isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+            border: isLikelyTimedOut ? `1px dashed ${STATUS_COLORS.warning}` : isProcessing ? '1px dashed hsl(var(--border))' : 'none',
             fontSize: '0.7rem',
             fontWeight: 500,
             textTransform: 'capitalize',
