@@ -3509,6 +3509,12 @@ const IncidentDetailPage = () => {
   useEffect(() => {
     if (loading || !incident || !revisionsLoaded) return;
     if (ocsfFallbackAttemptedRef.current) return;
+    if (revisionRestoredRef.current) {
+      // The user deliberately rolled back to an older snapshot — never fold
+      // newer revisions back on top of it.
+      ocsfFallbackAttemptedRef.current = true;
+      return;
+    }
 
     const liveIsOcsf = isOcsfShapedData(incident.rawOCSF);
     const missingFields = liveIsOcsf ? getMissingCriticalFields(incident.rawOCSF) : [];
