@@ -1036,21 +1036,26 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           )}
         </Box>
 
-        <Chip
-          label={displayType}
-          size="small"
-          sx={{
-            height: 22,
-            bgcolor: isProcessing ? 'transparent' : 'hsl(var(--muted))',
-            color: isLikelyTimedOut ? STATUS_COLORS.warning : isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
-            border: isLikelyTimedOut ? `1px dashed ${STATUS_COLORS.warning}` : isProcessing ? '1px dashed hsl(var(--border))' : 'none',
-            fontSize: '0.7rem',
-            fontWeight: 500,
-            textTransform: 'capitalize',
-            minWidth: 80,
-            fontStyle: isProcessing ? 'italic' : 'normal',
-          }}
-        />
+        <Tooltip
+          title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : ''}
+          arrow
+        >
+          <Chip
+            label={displayType}
+            size="small"
+            sx={{
+              height: 22,
+              bgcolor: isProcessing ? 'transparent' : 'hsl(var(--muted))',
+              color: isLikelyTimedOut ? STATUS_COLORS.warning : isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+              border: isLikelyTimedOut ? `1px dashed ${STATUS_COLORS.warning}` : isProcessing ? '1px dashed hsl(var(--border))' : 'none',
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'capitalize',
+              minWidth: 80,
+              fontStyle: isProcessing ? 'italic' : 'normal',
+            }}
+          />
+        </Tooltip>
         <Box sx={{
           flex: 1,
           minWidth: 180,
