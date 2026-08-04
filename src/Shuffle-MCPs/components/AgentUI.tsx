@@ -1107,15 +1107,15 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             )}
           </Box>
         </Tooltip>
-        <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
-          {dur > 0
-            ? `${dur.toFixed(2)}s`
-            : (displayType === 'finalise' && finishedAtSec > 0 ? (
-              <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>
-                <Box component="span" sx={{ whiteSpace: 'nowrap' }}>{formatAgo(finishedAtSec)}</Box>
-              </Tooltip>
-            ) : '')}
+        <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right', lineHeight: 1.3 }}>
+          {dur > 0 ? `${dur.toFixed(2)}s` : ''}
+          {displayType === 'finalise' && finishedAtSec > 0 && (
+            <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>
+              <Box component="div" sx={{ whiteSpace: 'nowrap', opacity: 0.75 }}>{formatAgo(finishedAtSec)}</Box>
+            </Tooltip>
+          )}
         </Box>
+
 
         {/* Per-row actions: Approve/Deny, Rerun */}
         <Box
