@@ -22,7 +22,7 @@ import {
   InputLabel,
 } from '@mui/material';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { toast } from '../toast';
+import { toast } from 'react-toastify';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import PopupTextEditor from './PopupTextEditor';
 import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
