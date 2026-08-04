@@ -130,6 +130,7 @@ export const parseAgentApprovalParams = (refUrl: string | undefined | null): {
   executionId: string;
   authorization: string;
   decisionId: string;
+  nodeId: string;
 } | null => {
   if (!refUrl) return null;
   try {
@@ -140,12 +141,47 @@ export const parseAgentApprovalParams = (refUrl: string | undefined | null): {
     const executionId = u.searchParams.get('execution_id') || '';
     const authorization = u.searchParams.get('authorization') || '';
     const decisionId = u.searchParams.get('decision_id') || '';
+    const nodeId = u.searchParams.get('node_id') || '';
     if (!executionId || !authorization) return null;
-    return { executionId, authorization, decisionId };
+    return { executionId, authorization, decisionId, nodeId };
   } catch {
     return null;
   }
 };
+
+/**
+ * Resolve the Agentic action (node) ID for an execution.
+ *
+ * Workflow continuation requires `&node_id={action.id}` — without it the
+ * backend logs "No Agentic Start node found for workflow … during workflow
+ * continuation". When the notification/reference URL does not carry it, we
+ * look it up from the execution results and pick the AI Agent action.
+ */
+export const resolveAgentNodeId = async (
+  executionId: string,
+  authorization: string,
+): Promise<string> => {
+  try {
+    const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ execution_id: executionId, authorization }),
+    });
+    if (!resp.ok) return '';
+    const data = await resp.json();
+    const results: Array<{ action?: { id?: string; app_name?: string } }> = Array.isArray(data?.results)
+      ? data.results
+      : [];
+    const agentAction =
+      results.find((r) => (r?.action?.app_name || '').toLowerCase() === 'ai agent') ||
+      results.find((r) => (r?.action?.app_name || '').toLowerCase().includes('agent'));
+    return agentAction?.action?.id || '';
+  } catch {
+    return '';
+  }
+};
+
 
 /**
  * Continue (or reject) an agent execution that is currently waiting on a
