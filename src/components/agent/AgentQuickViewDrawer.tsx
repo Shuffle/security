@@ -497,17 +497,8 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
 
       {/* Footer actions */}
       <Box sx={footerSx}>
-        {data.isQuestion && data.notification && (
-          <Button
-            onClick={handleSubmitAnswers}
-            fullWidth variant="contained"
-            disabled={!data.questions.every((_, i) => questionAnswers[i]?.trim())}
-            startIcon={<Send size={15} />}
-            sx={approveButtonSx}
-          >
-            Submit Answers
-          </Button>
-        )}
+        {/* Questions are answered inline above via InlineAgentQuestion */}
+
         {data.isApproval && data.notification && (
           <>
             <Box sx={{
