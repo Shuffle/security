@@ -6262,6 +6262,27 @@ const IncidentDetailPage = () => {
       return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
     };
 
+    // Revisions with an empty diff (no-op writes) are not rendered. Numbering
+    // them by raw index therefore produced visible gaps ("Change #5" followed
+    // by "Change #4" then "#2"). Number them by their VISIBLE sequence
+    // instead, oldest = 1, so the list always reads consecutively.
+    const revisionDisplayNumbers = new Map<number, number>();
+    {
+      let visibleCount = 0;
+      for (let i = revisions.length - 1; i >= 0; i--) {
+        const prev = i < revisions.length - 1 ? parsedRevisions[i + 1] : null;
+        const d = prev ? computeDiff(parsedRevisions[i], prev) : null;
+        const total = d ? d.added.length + d.removed.length + d.changed.length : 0;
+        const hidden = !isOnlyRevisionsFilter && i !== revisions.length - 1 && !!d && total === 0;
+        if (hidden) continue;
+        visibleCount += 1;
+        revisionDisplayNumbers.set(i, visibleCount);
+      }
+    }
+    const revisionNumber = (idx: number) => revisionDisplayNumbers.get(idx) ?? (revisions.length - idx);
+
+
+
     // ─── Reply threading helpers ────────────────────────────────────────────
     // Each timeline item gets a stable canonical id; manual comments may carry
     // a `replyToId` pointing at one of those ids. We then group replies under
