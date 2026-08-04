@@ -6087,6 +6087,27 @@ const IncidentDetailPage = () => {
     if (isFilterActive('tasks') || isFilterActive('observables') || isFilterActive('correlations')) {
       const fallbackTs = incident?.createdTs ? normalizeToMs(incident.createdTs) : 0;
 
+      // Tasks written by older clients have no `createdAt`. Rather than
+      // pinning them to incident creation (which reads as "2h ago" for a task
+      // added seconds ago), map each task to the timestamp of the OLDEST
+      // revision that already contained it — that is when it first appeared.
+      const taskFirstSeenTs = (() => {
+        const map = new Map<string, number>();
+        // `revisions` is newest-first; walk oldest → newest so the first hit wins.
+        for (let i = revisions.length - 1; i >= 0; i--) {
+          const parsed = parsedRevisions[i];
+          const revTasks = Array.isArray(parsed?.tasks) ? parsed.tasks : [];
+          if (!revTasks.length) continue;
+          const ts = normalizeToMs(revisions[i]?.edited ?? revisions[i]?.created);
+          if (!(ts > 0)) continue;
+          revTasks.forEach((rt: any) => {
+            const key = String(rt?.id ?? rt?.title ?? '');
+            if (key && !map.has(key)) map.set(key, ts);
+          });
+        }
+        return map;
+      })();
+
       // Tasks — creation, status transitions, and completion each produce
       // a step so the user can see exactly when state changed and by whom.
       const laneLabel = (key: string): string =>
@@ -6094,7 +6115,8 @@ const IncidentDetailPage = () => {
         || (key === 'done' ? 'Done' : key.replace(/[_-]+/g, ' '));
 
       if (isFilterActive('tasks')) visibleTasks.forEach((t) => {
-        const createdTs = t.createdAt ? normalizeToMs(t.createdAt) : fallbackTs;
+        const revisionTs = taskFirstSeenTs.get(String(t.id)) ?? taskFirstSeenTs.get(String(t.title)) ?? 0;
+        const createdTs = t.createdAt ? normalizeToMs(t.createdAt) : (revisionTs || fallbackTs);
         if (createdTs > 0) {
           items.push({
             type: 'step',
