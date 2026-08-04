@@ -2942,11 +2942,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const rd = dec.run_details || {};
       const decStartSec = toSec(rd.started_at);
       const decEndSec = toSec(rd.completed_at);
+      const decIsFinish = dec.action === 'finish' || dec.category === 'finish'
+        || dec.details?.action === 'finalise' || dec.action === 'finalise';
       // Only fall back to "now"/run-end when we actually know when the
       // decision started — otherwise the bar would stretch from epoch 0
       // to now and look like a full-width row.
-      const startTime = decStartSec || 0;
-      const endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
+      // Finalise rows often come back with started_at/completed_at = 0. Anchor
+      // them to the run's end time so the preceding "Processing" gap is
+      // computed correctly and the duration is accurate.
+      let startTime = decStartSec || 0;
+      let endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
+      if (decIsFinish && !decStartSec && !decEndSec && (runEndSec || fallbackEnd)) {
+        const anchor = runEndSec || fallbackEnd;
+        startTime = anchor;
+        endTime = anchor;
+      }
       items.push({
         label: dec.action,
         type: 'decision',
@@ -2956,6 +2966,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         end_time: endTime,
         details: dec,
       });
+
       if (dec.action === 'finish' || dec.category === 'finish' || dec.details?.action === 'finalise' || dec.action === 'finalise') {
         finishId = rd.id || '';
         const reasonText = (dec.reason || '').trim();
