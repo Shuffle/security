@@ -1533,13 +1533,14 @@ const IncidentDetailPage = () => {
   }, [activity]);
   const incidentAgeMs = incident?.createdTs ? nowTick - normalizeToMs(incident.createdTs) : Infinity;
   const lastCommentAgeMs = lastManualCommentTs ? nowTick - lastManualCommentTs : Infinity;
-  const isTypingComment = newComment.trim().length > 0;
+  // NOTE: this banner deliberately does NOT react to typing. It sits above the
+  // comment input, so toggling it on the first keystroke shifted all content
+  // below it and made the page appear to jump/scroll while writing.
   const showEnrichmentInlineCTA =
     !enrichmentStatus.isLoading
     && !enrichmentStatus.active
     && (
-      isTypingComment
-      || incidentAgeMs < FRESH_INCIDENT_CTA_MS
+      incidentAgeMs < FRESH_INCIDENT_CTA_MS
       || lastCommentAgeMs < FRESH_COMMENT_CTA_MS
     );
   // Keep nowTick advancing while a time-based window is in play so the
