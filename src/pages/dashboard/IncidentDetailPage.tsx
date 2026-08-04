@@ -1395,6 +1395,12 @@ const IncidentDetailPage = () => {
     return count;
   }, [revisions, isOnlyRevisionsFilter]);
   const [selectedRevisionIdx, setSelectedRevisionIdx] = useState<number | null>(null);
+  // Set once the user explicitly restores an older revision. While true, the
+  // background reconstruction passes (OCSF revision folding, relation
+  // reconciliation) are skipped for this page session — otherwise they would
+  // immediately fold dropped fields (activity, pointers) back in and the
+  // rollback would look like it never happened.
+  const revisionRestoredRef = useRef(false);
 
   // "Not found" fallback: the live datastore lookup can come back empty when
   // the item write timed out upstream. Before showing a dead end, check the
