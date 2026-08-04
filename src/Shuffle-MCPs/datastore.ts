@@ -798,6 +798,22 @@ const tryExtractItemsFromBody = (rawBody: string): { items: DatastoreItem[]; cat
 };
 
 /**
+ * Drop items that do not belong to the org we asked for.
+ *
+ * A child tenant's `list_cache` can echo back entries owned by the parent org
+ * (inherited/shared cache entries). Those must never surface inside a child
+ * org. Items without an `org_id` are kept — older backends omit the field.
+ */
+const scopeItemsToOrg = <T extends { org_id?: string; orgId?: string }>(items: T[], orgId: string): T[] => {
+  if (!Array.isArray(items)) return items;
+  return items.filter((item) => {
+    const owner = (item as any)?.org_id || (item as any)?.orgId;
+    if (!owner || typeof owner !== 'string') return true;
+    return owner === orgId;
+  });
+};
+
+/**
  * Get all items in a category with optional cursor-based pagination
  */
 export const getDatastoreByCategory = async (
