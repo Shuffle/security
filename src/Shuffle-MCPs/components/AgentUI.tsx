@@ -1068,13 +1068,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             }}
           />
         </Tooltip>
-        {displayType === 'finalise' && finishedAtSec > 0 && (
-          <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>
-            <Box component="span" sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', flexShrink: 0, whiteSpace: 'nowrap' }}>
-              {formatAgo(finishedAtSec)}
-            </Box>
-          </Tooltip>
-        )}
+
+
 
         <Box sx={{
           flex: 1,
