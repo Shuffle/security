@@ -29,6 +29,12 @@ interface HighlightedFileEditorProps {
   validateJson?: boolean;
   onValidationChange?: (isValid: boolean) => void;
   editable?: boolean;
+  /**
+   * Identifier used to remember which top-level fields the user expanded or
+   * collapsed. The same key reuses the same layout across incidents/sessions.
+   */
+  foldStateKey?: string;
+
 }
 
 const jsonHighlight = HighlightStyle.define([
