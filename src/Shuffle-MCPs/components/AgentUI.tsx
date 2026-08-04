@@ -808,6 +808,15 @@ interface TimelineRowProps {
   dimmedByRerun?: boolean;
 }
 
+/** Compact relative time, e.g. "44m ago". Input is Unix seconds. */
+const formatAgo = (sec: number): string => {
+  const diff = Math.max(0, Date.now() / 1000 - sec);
+  if (diff < 60) return `${Math.round(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+};
+
 const TimelineRow: React.FC<TimelineRowProps> = ({
   item, index, open, onToggle, appsById, totalDuration, originalStartTime,
   maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
@@ -845,6 +854,9 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // still thinking. Flag it as a likely (not definite) timeout.
   const isLikelyTimedOut =
     isLiveProcessing && (item.end_time || 0) - (item.start_time || 0) > 60;
+  // When this row is the run's Finalise, how long ago it completed.
+  const finishedAtSec = item.end_time || item.start_time || 0;
+
   if (isProcessing) {
     displayType = 'processing';
     displayLabel = '';
@@ -1056,6 +1068,14 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             }}
           />
         </Tooltip>
+        {displayType === 'finalise' && finishedAtSec > 0 && (
+          <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>
+            <Box component="span" sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              {formatAgo(finishedAtSec)}
+            </Box>
+          </Tooltip>
+        )}
+
         <Box sx={{
           flex: 1,
           minWidth: 180,
@@ -2942,11 +2962,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const rd = dec.run_details || {};
       const decStartSec = toSec(rd.started_at);
       const decEndSec = toSec(rd.completed_at);
+      const decIsFinish = dec.action === 'finish' || dec.category === 'finish'
+        || dec.details?.action === 'finalise' || dec.action === 'finalise';
       // Only fall back to "now"/run-end when we actually know when the
       // decision started — otherwise the bar would stretch from epoch 0
       // to now and look like a full-width row.
-      const startTime = decStartSec || 0;
-      const endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
+      // Finalise rows often come back with started_at/completed_at = 0. Anchor
+      // them to the run's end time so the preceding "Processing" gap is
+      // computed correctly and the duration is accurate.
+      let startTime = decStartSec || 0;
+      let endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
+      if (decIsFinish && !decStartSec && !decEndSec && (runEndSec || fallbackEnd)) {
+        const anchor = runEndSec || fallbackEnd;
+        startTime = anchor;
+        endTime = anchor;
+      }
       items.push({
         label: dec.action,
         type: 'decision',
@@ -2956,6 +2986,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         end_time: endTime,
         details: dec,
       });
+
       if (dec.action === 'finish' || dec.category === 'finish' || dec.details?.action === 'finalise' || dec.action === 'finalise') {
         finishId = rd.id || '';
         const reasonText = (dec.reason || '').trim();
