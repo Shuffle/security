@@ -1752,6 +1752,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [appSearchOpen, setAppSearchOpen] = useState(false);
   /** Pre-filled query for the Tools app search (e.g. "git" from a suggestion chip). */
   const [appSearchQuery, setAppSearchQuery] = useState('');
+  /** Category chip the app search was opened for, so the pick can replace it. */
+  const [categoryTarget, setCategoryTarget] = useState<string | null>(null);
   const [authDrawerApp, setAuthDrawerApp] = useState<{ name: string; id?: string | null } | null>(null);
   const [agentRequestLoading, setAgentRequestLoading] = useState(false);
   // Optimistic UI: track which decision the user just clicked Rerun on so we
