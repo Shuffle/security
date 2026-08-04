@@ -11446,10 +11446,21 @@ const IncidentDetailPage = () => {
                   }
                   try {
                     const parsed = JSON.parse(rawJsonText);
+                    const isRollback = selectedRevisionIdx !== null;
+                    if (isRollback) {
+                      // Lock out the background reconstruction passes so the
+                      // rolled-back payload is not re-hydrated from newer
+                      // revisions right after the write.
+                      revisionRestoredRef.current = true;
+                      ocsfFallbackAttemptedRef.current = true;
+                      setOcsfFallbackInfo(null);
+                    }
                     setIsSaving(true);
                     const result = await writeIncidentSafe(incident.id, parsed, crossOrgId || undefined);
                     if (result.success) {
-                      toast.success('Raw data saved');
+                      toast.success(isRollback
+                        ? `Rolled back to change #${revisions.length - (selectedRevisionIdx ?? 0)}`
+                        : 'Raw data saved');
                       setSelectedRevisionIdx(null);
                       setRawJsonText(JSON.stringify(parsed, null, 2));
                       loadIncident(false);
