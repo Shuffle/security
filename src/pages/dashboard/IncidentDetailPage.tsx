@@ -6762,11 +6762,19 @@ const IncidentDetailPage = () => {
             : 'Executing for more than 5 minutes';
         const questionNotif = run.execution_id ? questionByExecId[String(run.execution_id)] : undefined;
         return (
-          <Box key={`wfexec-${run.execution_id}`} sx={{ display: 'flex', flexDirection: 'column' }}>
           <Box
+            key={`wfexec-${run.execution_id}`}
+            // The rail dot is drawn on the DIRECT child of the timeline
+            // container, so the compact/quiet markers must live on this
+            // wrapper — not on the inner row — otherwise the dot falls back
+            // to the tall-card offset and stays accent-orange.
             data-timeline-compact="true"
             data-timeline-quiet={!isFailed && !isRunning && !isWarning ? 'true' : undefined}
+            sx={{ display: 'flex', flexDirection: 'column' }}
+          >
+          <Box
             onClick={() => {
+
               if (run.execution_id) setSelectedWorkflowExecutionId(String(run.execution_id));
               else if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer');
             }}
