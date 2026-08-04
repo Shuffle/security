@@ -825,10 +825,15 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // always consistent (an item can start before the computed run start, or
   // still be running so its end is "now" and exceeds the total), which would
   // otherwise push the bar out of its track and over the duration column.
-  const rawOffset = totalDuration > 0 && hasTiming ? ((itemStart - originalStartTime) / totalDuration) * maxWidth : 0;
-  const offset = Number.isFinite(rawOffset) ? Math.min(Math.max(0, rawOffset), Math.max(0, maxWidth - 4)) : 0;
   const rawWidth = totalDuration > 0 && hasTiming ? Math.max(4, (dur / totalDuration) * maxWidth) : 0;
-  const width = Number.isFinite(rawWidth) ? Math.min(rawWidth, Math.max(4, maxWidth - offset)) : 0;
+  // Width is the source of truth: a longer duration must never render a
+  // shorter bar. Clamp it to the track, then slide the offset left so the
+  // bar stays inside the track instead of being truncated.
+  const width = Number.isFinite(rawWidth) ? Math.min(rawWidth, maxWidth) : 0;
+  const rawOffset = totalDuration > 0 && hasTiming ? ((itemStart - originalStartTime) / totalDuration) * maxWidth : 0;
+  const offset = Number.isFinite(rawOffset)
+    ? Math.min(Math.max(0, rawOffset), Math.max(0, maxWidth - width))
+    : 0;
 
   // Adapt label based on action/category
   let displayType = item.type as string;
