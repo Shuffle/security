@@ -73,6 +73,12 @@ import {
   getRandomAgentPromptPlaceholderForWidth,
   matchAgentPromptSuggestions,
 } from './agentPromptSuggestions';
+import {
+  getSuggestionAppRequirements,
+  prettySuggestionAppName,
+  type SuggestionAppRequirement,
+} from './agentSuggestionApps';
+import { AppFallbackIcon } from './AppFallbackIcon';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import AgentPresets, { AGENT_PRESETS, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
