@@ -4,7 +4,7 @@
  */
 
 import { getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
-import { resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
+import { resolveAgentNodeId, resolveAgentContinuationTargets } from '@/Shuffle-MCPs/agentRun';
 
 export interface AgentNotification {
   id: string;
@@ -218,18 +218,25 @@ export const continueAgentExecution = async (params: {
     agentic: 'true',
   });
   if (decisionId) qs.set('decision_id', decisionId);
-  // The backend needs the Agentic action ID to find the start node. Use the
-  // explicit one, then the reference URL, then look it up on the execution.
-  const resolvedNodeId =
-    nodeId || fromUrl?.nodeId || (await resolveAgentNodeId(executionId, authorization));
+  // The backend needs the Agentic action ID to find the start node, and the
+  // REAL workflow ID for the path — the workflow ID is NOT the execution ID.
+  const needsLookup = !nodeId && !fromUrl?.nodeId || !notification.workflow_id;
+  const resolved = needsLookup
+    ? await resolveAgentContinuationTargets(executionId, authorization)
+    : { nodeId: '', workflowId: '' };
+  const resolvedNodeId = nodeId || fromUrl?.nodeId || resolved.nodeId;
   qs.set('node_id', resolvedNodeId || 'null');
   if (noteParam) qs.set('note', noteParam);
 
-
+  const workflowId = notification.workflow_id || resolved.workflowId;
+  if (!workflowId) {
+    throw new Error('Could not resolve the workflow ID for this agent continuation.');
+  }
 
   const res = await shuffleFetch(
-    getApiUrl(`/api/v1/workflows/${executionId}/run?${qs.toString()}`),
+    getApiUrl(`/api/v1/workflows/${workflowId}/run?${qs.toString()}`),
   );
+
 
   if (!res.ok) {
     throw new Error(`Agent continue failed (${res.status})`);
