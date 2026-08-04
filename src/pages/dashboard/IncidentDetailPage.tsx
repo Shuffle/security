@@ -1228,7 +1228,20 @@ const IncidentDetailPage = () => {
        const el = document.querySelector(`[data-obs-highlight-key="${typeValueKey}"]`) as HTMLElement | null;
        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
      }, 80);
-   };
+    };
+
+    /**
+     * Jump to the Tasks tab and scroll to the task card matching the given id.
+     * Used by clickable task pills in the timeline.
+     */
+    const focusTaskFromTimeline = (taskId: string | null) => {
+      setActiveTab(1);
+      if (!taskId) return;
+      setTimeout(() => {
+        const el = document.querySelector(`[data-task-id="${CSS.escape(taskId)}"]`) as HTMLElement | null;
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    };
 
    /**
     * Jump to the Correlations tab and flash the row with the given
