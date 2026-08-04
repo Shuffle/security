@@ -1040,8 +1040,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           sx={{
             height: 22,
             bgcolor: isProcessing ? 'transparent' : 'hsl(var(--muted))',
-            color: isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
-            border: isProcessing ? '1px dashed hsl(var(--border))' : 'none',
+            color: isLikelyTimedOut ? STATUS_COLORS.warning : isProcessing ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+            border: isLikelyTimedOut ? `1px dashed ${STATUS_COLORS.warning}` : isProcessing ? '1px dashed hsl(var(--border))' : 'none',
             fontSize: '0.7rem',
             fontWeight: 500,
             textTransform: 'capitalize',
