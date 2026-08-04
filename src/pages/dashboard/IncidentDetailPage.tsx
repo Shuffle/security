@@ -6115,6 +6115,16 @@ const IncidentDetailPage = () => {
         || (key === 'done' ? 'Done' : key.replace(/[_-]+/g, ' '));
 
       if (isFilterActive('tasks')) visibleTasks.forEach((t) => {
+        // Current lane for the task, mirroring TaskKanbanBoard.getLane: an
+        // explicit `_lane` wins, completed tasks are Done, everything else
+        // falls back to the first open lane.
+        const laneKeys = taskStatuses.map((s) => s.key);
+        const currentLane = t.completed
+          ? 'done'
+          : ((t as any)._lane && laneKeys.includes((t as any)._lane)
+            ? (t as any)._lane
+            : (laneKeys.find((k) => k !== 'done') || laneKeys[0]));
+        const currentStatusLabel = laneLabel(currentLane);
         const revisionTs = taskFirstSeenTs.get(String(t.id)) ?? taskFirstSeenTs.get(String(t.title)) ?? 0;
         const createdTs = t.createdAt ? normalizeToMs(t.createdAt) : (revisionTs || fallbackTs);
         if (createdTs > 0) {
@@ -6125,6 +6135,8 @@ const IncidentDetailPage = () => {
             id: `step-task-created-${t.id}`,
             label: 'Task created',
             detail: t.title,
+            taskId: String(t.id),
+            taskStatusLabel: currentStatusLabel,
           });
         }
         // Status transitions captured in `statusHistory` (every drag between
@@ -6142,6 +6154,8 @@ const IncidentDetailPage = () => {
             id: `step-task-status-${t.id}-${hIdx}`,
             label: 'Task moved',
             detail: `${t.title} · ${laneLabel(entry.from)} → ${laneLabel(entry.to)}${entry.by ? ` by ${entry.by}` : ''}`,
+            taskId: String(t.id),
+            taskStatusLabel: currentStatusLabel,
           });
         });
         if (t.completed && t.completedAt) {
@@ -6154,6 +6168,8 @@ const IncidentDetailPage = () => {
               id: `step-task-completed-${t.id}`,
               label: 'Task completed',
               detail: t.title,
+              taskId: String(t.id),
+              taskStatusLabel: currentStatusLabel,
             });
           }
         }
