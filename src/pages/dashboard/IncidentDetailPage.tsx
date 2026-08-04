@@ -880,8 +880,23 @@ const IncidentDetailPage = () => {
   // Single source of truth for "is this observable hidden?" — used by the
   // Observables list filter, the Observables tab badge, and the Timeline
   // observables filter so the counts always agree.
+  //
+  // The Correlations tab hides by VALUE only (it has no OCSF type), so a value
+  // hidden there must also count as hidden here — otherwise the same indicator
+  // stays visible in one tab and hidden in the other.
   const isObservableIgnored = useCallback(
-    (type?: string, value?: string) => ignoredObs.isIgnored(type || '', value || ''),
+    (type?: string, value?: string) =>
+      isObservableIgnored(type || '', value || '') || ignoredObs.isValueIgnored(value || ''),
+    [ignoredObs],
+  );
+  // Un-hide an observable no matter which tab hid it: remove both the
+  // type-scoped row and the value-only row written by the Correlations tab.
+  const unignoreObservable = useCallback(
+    async (type?: string, value?: string) => {
+      const v = value || '';
+      if (ignoredObs.isIgnored(type || '', v)) await ignoredObs.unignore(type || '', v);
+      if (ignoredObs.isValueIgnored(v)) await ignoredObs.unignore('value', v);
+    },
     [ignoredObs],
   );
   const visibleObservablesCount = useMemo(() => {
@@ -1956,7 +1971,7 @@ const IncidentDetailPage = () => {
     isValueIgnored: ignoredObs.isValueIgnored,
   }), [id, ignoredObs.isValueIgnored]);
 
-  const visibleCorrelations = useMemo(() => {
+  const mergedCorrelations = useMemo(() => {
     const merged = new Map<string, { key: string; amount: number; ref: string[] }>();
     const add = (c: { key: string; amount: number; ref: string[] }) => {
       if (!c?.key) return;
@@ -1973,8 +1988,30 @@ const IncidentDetailPage = () => {
     };
     correlations.forEach(add);
     Object.values(obsCorrelations).forEach(entry => (entry?.data || []).forEach(add));
-    return filterMeaningfulCorrelations(Array.from(merged.values()), correlationVisibilityOptions);
-  }, [correlations, obsCorrelations, correlationVisibilityOptions]);
+    return Array.from(merged.values());
+  }, [correlations, obsCorrelations]);
+
+  const visibleCorrelations = useMemo(
+    () => filterMeaningfulCorrelations(mergedCorrelations, correlationVisibilityOptions),
+    [mergedCorrelations, correlationVisibilityOptions],
+  );
+
+  // Correlations the user has hidden but that would otherwise show — revealed
+  // by the "Show hidden" toggle so hiding is always reversible.
+  const hiddenCorrelations = useMemo(
+    () => filterMeaningfulCorrelations(
+      mergedCorrelations.filter(c => ignoredObs.isValueIgnored(String(c.key || ''))),
+      { currentIncidentId: id },
+    ),
+    [mergedCorrelations, ignoredObs, id],
+  );
+
+  // What the Correlations tab actually renders — hidden rows appear (dimmed)
+  // when the shared "show ignored" toggle is on.
+  const correlationRows = useMemo(
+    () => (showIgnoredObs ? [...visibleCorrelations, ...hiddenCorrelations] : visibleCorrelations),
+    [showIgnoredObs, visibleCorrelations, hiddenCorrelations],
+  );
 
   // ---------------------------------------------------------------------
   // Merge candidate suggestions
@@ -10359,14 +10396,14 @@ const IncidentDetailPage = () => {
               const seen = new Set<string>();
               for (const o of editedObservables) {
                 if ((o as any).archived) continue;
-                if (ignoredObs.isIgnored(o.type, o.value)) {
+                if (isObservableIgnored(o.type, o.value)) {
                   seen.add(`${(o.type || '').toLowerCase()}::${(o.value || '').toLowerCase()}`);
                 }
               }
               for (const e of enrichments) {
                 const t = e.type || 'unknown';
                 const v = (e as any).value || (e as any).data || '';
-                if (ignoredObs.isIgnored(t, v)) {
+                if (isObservableIgnored(t, v)) {
                   seen.add(`${t.toLowerCase()}::${String(v).toLowerCase()}`);
                 }
               }
@@ -10499,7 +10536,7 @@ const IncidentDetailPage = () => {
             let allObs = allObsRaw.filter(obs => {
               if (obsFilterTypes.length > 0 && !obsFilterTypes.includes(obs.type)) return false;
               if (filterLower && !obs.value.toLowerCase().includes(filterLower) && !obs.type.toLowerCase().includes(filterLower)) return false;
-              if (!showIgnoredObs && ignoredObs.isIgnored(obs.type, obs.value)) return false;
+              if (!showIgnoredObs && isObservableIgnored(obs.type, obs.value)) return false;
               return true;
             });
             // When the user has explicitly toggled "Show ignored", surface those
@@ -10507,8 +10544,8 @@ const IncidentDetailPage = () => {
             // to reconsider whether they should stay ignored — burying them at
             // the bottom (or mixed in dimmed) makes the toggle pointless.
             if (showIgnoredObs) {
-              const ignored = allObs.filter(o => ignoredObs.isIgnored(o.type, o.value));
-              const rest = allObs.filter(o => !ignoredObs.isIgnored(o.type, o.value));
+              const ignored = allObs.filter(o => isObservableIgnored(o.type, o.value));
+              const rest = allObs.filter(o => !isObservableIgnored(o.type, o.value));
               allObs = [...ignored, ...rest];
             }
 
@@ -10565,7 +10602,7 @@ const IncidentDetailPage = () => {
                     const d = typeof ts === 'number' ? new Date(ts < 1e12 ? ts * 1000 : ts) : new Date(ts);
                     return isNaN(d.getTime()) ? String(ts) : d.toLocaleString();
                   };
-                  const isThisIgnored = ignoredObs.isIgnored(obs.type, obs.value);
+                  const isThisIgnored = isObservableIgnored(obs.type, obs.value);
                   return (
                     <Box
                       key={obsRowKey}
@@ -10673,14 +10710,14 @@ const IncidentDetailPage = () => {
                             observables, persisted in the `ignored-observables`
                             datastore category. Hidden by default in the list. */}
                         {(() => {
-                          const isIgn = ignoredObs.isIgnored(obs.type, obs.value);
+                          const isIgn = isObservableIgnored(obs.type, obs.value);
                           return (
                             <Tooltip title={isIgn ? 'Stop ignoring this observable' : 'Hide this observable from the default view'} arrow>
                               <IconButton
                                 size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (isIgn) ignoredObs.unignore(obs.type, obs.value);
+                                  if (isIgn) unignoreObservable(obs.type, obs.value);
                                   else ignoredObs.ignore(obs.type, obs.value);
                                 }}
                                 sx={{
@@ -11010,7 +11047,7 @@ const IncidentDetailPage = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress size={24} />
             </Box>
-          ) : visibleCorrelations.length === 0 ? (
+          ) : correlationRows.length === 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1.5 }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 No correlations found for this incident
@@ -11051,6 +11088,36 @@ const IncidentDetailPage = () => {
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   · linked across other datastore items
                 </Typography>
+                {/* Reveal hidden correlations — same per-org ignore list the
+                    Observables tab uses, so hiding is reversible from here. */}
+                {hiddenCorrelations.length > 0 && (
+                  <Tooltip
+                    title={showIgnoredObs
+                      ? 'Hide correlations you have marked as ignored'
+                      : 'Reveal correlations you have marked as ignored'}
+                    arrow
+                  >
+                    <Chip
+                      icon={showIgnoredObs ? <VisibilityIcon size={12} /> : <VisibilityOffIcon size={12} />}
+                      label={showIgnoredObs
+                        ? `Hide hidden (${hiddenCorrelations.length})`
+                        : `Show hidden (${hiddenCorrelations.length})`}
+                      size="small"
+                      onClick={() => setShowIgnoredObs(s => !s)}
+                      sx={{
+                        fontSize: '0.65rem',
+                        height: 22,
+                        cursor: 'pointer',
+                        color: showIgnoredObs ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                        bgcolor: showIgnoredObs ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                        border: '1px solid',
+                        borderColor: showIgnoredObs ? 'hsl(var(--primary) / 0.4)' : 'hsl(var(--border))',
+                        '& .MuiChip-icon': { ml: 0.75, mr: -0.25, color: 'inherit' },
+                        '&:hover': { bgcolor: showIgnoredObs ? 'hsl(var(--primary) / 0.18)' : 'hsl(var(--muted) / 0.25)' },
+                      }}
+                    />
+                  </Tooltip>
+                )}
                 <Tooltip title="Re-run correlation search" arrow>
                   <span>
                     <IconButton
@@ -11074,7 +11141,7 @@ const IncidentDetailPage = () => {
 
               {/* Correlation list */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {[...visibleCorrelations]
+                {[...correlationRows]
                   .map((corr, idx) => ({ corr, idx }))
                   .sort((a, b) => {
                     // Rank: known IOC / threat-feed first, then by match count.
@@ -11082,8 +11149,8 @@ const IncidentDetailPage = () => {
                     const aIoc = hasIocMatch(a.corr) ? 1 : 0;
                     const bIoc = hasIocMatch(b.corr) ? 1 : 0;
                     if (aIoc !== bIoc) return bIoc - aIoc;
-                    const aCount = getEffectiveCorrelationCount(a.corr, correlationVisibilityOptions);
-                    const bCount = getEffectiveCorrelationCount(b.corr, correlationVisibilityOptions);
+                    const aCount = getEffectiveCorrelationCount(a.corr, { currentIncidentId: id });
+                    const bCount = getEffectiveCorrelationCount(b.corr, { currentIncidentId: id });
                     if (aCount !== bCount) return bCount - aCount;
                     return a.idx - b.idx;
                   })
@@ -11093,6 +11160,7 @@ const IncidentDetailPage = () => {
                     correlation={corr}
                     currentIncidentId={id}
                     ignoredObservables={ignoredObs}
+                    revealIgnored={showIgnoredObs}
                     focusedIncidentKey={focusedReferrerIncidentKey}
                     className={flashedCorrelationKey === corr.key ? 'incident-new-flash' : undefined}
                   />
