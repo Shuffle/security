@@ -2415,7 +2415,8 @@ const IncidentDetailPage = () => {
     if (invariantRaw !== incident.rawOCSF) {
       setIncident(prev => prev ? { ...prev, status: 'merged', rawOCSF: invariantRaw } : prev);
       setEditedStatus('merged');
-      setRawJsonText(JSON.stringify(invariantRaw, null, 2));
+      // Don't clobber the editor while the user is previewing an older revision.
+      if (selectedRevisionIdx === null) setRawJsonText(JSON.stringify(invariantRaw, null, 2));
       writeIncidentSafe(incident.id, invariantRaw, crossOrgId || undefined)
         .catch((err) => console.warn('[IncidentDetail] Failed to repair merged status invariant:', err));
       return;
