@@ -247,7 +247,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                 >
                   {p.icon}
                 </Box>
-                <Box sx={{ minWidth: 0 }}>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                       {p.label}
