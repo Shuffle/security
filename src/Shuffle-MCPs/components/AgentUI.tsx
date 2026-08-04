@@ -1006,6 +1006,12 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
           ) : isProcessing ? (
             isLikelyTimedOut ? (
+              <Tooltip title="No new activity for over a minute — this run has most likely timed out." arrow>
+                <Box sx={{ display: 'flex' }}>
+                  <WarningIcon size={14} color={STATUS_COLORS.warning} />
+                </Box>
+              </Tooltip>
+            ) : isLiveProcessing ? (
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: STATUS_COLORS.warning }} />
             ) : isLiveProcessing ? (
               <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
