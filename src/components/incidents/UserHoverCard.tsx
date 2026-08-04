@@ -336,7 +336,7 @@ export const UserHoverCard = ({ username, isAgent, className }: UserHoverCardPro
                 window.open('/agents#agent-activity', '_blank', 'noopener,noreferrer');
                 return;
               }
-              handleClick(e);
+              handleOrgAdminClick(e);
             }}
 
             startIcon={verifiedAgent ? <AgentIcon size={14} /> : <PersonIcon size={14} />}
