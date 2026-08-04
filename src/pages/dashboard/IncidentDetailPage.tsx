@@ -5366,6 +5366,50 @@ const IncidentDetailPage = () => {
           Back to {entityPlural}
         </Button>
 
+        {!isTransientLoadFailure && notFoundRevisionLoading && (
+          <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <CircularProgress size={14} thickness={5} />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Checking the revision history for this key…
+            </Typography>
+          </Box>
+        )}
+
+        {!isTransientLoadFailure && !notFoundRevisionLoading && notFoundRevision && (
+          <Box
+            sx={{
+              mt: 4,
+              textAlign: 'left',
+              p: 2,
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1,
+              bgcolor: 'hsl(var(--card))',
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'hsl(var(--foreground))' }}>
+              A previous version of this {entitySingular.toLowerCase()} exists in the revision history
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+              The stored item is missing, which usually means the last write timed out.
+              {notFoundRevision.title ? ` Last known title: "${notFoundRevision.title}".` : ''}
+              {notFoundRevision.timestamp
+                ? ` Last revision: ${new Date(notFoundRevision.timestamp).toLocaleString()}.`
+                : ''}
+              {` ${notFoundRevision.count} revision${notFoundRevision.count === 1 ? '' : 's'} found.`}
+              {' '}Nothing has been restored — you decide whether to bring it back.
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={notFoundRestoring}
+              onClick={handleRestoreFromNotFoundRevision}
+              startIcon={notFoundRestoring ? <CircularProgress size={14} thickness={5} /> : <RefreshIcon />}
+            >
+              {notFoundRestoring ? 'Restoring…' : 'Restore this version'}
+            </Button>
+          </Box>
+        )}
+
         {isSupport && loadDebug && (
           <Box
             sx={{
