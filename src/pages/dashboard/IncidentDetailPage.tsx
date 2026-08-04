@@ -1228,7 +1228,20 @@ const IncidentDetailPage = () => {
        const el = document.querySelector(`[data-obs-highlight-key="${typeValueKey}"]`) as HTMLElement | null;
        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
      }, 80);
-   };
+    };
+
+    /**
+     * Jump to the Tasks tab and scroll to the task card matching the given id.
+     * Used by clickable task pills in the timeline.
+     */
+    const focusTaskFromTimeline = (taskId: string | null) => {
+      setActiveTab(1);
+      if (!taskId) return;
+      setTimeout(() => {
+        const el = document.querySelector(`[data-task-id="${CSS.escape(taskId)}"]`) as HTMLElement | null;
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    };
 
    /**
     * Jump to the Correlations tab and flash the row with the given
@@ -5971,7 +5984,7 @@ const IncidentDetailPage = () => {
       | { type: 'agent'; timestamp: number; data: typeof agentRuns[number] }
       | { type: 'workflow-exec'; timestamp: number; data: typeof agentRuns[number] }
       | { type: 'manual'; timestamp: number; data: ActivityItem }
-      | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsKeys?: string[]; obsType?: string; obsValue?: string };
+      | { type: 'step'; timestamp: number; kind: StepKind; id: string; label: string; detail?: string; count?: number; corrCount?: number; corrObsKeys?: string[]; obsKeys?: string[]; obsType?: string; obsValue?: string; taskId?: string; taskStatusLabel?: string };
 
     const items: TimelineItem[] = [];
 
@@ -6115,6 +6128,16 @@ const IncidentDetailPage = () => {
         || (key === 'done' ? 'Done' : key.replace(/[_-]+/g, ' '));
 
       if (isFilterActive('tasks')) visibleTasks.forEach((t) => {
+        // Current lane for the task, mirroring TaskKanbanBoard.getLane: an
+        // explicit `_lane` wins, completed tasks are Done, everything else
+        // falls back to the first open lane.
+        const laneKeys = taskStatuses.map((s) => s.key);
+        const currentLane = t.completed
+          ? 'done'
+          : ((t as any)._lane && laneKeys.includes((t as any)._lane)
+            ? (t as any)._lane
+            : (laneKeys.find((k) => k !== 'done') || laneKeys[0]));
+        const currentStatusLabel = laneLabel(currentLane);
         const revisionTs = taskFirstSeenTs.get(String(t.id)) ?? taskFirstSeenTs.get(String(t.title)) ?? 0;
         const createdTs = t.createdAt ? normalizeToMs(t.createdAt) : (revisionTs || fallbackTs);
         if (createdTs > 0) {
@@ -6125,6 +6148,8 @@ const IncidentDetailPage = () => {
             id: `step-task-created-${t.id}`,
             label: 'Task created',
             detail: t.title,
+            taskId: String(t.id),
+            taskStatusLabel: currentStatusLabel,
           });
         }
         // Status transitions captured in `statusHistory` (every drag between
@@ -6142,6 +6167,8 @@ const IncidentDetailPage = () => {
             id: `step-task-status-${t.id}-${hIdx}`,
             label: 'Task moved',
             detail: `${t.title} · ${laneLabel(entry.from)} → ${laneLabel(entry.to)}${entry.by ? ` by ${entry.by}` : ''}`,
+            taskId: String(t.id),
+            taskStatusLabel: currentStatusLabel,
           });
         });
         if (t.completed && t.completedAt) {
@@ -6154,6 +6181,8 @@ const IncidentDetailPage = () => {
               id: `step-task-completed-${t.id}`,
               label: 'Task completed',
               detail: t.title,
+              taskId: String(t.id),
+              taskStatusLabel: currentStatusLabel,
             });
           }
         }
@@ -7007,6 +7036,10 @@ const IncidentDetailPage = () => {
             const el = document.getElementById('routing-rule-preview-banner');
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           };
+        } else if (item.taskId) {
+          // Task pills jump to the Tasks tab and scroll to the task card.
+          const taskId = item.taskId;
+          pillOnClick = () => focusTaskFromTimeline(taskId);
         }
         const isClickable = !!pillOnClick;
         // Detect whether the pill represents (or correlates to) an observable
@@ -7214,6 +7247,28 @@ const IncidentDetailPage = () => {
                 title={item.detail}
               >
                 {item.detail}
+              </Typography>
+            )}
+            {item.taskStatusLabel && (
+              <Typography
+                component="span"
+                sx={{
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.4,
+                  px: 0.6,
+                  py: 0.05,
+                  ml: 'auto',
+                  borderRadius: 999,
+                  bgcolor: 'hsl(var(--muted) / 0.6)',
+                  color: 'text.secondary',
+                  border: '1px solid hsl(var(--border-subtle))',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {item.taskStatusLabel}
               </Typography>
             )}
             {item.kind === 'observable-added' && !!item.corrCount && (

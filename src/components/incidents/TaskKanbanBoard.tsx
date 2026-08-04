@@ -345,6 +345,7 @@ export const TaskKanbanBoard = ({
                     <Box key={task.id}>
                       {renderDropSlot(idx)}
                       <Box
+                        data-task-id={task.id}
                         draggable
                         onDragStart={() => setDraggedTaskId(task.id)}
                         onDragEnd={() => {
