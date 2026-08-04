@@ -810,6 +810,10 @@ const IncidentDetailPage = () => {
   // new enrichments/observables show up — even if the scheduled 7s refresh
   // has not fired yet.
   const obsRefreshBaselineRef = useRef<number | null>(null);
+  // Wall-clock moment the current indicator check started. Used to ignore
+  // workflow runs that already existed before the check began.
+  const obsCheckStartedAtRef = useRef<number | null>(null);
+  const [obsCheckTick, setObsCheckTick] = useState(0);
   const obsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Early-clear the comment loader as soon as the visible observable/
   // enrichment count grows past the baseline captured at send time. The
