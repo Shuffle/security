@@ -4,7 +4,7 @@
  */
 
 import { getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
-import { resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
+import { resolveAgentNodeId, resolveAgentContinuationTargets } from '@/Shuffle-MCPs/agentRun';
 
 export interface AgentNotification {
   id: string;
