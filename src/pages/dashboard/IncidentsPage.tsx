@@ -581,13 +581,32 @@ const IncidentsPage = () => {
     return undefined;
   });
 
+  // Tracks which org the current in-memory filter state belongs to. When the
+  // active org changes (tenant switch), the previous tenant's `org` selection
+  // must NOT be written under the new org's key — otherwise switching from a
+  // child tenant back to the parent leaves the parent filtered to that child.
+  const hydratedOrgRef = useRef<string | null>(currentOrgId || null);
+  useEffect(() => {
+    if (!currentOrgId) return;
+    if (hydratedOrgRef.current === currentOrgId) return;
+    hydratedOrgRef.current = currentOrgId;
+    const persistedOrg = loadPersistedFilters(currentOrgId)?.filters?.org;
+    orgFilterValidatedRef.current = false;
+    setFilters(prev => ({
+      ...prev,
+      org: persistedOrg ?? (isChildOrg ? [currentOrgId] : null),
+    }));
+  }, [currentOrgId, isChildOrg]);
+
   // Persist incident filters to localStorage for up to 24 hours so reloads
   // and sidebar navigation restore the last active filter set. Keyed per
   // org so switching tenants doesn't leak the previous tenant's selection.
   useEffect(() => {
     if (!currentOrgId) return; // wait until we know which org to key under
+    if (hydratedOrgRef.current !== currentOrgId) return; // stale filters from previous tenant
     savePersistedFilters(currentOrgId, filters, negatedFilters, dateFrom, dateTo);
   }, [currentOrgId, filters, negatedFilters, dateFrom, dateTo]);
+
 
   const orgFilterValidatedRef = useRef(false);
   useEffect(() => {
