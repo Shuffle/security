@@ -11047,7 +11047,7 @@ const IncidentDetailPage = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress size={24} />
             </Box>
-          ) : visibleCorrelations.length === 0 ? (
+          ) : correlationRows.length === 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1.5 }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 No correlations found for this incident
@@ -11111,7 +11111,7 @@ const IncidentDetailPage = () => {
 
               {/* Correlation list */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {[...visibleCorrelations]
+                {[...correlationRows]
                   .map((corr, idx) => ({ corr, idx }))
                   .sort((a, b) => {
                     // Rank: known IOC / threat-feed first, then by match count.
@@ -11119,8 +11119,8 @@ const IncidentDetailPage = () => {
                     const aIoc = hasIocMatch(a.corr) ? 1 : 0;
                     const bIoc = hasIocMatch(b.corr) ? 1 : 0;
                     if (aIoc !== bIoc) return bIoc - aIoc;
-                    const aCount = getEffectiveCorrelationCount(a.corr, correlationVisibilityOptions);
-                    const bCount = getEffectiveCorrelationCount(b.corr, correlationVisibilityOptions);
+                    const aCount = getEffectiveCorrelationCount(a.corr, { currentIncidentId: id });
+                    const bCount = getEffectiveCorrelationCount(b.corr, { currentIncidentId: id });
                     if (aCount !== bCount) return bCount - aCount;
                     return a.idx - b.idx;
                   })
@@ -11130,6 +11130,7 @@ const IncidentDetailPage = () => {
                     correlation={corr}
                     currentIncidentId={id}
                     ignoredObservables={ignoredObs}
+                    revealIgnored={showIgnoredObs}
                     focusedIncidentKey={focusedReferrerIncidentKey}
                     className={flashedCorrelationKey === corr.key ? 'incident-new-flash' : undefined}
                   />
