@@ -272,14 +272,63 @@ export const UserHoverCard = ({ username, isAgent, className }: UserHoverCardPro
             borderTop: '1px solid hsl(var(--border-subtle))',
           }}
         >
+          {verifiedAgent && (
+            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAgentDrawer('permissions', { openToolPicker: true });
+                }}
+                sx={{
+                  flex: 1,
+                  height: 32,
+                  textTransform: 'none',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  borderColor: 'hsl(var(--border))',
+                  color: 'hsl(var(--foreground))',
+                  '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.06)' },
+                }}
+              >
+                Assign tools
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAgentDrawer('localLLM');
+                }}
+                sx={{
+                  flex: 1,
+                  height: 32,
+                  textTransform: 'none',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  borderColor: 'hsl(var(--border))',
+                  color: 'hsl(var(--foreground))',
+                  '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.06)' },
+                }}
+              >
+                Choose LLM
+              </Button>
+            </Box>
+          )}
           <Button
             fullWidth
             size="small"
             variant={verifiedAgent ? 'contained' : 'outlined'}
             onClick={(e) => {
               e.stopPropagation();
+              if (verifiedAgent) {
+                window.open('/agents#agent-activity', '_blank', 'noopener,noreferrer');
+                return;
+              }
               handleClick(e);
             }}
+
             startIcon={verifiedAgent ? <AgentIcon size={14} /> : <PersonIcon size={14} />}
             sx={{
               height: 30,
