@@ -1712,21 +1712,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
-    // Pre-select the concrete apps this suggestion needs, so the task can run
-    // right away. Category requirements are surfaced as dashed chips.
+    // Replace the current selection with exactly the apps this suggestion
+    // needs. Category requirements are surfaced as dashed chips.
     try {
       const reqs = getSuggestionAppRequirements(s);
       const concrete = reqs.filter((r) => r.kind === 'app');
-      if (concrete.length > 0) {
-        setChosenApps((prev) => {
-          const next = [...prev];
-          for (const r of concrete) {
-            if (next.some((a) => (a.name || '').toLowerCase() === r.value.toLowerCase())) continue;
-            next.push({ name: r.value });
-          }
-          return next;
-        });
-      }
+      setChosenApps(concrete.map((r) => ({ name: r.value })));
       const categories = reqs.filter((r) => r.kind !== 'app');
       setPendingCategories(categories);
     } catch { /* ignore */ }
