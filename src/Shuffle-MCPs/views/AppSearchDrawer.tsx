@@ -185,6 +185,7 @@ export default function AppSearchDrawer({
   onSelectionChange,
   shouldOpenDetail,
   autoActivate = false,
+  hideAuthStatus = false,
   globalUrl,
   theme,
   colorMode,
