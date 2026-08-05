@@ -50,15 +50,15 @@ export const prefetchRoute = (path?: string | null) => {
   }
 };
 
-/** Warm the most-used dashboard chunks while the browser is idle. */
+/**
+ * Warm the most-used dashboard chunks.
+ *
+ * We assume every session ends up on /incidents and then on /incidents/:id,
+ * so these two are fetched immediately (not on idle) — waiting for an idle
+ * callback is exactly what made the first navigation stall before the
+ * skeleton could paint.
+ */
 export const prefetchCommonRoutes = () => {
-  const idle: (cb: () => void) => void =
-    typeof (window as any).requestIdleCallback === 'function'
-      ? (cb) => (window as any).requestIdleCallback(cb, { timeout: 3000 })
-      : (cb) => window.setTimeout(cb, 1200);
-
-  idle(() => {
-    run('/incidents');
-    idle(() => run('/incidents/:id'));
-  });
+  run('/incidents');
+  run('/incidents/:id');
 };
