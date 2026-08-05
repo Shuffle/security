@@ -112,6 +112,10 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
   const webhook = useWebhookStatus();
   const enrichment = useEnrichmentStatus();
   const assign = useAssignEscalateStatus();
+  const { userInfo } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const [usecaseId, setUsecaseId] = useState<string | null>(null);
+
 
   const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
