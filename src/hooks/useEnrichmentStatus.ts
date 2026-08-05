@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkflows, useWorkflowsMulti, WorkflowSummary } from './useWorkflows';
 import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
