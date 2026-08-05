@@ -3438,7 +3438,12 @@ const IncidentsPage = () => {
           {isParentOrg && childTenantsWithIncidents > 0 && (
             <OrgTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} />
           )}
-          {!readinessEmpty && <AutomationReadinessBanner onEmptyChange={setReadinessEmpty} />}
+          {/* Readiness stays mounted in one place; when nothing is configured
+              it is only re-ordered to the very top (never remounted, which
+              previously made it flip back and forth). */}
+          <Box sx={{ order: readinessEmpty ? -1 : 0, flexShrink: 0 }}>
+            <AutomationReadinessBanner atTop={readinessEmpty} onEmptyChange={setReadinessEmpty} />
+          </Box>
           {/* Irrelevant incidents bar */}
           {irrelevantCount > 0 && (
             <Box
