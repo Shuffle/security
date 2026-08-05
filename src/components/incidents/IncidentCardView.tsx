@@ -88,6 +88,11 @@ interface IncidentCardViewProps {
   orgFilterNames?: string[];
   totalOrgCount?: number;
   onResetOrgFilter?: () => void;
+  /** Total number of loaded incidents before filtering, used for "0/N" copy. */
+  totalIncidentCount?: number;
+  onResetFilters?: () => void;
+  onShowAllIncidents?: () => void;
+
   /** Whether the current org has sub-tenants. When false, per-incident
    *  tenant chips are hidden because there is only one tenant in play. */
   isParentOrg?: boolean;
