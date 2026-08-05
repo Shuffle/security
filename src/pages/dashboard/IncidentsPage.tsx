@@ -3450,7 +3450,8 @@ const IncidentsPage = () => {
               it is only re-ordered to the very top (never remounted, which
               previously made it flip back and forth). */}
           <Box sx={{ order: readinessEmpty ? -1 : 0, flexShrink: 0 }}>
-            <AutomationReadinessBanner atTop={readinessEmpty} onEmptyChange={setReadinessEmpty} />
+            <AutomationReadinessBanner atTop={readinessEmpty} onEmptyChange={handleReadinessEmptyChange} />
+
           </Box>
           {/* Irrelevant incidents bar */}
           {irrelevantCount > 0 && (
