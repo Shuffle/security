@@ -118,6 +118,7 @@ import { DemoCompletionWatcher } from '@/components/demo/DemoCompletionWatcher';
 import { DemoResumePill } from '@/components/demo/DemoResumePill';
 import GlobalAgentDrawer from '@/components/agent/GlobalAgentDrawer';
 import GlobalWorkflowRunDrawer from '@/components/agent/GlobalWorkflowRunDrawer';
+import { useUsecaseAgentFilters } from '@/hooks/useUsecaseAgentFilters';
 
 
 
@@ -146,6 +147,7 @@ const SupportOnly = ({ children }: { children: React.ReactNode }) => {
 /** /agents route wrapper — injects userdata so AgentsView's Local LLM panel can fetch sync_features. */
 const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
   const { userInfo, isAuthenticated, isLoading } = useAuth();
+  const usecaseFilters = useUsecaseAgentFilters();
   const userdata = userInfo ? {
     id: userInfo.id,
     username: userInfo.username,
@@ -162,6 +164,7 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
         isLoaded={!isLoading}
         isLoggedIn={isAuthenticated}
         permissionsSlot={<PermissionsPanel compact />}
+        usecaseFilters={usecaseFilters}
       />
     </>
   );

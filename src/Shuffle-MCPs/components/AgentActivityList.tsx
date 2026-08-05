@@ -788,6 +788,19 @@ const STATUS_FILTERS = [
   { label: 'Failed', value: 'ABORTED' },
 ];
 
+/**
+ * A usecase-backed agent "type" surfaced in the run filter dropdown.
+ * Hosts supply only the usecases that are actually enabled for the tenant.
+ */
+export interface AgentUsecaseFilter {
+  /** Unique id (used as the menu value). */
+  id: string;
+  /** Menu label, e.g. "Incident Response Agent". */
+  label: string;
+  /** Case-insensitive substrings matched against run source/workflow metadata. */
+  matchTokens: string[];
+}
+
 export interface AgentActivityListProps extends ShuffleHostProps {
   /** Optional Shuffle API key. Falls back to the shared API_CONFIG. */
   apiKey?: string;
@@ -817,6 +830,8 @@ export interface AgentActivityListProps extends ShuffleHostProps {
   toolbarSx?: SxProps<Theme>;
   /** Style overrides for each individual run row. */
   rowSx?: SxProps<Theme>;
+  /** Usecase-backed agent types shown in the run filter dropdown. */
+  usecaseFilters?: AgentUsecaseFilter[];
 }
 
 const AgentActivityList = ({
@@ -835,6 +850,7 @@ const AgentActivityList = ({
   sx,
   toolbarSx,
   rowSx,
+  usecaseFilters = [],
   globalUrl,
   theme,
   colorMode,
@@ -850,6 +866,7 @@ const AgentActivityList = ({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [agentWorkflows, setAgentWorkflows] = useState<AgentScheduleWorkflow[]>([]);
   const [workflowFilter, setWorkflowFilter] = useState('');
+  const [usecaseFilter, setUsecaseFilter] = useState('');
   const [stopOpen, setStopOpen] = useState(false);
   const [stopLoading, setStopLoading] = useState(false);
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
@@ -1096,8 +1113,26 @@ const AgentActivityList = ({
     if (cursor && !isLoading) fetchRuns(true, cursor);
   }, [cursor, isLoading, fetchRuns]);
 
-  const filteredRuns = debouncedQuery
+  const activeUsecase = usecaseFilters.find((u) => u.id === usecaseFilter) || null;
+
+  const usecaseMatchedRuns = activeUsecase
     ? mergedRuns.filter((r) => {
+        const hay = [
+          r.execution_source,
+          r.workflow?.name,
+          r.workflow?.description,
+          r.execution_argument,
+          ...(r.workflow?.actions || []).flatMap((a) => [a.app_name, a.label]),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return activeUsecase.matchTokens.some((t) => hay.includes(t.toLowerCase()));
+      })
+    : mergedRuns;
+
+  const filteredRuns = debouncedQuery
+    ? usecaseMatchedRuns.filter((r) => {
         const hay = [
           getRunTitle(r),
           getRunSubtitle(r),
@@ -1110,7 +1145,7 @@ const AgentActivityList = ({
           .toLowerCase();
         return hay.includes(debouncedQuery.toLowerCase());
       })
-    : mergedRuns;
+    : usecaseMatchedRuns;
 
   return (
     <Box
@@ -1121,14 +1156,28 @@ const AgentActivityList = ({
         <Box sx={[{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }, ...(Array.isArray(toolbarSx) ? toolbarSx : toolbarSx ? [toolbarSx] : [])]}>
           <Select
             size="small"
-            value={workflowFilter}
-            onChange={(e) => setWorkflowFilter(String(e.target.value))}
+            value={usecaseFilter ? `uc:${usecaseFilter}` : workflowFilter}
+            onChange={(e) => {
+              const val = String(e.target.value);
+              if (val.startsWith('uc:')) {
+                setUsecaseFilter(val.slice(3));
+                setWorkflowFilter('');
+              } else {
+                setUsecaseFilter('');
+                setWorkflowFilter(val);
+              }
+            }}
             displayEmpty
             renderValue={(val) => {
               if (!val) return 'All Agent runs';
+              if (String(val).startsWith('uc:')) {
+                const uc = usecaseFilters.find((u) => u.id === String(val).slice(3));
+                return uc?.label || 'Usecase agent';
+              }
               const wf = agentWorkflows.find((w) => w.id === val);
               return wf?.name || 'Selected workflow';
             }}
+
             sx={{
               height: 36,
               minWidth: 200,
@@ -1155,12 +1204,39 @@ const AgentActivityList = ({
             }}
           >
             <MenuItem value="" sx={{ fontSize: '0.85rem' }}>All Agent runs</MenuItem>
+            {usecaseFilters.length > 0 && (
+              <Divider sx={{ borderColor: 'hsl(var(--border))', my: 0.5 }} />
+            )}
+            {usecaseFilters.length > 0 && (
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  fontSize: '0.7rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'hsl(var(--muted-foreground))',
+                  pointerEvents: 'none',
+                }}
+              >
+                Usecase agents
+              </Box>
+            )}
+            {usecaseFilters.map((u) => (
+              <MenuItem key={u.id} value={`uc:${u.id}`} sx={{ fontSize: '0.85rem' }}>
+                {u.label}
+              </MenuItem>
+            ))}
+            {agentWorkflows.length > 0 && usecaseFilters.length > 0 && (
+              <Divider sx={{ borderColor: 'hsl(var(--border))', my: 0.5 }} />
+            )}
             {agentWorkflows.map((w) => (
               <MenuItem key={w.id} value={w.id} sx={{ fontSize: '0.85rem' }}>
                 {w.name}
               </MenuItem>
             ))}
             <Divider sx={{ borderColor: 'hsl(var(--border))', my: 0.5 }} />
+
             <Box
               sx={{
                 px: 1.5,
