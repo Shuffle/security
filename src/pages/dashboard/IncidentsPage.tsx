@@ -3270,6 +3270,21 @@ const IncidentsPage = () => {
               return allIds.size;
             })()}
             onResetOrgFilter={resetToDefaults}
+            totalIncidentCount={incidents.length}
+            onResetFilters={resetToDefaults}
+            onShowAllIncidents={() => {
+              // Clear every filter (including the default status filter) and
+              // reveal incidents that were hidden for missing/corrupt content.
+              const allOrgIds = [currentOrgId || '', ...subOrgs.map(o => o.id)];
+              if (parentOrg && !allOrgIds.includes(parentOrg.id)) allOrgIds.push(parentOrg.id);
+              setFilters({ severity: null, status: null, tlp: null, assignee: null, source: null, tag: null, org: isParentOrg ? allOrgIds.filter(Boolean) : null });
+              setNegatedFilters(new Set());
+              setDateFrom(undefined);
+              setDateTo(undefined);
+              setSearchQuery('');
+              setShowIrrelevant(true);
+            }}
+
             isParentOrg={isParentOrg}
             onFilterChange={(type, value) => {
               setFilters(prev => {
