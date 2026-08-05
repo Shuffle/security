@@ -53,6 +53,7 @@ import { IngestionSourceButton } from '@/components/incidents/IngestionSourceBut
 import { HighlightSpotlight } from '@/components/incidents/HighlightSpotlight';
 import { AutomationReadinessBanner } from '@/components/incidents/AutomationReadinessBanner';
 import { WebhookIngestionButton, WebhookIngestionInfo } from '@/components/incidents/WebhookIngestionButton';
+import { useWebhookStatus } from '@/hooks/useWebhookStatus';
 import { IncidentTrendChart } from '@/components/incidents/IncidentTrendChart';
 import { OrgTrendChart } from '@/components/incidents/OrgTrendChart';
 import { SourceTrendChart } from '@/components/incidents/ToolTrendChart';
@@ -654,6 +655,23 @@ const IncidentsPage = () => {
   const [forwardWorkflowId, setForwardWorkflowId] = useState<string | null>(null);
   const [ingestScheduleStopped, setIngestScheduleStopped] = useState(false);
   const [webhookIngestion, setWebhookIngestion] = useState<WebhookIngestionInfo>({ url: null, exists: false, enabled: false, workflowId: null });
+  // Keep the top-bar webhook button in sync with the shared webhook status used
+  // by the Automation Readiness banner, so both never disagree.
+  const sharedWebhook = useWebhookStatus();
+  useEffect(() => {
+    if (sharedWebhook.isLoading) return;
+    setWebhookIngestion((prev) => {
+      if (prev.exists === sharedWebhook.exists && prev.enabled === sharedWebhook.enabled && prev.url === (sharedWebhook.url ?? prev.url)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        exists: sharedWebhook.exists,
+        enabled: sharedWebhook.enabled,
+        url: sharedWebhook.url ?? prev.url,
+      };
+    });
+  }, [sharedWebhook.isLoading, sharedWebhook.exists, sharedWebhook.enabled, sharedWebhook.url]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isUpdatingApps, setIsUpdatingApps] = useState(false);
   const [isUpdatingForwardApps, setIsUpdatingForwardApps] = useState(false);
