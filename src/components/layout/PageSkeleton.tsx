@@ -42,6 +42,7 @@ export const PageSkeleton = () => {
       />
     ))}
   </Box>
-);
+  );
+};
 
 export default PageSkeleton;
