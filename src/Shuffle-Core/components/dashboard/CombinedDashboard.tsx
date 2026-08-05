@@ -453,6 +453,33 @@ const CombinedDashboard = ({
         )}
       </Box>
 
+      {/* Export progress — rendered OUTSIDE the captured node so it never
+       *  ends up in the screenshots. */}
+      {exporting && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            px: 2,
+            py: 1.25,
+            borderRadius: '10px',
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            boxShadow: '0 8px 24px hsl(var(--background) / 0.6)',
+          }}
+        >
+          <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))' }} />
+          <Typography sx={{ fontSize: 13, color: 'hsl(var(--foreground))' }}>
+            {exportStatus || 'Preparing PDF export…'}
+          </Typography>
+        </Box>
+      )}
+
       {/* Inline usecase drawer — opens in-place from the Security Operations
        *  setup CTAs instead of redirecting to /usecases. Receives the SAME
        *  host props (globalUrl, userdata, isLoaded, isLoggedIn, theme) we
