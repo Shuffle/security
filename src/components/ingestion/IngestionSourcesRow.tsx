@@ -87,6 +87,9 @@ export const IngestionSourcesRow = ({
   // Reactive mirror of pending toggles so the multi-select picker reflects
   // clicks instantly (the ref alone does not trigger a re-render).
   const [optimisticToggles, setOptimisticToggles] = useState<Record<string, boolean>>({});
+  // Sources added from the picker that have no authentication yet — shown in
+  // yellow (not validated) so auth can be completed later.
+  const [pendingApps, setPendingApps] = useState<ValidatedIngestionApp[]>([]);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchIngestionApps = useCallback(async () => {
