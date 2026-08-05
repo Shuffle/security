@@ -140,23 +140,7 @@ export interface RoutingRule {
   matchCount?: number;
 }
 
-const FIELD_SUGGESTIONS = [
-  '*', // whole-object match: scans every string in the incident (auto base64-decoded)
-  'title',
-  'description',
-  'source',
-  'severity',
-  'labels',
-  'observables.email',
-  'observables.domain',
-  'observables.ip',
-  'stakeholders.email',
-  'rawOCSF.message',
-  'rawOCSF.unmapped_original.from',
-  'rawOCSF.unmapped_original.to',
-  'rawOCSF.unmapped_original.subject',
-  'rawOCSF.unmapped_original.payload.body.data',
-];
+const FIELD_SUGGESTIONS = ROUTING_FIELD_SUGGESTIONS;
 
 const FIELD_LABELS: Record<string, string> = {
   '*': '* (whole incident, auto base64-decoded)',
@@ -172,38 +156,17 @@ const OP_LABELS: Record<RoutingConditionOp, string> = {
   exists: 'exists',
 };
 
-export const ACTION_TYPE_LABELS: Record<RoutingActionType, string> = {
-  suggest_move: 'Move to tenant',
-  set_severity: 'Set severity',
-  set_status: 'Set status',
-  set_priority: 'Set priority',
-  add_label: 'Add label',
-  assign_to: 'Assign to',
-  add_comment: 'Add comment',
-  run_agent: 'Run AI Agent',
-  set_field: 'Set custom field',
-};
+export const ACTION_TYPE_LABELS = ROUTING_ACTION_TYPE_LABELS;
 
-const SEVERITY_OPTIONS = ['Informational', 'Low', 'Medium', 'High', 'Critical'];
-const STATUS_OPTIONS = ['New', 'In Progress', 'On Hold', 'Resolved', 'Closed'];
-const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Urgent'];
+const SEVERITY_OPTIONS = ROUTING_SEVERITY_OPTIONS;
+const STATUS_OPTIONS = ROUTING_STATUS_OPTIONS;
+const PRIORITY_OPTIONS = ROUTING_PRIORITY_OPTIONS;
 
 const newId = () =>
   `rt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-const defaultActionFor = (type: RoutingActionType): RoutingAction => {
-  switch (type) {
-    case 'suggest_move': return { type, targetOrgId: '', reason: '' };
-    case 'set_severity': return { type, value: 'High' };
-    case 'set_status': return { type, value: 'In Progress' };
-    case 'set_priority': return { type, value: 'High' };
-    case 'add_label': return { type, value: '' };
-    case 'assign_to': return { type, value: '' };
-    case 'add_comment': return { type, value: '' };
-    case 'run_agent': return { type, value: '' };
-    case 'set_field': return { type, field: '', value: '' };
-  }
-};
+const defaultActionFor = defaultRoutingAction;
+
 
 const emptyRule = (defaults: Partial<RoutingRule> = {}): RoutingRule => ({
   id: newId(),
