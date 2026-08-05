@@ -697,7 +697,36 @@ export const IncidentCardView = ({
                       />
                     </>
                   )}
-                  {/* Tenant chip intentionally hidden from the incidents list — too noisy. */}
+                  {/* Tenant chip — only shown when the current org actually has sub-tenants. */}
+                  {isParentOrg && incident.orgName && !(incident.sharedOrgs && incident.sharedOrgs.length > 1) && (
+                    <>
+                      <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                        •
+                      </Typography>
+                      <Chip
+                        icon={<Globe size={10} />}
+                        label={incident.orgName}
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          onFilterChange?.('org', incident.orgId || '');
+                        }}
+                        sx={{
+                          backgroundColor: 'hsl(var(--infra-email) / 0.12)',
+                          color: 'hsl(var(--infra-email))',
+                          fontWeight: 500,
+                          fontSize: '0.65rem',
+                          height: 22,
+                          maxWidth: 180,
+                          cursor: 'pointer',
+                          border: '1px solid hsl(var(--infra-email) / 0.25)',
+                          '& .MuiChip-icon': { color: 'hsl(var(--infra-email))', ml: 0.5 },
+                          '&:hover': { backgroundColor: 'hsl(var(--infra-email) / 0.2)' },
+                        }}
+                      />
+                    </>
+                  )}
                   {incident.sharedOrgs && incident.sharedOrgs.length > 1 && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
