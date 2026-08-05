@@ -372,11 +372,18 @@ export const useEnrichmentStatus = (
       } else {
         await runEnableForOrg(undefined);
       }
-      await refetchAll();
+      const ok = await pollUntil(true);
+      if (!ok) {
+        setOptimistic(null);
+        throw new Error('Enrichment did not become active after enabling');
+      }
+    } catch (err) {
+      setOptimistic(null);
+      throw err;
     } finally {
       setPendingAction(null);
     }
-  }, [multi, inactiveOrgIds, orgIds, refetchAll]);
+  }, [multi, inactiveOrgIds, orgIds, pollUntil]);
 
   const disable = useCallback(async () => {
     setOptimistic(false);
@@ -387,11 +394,18 @@ export const useEnrichmentStatus = (
       } else {
         await runDisableForOrg(undefined);
       }
-      await refetchAll();
+      const ok = await pollUntil(false);
+      if (!ok) {
+        setOptimistic(null);
+        throw new Error('Enrichment is still active after disabling');
+      }
+    } catch (err) {
+      setOptimistic(null);
+      throw err;
     } finally {
       setPendingAction(null);
     }
-  }, [multi, orgIds, refetchAll]);
+  }, [multi, orgIds, pollUntil]);
 
   // Reconcile optimistic override once server-side state matches.
   useEffect(() => {
@@ -404,6 +418,7 @@ export const useEnrichmentStatus = (
     const t = setTimeout(() => setOptimistic(null), 15000);
     return () => clearTimeout(t);
   }, [optimistic, computedActive, pendingAction]);
+
 
   const checks = useMemo<EnrichmentStatusCheck[]>(() => {
     if (!multi) {
