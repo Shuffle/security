@@ -577,6 +577,7 @@ export default function AppSearchDrawer({
                     multiSelect={multiSelect}
                     selectedApps={selectedApps && selectedApps.length ? projectedSelectedApps : undefined}
                     disableAutoSelectValidatedApps
+                    hideAuthStatus={hideAuthStatus}
                     preventDefault={true}
                     onAppSelected={handleAppSelected}
                     onSelectionChange={multiSelect ? (next) => {
