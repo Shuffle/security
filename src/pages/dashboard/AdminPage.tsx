@@ -124,18 +124,25 @@ const AdminPage = () => {
         }
 
         // Region URL and theme may differ for the new org.
+        resetRegionUrl();
         localStorage.removeItem('shuffle-theme');
 
         // Validate the switch actually took effect before refreshing the UI.
-        const info = await refreshUserInfo();
-        const newOrgId = (info as any)?.active_org?.id;
+        const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        const info = infoRes.ok ? await infoRes.json() : null;
+        const newOrgId = info?.active_org?.id;
         if (newOrgId && previousOrgId && newOrgId === previousOrgId) {
           toast.error('Organization did not change');
           return;
         }
 
-        toast.success(`Switched organization to ${(info as any)?.active_org?.name || requestedOrg}`);
+        await refreshUserInfo();
+        toast.success(`Switched organization to ${info?.active_org?.name || requestedOrg}`);
         window.location.reload();
+
       } catch (err) {
         console.error('Custom org change failed:', err);
         toast.error('Failed to change organization');
