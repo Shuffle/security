@@ -171,26 +171,36 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
 
 
   const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
-  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean } | null>(null);
+  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean; rules: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [enablingAll, setEnablingAll] = useState(false);
 
   const checkDefaults = useCallback(async () => {
     try {
-      const [iocs, feeds] = await Promise.all([
+      const [iocs, feeds, cfg] = await Promise.all([
         getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS),
         getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS),
+        fetchIncidentsCategoryConfig().catch(() => null),
       ]);
       const hasIocs = !!(iocs.success && (iocs.data?.length || 0) > 0);
       const hasFeeds = !!(feeds.success && (feeds.data?.length || 0) > 0);
-      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds });
-      setDefaultsReady(hasIocs && hasFeeds);
+      const hasRules = hasSecurityRulesEnabled(cfg);
+      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds, rules: hasRules });
+      setDefaultsReady(hasIocs && hasFeeds && hasRules);
     } catch {
       setDefaultsParts(null);
       setDefaultsReady(null);
     }
   }, []);
 
+  const enableDefaults = useCallback(async () => {
+    await Promise.allSettled([
+      seedDefaultIOCTypes(),
+      seedDefaultThreatFeeds(),
+      enableIncidentSecurityRules(),
+    ]);
+    await checkDefaults();
+  }, [checkDefaults]);
 
   useEffect(() => { if (isAdmin) checkDefaults(); }, [isAdmin, checkDefaults]);
 
