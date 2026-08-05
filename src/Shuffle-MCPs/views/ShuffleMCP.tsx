@@ -486,9 +486,16 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
     const authUrl = `${apiBaseUrl}${appAuthPath}?app_id=${app.objectID}&auth=${handoffToken}&source=shuffle${orgId ? `&org_id=${encodeURIComponent(orgId)}` : ''}`;
 
     if (multiSelect) {
-      const isAlreadySelected = internalSelectedApps.some((a) => a.objectID === app.objectID);
+      // Template defaults often only know an app name and therefore carry a
+      // synthetic objectID. Match by canonical objectID OR normalized name so
+      // clicking one of those visibly pre-selected rows actually removes it.
+      const norm = (s?: string) => (s || '').toLowerCase().replace(/[\s-]+/g, '_');
+      const targetName = norm(app.name);
+      const matchesApp = (candidate: AlgoliaSearchApp) =>
+        candidate.objectID === app.objectID || (targetName && norm(candidate.name) === targetName);
+      const isAlreadySelected = internalSelectedApps.some(matchesApp);
       const newSelection = isAlreadySelected
-        ? internalSelectedApps.filter((a) => a.objectID !== app.objectID)
+        ? internalSelectedApps.filter((a) => !matchesApp(a))
         : [...internalSelectedApps, app];
 
       setInternalSelectedApps(newSelection);
