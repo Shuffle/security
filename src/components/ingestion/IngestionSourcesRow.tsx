@@ -84,6 +84,9 @@ export const IngestionSourcesRow = ({
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pendingTogglesRef = useRef<Map<string, boolean>>(new Map());
+  // Reactive mirror of pending toggles so the multi-select picker reflects
+  // clicks instantly (the ref alone does not trigger a re-render).
+  const [optimisticToggles, setOptimisticToggles] = useState<Record<string, boolean>>({});
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchIngestionApps = useCallback(async () => {
@@ -434,12 +437,34 @@ export const IngestionSourcesRow = ({
         open={appSearchOpen}
         onClose={() => {
           setAppSearchOpen(false);
+          setOptimisticToggles({});
           fetchIngestionApps();
         }}
         title="Add Ingestion Source"
         subtitle={addSubtitle ?? 'Search and authenticate a tool to ingest from'}
         initialFilterQuery={searchPriorityQuery}
+        multiSelect
+        selectedApps={ingestionApps
+          .filter(a => (a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled))
+          .map(a => ({ name: a.name, icon: a.image || '' }))}
+        // Apps without an authentication yet cannot be ingest sources — those
+        // still open the app configuration drawer first.
+        shouldOpenDetail={(app) => !ingestionApps.some(a => normalizeAppName(a.name) === normalizeAppName(app.name))}
+        onSelectionChange={(next) => {
+          const chosen = new Set(next.map(a => normalizeAppName(a.name)));
+          const updates: Record<string, boolean> = {};
+          ingestionApps.forEach((a) => {
+            const current = a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled;
+            const desired = chosen.has(normalizeAppName(a.name));
+            if (desired !== current) {
+              updates[a.name] = desired;
+              handleToggleApp(a.name, desired);
+            }
+          });
+          if (Object.keys(updates).length) setOptimisticToggles(prev => ({ ...prev, ...updates }));
+        }}
       />
+
     </>
   );
 };
