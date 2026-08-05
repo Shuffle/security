@@ -8531,6 +8531,15 @@ const IncidentDetailPage = () => {
                   it.content.trim() === needle
                 );
               }
+              case 'run_agent': {
+                const prompt = String(a.value || '').trim();
+                if (!prompt) return false;
+                return activity.some((it: any) =>
+                  it?.type === 'comment' &&
+                  typeof it?.content === 'string' &&
+                  it.content.trim().startsWith(`@AIAgent ${prompt}`)
+                );
+              }
               case 'suggest_move': return !!a.targetOrgId && currentOrgIds.size === 1 && currentOrgIds.has(a.targetOrgId);
               case 'set_field': {
                 if (!a.field) return false;
