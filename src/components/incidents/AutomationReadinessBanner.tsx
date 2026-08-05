@@ -1,5 +1,5 @@
 import { CheckCircle2 as CheckCircleIcon, Circle as RadioButtonUncheckedIcon, XCircle as XCircleIcon, Zap as BoltIcon, Power as PowerSettingsNewIcon, Rocket as RocketLaunchIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, CircularProgress, IconButton, Tooltip, Typography } from '@mui/material';
 import { useWebhookStatus } from '@/hooks/useWebhookStatus';
 import { useEnrichmentStatus } from '@/hooks/useEnrichmentStatus';
@@ -8,6 +8,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { getDatastoreByCategory, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { seedDefaultIOCTypes } from '@/hooks/useIOCTypes';
 import { seedDefaultThreatFeeds } from '@/hooks/useThreatFeeds';
+import { fetchIncidentsCategoryConfig, hasSecurityRulesEnabled, enableIncidentSecurityRules, getActiveOrgId } from '@/lib/defaultIncidentConfig';
 import { toast } from '@/lib/toast';
 import { UsecaseDrawer } from '@/Shuffle-Core';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
@@ -171,26 +172,36 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
 
 
   const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
-  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean } | null>(null);
+  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean; rules: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [enablingAll, setEnablingAll] = useState(false);
 
   const checkDefaults = useCallback(async () => {
     try {
-      const [iocs, feeds] = await Promise.all([
+      const [iocs, feeds, cfg] = await Promise.all([
         getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS),
         getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS),
+        fetchIncidentsCategoryConfig().catch(() => null),
       ]);
       const hasIocs = !!(iocs.success && (iocs.data?.length || 0) > 0);
       const hasFeeds = !!(feeds.success && (feeds.data?.length || 0) > 0);
-      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds });
-      setDefaultsReady(hasIocs && hasFeeds);
+      const hasRules = hasSecurityRulesEnabled(cfg);
+      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds, rules: hasRules });
+      setDefaultsReady(hasIocs && hasFeeds && hasRules);
     } catch {
       setDefaultsParts(null);
       setDefaultsReady(null);
     }
   }, []);
 
+  const enableDefaults = useCallback(async () => {
+    await Promise.allSettled([
+      seedDefaultIOCTypes(),
+      seedDefaultThreatFeeds(),
+      enableIncidentSecurityRules(),
+    ]);
+    await checkDefaults();
+  }, [checkDefaults]);
 
   useEffect(() => { if (isAdmin) checkDefaults(); }, [isAdmin, checkDefaults]);
 
@@ -231,6 +242,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
       if (defaultsReady !== true) {
         tasks.push(seedDefaultIOCTypes());
         tasks.push(seedDefaultThreatFeeds());
+        tasks.push(enableIncidentSecurityRules());
       }
       if (!enrichment.active) tasks.push(enrichment.enable());
       if (!assign.active) tasks.push(assign.enable());
@@ -245,6 +257,33 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
       setEnablingAll(false);
     }
   }, [defaultsReady, enrichment, assign, webhook, checkDefaults]);
+
+  // ── First-ever load per tenant: auto-enable "Default config" ─────────
+  // Only runs when the tenant is at 0/4 readiness, and only once per org
+  // (tracked in localStorage).
+  const autoRanRef = useRef(false);
+  useEffect(() => {
+    if (!isAdmin || isLoading || autoRanRef.current) return;
+    if (defaultsReady === true) return;
+    // 0/4 readiness required
+    if (webhook.enabled || enrichment.active || assign.active) return;
+
+    const orgId = getActiveOrgId();
+    if (!orgId) return;
+    const key = `shuffle-default-config-autoseed::${orgId}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, new Date().toISOString());
+    } catch {
+      return;
+    }
+
+    autoRanRef.current = true;
+    setBusy('Default config');
+    void enableDefaults()
+      .catch((err) => console.error('[automation-readiness] auto default config failed', err))
+      .finally(() => setBusy(null));
+  }, [isAdmin, isLoading, defaultsReady, webhook.enabled, enrichment.active, assign.active, enableDefaults]);
 
   if (!isAdmin) return null;
 
@@ -327,15 +366,13 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         active={defaultsReady === true}
         loading={defaultsReady === null}
         busy={busy === 'Default config'}
-        tooltip="Default IOC types and threat feeds seeded in datastore"
+        tooltip="Default IOC types, threat feeds and incident security rules"
         checks={defaultsParts ? [
           { label: 'Default IOC types seeded', active: defaultsParts.iocs, detail: 'No IOC types found in the datastore.' },
           { label: 'Default threat feeds seeded', active: defaultsParts.feeds, detail: 'No threat feeds found in the datastore.' },
+          { label: 'Security Rules enabled', active: defaultsParts.rules, detail: 'The Security Rules automation is disabled or has no rule set.' },
         ] : undefined}
-        onEnable={() => wrap('Default config', async () => {
-          await Promise.allSettled([seedDefaultIOCTypes(), seedDefaultThreatFeeds()]);
-          await checkDefaults();
-        }, 'Enabled')}
+        onEnable={() => wrap('Default config', () => enableDefaults(), 'Enabled')}
       />
 
       {!allActive && (
