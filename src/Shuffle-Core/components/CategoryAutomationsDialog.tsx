@@ -990,7 +990,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             </Box>
             <FormControl size="small" sx={{ minWidth: 130 }}>
               <Select
-                value={String(cleanupTimeout)}
+                value={String(normalizeCleanupTimeout(cleanupTimeout))}
                 onChange={(e) => {
                   setCleanupTimeout(Number(e.target.value));
                   setHasChanges(true);
