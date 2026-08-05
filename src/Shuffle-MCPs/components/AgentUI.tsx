@@ -108,6 +108,36 @@ import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
 
 const LAST_PRESET_STORAGE_KEY = 'agent_last_preset_id';
+/**
+ * Per-template tool overrides. Templates seed a default tool set, but the user
+ * is free to add/remove tools — their choice is remembered per template id so
+ * the defaults never get force-reapplied over it.
+ */
+const PRESET_APPS_STORAGE_KEY = 'agent_preset_apps_overrides';
+
+const readPresetAppsOverride = (presetId: string): Array<{ name: string; id?: string; icon?: string }> | null => {
+  try {
+    const raw = localStorage.getItem(PRESET_APPS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, Array<{ name: string; id?: string; icon?: string }>>;
+    const list = parsed?.[presetId];
+    if (!Array.isArray(list)) return null;
+    return list.filter((a) => a && typeof a.name === 'string');
+  } catch {
+    return null;
+  }
+};
+
+const writePresetAppsOverride = (presetId: string, apps: Array<{ name: string; id?: string; icon?: string }>) => {
+  try {
+    const raw = localStorage.getItem(PRESET_APPS_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    parsed[presetId] = apps.map((a) => ({ name: a.name, id: a.id, icon: a.icon }));
+    localStorage.setItem(PRESET_APPS_STORAGE_KEY, JSON.stringify(parsed));
+  } catch {
+    /* ignore storage errors */
+  }
+};
 
 /** Recursively parse JSON-looking strings into objects/arrays so JsonView can collapse them. */
 const deepParseJsonStrings = (obj: any, depth = 0): any => {
@@ -3199,6 +3229,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     onAppsChange?.(chosenApps);
   }, [chosenApps, onAppsChange]);
+  // Remember tool customisations per template so a template's defaults are a
+  // starting point, not a forced set.
+  useEffect(() => {
+    if (!selectedPreset) return;
+    writePresetAppsOverride(selectedPreset.id, chosenApps.filter((a) => !!a?.name));
+  }, [chosenApps, selectedPreset]);
   const goToTab = (t: TabKey) => {
     if (t === 'start') {
       // Seed the starter form with the current run's prompt + tools so the
@@ -3952,8 +3988,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     }}
                     onSelectPreset={(preset) => {
                       try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
-                      // Inject the template's default apps as the chosen tool set.
-                      if (preset.defaultApps && preset.defaultApps.length > 0) {
+                      // Seed the tool set from the template — unless the user has
+                      // previously customised the tools for this template, in
+                      // which case their own selection wins.
+                      const override = readPresetAppsOverride(preset.id);
+                      if (override) {
+                        setChosenApps(override);
+                      } else if (preset.defaultApps && preset.defaultApps.length > 0) {
                         setChosenApps(preset.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
                       }
                       if (onSelectPreset) {
