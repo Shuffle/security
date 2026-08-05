@@ -1096,8 +1096,26 @@ const AgentActivityList = ({
     if (cursor && !isLoading) fetchRuns(true, cursor);
   }, [cursor, isLoading, fetchRuns]);
 
-  const filteredRuns = debouncedQuery
+  const activeUsecase = usecaseFilters.find((u) => u.id === usecaseFilter) || null;
+
+  const usecaseMatchedRuns = activeUsecase
     ? mergedRuns.filter((r) => {
+        const hay = [
+          r.execution_source,
+          r.workflow?.name,
+          r.workflow?.description,
+          r.execution_argument,
+          ...(r.workflow?.actions || []).flatMap((a) => [a.app_name, a.label]),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return activeUsecase.matchTokens.some((t) => hay.includes(t.toLowerCase()));
+      })
+    : mergedRuns;
+
+  const filteredRuns = debouncedQuery
+    ? usecaseMatchedRuns.filter((r) => {
         const hay = [
           getRunTitle(r),
           getRunSubtitle(r),
@@ -1110,7 +1128,7 @@ const AgentActivityList = ({
           .toLowerCase();
         return hay.includes(debouncedQuery.toLowerCase());
       })
-    : mergedRuns;
+    : usecaseMatchedRuns;
 
   return (
     <Box
@@ -1121,14 +1139,28 @@ const AgentActivityList = ({
         <Box sx={[{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }, ...(Array.isArray(toolbarSx) ? toolbarSx : toolbarSx ? [toolbarSx] : [])]}>
           <Select
             size="small"
-            value={workflowFilter}
-            onChange={(e) => setWorkflowFilter(String(e.target.value))}
+            value={usecaseFilter ? `uc:${usecaseFilter}` : workflowFilter}
+            onChange={(e) => {
+              const val = String(e.target.value);
+              if (val.startsWith('uc:')) {
+                setUsecaseFilter(val.slice(3));
+                setWorkflowFilter('');
+              } else {
+                setUsecaseFilter('');
+                setWorkflowFilter(val);
+              }
+            }}
             displayEmpty
             renderValue={(val) => {
               if (!val) return 'All Agent runs';
+              if (String(val).startsWith('uc:')) {
+                const uc = usecaseFilters.find((u) => u.id === String(val).slice(3));
+                return uc?.label || 'Usecase agent';
+              }
               const wf = agentWorkflows.find((w) => w.id === val);
               return wf?.name || 'Selected workflow';
             }}
+
             sx={{
               height: 36,
               minWidth: 200,
