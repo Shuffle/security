@@ -3283,7 +3283,9 @@ const IncidentsPage = () => {
         
         {/* Stats sidebar — sticky on desktop. */}
         <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', order: { xs: -1, lg: 0 } }}>
-          {/* Date range filter */}
+          {/* Nothing configured yet: pull readiness to the very top as the
+              primary focus, above the date range filter. */}
+          {readinessEmpty && <AutomationReadinessBanner atTop onEmptyChange={setReadinessEmpty} />}
           {/* Date range filter */}
           <Box sx={{ 
             mb: 2, 
