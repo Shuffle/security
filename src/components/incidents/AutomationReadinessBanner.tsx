@@ -9,6 +9,10 @@ import { getDatastoreByCategory, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/dat
 import { seedDefaultIOCTypes } from '@/hooks/useIOCTypes';
 import { seedDefaultThreatFeeds } from '@/hooks/useThreatFeeds';
 import { toast } from '@/lib/toast';
+import { UsecaseDrawer } from '@/Shuffle-Core';
+import { API_CONFIG } from '@/Shuffle-MCPs/api';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 /**
  * Compact automation readiness panel — sits underneath the trend charts in the
@@ -23,9 +27,11 @@ interface RowProps {
   tooltip?: string;
   onEnable?: () => void;
   onDisable?: () => void;
+  /** When set, clicking the label opens the matching usecase drawer. */
+  onOpenUsecase?: () => void;
 }
 
-const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable }: RowProps) => {
+const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable, onOpenUsecase }: RowProps) => {
   const icon = loading ? (
     <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
   ) : active ? (
@@ -36,18 +42,22 @@ const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable }: Row
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
       {icon}
-      <Tooltip title={tooltip || ''} arrow placement="left" disableHoverListener={!tooltip}>
+      <Tooltip title={onOpenUsecase ? `${tooltip ? `${tooltip} — ` : ''}Open usecase` : (tooltip || '')} arrow placement="left" disableHoverListener={!tooltip && !onOpenUsecase}>
         <Typography
           variant="body2"
+          onClick={onOpenUsecase}
           sx={{
             flex: 1,
             fontSize: '0.78rem',
             color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+            cursor: onOpenUsecase ? 'pointer' : 'default',
+            '&:hover': onOpenUsecase ? { color: 'hsl(var(--primary))', textDecoration: 'underline' } : undefined,
           }}
         >
           {label}
         </Typography>
       </Tooltip>
+
       {!loading && active && onDisable && (
         <Tooltip title={`Disable ${label}`} arrow>
           <span>
@@ -102,6 +112,10 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
   const webhook = useWebhookStatus();
   const enrichment = useEnrichmentStatus();
   const assign = useAssignEscalateStatus();
+  const { userInfo } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const [usecaseId, setUsecaseId] = useState<string | null>(null);
+
 
   const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -208,6 +222,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         tooltip="Pushes alerts directly into incidents via webhook URL"
         onEnable={() => wrap('Ingestion', () => webhook.enable(), 'Enabled')}
         onDisable={() => wrap('Ingestion', () => webhook.disable(), 'Disabled')}
+        onOpenUsecase={() => setUsecaseId('siem_case_management_1')}
       />
       <Row
         label="Enrichment"
@@ -217,6 +232,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         tooltip="Threat feeds + IOC extraction + Enrich automation"
         onEnable={() => wrap('Enrichment', () => enrichment.enable(), 'Enabled')}
         onDisable={() => wrap('Enrichment', () => enrichment.disable(), 'Disabled')}
+        onOpenUsecase={() => setUsecaseId('threat_intel_case_management_1')}
       />
       <Row
         label="Assign & Escalate"
@@ -226,7 +242,9 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         tooltip="Routes incidents to the on-call analyst and escalates"
         onEnable={() => wrap('Assign & Escalate', () => assign.enable(), 'Enabled')}
         onDisable={() => wrap('Assign & Escalate', () => assign.disable(), 'Disabled')}
+        onOpenUsecase={() => setUsecaseId('case_management_assign_escalate_1')}
       />
+
       <Row
         label="Default config"
         active={defaultsReady === true}
@@ -260,7 +278,18 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
           {enablingAll ? 'Enabling…' : 'Enable all'}
         </Button>
       )}
+      <UsecaseDrawer
+        open={!!usecaseId}
+        onClose={() => setUsecaseId(null)}
+        flowId={usecaseId}
+        globalUrl={API_CONFIG.baseUrl}
+        userdata={userInfo as any}
+        isLoaded={true}
+        isLoggedIn={!!userInfo}
+        theme={resolvedTheme}
+      />
     </Box>
+
   );
 };
 
