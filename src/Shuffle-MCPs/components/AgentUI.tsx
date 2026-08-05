@@ -3229,6 +3229,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     onAppsChange?.(chosenApps);
   }, [chosenApps, onAppsChange]);
+  // Remember tool customisations per template so a template's defaults are a
+  // starting point, not a forced set.
+  useEffect(() => {
+    if (!selectedPreset) return;
+    writePresetAppsOverride(selectedPreset.id, chosenApps.filter((a) => !!a?.name));
+  }, [chosenApps, selectedPreset]);
   const goToTab = (t: TabKey) => {
     if (t === 'start') {
       // Seed the starter form with the current run's prompt + tools so the
