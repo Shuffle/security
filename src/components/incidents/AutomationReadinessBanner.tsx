@@ -60,7 +60,7 @@ const Row = ({ label, active, loading, busy, tooltip, checks, onEnable, onDisabl
           <Typography sx={{ fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, opacity: 0.75 }}>
             {missingCount > 0 ? `${missingCount} of ${checks.length} parts missing` : 'All parts configured'}
           </Typography>
-          {checks.map((c) => (
+          {checks.map((c, i) => (
             <Box key={c.label} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.4 }}>
               {c.active ? (
                 <CheckCircleIcon size={12} style={{ color: 'hsl(var(--severity-low))', marginTop: 2, flexShrink: 0 }} />
