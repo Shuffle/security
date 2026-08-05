@@ -439,7 +439,25 @@ export const IngestionSourcesRow = ({
         title="Add Ingestion Source"
         subtitle={addSubtitle ?? 'Search and authenticate a tool to ingest from'}
         initialFilterQuery={searchPriorityQuery}
+        multiSelect
+        selectedApps={ingestionApps
+          .filter(a => (pendingTogglesRef.current.has(a.name) ? pendingTogglesRef.current.get(a.name) : a.enabled))
+          .map(a => ({ name: a.name, icon: a.image || '' }))}
+        // Apps without an authentication yet cannot be ingest sources — those
+        // still open the app configuration drawer first.
+        shouldOpenDetail={(app) => !ingestionApps.some(a => normalizeAppName(a.name) === normalizeAppName(app.name))}
+        onSelectionChange={(next) => {
+          const chosen = new Set(next.map(a => normalizeAppName(a.name)));
+          ingestionApps.forEach((a) => {
+            const current = pendingTogglesRef.current.has(a.name)
+              ? !!pendingTogglesRef.current.get(a.name)
+              : a.enabled;
+            const desired = chosen.has(normalizeAppName(a.name));
+            if (desired !== current) handleToggleApp(a.name, desired);
+          });
+        }}
       />
+
     </>
   );
 };
