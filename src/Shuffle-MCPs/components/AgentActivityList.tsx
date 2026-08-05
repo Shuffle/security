@@ -716,9 +716,9 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
           alignItems: 'center',
           justifyContent: 'flex-end',
           flexShrink: 0,
-          ml: 1,
-          width: 140,
-          minHeight: 28,
+          ml: tools.length > 0 ? 1 : 0,
+          width: tools.length > 0 ? 140 : 0,
+          minHeight: tools.length > 0 ? 28 : 0,
         }}
       >
         {tools.length > 0 ? (
