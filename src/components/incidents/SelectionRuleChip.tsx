@@ -831,7 +831,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
                 value={field}
                 onChange={(e) => setField(String(e.target.value))}
                 sx={{ minWidth: 150, flex: 1 }}
-                MenuProps={{ sx: { zIndex: 10002 }, PaperProps: { sx: { zIndex: 10002 } } }}
+                MenuProps={{ style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
               >
                 {FIELD_CHOICES.map((f) => (
                   <MenuItem key={f.value} value={f.value}>
@@ -844,7 +844,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
                 value={op}
                 onChange={(e) => setOp(e.target.value as RoutingConditionOp)}
                 sx={{ minWidth: 120 }}
-                MenuProps={{ sx: { zIndex: 10002 }, PaperProps: { sx: { zIndex: 10002 } } }}
+                MenuProps={{ style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
               >
                 {OP_CHOICES.map((o) => (
                   <MenuItem key={o.value} value={o.value}>
@@ -876,7 +876,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
                 setActionValue(preset?.defaultValue ?? '');
               }}
               fullWidth
-              MenuProps={{ sx: { zIndex: 10002 }, PaperProps: { sx: { zIndex: 10002 } } }}
+              MenuProps={{ style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
             >
               {ACTION_PRESETS.map((p) => (
                 <MenuItem key={p.key} value={p.key}>
@@ -893,7 +893,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
                     value={actionValue || 'Low'}
                     onChange={(e) => setActionValue(String(e.target.value))}
                     fullWidth
-                    MenuProps={{ sx: { zIndex: 10002 }, PaperProps: { sx: { zIndex: 10002 } } }}
+                    MenuProps={{ style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
                   >
                     {SEVERITY_OPTIONS.map((s) => (
                       <MenuItem key={s} value={s}>
@@ -907,7 +907,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
                     value={actionValue || 'Low'}
                     onChange={(e) => setActionValue(String(e.target.value))}
                     fullWidth
-                    MenuProps={{ sx: { zIndex: 10002 }, PaperProps: { sx: { zIndex: 10002 } } }}
+                    MenuProps={{ style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
                   >
                     {PRIORITY_OPTIONS.map((s) => (
                       <MenuItem key={s} value={s}>
