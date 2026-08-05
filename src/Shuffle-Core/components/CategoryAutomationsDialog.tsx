@@ -416,7 +416,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       });
       setAutomations(allAutomations);
       setHasChanges(false);
-      setCleanupTimeout(initialSettings?.timeout || 0);
+      setCleanupTimeout(normalizeCleanupTimeout(initialSettings?.timeout));
 
       // Extract existing workflow IDs and webhook URL
       const workflowAutomation = existingByName.get('Run workflow');
