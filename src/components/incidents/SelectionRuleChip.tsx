@@ -364,25 +364,16 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
 
   // Selection listener
   // The chip should only appear after the user has finished marking text
-  // (pointer released), not while the mouse is still being dragged.
-  // In addition, we gate the whole interaction behind the Alt key so casual
-  // text selection never triggers the rule UI — the user has to hold Alt
-  // while selecting (or press Alt after selecting) to opt in.
+  // (pointer released), not while the mouse is still being dragged. No
+  // modifier key is required — any real selection inside the incident
+  // content opens the chip.
   const pointerDownRef = useRef(false);
   const pendingUpdateRef = useRef(false);
-  const altHeldRef = useRef(false);
-  const lastSelectionAltRef = useRef(false);
 
-  const evaluateSelection = useCallback((force = false) => {
+  const evaluateSelection = useCallback((_force = false) => {
     // Never react while the popover is open — analyst is filling the form.
     if (popoverOpen) return;
-    // Opt-in gate: Alt must have been held during the selection (or is being
-    // held right now), unless the caller explicitly forces evaluation
-    // (external iframe bridge, which does its own gating).
-    if (!force && !lastSelectionAltRef.current && !altHeldRef.current) {
-      setChip(null);
-      return;
-    }
+
 
     // Case 1: selection inside an <input>/<textarea> that is explicitly
     // marked as an incident field (e.g. the title). window.getSelection() is
@@ -469,41 +460,19 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
       const t = e.target as HTMLElement | null;
       if (t?.closest?.('[data-selection-rule-ui="1"]')) return;
       pointerDownRef.current = true;
-      altHeldRef.current = e.altKey;
-      lastSelectionAltRef.current = e.altKey;
       // Hide any existing chip while a new selection is being created.
       if (chip && !popoverOpen) setChip(null);
     };
 
-    const handlePointerUp = (e: PointerEvent) => {
+    const handlePointerUp = () => {
       pointerDownRef.current = false;
-      // Alt held either at press OR at release counts as opt-in.
-      lastSelectionAltRef.current = lastSelectionAltRef.current || e.altKey;
-      altHeldRef.current = e.altKey;
-      if (pendingUpdateRef.current) {
-        pendingUpdateRef.current = false;
-        evaluateSelection();
-      } else if (lastSelectionAltRef.current) {
-        evaluateSelection();
-      }
+      pendingUpdateRef.current = false;
+      evaluateSelection();
     };
 
     const handlePointerCancel = () => {
       pointerDownRef.current = false;
       pendingUpdateRef.current = false;
-    };
-
-    // Pressing Alt after making a selection also opts in — analysts who
-    // marked text first and then decided to create a rule can just tap Alt.
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Alt') {
-        altHeldRef.current = true;
-        lastSelectionAltRef.current = true;
-        evaluateSelection(true);
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Alt') altHeldRef.current = false;
     };
 
     // Selections that originate in a sandboxed same-origin iframe (e.g. the
@@ -515,8 +484,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
         | undefined;
       if (!detail || !detail.text || detail.text.length < 3) return;
       if (popoverOpen) return;
-      // Iframes must forward the Alt state; without it we do not open.
-      if (!detail.altKey && !altHeldRef.current) return;
+
       setChip({
         x: detail.x,
         y: detail.y,
@@ -529,16 +497,12 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('pointerup', handlePointerUp);
     document.addEventListener('pointercancel', handlePointerCancel);
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
     window.addEventListener('selection-rule:external', handleExternalSelection);
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('pointerup', handlePointerUp);
       document.removeEventListener('pointercancel', handlePointerCancel);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('selection-rule:external', handleExternalSelection);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
