@@ -669,6 +669,7 @@ const validateJson = (raw: unknown): { valid: boolean; result: any } => {
  * "shuffle-host-monitors" and "shuffle_host_monitors" all match.
  */
 const AGENT_NO_AUTH_APPS = new Set<string>([
+  'shuffle_incidents',
   'shuffle_host_monitors',
   'shuffle_monitors',
   'shuffle_sensors',
