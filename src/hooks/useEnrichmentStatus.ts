@@ -340,6 +340,27 @@ export const useEnrichmentStatus = (
     );
   }, [perOrgDetails]);
 
+  // Keeps the newest computed value readable from inside async polling loops.
+  const computedActiveRef = useRef(computedActive);
+  useEffect(() => { computedActiveRef.current = computedActive; }, [computedActive]);
+
+  /**
+   * Workflow generation is not instant server-side, so re-check a few times
+   * instead of assuming success. If the target state never materialises we
+   * drop the optimistic flag right away rather than showing a green row that
+   * silently flips back minutes later.
+   */
+  const pollUntil = useCallback(async (target: boolean) => {
+    for (let i = 0; i < 8; i++) {
+      await refetchAll();
+      if (computedActiveRef.current === target) return true;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    await refetchAll();
+    return computedActiveRef.current === target;
+  }, [refetchAll]);
+
+
   const enable = useCallback(async () => {
     setOptimistic(true);
     setPendingAction('enable');
