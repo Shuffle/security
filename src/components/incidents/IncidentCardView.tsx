@@ -713,16 +713,16 @@ export const IncidentCardView = ({
                           onFilterChange?.('org', incident.orgId || '');
                         }}
                         sx={{
-                          backgroundColor: 'hsl(var(--infra-email) / 0.12)',
-                          color: 'hsl(var(--infra-email))',
+                          backgroundColor: 'hsl(var(--muted) / 0.12)',
+                          color: 'hsl(var(--muted-foreground))',
                           fontWeight: 500,
                           fontSize: '0.65rem',
                           height: 22,
                           maxWidth: 180,
                           cursor: 'pointer',
-                          border: '1px solid hsl(var(--infra-email) / 0.25)',
-                          '& .MuiChip-icon': { color: 'hsl(var(--infra-email))', ml: 0.5 },
-                          '&:hover': { backgroundColor: 'hsl(var(--infra-email) / 0.2)' },
+                          border: '1px solid hsl(var(--border))',
+                          '& .MuiChip-icon': { color: 'hsl(var(--muted-foreground))', ml: 0.5 },
+                          '&:hover': { backgroundColor: 'hsl(var(--muted) / 0.2)' },
                         }}
                       />
                     </>
@@ -737,13 +737,13 @@ export const IncidentCardView = ({
                         label={`${incident.sharedOrgs.length} tenants`}
                         size="small"
                         sx={{
-                          backgroundColor: 'hsl(var(--infra-email) / 0.12)',
-                          color: 'hsl(var(--infra-email))',
+                          backgroundColor: 'hsl(var(--muted) / 0.12)',
+                          color: 'hsl(var(--muted-foreground))',
                           fontWeight: 500,
                           fontSize: '0.65rem',
                           height: 22,
-                          border: '1px solid hsl(var(--infra-email) / 0.25)',
-                          '& .MuiChip-icon': { color: 'hsl(var(--infra-email))', ml: 0.5 },
+                          border: '1px solid hsl(var(--border))',
+                          '& .MuiChip-icon': { color: 'hsl(var(--muted-foreground))', ml: 0.5 },
                         }}
                       />
                     </>
