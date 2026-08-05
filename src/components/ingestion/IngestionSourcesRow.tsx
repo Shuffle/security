@@ -84,6 +84,9 @@ export const IngestionSourcesRow = ({
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pendingTogglesRef = useRef<Map<string, boolean>>(new Map());
+  // Reactive mirror of pending toggles so the multi-select picker reflects
+  // clicks instantly (the ref alone does not trigger a re-render).
+  const [optimisticToggles, setOptimisticToggles] = useState<Record<string, boolean>>({});
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchIngestionApps = useCallback(async () => {
