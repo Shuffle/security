@@ -8,6 +8,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { getDatastoreByCategory, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { seedDefaultIOCTypes } from '@/hooks/useIOCTypes';
 import { seedDefaultThreatFeeds } from '@/hooks/useThreatFeeds';
+import { fetchIncidentsCategoryConfig, hasSecurityRulesEnabled, enableIncidentSecurityRules, getActiveOrgId } from '@/lib/defaultIncidentConfig';
 import { toast } from '@/lib/toast';
 import { UsecaseDrawer } from '@/Shuffle-Core';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
