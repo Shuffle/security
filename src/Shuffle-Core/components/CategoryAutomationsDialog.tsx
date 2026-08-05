@@ -78,6 +78,18 @@ const WEEKS_OPTIONS = [
   { label: '156 weeks', seconds: 94348800 },
 ];
 
+/** Blank/undefined = Never. Anything under 60s is also treated as Never.
+ *  Values that don't match an option snap to the closest one so the Select
+ *  never renders empty. */
+const normalizeCleanupTimeout = (raw: unknown): number => {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 60) return 0;
+  if (WEEKS_OPTIONS.some((o) => o.seconds === n)) return n;
+  return WEEKS_OPTIONS.reduce((best, o) =>
+    Math.abs(o.seconds - n) < Math.abs(best.seconds - n) ? o : best,
+  ).seconds;
+};
+
 const automationConfigs = [
   {
     type: 'ai_agent',
@@ -404,7 +416,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       });
       setAutomations(allAutomations);
       setHasChanges(false);
-      setCleanupTimeout(initialSettings?.timeout || 0);
+      setCleanupTimeout(normalizeCleanupTimeout(initialSettings?.timeout));
 
       // Extract existing workflow IDs and webhook URL
       const workflowAutomation = existingByName.get('Run workflow');
@@ -978,7 +990,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             </Box>
             <FormControl size="small" sx={{ minWidth: 130 }}>
               <Select
-                value={String(cleanupTimeout)}
+                value={String(normalizeCleanupTimeout(cleanupTimeout))}
                 onChange={(e) => {
                   setCleanupTimeout(Number(e.target.value));
                   setHasChanges(true);
