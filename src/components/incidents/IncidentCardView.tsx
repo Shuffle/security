@@ -253,6 +253,10 @@ export const IncidentCardView = ({
   orgFilterNames,
   totalOrgCount,
   onResetOrgFilter,
+  totalIncidentCount,
+  onResetFilters,
+  onShowAllIncidents,
+
   isParentOrg = false,
   threadCounts,
 }: IncidentCardViewProps) => {
