@@ -257,6 +257,14 @@ export default function AppSearchDrawer({
       id: algoliaId,
     };
 
+    // Apps that still need configuration (e.g. no authentication yet) open the
+    // detail drawer even in multi-select mode.
+    if (multiSelect && shouldOpenDetail?.(appInfo)) {
+      setDetailAppName(detail.app.name);
+      setDetailAppId(algoliaId);
+      return;
+    }
+
     // Multi-select mode: toggle in/out of the chosen list, keep the drawer open.
     if (multiSelect && onSelectionChange) {
       const norm = (s: string) => (s || '').toLowerCase().replace(/[\s-]+/g, '_');
