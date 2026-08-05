@@ -449,13 +449,19 @@ const savePersistedFilters = (
   dateTo?: Date
 ) => {
   try {
+    // A "to" date of today (or later) would silently become a stale past-date
+    // filter tomorrow, so it is never persisted.
+    const now = new Date();
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const persistableDateTo = dateTo && dateTo.getTime() < endOfToday.getTime() ? dateTo : undefined;
     const payload: PersistedIncidentFilters = {
       filters,
       negatedFilters: Array.from(negatedFilters),
       dateFrom: dateFrom?.toISOString(),
-      dateTo: dateTo?.toISOString(),
+      dateTo: persistableDateTo?.toISOString(),
       savedAt: Date.now(),
     };
+
     localStorage.setItem(incidentFiltersKey(orgId), JSON.stringify(payload));
   } catch {
     // ignore localStorage errors
