@@ -19,19 +19,27 @@ import { useTheme } from '@/context/ThemeContext';
  * right-hand column on /incidents. Each row shows status and inline
  * Enable/Disable actions; "Enable all" wires up everything in one click.
  */
+interface RowCheck {
+  label: string;
+  active: boolean;
+  detail?: string;
+}
+
 interface RowProps {
   label: string;
   active: boolean;
   loading?: boolean;
   busy?: boolean;
   tooltip?: string;
+  /** Sub-parts required for this row, surfaced in the tooltip. */
+  checks?: RowCheck[];
   onEnable?: () => void;
   onDisable?: () => void;
   /** When set, clicking the label opens the matching usecase drawer. */
   onOpenUsecase?: () => void;
 }
 
-const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable, onOpenUsecase }: RowProps) => {
+const Row = ({ label, active, loading, busy, tooltip, checks, onEnable, onDisable, onOpenUsecase }: RowProps) => {
   const icon = loading ? (
     <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
   ) : active ? (
@@ -39,10 +47,55 @@ const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable, onOpe
   ) : (
     <RadioButtonUncheckedIcon size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
   );
+
+  const missingCount = (checks || []).filter((c) => !c.active).length;
+
+  const tooltipContent = (tooltip || checks?.length || onOpenUsecase) ? (
+    <Box sx={{ py: 0.25 }}>
+      {tooltip && (
+        <Typography sx={{ fontSize: '0.72rem', color: 'inherit' }}>{tooltip}</Typography>
+      )}
+      {!loading && !!checks?.length && (
+        <Box sx={{ mt: tooltip ? 0.75 : 0 }}>
+          <Typography sx={{ fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, opacity: 0.75 }}>
+            {missingCount > 0 ? `${missingCount} of ${checks.length} parts missing` : 'All parts configured'}
+          </Typography>
+          {checks.map((c) => (
+            <Box key={c.label} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.4 }}>
+              {c.active ? (
+                <CheckCircleIcon size={12} style={{ color: 'hsl(var(--severity-low))', marginTop: 2, flexShrink: 0 }} />
+              ) : (
+                <XCircleIcon size={12} style={{ color: 'hsl(var(--destructive))', marginTop: 2, flexShrink: 0 }} />
+              )}
+              <Box>
+                <Typography sx={{ fontSize: '0.72rem', color: 'inherit', opacity: c.active ? 0.8 : 1, fontWeight: c.active ? 400 : 600 }}>
+                  {c.label}
+                </Typography>
+                {!c.active && c.detail && (
+                  <Typography sx={{ fontSize: '0.66rem', opacity: 0.75, mt: 0.1 }}>{c.detail}</Typography>
+                )}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
+      {onOpenUsecase && (
+        <Typography sx={{ fontSize: '0.66rem', opacity: 0.7, mt: 0.75 }}>Click to open usecase</Typography>
+      )}
+    </Box>
+  ) : '';
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
       {icon}
-      <Tooltip title={onOpenUsecase ? `${tooltip ? `${tooltip} — ` : ''}Open usecase` : (tooltip || '')} arrow placement="left" disableHoverListener={!tooltip && !onOpenUsecase}>
+      <Tooltip
+        title={tooltipContent}
+        arrow
+        placement="left"
+        disableHoverListener={!tooltipContent}
+        componentsProps={{ tooltip: { sx: { maxWidth: 340 } } }}
+      >
+
         <Typography
           variant="body2"
           onClick={onOpenUsecase}
