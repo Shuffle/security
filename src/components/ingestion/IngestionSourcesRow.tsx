@@ -463,8 +463,9 @@ export const IngestionSourcesRow = ({
           }
         }}
         title="Add Ingestion Source"
-        subtitle={addSubtitle ?? 'Search and authenticate a tool to ingest from'}
+        subtitle={addSubtitle ?? 'Search and select tools to ingest from'}
         initialFilterQuery={searchPriorityQuery}
+        hideAuthStatus
         multiSelect
         selectedApps={allApps
           .filter(a => (a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled))
