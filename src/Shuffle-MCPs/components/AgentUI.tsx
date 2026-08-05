@@ -108,6 +108,36 @@ import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
 
 const LAST_PRESET_STORAGE_KEY = 'agent_last_preset_id';
+/**
+ * Per-template tool overrides. Templates seed a default tool set, but the user
+ * is free to add/remove tools — their choice is remembered per template id so
+ * the defaults never get force-reapplied over it.
+ */
+const PRESET_APPS_STORAGE_KEY = 'agent_preset_apps_overrides';
+
+const readPresetAppsOverride = (presetId: string): Array<{ name: string; id?: string; icon?: string }> | null => {
+  try {
+    const raw = localStorage.getItem(PRESET_APPS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, Array<{ name: string; id?: string; icon?: string }>>;
+    const list = parsed?.[presetId];
+    if (!Array.isArray(list)) return null;
+    return list.filter((a) => a && typeof a.name === 'string');
+  } catch {
+    return null;
+  }
+};
+
+const writePresetAppsOverride = (presetId: string, apps: Array<{ name: string; id?: string; icon?: string }>) => {
+  try {
+    const raw = localStorage.getItem(PRESET_APPS_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    parsed[presetId] = apps.map((a) => ({ name: a.name, id: a.id, icon: a.icon }));
+    localStorage.setItem(PRESET_APPS_STORAGE_KEY, JSON.stringify(parsed));
+  } catch {
+    /* ignore storage errors */
+  }
+};
 
 /** Recursively parse JSON-looking strings into objects/arrays so JsonView can collapse them. */
 const deepParseJsonStrings = (obj: any, depth = 0): any => {
