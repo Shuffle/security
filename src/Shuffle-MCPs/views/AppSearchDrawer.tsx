@@ -155,6 +155,8 @@ interface AppSearchDrawerProps extends ShuffleHostProps {
   shouldOpenDetail?: (app: { name: string; icon: string; categories: string[]; id: string | null }) => boolean;
   /** When true, the AppDetailDrawer opened from this picker auto-fires Activate. */
   autoActivate?: boolean;
+  /** Hide the per-app authentication status dot in the result list. */
+  hideAuthStatus?: boolean;
 }
 
 
@@ -183,6 +185,7 @@ export default function AppSearchDrawer({
   onSelectionChange,
   shouldOpenDetail,
   autoActivate = false,
+  hideAuthStatus = false,
   globalUrl,
   theme,
   colorMode,
@@ -574,6 +577,7 @@ export default function AppSearchDrawer({
                     multiSelect={multiSelect}
                     selectedApps={selectedApps && selectedApps.length ? projectedSelectedApps : undefined}
                     disableAutoSelectValidatedApps
+                    hideAuthStatus={hideAuthStatus}
                     preventDefault={true}
                     onAppSelected={handleAppSelected}
                     onSelectionChange={multiSelect ? (next) => {
