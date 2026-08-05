@@ -3422,11 +3422,12 @@ const IncidentsPage = () => {
               even when the user has a status/severity filter active. */}
           <IncidentTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
           <SourceTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-          {/* Org trend chart - only when multiple orgs selected */}
-          {Array.isArray(filters.org) && filters.org.length > 1 && (
+          {/* By Tenant chart — only for parent tenants that actually have
+              child tenants contributing incidents. */}
+          {isParentOrg && childTenantsWithIncidents > 0 && (
             <OrgTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} />
           )}
-          <AutomationReadinessBanner />
+          {!readinessEmpty && <AutomationReadinessBanner onEmptyChange={setReadinessEmpty} />}
           {/* Irrelevant incidents bar */}
           {irrelevantCount > 0 && (
             <Box
