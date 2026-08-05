@@ -432,14 +432,38 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   }, [hitsPerPage, algoliaIndexName, privateApps.length, results.length]);
 
   // Infinite scroll: load next page when scrolled near bottom of results
+  const canLoadMore = hasMore && !isLoading && !isLoadingMore && results.length < MAX_RESULTS;
+
+  const loadMore = useCallback(() => {
+    if (!canLoadMore) return;
+    performSearch(activeQueryRef.current, page + 1);
+  }, [canLoadMore, page, performSearch]);
+
   const handleResultsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    if (!hasMore || isLoading || isLoadingMore || results.length >= MAX_RESULTS) return;
+    if (!canLoadMore) return;
     const el = e.currentTarget;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceFromBottom < 200) {
-      performSearch(activeQueryRef.current, page + 1);
-    }
-  }, [hasMore, isLoading, isLoadingMore, page, performSearch, results.length]);
+    if (distanceFromBottom < 200) loadMore();
+  }, [canLoadMore, loadMore]);
+
+  // Scroll events do not bubble, so the onScroll handler above only fires when
+  // the results container itself is the scrolling element. When an ancestor
+  // (drawer body, dialog) owns the scroll, this sentinel observer is what keeps
+  // paging alive.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !canLoadMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries.some((entry) => entry.isIntersecting)) loadMore(); },
+      { rootMargin: '300px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [canLoadMore, loadMore, results.length]);
+
+  const renderLoadMoreSentinel = () => (canLoadMore ? <div ref={sentinelRef} style={{ height: 1, gridColumn: '1 / -1' }} /> : null);
+
 
   // Expose imperative methods via ref
   useImperativeHandle(ref, () => ({
