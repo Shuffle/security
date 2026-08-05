@@ -460,41 +460,19 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
       const t = e.target as HTMLElement | null;
       if (t?.closest?.('[data-selection-rule-ui="1"]')) return;
       pointerDownRef.current = true;
-      altHeldRef.current = e.altKey;
-      lastSelectionAltRef.current = e.altKey;
       // Hide any existing chip while a new selection is being created.
       if (chip && !popoverOpen) setChip(null);
     };
 
-    const handlePointerUp = (e: PointerEvent) => {
+    const handlePointerUp = () => {
       pointerDownRef.current = false;
-      // Alt held either at press OR at release counts as opt-in.
-      lastSelectionAltRef.current = lastSelectionAltRef.current || e.altKey;
-      altHeldRef.current = e.altKey;
-      if (pendingUpdateRef.current) {
-        pendingUpdateRef.current = false;
-        evaluateSelection();
-      } else if (lastSelectionAltRef.current) {
-        evaluateSelection();
-      }
+      pendingUpdateRef.current = false;
+      evaluateSelection();
     };
 
     const handlePointerCancel = () => {
       pointerDownRef.current = false;
       pendingUpdateRef.current = false;
-    };
-
-    // Pressing Alt after making a selection also opts in — analysts who
-    // marked text first and then decided to create a rule can just tap Alt.
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Alt') {
-        altHeldRef.current = true;
-        lastSelectionAltRef.current = true;
-        evaluateSelection(true);
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Alt') altHeldRef.current = false;
     };
 
     // Selections that originate in a sandboxed same-origin iframe (e.g. the
@@ -506,8 +484,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
         | undefined;
       if (!detail || !detail.text || detail.text.length < 3) return;
       if (popoverOpen) return;
-      // Iframes must forward the Alt state; without it we do not open.
-      if (!detail.altKey && !altHeldRef.current) return;
+
       setChip({
         x: detail.x,
         y: detail.y,
