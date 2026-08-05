@@ -280,6 +280,10 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={webhook.isLoading}
         busy={busy === 'Ingestion'}
         tooltip="Pushes alerts directly into incidents via webhook URL"
+        checks={[
+          { label: 'Ingestion Webhook workflow exists', active: webhook.exists, detail: 'No workflow named "Ingestion Webhook" was found for this tenant.' },
+          { label: 'Webhook trigger running', active: webhook.enabled, detail: 'The webhook trigger is stopped, so nothing is being ingested.' },
+        ]}
         onEnable={() => wrap('Ingestion', () => webhook.enable(), 'Enabled')}
         onDisable={() => wrap('Ingestion', () => webhook.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('siem_case_management_1')}
@@ -290,6 +294,11 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={enrichment.isLoading}
         busy={busy === 'Enrichment'}
         tooltip="Threat feeds + IOC extraction + Enrich automation"
+        checks={enrichment.checks?.map((c) => ({
+          label: c.orgId ? `${c.label} (tenant ${c.orgId.slice(0, 8)})` : c.label,
+          active: c.active,
+          detail: c.detail,
+        }))}
         onEnable={() => wrap('Enrichment', () => enrichment.enable(), 'Enabled')}
         onDisable={() => wrap('Enrichment', () => enrichment.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('threat_intel_case_management_1')}
@@ -300,6 +309,13 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={assign.isLoading}
         busy={busy === 'Assign & Escalate'}
         tooltip="Routes incidents to the on-call analyst and escalates"
+        checks={[
+          {
+            label: 'Assign & Escalate workflow running and wired into incident automation',
+            active: assign.active,
+            detail: 'Either the workflow is missing, background processing is off, or it is not selected in the "Run workflow" incident automation.',
+          },
+        ]}
         onEnable={() => wrap('Assign & Escalate', () => assign.enable(), 'Enabled')}
         onDisable={() => wrap('Assign & Escalate', () => assign.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('case_management_assign_escalate_1')}
@@ -311,11 +327,16 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={defaultsReady === null}
         busy={busy === 'Default config'}
         tooltip="Default IOC types and threat feeds seeded in datastore"
+        checks={defaultsParts ? [
+          { label: 'Default IOC types seeded', active: defaultsParts.iocs, detail: 'No IOC types found in the datastore.' },
+          { label: 'Default threat feeds seeded', active: defaultsParts.feeds, detail: 'No threat feeds found in the datastore.' },
+        ] : undefined}
         onEnable={() => wrap('Default config', async () => {
           await Promise.allSettled([seedDefaultIOCTypes(), seedDefaultThreatFeeds()]);
           await checkDefaults();
         }, 'Enabled')}
       />
+
       {!allActive && (
         <Button
           fullWidth
