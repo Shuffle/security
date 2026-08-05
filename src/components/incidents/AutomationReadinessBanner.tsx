@@ -242,6 +242,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
       if (defaultsReady !== true) {
         tasks.push(seedDefaultIOCTypes());
         tasks.push(seedDefaultThreatFeeds());
+        tasks.push(enableIncidentSecurityRules());
       }
       if (!enrichment.active) tasks.push(enrichment.enable());
       if (!assign.active) tasks.push(assign.enable());
@@ -256,6 +257,33 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
       setEnablingAll(false);
     }
   }, [defaultsReady, enrichment, assign, webhook, checkDefaults]);
+
+  // ── First-ever load per tenant: auto-enable "Default config" ─────────
+  // Only runs when the tenant is at 0/4 readiness, and only once per org
+  // (tracked in localStorage).
+  const autoRanRef = useRef(false);
+  useEffect(() => {
+    if (!isAdmin || isLoading || autoRanRef.current) return;
+    if (defaultsReady === true) return;
+    // 0/4 readiness required
+    if (webhook.enabled || enrichment.active || assign.active) return;
+
+    const orgId = getActiveOrgId();
+    if (!orgId) return;
+    const key = `shuffle-default-config-autoseed::${orgId}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, new Date().toISOString());
+    } catch {
+      return;
+    }
+
+    autoRanRef.current = true;
+    setBusy('Default config');
+    void enableDefaults()
+      .catch((err) => console.error('[automation-readiness] auto default config failed', err))
+      .finally(() => setBusy(null));
+  }, [isAdmin, isLoading, defaultsReady, webhook.enabled, enrichment.active, assign.active, enableDefaults]);
 
   if (!isAdmin) return null;
 
