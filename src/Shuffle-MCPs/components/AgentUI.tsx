@@ -3437,10 +3437,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
         top: 8,
         zIndex: 5,
         bgcolor: 'hsl(var(--card))',
-        border: '1px solid hsl(var(--border))',
         borderRadius: 9999,
-        px: 1,
-        py: 0.5,
+        px: 0,
+        py: 0,
       }}
     >
       <SegmentedControl
