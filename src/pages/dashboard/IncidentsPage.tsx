@@ -484,6 +484,9 @@ const IncidentsPage = () => {
   const { subOrgs, parentOrg, isParentOrg: hasRelatedOrgs } = useSubOrgs(currentOrgId);
   // Only show multi-tenant view when we have sub-orgs to show (not just a parent)
   const isParentOrg = subOrgs.length > 0;
+  // Automation readiness with nothing configured is hoisted to the top of the
+  // stats column so it is the first thing seen.
+  const [readinessEmpty, setReadinessEmpty] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
