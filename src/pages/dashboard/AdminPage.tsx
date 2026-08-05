@@ -1,5 +1,5 @@
 import { Save as SaveIcon } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -86,6 +86,28 @@ const AdminPage = () => {
   useEffect(() => {
     setActiveTab(getTabFromPath());
   }, [getTabFromPath]);
+
+  // Deep link: /admin?org_id=<org id or email> switches the active tenant.
+  // The value can be an org id or an email, so we only require a non-empty
+  // string here and let the backend do the real validation.
+  const orgSwitchHandledRef = useRef(false);
+  useEffect(() => {
+    if (orgSwitchHandledRef.current) return;
+    const params = new URLSearchParams(location.search);
+    const requestedOrg = (params.get('org_id') || '').trim();
+    if (!requestedOrg) return;
+    orgSwitchHandledRef.current = true;
+
+    // Strip the param before switching — setActiveOrg reloads the page and we
+    // do not want the switch to fire again on every reload.
+    params.delete('org_id');
+    const nextSearch = params.toString();
+    navigate(`${location.pathname}${nextSearch ? `?${nextSearch}` : ''}`, { replace: true });
+
+    if (requestedOrg === orgId) return;
+    setActiveOrg(requestedOrg);
+  }, [location.search, location.pathname, navigate, orgId, setActiveOrg]);
+
 
   const handleTabChange = (_: unknown, newValue: number) => {
     setActiveTab(newValue);
