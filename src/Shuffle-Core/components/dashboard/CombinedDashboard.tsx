@@ -17,7 +17,7 @@
  * branch of the host `/dashboard` page.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip as MuiTooltip } from '@mui/material';
+import { Box, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip as MuiTooltip, Typography } from '@mui/material';
 import { RefreshCw as RefreshIcon, X as CloseIcon, Download as DownloadIcon } from 'lucide-react';
 import { useDatastore } from '../../hooks/useDatastore';
 import { DATASTORE_CATEGORIES } from '@shuffleio/shuffle-mcps';
