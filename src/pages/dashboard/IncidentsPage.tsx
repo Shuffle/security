@@ -53,6 +53,7 @@ import { IngestionSourceButton } from '@/components/incidents/IngestionSourceBut
 import { HighlightSpotlight } from '@/components/incidents/HighlightSpotlight';
 import { AutomationReadinessBanner } from '@/components/incidents/AutomationReadinessBanner';
 import { WebhookIngestionButton, WebhookIngestionInfo } from '@/components/incidents/WebhookIngestionButton';
+import { useWebhookStatus } from '@/hooks/useWebhookStatus';
 import { IncidentTrendChart } from '@/components/incidents/IncidentTrendChart';
 import { OrgTrendChart } from '@/components/incidents/OrgTrendChart';
 import { SourceTrendChart } from '@/components/incidents/ToolTrendChart';
