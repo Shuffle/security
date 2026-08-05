@@ -291,6 +291,7 @@ const summarizeAction = (a: RoutingAction, orgName?: string): string => {
     case 'add_label': return `add label "${a.value || ''}"`;
     case 'assign_to': return `assign to ${a.value || '?'}`;
     case 'add_comment': return `add comment`;
+    case 'run_agent': return `run AI agent`;
     case 'set_field': return `set ${a.field || '?'} = "${a.value || ''}"`;
   }
 };
