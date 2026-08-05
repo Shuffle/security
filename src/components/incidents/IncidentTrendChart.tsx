@@ -205,7 +205,16 @@ export const IncidentTrendChart = ({ incidents, dateFrom, dateTo, onDateRangeSel
 
   const data = useMemo(() => {
     const to = dateTo || new Date();
-    const from = dateFrom || subDays(to, 30);
+    // No explicit range = "all time": start at the oldest incident we have
+    // (not 30 days back, which silently hid older incidents). Capped at 2y.
+    const oldest = incidents.reduce(
+      (min, i) => (i.createdTs && i.createdTs < min ? i.createdTs : min),
+      Number.POSITIVE_INFINITY,
+    );
+    const fallbackFrom = Number.isFinite(oldest)
+      ? new Date(Math.max(oldest, subDays(to, 730).getTime()))
+      : subDays(to, 30);
+    const from = dateFrom || fallbackFrom;
     return buildBuckets(incidents, from, to);
   }, [incidents, dateFrom, dateTo]);
 
