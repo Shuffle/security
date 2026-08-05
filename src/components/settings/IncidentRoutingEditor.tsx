@@ -416,6 +416,10 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
         toast.error('Pick a field for "Set custom field"');
         return;
       }
+      if (a.type === 'run_agent' && !String(a.value || '').trim()) {
+        toast.error('Write the prompt the AI agent should run');
+        return;
+      }
     }
     setSaving((p) => ({ ...p, [rule.id]: true }));
     try {
