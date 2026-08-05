@@ -3299,10 +3299,7 @@ const IncidentsPage = () => {
         </Box>
         
         {/* Stats sidebar — sticky on desktop. */}
-        <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', order: { xs: -1, lg: 0 } }}>
-          {/* Nothing configured yet: pull readiness to the very top as the
-              primary focus, above the date range filter. */}
-          {readinessEmpty && <AutomationReadinessBanner atTop onEmptyChange={setReadinessEmpty} />}
+        <Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', '& > *': { flexShrink: 0 }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', order: { xs: -1, lg: 0 } }}>
           {/* Date range filter */}
           <Box sx={{ 
             mb: 2, 
@@ -3441,7 +3438,12 @@ const IncidentsPage = () => {
           {isParentOrg && childTenantsWithIncidents > 0 && (
             <OrgTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} />
           )}
-          {!readinessEmpty && <AutomationReadinessBanner onEmptyChange={setReadinessEmpty} />}
+          {/* Readiness stays mounted in one place; when nothing is configured
+              it is only re-ordered to the very top (never remounted, which
+              previously made it flip back and forth). */}
+          <Box sx={{ order: readinessEmpty ? -1 : 0, flexShrink: 0 }}>
+            <AutomationReadinessBanner atTop={readinessEmpty} onEmptyChange={setReadinessEmpty} />
+          </Box>
           {/* Irrelevant incidents bar */}
           {irrelevantCount > 0 && (
             <Box
