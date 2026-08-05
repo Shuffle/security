@@ -1331,100 +1331,18 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
               Then
             </Typography>
             {rule.actions.map((action, aIdx) => {
-              const valuePresets =
-                action.type === 'set_severity' ? SEVERITY_OPTIONS
-                : action.type === 'set_status' ? STATUS_OPTIONS
-                : action.type === 'set_priority' ? PRIORITY_OPTIONS
-                : null;
               return (
                 <Box key={aIdx} sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 1, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.3)' }}>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-                    <TextField
-                      size="small"
-                      select
-                      value={action.type}
-                      onChange={(e) => changeActionType(rule.id, aIdx, e.target.value as RoutingActionType)}
-                      sx={{ minWidth: 200 }}
-                      label="Action"
-                    >
-                      {(Object.keys(ACTION_TYPE_LABELS) as RoutingActionType[]).map((t) => (
-                        <MenuItem key={t} value={t} sx={{ fontSize: '0.8rem' }}>
-                          {ACTION_TYPE_LABELS[t]}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-
-                    {action.type === 'suggest_move' && (
-                      <TextField
-                        size="small"
-                        select
-                        value={action.targetOrgId || ''}
-                        onChange={(e) => updateAction(rule.id, aIdx, { targetOrgId: e.target.value })}
-                        sx={{ minWidth: 240 }}
-                        label="Target tenant"
-                      >
-                        {orgOptions.length === 0 && (
-                          <MenuItem value="" disabled>No tenants available</MenuItem>
-                        )}
-                        {orgOptions.map((o) => (
-                          <MenuItem key={o.id} value={o.id} sx={{ fontSize: '0.8rem' }}>{o.name}</MenuItem>
-                        ))}
-                      </TextField>
-                    )}
-
-                    {action.type === 'set_field' && (
-                      <TextField
-                        size="small"
-                        select
-                        value={action.field || ''}
-                        onChange={(e) => updateAction(rule.id, aIdx, { field: e.target.value })}
-                        SelectProps={{ renderValue: (v) => (v as string) || 'Pick field…' }}
-                        sx={{ minWidth: 220 }}
-                        label="Field"
-                      >
-                        {FIELD_SUGGESTIONS.map((f) => (
-                          <MenuItem key={f} value={f} sx={{ fontSize: '0.8rem' }}>{f}</MenuItem>
-                        ))}
-                        {action.field && !FIELD_SUGGESTIONS.includes(action.field) && (
-                          <MenuItem value={action.field}>{action.field}</MenuItem>
-                        )}
-                      </TextField>
-                    )}
-
-                    {action.type !== 'suggest_move' && (
-                      valuePresets ? (
-                        <TextField
-                          size="small"
-                          select
-                          value={action.value || ''}
-                          onChange={(e) => updateAction(rule.id, aIdx, { value: e.target.value })}
-                          sx={{ minWidth: 180 }}
-                          label="Value"
-                        >
-                          {valuePresets.map((v) => (
-                            <MenuItem key={v} value={v} sx={{ fontSize: '0.8rem' }}>{v}</MenuItem>
-                          ))}
-                        </TextField>
-                      ) : (
-                        <TextField
-                          size="small"
-                          value={action.value || ''}
-                          onChange={(e) => updateAction(rule.id, aIdx, { value: e.target.value })}
-                          placeholder={
-                            action.type === 'add_label' ? 'label name'
-                            : action.type === 'assign_to' ? 'user email or AI Agent'
-                            : action.type === 'add_comment' ? 'comment text'
-                            : action.type === 'run_agent' ? 'What should the AI agent do with this incident?'
-                            : 'value'
-                          }
-                          sx={{ flex: 1, minWidth: 200 }}
-                          multiline={action.type === 'add_comment' || action.type === 'run_agent'}
-                          maxRows={action.type === 'add_comment' || action.type === 'run_agent' ? 6 : 1}
-                          label={action.type === 'run_agent' ? 'Agent prompt' : 'Value'}
-                        />
-                      )
-                    )}
-
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <RoutingActionFields
+                        action={action}
+                        variant="editor"
+                        orgOptions={orgOptions}
+                        onChange={(patch) => updateAction(rule.id, aIdx, patch)}
+                        onTypeChange={(t) => changeActionType(rule.id, aIdx, t)}
+                      />
+                    </Box>
                     <IconButton
                       size="small"
                       onClick={() => removeAction(rule.id, aIdx)}
@@ -1434,6 +1352,7 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
                       <DeleteOutlineIcon size={16} />
                     </IconButton>
                   </Stack>
+
                   <TextField
                     size="small"
                     value={action.reason || ''}
