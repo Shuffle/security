@@ -90,6 +90,8 @@ export const IngestionSourcesRow = ({
   // Sources added from the picker that have no authentication yet — shown in
   // yellow (not validated) so auth can be completed later.
   const [pendingApps, setPendingApps] = useState<ValidatedIngestionApp[]>([]);
+  // Latest selection made inside the picker; committed once the drawer closes.
+  const drawerSelectionRef = useRef<string[] | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchIngestionApps = useCallback(async () => {
