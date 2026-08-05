@@ -78,6 +78,18 @@ const WEEKS_OPTIONS = [
   { label: '156 weeks', seconds: 94348800 },
 ];
 
+/** Blank/undefined = Never. Anything under 60s is also treated as Never.
+ *  Values that don't match an option snap to the closest one so the Select
+ *  never renders empty. */
+const normalizeCleanupTimeout = (raw: unknown): number => {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 60) return 0;
+  if (WEEKS_OPTIONS.some((o) => o.seconds === n)) return n;
+  return WEEKS_OPTIONS.reduce((best, o) =>
+    Math.abs(o.seconds - n) < Math.abs(best.seconds - n) ? o : best,
+  ).seconds;
+};
+
 const automationConfigs = [
   {
     type: 'ai_agent',
