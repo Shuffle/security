@@ -1,4 +1,4 @@
-import { CheckCircle2 as CheckCircleIcon, Circle as RadioButtonUncheckedIcon, Zap as BoltIcon, Power as PowerSettingsNewIcon, Rocket as RocketLaunchIcon } from 'lucide-react';
+import { CheckCircle2 as CheckCircleIcon, Circle as RadioButtonUncheckedIcon, XCircle as XCircleIcon, Zap as BoltIcon, Power as PowerSettingsNewIcon, Rocket as RocketLaunchIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Button, CircularProgress, IconButton, Tooltip, Typography } from '@mui/material';
 import { useWebhookStatus } from '@/hooks/useWebhookStatus';
@@ -19,19 +19,27 @@ import { useTheme } from '@/context/ThemeContext';
  * right-hand column on /incidents. Each row shows status and inline
  * Enable/Disable actions; "Enable all" wires up everything in one click.
  */
+interface RowCheck {
+  label: string;
+  active: boolean;
+  detail?: string;
+}
+
 interface RowProps {
   label: string;
   active: boolean;
   loading?: boolean;
   busy?: boolean;
   tooltip?: string;
+  /** Sub-parts required for this row, surfaced in the tooltip. */
+  checks?: RowCheck[];
   onEnable?: () => void;
   onDisable?: () => void;
   /** When set, clicking the label opens the matching usecase drawer. */
   onOpenUsecase?: () => void;
 }
 
-const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable, onOpenUsecase }: RowProps) => {
+const Row = ({ label, active, loading, busy, tooltip, checks, onEnable, onDisable, onOpenUsecase }: RowProps) => {
   const icon = loading ? (
     <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
   ) : active ? (
@@ -39,10 +47,55 @@ const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable, onOpe
   ) : (
     <RadioButtonUncheckedIcon size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
   );
+
+  const missingCount = (checks || []).filter((c) => !c.active).length;
+
+  const tooltipContent = (tooltip || checks?.length || onOpenUsecase) ? (
+    <Box sx={{ py: 0.25 }}>
+      {tooltip && (
+        <Typography sx={{ fontSize: '0.72rem', color: 'inherit' }}>{tooltip}</Typography>
+      )}
+      {!loading && !!checks?.length && (
+        <Box sx={{ mt: tooltip ? 0.75 : 0 }}>
+          <Typography sx={{ fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, opacity: 0.75 }}>
+            {missingCount > 0 ? `${missingCount} of ${checks.length} parts missing` : 'All parts configured'}
+          </Typography>
+          {checks.map((c, i) => (
+            <Box key={`${c.label}-${i}`} sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, mt: 0.4 }}>
+              {c.active ? (
+                <CheckCircleIcon size={12} style={{ color: 'hsl(var(--severity-low))', marginTop: 2, flexShrink: 0 }} />
+              ) : (
+                <XCircleIcon size={12} style={{ color: 'hsl(var(--destructive))', marginTop: 2, flexShrink: 0 }} />
+              )}
+              <Box>
+                <Typography sx={{ fontSize: '0.72rem', color: 'inherit', opacity: c.active ? 0.8 : 1, fontWeight: c.active ? 400 : 600 }}>
+                  {c.label}
+                </Typography>
+                {!c.active && c.detail && (
+                  <Typography sx={{ fontSize: '0.66rem', opacity: 0.75, mt: 0.1 }}>{c.detail}</Typography>
+                )}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
+      {onOpenUsecase && (
+        <Typography sx={{ fontSize: '0.66rem', opacity: 0.7, mt: 0.75 }}>Click to open usecase</Typography>
+      )}
+    </Box>
+  ) : '';
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
       {icon}
-      <Tooltip title={onOpenUsecase ? `${tooltip ? `${tooltip} — ` : ''}Open usecase` : (tooltip || '')} arrow placement="left" disableHoverListener={!tooltip && !onOpenUsecase}>
+      <Tooltip
+        title={tooltipContent}
+        arrow
+        placement="left"
+        disableHoverListener={!tooltipContent}
+        componentsProps={{ tooltip: { sx: { maxWidth: 340 } } }}
+      >
+
         <Typography
           variant="body2"
           onClick={onOpenUsecase}
@@ -118,6 +171,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
 
 
   const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
+  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [enablingAll, setEnablingAll] = useState(false);
 
@@ -127,13 +181,16 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS),
         getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS),
       ]);
-      const ok = !!(iocs.success && (iocs.data?.length || 0) > 0
-        && feeds.success && (feeds.data?.length || 0) > 0);
-      setDefaultsReady(ok);
+      const hasIocs = !!(iocs.success && (iocs.data?.length || 0) > 0);
+      const hasFeeds = !!(feeds.success && (feeds.data?.length || 0) > 0);
+      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds });
+      setDefaultsReady(hasIocs && hasFeeds);
     } catch {
+      setDefaultsParts(null);
       setDefaultsReady(null);
     }
   }, []);
+
 
   useEffect(() => { if (isAdmin) checkDefaults(); }, [isAdmin, checkDefaults]);
 
@@ -223,6 +280,10 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={webhook.isLoading}
         busy={busy === 'Ingestion'}
         tooltip="Pushes alerts directly into incidents via webhook URL"
+        checks={[
+          { label: 'Ingestion Webhook workflow exists', active: webhook.exists, detail: 'No workflow named "Ingestion Webhook" was found for this tenant.' },
+          { label: 'Webhook trigger running', active: webhook.enabled, detail: 'The webhook trigger is stopped, so nothing is being ingested.' },
+        ]}
         onEnable={() => wrap('Ingestion', () => webhook.enable(), 'Enabled')}
         onDisable={() => wrap('Ingestion', () => webhook.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('siem_case_management_1')}
@@ -233,6 +294,11 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={enrichment.isLoading}
         busy={busy === 'Enrichment'}
         tooltip="Threat feeds + IOC extraction + Enrich automation"
+        checks={enrichment.checks?.map((c) => ({
+          label: c.orgId ? `${c.label} (tenant ${c.orgId.slice(0, 8)})` : c.label,
+          active: c.active,
+          detail: c.detail,
+        }))}
         onEnable={() => wrap('Enrichment', () => enrichment.enable(), 'Enabled')}
         onDisable={() => wrap('Enrichment', () => enrichment.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('threat_intel_case_management_1')}
@@ -243,6 +309,13 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={assign.isLoading}
         busy={busy === 'Assign & Escalate'}
         tooltip="Routes incidents to the on-call analyst and escalates"
+        checks={[
+          {
+            label: 'Assign & Escalate workflow running and wired into incident automation',
+            active: assign.active,
+            detail: 'Either the workflow is missing, background processing is off, or it is not selected in the "Run workflow" incident automation.',
+          },
+        ]}
         onEnable={() => wrap('Assign & Escalate', () => assign.enable(), 'Enabled')}
         onDisable={() => wrap('Assign & Escalate', () => assign.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('case_management_assign_escalate_1')}
@@ -254,11 +327,16 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={defaultsReady === null}
         busy={busy === 'Default config'}
         tooltip="Default IOC types and threat feeds seeded in datastore"
+        checks={defaultsParts ? [
+          { label: 'Default IOC types seeded', active: defaultsParts.iocs, detail: 'No IOC types found in the datastore.' },
+          { label: 'Default threat feeds seeded', active: defaultsParts.feeds, detail: 'No threat feeds found in the datastore.' },
+        ] : undefined}
         onEnable={() => wrap('Default config', async () => {
           await Promise.allSettled([seedDefaultIOCTypes(), seedDefaultThreatFeeds()]);
           await checkDefaults();
         }, 'Enabled')}
       />
+
       {!allActive && (
         <Button
           fullWidth
