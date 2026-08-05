@@ -189,6 +189,7 @@ const defaultActionFor = (type: RoutingActionType): RoutingAction => {
     case 'add_label': return { type, value: '' };
     case 'assign_to': return { type, value: '' };
     case 'add_comment': return { type, value: '' };
+    case 'run_agent': return { type, value: '' };
     case 'set_field': return { type, field: '', value: '' };
   }
 };
