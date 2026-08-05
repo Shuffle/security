@@ -1,4 +1,4 @@
-import { Box, Typography, Chip, Checkbox, Skeleton, Tooltip, CircularProgress, Avatar } from '@mui/material';
+import { Box, Typography, Chip, Checkbox, Skeleton, Tooltip, CircularProgress, Avatar, Button } from '@mui/material';
 import { getLinkedPointers } from '@/lib/incidentRelations';
 import { Tag, RefreshCw as RefreshIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
