@@ -14,6 +14,7 @@ const DashboardViewPage = () => {
 
   return (
     <CombinedDashboard
+      defaultTab="security"
       serverside={false}
       isLoaded={!isLoading}
       isLoggedIn={isAuthenticated}
