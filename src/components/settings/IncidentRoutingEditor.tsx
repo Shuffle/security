@@ -23,6 +23,17 @@
 import { Plus as AddIcon, Trash as DeleteOutlineIcon, Copy as ContentCopyIcon, ChevronDown as ExpandMoreIcon, ChevronUp as ExpandLessIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  RoutingActionFields,
+  ROUTING_ACTION_TYPE_LABELS,
+  ROUTING_SEVERITY_OPTIONS,
+  ROUTING_STATUS_OPTIONS,
+  ROUTING_PRIORITY_OPTIONS,
+  ROUTING_FIELD_SUGGESTIONS,
+  defaultRoutingAction,
+  validateRoutingAction,
+} from './RoutingActionFields';
+
+import {
   Box,
   Typography,
   Paper,
