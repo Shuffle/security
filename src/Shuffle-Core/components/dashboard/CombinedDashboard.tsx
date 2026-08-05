@@ -395,7 +395,7 @@ const CombinedDashboard = ({
             <RefreshIcon size={16} />
           </IconButton>
         </MuiTooltip>
-        <MuiTooltip title={exporting ? 'Generating PDF…' : 'Download dashboard as PDF'}>
+        <MuiTooltip title={exporting ? (exportStatus || 'Generating PDF…') : 'Download dashboard as PDF'}>
           <span>
             <IconButton
               size="small"
@@ -403,10 +403,11 @@ const CombinedDashboard = ({
               disabled={exporting}
               sx={{ color: 'hsl(var(--muted-foreground))', alignSelf: 'flex-end', width: 36, height: 36, borderRadius: '8px' }}
             >
-              <DownloadIcon size={16} />
+              {exporting ? <CircularProgress size={16} sx={{ color: 'hsl(var(--muted-foreground))' }} /> : <DownloadIcon size={16} />}
             </IconButton>
           </span>
         </MuiTooltip>
+
 
       </Box>
     </Box>
