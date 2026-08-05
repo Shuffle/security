@@ -913,6 +913,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
                 {isLoadingMore && (
                   <InfiniteScrollSkeleton layout={layout} gridColumns={typeof gridColumns === 'number' ? gridColumns : (gridColumns.md || 3)} />
                 )}
+                {renderLoadMoreSentinel()}
                 {!hasMore && !isLoadingMore && renderEndOfResultsFooter()}
               </>
             ) : query.trim() ? (
@@ -954,6 +955,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
                 {isLoadingMore && (
                   <InfiniteScrollSkeleton layout={layout} gridColumns={typeof gridColumns === 'number' ? gridColumns : (gridColumns.md || 3)} />
                 )}
+                {renderLoadMoreSentinel()}
                 {!hasMore && !isLoadingMore && renderEndOfResultsFooter()}
               </>
             ) : (
