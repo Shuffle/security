@@ -290,7 +290,27 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                 {(p.defaultApps?.length ?? 0) > 0 && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, flexShrink: 0 }}>
                     {p.defaultApps!.map((app) => (
-                      <Tooltip key={app.name} title={prettyAppName(app.name)} placement="top" arrow>
+                      <Tooltip
+                        key={app.name}
+                        title={prettyAppName(app.name)}
+                        placement="top"
+                        arrow
+                        enterDelay={150}
+                        disableInteractive
+                        slotProps={{
+                          popper: {
+                            // The template list lives inside a Popper that can move
+                            // (async icon loads, filtering). A portalled tooltip keeps
+                            // its stale anchor position, so keep it in-flow and let
+                            // popper.js re-evaluate against the viewport.
+                            disablePortal: true,
+                            modifiers: [
+                              { name: 'flip', enabled: true, options: { fallbackPlacements: ['bottom', 'left'] } },
+                              { name: 'preventOverflow', enabled: true, options: { boundary: 'viewport', padding: 8 } },
+                            ],
+                          },
+                        }}
+                      >
                         <Box
                           sx={{
                             width: 22,
