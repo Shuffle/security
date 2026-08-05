@@ -338,15 +338,13 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         active={defaultsReady === true}
         loading={defaultsReady === null}
         busy={busy === 'Default config'}
-        tooltip="Default IOC types and threat feeds seeded in datastore"
+        tooltip="Default IOC types, threat feeds and incident security rules"
         checks={defaultsParts ? [
           { label: 'Default IOC types seeded', active: defaultsParts.iocs, detail: 'No IOC types found in the datastore.' },
           { label: 'Default threat feeds seeded', active: defaultsParts.feeds, detail: 'No threat feeds found in the datastore.' },
+          { label: 'Security Rules enabled', active: defaultsParts.rules, detail: 'The Security Rules automation is disabled or has no rule set.' },
         ] : undefined}
-        onEnable={() => wrap('Default config', async () => {
-          await Promise.allSettled([seedDefaultIOCTypes(), seedDefaultThreatFeeds()]);
-          await checkDefaults();
-        }, 'Enabled')}
+        onEnable={() => wrap('Default config', () => enableDefaults(), 'Enabled')}
       />
 
       {!allActive && (
