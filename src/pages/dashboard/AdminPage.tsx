@@ -89,7 +89,9 @@ const AdminPage = () => {
 
   // Deep link: /admin?org_id=<org id or email> switches the active tenant.
   // The value can be an org id or an email, so we only require a non-empty
-  // string here and let the backend do the real validation.
+  // string here and let the backend do the real validation. This is a custom
+  // support-user flow: we run the change, verify the active org actually
+  // changed, and only then refresh the UI.
   const orgSwitchHandledRef = useRef(false);
   useEffect(() => {
     if (orgSwitchHandledRef.current) return;
@@ -98,15 +100,50 @@ const AdminPage = () => {
     if (!requestedOrg) return;
     orgSwitchHandledRef.current = true;
 
-    // Strip the param before switching — setActiveOrg reloads the page and we
-    // do not want the switch to fire again on every reload.
+    // Strip the param first — the flow ends in a reload and we do not want
+    // the switch to fire again on every reload.
     params.delete('org_id');
     const nextSearch = params.toString();
     navigate(`${location.pathname}${nextSearch ? `?${nextSearch}` : ''}`, { replace: true });
 
     if (requestedOrg === orgId) return;
-    setActiveOrg(requestedOrg);
-  }, [location.search, location.pathname, navigate, orgId, setActiveOrg]);
+
+    const previousOrgId = orgId;
+    const run = async () => {
+      try {
+        const response = await fetch(getApiUrl(`/api/v1/orgs/${requestedOrg}/change`), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ org_id: requestedOrg }),
+        });
+
+        if (!response.ok) {
+          toast.error(`Failed to change organization (${response.status})`);
+          return;
+        }
+
+        // Region URL and theme may differ for the new org.
+        localStorage.removeItem('shuffle-theme');
+
+        // Validate the switch actually took effect before refreshing the UI.
+        const info = await refreshUserInfo();
+        const newOrgId = (info as any)?.active_org?.id;
+        if (newOrgId && previousOrgId && newOrgId === previousOrgId) {
+          toast.error('Organization did not change');
+          return;
+        }
+
+        toast.success(`Switched organization to ${(info as any)?.active_org?.name || requestedOrg}`);
+        window.location.reload();
+      } catch (err) {
+        console.error('Custom org change failed:', err);
+        toast.error('Failed to change organization');
+      }
+    };
+    run();
+  }, [location.search, location.pathname, navigate, orgId, refreshUserInfo]);
+
 
 
   const handleTabChange = (_: unknown, newValue: number) => {
