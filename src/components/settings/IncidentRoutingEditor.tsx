@@ -169,6 +169,7 @@ export const ACTION_TYPE_LABELS: Record<RoutingActionType, string> = {
   add_label: 'Add label',
   assign_to: 'Assign to',
   add_comment: 'Add comment',
+  run_agent: 'Run AI Agent',
   set_field: 'Set custom field',
 };
 
