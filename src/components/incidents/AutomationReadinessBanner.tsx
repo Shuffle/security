@@ -9,6 +9,10 @@ import { getDatastoreByCategory, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/dat
 import { seedDefaultIOCTypes } from '@/hooks/useIOCTypes';
 import { seedDefaultThreatFeeds } from '@/hooks/useThreatFeeds';
 import { toast } from '@/lib/toast';
+import { UsecaseDrawer } from '@/Shuffle-Core';
+import { API_CONFIG } from '@/Shuffle-MCPs/api';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 /**
  * Compact automation readiness panel — sits underneath the trend charts in the
