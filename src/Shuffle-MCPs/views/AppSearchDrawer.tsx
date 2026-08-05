@@ -155,6 +155,8 @@ interface AppSearchDrawerProps extends ShuffleHostProps {
   shouldOpenDetail?: (app: { name: string; icon: string; categories: string[]; id: string | null }) => boolean;
   /** When true, the AppDetailDrawer opened from this picker auto-fires Activate. */
   autoActivate?: boolean;
+  /** Hide the per-app authentication status dot in the result list. */
+  hideAuthStatus?: boolean;
 }
 
 
