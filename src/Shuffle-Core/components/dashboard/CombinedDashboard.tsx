@@ -38,7 +38,9 @@ export interface CombinedDashboardProps
   extends ShuffleCoreHostProps,
     Partial<Omit<OverviewProps, keyof ShuffleCoreHostProps | 'days'>>,
     Partial<Omit<AutomationDashboardProps, keyof ShuffleCoreHostProps | 'gran' | 'customRange' | 'onRangeSelect' | 'days'>> {
-  /** Default tab on first mount. Persisted to localStorage thereafter. */
+  /** Default tab on first mount. Persisted to localStorage thereafter.
+   *  Defaults to 'automation' for standalone/embedded consumers; the Shuffle
+   *  Security host passes 'security' explicitly. */
   defaultTab?: 'security' | 'automation';
 }
 
@@ -75,7 +77,7 @@ const fmtShort = (ms: number) => {
 };
 
 const CombinedDashboard = ({
-  defaultTab = 'security',
+  defaultTab = 'automation',
   // Overview data overrides (when supplied, used as-is)
   incidents: incidentsProp,
   incidentsLoading: incidentsLoadingProp,
