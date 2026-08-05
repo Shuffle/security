@@ -1204,12 +1204,39 @@ const AgentActivityList = ({
             }}
           >
             <MenuItem value="" sx={{ fontSize: '0.85rem' }}>All Agent runs</MenuItem>
+            {usecaseFilters.length > 0 && (
+              <Divider sx={{ borderColor: 'hsl(var(--border))', my: 0.5 }} />
+            )}
+            {usecaseFilters.length > 0 && (
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  fontSize: '0.7rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'hsl(var(--muted-foreground))',
+                  pointerEvents: 'none',
+                }}
+              >
+                Usecase agents
+              </Box>
+            )}
+            {usecaseFilters.map((u) => (
+              <MenuItem key={u.id} value={`uc:${u.id}`} sx={{ fontSize: '0.85rem' }}>
+                {u.label}
+              </MenuItem>
+            ))}
+            {agentWorkflows.length > 0 && usecaseFilters.length > 0 && (
+              <Divider sx={{ borderColor: 'hsl(var(--border))', my: 0.5 }} />
+            )}
             {agentWorkflows.map((w) => (
               <MenuItem key={w.id} value={w.id} sx={{ fontSize: '0.85rem' }}>
                 {w.name}
               </MenuItem>
             ))}
             <Divider sx={{ borderColor: 'hsl(var(--border))', my: 0.5 }} />
+
             <Box
               sx={{
                 px: 1.5,
