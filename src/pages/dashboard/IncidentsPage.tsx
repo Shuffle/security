@@ -486,7 +486,15 @@ const IncidentsPage = () => {
   const isParentOrg = subOrgs.length > 0;
   // Automation readiness with nothing configured is hoisted to the top of the
   // stats column so it is the first thing seen.
+  // Latched once per page session: the readiness panel picks its position on the
+  // first resolved status and never moves again while the user stays on /incidents.
   const [readinessEmpty, setReadinessEmpty] = useState(false);
+  const readinessLatchedRef = useRef(false);
+  const handleReadinessEmptyChange = useCallback((empty: boolean) => {
+    if (readinessLatchedRef.current) return;
+    readinessLatchedRef.current = true;
+    setReadinessEmpty(empty);
+  }, []);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
