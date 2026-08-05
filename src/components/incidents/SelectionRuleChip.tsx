@@ -866,66 +866,15 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
             <Typography sx={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', mt: 0.5 }}>
               Then
             </Typography>
-            <Select
-              size="small"
-              value={actionKey}
-              onChange={(e) => {
-                const key = String(e.target.value);
-                setActionKey(key);
-                const preset = ACTION_PRESETS.find((p) => p.key === key);
-                setActionValue(preset?.defaultValue ?? '');
-              }}
-              fullWidth
-              MenuProps={{ sx: { zIndex: '10010 !important' }, style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
-            >
-              {ACTION_PRESETS.map((p) => (
-                <MenuItem key={p.key} value={p.key}>
-                  {p.label}
-                </MenuItem>
-              ))}
-            </Select>
+            <RoutingActionFields
+              action={action}
+              variant="compact"
+              menuZIndex={10010}
+              orgOptions={orgOptions}
+              onChange={(patch) => setAction((prev) => ({ ...prev, ...patch }))}
+              onTypeChange={(t) => setAction(defaultRoutingAction(t))}
+            />
 
-            {currentPreset.hasFreeValue && (
-              <>
-                {actionKey === 'set-severity' ? (
-                  <Select
-                    size="small"
-                    value={actionValue || 'Low'}
-                    onChange={(e) => setActionValue(String(e.target.value))}
-                    fullWidth
-                    MenuProps={{ sx: { zIndex: '10010 !important' }, style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
-                  >
-                    {SEVERITY_OPTIONS.map((s) => (
-                      <MenuItem key={s} value={s}>
-                        {s}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                ) : actionKey === 'set-priority' ? (
-                  <Select
-                    size="small"
-                    value={actionValue || 'Low'}
-                    onChange={(e) => setActionValue(String(e.target.value))}
-                    fullWidth
-                    MenuProps={{ sx: { zIndex: '10010 !important' }, style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
-                  >
-                    {PRIORITY_OPTIONS.map((s) => (
-                      <MenuItem key={s} value={s}>
-                        {s}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                ) : (
-                  <TextField
-                    size="small"
-                    value={actionValue}
-                    onChange={(e) => setActionValue(e.target.value)}
-                    placeholder={currentPreset.valueLabel || 'Value'}
-                    fullWidth
-                  />
-                )}
-              </>
-            )}
 
             <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 1 }}>
               <Button
