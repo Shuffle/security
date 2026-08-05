@@ -692,13 +692,13 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       if (plainTextLength > 0 && htmlTextLength < 40 && htmlTextLength < plainTextLength * 0.5) {
         return plainTextToEmailHtml(current.body);
       }
-      return wrapRawEmailHtml(extractHtmlBody(current.bodyHtml));
+      return rawEmailDocument(current.bodyHtml);
     }
     if (current?.body?.trim()) return plainTextToEmailHtml(current.body);
 
 
     if (descriptionHtml && descriptionHtml.trim()) {
-      return wrapRawEmailHtml(extractHtmlBody(descriptionHtml));
+      return rawEmailDocument(descriptionHtml);
     }
 
     // Last resort: the threaded parser often recovered HTML slices even when
@@ -708,7 +708,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       .map((m) => m.bodyHtml)
       .filter((h): h is string => !!h && !!h.trim())
       .map(extractHtmlBody);
-    if (fromParsed.length) return wrapRawEmailHtml(fromParsed[0]);
+    if (fromParsed.length) return rawEmailDocument(fromParsed[0]);
 
     return '';
   }, [resolved, descriptionHtml, messages]);
