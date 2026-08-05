@@ -1015,6 +1015,15 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                     {opt.label}
                   </MenuItem>
                 ))}
+                {normalizeCleanupTimeout(cleanupTimeout) > 0 &&
+                  !WEEKS_OPTIONS.some((o) => o.seconds === normalizeCleanupTimeout(cleanupTimeout)) && (
+                    <MenuItem
+                      key="custom"
+                      value={String(normalizeCleanupTimeout(cleanupTimeout))}
+                    >
+                      {formatCustomTimeout(normalizeCleanupTimeout(cleanupTimeout))} (current)
+                    </MenuItem>
+                  )}
               </Select>
             </FormControl>
           </Box>
