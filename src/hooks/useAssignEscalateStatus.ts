@@ -288,8 +288,19 @@ export const useAssignEscalateStatus = (options?: { orgIds?: string[] }): Assign
     return isOrgActive(singleWorkflows, singleCfg, labels);
   }, [optimistic, multi, orgIds, multiWorkflows, multiCfgByOrg, singleWorkflows, singleCfg, labels]);
 
+  const checks = useMemo<AssignEscalateCheck[]>(() => {
+    if (multi) {
+      return orgIds.flatMap((oid) =>
+        computeOrgChecks(multiWorkflows[oid], multiCfgByOrg[oid], labels, oid).filter((c) => !c.active),
+      );
+    }
+    return computeOrgChecks(singleWorkflows, singleCfg, labels);
+  }, [multi, orgIds, multiWorkflows, multiCfgByOrg, singleWorkflows, singleCfg, labels]);
+
   return {
     active,
+    checks,
+
     isLoading: multi ? (multiWfLoading || multiCfgLoading) : (singleWfLoading || singleCfgLoading),
     enable,
     isEnabling,
