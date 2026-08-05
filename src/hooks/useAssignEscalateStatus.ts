@@ -85,6 +85,72 @@ const isOrgActive = (
   return ids.includes(matchingWorkflow.id);
 };
 
+/** Granular breakdown of every requirement for a single tenant. */
+const computeOrgChecks = (
+  workflows: WorkflowSummary[] | undefined,
+  cfg: FetchedCategoryConfig | undefined,
+  labels: string[],
+  orgId?: string,
+): AssignEscalateCheck[] => {
+  const named = workflows?.find((w) => labels.includes(w.name));
+  const exists = !!named;
+  const backgroundOn = !!named && named.background_processing === true;
+
+  const cfgMissing = cfg === CATEGORY_CONFIG_MISSING;
+  const categoryConfig = (cfgMissing ? null : ((cfg as CategoryConfig | null | undefined) ?? null));
+  const wfAutomation = categoryConfig?.automations?.find((a) => a.name === 'Run workflow');
+  const wfOption = wfAutomation?.options?.find((o) => o.key === 'workflow_id');
+  const mappedIds = (wfOption?.value || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+  const automationEnabled = cfgMissing ? true : !!wfAutomation?.enabled;
+  const mapped = cfgMissing ? true : (!!named && mappedIds.includes(named.id));
+
+  return [
+    {
+      label: `"${labels[0] || 'Assign & Escalate'}" workflow exists`,
+      active: exists,
+      detail: exists
+        ? `Workflow found (id: ${named?.id}).`
+        : `No workflow named ${labels.map((l) => `"${l}"`).join(' or ')} found in /api/v1/workflows.`,
+      orgId,
+    },
+    {
+      label: 'Workflow runs in the background',
+      active: backgroundOn,
+      detail: backgroundOn
+        ? 'background_processing=true.'
+        : exists
+          ? 'The workflow exists but background_processing is off, so it never triggers on new incidents.'
+          : 'The workflow must exist before background processing can be turned on.',
+      orgId,
+    },
+    {
+      label: '"Run workflow" incident automation enabled',
+      active: automationEnabled,
+      detail: cfgMissing
+        ? 'No category_config returned yet (tenant has no incidents), assumed enabled.'
+        : automationEnabled
+          ? 'The "Run workflow" automation is enabled on the incidents category.'
+          : 'The "Run workflow" automation is missing or disabled on the incidents category, so no workflow fires.',
+      orgId,
+    },
+    {
+      label: 'Workflow mapped to the incident automation',
+      active: mapped,
+      detail: cfgMissing
+        ? 'No category_config returned yet (tenant has no incidents), assumed mapped.'
+        : mapped
+          ? 'The workflow id is listed in the automation\'s workflow_id option.'
+          : exists
+            ? 'The workflow exists but its id is not listed in the "Run workflow" automation, so incidents never reach it.'
+            : 'No workflow to map yet.',
+      orgId,
+    },
+  ];
+};
+
+
+
 const runGenerate = async (labels: string[], orgId?: string, actionName?: string) => {
   const headers: Record<string, string> = { ...getAuthHeader(), 'Content-Type': 'application/json' };
   if (orgId) headers['Org-Id'] = orgId;
