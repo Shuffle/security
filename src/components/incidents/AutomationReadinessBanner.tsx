@@ -27,9 +27,11 @@ interface RowProps {
   tooltip?: string;
   onEnable?: () => void;
   onDisable?: () => void;
+  /** When set, clicking the label opens the matching usecase drawer. */
+  onOpenUsecase?: () => void;
 }
 
-const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable }: RowProps) => {
+const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable, onOpenUsecase }: RowProps) => {
   const icon = loading ? (
     <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
   ) : active ? (
@@ -40,18 +42,22 @@ const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable }: Row
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
       {icon}
-      <Tooltip title={tooltip || ''} arrow placement="left" disableHoverListener={!tooltip}>
+      <Tooltip title={onOpenUsecase ? `${tooltip ? `${tooltip} — ` : ''}Open usecase` : (tooltip || '')} arrow placement="left" disableHoverListener={!tooltip && !onOpenUsecase}>
         <Typography
           variant="body2"
+          onClick={onOpenUsecase}
           sx={{
             flex: 1,
             fontSize: '0.78rem',
             color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+            cursor: onOpenUsecase ? 'pointer' : 'default',
+            '&:hover': onOpenUsecase ? { color: 'hsl(var(--primary))', textDecoration: 'underline' } : undefined,
           }}
         >
           {label}
         </Typography>
       </Tooltip>
+
       {!loading && active && onDisable && (
         <Tooltip title={`Disable ${label}`} arrow>
           <span>
