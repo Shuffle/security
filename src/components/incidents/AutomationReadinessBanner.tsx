@@ -333,7 +333,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
       <Row
         label="Enrichment"
         active={enrichment.active}
-        loading={enrichment.isLoading}
+        loading={enrichment.isLoading || enrichment.isEnabling}
         busy={busy === 'Enrichment'}
         tooltip="Threat feeds + IOC extraction + Enrich automation"
         checks={enrichment.checks?.map((c) => ({

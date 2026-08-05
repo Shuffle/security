@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkflows, useWorkflowsMulti, WorkflowSummary } from './useWorkflows';
 import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
@@ -340,6 +340,27 @@ export const useEnrichmentStatus = (
     );
   }, [perOrgDetails]);
 
+  // Keeps the newest computed value readable from inside async polling loops.
+  const computedActiveRef = useRef(computedActive);
+  useEffect(() => { computedActiveRef.current = computedActive; }, [computedActive]);
+
+  /**
+   * Workflow generation is not instant server-side, so re-check a few times
+   * instead of assuming success. If the target state never materialises we
+   * drop the optimistic flag right away rather than showing a green row that
+   * silently flips back minutes later.
+   */
+  const pollUntil = useCallback(async (target: boolean) => {
+    for (let i = 0; i < 8; i++) {
+      await refetchAll();
+      if (computedActiveRef.current === target) return true;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    await refetchAll();
+    return computedActiveRef.current === target;
+  }, [refetchAll]);
+
+
   const enable = useCallback(async () => {
     setOptimistic(true);
     setPendingAction('enable');
@@ -351,11 +372,18 @@ export const useEnrichmentStatus = (
       } else {
         await runEnableForOrg(undefined);
       }
-      await refetchAll();
+      const ok = await pollUntil(true);
+      if (!ok) {
+        setOptimistic(null);
+        throw new Error('Enrichment did not become active after enabling');
+      }
+    } catch (err) {
+      setOptimistic(null);
+      throw err;
     } finally {
       setPendingAction(null);
     }
-  }, [multi, inactiveOrgIds, orgIds, refetchAll]);
+  }, [multi, inactiveOrgIds, orgIds, pollUntil]);
 
   const disable = useCallback(async () => {
     setOptimistic(false);
@@ -366,11 +394,18 @@ export const useEnrichmentStatus = (
       } else {
         await runDisableForOrg(undefined);
       }
-      await refetchAll();
+      const ok = await pollUntil(false);
+      if (!ok) {
+        setOptimistic(null);
+        throw new Error('Enrichment is still active after disabling');
+      }
+    } catch (err) {
+      setOptimistic(null);
+      throw err;
     } finally {
       setPendingAction(null);
     }
-  }, [multi, orgIds, refetchAll]);
+  }, [multi, orgIds, pollUntil]);
 
   // Reconcile optimistic override once server-side state matches.
   useEffect(() => {
@@ -383,6 +418,7 @@ export const useEnrichmentStatus = (
     const t = setTimeout(() => setOptimistic(null), 15000);
     return () => clearTimeout(t);
   }, [optimistic, computedActive, pendingAction]);
+
 
   const checks = useMemo<EnrichmentStatusCheck[]>(() => {
     if (!multi) {
