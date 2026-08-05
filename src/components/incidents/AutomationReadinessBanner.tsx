@@ -171,6 +171,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
 
 
   const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
+  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [enablingAll, setEnablingAll] = useState(false);
 
@@ -180,13 +181,16 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS),
         getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS),
       ]);
-      const ok = !!(iocs.success && (iocs.data?.length || 0) > 0
-        && feeds.success && (feeds.data?.length || 0) > 0);
-      setDefaultsReady(ok);
+      const hasIocs = !!(iocs.success && (iocs.data?.length || 0) > 0);
+      const hasFeeds = !!(feeds.success && (feeds.data?.length || 0) > 0);
+      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds });
+      setDefaultsReady(hasIocs && hasFeeds);
     } catch {
+      setDefaultsParts(null);
       setDefaultsReady(null);
     }
   }, []);
+
 
   useEffect(() => { if (isAdmin) checkDefaults(); }, [isAdmin, checkDefaults]);
 
