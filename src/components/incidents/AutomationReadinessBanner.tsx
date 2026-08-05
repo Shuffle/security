@@ -90,7 +90,14 @@ const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable }: Row
   );
 };
 
-export const AutomationReadinessBanner = () => {
+interface AutomationReadinessBannerProps {
+  /** Notifies the parent when nothing at all is configured yet (0/4 active). */
+  onEmptyChange?: (empty: boolean) => void;
+  /** Rendered at the top of the column as a focus item instead of inline. */
+  atTop?: boolean;
+}
+
+export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationReadinessBannerProps = {}) => {
   const isAdmin = useIsAdmin();
   const webhook = useWebhookStatus();
   const enrichment = useEnrichmentStatus();
