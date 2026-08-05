@@ -3289,13 +3289,12 @@ const IncidentsPage = () => {
             onFilterChange={(type, value) => {
               setFilters(prev => {
                 if (type === 'org') {
-                  const currentOrgs = Array.isArray(prev.org) ? prev.org : prev.org ? [prev.org] : [];
+                  // Clicking a tenant chip filters for ONLY that tenant.
                   const valStr = String(value);
-                  if (currentOrgs.includes(valStr)) {
-                    const next = currentOrgs.filter(o => o !== valStr);
-                    return { ...prev, org: next.length > 0 ? next : null };
+                  if (Array.isArray(prev.org) && prev.org.length === 1 && prev.org[0] === valStr) {
+                    return { ...prev, org: null };
                   }
-                  return { ...prev, org: [...currentOrgs, valStr] };
+                  return { ...prev, org: [valStr] };
                 }
                 return { ...prev, [type]: prev[type] === value ? null : value };
               });
