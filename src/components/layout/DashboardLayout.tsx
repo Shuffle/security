@@ -87,6 +87,14 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
     loadAgentToolsFromDatastore();
   }, [userInfo?.active_org?.id]);
 
+  // Warm the heaviest route chunks while idle so the first click on
+  // "Incidents" (and the first incident opened) does not wait on a download.
+  useEffect(() => {
+    prefetchCommonRoutes();
+  }, []);
+
+
+
   return (
     <AppDetailProvider>
       <Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'hsl(var(--background))', width: '100%' }}>
