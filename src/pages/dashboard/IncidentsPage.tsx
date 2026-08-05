@@ -484,6 +484,9 @@ const IncidentsPage = () => {
   const { subOrgs, parentOrg, isParentOrg: hasRelatedOrgs } = useSubOrgs(currentOrgId);
   // Only show multi-tenant view when we have sub-orgs to show (not just a parent)
   const isParentOrg = subOrgs.length > 0;
+  // Automation readiness with nothing configured is hoisted to the top of the
+  // stats column so it is the first thing seen.
+  const [readinessEmpty, setReadinessEmpty] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -1528,6 +1531,20 @@ const IncidentsPage = () => {
   const activeIncidents = useMemo(() => {
     return showIrrelevant ? incidents : relevantIncidents;
   }, [showIrrelevant, incidents, relevantIncidents]);
+
+  // Number of child tenants that actually contribute incidents — gates the
+  // "By Tenant" chart so it never renders for single-tenant setups.
+  const childTenantsWithIncidents = useMemo(() => {
+    if (subOrgs.length === 0) return 0;
+    const childIds = new Set(subOrgs.filter(o => o.id !== currentOrgId).map(o => o.id));
+    if (childIds.size === 0) return 0;
+    const seen = new Set<string>();
+    for (const inc of activeIncidents) {
+      const orgId = (inc as any).orgId;
+      if (orgId && childIds.has(orgId)) seen.add(orgId);
+    }
+    return seen.size;
+  }, [subOrgs, currentOrgId, activeIncidents]);
 
   // Filter incidents
   const filteredByAssignee = useMemo(() => {
@@ -3283,7 +3300,9 @@ const IncidentsPage = () => {
         
         {/* Stats sidebar — sticky on desktop. */}
         <Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'sticky', top: 72, alignSelf: 'start', maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', order: { xs: -1, lg: 0 } }}>
-          {/* Date range filter */}
+          {/* Nothing configured yet: pull readiness to the very top as the
+              primary focus, above the date range filter. */}
+          {readinessEmpty && <AutomationReadinessBanner atTop onEmptyChange={setReadinessEmpty} />}
           {/* Date range filter */}
           <Box sx={{ 
             mb: 2, 
@@ -3417,11 +3436,12 @@ const IncidentsPage = () => {
               even when the user has a status/severity filter active. */}
           <IncidentTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
           <SourceTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} onDateRangeSelect={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-          {/* Org trend chart - only when multiple orgs selected */}
-          {Array.isArray(filters.org) && filters.org.length > 1 && (
+          {/* By Tenant chart — only for parent tenants that actually have
+              child tenants contributing incidents. */}
+          {isParentOrg && childTenantsWithIncidents > 0 && (
             <OrgTrendChart incidents={activeIncidents} dateFrom={dateFrom} dateTo={dateTo} />
           )}
-          <AutomationReadinessBanner />
+          {!readinessEmpty && <AutomationReadinessBanner onEmptyChange={setReadinessEmpty} />}
           {/* Irrelevant incidents bar */}
           {irrelevantCount > 0 && (
             <Box

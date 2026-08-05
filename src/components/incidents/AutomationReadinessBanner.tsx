@@ -90,7 +90,14 @@ const Row = ({ label, active, loading, busy, tooltip, onEnable, onDisable }: Row
   );
 };
 
-export const AutomationReadinessBanner = () => {
+interface AutomationReadinessBannerProps {
+  /** Notifies the parent when nothing at all is configured yet (0/4 active). */
+  onEmptyChange?: (empty: boolean) => void;
+  /** Rendered at the top of the column as a focus item instead of inline. */
+  atTop?: boolean;
+}
+
+export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationReadinessBannerProps = {}) => {
   const isAdmin = useIsAdmin();
   const webhook = useWebhookStatus();
   const enrichment = useEnrichmentStatus();
@@ -121,6 +128,14 @@ export const AutomationReadinessBanner = () => {
   [webhook.enabled, enrichment.active, assign.active, defaultsReady]);
 
   const isLoading = webhook.isLoading || enrichment.isLoading || assign.isLoading || defaultsReady === null;
+
+  // "Empty" = nothing configured at all, once every check has resolved.
+  const isEmpty = !isLoading
+    && !webhook.enabled && !enrichment.active && !assign.active && defaultsReady !== true;
+
+  useEffect(() => {
+    onEmptyChange?.(isAdmin && isEmpty);
+  }, [onEmptyChange, isAdmin, isEmpty]);
 
   const wrap = useCallback(async (key: string, fn: () => Promise<unknown>, verb: 'Enabled' | 'Disabled') => {
     setBusy(key);
@@ -168,11 +183,13 @@ export const AutomationReadinessBanner = () => {
   return (
     <Box
       sx={{
-        mt: 2,
+        mt: atTop ? 0 : 2,
+        mb: atTop ? 2 : 0,
         p: 1.5,
         borderRadius: 2,
         bgcolor: 'transparent',
-        border: '1px solid hsl(var(--border))',
+        border: '1px solid',
+        borderColor: atTop ? 'hsl(var(--primary) / 0.5)' : 'hsl(var(--border))',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
