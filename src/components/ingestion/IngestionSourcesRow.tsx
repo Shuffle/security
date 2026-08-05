@@ -450,33 +450,62 @@ export const IngestionSourcesRow = ({
         open={appSearchOpen}
         onClose={() => {
           setAppSearchOpen(false);
+          const names = drawerSelectionRef.current;
+          drawerSelectionRef.current = null;
           setOptimisticToggles({});
-          fetchIngestionApps();
+          if (names) {
+            // Generate/update the ingest workflow once, right after closing.
+            commitSources(names);
+          } else {
+            fetchIngestionApps();
+          }
         }}
         title="Add Ingestion Source"
         subtitle={addSubtitle ?? 'Search and authenticate a tool to ingest from'}
         initialFilterQuery={searchPriorityQuery}
         multiSelect
-        selectedApps={ingestionApps
+        selectedApps={allApps
           .filter(a => (a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled))
           .map(a => ({ name: a.name, icon: a.image || '' }))}
-        // Apps without an authentication yet cannot be ingest sources — those
-        // still open the app configuration drawer first.
-        shouldOpenDetail={(app) => !ingestionApps.some(a => normalizeAppName(a.name) === normalizeAppName(app.name))}
         onSelectionChange={(next) => {
           const chosen = new Set(next.map(a => normalizeAppName(a.name)));
+
+          // Any picked app we do not know yet becomes a pending (unauthenticated)
+          // source — added right away and rendered yellow in the Ingest row.
+          const newcomers = next.filter(
+            n => !allApps.some(a => normalizeAppName(a.name) === normalizeAppName(n.name))
+          );
+          if (newcomers.length) {
+            setPendingApps(prev => [
+              ...prev,
+              ...newcomers.map(n => ({
+                id: n.id || n.name,
+                name: n.name,
+                image: n.icon || '',
+                validated: false,
+                enabled: true,
+                category,
+              } as ValidatedIngestionApp)),
+            ]);
+          }
+
           const updates: Record<string, boolean> = {};
-          ingestionApps.forEach((a) => {
+          allApps.forEach((a) => {
             const current = a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled;
             const desired = chosen.has(normalizeAppName(a.name));
-            if (desired !== current) {
-              updates[a.name] = desired;
-              handleToggleApp(a.name, desired);
-            }
+            if (desired !== current) updates[a.name] = desired;
           });
           if (Object.keys(updates).length) setOptimisticToggles(prev => ({ ...prev, ...updates }));
+
+          // Defer the workflow generation until the drawer is closed.
+          const activeNames = [
+            ...allApps.filter(a => chosen.has(normalizeAppName(a.name))).map(a => a.name),
+            ...newcomers.map(n => n.name),
+          ];
+          drawerSelectionRef.current = Array.from(new Set(activeNames));
         }}
       />
+
 
     </>
   );
