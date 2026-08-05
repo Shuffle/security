@@ -5,10 +5,19 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getAutomationLabels } from '@/config/usecases';
 import { CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 
+export interface AssignEscalateCheck {
+  label: string;
+  active: boolean;
+  detail: string;
+  orgId?: string;
+}
+
 export interface AssignEscalateStatus {
   /** Workflow exists AND background_processing=true AND wired into a
    *  category automation that is itself enabled (across every scoped tenant) */
   active: boolean;
+  /** Granular sub-checks explaining exactly which part is missing */
+  checks: AssignEscalateCheck[];
   /** Whether workflows are still loading */
   isLoading: boolean;
   /** Enable the Assign & Escalate workflow (across every inactive tenant) */
@@ -22,6 +31,7 @@ export interface AssignEscalateStatus {
   /** Tenants currently missing the workflow (multi-org mode only) */
   inactiveOrgIds: string[];
 }
+
 
 const getOrgId = (): string | null => {
   try {
@@ -74,6 +84,72 @@ const isOrgActive = (
   const ids = wfOption.value.split(',').map((s) => s.trim()).filter(Boolean);
   return ids.includes(matchingWorkflow.id);
 };
+
+/** Granular breakdown of every requirement for a single tenant. */
+const computeOrgChecks = (
+  workflows: WorkflowSummary[] | undefined,
+  cfg: FetchedCategoryConfig | undefined,
+  labels: string[],
+  orgId?: string,
+): AssignEscalateCheck[] => {
+  const named = workflows?.find((w) => labels.includes(w.name));
+  const exists = !!named;
+  const backgroundOn = !!named && named.background_processing === true;
+
+  const cfgMissing = cfg === CATEGORY_CONFIG_MISSING;
+  const categoryConfig = (cfgMissing ? null : ((cfg as CategoryConfig | null | undefined) ?? null));
+  const wfAutomation = categoryConfig?.automations?.find((a) => a.name === 'Run workflow');
+  const wfOption = wfAutomation?.options?.find((o) => o.key === 'workflow_id');
+  const mappedIds = (wfOption?.value || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+  const automationEnabled = cfgMissing ? true : !!wfAutomation?.enabled;
+  const mapped = cfgMissing ? true : (!!named && mappedIds.includes(named.id));
+
+  return [
+    {
+      label: `"${labels[0] || 'Assign & Escalate'}" workflow exists`,
+      active: exists,
+      detail: exists
+        ? `Workflow found (id: ${named?.id}).`
+        : `No workflow named ${labels.map((l) => `"${l}"`).join(' or ')} found in /api/v1/workflows.`,
+      orgId,
+    },
+    {
+      label: 'Workflow runs in the background',
+      active: backgroundOn,
+      detail: backgroundOn
+        ? 'background_processing=true.'
+        : exists
+          ? 'The workflow exists but background_processing is off, so it never triggers on new incidents.'
+          : 'The workflow must exist before background processing can be turned on.',
+      orgId,
+    },
+    {
+      label: '"Run workflow" incident automation enabled',
+      active: automationEnabled,
+      detail: cfgMissing
+        ? 'No category_config returned yet (tenant has no incidents), assumed enabled.'
+        : automationEnabled
+          ? 'The "Run workflow" automation is enabled on the incidents category.'
+          : 'The "Run workflow" automation is missing or disabled on the incidents category, so no workflow fires.',
+      orgId,
+    },
+    {
+      label: 'Workflow mapped to the incident automation',
+      active: mapped,
+      detail: cfgMissing
+        ? 'No category_config returned yet (tenant has no incidents), assumed mapped.'
+        : mapped
+          ? 'The workflow id is listed in the automation\'s workflow_id option.'
+          : exists
+            ? 'The workflow exists but its id is not listed in the "Run workflow" automation, so incidents never reach it.'
+            : 'No workflow to map yet.',
+      orgId,
+    },
+  ];
+};
+
+
 
 const runGenerate = async (labels: string[], orgId?: string, actionName?: string) => {
   const headers: Record<string, string> = { ...getAuthHeader(), 'Content-Type': 'application/json' };
@@ -212,8 +288,19 @@ export const useAssignEscalateStatus = (options?: { orgIds?: string[] }): Assign
     return isOrgActive(singleWorkflows, singleCfg, labels);
   }, [optimistic, multi, orgIds, multiWorkflows, multiCfgByOrg, singleWorkflows, singleCfg, labels]);
 
+  const checks = useMemo<AssignEscalateCheck[]>(() => {
+    if (multi) {
+      return orgIds.flatMap((oid) =>
+        computeOrgChecks(multiWorkflows[oid], multiCfgByOrg[oid], labels, oid).filter((c) => !c.active),
+      );
+    }
+    return computeOrgChecks(singleWorkflows, singleCfg, labels);
+  }, [multi, orgIds, multiWorkflows, multiCfgByOrg, singleWorkflows, singleCfg, labels]);
+
   return {
     active,
+    checks,
+
     isLoading: multi ? (multiWfLoading || multiCfgLoading) : (singleWfLoading || singleCfgLoading),
     enable,
     isEnabling,
