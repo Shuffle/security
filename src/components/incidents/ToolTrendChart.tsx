@@ -204,7 +204,15 @@ export const SourceTrendChart = ({ incidents, dateFrom, dateTo, onDateRangeSelec
 
   const { buckets: data, sources } = useMemo(() => {
     const to = dateTo || new Date();
-    const from = dateFrom || subDays(to, 30);
+    // No explicit range = "all time": start at the oldest incident (capped 2y).
+    const oldest = incidents.reduce(
+      (min, i) => (i.createdTs && i.createdTs < min ? i.createdTs : min),
+      Number.POSITIVE_INFINITY,
+    );
+    const fallbackFrom = Number.isFinite(oldest)
+      ? new Date(Math.max(oldest, subDays(to, 730).getTime()))
+      : subDays(to, 30);
+    const from = dateFrom || fallbackFrom;
     return buildSourceBuckets(incidents, from, to);
   }, [incidents, dateFrom, dateTo]);
 
