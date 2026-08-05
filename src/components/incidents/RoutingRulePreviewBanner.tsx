@@ -198,6 +198,7 @@ export const RoutingRulePreviewBanner = ({
       case 'add_label':     if (a.value) await onApply?.({ addLabel: a.value }); return;
       case 'assign_to':     if (a.value) await onApply?.({ assignee: a.value }); return;
       case 'add_comment':   if (a.value) await onApply?.({ addComment: a.value }); return;
+      case 'run_agent':     if (a.value) await onApply?.({ addComment: `@AIAgent ${a.value}` }); return;
       case 'set_field':
         if (a.field && a.value !== undefined) {
           await onApply?.({ setField: { field: a.field, value: a.value } });
@@ -265,6 +266,7 @@ export const RoutingRulePreviewBanner = ({
         : a.type === 'add_label' ? `Label: ${a.value}`
         : a.type === 'assign_to' ? `Assigned: ${a.value}`
         : a.type === 'add_comment' ? 'Comment posted'
+        : a.type === 'run_agent' ? 'AI agent asked'
         : a.type === 'set_field' ? `${a.field}: ${a.value}`
         : ACTION_TYPE_LABELS[a.type];
       return (
@@ -286,6 +288,7 @@ export const RoutingRulePreviewBanner = ({
         case 'add_label': return `Add label "${a.value || ''}"`;
         case 'assign_to': return `Assign to ${a.value || '?'}`;
         case 'add_comment': return 'Add comment';
+        case 'run_agent': return 'Run AI agent';
         case 'set_field': return `Set ${a.field || '?'} → ${a.value || '?'}`;
         default: return `${ACTION_TYPE_LABELS[a.type]}${a.value ? `: ${a.value}` : ''}`;
       }
@@ -296,6 +299,7 @@ export const RoutingRulePreviewBanner = ({
       (a.type === 'suggest_move' ? (!a.targetOrgId || (!onMove && !onApplyActions)) :
        a.type === 'set_field' ? (!a.field || a.value === undefined || (!onApply && !onApplyActions)) :
        a.type === 'add_comment' ? (!a.value || (!onApply && !onApplyActions)) :
+       a.type === 'run_agent' ? (!a.value || (!onApply && !onApplyActions)) :
        (!a.value || (!onApply && !onApplyActions)));
 
     return (
