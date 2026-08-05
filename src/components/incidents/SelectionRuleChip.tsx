@@ -54,7 +54,6 @@ import {
 } from '@/components/settings/IncidentRoutingEditor';
 import {
   RoutingActionFields,
-  ROUTING_ACTION_TYPE_LABELS,
   defaultRoutingAction,
   validateRoutingAction,
 } from '@/components/settings/RoutingActionFields';
