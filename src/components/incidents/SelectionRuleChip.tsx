@@ -52,6 +52,11 @@ import {
   type RoutingAction,
   type RoutingActionType,
 } from '@/components/settings/IncidentRoutingEditor';
+import {
+  RoutingActionFields,
+  defaultRoutingAction,
+  validateRoutingAction,
+} from '@/components/settings/RoutingActionFields';
 
 import { getDatastoreByCategory, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { evaluateRoutingRules, type IncidentEvaluationContext } from '@/utils/routingRuleEvaluator';
@@ -117,52 +122,6 @@ const OP_CHOICES: { value: RoutingConditionOp; label: string }[] = [
   { value: 'startsWith', label: 'starts with' },
   { value: 'endsWith', label: 'ends with' },
   { value: 'equals', label: 'equals' },
-];
-
-type ActionPreset = {
-  key: string;
-  label: string;
-  build: (value: string) => { type: RoutingActionType; value?: string; reason?: string };
-  valueLabel?: string;
-  hasFreeValue?: boolean;
-  defaultValue?: string;
-};
-
-const ACTION_PRESETS: ActionPreset[] = [
-  {
-    key: 'auto-close',
-    label: 'Auto-close incident',
-    build: () => ({ type: 'set_status', value: 'Closed', reason: 'Auto-closed by routing rule' }),
-  },
-  {
-    key: 'set-severity',
-    label: 'Set severity...',
-    build: (v) => ({ type: 'set_severity', value: v || 'Low' }),
-    valueLabel: 'Severity',
-    hasFreeValue: true,
-    defaultValue: 'Low',
-  },
-  {
-    key: 'set-priority',
-    label: 'Set priority...',
-    build: (v) => ({ type: 'set_priority', value: v || 'Low' }),
-    valueLabel: 'Priority',
-    hasFreeValue: true,
-    defaultValue: 'Low',
-  },
-  {
-    key: 'add-label',
-    label: 'Add label...',
-    build: (v) => ({ type: 'add_label', value: v }),
-    valueLabel: 'Label',
-    hasFreeValue: true,
-    defaultValue: '',
-  },
-  {
-    key: 'mark-in-progress',
-    label: 'Set status: In Progress',
-    build: () => ({ type: 'set_status', value: 'In Progress' }),
-  },
 ];
 
 const SEVERITY_OPTIONS = ['Informational', 'Low', 'Medium', 'High', 'Critical'];
@@ -235,7 +194,7 @@ interface SelectionRuleChipProps {
 
 export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
   const { userInfo } = useAuth();
-  const { parentOrg } = useSubOrgs(userInfo?.active_org?.id);
+  const { parentOrg, subOrgs } = useSubOrgs(userInfo?.active_org?.id);
   const routingOrgId = parentOrg?.id || userInfo?.active_org?.id;
   const navigate = useNavigate();
 
@@ -255,8 +214,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
   const [field, setField] = useState<string>('*');
   const [op, setOp] = useState<RoutingConditionOp>('contains');
   const [value, setValue] = useState<string>('');
-  const [actionKey, setActionKey] = useState<string>('auto-close');
-  const [actionValue, setActionValue] = useState<string>('');
+  const [action, setAction] = useState<RoutingAction>(() => defaultRoutingAction('set_status'));
   const [ruleName, setRuleName] = useState<string>('');
 
   // Post-save summary state — after a successful save we replace the form
@@ -271,9 +229,9 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
   const [scanResult, setScanResult] = useState<{ matched: number; scanned: number; applied: number; failed: number } | null>(null);
 
 
-  const currentPreset = useMemo(
-    () => ACTION_PRESETS.find((p) => p.key === actionKey) || ACTION_PRESETS[0],
-    [actionKey],
+  const orgOptions = useMemo(
+    () => (subOrgs || []).map((o: any) => ({ id: o.id, name: o.name })),
+    [subOrgs],
   );
 
   const closeChip = useCallback(() => {
@@ -536,8 +494,7 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     setField(chip.field || '*');
     setOp('contains');
     setValue(chip.text);
-    setActionKey('auto-close');
-    setActionValue('');
+    setAction(defaultRoutingAction('set_status'));
     const snippet = truncate(chip.text, 32);
     setRuleName(`Auto-rule: "${snippet}"`);
     setPopoverOpen(true);
@@ -549,8 +506,9 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
       toast.error('Value is empty');
       return;
     }
-    if (currentPreset.hasFreeValue && !actionValue.trim()) {
-      toast.error(`Enter a ${currentPreset.valueLabel?.toLowerCase() || 'value'}`);
+    const actionError = validateRoutingAction(action);
+    if (actionError) {
+      toast.error(actionError);
       return;
     }
     if (!routingOrgId) {
@@ -558,7 +516,6 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
       return;
     }
 
-    const action = currentPreset.build(actionValue.trim());
     const id = newRuleId();
     const nowTs = Date.now();
     const conditionLeaf = { kind: 'condition' as const, field, op, value: trimmedValue };
@@ -866,66 +823,15 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
             <Typography sx={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', mt: 0.5 }}>
               Then
             </Typography>
-            <Select
-              size="small"
-              value={actionKey}
-              onChange={(e) => {
-                const key = String(e.target.value);
-                setActionKey(key);
-                const preset = ACTION_PRESETS.find((p) => p.key === key);
-                setActionValue(preset?.defaultValue ?? '');
-              }}
-              fullWidth
-              MenuProps={{ sx: { zIndex: '10010 !important' }, style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
-            >
-              {ACTION_PRESETS.map((p) => (
-                <MenuItem key={p.key} value={p.key}>
-                  {p.label}
-                </MenuItem>
-              ))}
-            </Select>
+            <RoutingActionFields
+              action={action}
+              variant="compact"
+              menuZIndex={10010}
+              orgOptions={orgOptions}
+              onChange={(patch) => setAction((prev) => ({ ...prev, ...patch }))}
+              onTypeChange={(t) => setAction(defaultRoutingAction(t))}
+            />
 
-            {currentPreset.hasFreeValue && (
-              <>
-                {actionKey === 'set-severity' ? (
-                  <Select
-                    size="small"
-                    value={actionValue || 'Low'}
-                    onChange={(e) => setActionValue(String(e.target.value))}
-                    fullWidth
-                    MenuProps={{ sx: { zIndex: '10010 !important' }, style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
-                  >
-                    {SEVERITY_OPTIONS.map((s) => (
-                      <MenuItem key={s} value={s}>
-                        {s}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                ) : actionKey === 'set-priority' ? (
-                  <Select
-                    size="small"
-                    value={actionValue || 'Low'}
-                    onChange={(e) => setActionValue(String(e.target.value))}
-                    fullWidth
-                    MenuProps={{ sx: { zIndex: '10010 !important' }, style: { zIndex: 10010 }, PaperProps: { sx: { zIndex: 10010 } } }}
-                  >
-                    {PRIORITY_OPTIONS.map((s) => (
-                      <MenuItem key={s} value={s}>
-                        {s}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                ) : (
-                  <TextField
-                    size="small"
-                    value={actionValue}
-                    onChange={(e) => setActionValue(e.target.value)}
-                    placeholder={currentPreset.valueLabel || 'Value'}
-                    fullWidth
-                  />
-                )}
-              </>
-            )}
 
             <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 1 }}>
               <Button
