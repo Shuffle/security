@@ -17,7 +17,7 @@
  * branch of the host `/dashboard` page.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip as MuiTooltip } from '@mui/material';
+import { Box, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip as MuiTooltip, Typography } from '@mui/material';
 import { RefreshCw as RefreshIcon, X as CloseIcon, Download as DownloadIcon } from 'lucide-react';
 import { useDatastore } from '../../hooks/useDatastore';
 import { DATASTORE_CATEGORIES } from '@shuffleio/shuffle-mcps';
@@ -238,9 +238,38 @@ const CombinedDashboard = ({
     ? `${fmtShort(customRange.fromMs)} → ${fmtShort(customRange.toMs)}`
     : null;
 
+  const [exportStatus, setExportStatus] = useState<string>('');
+
+  /** Resolve once the dashboard node has no shimmer/skeleton placeholders left
+   *  (or the timeout expires), so captures never grab half-loaded charts. */
+  const waitForDashboardReady = async (timeoutMs = 20000) => {
+    const started = Date.now();
+    let stableFrames = 0;
+    while (Date.now() - started < timeoutMs) {
+      const node = dashboardRef.current;
+      const pending = node
+        ? node.querySelectorAll('[data-dashboard-loading], .MuiSkeleton-root').length
+        : 1;
+      if (pending === 0) {
+        stableFrames += 1;
+        // Require the "loaded" state to hold for a few polls so charts that
+        // mount right after their data lands are painted too.
+        if (stableFrames >= 3) break;
+      } else {
+        stableFrames = 0;
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    // Let recharts finish its enter animation before the screenshot.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 600));
+    try { await (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready; } catch { /* noop */ }
+  };
+
   const handleExportPdf = async () => {
     if (exporting) return;
     setExporting(true);
+    setExportStatus('Loading dashboard data…');
     const originalTab = tab;
     try {
       // Capture whichever tab is mounted first, then flip, wait, capture again.
@@ -253,11 +282,15 @@ const CombinedDashboard = ({
       let automationImage: string | null = null;
 
       setTab('security');
-      await new Promise((r) => setTimeout(r, 400));
+      setExportStatus('Loading Security Operations…');
+      await waitForDashboardReady();
+      setExportStatus('Capturing Security Operations…');
       securityImage = await captureCurrent();
 
       setTab('automation');
-      await new Promise((r) => setTimeout(r, 600));
+      setExportStatus('Loading Automation…');
+      await waitForDashboardReady();
+      setExportStatus('Capturing Automation…');
       automationImage = await captureCurrent();
 
       setTab(originalTab);
@@ -278,11 +311,14 @@ const CombinedDashboard = ({
         monitors: { hostCount: eHostCount, runningSensors: eSensorCount },
       };
 
+      setExportStatus('Generating PDF…');
       await buildDashboardPdf({ securityImage, automationImage, stats });
     } finally {
       setExporting(false);
+      setExportStatus('');
     }
   };
+
 
 
   const sharedHeader = (
@@ -359,7 +395,7 @@ const CombinedDashboard = ({
             <RefreshIcon size={16} />
           </IconButton>
         </MuiTooltip>
-        <MuiTooltip title={exporting ? 'Generating PDF…' : 'Download dashboard as PDF'}>
+        <MuiTooltip title={exporting ? (exportStatus || 'Generating PDF…') : 'Download dashboard as PDF'}>
           <span>
             <IconButton
               size="small"
@@ -367,10 +403,11 @@ const CombinedDashboard = ({
               disabled={exporting}
               sx={{ color: 'hsl(var(--muted-foreground))', alignSelf: 'flex-end', width: 36, height: 36, borderRadius: '8px' }}
             >
-              <DownloadIcon size={16} />
+              {exporting ? <CircularProgress size={16} sx={{ color: 'hsl(var(--muted-foreground))' }} /> : <DownloadIcon size={16} />}
             </IconButton>
           </span>
         </MuiTooltip>
+
 
       </Box>
     </Box>
@@ -415,6 +452,33 @@ const CombinedDashboard = ({
           />
         )}
       </Box>
+
+      {/* Export progress — rendered OUTSIDE the captured node so it never
+       *  ends up in the screenshots. */}
+      {exporting && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            px: 2,
+            py: 1.25,
+            borderRadius: '10px',
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            boxShadow: '0 8px 24px hsl(var(--background) / 0.6)',
+          }}
+        >
+          <CircularProgress size={16} sx={{ color: 'hsl(var(--primary))' }} />
+          <Typography sx={{ fontSize: 13, color: 'hsl(var(--foreground))' }}>
+            {exportStatus || 'Preparing PDF export…'}
+          </Typography>
+        </Box>
+      )}
 
       {/* Inline usecase drawer — opens in-place from the Security Operations
        *  setup CTAs instead of redirecting to /usecases. Receives the SAME

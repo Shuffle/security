@@ -89,6 +89,7 @@ const Silhouette = ({ variant }: { variant: ChartShimmerVariant }) => {
 export const ChartShimmer = ({ height, variant, label = 'Loading' }: ChartShimmerProps) => {
   return (
     <Box
+      data-dashboard-loading="true"
       sx={{
         position: 'relative',
         width: '100%',
