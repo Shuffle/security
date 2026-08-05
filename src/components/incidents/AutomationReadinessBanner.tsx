@@ -1,4 +1,4 @@
-import { CheckCircle2 as CheckCircleIcon, Circle as RadioButtonUncheckedIcon, Zap as BoltIcon, Power as PowerSettingsNewIcon, Rocket as RocketLaunchIcon } from 'lucide-react';
+import { CheckCircle2 as CheckCircleIcon, Circle as RadioButtonUncheckedIcon, XCircle as XCircleIcon, Zap as BoltIcon, Power as PowerSettingsNewIcon, Rocket as RocketLaunchIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Button, CircularProgress, IconButton, Tooltip, Typography } from '@mui/material';
 import { useWebhookStatus } from '@/hooks/useWebhookStatus';
