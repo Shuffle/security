@@ -497,16 +497,12 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('pointerup', handlePointerUp);
     document.addEventListener('pointercancel', handlePointerCancel);
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
     window.addEventListener('selection-rule:external', handleExternalSelection);
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('pointerup', handlePointerUp);
       document.removeEventListener('pointercancel', handlePointerCancel);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('selection-rule:external', handleExternalSelection);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
