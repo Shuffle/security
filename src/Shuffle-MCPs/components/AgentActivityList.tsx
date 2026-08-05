@@ -830,6 +830,8 @@ export interface AgentActivityListProps extends ShuffleHostProps {
   toolbarSx?: SxProps<Theme>;
   /** Style overrides for each individual run row. */
   rowSx?: SxProps<Theme>;
+  /** Usecase-backed agent types shown in the run filter dropdown. */
+  usecaseFilters?: AgentUsecaseFilter[];
 }
 
 const AgentActivityList = ({
