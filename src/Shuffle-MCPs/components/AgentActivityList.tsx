@@ -850,6 +850,7 @@ const AgentActivityList = ({
   sx,
   toolbarSx,
   rowSx,
+  usecaseFilters = [],
   globalUrl,
   theme,
   colorMode,
@@ -865,6 +866,7 @@ const AgentActivityList = ({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [agentWorkflows, setAgentWorkflows] = useState<AgentScheduleWorkflow[]>([]);
   const [workflowFilter, setWorkflowFilter] = useState('');
+  const [usecaseFilter, setUsecaseFilter] = useState('');
   const [stopOpen, setStopOpen] = useState(false);
   const [stopLoading, setStopLoading] = useState(false);
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
