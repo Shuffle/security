@@ -269,8 +269,12 @@ export const IngestionSourcesRow = ({
 
   if (ingestionLoading) return null;
 
-  const visibleApps = ingestionApps.slice(0, 3);
-  const overflowApps = ingestionApps.slice(3);
+  const allApps = [
+    ...ingestionApps,
+    ...pendingApps.filter(p => !ingestionApps.some(a => normalizeAppName(a.name) === normalizeAppName(p.name))),
+  ];
+  const visibleApps = allApps.slice(0, 3);
+  const overflowApps = allApps.slice(3);
   const incidentCountsBySource = new Map<string, number>(); // reserved — count not tracked here
 
   return (
