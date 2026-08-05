@@ -4384,7 +4384,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Tooltip>
                 {chosenApps.map((app, i) => {
                   const slug = normalizeAgentAppName(app.name || '');
-                  const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
+                  const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
                   const needsAuth = !authAppsLoading && !NO_AUTH.has(slug) && !isAppAuthenticated(app.name || '', app.id || null);
                   return (
                   <Tooltip
