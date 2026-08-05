@@ -147,9 +147,12 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
   const isEmpty = !isLoading
     && !webhook.enabled && !enrichment.active && !assign.active && defaultsReady !== true;
 
+  // Only report once every check has resolved, so the parent never latches a
+  // position based on a still-loading state.
   useEffect(() => {
+    if (isLoading) return;
     onEmptyChange?.(isAdmin && isEmpty);
-  }, [onEmptyChange, isAdmin, isEmpty]);
+  }, [onEmptyChange, isAdmin, isEmpty, isLoading]);
 
   const wrap = useCallback(async (key: string, fn: () => Promise<unknown>, verb: 'Enabled' | 'Disabled') => {
     setBusy(key);
