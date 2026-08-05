@@ -101,6 +101,7 @@ import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAudi
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
 import { SelectionRuleChip } from '@/components/incidents/SelectionRuleChip';
+import { IncidentDetailSkeleton } from '@/components/incidents/IncidentDetailSkeleton';
 import {
   ROUTING_DATASTORE_CATEGORY,
   type RoutingRule,
@@ -5539,27 +5540,12 @@ const IncidentDetailPage = () => {
 
   // Render the same skeleton for both the initial load AND the transient
   // auto-retry window. From the user's perspective these are the same state
-  // ("we are still trying to fetch this incident"), and the previous mix of
-  // a tiny inline spinner + heading looked broken.
+  // ("we are still trying to fetch this incident"), so we show a layout-true
+  // skeleton instead of a spinner + "Loading …" text.
   if (loading || demoRecovering || retryingTransientLoad) {
-    return (
-      <Box sx={{ p: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-          <CircularProgress size={16} thickness={5} />
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {retryingTransientLoad
-              ? `Loading ${entitySingular.toLowerCase()} — the API is slow to respond, retrying…`
-              : `Loading ${entitySingular.toLowerCase()}…`}
-          </Typography>
-        </Box>
-        <Skeleton variant="rectangular" height={120} sx={{ mb: 3, borderRadius: 2 }} />
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
-          <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />
-        </Box>
-      </Box>
-    );
+    return <IncidentDetailSkeleton />;
   }
+
 
   if (!incident) {
     const isSupport = userInfo?.support === true;
