@@ -1532,6 +1532,20 @@ const IncidentsPage = () => {
     return showIrrelevant ? incidents : relevantIncidents;
   }, [showIrrelevant, incidents, relevantIncidents]);
 
+  // Number of child tenants that actually contribute incidents — gates the
+  // "By Tenant" chart so it never renders for single-tenant setups.
+  const childTenantsWithIncidents = useMemo(() => {
+    if (subOrgs.length === 0) return 0;
+    const childIds = new Set(subOrgs.filter(o => o.id !== currentOrgId).map(o => o.id));
+    if (childIds.size === 0) return 0;
+    const seen = new Set<string>();
+    for (const inc of activeIncidents) {
+      const orgId = (inc as any).orgId;
+      if (orgId && childIds.has(orgId)) seen.add(orgId);
+    }
+    return seen.size;
+  }, [subOrgs, currentOrgId, activeIncidents]);
+
   // Filter incidents
   const filteredByAssignee = useMemo(() => {
     if (filters.assignee === null || filters.assignee === 'all') {
