@@ -311,13 +311,12 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         loading={assign.isLoading}
         busy={busy === 'Assign & Escalate'}
         tooltip="Routes incidents to the on-call analyst and escalates"
-        checks={[
-          {
-            label: 'Assign & Escalate workflow running and wired into incident automation',
-            active: assign.active,
-            detail: 'Either the workflow is missing, background processing is off, or it is not selected in the "Run workflow" incident automation.',
-          },
-        ]}
+        checks={assign.checks?.map((c) => ({
+          label: c.orgId ? `${c.label} (tenant ${c.orgId.slice(0, 8)})` : c.label,
+          active: c.active,
+          detail: c.detail,
+        }))}
+
         onEnable={() => wrap('Assign & Escalate', () => assign.enable(), 'Enabled')}
         onDisable={() => wrap('Assign & Escalate', () => assign.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('case_management_assign_escalate_1')}
