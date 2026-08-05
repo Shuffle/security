@@ -101,6 +101,7 @@ import { DemoFallbackAuditBanner } from '@/components/incidents/DemoFallbackAudi
 import { useMergeCandidates } from '@/hooks/useMergeCandidates';
 import { RoutingRulePreviewBanner } from '@/components/incidents/RoutingRulePreviewBanner';
 import { SelectionRuleChip } from '@/components/incidents/SelectionRuleChip';
+import { IncidentDetailSkeleton } from '@/components/incidents/IncidentDetailSkeleton';
 import {
   ROUTING_DATASTORE_CATEGORY,
   type RoutingRule,
