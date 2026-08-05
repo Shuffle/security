@@ -222,6 +222,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         tooltip="Pushes alerts directly into incidents via webhook URL"
         onEnable={() => wrap('Ingestion', () => webhook.enable(), 'Enabled')}
         onDisable={() => wrap('Ingestion', () => webhook.disable(), 'Disabled')}
+        onOpenUsecase={() => setUsecaseId('siem_case_management_1')}
       />
       <Row
         label="Enrichment"
@@ -231,6 +232,7 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         tooltip="Threat feeds + IOC extraction + Enrich automation"
         onEnable={() => wrap('Enrichment', () => enrichment.enable(), 'Enabled')}
         onDisable={() => wrap('Enrichment', () => enrichment.disable(), 'Disabled')}
+        onOpenUsecase={() => setUsecaseId('threat_intel_case_management_1')}
       />
       <Row
         label="Assign & Escalate"
@@ -240,7 +242,9 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         tooltip="Routes incidents to the on-call analyst and escalates"
         onEnable={() => wrap('Assign & Escalate', () => assign.enable(), 'Enabled')}
         onDisable={() => wrap('Assign & Escalate', () => assign.disable(), 'Disabled')}
+        onOpenUsecase={() => setUsecaseId('case_management_assign_escalate_1')}
       />
+
       <Row
         label="Default config"
         active={defaultsReady === true}
