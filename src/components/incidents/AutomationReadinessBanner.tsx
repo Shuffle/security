@@ -281,9 +281,11 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         busy={busy === 'Ingestion'}
         tooltip="Pushes alerts directly into incidents via webhook URL"
         checks={[
-          { label: 'Ingestion Webhook workflow exists', active: webhook.exists, detail: 'No workflow named "Ingestion Webhook" was found for this tenant.' },
-          { label: 'Webhook trigger running', active: webhook.enabled, detail: 'The webhook trigger is stopped, so nothing is being ingested.' },
+          { label: '"Ingestion Webhook" workflow exists', active: webhook.exists, detail: 'No workflow named "Ingestion Webhook" was found for this tenant.' },
+          { label: 'Webhook URL generated', active: !!webhook.url, detail: 'The workflow has no webhook trigger, so there is no URL to send alerts to.' },
+          { label: 'Webhook trigger running', active: webhook.enabled, detail: 'The webhook trigger exists but is stopped, so nothing is being ingested.' },
         ]}
+
         onEnable={() => wrap('Ingestion', () => webhook.enable(), 'Enabled')}
         onDisable={() => wrap('Ingestion', () => webhook.disable(), 'Disabled')}
         onOpenUsecase={() => setUsecaseId('siem_case_management_1')}
