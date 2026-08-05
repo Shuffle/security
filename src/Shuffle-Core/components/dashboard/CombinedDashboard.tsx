@@ -77,7 +77,7 @@ const fmtShort = (ms: number) => {
 };
 
 const CombinedDashboard = ({
-  defaultTab = 'security',
+  defaultTab = 'automation',
   // Overview data overrides (when supplied, used as-is)
   incidents: incidentsProp,
   incidentsLoading: incidentsLoadingProp,
