@@ -3826,7 +3826,7 @@ function UsecaseDetailContent({
               ) : canToggle && flow.automationLabel && (
                 <Button
                   size="small"
-                  variant="contained"
+                  variant={effectiveEnabled ? 'outlined' : 'contained'}
                   disableElevation
                   onClick={handleToggle}
                   disabled={toggling}
@@ -3848,10 +3848,10 @@ function UsecaseDetailContent({
                     py: 0.6,
                     px: 1.25,
                     bgcolor: effectiveEnabled
-                      ? primaryColor
+                      ? 'transparent'
                       : primaryColor,
                     color: effectiveEnabled
-                      ? 'hsl(var(--foreground))'
+                      ? primaryColor
                       : 'hsl(var(--primary-foreground, 0 0% 100%))',
                     border: effectiveEnabled
                       ? `1px solid ${primaryColor}`
@@ -3859,10 +3859,10 @@ function UsecaseDetailContent({
                     boxShadow: 'none',
                     '&:hover': {
                       bgcolor: effectiveEnabled
-                        ? primaryColor
+                        ? `${primaryColor}14`
                         : primaryColor,
-                      opacity: effectiveEnabled ? 1 : 0.9,
-                      borderColor: effectiveEnabled ? 'hsl(var(--foreground) / 0.4)' : 'transparent',
+                      opacity: 0.9,
+                      borderColor: effectiveEnabled ? primaryColor : 'transparent',
                       boxShadow: 'none',
                     },
                   }}
