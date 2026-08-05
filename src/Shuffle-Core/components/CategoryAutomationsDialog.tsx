@@ -79,15 +79,18 @@ const WEEKS_OPTIONS = [
 ];
 
 /** Blank/undefined = Never. Anything under 60s is also treated as Never.
- *  Values that don't match an option snap to the closest one so the Select
- *  never renders empty. */
+ *  Any other value is kept as-is (a custom option is rendered for it) so we
+ *  never silently misrepresent the stored timeout. */
 const normalizeCleanupTimeout = (raw: unknown): number => {
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 60) return 0;
-  if (WEEKS_OPTIONS.some((o) => o.seconds === n)) return n;
-  return WEEKS_OPTIONS.reduce((best, o) =>
-    Math.abs(o.seconds - n) < Math.abs(best.seconds - n) ? o : best,
-  ).seconds;
+  return n;
+};
+
+const formatCustomTimeout = (seconds: number): string => {
+  const weeks = seconds / 604800;
+  const rounded = Math.round(weeks * 10) / 10;
+  return `${rounded} week${rounded === 1 ? '' : 's'}`;
 };
 
 const automationConfigs = [
