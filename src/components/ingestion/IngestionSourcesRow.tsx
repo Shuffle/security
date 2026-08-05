@@ -87,6 +87,11 @@ export const IngestionSourcesRow = ({
   // Reactive mirror of pending toggles so the multi-select picker reflects
   // clicks instantly (the ref alone does not trigger a re-render).
   const [optimisticToggles, setOptimisticToggles] = useState<Record<string, boolean>>({});
+  // Sources added from the picker that have no authentication yet — shown in
+  // yellow (not validated) so auth can be completed later.
+  const [pendingApps, setPendingApps] = useState<ValidatedIngestionApp[]>([]);
+  // Latest selection made inside the picker; committed once the drawer closes.
+  const drawerSelectionRef = useRef<string[] | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchIngestionApps = useCallback(async () => {
@@ -197,6 +202,50 @@ export const IngestionSourcesRow = ({
     }
   }, [ingestWorkflowId, isSyncing]);
 
+  const commitSources = useCallback(async (activeNames: string[]) => {
+    setIsUpdatingApps(true);
+    try {
+      const body: Record<string, string> = { label: workflowLabel, category };
+      if (activeNames.length > 0) body.app_name = activeNames.join(',');
+      else body.action_name = 'remove';
+      const resp = await fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      let payload: any = null;
+      try { payload = await resp.json(); } catch { /* ignore */ }
+      if (!resp.ok || (payload && payload.success === false)) {
+        const reason = payload?.reason || `Failed to update ingestion sources (${resp.status})`;
+        toast.error(reason);
+        await fetchIngestionApps();
+        return;
+      }
+      toast.success('Ingestion sources updated');
+      await fetchIngestionApps();
+      onSourcesChanged?.();
+      if (activeNames.length > 0) {
+        try {
+          const wfResp = await fetch(getApiUrl('/api/v1/workflows'), {
+            credentials: 'include',
+            headers: getAuthHeader(),
+          });
+          const wfs = await wfResp.json();
+          const list = Array.isArray(wfs) ? wfs : (wfs.workflows || []);
+          const ingestWf = list.find((w: any) => w.name === workflowLabel);
+          if (ingestWf?.id) triggerSync(ingestWf.id);
+        } catch { /* ignore */ }
+      }
+    } catch (error) {
+      console.error('Failed to update ingestion sources:', error);
+      toast.error('Failed to update ingestion sources');
+      fetchIngestionApps();
+    } finally {
+      setIsUpdatingApps(false);
+    }
+  }, [fetchIngestionApps, workflowLabel, category, triggerSync, onSourcesChanged]);
+
   const handleToggleApp = useCallback((appName: string, enabled: boolean) => {
     pendingTogglesRef.current.set(appName, enabled);
     setIsUpdatingApps(true);
@@ -204,51 +253,13 @@ export const IngestionSourcesRow = ({
     debounceTimerRef.current = setTimeout(async () => {
       const toggles = new Map(pendingTogglesRef.current);
       pendingTogglesRef.current.clear();
-      const activeNames = ingestionApps
+      const activeNames = [...ingestionApps, ...pendingApps]
         .filter(a => toggles.has(a.name) ? toggles.get(a.name) : a.enabled)
         .map(a => a.name);
-      try {
-        const body: Record<string, string> = { label: workflowLabel, category };
-        if (activeNames.length > 0) body.app_name = activeNames.join(',');
-        else body.action_name = 'remove';
-        const resp = await fetch(getApiUrl('/api/v2/workflows/generate'), {
-          method: 'POST',
-          credentials: 'include',
-          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        let payload: any = null;
-        try { payload = await resp.json(); } catch { /* ignore */ }
-        if (!resp.ok || (payload && payload.success === false)) {
-          const reason = payload?.reason || `Failed to update ingestion sources (${resp.status})`;
-          toast.error(reason);
-          await fetchIngestionApps();
-          return;
-        }
-        toast.success('Ingestion sources updated');
-        await fetchIngestionApps();
-        onSourcesChanged?.();
-        if (activeNames.length > 0) {
-          try {
-            const wfResp = await fetch(getApiUrl('/api/v1/workflows'), {
-              credentials: 'include',
-              headers: getAuthHeader(),
-            });
-            const wfs = await wfResp.json();
-            const list = Array.isArray(wfs) ? wfs : (wfs.workflows || []);
-            const ingestWf = list.find((w: any) => w.name === workflowLabel);
-            if (ingestWf?.id) triggerSync(ingestWf.id);
-          } catch { /* ignore */ }
-        }
-      } catch (error) {
-        console.error('Failed to update ingestion sources:', error);
-        toast.error('Failed to update ingestion sources');
-        fetchIngestionApps();
-      } finally {
-        setIsUpdatingApps(false);
-      }
+      await commitSources(activeNames);
     }, 3000);
-  }, [ingestionApps, fetchIngestionApps, workflowLabel, category, triggerSync, onSourcesChanged]);
+  }, [ingestionApps, pendingApps, commitSources]);
+
 
   const handleEnter = useCallback(() => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
@@ -260,8 +271,12 @@ export const IngestionSourcesRow = ({
 
   if (ingestionLoading) return null;
 
-  const visibleApps = ingestionApps.slice(0, 3);
-  const overflowApps = ingestionApps.slice(3);
+  const allApps = [
+    ...ingestionApps,
+    ...pendingApps.filter(p => !ingestionApps.some(a => normalizeAppName(a.name) === normalizeAppName(p.name))),
+  ];
+  const visibleApps = allApps.slice(0, 3);
+  const overflowApps = allApps.slice(3);
   const incidentCountsBySource = new Map<string, number>(); // reserved — count not tracked here
 
   return (
@@ -437,33 +452,62 @@ export const IngestionSourcesRow = ({
         open={appSearchOpen}
         onClose={() => {
           setAppSearchOpen(false);
+          const names = drawerSelectionRef.current;
+          drawerSelectionRef.current = null;
           setOptimisticToggles({});
-          fetchIngestionApps();
+          if (names) {
+            // Generate/update the ingest workflow once, right after closing.
+            commitSources(names);
+          } else {
+            fetchIngestionApps();
+          }
         }}
         title="Add Ingestion Source"
         subtitle={addSubtitle ?? 'Search and authenticate a tool to ingest from'}
         initialFilterQuery={searchPriorityQuery}
         multiSelect
-        selectedApps={ingestionApps
+        selectedApps={allApps
           .filter(a => (a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled))
           .map(a => ({ name: a.name, icon: a.image || '' }))}
-        // Apps without an authentication yet cannot be ingest sources — those
-        // still open the app configuration drawer first.
-        shouldOpenDetail={(app) => !ingestionApps.some(a => normalizeAppName(a.name) === normalizeAppName(app.name))}
         onSelectionChange={(next) => {
           const chosen = new Set(next.map(a => normalizeAppName(a.name)));
+
+          // Any picked app we do not know yet becomes a pending (unauthenticated)
+          // source — added right away and rendered yellow in the Ingest row.
+          const newcomers = next.filter(
+            n => !allApps.some(a => normalizeAppName(a.name) === normalizeAppName(n.name))
+          );
+          if (newcomers.length) {
+            setPendingApps(prev => [
+              ...prev,
+              ...newcomers.map(n => ({
+                id: n.id || n.name,
+                name: n.name,
+                image: n.icon || '',
+                validated: false,
+                enabled: true,
+                category,
+              } as ValidatedIngestionApp)),
+            ]);
+          }
+
           const updates: Record<string, boolean> = {};
-          ingestionApps.forEach((a) => {
+          allApps.forEach((a) => {
             const current = a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled;
             const desired = chosen.has(normalizeAppName(a.name));
-            if (desired !== current) {
-              updates[a.name] = desired;
-              handleToggleApp(a.name, desired);
-            }
+            if (desired !== current) updates[a.name] = desired;
           });
           if (Object.keys(updates).length) setOptimisticToggles(prev => ({ ...prev, ...updates }));
+
+          // Defer the workflow generation until the drawer is closed.
+          const activeNames = [
+            ...allApps.filter(a => chosen.has(normalizeAppName(a.name))).map(a => a.name),
+            ...newcomers.map(n => n.name),
+          ];
+          drawerSelectionRef.current = Array.from(new Set(activeNames));
         }}
       />
+
 
     </>
   );
