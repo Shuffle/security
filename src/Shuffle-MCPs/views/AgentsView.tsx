@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import AgentUI from '@/Shuffle-MCPs/components/AgentUI';
 import AgentActivityList from '@/Shuffle-MCPs/components/AgentActivityList';
+import type { AgentUsecaseFilter } from '@/Shuffle-MCPs/components/AgentActivityList';
 import AgentExecutionDrawer from '@/Shuffle-MCPs/components/AgentExecutionDrawer';
 import AgentRunDrawer, { type AgentRunDrawerTab } from '@/Shuffle-MCPs/components/AgentRunDrawer';
 import LocalLLMConfig from '@/Shuffle-MCPs/components/LocalLLMConfig';
@@ -64,6 +65,8 @@ export interface AgentsViewProps extends ShuffleHostProps {
   disableAppsPersistence?: boolean;
   /** Storage key for internal chip-row persistence. Defaults to `shuffle-agents-selected-apps`. */
   appsStorageKey?: string;
+  /** Usecase-backed agent types shown in the activity list filter dropdown. */
+  usecaseFilters?: AgentUsecaseFilter[];
 }
 
 const APPS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -110,6 +113,7 @@ const AgentsView = ({
   onAppsChange,
   disableAppsPersistence,
   appsStorageKey = DEFAULT_APPS_STORAGE_KEY,
+  usecaseFilters,
   globalUrl = API_CONFIG.baseUrl,
   isLoaded,
   isLoggedIn,
@@ -325,6 +329,7 @@ const AgentsView = ({
               orgId={orgId}
               onRunClick={setSelectedRun}
               onEditWorkflow={handleEditWorkflow}
+              usecaseFilters={usecaseFilters}
             />
           </Box>
         )}
