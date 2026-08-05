@@ -382,10 +382,12 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
       return;
     }
     for (const a of rule.actions) {
-      if (a.type === 'suggest_move' && !a.targetOrgId) {
-        toast.error('Select a target tenant for the move action');
+      const err = validateRoutingAction(a);
+      if (err) {
+        toast.error(err);
         return;
       }
+
       if (a.type === 'set_field' && !a.field) {
         toast.error('Pick a field for "Set custom field"');
         return;
