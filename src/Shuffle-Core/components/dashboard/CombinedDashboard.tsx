@@ -238,9 +238,38 @@ const CombinedDashboard = ({
     ? `${fmtShort(customRange.fromMs)} → ${fmtShort(customRange.toMs)}`
     : null;
 
+  const [exportStatus, setExportStatus] = useState<string>('');
+
+  /** Resolve once the dashboard node has no shimmer/skeleton placeholders left
+   *  (or the timeout expires), so captures never grab half-loaded charts. */
+  const waitForDashboardReady = async (timeoutMs = 20000) => {
+    const started = Date.now();
+    let stableFrames = 0;
+    while (Date.now() - started < timeoutMs) {
+      const node = dashboardRef.current;
+      const pending = node
+        ? node.querySelectorAll('[data-dashboard-loading], .MuiSkeleton-root').length
+        : 1;
+      if (pending === 0) {
+        stableFrames += 1;
+        // Require the "loaded" state to hold for a few polls so charts that
+        // mount right after their data lands are painted too.
+        if (stableFrames >= 3) break;
+      } else {
+        stableFrames = 0;
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    // Let recharts finish its enter animation before the screenshot.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 600));
+    try { await (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready; } catch { /* noop */ }
+  };
+
   const handleExportPdf = async () => {
     if (exporting) return;
     setExporting(true);
+    setExportStatus('Loading dashboard data…');
     const originalTab = tab;
     try {
       // Capture whichever tab is mounted first, then flip, wait, capture again.
@@ -253,11 +282,15 @@ const CombinedDashboard = ({
       let automationImage: string | null = null;
 
       setTab('security');
-      await new Promise((r) => setTimeout(r, 400));
+      setExportStatus('Loading Security Operations…');
+      await waitForDashboardReady();
+      setExportStatus('Capturing Security Operations…');
       securityImage = await captureCurrent();
 
       setTab('automation');
-      await new Promise((r) => setTimeout(r, 600));
+      setExportStatus('Loading Automation…');
+      await waitForDashboardReady();
+      setExportStatus('Capturing Automation…');
       automationImage = await captureCurrent();
 
       setTab(originalTab);
@@ -278,11 +311,14 @@ const CombinedDashboard = ({
         monitors: { hostCount: eHostCount, runningSensors: eSensorCount },
       };
 
+      setExportStatus('Generating PDF…');
       await buildDashboardPdf({ securityImage, automationImage, stats });
     } finally {
       setExporting(false);
+      setExportStatus('');
     }
   };
+
 
 
   const sharedHeader = (
