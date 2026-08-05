@@ -868,29 +868,52 @@ export const IncidentCardView = ({
             }}
           >
             <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-              No incidents match your filter
+              {totalIncidentCount && totalIncidentCount > 0
+                ? `0/${totalIncidentCount} incidents match your filter`
+                : 'No incidents match your filter'}
             </Typography>
-            {orgFilterNames && orgFilterNames.length > 0 && totalOrgCount && totalOrgCount > orgFilterNames.length && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                  Showing {orgFilterNames.length} of {totalOrgCount} tenant{totalOrgCount > 1 ? 's' : ''}: {orgFilterNames.join(', ')}
-                </Typography>
-                {onResetOrgFilter && (
-                  <Typography
-                    variant="caption"
-                    onClick={onResetOrgFilter}
+            {(onResetFilters || onResetOrgFilter || onShowAllIncidents) && (
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {(onResetFilters || onResetOrgFilter) && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={onResetFilters || onResetOrgFilter}
                     sx={{
-                      color: 'hsl(var(--primary))',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      '&:hover': { textDecoration: 'underline' },
+                      height: 36,
+                      textTransform: 'none',
+                      color: 'hsl(var(--foreground))',
+                      borderColor: 'hsl(var(--border))',
+                      '&:hover': { borderColor: 'hsl(var(--primary))' },
                     }}
                   >
                     Reset filters
-                  </Typography>
+                  </Button>
+                )}
+                {onShowAllIncidents && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={onShowAllIncidents}
+                    sx={{
+                      height: 36,
+                      textTransform: 'none',
+                      backgroundColor: 'hsl(var(--primary))',
+                      color: 'hsl(var(--primary-foreground))',
+                      '&:hover': { backgroundColor: 'hsl(var(--primary))', opacity: 0.9 },
+                    }}
+                  >
+                    Show all incidents
+                  </Button>
                 )}
               </Box>
             )}
+            {orgFilterNames && orgFilterNames.length > 0 && totalOrgCount && totalOrgCount > orgFilterNames.length && (
+              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                Showing {orgFilterNames.length} of {totalOrgCount} tenant{totalOrgCount > 1 ? 's' : ''}: {orgFilterNames.join(', ')}
+              </Typography>
+            )}
+
           </Box>
 
           {/* Secondary CTA: even when filters hide the list, surface the
