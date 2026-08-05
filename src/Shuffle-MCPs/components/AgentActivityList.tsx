@@ -788,6 +788,19 @@ const STATUS_FILTERS = [
   { label: 'Failed', value: 'ABORTED' },
 ];
 
+/**
+ * A usecase-backed agent "type" surfaced in the run filter dropdown.
+ * Hosts supply only the usecases that are actually enabled for the tenant.
+ */
+export interface AgentUsecaseFilter {
+  /** Unique id (used as the menu value). */
+  id: string;
+  /** Menu label, e.g. "Incident Response Agent". */
+  label: string;
+  /** Case-insensitive substrings matched against run source/workflow metadata. */
+  matchTokens: string[];
+}
+
 export interface AgentActivityListProps extends ShuffleHostProps {
   /** Optional Shuffle API key. Falls back to the shared API_CONFIG. */
   apiKey?: string;
