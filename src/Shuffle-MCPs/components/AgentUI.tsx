@@ -669,6 +669,7 @@ const validateJson = (raw: unknown): { valid: boolean; result: any } => {
  * "shuffle-host-monitors" and "shuffle_host_monitors" all match.
  */
 const AGENT_NO_AUTH_APPS = new Set<string>([
+  'shuffle_incidents',
   'shuffle_host_monitors',
   'shuffle_monitors',
   'shuffle_sensors',
@@ -4383,7 +4384,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Tooltip>
                 {chosenApps.map((app, i) => {
                   const slug = normalizeAgentAppName(app.name || '');
-                  const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
+                  const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
                   const needsAuth = !authAppsLoading && !NO_AUTH.has(slug) && !isAppAuthenticated(app.name || '', app.id || null);
                   return (
                   <Tooltip
@@ -4473,7 +4474,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 the app drawer to set them up. The agent can still run
                 without these — Shuffle will request auth mid-run if needed. */}
             {!hideAppPicker && (() => {
-              const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
+              const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
               if (authAppsLoading) return null;
               const unauthed = chosenApps.filter((a) => {
                 const slug = normalizeAgentAppName(a.name || '');
