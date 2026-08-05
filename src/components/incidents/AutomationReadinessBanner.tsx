@@ -237,26 +237,27 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
 
   const handleEnableAll = useCallback(async () => {
     setEnablingAll(true);
+    setBusy('Default config');
     try {
+      // Default config ALWAYS runs (and is verified) first — the other three
+      // depend on IOC types, threat feeds and security rules being in place.
+      await enableDefaults();
+      setBusy(null);
+
       const tasks: Promise<unknown>[] = [];
-      if (defaultsReady !== true) {
-        tasks.push(seedDefaultIOCTypes());
-        tasks.push(seedDefaultThreatFeeds());
-        tasks.push(enableIncidentSecurityRules());
-      }
       if (!enrichment.active) tasks.push(enrichment.enable());
       if (!assign.active) tasks.push(assign.enable());
       if (!webhook.enabled) tasks.push(webhook.enable());
       await Promise.allSettled(tasks);
-      await checkDefaults();
       toast.success('All critical automations enabled');
     } catch (err) {
       console.error('[automation-readiness] enable all failed', err);
       toast.error('Failed to enable some automations');
     } finally {
+      setBusy(null);
       setEnablingAll(false);
     }
-  }, [defaultsReady, enrichment, assign, webhook, checkDefaults]);
+  }, [enableDefaults, enrichment, assign, webhook]);
 
   // ── First-ever load per tenant: auto-enable "Default config" ─────────
   // Only runs when the tenant is at 0/4 readiness, and only once per org
