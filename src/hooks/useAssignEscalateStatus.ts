@@ -5,10 +5,19 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getAutomationLabels } from '@/config/usecases';
 import { CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 
+export interface AssignEscalateCheck {
+  label: string;
+  active: boolean;
+  detail: string;
+  orgId?: string;
+}
+
 export interface AssignEscalateStatus {
   /** Workflow exists AND background_processing=true AND wired into a
    *  category automation that is itself enabled (across every scoped tenant) */
   active: boolean;
+  /** Granular sub-checks explaining exactly which part is missing */
+  checks: AssignEscalateCheck[];
   /** Whether workflows are still loading */
   isLoading: boolean;
   /** Enable the Assign & Escalate workflow (across every inactive tenant) */
@@ -22,6 +31,7 @@ export interface AssignEscalateStatus {
   /** Tenants currently missing the workflow (multi-org mode only) */
   inactiveOrgIds: string[];
 }
+
 
 const getOrgId = (): string | null => {
   try {
