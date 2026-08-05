@@ -92,6 +92,7 @@ export type RoutingActionType =
   | 'add_label'
   | 'assign_to'
   | 'add_comment'
+  | 'run_agent'
   | 'set_field';
 
 export interface RoutingAction {
