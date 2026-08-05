@@ -4474,7 +4474,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 the app drawer to set them up. The agent can still run
                 without these — Shuffle will request auth mid-run if needed. */}
             {!hideAppPicker && (() => {
-              const NO_AUTH = new Set(['http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
+              const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
               if (authAppsLoading) return null;
               const unauthed = chosenApps.filter((a) => {
                 const slug = normalizeAgentAppName(a.name || '');
