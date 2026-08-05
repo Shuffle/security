@@ -437,6 +437,7 @@ export const IngestionSourcesRow = ({
         open={appSearchOpen}
         onClose={() => {
           setAppSearchOpen(false);
+          setOptimisticToggles({});
           fetchIngestionApps();
         }}
         title="Add Ingestion Source"
@@ -444,20 +445,23 @@ export const IngestionSourcesRow = ({
         initialFilterQuery={searchPriorityQuery}
         multiSelect
         selectedApps={ingestionApps
-          .filter(a => (pendingTogglesRef.current.has(a.name) ? pendingTogglesRef.current.get(a.name) : a.enabled))
+          .filter(a => (a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled))
           .map(a => ({ name: a.name, icon: a.image || '' }))}
         // Apps without an authentication yet cannot be ingest sources — those
         // still open the app configuration drawer first.
         shouldOpenDetail={(app) => !ingestionApps.some(a => normalizeAppName(a.name) === normalizeAppName(app.name))}
         onSelectionChange={(next) => {
           const chosen = new Set(next.map(a => normalizeAppName(a.name)));
+          const updates: Record<string, boolean> = {};
           ingestionApps.forEach((a) => {
-            const current = pendingTogglesRef.current.has(a.name)
-              ? !!pendingTogglesRef.current.get(a.name)
-              : a.enabled;
+            const current = a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled;
             const desired = chosen.has(normalizeAppName(a.name));
-            if (desired !== current) handleToggleApp(a.name, desired);
+            if (desired !== current) {
+              updates[a.name] = desired;
+              handleToggleApp(a.name, desired);
+            }
           });
+          if (Object.keys(updates).length) setOptimisticToggles(prev => ({ ...prev, ...updates }));
         }}
       />
 
