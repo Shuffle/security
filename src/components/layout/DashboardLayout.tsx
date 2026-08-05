@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode, Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Box, Alert, Button } from '@mui/material';
 import { AppSidebar } from './AppSidebar';
@@ -6,6 +6,8 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { AppDetailProvider, useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
 import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
 import AgentHandoffWatcher from '@/components/agent/AgentHandoffWatcher';
+import { PageSkeleton } from './PageSkeleton';
+import { prefetchCommonRoutes } from '@/lib/routePrefetch';
 
 import { useAuth } from '@/context/AuthContext';
 import { loadAgentToolsFromDatastore } from '@/lib/agentTools';
@@ -136,7 +138,12 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
                 Your active tenant has changed in another tab. Refresh to sync.
               </Alert>
             )}
-            {children || <Outlet />}
+            {/* Local Suspense boundary: route chunks resolve here so the
+                sidebar stays mounted and clickable, and the content area
+                paints a skeleton immediately instead of appearing frozen. */}
+            <Suspense fallback={<PageSkeleton />}>
+              {children || <Outlet />}
+            </Suspense>
           </Box>
         </Box>
         <MobileBottomNav />
