@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { prefetchRoute } from '@/lib/routePrefetch';
 import {
   Box,
   List,
@@ -528,6 +529,8 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                     <ListItemButton
                       component={Link}
                       to={item.path!}
+                      onPointerEnter={() => prefetchRoute(item.path)}
+                      onPointerDown={() => prefetchRoute(item.path)}
                       data-tour={item.path === entityBasePath ? 'sidebar-incidents-link' : undefined}
                       onClick={() => {
                         // Let the route-change effect stage the animation
@@ -695,6 +698,8 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                   <ListItemButton
                     component={Link}
                     to={item.path!}
+                    onPointerEnter={() => prefetchRoute(item.path)}
+                    onPointerDown={() => prefetchRoute(item.path)}
                     sx={{
                       borderRadius: 1,
                       minHeight: 40,
