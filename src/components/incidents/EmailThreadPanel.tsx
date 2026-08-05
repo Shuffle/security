@@ -214,6 +214,20 @@ const wrapRawEmailHtml = (inner: string): string =>
   `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.7;color:#111827;word-break:break-word;">${inner}</div>`;
 
 /**
+ * Raw mode must look identical to the threaded message body. Full provider
+ * documents carry their own <body> attributes (bgcolor, align, width) that
+ * centre and colour the email — extracting the body markup throws those away,
+ * which is why raw mode used to render left-aligned and uncoloured. So pass a
+ * complete document through untouched and only wrap bare fragments.
+ */
+const rawEmailDocument = (html: string): string => {
+  const trimmed = (html || '').trim();
+  if (!trimmed) return '';
+  if (/^<!doctype|<html[\s>]|<body[\s>]/i.test(trimmed)) return trimmed;
+  return wrapRawEmailHtml(extractHtmlBody(trimmed));
+};
+
+/**
  * Split the original rich HTML at provider quote containers while retaining
  * the markup and style rules for every message. The text parser determines
  * message boundaries and headers; these sections provide the corresponding
@@ -678,13 +692,13 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       if (plainTextLength > 0 && htmlTextLength < 40 && htmlTextLength < plainTextLength * 0.5) {
         return plainTextToEmailHtml(current.body);
       }
-      return wrapRawEmailHtml(extractHtmlBody(current.bodyHtml));
+      return rawEmailDocument(current.bodyHtml);
     }
     if (current?.body?.trim()) return plainTextToEmailHtml(current.body);
 
 
     if (descriptionHtml && descriptionHtml.trim()) {
-      return wrapRawEmailHtml(extractHtmlBody(descriptionHtml));
+      return rawEmailDocument(descriptionHtml);
     }
 
     // Last resort: the threaded parser often recovered HTML slices even when
@@ -694,7 +708,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       .map((m) => m.bodyHtml)
       .filter((h): h is string => !!h && !!h.trim())
       .map(extractHtmlBody);
-    if (fromParsed.length) return wrapRawEmailHtml(fromParsed[0]);
+    if (fromParsed.length) return rawEmailDocument(fromParsed[0]);
 
     return '';
   }, [resolved, descriptionHtml, messages]);
