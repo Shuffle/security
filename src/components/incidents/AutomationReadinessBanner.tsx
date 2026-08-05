@@ -278,7 +278,18 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
           {enablingAll ? 'Enabling…' : 'Enable all'}
         </Button>
       )}
+      <UsecaseDrawer
+        open={!!usecaseId}
+        onClose={() => setUsecaseId(null)}
+        flowId={usecaseId}
+        globalUrl={API_CONFIG.baseUrl}
+        userdata={userInfo as any}
+        isLoaded={true}
+        isLoggedIn={!!userInfo}
+        theme={resolvedTheme}
+      />
     </Box>
+
   );
 };
 
