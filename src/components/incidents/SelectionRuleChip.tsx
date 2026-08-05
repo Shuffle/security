@@ -364,25 +364,16 @@ export const SelectionRuleChip = ({ incidentId }: SelectionRuleChipProps) => {
 
   // Selection listener
   // The chip should only appear after the user has finished marking text
-  // (pointer released), not while the mouse is still being dragged.
-  // In addition, we gate the whole interaction behind the Alt key so casual
-  // text selection never triggers the rule UI — the user has to hold Alt
-  // while selecting (or press Alt after selecting) to opt in.
+  // (pointer released), not while the mouse is still being dragged. No
+  // modifier key is required — any real selection inside the incident
+  // content opens the chip.
   const pointerDownRef = useRef(false);
   const pendingUpdateRef = useRef(false);
-  const altHeldRef = useRef(false);
-  const lastSelectionAltRef = useRef(false);
 
-  const evaluateSelection = useCallback((force = false) => {
+  const evaluateSelection = useCallback((_force = false) => {
     // Never react while the popover is open — analyst is filling the form.
     if (popoverOpen) return;
-    // Opt-in gate: Alt must have been held during the selection (or is being
-    // held right now), unless the caller explicitly forces evaluation
-    // (external iframe bridge, which does its own gating).
-    if (!force && !lastSelectionAltRef.current && !altHeldRef.current) {
-      setChip(null);
-      return;
-    }
+
 
     // Case 1: selection inside an <input>/<textarea> that is explicitly
     // marked as an incident field (e.g. the title). window.getSelection() is
