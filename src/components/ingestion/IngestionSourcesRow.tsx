@@ -197,6 +197,50 @@ export const IngestionSourcesRow = ({
     }
   }, [ingestWorkflowId, isSyncing]);
 
+  const commitSources = useCallback(async (activeNames: string[]) => {
+    setIsUpdatingApps(true);
+    try {
+      const body: Record<string, string> = { label: workflowLabel, category };
+      if (activeNames.length > 0) body.app_name = activeNames.join(',');
+      else body.action_name = 'remove';
+      const resp = await fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      let payload: any = null;
+      try { payload = await resp.json(); } catch { /* ignore */ }
+      if (!resp.ok || (payload && payload.success === false)) {
+        const reason = payload?.reason || `Failed to update ingestion sources (${resp.status})`;
+        toast.error(reason);
+        await fetchIngestionApps();
+        return;
+      }
+      toast.success('Ingestion sources updated');
+      await fetchIngestionApps();
+      onSourcesChanged?.();
+      if (activeNames.length > 0) {
+        try {
+          const wfResp = await fetch(getApiUrl('/api/v1/workflows'), {
+            credentials: 'include',
+            headers: getAuthHeader(),
+          });
+          const wfs = await wfResp.json();
+          const list = Array.isArray(wfs) ? wfs : (wfs.workflows || []);
+          const ingestWf = list.find((w: any) => w.name === workflowLabel);
+          if (ingestWf?.id) triggerSync(ingestWf.id);
+        } catch { /* ignore */ }
+      }
+    } catch (error) {
+      console.error('Failed to update ingestion sources:', error);
+      toast.error('Failed to update ingestion sources');
+      fetchIngestionApps();
+    } finally {
+      setIsUpdatingApps(false);
+    }
+  }, [fetchIngestionApps, workflowLabel, category, triggerSync, onSourcesChanged]);
+
   const handleToggleApp = useCallback((appName: string, enabled: boolean) => {
     pendingTogglesRef.current.set(appName, enabled);
     setIsUpdatingApps(true);
@@ -204,51 +248,13 @@ export const IngestionSourcesRow = ({
     debounceTimerRef.current = setTimeout(async () => {
       const toggles = new Map(pendingTogglesRef.current);
       pendingTogglesRef.current.clear();
-      const activeNames = ingestionApps
+      const activeNames = [...ingestionApps, ...pendingApps]
         .filter(a => toggles.has(a.name) ? toggles.get(a.name) : a.enabled)
         .map(a => a.name);
-      try {
-        const body: Record<string, string> = { label: workflowLabel, category };
-        if (activeNames.length > 0) body.app_name = activeNames.join(',');
-        else body.action_name = 'remove';
-        const resp = await fetch(getApiUrl('/api/v2/workflows/generate'), {
-          method: 'POST',
-          credentials: 'include',
-          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        let payload: any = null;
-        try { payload = await resp.json(); } catch { /* ignore */ }
-        if (!resp.ok || (payload && payload.success === false)) {
-          const reason = payload?.reason || `Failed to update ingestion sources (${resp.status})`;
-          toast.error(reason);
-          await fetchIngestionApps();
-          return;
-        }
-        toast.success('Ingestion sources updated');
-        await fetchIngestionApps();
-        onSourcesChanged?.();
-        if (activeNames.length > 0) {
-          try {
-            const wfResp = await fetch(getApiUrl('/api/v1/workflows'), {
-              credentials: 'include',
-              headers: getAuthHeader(),
-            });
-            const wfs = await wfResp.json();
-            const list = Array.isArray(wfs) ? wfs : (wfs.workflows || []);
-            const ingestWf = list.find((w: any) => w.name === workflowLabel);
-            if (ingestWf?.id) triggerSync(ingestWf.id);
-          } catch { /* ignore */ }
-        }
-      } catch (error) {
-        console.error('Failed to update ingestion sources:', error);
-        toast.error('Failed to update ingestion sources');
-        fetchIngestionApps();
-      } finally {
-        setIsUpdatingApps(false);
-      }
+      await commitSources(activeNames);
     }, 3000);
-  }, [ingestionApps, fetchIngestionApps, workflowLabel, category, triggerSync, onSourcesChanged]);
+  }, [ingestionApps, pendingApps, commitSources]);
+
 
   const handleEnter = useCallback(() => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
