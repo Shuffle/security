@@ -183,11 +183,13 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
   return (
     <Box
       sx={{
-        mt: 2,
+        mt: atTop ? 0 : 2,
+        mb: atTop ? 2 : 0,
         p: 1.5,
         borderRadius: 2,
         bgcolor: 'transparent',
-        border: '1px solid hsl(var(--border))',
+        border: '1px solid',
+        borderColor: atTop ? 'hsl(var(--primary) / 0.5)' : 'hsl(var(--border))',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
