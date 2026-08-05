@@ -92,6 +92,7 @@ export type RoutingActionType =
   | 'add_label'
   | 'assign_to'
   | 'add_comment'
+  | 'run_agent'
   | 'set_field';
 
 export interface RoutingAction {
@@ -168,6 +169,7 @@ export const ACTION_TYPE_LABELS: Record<RoutingActionType, string> = {
   add_label: 'Add label',
   assign_to: 'Assign to',
   add_comment: 'Add comment',
+  run_agent: 'Run AI Agent',
   set_field: 'Set custom field',
 };
 
@@ -187,6 +189,7 @@ const defaultActionFor = (type: RoutingActionType): RoutingAction => {
     case 'add_label': return { type, value: '' };
     case 'assign_to': return { type, value: '' };
     case 'add_comment': return { type, value: '' };
+    case 'run_agent': return { type, value: '' };
     case 'set_field': return { type, field: '', value: '' };
   }
 };
@@ -288,6 +291,7 @@ const summarizeAction = (a: RoutingAction, orgName?: string): string => {
     case 'add_label': return `add label "${a.value || ''}"`;
     case 'assign_to': return `assign to ${a.value || '?'}`;
     case 'add_comment': return `add comment`;
+    case 'run_agent': return `run AI agent`;
     case 'set_field': return `set ${a.field || '?'} = "${a.value || ''}"`;
   }
 };
@@ -410,6 +414,10 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
       }
       if (a.type === 'set_field' && !a.field) {
         toast.error('Pick a field for "Set custom field"');
+        return;
+      }
+      if (a.type === 'run_agent' && !String(a.value || '').trim()) {
+        toast.error('Write the prompt the AI agent should run');
         return;
       }
     }
@@ -1406,12 +1414,13 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
                             action.type === 'add_label' ? 'label name'
                             : action.type === 'assign_to' ? 'user email or AI Agent'
                             : action.type === 'add_comment' ? 'comment text'
+                            : action.type === 'run_agent' ? 'What should the AI agent do with this incident?'
                             : 'value'
                           }
                           sx={{ flex: 1, minWidth: 200 }}
-                          multiline={action.type === 'add_comment'}
-                          maxRows={action.type === 'add_comment' ? 4 : 1}
-                          label="Value"
+                          multiline={action.type === 'add_comment' || action.type === 'run_agent'}
+                          maxRows={action.type === 'add_comment' || action.type === 'run_agent' ? 6 : 1}
+                          label={action.type === 'run_agent' ? 'Agent prompt' : 'Value'}
                         />
                       )
                     )}

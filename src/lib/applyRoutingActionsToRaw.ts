@@ -139,6 +139,28 @@ export const applyRoutingActionsToRaw = (
         }
         break;
       }
+      case 'run_agent': {
+        const prompt = String(action.value || '').trim();
+        if (!prompt) break;
+        const content = `@AIAgent ${prompt}`;
+        const already = next.activity.some(
+          (it: any) => it?.type === 'comment' && typeof it?.content === 'string' && it.content.trim() === content,
+        );
+        if (!already) {
+          next.activity.push({
+            id: `routing-agent-${Date.now()}-${next.activity.length}`,
+            type: 'comment',
+            user: 'Incident Routing Rules',
+            timestamp: Date.now(),
+            content,
+            details: { source: 'incident_routing_rule', rule: opts.ruleName, run_agent: true },
+            attachments: [],
+            ai_handled: true,
+          });
+          changed = true;
+        }
+        break;
+      }
       case 'set_field': {
         const field = String(action.field || '').trim();
         if (!field) break;

@@ -335,6 +335,7 @@ export const actionTargetKey = (a: { type: string; value?: string; field?: strin
     case 'assign_to': return 'assignee';
     case 'add_label': return `label:${(a.value || '').trim().toLowerCase()}`;
     case 'add_comment': return `comment:${(a.value || '').trim()}`;
+    case 'run_agent': return `agent:${(a.value || '').trim()}`;
     case 'set_field': return `field:${(a.field || '').trim().toLowerCase()}`;
     default: return `${a.type}:${a.value || ''}`;
   }

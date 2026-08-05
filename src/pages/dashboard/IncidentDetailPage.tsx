@@ -4951,6 +4951,29 @@ const IncidentDetailPage = () => {
           }
           break;
         }
+        case 'run_agent': {
+          const prompt = String(action.value || '').trim();
+          if (!prompt) break;
+          const content = `@AIAgent ${prompt}${buildAskAgentContext()}`;
+          const alreadyAsked = nextActivity.some((it: any) => it?.type === 'comment' && typeof it?.content === 'string' && it.content.trim().startsWith(`@AIAgent ${prompt}`));
+          if (!alreadyAsked) {
+            nextActivity = [
+              ...nextActivity,
+              {
+                id: `routing-agent-${Date.now()}-${nextActivity.length}`,
+                type: 'comment',
+                user: 'Incident Routing Rules',
+                timestamp: Date.now(),
+                content,
+                details: { source: 'incident_routing_rule', run_agent: true },
+                attachments: [],
+                ai_handled: true,
+              } as ActivityItem,
+            ];
+            changed = true;
+          }
+          break;
+        }
         case 'set_field': {
           const field = String(action.field || '').trim();
           if (!field) break;
@@ -8506,6 +8529,15 @@ const IncidentDetailPage = () => {
                   it?.type === 'comment' &&
                   typeof it?.content === 'string' &&
                   it.content.trim() === needle
+                );
+              }
+              case 'run_agent': {
+                const prompt = String(a.value || '').trim();
+                if (!prompt) return false;
+                return activity.some((it: any) =>
+                  it?.type === 'comment' &&
+                  typeof it?.content === 'string' &&
+                  it.content.trim().startsWith(`@AIAgent ${prompt}`)
                 );
               }
               case 'suggest_move': return !!a.targetOrgId && currentOrgIds.size === 1 && currentOrgIds.has(a.targetOrgId);
