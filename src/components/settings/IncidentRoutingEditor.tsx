@@ -1414,12 +1414,13 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
                             action.type === 'add_label' ? 'label name'
                             : action.type === 'assign_to' ? 'user email or AI Agent'
                             : action.type === 'add_comment' ? 'comment text'
+                            : action.type === 'run_agent' ? 'What should the AI agent do with this incident?'
                             : 'value'
                           }
                           sx={{ flex: 1, minWidth: 200 }}
-                          multiline={action.type === 'add_comment'}
-                          maxRows={action.type === 'add_comment' ? 4 : 1}
-                          label="Value"
+                          multiline={action.type === 'add_comment' || action.type === 'run_agent'}
+                          maxRows={action.type === 'add_comment' || action.type === 'run_agent' ? 6 : 1}
+                          label={action.type === 'run_agent' ? 'Agent prompt' : 'Value'}
                         />
                       )
                     )}
