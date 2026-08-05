@@ -118,6 +118,7 @@ import { DemoCompletionWatcher } from '@/components/demo/DemoCompletionWatcher';
 import { DemoResumePill } from '@/components/demo/DemoResumePill';
 import GlobalAgentDrawer from '@/components/agent/GlobalAgentDrawer';
 import GlobalWorkflowRunDrawer from '@/components/agent/GlobalWorkflowRunDrawer';
+import { useUsecaseAgentFilters } from '@/hooks/useUsecaseAgentFilters';
 
 
 
