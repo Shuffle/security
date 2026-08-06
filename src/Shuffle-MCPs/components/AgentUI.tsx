@@ -916,7 +916,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
     if (details?.action === 'finish' || item.category === 'finish' || details?.action === 'finalise') {
       displayType = 'finalise';
     } else if (isContinuationDecision(details)) {
-      displayType = 'continuation';
+      displayType = 'continue';
     } else if (isAskDecision(details, item.category)) {
       displayType = 'question';
     } else if (details?.action === 'add_tool') {
@@ -1220,6 +1220,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             const cat = item.category;
             const isApiAction =
               !isAskDecision(details, cat) &&
+              !isContinuationDecision(details) &&
               action !== 'finish' && action !== 'finalise' && cat !== 'finish' && cat !== 'finalise' &&
               cat !== 'processing' &&
               action !== 'add_tool';
