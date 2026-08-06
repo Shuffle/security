@@ -372,12 +372,13 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
         <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
           {isRunning ? 'Agent is working…' : status === 'FINISHED' ? 'Run finished' : `Run ${status.toLowerCase()}`}
         </Typography>
-        {showMeta && (decisionCount != null || durationSec != null) && (
+        {showMeta && (decisionCount != null || (durationSec != null && durationSec >= 1)) && (
           <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
             {decisionCount != null ? `${decisionCount} step${decisionCount === 1 ? '' : 's'}` : ''}
-            {durationSec != null ? `${decisionCount != null ? ' · ' : ''}${Math.round(durationSec)}s` : ''}
+            {durationSec != null && durationSec >= 1 ? `${decisionCount != null ? ' · ' : ''}${Math.round(durationSec)}s` : ''}
           </Typography>
         )}
+
         <Box sx={{ flexGrow: 1 }} />
         {finishAnswer && (
           <Button
