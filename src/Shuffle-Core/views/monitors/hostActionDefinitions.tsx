@@ -128,19 +128,10 @@ interface HostActionChipsProps {
    * indicates Windows, an extra "Remote Control" chip is rendered next to
    * the Screenshot chip — this is a simple UI for issuing
    * `script:remote_control { ... }` commands (mouse.move/click/drag,
-   * keyboard.press, system.wait) and is Windows-only for now.
+   * keyboard.press, system.wait).
    */
   arch?: string;
 }
-
-const isWindowsArch = (arch?: string) => {
-  const s = String(arch || '').toLowerCase();
-  if (!s) return false;
-  if (s.includes('darwin') || s.includes('mac') || s.includes('linux')) return false;
-  // Match os/arch fields ("windows", "win32", "win64", "amd64-windows") and
-  // typical Windows hostnames ("DESKTOP-XXXX", "WIN-XXXX", "LAPTOP-XXXX").
-  return /\bwin(dows|32|64)?\b/.test(s) || /\b(desktop|laptop|win)-/.test(s);
-};
 
 type RemoteOp = 'mouse.move' | 'mouse.click' | 'mouse.drag' | 'keyboard.press' | 'system.wait';
 
