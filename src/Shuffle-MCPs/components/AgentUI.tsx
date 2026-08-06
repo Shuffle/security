@@ -3143,10 +3143,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const runStart = agentItem?.start_time || 0;
     const runEnd = agentItem?.end_time || 0;
     let prevDecEnd = runStart;
-    const pushThinking = (from: number, to: number) => {
+    const pushThinking = (from: number, to: number, kind: 'processing' | 'waiting' = 'processing') => {
       if (from > 0 && to > 0 && to - from >= 1) {
         withProcessing.push({
-          label: '',
+          label: kind,
           type: 'decision',
           category: 'processing',
           status: 'FINISHED',
@@ -3163,7 +3163,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
         const decStart = it.start_time || 0;
         // Insert Thinking before this decision (works for first decision after
         // run start, gaps between decisions, and the gap before Finalise).
-        pushThinking(prevDecEnd, decStart);
+        // A gap before a continuation is not the agent processing — it is just
+        // dead time while it waits, so label it "Waiting" instead.
+        pushThinking(prevDecEnd, decStart, isContinuationDecision(it.details as any) ? 'waiting' : 'processing');
         withProcessing.push(it);
         prevDecEnd = it.end_time || decStart || prevDecEnd;
         lastWasFinalise = isFinalise(it);
