@@ -216,12 +216,9 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Vulnerability Automation + readiness — support only, equal height */}
+      {/* Vulnerability Automation — support only */}
       {isSupport && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-stretch">
-          <VulnerabilityAutomationBanner />
-          <VulnerabilityReadinessBanner />
-        </div>
+        <VulnerabilityAutomationBanner />
       )}
 
       {/* Header */}
@@ -244,12 +241,31 @@ const AuthenticatedVulnerabilitiesView = () => {
               addSubtitle="Search and authenticate a tool to ingest vulnerabilities from"
               searchPriorityQuery="asset management cloud iam"
               onSourcesChanged={() => refresh()}
+              afterWebhook={
+                <Tooltip title="Add Host Monitor" placement="top" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => navigate('/monitors?add_host=true')}
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: hasHostMonitors ? 'hsl(var(--border))' : 'hsl(var(--primary))',
+                      color: hasHostMonitors ? 'hsl(var(--muted-foreground))' : 'hsl(var(--primary))',
+                      bgcolor: hasHostMonitors ? 'transparent' : 'hsl(var(--primary) / 0.12)',
+                      '&:hover': {
+                        bgcolor: 'hsl(var(--primary) / 0.18)',
+                        color: 'hsl(var(--primary))',
+                      },
+                    }}
+                  >
+                    <MonitorCheck size={16} />
+                  </IconButton>
+                </Tooltip>
+              }
             />
           )}
-          <Button size="sm" className="gap-1.5" onClick={() => navigate('/monitors?add_host=true')}>
-            <MonitorCheck size={14} />
-            Add Host Monitor
-          </Button>
           <IconActionButton
             tone="success"
             active={!!categoryAutomations?.some(a => a.enabled)}
@@ -282,7 +298,7 @@ const AuthenticatedVulnerabilitiesView = () => {
 
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className={`grid ${isSupport ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-4'} gap-3 items-stretch`}>
         {(['critical', 'high', 'medium', 'low'] as VulnSeverity[]).map(sev => (
           <div
             key={sev}
@@ -296,7 +312,10 @@ const AuthenticatedVulnerabilitiesView = () => {
             <span className="text-2xl font-bold text-foreground">{severityCounts[sev]}</span>
           </div>
         ))}
+        {isSupport && <VulnerabilityReadinessBanner />}
       </div>
+
+
 
 
 
