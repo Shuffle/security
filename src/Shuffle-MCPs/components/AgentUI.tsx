@@ -3040,7 +3040,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
         details: agentData,
         status: execution?.status || agentData?.status,
         start_time: toSec(agentData?.started_at || execution?.started_at),
-        end_time: toSec(agentData?.completed_at || execution?.completed_at),
+        // While the run is still executing there is no `completed_at` yet —
+        // anchor the end to "now" so the total agent bar and duration grow in
+        // realtime instead of staying blank until the run finishes.
+        end_time: toSec(agentData?.completed_at || execution?.completed_at)
+          || (runStillExecuting ? liveNowSec : 0),
       },
     ];
 
@@ -3170,7 +3174,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // Tail: if the last decision finished well before the run ended and there
     // was no Finalise, surface that trailing dead time too. Skip when the run
     // already ended in a Finalise — nothing is "processing" after the finish.
-    if (runEnd > 0 && !lastWasFinalise) pushThinking(prevDecEnd, runEnd);
+    if (runEnd > 0 && !lastWasFinalise && !runStillExecuting) pushThinking(prevDecEnd, runEnd);
 
     // Live tail: while the run is still executing, show a "Processing" row after
     // the last decision that counts up in realtime once at least 1s of dead time
