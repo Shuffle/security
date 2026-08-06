@@ -136,6 +136,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const [softwareOpen, setSoftwareOpen] = useState(!collapsibleSections);
   const [codeScanOpen, setCodeScanOpen] = useState(!collapsibleSections);
   const [processOpen, setProcessOpen] = useState(!collapsibleSections);
+  const [vulnsOpen, setVulnsOpen] = useState(true);
   const [processFilter, setProcessFilter] = useState('');
   const [collapsedProcs, setCollapsedProcs] = useState<Set<number>>(new Set());
   type ProcSortKey = 'pid' | 'created' | 'user' | 'name';
