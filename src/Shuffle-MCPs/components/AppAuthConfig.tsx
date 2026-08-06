@@ -2067,29 +2067,8 @@ export const AppAuthCard = ({
                           <Typography sx={{ fontSize: '0.875rem', flex: 1 }}>
                             {authState.errorMessage}
                           </Typography>
-                          {authState.workflowId && authState.executionId && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              href={`https://shuffler.io/workflows/${authState.workflowId}?execution_id=${authState.executionId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              sx={{
-                                borderColor: 'hsl(var(--destructive) / 0.5)',
-                                color: 'hsl(var(--destructive))',
-                                textTransform: 'none',
-                                fontSize: '0.75rem',
-                                py: 0.5,
-                                px: 1.5,
-                                flexShrink: 0,
-                                '&:hover': {
-                                  borderColor: 'hsl(var(--destructive))',
-                                  backgroundColor: 'hsl(var(--destructive) / 0.1)',
-                                },
-                              }}
-                            >
-                              View Execution
-                            </Button>
+                          {authState.executionId && (
+                            <ViewExecutionButton executionId={authState.executionId} tone="destructive" />
                           )}
                         </Box>
                       </Alert>
