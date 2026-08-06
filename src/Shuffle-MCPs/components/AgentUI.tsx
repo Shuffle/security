@@ -186,7 +186,19 @@ const stripSingleCodeFence = (raw: string): string => {
   return m ? m[1] : raw;
 };
 
+/**
+ * A decision whose FIRST field key is "continue" is a continuation of the
+ * previous step — not a user-facing question. The backend reuses the ask
+ * shape for these, so we detect and label them separately.
+ */
+export const isContinuationDecision = (decision?: any): boolean => {
+  const fields = Array.isArray(decision?.fields) ? decision.fields : [];
+  if (!fields.length) return false;
+  return String(fields[0]?.key || '').trim().toLowerCase() === 'continue';
+};
+
 export const isAskDecision = (decision?: any, category?: string): boolean => {
+  if (isContinuationDecision(decision)) return false;
   const action = String(decision?.action || '').toLowerCase();
   const decisionCategory = String(decision?.category || category || '').toLowerCase();
   return action === 'ask' || action === 'question' || decisionCategory === 'ask' || decisionCategory === 'question';
