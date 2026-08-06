@@ -238,25 +238,37 @@ const trimEvidenceValue = (v: string, max = 180): string => {
   return cleaned.length <= max ? cleaned : `${cleaned.slice(0, max).trim()}…`;
 };
 
-const TOKEN_LIMIT_PATTERN = /\b(ai[_\s-]*token[_\s-]*limit|token[_\s-]*limit|limit[_\s-]*is[_\s-]*reached|limit[_\s-]*reached|context[_\s-]*limit|maximum[_\s-]*context|context[_\s-]*length|too[_\s-]*many[_\s-]*tokens|exceeds?[_\s-]*(the[_\s-]*)?(token|context))\b/;
+// Only natural-language phrasing counts. Deliberately NO underscore variants:
+// JSON KEYS like `token_limit`, `limit_reached`, `context_length` or
+// `max_context` appear in almost every healthy agent payload (often with a
+// value of `false` or a plain number), and matching them produced a false
+// "token limit reached" banner on runs that finished perfectly fine.
+const TOKEN_LIMIT_PATTERN = /\b(ai[\s-]*token[\s-]*limit[\s-]*(is[\s-]*)?reach(ed)?|token[\s-]*limit[\s-]*(is[\s-]*)?reach(ed)?|context[\s-]*(window|length|limit)[\s-]*(is[\s-]*)?(reached|exceeded)|maximum[\s-]*context[\s-]*(window|length)?[\s-]*(is[\s-]*)?(reached|exceeded)|too[\s-]*many[\s-]*tokens|exceeds?[\s-]*(the[\s-]*)?(maximum[\s-]*)?(token|context))\b/;
+
+/** Values that are just booleans/numbers can never be an error sentence. */
+const isSentenceLike = (v: string) => /[a-z]/i.test(v) && v.trim().split(/\s+/).length > 1;
 
 export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | null => {
   const { parsed, raw } = parseRunResult(run);
 
   // Token-limit detection runs FIRST and against the FULL payload (raw +
-  // parsed), not the narrow decision-only scope. The "AI Token limit
-  // reached" message is unambiguous and can appear in any field —
-  // top-level reason, message, error, or even a wrapping AGENT result —
-  // so we must not miss it just because the scope walker excluded it.
-  const tokenLimitHaystack = (() => {
-    let s = raw || '';
+  // parsed), not the narrow decision-only scope — the message can appear in
+  // any field. But it is matched against string VALUES only, never against
+  // JSON key names, so structural fields do not trigger a false positive.
+  const tokenLimitMatch = (() => {
+    const candidates: string[] = [];
     if (parsed && typeof parsed === 'object') {
-      try { s += '\n' + JSON.stringify(parsed); } catch { /* ignore */ }
+      for (const e of collectEntries(parsed)) {
+        if (isSentenceLike(e.value)) candidates.push(e.value);
+      }
+    } else if (raw) {
+      candidates.push(raw);
     }
-    return s.toLowerCase();
+    return candidates.find((v) => TOKEN_LIMIT_PATTERN.test(v.toLowerCase())) || null;
   })();
-  if (TOKEN_LIMIT_PATTERN.test(tokenLimitHaystack)) {
-    const evidenceValue = raw ? trimEvidenceValue(raw) : 'AI token limit reached';
+  if (tokenLimitMatch) {
+    const evidenceValue = trimEvidenceValue(tokenLimitMatch);
+
     return {
       kind: 'token_limit',
       title: 'AI context window exceeded',
