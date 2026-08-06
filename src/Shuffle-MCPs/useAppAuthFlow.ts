@@ -98,6 +98,8 @@ export function useAppAuthFlow() {
       setAuthState(prev => ({
         ...prev,
         status: isValid ? 'connected' : 'error',
+        workflowId: result.workflow_id || undefined,
+        executionId: result.execution_id || undefined,
         successMessage: isValid ? 'Connection verified' : undefined,
         errorMessage: isValid ? undefined : (result.reason || 'Connection failed. Please check your credentials.'),
       }));

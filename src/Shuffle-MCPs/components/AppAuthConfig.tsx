@@ -63,6 +63,53 @@ export interface AppAuthState {
   errorCode?: number; // HTTP status code for credential errors (401, 403, etc.)
 }
 
+/**
+ * Opens the shared workflow-run explorer drawer for a given execution.
+ * Host apps listen for `workflow-run:open` and render the full execution.
+ */
+const openExecutionDrawer = (executionId: string) => {
+  window.dispatchEvent(
+    new CustomEvent('workflow-run:open', { detail: { executionId }, cancelable: true }),
+  );
+};
+
+/** "Inspect execution" CTA shown after a connection test (success or failure). */
+const ViewExecutionButton = ({
+  executionId,
+  tone = 'default',
+}: {
+  executionId: string;
+  tone?: 'default' | 'destructive';
+}) => {
+  const color = tone === 'destructive' ? 'hsl(var(--destructive))' : 'currentColor';
+  return (
+    <Button
+      variant="outlined"
+      size="small"
+      onClick={() => openExecutionDrawer(executionId)}
+      sx={{
+        borderColor: tone === 'destructive' ? 'hsl(var(--destructive) / 0.5)' : 'currentColor',
+        color,
+        opacity: tone === 'destructive' ? 1 : 0.9,
+        textTransform: 'none',
+        fontSize: '0.75rem',
+        py: 0.5,
+        px: 1.5,
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+        '&:hover': {
+          borderColor: color,
+          backgroundColor: tone === 'destructive' ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--muted) / 0.4)',
+        },
+      }}
+    >
+      Inspect execution
+    </Button>
+  );
+};
+
+
+
 // Helper to check if auth type is OAuth2 (includes oauth2-app variant)
 const isOAuth2Type = (type: string | undefined): boolean => {
   if (!type) return false;
@@ -427,6 +474,8 @@ export const AppAuthCard = ({
       setTestMessagesForAuth(testingAuthId, {
         successMessage: authState.successMessage,
         warningMessage: authState.warningMessage,
+        workflowId: authState.workflowId,
+        executionId: authState.executionId,
       });
       // Clear testingAuthId after processing completed status
       setTestingAuthId(null);
@@ -1811,29 +1860,8 @@ export const AppAuthCard = ({
                             <Typography sx={{ fontSize: '0.875rem', flex: 1 }}>
                               {localTestMessages.errorMessage}
                             </Typography>
-                            {localTestMessages.workflowId && localTestMessages.executionId && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                href={`https://shuffler.io/workflows/${localTestMessages.workflowId}?execution_id=${localTestMessages.executionId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{
-                                  borderColor: 'hsl(var(--destructive) / 0.5)',
-                                  color: 'hsl(var(--destructive))',
-                                  textTransform: 'none',
-                                  fontSize: '0.75rem',
-                                  py: 0.5,
-                                  px: 1.5,
-                                  flexShrink: 0,
-                                  '&:hover': {
-                                    borderColor: 'hsl(var(--destructive))',
-                                    backgroundColor: 'hsl(var(--destructive) / 0.1)',
-                                  },
-                                }}
-                              >
-                                View Execution
-                              </Button>
+                            {localTestMessages.executionId && (
+                              <ViewExecutionButton executionId={localTestMessages.executionId} tone="destructive" />
                             )}
                           </Box>
                         </Alert>
@@ -1860,19 +1888,29 @@ export const AppAuthCard = ({
                             },
                           }}
                         >
-                          {localTestMessages.warningMessage ? (
-                            <Box>
-                              <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
-                                {localTestMessages.successMessage || 'Connection probably working'}
-                              </Typography>
-                              <Typography sx={{ fontSize: '0.85rem', opacity: 0.9 }}>
-                                {localTestMessages.warningMessage}
-                              </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, width: '100%' }}>
+                            <Box sx={{ flex: 1 }}>
+                              {localTestMessages.warningMessage ? (
+                                <>
+                                  <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
+                                    {localTestMessages.successMessage || 'Connection probably working'}
+                                  </Typography>
+                                  <Typography sx={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                                    {localTestMessages.warningMessage}
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Typography sx={{ fontSize: '0.875rem' }}>
+                                  {localTestMessages.successMessage || 'Connection verified successfully'}
+                                </Typography>
+                              )}
                             </Box>
-                          ) : (
-                            localTestMessages.successMessage || 'Connection verified successfully'
-                          )}
+                            {localTestMessages.executionId && (
+                              <ViewExecutionButton executionId={localTestMessages.executionId} />
+                            )}
+                          </Box>
                         </Alert>
+
                       </Box>
                     )}
                     {localTestStatus === 'pending_validation' && (
@@ -1910,6 +1948,11 @@ export const AppAuthCard = ({
                             >
                               Check status in Admin → App Authentication
                             </Link>
+                            {localTestMessages.executionId && (
+                              <Box sx={{ mt: 1.5 }}>
+                                <ViewExecutionButton executionId={localTestMessages.executionId} />
+                              </Box>
+                            )}
                           </Box>
                         </Alert>
                       </Box>
@@ -2018,29 +2061,8 @@ export const AppAuthCard = ({
                           <Typography sx={{ fontSize: '0.875rem', flex: 1 }}>
                             {authState.errorMessage}
                           </Typography>
-                          {authState.workflowId && authState.executionId && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              href={`https://shuffler.io/workflows/${authState.workflowId}?execution_id=${authState.executionId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              sx={{
-                                borderColor: 'hsl(var(--destructive) / 0.5)',
-                                color: 'hsl(var(--destructive))',
-                                textTransform: 'none',
-                                fontSize: '0.75rem',
-                                py: 0.5,
-                                px: 1.5,
-                                flexShrink: 0,
-                                '&:hover': {
-                                  borderColor: 'hsl(var(--destructive))',
-                                  backgroundColor: 'hsl(var(--destructive) / 0.1)',
-                                },
-                              }}
-                            >
-                              View Execution
-                            </Button>
+                          {authState.executionId && (
+                            <ViewExecutionButton executionId={authState.executionId} tone="destructive" />
                           )}
                         </Box>
                       </Alert>
