@@ -915,6 +915,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   if (!isProcessing) {
     if (details?.action === 'finish' || item.category === 'finish' || details?.action === 'finalise') {
       displayType = 'finalise';
+    } else if (isContinuationDecision(details)) {
+      displayType = 'continuation';
     } else if (isAskDecision(details, item.category)) {
       displayType = 'question';
     } else if (details?.action === 'add_tool') {
