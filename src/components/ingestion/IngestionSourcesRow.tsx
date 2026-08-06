@@ -46,6 +46,9 @@ interface IngestionSourcesRowProps {
    *  set of categories (e.g. "asset management cloud iam" for the
    *  vulnerabilities page). Does not fill the visible search input. */
   searchPriorityQuery?: string;
+  /** Optional extra content rendered inside the pill row, right after the
+   *  webhook button (e.g. an "Add Host Monitor" CTA). */
+  afterWebhook?: React.ReactNode;
 }
 
 /**
