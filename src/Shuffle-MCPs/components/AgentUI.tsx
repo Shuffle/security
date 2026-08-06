@@ -3134,7 +3134,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const runEnd = agentItem?.end_time || 0;
     let prevDecEnd = runStart;
     const pushThinking = (from: number, to: number) => {
-      if (from > 0 && to > 0 && to - from >= 0.5) {
+      if (from > 0 && to > 0 && to - from >= 1) {
         withProcessing.push({
           label: '',
           type: 'decision',
@@ -3146,6 +3146,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         });
       }
     };
+
     let lastWasFinalise = false;
     for (const it of items) {
       if (it.type === 'decision') {
