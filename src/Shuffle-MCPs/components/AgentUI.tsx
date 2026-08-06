@@ -1154,8 +1154,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             {showTiming && (
               <Box sx={{
                 position: 'absolute',
-                left: Math.max(0, offset),
-                width,
+                left: `${leftPct}%`,
+                width: `${widthPct}%`,
                 height: 8,
                 top: 1,
                 bgcolor: 'var(--timeline-bar-color)',
