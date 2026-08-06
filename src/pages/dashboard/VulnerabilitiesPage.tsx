@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Chip, IconButton, Avatar } from '@mui/material';
+import { Box, Typography, Chip, IconButton, Avatar, Tooltip as MuiTooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import { CategoryAutomationsDialog } from '@shuffleio/shuffle-core';
 import { useDatastore } from '@/hooks/useDatastore';
 import { DATASTORE_CATEGORIES, CategoryAutomation } from '@/Shuffle-MCPs/datastore';
 import { IconActionButton } from '@/components/common/IconActionButton';
+import { useHostMonitorCount } from '@/hooks/useHostMonitorCount';
 
 
 const SEVERITY_COLORS: Record<VulnSeverity, string> = {
@@ -174,6 +175,8 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   const { vulnerabilities, severityCounts, isLoading, isRefreshing, refresh } = useVulnerabilities();
   const { authenticatedApps } = useAppAuth();
+  const hostMonitorCount = useHostMonitorCount();
+  const hasHostMonitors = (hostMonitorCount ?? 0) >= 1;
 
   // Filter connected vuln scanner apps
   const connectedScanners = (authenticatedApps || []).filter(a => a.app?.name && isVulnScannerApp(a.app.name) && (a.active || a.validation?.valid));
@@ -242,7 +245,7 @@ const AuthenticatedVulnerabilitiesView = () => {
               searchPriorityQuery="asset management cloud iam"
               onSourcesChanged={() => refresh()}
               afterWebhook={
-                <Tooltip title="Add Host Monitor" placement="top" arrow>
+                <MuiTooltip title="Add Host Monitor" placement="top" arrow>
                   <IconButton
                     size="small"
                     onClick={() => navigate('/monitors?add_host=true')}
@@ -262,7 +265,7 @@ const AuthenticatedVulnerabilitiesView = () => {
                   >
                     <MonitorCheck size={16} />
                   </IconButton>
-                </Tooltip>
+                </MuiTooltip>
               }
             />
           )}
