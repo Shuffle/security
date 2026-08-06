@@ -372,12 +372,13 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
         <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
           {isRunning ? 'Agent is working…' : status === 'FINISHED' ? 'Run finished' : `Run ${status.toLowerCase()}`}
         </Typography>
-        {showMeta && (decisionCount != null || durationSec != null) && (
+        {showMeta && (decisionCount != null || (durationSec != null && durationSec >= 1)) && (
           <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
             {decisionCount != null ? `${decisionCount} step${decisionCount === 1 ? '' : 's'}` : ''}
-            {durationSec != null ? `${decisionCount != null ? ' · ' : ''}${Math.round(durationSec)}s` : ''}
+            {durationSec != null && durationSec >= 1 ? `${decisionCount != null ? ' · ' : ''}${Math.round(durationSec)}s` : ''}
           </Typography>
         )}
+
         <Box sx={{ flexGrow: 1 }} />
         {finishAnswer && (
           <Button
@@ -879,6 +880,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const itemEnd = item.end_time || itemStart;
   const hasTiming = itemStart > 0 && itemEnd >= itemStart;
   const dur = hasTiming ? Math.max(0, itemEnd - itemStart) : 0;
+  const showTiming = dur >= 1;
+
   // Clamp the bar to the track. Timings coming back from the API are not
   // always consistent (an item can start before the computed run start, or
   // still be running so its end is "now" and exceeds the total), which would
@@ -1137,15 +1140,15 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         }}>
           <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(displayLabel)}</Markdown>
         </Box>
-        <Tooltip title={hasTiming ? (
+        <Tooltip title={showTiming ? (
           <Box component="span" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <span>Started: {new Date(itemStart * 1000).toLocaleString()}</span>
             <span>Finished: {new Date((itemStart + dur) * 1000).toLocaleString()}</span>
             <span>Duration: {dur.toFixed(2)}s</span>
           </Box>
-        ) : 'No timing data'}>
+        ) : ''}>
           <Box sx={{ width: maxWidth, maxWidth, minWidth: 40, position: 'relative', height: 10, flexShrink: 1, flexBasis: maxWidth, overflow: 'hidden' }}>
-            {dur > 0 && (
+            {showTiming && (
               <Box sx={{
                 position: 'absolute',
                 left: Math.max(0, offset),
@@ -1159,8 +1162,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             )}
           </Box>
         </Tooltip>
+
         <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right', lineHeight: 1.3 }}>
-          {dur > 0 ? `${dur.toFixed(2)}s` : ''}
+          {showTiming ? `${dur.toFixed(2)}s` : ''}
+
           {displayType === 'finalise' && finishedAtSec > 0 && (
             <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>
               <Box component="div" sx={{ whiteSpace: 'nowrap', opacity: 0.75 }}>{formatAgo(finishedAtSec)}</Box>
@@ -3129,7 +3134,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const runEnd = agentItem?.end_time || 0;
     let prevDecEnd = runStart;
     const pushThinking = (from: number, to: number) => {
-      if (from > 0 && to > 0 && to - from >= 0.5) {
+      if (from > 0 && to > 0 && to - from >= 1) {
         withProcessing.push({
           label: '',
           type: 'decision',
@@ -3141,6 +3146,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         });
       }
     };
+
     let lastWasFinalise = false;
     for (const it of items) {
       if (it.type === 'decision') {
@@ -3160,10 +3166,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // already ended in a Finalise — nothing is "processing" after the finish.
     if (runEnd > 0 && !lastWasFinalise) pushThinking(prevDecEnd, runEnd);
 
-    // Live tail: while the run is still executing, always show a "Processing"
-    // row after the last decision that counts up in realtime, so it is obvious
-    // how long ago the last step happened — even if that step is FINISHED.
-    if (runStillExecuting && prevDecEnd > 0 && liveNowSec > prevDecEnd) {
+    // Live tail: while the run is still executing, show a "Processing" row after
+    // the last decision that counts up in realtime once at least 1s of dead time
+    // has elapsed, so it is obvious how long ago the last step happened.
+    if (runStillExecuting && prevDecEnd > 0 && liveNowSec - prevDecEnd >= 1) {
       withProcessing.push({
         label: '',
         type: 'decision',
@@ -3174,6 +3180,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         details: undefined as any,
       });
     }
+
 
     items.length = 0;
     items.push(...withProcessing);
