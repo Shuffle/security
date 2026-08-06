@@ -895,6 +895,9 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const offset = Number.isFinite(rawOffset)
     ? Math.min(Math.max(0, rawOffset), Math.max(0, maxWidth - width))
     : 0;
+  const leftPct = maxWidth > 0 ? (Math.max(0, offset) / maxWidth) * 100 : 0;
+  const widthPct = maxWidth > 0 ? (width / maxWidth) * 100 : 0;
+
 
   // Adapt label based on action/category
   let displayType = item.type as string;
