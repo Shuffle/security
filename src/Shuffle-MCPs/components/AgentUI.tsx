@@ -186,7 +186,19 @@ const stripSingleCodeFence = (raw: string): string => {
   return m ? m[1] : raw;
 };
 
+/**
+ * A decision whose FIRST field key is "continue" is a continuation of the
+ * previous step — not a user-facing question. The backend reuses the ask
+ * shape for these, so we detect and label them separately.
+ */
+export const isContinuationDecision = (decision?: any): boolean => {
+  const fields = Array.isArray(decision?.fields) ? decision.fields : [];
+  if (!fields.length) return false;
+  return String(fields[0]?.key || '').trim().toLowerCase() === 'continue';
+};
+
 export const isAskDecision = (decision?: any, category?: string): boolean => {
+  if (isContinuationDecision(decision)) return false;
   const action = String(decision?.action || '').toLowerCase();
   const decisionCategory = String(decision?.category || category || '').toLowerCase();
   return action === 'ask' || action === 'question' || decisionCategory === 'ask' || decisionCategory === 'question';
@@ -903,6 +915,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   if (!isProcessing) {
     if (details?.action === 'finish' || item.category === 'finish' || details?.action === 'finalise') {
       displayType = 'finalise';
+    } else if (isContinuationDecision(details)) {
+      displayType = 'continuation';
     } else if (isAskDecision(details, item.category)) {
       displayType = 'question';
     } else if (details?.action === 'add_tool') {
@@ -919,7 +933,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   let toolApp: AgentUIApp | undefined;
   const GENERIC_TOOLS = new Set(['api', 'http', 'https', 'webhook', 'singul', 'core', 'shuffle_tools', 'shuffle-tools']);
   const skipToolIcon =
-    item.category === 'finalise' || item.category === 'finish' || isAskDecision(details, item.category) ||
+    item.category === 'finalise' || item.category === 'finish' ||
+    isAskDecision(details, item.category) || isContinuationDecision(details) ||
     details?.action === 'finalise' || details?.action === 'finish';
   if (!skipToolIcon && details?.tool && typeof details.tool === 'string') {
     const raw = details.tool;
