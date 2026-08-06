@@ -259,11 +259,12 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
     const evidenceValue = raw ? trimEvidenceValue(raw) : 'AI token limit reached';
     return {
       kind: 'token_limit',
-      title: 'AI token limit reached',
+      title: 'AI context window exceeded',
       explanation:
-        'The agent stopped because the prompt, context, and generated output exceeded the configured AI token limit.',
+        'This is a per-request limit from the model, not your monthly Agent tokens quota. A single request (prompt, connected context, and generated output) was larger than the context window the model accepts, so the run stopped.',
       remediation:
-        'Reduce the input size or connected context and re-run, or connect an API vendor/self-hosted model with a higher limit.',
+        'Reduce the input size or connected context and re-run, or connect an API vendor/self-hosted model with a larger context window.',
+
       snippet: evidenceValue,
       evidence: [{ path: '(root)', value: evidenceValue }],
     };
