@@ -933,7 +933,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   let toolApp: AgentUIApp | undefined;
   const GENERIC_TOOLS = new Set(['api', 'http', 'https', 'webhook', 'singul', 'core', 'shuffle_tools', 'shuffle-tools']);
   const skipToolIcon =
-    item.category === 'finalise' || item.category === 'finish' || isAskDecision(details, item.category) ||
+    item.category === 'finalise' || item.category === 'finish' ||
+    isAskDecision(details, item.category) || isContinuationDecision(details) ||
     details?.action === 'finalise' || details?.action === 'finish';
   if (!skipToolIcon && details?.tool && typeof details.tool === 'string') {
     const raw = details.tool;
