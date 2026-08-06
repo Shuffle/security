@@ -1860,29 +1860,8 @@ export const AppAuthCard = ({
                             <Typography sx={{ fontSize: '0.875rem', flex: 1 }}>
                               {localTestMessages.errorMessage}
                             </Typography>
-                            {localTestMessages.workflowId && localTestMessages.executionId && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                href={`https://shuffler.io/workflows/${localTestMessages.workflowId}?execution_id=${localTestMessages.executionId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{
-                                  borderColor: 'hsl(var(--destructive) / 0.5)',
-                                  color: 'hsl(var(--destructive))',
-                                  textTransform: 'none',
-                                  fontSize: '0.75rem',
-                                  py: 0.5,
-                                  px: 1.5,
-                                  flexShrink: 0,
-                                  '&:hover': {
-                                    borderColor: 'hsl(var(--destructive))',
-                                    backgroundColor: 'hsl(var(--destructive) / 0.1)',
-                                  },
-                                }}
-                              >
-                                View Execution
-                              </Button>
+                            {localTestMessages.executionId && (
+                              <ViewExecutionButton executionId={localTestMessages.executionId} tone="destructive" />
                             )}
                           </Box>
                         </Alert>
