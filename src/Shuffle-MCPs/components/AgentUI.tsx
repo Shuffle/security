@@ -915,8 +915,9 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // When this row is the run's Finalise, how long ago it completed.
   const finishedAtSec = item.end_time || item.start_time || 0;
 
+  const isWaitingRow = isProcessing && item.label === 'waiting';
   if (isProcessing) {
-    displayType = 'processing';
+    displayType = isWaitingRow ? 'waiting' : 'processing';
     displayLabel = '';
   } else if (details?.reason) {
     displayLabel = details.reason;
@@ -932,6 +933,19 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       displayType = 'add tool';
     }
   }
+
+  // Plain-language explanation of each row type, shown on hover of the chip.
+  const TYPE_TOOLTIPS: Record<string, string> = {
+    agent: 'The overall agent run: total time from start to finish.',
+    decision: 'A step the agent decided to take, usually an action against a tool or API.',
+    processing: 'Dead time between steps while the agent was thinking and generating its next decision.',
+    waiting: 'Idle time before the agent continued — it was not doing any work here.',
+    continue: 'The agent chose to continue its current plan without taking a new action.',
+    question: 'The agent asked for human input or approval before continuing.',
+    finalise: 'The final answer or summary produced at the end of the run.',
+    'add tool': 'The agent added a new tool to its available actions.',
+  };
+  const typeTooltip = TYPE_TOOLTIPS[displayType] || '';
 
   // Resolve app icon for the tool used. `details.tool` may be a name or an ID.
   // Skip finalise/question/finish actions — they use the agent's "core" tool.
@@ -1110,7 +1124,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         </Box>
 
         <Tooltip
-          title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : ''}
+          title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : typeTooltip}
           arrow
         >
           <Chip
@@ -3143,10 +3157,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const runStart = agentItem?.start_time || 0;
     const runEnd = agentItem?.end_time || 0;
     let prevDecEnd = runStart;
-    const pushThinking = (from: number, to: number) => {
+    const pushThinking = (from: number, to: number, kind: 'processing' | 'waiting' = 'processing') => {
       if (from > 0 && to > 0 && to - from >= 1) {
         withProcessing.push({
-          label: '',
+          label: kind,
           type: 'decision',
           category: 'processing',
           status: 'FINISHED',
@@ -3163,7 +3177,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
         const decStart = it.start_time || 0;
         // Insert Thinking before this decision (works for first decision after
         // run start, gaps between decisions, and the gap before Finalise).
-        pushThinking(prevDecEnd, decStart);
+        // A gap before a continuation is not the agent processing — it is just
+        // dead time while it waits, so label it "Waiting" instead.
+        pushThinking(prevDecEnd, decStart, isContinuationDecision(it.details as any) ? 'waiting' : 'processing');
         withProcessing.push(it);
         prevDecEnd = it.end_time || decStart || prevDecEnd;
         lastWasFinalise = isFinalise(it);
