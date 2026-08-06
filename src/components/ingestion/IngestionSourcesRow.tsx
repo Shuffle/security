@@ -69,6 +69,7 @@ export const IngestionSourcesRow = ({
   addSubtitle,
   onSourcesChanged,
   searchPriorityQuery,
+  afterWebhook,
 }: IngestionSourcesRowProps) => {
   const { resolvedTheme } = useTheme();
   const { userInfo } = useAuth();
