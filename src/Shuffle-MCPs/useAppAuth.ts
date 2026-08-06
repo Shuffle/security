@@ -216,8 +216,9 @@ export function useAppAuth() {
           errorMessage: isValid ? undefined : errorMessage,
           successMessage: isValid ? (successMessage || 'Connection verified') : undefined,
           warningMessage: isValid ? warningMessage : undefined,
-          workflowId: isValid ? undefined : workflowId,
-          executionId: isValid ? undefined : executionId,
+          // Keep execution references on success too, so the run can always be inspected
+          workflowId: workflowId || undefined,
+          executionId: executionId || undefined,
           errorCode: isValid ? undefined : errorCode,
         },
       }));
