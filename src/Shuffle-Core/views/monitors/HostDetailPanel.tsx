@@ -136,6 +136,7 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
   const [softwareOpen, setSoftwareOpen] = useState(!collapsibleSections);
   const [codeScanOpen, setCodeScanOpen] = useState(!collapsibleSections);
   const [processOpen, setProcessOpen] = useState(!collapsibleSections);
+  const [vulnsOpen, setVulnsOpen] = useState(true);
   const [processFilter, setProcessFilter] = useState('');
   const [collapsedProcs, setCollapsedProcs] = useState<Set<number>>(new Set());
   type ProcSortKey = 'pid' | 'created' | 'user' | 'name';
@@ -452,16 +453,47 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
       {/* Host-level vulnerability summary */}
       {vulnerabilities !== undefined && (
         totalOpenVulns > 0 ? (
-          <div className="rounded-md border p-3 border-red-500/30 bg-red-500/5">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="rounded-md border p-3 border-red-500/30 bg-red-500/5 space-y-3">
+            <button
+              onClick={() => setVulnsOpen(!vulnsOpen)}
+              className="flex items-center justify-between gap-3 flex-wrap w-full text-left"
+            >
               <div className="flex items-start gap-2">
+                {vulnsOpen ? <ChevronDown size={14} className="mt-0.5 text-red-500" /> : <ChevronRight size={14} className="mt-0.5 text-red-500" />}
                 <AlertTriangle size={14} className="mt-0.5 text-red-500" />
                 <span className="text-xs font-semibold text-foreground">
                   {totalOpenVulns} open vulnerabilit{totalOpenVulns === 1 ? 'y' : 'ies'} attached to this host
                 </span>
               </div>
               <SeverityBadgeRow counts={sevCounts} />
-            </div>
+            </button>
+            {vulnsOpen && (
+              <div className="space-y-1">
+                {[...openVulns]
+                  .sort((a, b) => SEV_ORDER.indexOf(a.severity) - SEV_ORDER.indexOf(b.severity))
+                  .map(v => (
+                    <a
+                      key={v.id}
+                      href={`/vulnerabilities/${encodeURIComponent(v.id)}`}
+                      onClick={e => handleEntityClick(e, `/vulnerabilities/${encodeURIComponent(v.id)}`, navigate)}
+                      className="flex items-center gap-2 rounded border border-border bg-background/60 px-2 py-1.5 hover:bg-muted/40 transition-colors"
+                    >
+                      <span className={`shrink-0 text-[0.6rem] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded border ${SEV_CLASSES[v.severity]}`}>
+                        {v.severity}
+                      </span>
+                      <span className="text-xs text-foreground truncate flex-1 min-w-0">{v.title || v.cve_id || v.id}</span>
+                      {v.package_name && (
+                        <span className="shrink-0 text-[0.65rem] font-mono text-muted-foreground truncate max-w-[180px]">
+                          {v.package_name}
+                        </span>
+                      )}
+                      {v.cve_id && v.cve_id !== v.title && (
+                        <span className="shrink-0 text-[0.65rem] font-mono text-muted-foreground">{v.cve_id}</span>
+                      )}
+                    </a>
+                  ))}
+              </div>
+            )}
           </div>
         ) : (
           <VulnerabilityAutomationBanner
