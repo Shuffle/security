@@ -915,8 +915,9 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // When this row is the run's Finalise, how long ago it completed.
   const finishedAtSec = item.end_time || item.start_time || 0;
 
+  const isWaitingRow = isProcessing && item.label === 'waiting';
   if (isProcessing) {
-    displayType = 'processing';
+    displayType = isWaitingRow ? 'waiting' : 'processing';
     displayLabel = '';
   } else if (details?.reason) {
     displayLabel = details.reason;
@@ -932,6 +933,19 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       displayType = 'add tool';
     }
   }
+
+  // Plain-language explanation of each row type, shown on hover of the chip.
+  const TYPE_TOOLTIPS: Record<string, string> = {
+    agent: 'The overall agent run: total time from start to finish.',
+    decision: 'A step the agent decided to take, usually an action against a tool or API.',
+    processing: 'Dead time between steps while the agent was thinking and generating its next decision.',
+    waiting: 'Idle time before the agent continued — it was not doing any work here.',
+    continue: 'The agent chose to continue its current plan without taking a new action.',
+    question: 'The agent asked for human input or approval before continuing.',
+    finalise: 'The final answer or summary produced at the end of the run.',
+    'add tool': 'The agent added a new tool to its available actions.',
+  };
+  const typeTooltip = TYPE_TOOLTIPS[displayType] || '';
 
   // Resolve app icon for the tool used. `details.tool` may be a name or an ID.
   // Skip finalise/question/finish actions — they use the agent's "core" tool.
