@@ -27,17 +27,28 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
     MuiButton: {
       styleOverrides: {
         root: { borderRadius: 8, padding: '10px 24px', fontWeight: 600 },
+        // Longhand `backgroundColor` (not the `background` shorthand) so a
+        // per-component `sx={{ bgcolor: ... }}` reliably wins — otherwise a
+        // destructive button can end up orange with red text.
         containedPrimary: {
-          background: primaryColor,
+          backgroundColor: primaryColor,
           color: '#FFFFFF',
           boxShadow: `0 4px 14px ${primaryColor}40`,
           '&:hover': {
-            background: primaryColor,
+            backgroundColor: primaryColor,
             opacity: 0.9,
             boxShadow: `0 6px 20px ${primaryColor}60`,
           },
         },
-        outlined: {
+        containedError: {
+          backgroundColor: 'hsl(var(--destructive))',
+          color: 'hsl(var(--destructive-foreground))',
+          boxShadow: 'none',
+          '&:hover': { backgroundColor: 'hsl(var(--destructive) / 0.9)', boxShadow: 'none' },
+        },
+        // Scope the orange treatment to primary only. A generic `outlined`
+        // override painted error/destructive buttons orange on red borders.
+        outlinedPrimary: {
           borderColor: `${primaryColor}80`,
           color: primaryColor,
           '&:hover': {
@@ -45,8 +56,21 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
             backgroundColor: `${primaryColor}14`,
           },
         },
+        outlinedError: {
+          borderColor: 'hsl(var(--destructive) / 0.5)',
+          color: 'hsl(var(--destructive))',
+          '&:hover': {
+            borderColor: 'hsl(var(--destructive))',
+            backgroundColor: 'hsl(var(--destructive) / 0.08)',
+          },
+        },
+        textError: {
+          color: 'hsl(var(--destructive))',
+          '&:hover': { backgroundColor: 'hsl(var(--destructive) / 0.08)' },
+        },
       },
     },
+
     MuiCard: {
       styleOverrides: {
         root: { backgroundImage: cardBg, borderRadius: 12, border: `1px solid ${border}` },
