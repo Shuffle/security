@@ -879,6 +879,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const itemEnd = item.end_time || itemStart;
   const hasTiming = itemStart > 0 && itemEnd >= itemStart;
   const dur = hasTiming ? Math.max(0, itemEnd - itemStart) : 0;
+  const showTiming = dur >= 1;
+
   // Clamp the bar to the track. Timings coming back from the API are not
   // always consistent (an item can start before the computed run start, or
   // still be running so its end is "now" and exceeds the total), which would
