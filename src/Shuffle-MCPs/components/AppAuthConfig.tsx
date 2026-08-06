@@ -427,6 +427,8 @@ export const AppAuthCard = ({
       setTestMessagesForAuth(testingAuthId, {
         successMessage: authState.successMessage,
         warningMessage: authState.warningMessage,
+        workflowId: authState.workflowId,
+        executionId: authState.executionId,
       });
       // Clear testingAuthId after processing completed status
       setTestingAuthId(null);
