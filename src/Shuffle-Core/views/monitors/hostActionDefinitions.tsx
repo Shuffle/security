@@ -373,7 +373,8 @@ export const HostActionChips = ({
     ? 'px-2 py-1 text-[0.65rem]'
     : 'px-3 py-1.5 text-xs';
 
-  const showRemoteControl = isWindowsArch(arch);
+  // Remote Control is available on every architecture, not just Windows.
+  const showRemoteControl = true;
 
   return (
     <div className={`flex flex-wrap ${size === 'compact' ? 'gap-1' : 'gap-1.5'}`}>
