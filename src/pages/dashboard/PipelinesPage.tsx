@@ -1591,7 +1591,7 @@ Use case: ${aiPrompt}`,
                       onClick={() => { handleAction(detailPipeline, 'stop'); setDetailPipeline(null); }}
                       variant="contained"
                       startIcon={<StopIcon />}
-                      sx={{ bgcolor: 'hsl(var(--destructive, 0 84% 60%))', textTransform: 'none', fontWeight: 600 }}
+                      sx={{ bgcolor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))', textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.9)' } }}
                     >
                       Stop
                     </Button>
