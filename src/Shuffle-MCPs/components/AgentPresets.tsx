@@ -54,6 +54,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Triages incidents: enriches observables, correlates related cases, and proposes next actions with rationale.',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     icon: <ShieldAlert size={16} />,
+    enabled: true,
     defaultApps: [{ name: 'shuffle_incidents' }],
   },
   {
@@ -62,6 +63,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Controls a host computer with screenshots and mouse/keyboard input — useful for hands-on remediation or guided walkthroughs.',
     defaultPrompt: 'Take control of this host and help me with: ',
     icon: <Monitor size={16} />,
+    enabled: true,
     defaultApps: [{ name: 'shuffle_host_monitors' }],
   },
   {
