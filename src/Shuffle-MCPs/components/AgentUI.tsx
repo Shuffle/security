@@ -3040,7 +3040,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
         details: agentData,
         status: execution?.status || agentData?.status,
         start_time: toSec(agentData?.started_at || execution?.started_at),
-        end_time: toSec(agentData?.completed_at || execution?.completed_at),
+        // While the run is still executing there is no `completed_at` yet —
+        // anchor the end to "now" so the total agent bar and duration grow in
+        // realtime instead of staying blank until the run finishes.
+        end_time: toSec(agentData?.completed_at || execution?.completed_at)
+          || (runStillExecuting ? liveNowSec : 0),
       },
     ];
 
