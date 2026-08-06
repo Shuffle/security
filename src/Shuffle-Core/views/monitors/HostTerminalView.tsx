@@ -290,7 +290,7 @@ export const HostTerminalView = ({
             <Button
               variant="ghost"
               size="sm"
-              className={`${S.stopBtn} text-destructive hover:text-destructive`}
+              className={`${S.stopBtn} shrink-0 border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive`}
               onClick={(e) => { e.stopPropagation(); abortHostAction(host.uuid); }}
             >
               Stop

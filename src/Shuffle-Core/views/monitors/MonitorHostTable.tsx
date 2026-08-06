@@ -676,7 +676,7 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
                                       <span className="text-[0.6rem] text-muted-foreground">
                                         {actionDebug.status === 'sending' ? 'Sending…' : 'Waiting for result…'}
                                       </span>
-                                      <Button variant="ghost" size="sm" className="h-5 px-2 text-[0.6rem] text-destructive hover:text-destructive" onClick={() => abortHostAction(host.uuid)}>
+                                      <Button variant="ghost" size="sm" className="h-5 px-2 text-[0.6rem] shrink-0 border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive" onClick={() => abortHostAction(host.uuid)}>
                                         Stop
                                       </Button>
                                     </div>
