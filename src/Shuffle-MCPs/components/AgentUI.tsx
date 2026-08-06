@@ -1124,7 +1124,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         </Box>
 
         <Tooltip
-          title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : ''}
+          title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : typeTooltip}
           arrow
         >
           <Chip
