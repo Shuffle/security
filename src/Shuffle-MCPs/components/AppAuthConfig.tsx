@@ -1948,6 +1948,11 @@ export const AppAuthCard = ({
                             >
                               Check status in Admin → App Authentication
                             </Link>
+                            {localTestMessages.executionId && (
+                              <Box sx={{ mt: 1.5 }}>
+                                <ViewExecutionButton executionId={localTestMessages.executionId} />
+                              </Box>
+                            )}
                           </Box>
                         </Alert>
                       </Box>
