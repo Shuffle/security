@@ -1888,19 +1888,29 @@ export const AppAuthCard = ({
                             },
                           }}
                         >
-                          {localTestMessages.warningMessage ? (
-                            <Box>
-                              <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
-                                {localTestMessages.successMessage || 'Connection probably working'}
-                              </Typography>
-                              <Typography sx={{ fontSize: '0.85rem', opacity: 0.9 }}>
-                                {localTestMessages.warningMessage}
-                              </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, width: '100%' }}>
+                            <Box sx={{ flex: 1 }}>
+                              {localTestMessages.warningMessage ? (
+                                <>
+                                  <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
+                                    {localTestMessages.successMessage || 'Connection probably working'}
+                                  </Typography>
+                                  <Typography sx={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                                    {localTestMessages.warningMessage}
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Typography sx={{ fontSize: '0.875rem' }}>
+                                  {localTestMessages.successMessage || 'Connection verified successfully'}
+                                </Typography>
+                              )}
                             </Box>
-                          ) : (
-                            localTestMessages.successMessage || 'Connection verified successfully'
-                          )}
+                            {localTestMessages.executionId && (
+                              <ViewExecutionButton executionId={localTestMessages.executionId} />
+                            )}
+                          </Box>
                         </Alert>
+
                       </Box>
                     )}
                     {localTestStatus === 'pending_validation' && (
