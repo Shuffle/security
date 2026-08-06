@@ -3035,6 +3035,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
     let finishId = '';
     let finishAns = '';
+    let lastKnownEnd = toSec(agentData?.started_at || execution?.started_at);
     for (const dec of agentData?.decisions || []) {
       const rd = dec.run_details || {};
       const decStartSec = toSec(rd.started_at);
@@ -3049,11 +3050,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // computed correctly and the duration is accurate.
       let startTime = decStartSec || 0;
       let endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
+      // Some rows (continuations / asks) come back with started_at = 0 but a
+      // valid completed_at. Anchor their start to the end of the previous
+      // known step so the "Processing" (waiting) gap before them still shows.
+      if (!decStartSec && decEndSec && lastKnownEnd > 0 && lastKnownEnd <= decEndSec) {
+        startTime = lastKnownEnd;
+        endTime = decEndSec;
+      }
       if (decIsFinish && !decStartSec && !decEndSec && (runEndSec || fallbackEnd)) {
         const anchor = runEndSec || fallbackEnd;
         startTime = anchor;
         endTime = anchor;
       }
+      if (endTime > 0) lastKnownEnd = Math.max(lastKnownEnd, endTime);
+
       items.push({
         label: dec.action,
         type: 'decision',
