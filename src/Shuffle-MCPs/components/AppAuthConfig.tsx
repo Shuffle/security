@@ -63,6 +63,53 @@ export interface AppAuthState {
   errorCode?: number; // HTTP status code for credential errors (401, 403, etc.)
 }
 
+/**
+ * Opens the shared workflow-run explorer drawer for a given execution.
+ * Host apps listen for `workflow-run:open` and render the full execution.
+ */
+const openExecutionDrawer = (executionId: string) => {
+  window.dispatchEvent(
+    new CustomEvent('workflow-run:open', { detail: { executionId }, cancelable: true }),
+  );
+};
+
+/** "Inspect execution" CTA shown after a connection test (success or failure). */
+const ViewExecutionButton = ({
+  executionId,
+  tone = 'default',
+}: {
+  executionId: string;
+  tone?: 'default' | 'destructive';
+}) => {
+  const color = tone === 'destructive' ? 'hsl(var(--destructive))' : 'currentColor';
+  return (
+    <Button
+      variant="outlined"
+      size="small"
+      onClick={() => openExecutionDrawer(executionId)}
+      sx={{
+        borderColor: tone === 'destructive' ? 'hsl(var(--destructive) / 0.5)' : 'currentColor',
+        color,
+        opacity: tone === 'destructive' ? 1 : 0.9,
+        textTransform: 'none',
+        fontSize: '0.75rem',
+        py: 0.5,
+        px: 1.5,
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+        '&:hover': {
+          borderColor: color,
+          backgroundColor: tone === 'destructive' ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--muted) / 0.4)',
+        },
+      }}
+    >
+      Inspect execution
+    </Button>
+  );
+};
+
+
+
 // Helper to check if auth type is OAuth2 (includes oauth2-app variant)
 const isOAuth2Type = (type: string | undefined): boolean => {
   if (!type) return false;
