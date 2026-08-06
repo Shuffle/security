@@ -3051,12 +3051,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
       let startTime = decStartSec || 0;
       let endTime = decEndSec || (decStartSec ? fallbackEnd : 0);
       // Some rows (continuations / asks) come back with started_at = 0 but a
-      // valid completed_at. Anchor their start to the end of the previous
-      // known step so the "Processing" (waiting) gap before them still shows.
-      if (!decStartSec && decEndSec && lastKnownEnd > 0 && lastKnownEnd <= decEndSec) {
-        startTime = lastKnownEnd;
+      // valid completed_at. Anchor them to their completion time so the
+      // preceding waiting/"Processing" gap is computed and rendered.
+      if (!decStartSec && decEndSec) {
+        startTime = decEndSec;
         endTime = decEndSec;
       }
+
       if (decIsFinish && !decStartSec && !decEndSec && (runEndSec || fallbackEnd)) {
         const anchor = runEndSec || fallbackEnd;
         startTime = anchor;
