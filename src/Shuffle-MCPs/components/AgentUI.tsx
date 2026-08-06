@@ -880,7 +880,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   const itemEnd = item.end_time || itemStart;
   const hasTiming = itemStart > 0 && itemEnd >= itemStart;
   const dur = hasTiming ? Math.max(0, itemEnd - itemStart) : 0;
-  const showTiming = dur >= 1;
+  // Rows with real timestamps always show their duration — hiding sub-second
+  // rows made sibling decisions look inconsistent (4 with a time, 1 blank).
+  // Only genuinely negligible timings (< 50ms) are suppressed.
+  const showTiming = dur >= 0.05;
 
   // Clamp the bar to the track. Timings coming back from the API are not
   // always consistent (an item can start before the computed run start, or
