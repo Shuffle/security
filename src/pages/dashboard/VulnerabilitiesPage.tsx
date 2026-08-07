@@ -403,8 +403,58 @@ interface VulnTableProps {
   emptyDescription: string;
 }
 
+const SEVERITY_ORDER: Record<VulnSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+
+type SortKey = 'severity' | 'title' | 'category' | 'source' | 'status' | 'first_seen';
+
 const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTitle, emptyDescription }: VulnTableProps) => {
   const navigate = useNavigate();
+  const [sortKey, setSortKey] = useState<SortKey>('severity');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sorted = [...vulnerabilities].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === 'severity') {
+      cmp = (SEVERITY_ORDER[a.severity] ?? 99) - (SEVERITY_ORDER[b.severity] ?? 99);
+    } else if (sortKey === 'first_seen') {
+      cmp = (a.first_seen ? new Date(a.first_seen).getTime() : 0) - (b.first_seen ? new Date(b.first_seen).getTime() : 0);
+    } else if (sortKey === 'title') {
+      cmp = (a.title || '').localeCompare(b.title || '');
+    } else if (sortKey === 'category') {
+      cmp = (CATEGORY_LABELS[a.category] || a.category || '').localeCompare(CATEGORY_LABELS[b.category] || b.category || '');
+    } else if (sortKey === 'source') {
+      cmp = (a.source || '').localeCompare(b.source || '');
+    } else if (sortKey === 'status') {
+      cmp = (STATUS_LABELS[a.status] || a.status || '').localeCompare(STATUS_LABELS[b.status] || b.status || '');
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const SortHead = ({ label, sortKeyValue, className }: { label: string; sortKeyValue: SortKey; className?: string }) => (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => toggleSort(sortKeyValue)}
+        className="inline-flex items-center gap-1 text-inherit hover:text-foreground transition-colors"
+      >
+        {label}
+        {sortKey === sortKeyValue ? (
+          sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+        ) : (
+          <ArrowUpDown size={12} className="opacity-30" />
+        )}
+      </button>
+    </TableHead>
+  );
   const openDetail = (id: string, e?: React.MouseEvent) => {
     // Strip "::hostname" expansion suffix to get the canonical OSV id used as datastore key.
     const baseId = String(id).split('::')[0];
