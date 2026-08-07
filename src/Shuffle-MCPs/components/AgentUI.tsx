@@ -1653,6 +1653,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
   const [inputScrolled, setInputScrolled] = useState(false);
+  const [promptSingleLine, setPromptSingleLine] = useState(true);
 
   // Callback ref: measure the chip the instant it mounts (and whenever the
   // element is swapped out because the template label changed), so the
