@@ -129,6 +129,79 @@ const findPartOfDay = (text: string): { h: number; matched: string } | null => {
   return null;
 };
 
+/** Spelled-out and fuzzy quantities used in relative offsets. */
+const WORD_NUMBERS: Record<string, number> = {
+  a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20,
+  thirty: 30, forty: 40, fifty: 50, sixty: 60, ninety: 90,
+  couple: 2, few: 3, several: 3, dozen: 12,
+};
+
+const UNIT_MS: Record<string, number> = {
+  second: 1_000,
+  minute: 60_000,
+  hour: 3_600_000,
+  day: 86_400_000,
+  week: 7 * 86_400_000,
+  month: 30 * 86_400_000,
+};
+
+const UNIT_ALIASES: Record<string, keyof typeof UNIT_MS> = {
+  s: 'second', sec: 'second', secs: 'second', second: 'second', seconds: 'second',
+  m: 'minute', min: 'minute', mins: 'minute', minute: 'minute', minutes: 'minute',
+  h: 'hour', hr: 'hour', hrs: 'hour', hour: 'hour', hours: 'hour',
+  d: 'day', day: 'day', days: 'day',
+  w: 'week', wk: 'week', wks: 'week', week: 'week', weeks: 'week',
+  mo: 'month', mon: 'month', month: 'month', months: 'month',
+};
+
+// Longest alternatives first so "a couple of" is not swallowed by bare "a".
+const QUANTITY = '\\d+(?:\\.\\d+)?|half\\s+an?|a\\s+couple(?:\\s+of)?|couple(?:\\s+of)?|a\\s+few|few|several|a\\s+dozen|dozen|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|an|a';
+
+const UNIT = 's|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks|mo|month|months';
+
+const quantityValue = (raw: string): number | null => {
+  const q = raw.trim().replace(/\s+of$/, '').replace(/\s+/g, ' ');
+  if (/^half\s+an?$|^half\s+a$/.test(q)) return 0.5;
+  if (/^\d/.test(q)) {
+    const n = parseFloat(q);
+    return Number.isFinite(n) ? n : null;
+  }
+  const key = q.replace(/^an?\s+/, '').split(' ')[0];
+  return WORD_NUMBERS[key] ?? null;
+};
+
+/**
+ * Parses relative one-off offsets in many phrasings:
+ *   "in 15 min", "in 2 days", "in an hour", "in half an hour",
+ *   "2 days from now", "3 weeks later", "after 45 minutes", "within 2 hours",
+ *   "10m from now"
+ */
+const findRelativeOffset = (
+  text: string,
+): { ms: number; matched: string; unitDays: boolean } | null => {
+  const patterns = [
+    new RegExp(`\\b(?:in|after|within|wait)\\s+(${QUANTITY})\\s*(${UNIT})\\b(?!\\s*(?:ago))`, 'i'),
+    new RegExp(`\\b(${QUANTITY})\\s*(${UNIT})\\s+(?:from\\s+now|from\\s+today|later|out)\\b`, 'i'),
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (!m) continue;
+    const qty = quantityValue(m[1]);
+    const unit = UNIT_ALIASES[m[2].toLowerCase()];
+    if (qty === null || !unit) continue;
+    // "every 15 minutes" is recurring and handled earlier; guard anyway.
+    if (/\b(?:every|each)\s*$/i.test(text.slice(0, m.index ?? 0))) continue;
+    return {
+      ms: qty * UNIT_MS[unit],
+      matched: m[0],
+      unitDays: unit === 'day' || unit === 'week' || unit === 'month',
+    };
+  }
+  return null;
+};
+
+
 export const parseScheduleHint = (input: string): ScheduleHint | null => {
   if (!input) return null;
   const text = input.toLowerCase();
@@ -192,20 +265,49 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
 
 
   // ── Near-future one-off phrases ────────────────────────────────────────
-  // "in 15 minutes", "in 2 hours" — schedule once at now + offset.
-  const inMin = text.match(/\bin\s+(\d+)\s*(?:m|min|mins|minute|minutes)\b/);
-  const inHr = !inMin ? text.match(/\bin\s+(\d+)\s*(?:h|hr|hrs|hour|hours)\b/) : null;
-  if (inMin || inHr) {
-    const offsetMs = inMin
-      ? parseInt(inMin[1], 10) * 60_000
-      : parseInt(inHr![1], 10) * 3_600_000;
-    return onceHint(new Date(Date.now() + offsetMs), 'high', (inMin || inHr)![0]);
+  // Relative offsets: "in 15 min", "in 2 days", "2 days from now", "in an
+  // hour", "in half an hour", "3 weeks later", "in a couple of hours".
+  const rel = findRelativeOffset(text);
+  if (rel) {
+    const target = new Date(Date.now() + rel.ms);
+    // A day/week/month offset with an explicit time lands on that clock time.
+    if (rel.unitDays && (t || part)) target.setHours(hour ?? 9, minute, 0, 0);
+    if (rel.unitDays) target.setSeconds(0, 0);
+    return onceHint(target, 'high', rel.matched);
   }
 
   // "later today", "later", "soon", "shortly", "in a bit" — ~2 hours out.
   const laterMatch = text.match(/\b(later\s+today|later\s+tonight|later\s+this\s+(?:morning|afternoon|evening)|later|soon|shortly|in\s+a\s+bit|in\s+a\s+while|in\s+a\s+moment)\b/);
   if (laterMatch && hour === null) {
     return onceHint(new Date(Date.now() + 2 * 3_600_000), 'medium', laterMatch[0]);
+  }
+
+  // "end of day" / "end of the week" / "end of the month"
+  const endOf = text.match(/\bend\s+of\s+(?:the\s+)?(day|today|week|month)\b/);
+  if (endOf && !isDaily && !isWeekly && !isMonthly) {
+    const target = new Date();
+    const which = endOf[1];
+    if (which === 'day' || which === 'today') {
+      target.setHours(hour ?? 17, minute, 0, 0);
+      if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
+    } else if (which === 'week') {
+      const delta = (5 - target.getDay() + 7) % 7; // upcoming Friday
+      target.setDate(target.getDate() + (delta === 0 ? 7 : delta));
+      target.setHours(hour ?? 17, minute, 0, 0);
+    } else {
+      target.setMonth(target.getMonth() + 1, 0); // last day of this month
+      target.setHours(hour ?? 17, minute, 0, 0);
+    }
+    return onceHint(target, 'medium', endOf[0]);
+  }
+
+  // "the day after tomorrow" / "day after tomorrow"
+  const dayAfter = text.match(/\b(?:the\s+)?day\s+after\s+tomorrow\b/);
+  if (dayAfter) {
+    const target = new Date();
+    target.setDate(target.getDate() + 2);
+    target.setHours(hour ?? 9, minute, 0, 0);
+    return onceHint(target, 'high', dayAfter[0]);
   }
 
   if (/\btonight\b/.test(text) && !isDaily && !isWeekly) {
@@ -227,13 +329,38 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
     if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
     return onceHint(target, 'medium', hits.join(' ') || 'today');
   }
+  // "this morning/afternoon/evening" — a single upcoming moment today.
+  const thisPart = text.match(/\bthis\s+(morning|afternoon|evening)\b/);
+  if (thisPart && !isDaily && !isWeekly) {
+    const target = new Date();
+    target.setHours(hour ?? PART_OF_DAY[thisPart[1]], minute, 0, 0);
+    if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
+    return onceHint(target, 'medium', thisPart[0]);
+  }
+  // "next week" / "next month" without a weekday.
+  const nextSpan = !day ? text.match(/\bnext\s+(week|month)\b/) : null;
+  if (nextSpan && !isWeekly && !isMonthly && !isDaily) {
+    const target = new Date();
+    if (nextSpan[1] === 'week') target.setDate(target.getDate() + 7);
+    else target.setMonth(target.getMonth() + 1);
+    target.setHours(hour ?? 9, minute, 0, 0);
+    return onceHint(target, 'medium', nextSpan[0]);
+  }
   if (day && oneOffDayPhrase && !isWeekly && !isMonthly && !isWeekdays && !isDaily) {
+    const target = nextDateForWeekday(day.day, hour ?? 9, minute);
+    // "next monday" pushes past an imminent occurrence (today/tomorrow).
+    if (/\bnext\b/.test(text)) {
+      const upcomingDelta = Math.round((target.getTime() - Date.now()) / 86_400_000);
+      if (upcomingDelta < 2) target.setDate(target.getDate() + 7);
+    }
+
     return onceHint(
-      nextDateForWeekday(day.day, hour ?? 9, minute),
+      target,
       hour !== null ? 'high' : 'medium',
       hits.join(' ') || day.matched,
     );
   }
+
 
 
   // ── 5. Build cron from collected pieces ─────────────────────────────────
