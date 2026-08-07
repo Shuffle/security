@@ -1680,11 +1680,23 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (!lastId) return;
       const list = presets && presets.length > 0 ? presets : AGENT_PRESETS;
       const match = list.find((p) => p.id === lastId);
-      if (match) setSelectedPreset(match);
+      if (!match) return;
+      setSelectedPreset(match);
+      // Restoring a template must also restore ITS tools — otherwise whatever
+      // tools were left over from another template stay selected (and get
+      // written back as this template's override).
+      const override = readPresetAppsOverride(match.id);
+      if (override && override.length > 0) {
+        setChosenApps(override);
+      } else if (match.defaultApps && match.defaultApps.length > 0) {
+        setChosenApps(match.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
+      }
+      seededPresetIdRef.current = match.id;
     } catch {
       /* ignore storage errors */
     }
   }, [presets, defaultInput]);
+
 
 
   // Keep the input's first-line text-indent in sync with the actual chip width
