@@ -129,6 +129,77 @@ const findPartOfDay = (text: string): { h: number; matched: string } | null => {
   return null;
 };
 
+/** Spelled-out and fuzzy quantities used in relative offsets. */
+const WORD_NUMBERS: Record<string, number> = {
+  a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20,
+  thirty: 30, forty: 40, fifty: 50, sixty: 60, ninety: 90,
+  couple: 2, few: 3, several: 3, dozen: 12,
+};
+
+const UNIT_MS: Record<string, number> = {
+  second: 1_000,
+  minute: 60_000,
+  hour: 3_600_000,
+  day: 86_400_000,
+  week: 7 * 86_400_000,
+  month: 30 * 86_400_000,
+};
+
+const UNIT_ALIASES: Record<string, keyof typeof UNIT_MS> = {
+  s: 'second', sec: 'second', secs: 'second', second: 'second', seconds: 'second',
+  m: 'minute', min: 'minute', mins: 'minute', minute: 'minute', minutes: 'minute',
+  h: 'hour', hr: 'hour', hrs: 'hour', hour: 'hour', hours: 'hour',
+  d: 'day', day: 'day', days: 'day',
+  w: 'week', wk: 'week', wks: 'week', week: 'week', weeks: 'week',
+  mo: 'month', mon: 'month', month: 'month', months: 'month',
+};
+
+const QUANTITY = '\\d+(?:\\.\\d+)?|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|couple(?:\\s+of)?|few|several|dozen|half\\s+an?|half\\s+a';
+const UNIT = 's|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks|mo|month|months';
+
+const quantityValue = (raw: string): number | null => {
+  const q = raw.trim().replace(/\s+of$/, '').replace(/\s+/g, ' ');
+  if (/^half\s+an?$|^half\s+a$/.test(q)) return 0.5;
+  if (/^\d/.test(q)) {
+    const n = parseFloat(q);
+    return Number.isFinite(n) ? n : null;
+  }
+  const key = q.split(' ')[0];
+  return WORD_NUMBERS[key] ?? null;
+};
+
+/**
+ * Parses relative one-off offsets in many phrasings:
+ *   "in 15 min", "in 2 days", "in an hour", "in half an hour",
+ *   "2 days from now", "3 weeks later", "after 45 minutes", "within 2 hours",
+ *   "10m from now"
+ */
+const findRelativeOffset = (
+  text: string,
+): { ms: number; matched: string; unitDays: boolean } | null => {
+  const patterns = [
+    new RegExp(`\\b(?:in|after|within|wait)\\s+(${QUANTITY})\\s*(${UNIT})\\b(?!\\s*(?:ago))`, 'i'),
+    new RegExp(`\\b(${QUANTITY})\\s*(${UNIT})\\s+(?:from\\s+now|from\\s+today|later|out)\\b`, 'i'),
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (!m) continue;
+    const qty = quantityValue(m[1]);
+    const unit = UNIT_ALIASES[m[2].toLowerCase()];
+    if (qty === null || !unit) continue;
+    // "every 15 minutes" is recurring and handled earlier; guard anyway.
+    if (/\b(?:every|each)\s*$/i.test(text.slice(0, m.index ?? 0))) continue;
+    return {
+      ms: qty * UNIT_MS[unit],
+      matched: m[0],
+      unitDays: unit === 'day' || unit === 'week' || unit === 'month',
+    };
+  }
+  return null;
+};
+
+
 export const parseScheduleHint = (input: string): ScheduleHint | null => {
   if (!input) return null;
   const text = input.toLowerCase();
