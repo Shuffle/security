@@ -1826,11 +1826,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const composeSubmitInput = useCallback(
     (raw: string) => {
       const trimmedPrefix = (activePromptPrefix || '').trim();
-      if (!trimmedPrefix) return raw;
-      return `${trimmedPrefix}\n\n${raw}`;
+      let out = trimmedPrefix ? `${trimmedPrefix}\n\n${raw}` : raw;
+      // One-time reminders ("in 15 minutes", "38 seconds from now") are carried
+      // out by the agent, not by a cron schedule. The agent has no clock, so we
+      // resolve the phrase to an absolute timestamp and pass it along.
+      try {
+        const hint = parseScheduleHint(raw);
+        if (hint?.once && hint.runAt) {
+          const when = new Date(hint.runAt);
+          out += `\n\nCurrent time: ${new Date().toISOString()}. The requested one-time execution time is ${when.toISOString()} (${when.toLocaleString()}, local). Wait until then, and run this once only — do not create a recurring schedule.`;
+        }
+      } catch { /* ignore */ }
+      return out;
     },
     [activePromptPrefix],
   );
+
   // ── Prompt autocomplete ─────────────────────────────────────────
   // Google-style suggestion list under the starter input. Only shows when
   // the user has typed something AND there are substring matches in the
