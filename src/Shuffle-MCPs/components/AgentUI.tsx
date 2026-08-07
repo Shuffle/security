@@ -1134,6 +1134,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   })();
 
   const isFailed = effectiveStatus === 'FAILURE' || effectiveStatus === 'ABORTED';
+  // A WAITING decision that carries a delay is scheduled, not finished — its
+  // completed_at is the moment the delay was set, not when the step completes.
+  const scheduledResumeMs = getScheduledResumeMs(details);
+  const isScheduledWait = (effectiveStatus || '').toUpperCase() === 'WAITING' && scheduledResumeMs > 0;
   // Default bar color: only failed executions stand out; everything else is
   // neutral so the timeline does not look like a color parade.
   const barColor = isProcessing
