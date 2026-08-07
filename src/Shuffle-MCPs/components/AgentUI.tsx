@@ -1206,6 +1206,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           />
         </Tooltip>
 
+        {(effectiveStatus || '').toUpperCase() === 'WAITING' && !!getScheduledResumeMs(details) && (
+          <ScheduledCountdown resumeAtMs={getScheduledResumeMs(details)} />
+        )}
+
+
 
 
         <Box sx={{
