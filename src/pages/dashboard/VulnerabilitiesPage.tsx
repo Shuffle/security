@@ -153,15 +153,50 @@ const PublicVulnerabilitiesView = () => {
   );
 };
 
+const VULN_FILTERS_STORAGE_KEY = 'vulnerabilities-list-filters';
+
+const loadStoredFilters = (): Record<string, unknown> => {
+  try {
+    const raw = localStorage.getItem(VULN_FILTERS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 const AuthenticatedVulnerabilitiesView = () => {
   const isAdmin = useIsAdmin();
   const isSupport = useIsSupport();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [severityFilter, setSeverityFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('open');
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const stored = useState(loadStoredFilters)[0];
+  const [searchQuery, setSearchQuery] = useState<string>(typeof stored.searchQuery === 'string' ? stored.searchQuery : '');
+  const [severityFilter, setSeverityFilter] = useState<string>(typeof stored.severityFilter === 'string' ? stored.severityFilter : 'all');
+  const [categoryFilter, setCategoryFilter] = useState<string>(typeof stored.categoryFilter === 'string' ? stored.categoryFilter : 'all');
+  const [statusFilter, setStatusFilter] = useState<string>(typeof stored.statusFilter === 'string' ? stored.statusFilter : 'open');
+  const [sourceFilter, setSourceFilter] = useState<string>(typeof stored.sourceFilter === 'string' ? stored.sourceFilter : 'all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(typeof stored.dateFrom === 'string' ? new Date(stored.dateFrom) : undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(typeof stored.dateTo === 'string' ? new Date(stored.dateTo) : undefined);
+  const [sortKey, setSortKey] = useState<SortKey>(typeof stored.sortKey === 'string' ? (stored.sortKey as SortKey) : 'severity');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(stored.sortDir === 'desc' ? 'desc' : 'asc');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VULN_FILTERS_STORAGE_KEY, JSON.stringify({
+        searchQuery,
+        severityFilter,
+        categoryFilter,
+        statusFilter,
+        sourceFilter,
+        dateFrom: dateFrom ? dateFrom.toISOString() : undefined,
+        dateTo: dateTo ? dateTo.toISOString() : undefined,
+        sortKey,
+        sortDir,
+      }));
+    } catch {
+      // ignore quota errors
+    }
+  }, [searchQuery, severityFilter, categoryFilter, statusFilter, sourceFilter, dateFrom, dateTo, sortKey, sortDir]);
 
   const [aiScanOpen, setAiScanOpen] = useState(false);
   const [aiScanLoading, setAiScanLoading] = useState(false);
@@ -192,6 +227,7 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (severityFilter !== 'all' && v.severity !== severityFilter) return false;
     if (categoryFilter !== 'all' && v.category !== categoryFilter) return false;
     if (statusFilter !== 'all' && v.status !== statusFilter) return false;
+    if (sourceFilter !== 'all' && (v.source || '') !== sourceFilter) return false;
     if (dateFrom || dateTo) {
       const ts = v.first_seen ? new Date(v.first_seen).getTime() : 0;
       if (!ts) return false;
@@ -201,6 +237,7 @@ const AuthenticatedVulnerabilitiesView = () => {
     return true;
 
   });
+
 
   const handleAiScan = useCallback(async () => {
     setAiScanLoading(true);
@@ -333,6 +370,18 @@ const AuthenticatedVulnerabilitiesView = () => {
               emptyIcon={<Shield size={48} className="text-muted-foreground/50 mx-auto mb-4" />}
               emptyTitle="No vulnerabilities found"
               emptyDescription="Connect a vulnerability scanner or sync from a package page to populate this list."
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSortKeyChange={setSortKey}
+              onSortDirChange={setSortDir}
+              severityFilter={severityFilter}
+              categoryFilter={categoryFilter}
+              statusFilter={statusFilter}
+              sourceFilter={sourceFilter}
+              onSeverityChange={setSeverityFilter}
+              onCategoryChange={setCategoryFilter}
+              onStatusChange={setStatusFilter}
+              onSourceChange={setSourceFilter}
             />
           ) : (
             <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-12 text-center">
@@ -401,25 +450,73 @@ interface VulnTableProps {
   emptyIcon: React.ReactNode;
   emptyTitle: string;
   emptyDescription: string;
+  sortKey: SortKey;
+  sortDir: 'asc' | 'desc';
+  onSortKeyChange: (k: SortKey) => void;
+  onSortDirChange: (d: 'asc' | 'desc') => void;
+  severityFilter: string;
+  categoryFilter: string;
+  statusFilter: string;
+  sourceFilter: string;
+  onSeverityChange: (v: string) => void;
+  onCategoryChange: (v: string) => void;
+  onStatusChange: (v: string) => void;
+  onSourceChange: (v: string) => void;
 }
 
 const SEVERITY_ORDER: Record<VulnSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 
 type SortKey = 'severity' | 'title' | 'category' | 'source' | 'status' | 'first_seen';
 
-const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTitle, emptyDescription }: VulnTableProps) => {
+const VulnTable = ({
+  vulnerabilities,
+  isLoading,
+  onRemediate,
+  emptyIcon,
+  emptyTitle,
+  emptyDescription,
+  sortKey,
+  sortDir,
+  onSortKeyChange,
+  onSortDirChange,
+  severityFilter,
+  categoryFilter,
+  statusFilter,
+  sourceFilter,
+  onSeverityChange,
+  onCategoryChange,
+  onStatusChange,
+  onSourceChange,
+}: VulnTableProps) => {
   const navigate = useNavigate();
-  const [sortKey, setSortKey] = useState<SortKey>('severity');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
-      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+      onSortDirChange(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortKey(key);
-      setSortDir('asc');
+      onSortKeyChange(key);
+      onSortDirChange('asc');
     }
   };
+
+  /** Click a cell value to filter by it; click again to clear. */
+  const FilterCellButton = ({
+    label,
+    active,
+    onToggle,
+    className,
+  }: { label: string; active: boolean; onToggle: () => void; className?: string }) => (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      title={active ? 'Clear this filter' : `Filter by ${label}`}
+      className={`text-left rounded px-1 -mx-1 transition-colors hover:bg-muted/50 hover:text-foreground ${active ? 'text-foreground font-medium' : ''} ${className || ''}`}
+    >
+      {label}
+    </button>
+  );
+
+
 
   const sorted = [...vulnerabilities].sort((a, b) => {
     let cmp = 0;
@@ -506,10 +603,16 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
               onClick={(e) => openDetail(vuln.id, e)}
               onAuxClick={(e) => e.button === 1 && window.open(`/vulnerabilities/${encodeURIComponent(String(vuln.id).split('::')[0])}`, '_blank')}
             >
-              <TableCell>
-                <Badge variant="outline" className={`text-xs capitalize ${SEVERITY_COLORS[vuln.severity]}`}>
-                  {vuln.severity}
-                </Badge>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => onSeverityChange(severityFilter === vuln.severity ? 'all' : vuln.severity)}
+                  title={severityFilter === vuln.severity ? 'Clear this filter' : `Filter by ${vuln.severity}`}
+                >
+                  <Badge variant="outline" className={`text-xs capitalize cursor-pointer ${SEVERITY_COLORS[vuln.severity]} ${severityFilter === vuln.severity ? 'ring-1 ring-current' : ''}`}>
+                    {vuln.severity}
+                  </Badge>
+                </button>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-0.5">
@@ -517,15 +620,30 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
                   {vuln.cve_id && <span className="text-xs text-muted-foreground font-mono">{vuln.cve_id}</span>}
                 </div>
               </TableCell>
-              <TableCell>
-                <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[vuln.category] || vuln.category}</span>
+              <TableCell className="text-xs text-muted-foreground">
+                <FilterCellButton
+                  label={CATEGORY_LABELS[vuln.category] || vuln.category}
+                  active={categoryFilter === vuln.category}
+                  onToggle={() => onCategoryChange(categoryFilter === vuln.category ? 'all' : vuln.category)}
+                />
               </TableCell>
-              <TableCell>
-                <span className="text-xs text-muted-foreground">{vuln.source || '—'}</span>
+              <TableCell className="text-xs text-muted-foreground">
+                {vuln.source ? (
+                  <FilterCellButton
+                    label={vuln.source}
+                    active={sourceFilter === vuln.source}
+                    onToggle={() => onSourceChange(sourceFilter === vuln.source ? 'all' : (vuln.source as string))}
+                  />
+                ) : '—'}
               </TableCell>
-              <TableCell>
-                <span className="text-xs text-muted-foreground">{STATUS_LABELS[vuln.status] || vuln.status}</span>
+              <TableCell className="text-xs text-muted-foreground">
+                <FilterCellButton
+                  label={STATUS_LABELS[vuln.status] || vuln.status}
+                  active={statusFilter === vuln.status}
+                  onToggle={() => onStatusChange(statusFilter === vuln.status ? 'all' : vuln.status)}
+                />
               </TableCell>
+
               <TableCell>
                 <span className="text-xs text-muted-foreground">
                   {vuln.first_seen ? new Date(vuln.first_seen).toLocaleDateString() : '—'}
