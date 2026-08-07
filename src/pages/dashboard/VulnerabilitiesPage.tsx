@@ -370,6 +370,18 @@ const AuthenticatedVulnerabilitiesView = () => {
               emptyIcon={<Shield size={48} className="text-muted-foreground/50 mx-auto mb-4" />}
               emptyTitle="No vulnerabilities found"
               emptyDescription="Connect a vulnerability scanner or sync from a package page to populate this list."
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSortKeyChange={setSortKey}
+              onSortDirChange={setSortDir}
+              severityFilter={severityFilter}
+              categoryFilter={categoryFilter}
+              statusFilter={statusFilter}
+              sourceFilter={sourceFilter}
+              onSeverityChange={setSeverityFilter}
+              onCategoryChange={setCategoryFilter}
+              onStatusChange={setStatusFilter}
+              onSourceChange={setSourceFilter}
             />
           ) : (
             <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-12 text-center">
