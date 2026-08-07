@@ -31,6 +31,7 @@ import {
   OpenInNew as ExploreIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
 import { SegmentedControl } from './ui/segmented-control';
