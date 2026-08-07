@@ -107,6 +107,7 @@ const NotificationsDrawer = ({
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<ScopeValue>('workflows');
   const [query, setQuery] = useState('');
+  const [showRead, setShowRead] = useState(true);
 
   useEffect(() => {
     if (!open) return;
