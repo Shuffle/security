@@ -766,7 +766,15 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
           );
         })()}
       </Dialog>
+
+      <ExecutionNotificationsDrawer
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        executionId={executionId}
+        workflowId={exec?.workflow?.id}
+      />
     </Box>
+
   );
 };
 
