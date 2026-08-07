@@ -413,6 +413,63 @@ const NotificationsDrawer = ({
                     {formatTime(n.created_at)}
                   </Typography>
                 ) : null}
+                {/* Per-notification actions */}
+                <Box
+                  sx={{
+                    mt: 1.25,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  {n.reference_url && (
+                    <Tooltip title="Explore" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => window.open(n.reference_url, '_blank', 'noopener,noreferrer')}
+                        sx={{
+                          color: 'hsl(var(--muted-foreground))',
+                          '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted) / 0.6)' },
+                        }}
+                      >
+                        <ExploreIcon sx={{ fontSize: 17 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {n.id && (
+                    <Tooltip title="Close" arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          disabled={n.read === true}
+                          onClick={() => actOnNotification(n.id!, false)}
+                          sx={{
+                            color: 'hsl(var(--muted-foreground))',
+                            '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--muted) / 0.6)' },
+                            '&.Mui-disabled': { opacity: 0.35 },
+                          }}
+                        >
+                          <CheckCircleIcon sx={{ fontSize: 17 }} />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  )}
+                  {n.id && (
+                    <Tooltip title="Disable" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => actOnNotification(n.id!, true)}
+                        sx={{
+                          color: 'hsl(var(--muted-foreground))',
+                          '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted) / 0.6)' },
+                        }}
+                      >
+                        <BlockIcon sx={{ fontSize: 17 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
               </Box>
             ))}
           </Box>
