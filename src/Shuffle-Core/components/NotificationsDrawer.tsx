@@ -127,8 +127,8 @@ const NotificationsDrawer = ({
 
   const inScope = useCallback(
     (n: ExecutionNotification) =>
-      scope === 'executions' ? Boolean(getExecutionId(n)) : Boolean(n.workflow_id || workflowId === undefined),
-    [scope, workflowId],
+      scope === 'executions' ? Boolean(getExecutionId(n)) : Boolean(n.workflow_id) || !getExecutionId(n),
+    [scope],
   );
 
   const counts = useMemo(() => {
@@ -136,7 +136,7 @@ const NotificationsDrawer = ({
     let workflows = 0;
     items.forEach((n) => {
       if (getExecutionId(n)) executions += 1;
-      if (n.workflow_id) workflows += 1;
+      if (n.workflow_id || !getExecutionId(n)) workflows += 1;
     });
     return { executions, workflows };
   }, [items]);

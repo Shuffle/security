@@ -47,7 +47,7 @@ import {
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
-import ExecutionNotificationsDrawer from './ExecutionNotificationsDrawer';
+import NotificationsDrawer from './NotificationsDrawer';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import shuffleLogo from '@/assets/shuffle-logo.png';
 import singulAgentIcon from '@/assets/singul-agent-icon.png';
@@ -754,7 +754,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         })()}
       </Dialog>
 
-      <ExecutionNotificationsDrawer
+      <NotificationsDrawer
         open={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
         executionId={executionId}
