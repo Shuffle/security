@@ -354,7 +354,9 @@ const NotificationsDrawer = ({
                     '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)' },
                   }}
                 >
-                  {showRead ? 'Hide read' : 'Show read'}
+                  {showRead
+                    ? 'Hide read'
+                    : `Show read · ${visible.length}/${scope === 'agents' ? agentItems.length : workflowItems.length}`}
                 </Button>
               </span>
             </Tooltip>
