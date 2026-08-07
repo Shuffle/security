@@ -1692,9 +1692,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
       return;
     }
     const measure = () => {
-      const el = presetsChipRef.current;
-      if (!el) return;
-      const w = el.getBoundingClientRect().width;
+      const node = presetsChipNodeRef.current;
+      if (!node) return;
+      const w = node.getBoundingClientRect().width;
       // Never fall back to 0 while the chip is mounted — a 0 indent makes the
       // first line render underneath the chip.
       setPresetsChipWidth(w > 0 ? w : 96);
@@ -1704,9 +1704,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // The chip's width changes after fonts load and when the template label
     // changes; without observing it the prefilled text (e.g. on "Rerun")
     // renders underneath the chip.
-    const el = presetsChipRef.current;
+    const el = presetsChipNodeRef.current;
     const ro = el ? new ResizeObserver(measure) : null;
     if (el && ro) ro.observe(el);
+
     let cancelled = false;
     const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
     fonts?.ready?.then(() => { if (!cancelled) measure(); }).catch(() => { /* ignore */ });
