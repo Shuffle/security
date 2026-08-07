@@ -55,7 +55,13 @@ export interface NotificationsDrawerProps {
   maxWidth?: number;
 }
 
-type ScopeValue = 'workflows' | 'executions';
+type ScopeValue = 'workflows' | 'executions' | 'agents';
+
+const isAgentNotification = (n: ExecutionNotification): boolean => {
+  if (n.agent_id || n.agent_name) return true;
+  const ref = String(n.reference_url || '');
+  return /\/agents\b|execution_type=agent|type=agent/i.test(ref);
+};
 
 const formatTime = (ts?: number): string => {
   if (!ts) return '';
