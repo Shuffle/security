@@ -348,9 +348,8 @@ const NotificationsDrawer = ({
               onChange={setScope}
               ariaLabel="Notification scope"
               options={[
-                { value: 'workflows', label: 'Workflows', count: counts.workflows },
-                
-                { value: 'agents', label: 'Agents', count: counts.agents },
+                { value: 'workflows', label: 'Workflows', count: pillCount(workflowVisible.length, counts.workflows) },
+                { value: 'agents', label: 'Agents', count: pillCount(agentVisible.length, counts.agents) },
               ]}
             />
             <Tooltip title={showRead ? 'Hiding read notifications' : 'Showing all notifications'} arrow>
@@ -371,9 +370,7 @@ const NotificationsDrawer = ({
                     '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)' },
                   }}
                 >
-                  {showRead
-                    ? 'Hide read'
-                    : `Show read · ${visible.length}/${scope === 'agents' ? agentItems.length : workflowItems.length}`}
+                  {showRead ? 'Hide read' : 'Show read'}
                 </Button>
               </span>
             </Tooltip>
