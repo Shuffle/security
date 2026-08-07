@@ -1650,8 +1650,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // still prepended when no preset is selected.
   const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId });
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
-  const presetsChipRef = useRef<HTMLButtonElement>(null);
+  const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
+  const [inputScrolled, setInputScrolled] = useState(false);
+
+  // Callback ref: measure the chip the instant it mounts (and whenever the
+  // element is swapped out because the template label changed), so the
+  // textarea's first-line indent is never stale or zero.
+  const presetsChipRef = useCallback((node: HTMLButtonElement | null) => {
+    presetsChipNodeRef.current = node;
+    if (node) setPresetsChipWidth(node.getBoundingClientRect().width);
+  }, []);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Restore the last used preset from localStorage so the choice survives
@@ -1684,9 +1694,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
       return;
     }
     const measure = () => {
-      const el = presetsChipRef.current;
-      if (!el) return;
-      const w = el.getBoundingClientRect().width;
+      const node = presetsChipNodeRef.current;
+      if (!node) return;
+      const w = node.getBoundingClientRect().width;
       // Never fall back to 0 while the chip is mounted — a 0 indent makes the
       // first line render underneath the chip.
       setPresetsChipWidth(w > 0 ? w : 96);
@@ -1696,14 +1706,25 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // The chip's width changes after fonts load and when the template label
     // changes; without observing it the prefilled text (e.g. on "Rerun")
     // renders underneath the chip.
-    const el = presetsChipRef.current;
+    const el = presetsChipNodeRef.current;
     const ro = el ? new ResizeObserver(measure) : null;
     if (el && ro) ro.observe(el);
+
     let cancelled = false;
     const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
     fonts?.ready?.then(() => { if (!cancelled) measure(); }).catch(() => { /* ignore */ });
     return () => { cancelled = true; cancelAnimationFrame(raf); ro?.disconnect(); };
   }, [selectedPreset, hidePresets, presets, actionInput]);
+
+  // Keep the chip visible again once the textarea is back at the top (e.g. the
+  // prompt was cleared or shortened, which does not always fire onScroll).
+  useEffect(() => {
+    const el = inputRef.current as unknown as HTMLTextAreaElement | null;
+    if (!el) return;
+    if (el.scrollTop <= 1 && inputScrolled) setInputScrolled(false);
+  }, [actionInput, inputScrolled]);
+
+
 
 
 
@@ -4044,7 +4065,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
               {!hidePresets && (
-                <Box sx={{ position: 'absolute', left: '14px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }}>
+                <Box sx={{
+                  position: 'absolute', left: '14px', top: '11px',
+                  height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
+                  // While the textarea is scrolled, line 1 (the indented one) is
+                  // out of view and later lines would run under the chip.
+                  opacity: inputScrolled ? 0 : 1,
+                  pointerEvents: inputScrolled ? 'none' : 'auto',
+                  transition: 'opacity 0.12s ease',
+                }}>
+
 
 
                   <AgentPresets
@@ -4094,6 +4124,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 onChange={(e) => setActionInput(e.target.value)}
                 placeholder={typedPlaceholder}
                 onKeyDown={onKeyDown}
+                onScroll={(e) => setInputScrolled((e.target as HTMLTextAreaElement).scrollTop > 1)}
+
                 onPaste={(e) => {
                   const items = e.clipboardData?.items;
                   if (!items) return;
