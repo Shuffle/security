@@ -44,6 +44,7 @@ import {
   ContentCopy as ContentCopyIcon,
   Link as LinkIcon,
   Notifications as NotificationsIcon,
+  Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
 import ExecutionNotificationsDrawer from './ExecutionNotificationsDrawer';
@@ -574,7 +575,25 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                     </Typography>
                   )}
                 </Box>
+                {(() => {
+                  const delay = Number((r as any)?.action?.delay ?? (wfAction as any)?.delay ?? 0);
+                  if (!Number.isFinite(delay) || delay <= 0) return null;
+                  const label = delay >= 3600
+                    ? `${Math.floor(delay / 3600)}h ${Math.floor((delay % 3600) / 60)}m`
+                    : delay >= 60
+                    ? `${Math.floor(delay / 60)}m ${delay % 60}s`
+                    : `${delay}s`;
+                  return (
+                    <Tooltip title={`Delayed by ${label} before running`} arrow>
+                      <ScheduleIcon
+                        fontSize="small"
+                        sx={{ color: 'hsl(45 90% 55%)' }}
+                      />
+                    </Tooltip>
+                  );
+                })()}
                 {r?.status && (
+
                   <Typography
                     variant="caption"
                     sx={{
