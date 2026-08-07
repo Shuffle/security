@@ -3322,6 +3322,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     };
 
     let lastWasFinalise = false;
+    let lastWasScheduledWait = false;
     for (const it of items) {
       if (it.type === 'decision') {
         const decStart = it.start_time || 0;
