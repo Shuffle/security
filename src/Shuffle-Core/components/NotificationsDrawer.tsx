@@ -39,6 +39,9 @@ export interface ExecutionNotification {
   description?: string;
   reference_url?: string;
   created_at?: number;
+  first_seen?: number;
+  last_seen?: number;
+  times_seen?: number;
   read?: boolean;
   severity?: string;
   execution_id?: string;
@@ -104,6 +107,7 @@ const NotificationsDrawer = ({
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<ScopeValue>('workflows');
   const [query, setQuery] = useState('');
+  const [showRead, setShowRead] = useState(true);
 
   useEffect(() => {
     if (!open) return;
@@ -192,8 +196,14 @@ const NotificationsDrawer = ({
   }, [items]);
 
   const visible = useMemo(
-    () => items.filter((n) => inScope(n) && matchesQuery(n, query.trim())),
-    [items, inScope, query],
+    () =>
+      items.filter(
+        (n) =>
+          inScope(n) &&
+          matchesQuery(n, query.trim()) &&
+          (showRead || n.read !== true),
+      ),
+    [items, inScope, query, showRead],
   );
 
   const drawerWidth = `min(${width}px, 100vw)`;
@@ -286,6 +296,28 @@ const NotificationsDrawer = ({
                 { value: 'agents', label: 'Agents', count: counts.agents },
               ]}
             />
+            <Tooltip title={showRead ? 'Hiding read notifications' : 'Showing all notifications'} arrow>
+              <span>
+                <Button
+                  size="small"
+                  onClick={() => setShowRead((v) => !v)}
+                  sx={{
+                    height: 32,
+                    minWidth: 0,
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: showRead ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+                    textTransform: 'none',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '999px',
+                    '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)' },
+                  }}
+                >
+                  {showRead ? 'Hide read' : 'Show read'}
+                </Button>
+              </span>
+            </Tooltip>
             <Tooltip title="Clear every notification" arrow>
               <span>
                 <Button
@@ -391,13 +423,63 @@ const NotificationsDrawer = ({
                     {n.description}
                   </Typography>
                 )}
-                {n.created_at ? (
-                  <Typography
-                    sx={{ fontSize: '0.6875rem', color: 'hsl(var(--muted-foreground) / 0.7)', mt: 1 }}
+                {/* Stats row: first seen, last seen, times seen */}
+                {(n.first_seen || n.last_seen || n.created_at || (n.times_seen != null && n.times_seen > 0)) && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 0.5,
+                      mt: 1,
+                    }}
                   >
-                    {formatTime(n.created_at)}
-                  </Typography>
-                ) : null}
+                    {(n.first_seen || n.created_at) && (
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          color: 'hsl(var(--muted-foreground) / 0.8)',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: '6px',
+                        }}
+                      >
+                        First seen: {formatTime(n.first_seen || n.created_at)}
+                      </Typography>
+                    )}
+                    {n.last_seen && (
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          color: 'hsl(var(--muted-foreground) / 0.8)',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: '6px',
+                        }}
+                      >
+                        Last seen: {formatTime(n.last_seen)}
+                      </Typography>
+                    )}
+                    {n.times_seen != null && n.times_seen > 0 && (
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          color: 'hsl(var(--muted-foreground) / 0.8)',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: '6px',
+                        }}
+                      >
+                        Times seen: {n.times_seen}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
                 {/* Per-notification actions */}
                 <Box
                   sx={{
