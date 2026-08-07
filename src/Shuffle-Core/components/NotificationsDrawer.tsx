@@ -420,16 +420,49 @@ const NotificationsDrawer = ({
           )}
 
           {!loading && !error && visible.length === 0 && (
-            <Typography
+            <Box
               sx={{
-                fontSize: '0.8125rem',
-                color: 'hsl(var(--muted-foreground))',
-                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1.5,
                 py: 8,
               }}
             >
-              No notifications found
-            </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.8125rem',
+                  color: 'hsl(var(--muted-foreground))',
+                  textAlign: 'center',
+                }}
+              >
+                {filtering
+                  ? `0/${scope === 'agents' ? counts.agents : counts.workflows} notifications shown`
+                  : 'No notifications found'}
+              </Typography>
+              {filtering && (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setQuery('');
+                    setShowRead(false);
+                  }}
+                  sx={{
+                    height: 32,
+                    px: 2,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: 'hsl(var(--primary))',
+                    textTransform: 'none',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '999px',
+                    '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)' },
+                  }}
+                >
+                  Show all
+                </Button>
+              )}
+            </Box>
           )}
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
