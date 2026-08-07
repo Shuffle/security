@@ -348,7 +348,6 @@ const NotificationsDrawer = ({
                   bgcolor: 'hsl(var(--muted) / 0.25)',
                   transition: 'background-color 0.15s ease',
                   '&:hover': { bgcolor: 'hsl(var(--muted) / 0.45)' },
-                  '&:hover .notif-launch': { opacity: 1 },
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
