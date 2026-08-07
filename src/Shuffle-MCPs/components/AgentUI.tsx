@@ -2910,7 +2910,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // Optimistic feedback for the button — flip immediately, cleared when
     // the new execution loads (see effect below).
     setRerunAgentPending(true);
-    toast({ title: 'Rerunning agent', description: 'Starting a new run with the same prompt and tools.' });
     if (input && typeof input === 'string') {
       setActionInput(input);
     }
