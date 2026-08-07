@@ -1162,6 +1162,23 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             Tenant Admin
           </MenuItem>
           <MenuItem
+            onClick={() => {
+              setUserMenuAnchor(null);
+              window.dispatchEvent(new CustomEvent(NOTIFICATIONS_OPEN_EVENT));
+            }}
+            sx={{
+              py: 1.25,
+              px: 2,
+              gap: 1.5,
+              fontSize: '0.875rem',
+              color: 'hsl(var(--foreground))',
+              '&:hover': { backgroundColor: 'hsl(var(--muted))' },
+            }}
+          >
+            <BellIcon size={18} style={{ color: 'hsl(var(--muted-foreground))' }} />
+            Notifications
+          </MenuItem>
+          <MenuItem
             component={Link}
             to="/preferences"
             selected={location.pathname === '/preferences' || location.pathname.startsWith('/preferences/')}
