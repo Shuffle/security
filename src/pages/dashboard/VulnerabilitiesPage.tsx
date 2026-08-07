@@ -21,6 +21,8 @@ import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
 import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
+import { VulnerabilitySidebar } from '@/components/vulnerabilities/VulnerabilitySidebar';
+
 import { IngestionSourcesRow } from '@/components/ingestion/IngestionSourcesRow';
 import { AddVulnerabilityDialog } from '@/components/vulnerabilities/AddVulnerabilityDialog';
 import { CategoryAutomationsDialog } from '@shuffleio/shuffle-core';
@@ -301,7 +303,7 @@ const AuthenticatedVulnerabilitiesView = () => {
 
 
       {/* Stats row */}
-      <div className={`grid ${isSupport ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-4'} gap-3 items-stretch`}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
         {(['critical', 'high', 'medium', 'low'] as VulnSeverity[]).map(sev => (
           <div
             key={sev}
@@ -315,90 +317,59 @@ const AuthenticatedVulnerabilitiesView = () => {
             <span className="text-2xl font-bold text-foreground">{severityCounts[sev]}</span>
           </div>
         ))}
-        {isSupport && <VulnerabilityReadinessBanner />}
       </div>
 
-
-
-
-
-      {/* Filters + table — only show when there's data */}
-      {vulnerabilities.length > 0 || isLoading ? (
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search vulns..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 w-[180px] text-sm"
-              />
+      {/* Main content + sidebar */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: '1fr 320px' },
+          gap: 3,
+          alignItems: 'start',
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          {vulnerabilities.length > 0 || isLoading ? (
+            <VulnTable
+              vulnerabilities={filtered}
+              isLoading={isLoading}
+              onRemediate={handleRemediate}
+              emptyIcon={<Shield size={48} className="text-muted-foreground/50 mx-auto mb-4" />}
+              emptyTitle="No vulnerabilities found"
+              emptyDescription="Connect a vulnerability scanner or sync from a package page to populate this list."
+            />
+          ) : (
+            <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-12 text-center">
+              <Shield size={48} className="text-muted-foreground/30 mx-auto mb-4" />
+              <h3 className="text-base font-medium text-foreground mb-1">No vulnerability data yet</h3>
+              <p className="text-sm text-muted-foreground mb-1 max-w-md mx-auto">
+                Connect a source to start ingesting vulnerability data.
+              </p>
+              <p className="text-xs text-muted-foreground/70 mb-4 max-w-sm mx-auto">
+                Supported: VMS tools (Qualys, Tenable, Rapid7), GitHub, Docker, Asset &amp; IAM platforms
+              </p>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/monitors?add_host=true')}>
+                <Plus size={14} />
+                Add Source
+              </Button>
             </div>
-            <Select value={severityFilter} onValueChange={setSeverityFilter}>
-              <SelectTrigger className="h-8 w-[120px] text-xs">
-                <SelectValue placeholder="Severity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Severity</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="software_cve">Software / CVE</SelectItem>
-                <SelectItem value="user_identity">User / Identity</SelectItem>
-                <SelectItem value="cloud_misconfig">Cloud Misconfig</SelectItem>
-                <SelectItem value="code_dependency">Code / Deps</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-8 w-[120px] text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="accepted">Accepted</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          )}
+        </Box>
 
-          <VulnTable
-            vulnerabilities={filtered}
-            isLoading={isLoading}
-            onRemediate={handleRemediate}
-            emptyIcon={<Shield size={48} className="text-muted-foreground/50 mx-auto mb-4" />}
-            emptyTitle="No vulnerabilities found"
-            emptyDescription="Connect a vulnerability scanner or sync from a package page to populate this list."
-          />
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border bg-transparent backdrop-blur-md p-12 text-center">
-          <Shield size={48} className="text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-base font-medium text-foreground mb-1">No vulnerability data yet</h3>
-          <p className="text-sm text-muted-foreground mb-1 max-w-md mx-auto">
-            Connect a source to start ingesting vulnerability data.
-          </p>
-          <p className="text-xs text-muted-foreground/70 mb-4 max-w-sm mx-auto">
-            Supported: VMS tools (Qualys, Tenable, Rapid7), GitHub, Docker, Asset & IAM platforms
-          </p>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/monitors?add_host=true')}>
-            <Plus size={14} />
-            Add Source
-          </Button>
-        </div>
-      )}
+        <VulnerabilitySidebar
+          vulnerabilities={vulnerabilities}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          severityFilter={severityFilter}
+          onSeverityChange={setSeverityFilter}
+          categoryFilter={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          readiness={isSupport ? <VulnerabilityReadinessBanner /> : undefined}
+        />
+      </Box>
+
 
       <AddVulnerabilityDialog
         open={addVulnOpen}
