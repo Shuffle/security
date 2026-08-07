@@ -838,8 +838,8 @@ const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
 
 // ── Inner: timeline item ──────────────────────────────────────────────────────
 
-/** Live countdown chip for a WAITING decision that resumes at a known time. */
-const ScheduledCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) => {
+/** Compact live countdown text (no chip/icon) for the duration column. */
+const DurationCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) => {
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 1000);
@@ -847,22 +847,10 @@ const ScheduledCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) =>
   }, []);
   const remaining = resumeAtMs - nowMs;
   return (
-    <Tooltip title={`Continues at ${new Date(resumeAtMs).toLocaleString()}`} arrow>
-      <Chip
-        icon={<ScheduleIcon size={12} />}
-        label={remaining > 0 ? `in ${formatTimeLeft(remaining)}` : 'due now'}
-        size="small"
-        sx={{
-          height: 22,
-          bgcolor: 'transparent',
-          border: '1px dashed hsl(var(--border))',
-          color: 'hsl(var(--muted-foreground))',
-          fontSize: '0.7rem',
-          fontWeight: 500,
-          flexShrink: 0,
-          '& .MuiChip-icon': { color: 'hsl(var(--muted-foreground))', ml: 0.75, mr: -0.25 },
-        }}
-      />
+    <Tooltip title={`Scheduled to continue at ${new Date(resumeAtMs).toLocaleString()}`} arrow>
+      <Box component="span" sx={{ whiteSpace: 'nowrap', cursor: 'default' }}>
+        {remaining > 0 ? `in ${formatTimeLeft(remaining)}` : 'due now'}
+      </Box>
     </Tooltip>
   );
 };
@@ -1117,6 +1105,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   })();
 
   const isFailed = effectiveStatus === 'FAILURE' || effectiveStatus === 'ABORTED';
+  // A WAITING decision that carries a delay is scheduled, not finished — its
+  // completed_at is the moment the delay was set, not when the step completes.
+  const scheduledResumeMs = getScheduledResumeMs(details);
+  const isScheduledWait = (effectiveStatus || '').toUpperCase() === 'WAITING' && scheduledResumeMs > 0;
   // Default bar color: only failed executions stand out; everything else is
   // neutral so the timeline does not look like a color parade.
   const barColor = isProcessing
@@ -1196,7 +1188,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
             )
           ) : (
-            <StatusIcon status={effectiveStatus} resumeAtMs={getScheduledResumeMs(details)} />
+            <StatusIcon status={effectiveStatus} resumeAtMs={scheduledResumeMs} />
           )}
         </Box>
         <Box sx={{ width: 24, display: 'flex', justifyContent: 'center' }}>
@@ -1236,13 +1228,6 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           />
         </Tooltip>
 
-        {(effectiveStatus || '').toUpperCase() === 'WAITING' && !!getScheduledResumeMs(details) && (
-          <ScheduledCountdown resumeAtMs={getScheduledResumeMs(details)} />
-        )}
-
-
-
-
         <Box sx={{
           flex: 1,
           minWidth: 180,
@@ -1257,7 +1242,12 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         }}>
           <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(displayLabel)}</Markdown>
         </Box>
-        <Tooltip title={showTiming ? (
+        <Tooltip title={isScheduledWait ? (
+          <Box component="span" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <span>Started: {new Date(itemStart * 1000).toLocaleString()}</span>
+            <span>Scheduled to continue: {new Date(scheduledResumeMs).toLocaleString()}</span>
+          </Box>
+        ) : showTiming ? (
           <Box component="span" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <span>Started: {new Date(itemStart * 1000).toLocaleString()}</span>
             <span>Finished: {new Date((itemStart + dur) * 1000).toLocaleString()}</span>
@@ -1265,7 +1255,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         ) : ''}>
           <Box sx={{ width: maxWidth, maxWidth, minWidth: 40, position: 'relative', height: 10, flexShrink: 1, flexBasis: maxWidth, overflow: 'hidden' }}>
-            {showTiming && (
+            {showTiming && !isScheduledWait && (
               <Box sx={{
                 position: 'absolute',
                 left: `${leftPct}%`,
@@ -1280,8 +1270,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         </Tooltip>
 
-        <Box sx={{ width: 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right', lineHeight: 1.3 }}>
-          {showTiming ? `${dur.toFixed(2)}s` : ''}
+        <Box sx={{ width: isScheduledWait ? 92 : 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right', lineHeight: 1.3 }}>
+          {isScheduledWait ? (
+            <DurationCountdown resumeAtMs={scheduledResumeMs} />
+          ) : showTiming ? `${dur.toFixed(2)}s` : ''}
 
           {displayType === 'finalise' && finishedAtSec > 0 && (
             <Tooltip title={`Finished: ${new Date(finishedAtSec * 1000).toLocaleString()}`} arrow>

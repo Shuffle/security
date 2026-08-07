@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import { Box, Typography, IconButton, Drawer, Avatar, Tooltip, Button } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShuffleMCP, AppDetailDrawer } from '@/Shuffle-MCPs';
+import { ShuffleMCP } from '@/Shuffle-MCPs/views/ShuffleMCP';
+import AppDetailDrawer from '@/Shuffle-MCPs/views/AppDetailDrawer';
 import { AddAppDialog } from '@/Shuffle-Core/components/AddAppDialog';
-import type { AppSelectedEvent } from '@/Shuffle-MCPs';
+import type { AppSelectedEvent } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import { ShufflePipelinesBanner } from '@/Shuffle-MCPs/components/ShufflePipelinesBanner';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
