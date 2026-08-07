@@ -1679,23 +1679,32 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Keep the input's first-line text-indent in sync with the actual chip width
   // so wrapping text starts at the left edge below the chip.
   useLayoutEffect(() => {
-    const el = presetsChipRef.current;
-    if (!el) {
+    if (hidePresets) {
       setPresetsChipWidth(0);
       return;
     }
-    const measure = () => setPresetsChipWidth(el.getBoundingClientRect().width);
+    const measure = () => {
+      const el = presetsChipRef.current;
+      if (!el) return;
+      const w = el.getBoundingClientRect().width;
+      // Never fall back to 0 while the chip is mounted — a 0 indent makes the
+      // first line render underneath the chip.
+      setPresetsChipWidth(w > 0 ? w : 96);
+    };
     measure();
+    const raf = requestAnimationFrame(measure);
     // The chip's width changes after fonts load and when the template label
     // changes; without observing it the prefilled text (e.g. on "Rerun")
     // renders underneath the chip.
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
+    const el = presetsChipRef.current;
+    const ro = el ? new ResizeObserver(measure) : null;
+    if (el && ro) ro.observe(el);
     let cancelled = false;
     const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
     fonts?.ready?.then(() => { if (!cancelled) measure(); }).catch(() => { /* ignore */ });
-    return () => { cancelled = true; ro.disconnect(); };
-  }, [selectedPreset, hidePresets, presets]);
+    return () => { cancelled = true; cancelAnimationFrame(raf); ro?.disconnect(); };
+  }, [selectedPreset, hidePresets, presets, actionInput]);
+
 
 
   // Pick ONE random autocomplete suggestion on mount and keep it stable, so
@@ -4035,9 +4044,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
               {!hidePresets && (
-                <Box sx={actionInput.length === 0
-                  ? { position: 'absolute', left: '14px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }
-                  : { display: 'flex', alignItems: 'center', mb: 0.75 }}>
+                <Box sx={{ position: 'absolute', left: '14px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }}>
+
 
                   <AgentPresets
                     variant="floating"
@@ -4110,7 +4118,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     pt: '5px',
                     pb: 0,
                     lineHeight: 1.45,
-                    textIndent: !hidePresets && actionInput.length === 0 ? `${presetsChipWidth + 8}px` : 0,
+                    textIndent: !hidePresets ? `${(presetsChipWidth || 96) + 8}px` : 0,
                   },
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
                 }}
