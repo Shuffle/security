@@ -376,6 +376,8 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
 
       {exec && (() => {
         const startedMs = exec.started_at ? exec.started_at * 1000 : 0;
+        const longRunning = isRunning(exec.status) && startedMs > 0 && (Date.now() - startedMs) > 5 * 60 * 1000;
+
 
         return (
         <Box sx={{ px: 1 }}>
