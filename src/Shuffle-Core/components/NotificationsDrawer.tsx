@@ -66,7 +66,7 @@ export interface NotificationsDrawerProps {
   maxWidth?: number;
 }
 
-type ScopeValue = 'workflows' | 'executions' | 'agents';
+type ScopeValue = 'workflows' | 'agents';
 
 const isAgentNotification = (n: ExecutionNotification): boolean => {
   if (n.agent_id || n.agent_name) return true;
@@ -123,6 +123,7 @@ const NotificationsDrawer = ({
   maxWidth = 600,
 }: NotificationsDrawerProps) => {
   const [items, setItems] = useState<ExecutionNotification[]>([]);
+  const [agentItems, setAgentItems] = useState<ExecutionNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<ScopeValue>('workflows');
@@ -134,23 +135,35 @@ const NotificationsDrawer = ({
   useEffect(() => {
     if (!open) return;
     setQuery(executionId ? String(executionId) : '');
-    setScope(executionId ? 'executions' : 'workflows');
+    setScope('workflows');
   }, [open, executionId]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const headers = { 'Content-Type': 'application/json', ...getAuthHeader() };
     try {
-      const resp = await fetch(getApiUrl('/api/v1/notifications'), {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      });
+      const [resp, agentResp] = await Promise.all([
+        fetch(getApiUrl('/api/v1/notifications'), { credentials: 'include', headers }),
+        fetch(getApiUrl('/api/v1/notifications?origin=agent_approval'), {
+          credentials: 'include',
+          headers,
+        }),
+      ]);
       if (!resp.ok) throw new Error(`Failed to load notifications (${resp.status})`);
       const data = await resp.json();
       setItems(Array.isArray(data?.notifications) ? data.notifications : []);
+
+      if (agentResp.ok) {
+        const agentData = await agentResp.json();
+        setAgentItems(Array.isArray(agentData?.notifications) ? agentData.notifications : []);
+      } else {
+        setAgentItems([]);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems([]);
+      setAgentItems([]);
     } finally {
       setLoading(false);
     }
@@ -167,6 +180,7 @@ const NotificationsDrawer = ({
       const qs = disabled ? '?disabled=true' : '';
       // Optimistically update local state so the UI feels instant.
       setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setAgentItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       try {
         await fetch(getApiUrl(`/api/v1/notifications/${id}/markasread${qs}`), {
           credentials: 'include',
@@ -190,6 +204,7 @@ const NotificationsDrawer = ({
       });
       if (!resp.ok) throw new Error(`Clear failed (${resp.status})`);
       setItems([]);
+      setAgentItems([]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to clear notifications');
       load();
@@ -199,40 +214,30 @@ const NotificationsDrawer = ({
     }
   }, [load]);
 
-  const inScope = useCallback(
-    (n: ExecutionNotification) => {
-      if (scope === 'agents') return isAgentNotification(n);
-      if (scope === 'executions') return Boolean(getExecutionId(n)) && !isAgentNotification(n);
-      return (Boolean(n.workflow_id) || !getExecutionId(n)) && !isAgentNotification(n);
-    },
-    [scope],
+  // Agent notifications come from a dedicated endpoint and are never shown
+  // under the Workflows tab.
+  const agentIds = useMemo(
+    () => new Set(agentItems.map((n) => String(n.id))),
+    [agentItems],
   );
 
-  const counts = useMemo(() => {
-    let executions = 0;
-    let workflows = 0;
-    let agents = 0;
-    items.forEach((n) => {
-      if (isAgentNotification(n)) {
-        agents += 1;
-        return;
-      }
-      if (getExecutionId(n)) executions += 1;
-      if (n.workflow_id || !getExecutionId(n)) workflows += 1;
-    });
-    return { executions, workflows, agents };
-  }, [items]);
-
-  const visible = useMemo(
-    () =>
-      items.filter(
-        (n) =>
-          inScope(n) &&
-          matchesQuery(n, query.trim()) &&
-          (showRead || n.read !== true),
-      ),
-    [items, inScope, query, showRead],
+  const workflowItems = useMemo(
+    () => items.filter((n) => !agentIds.has(String(n.id)) && !isAgentNotification(n)),
+    [items, agentIds],
   );
+
+  const counts = useMemo(
+    () => ({ workflows: workflowItems.length, agents: agentItems.length }),
+    [workflowItems, agentItems],
+  );
+
+  const visible = useMemo(() => {
+    const source = scope === 'agents' ? agentItems : workflowItems;
+    return source.filter(
+      (n) => matchesQuery(n, query.trim()) && (showRead || n.read !== true),
+    );
+  }, [scope, agentItems, workflowItems, query, showRead]);
+
 
   return (
     <Drawer
@@ -325,7 +330,7 @@ const NotificationsDrawer = ({
               ariaLabel="Notification scope"
               options={[
                 { value: 'workflows', label: 'Workflows', count: counts.workflows },
-                { value: 'executions', label: 'Executions', count: counts.executions },
+                
                 { value: 'agents', label: 'Agents', count: counts.agents },
               ]}
             />
