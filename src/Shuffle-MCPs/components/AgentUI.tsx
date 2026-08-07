@@ -688,6 +688,51 @@ interface TimelineItem {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+/**
+ * Seconds a WAITING decision asked to wait before the agent resumes.
+ * The backend may put this on the decision, its run_details, its details
+ * blob, or as a `delay` field.
+ */
+const getDecisionDelaySeconds = (dec: any): number => {
+  if (!dec || typeof dec !== 'object') return 0;
+  const candidates: unknown[] = [
+    dec.delay,
+    dec.delay_seconds,
+    dec.run_details?.delay,
+    dec.details?.delay,
+    dec.details?.delay_seconds,
+  ];
+  for (const f of dec.fields || []) {
+    if (/^delay/i.test(String(f?.key || ''))) candidates.push(f?.value);
+  }
+  for (const c of candidates) {
+    const n = Number(c);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+};
+
+/** Epoch ms when a delayed WAITING decision is expected to continue. */
+const getScheduledResumeMs = (dec: any): number => {
+  const delaySec = getDecisionDelaySeconds(dec);
+  if (!delaySec) return 0;
+  const rd = dec?.run_details || {};
+  const base = Number(rd.completed_at || rd.started_at || 0);
+  if (!base) return 0;
+  const baseMs = base > 1e12 ? base : base * 1000;
+  return baseMs + delaySec * 1000;
+};
+
+const formatTimeLeft = (ms: number): string => {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
+
 const validateJson = (raw: unknown): { valid: boolean; result: any } => {
   if (raw == null) return { valid: false, result: null };
   if (typeof raw === 'object') return { valid: true, result: raw };
