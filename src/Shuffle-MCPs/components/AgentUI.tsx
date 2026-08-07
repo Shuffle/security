@@ -4114,6 +4114,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 onChange={(e) => setActionInput(e.target.value)}
                 placeholder={typedPlaceholder}
                 onKeyDown={onKeyDown}
+                onScroll={(e) => setInputScrolled((e.target as HTMLTextAreaElement).scrollTop > 1)}
+
                 onPaste={(e) => {
                   const items = e.clipboardData?.items;
                   if (!items) return;
