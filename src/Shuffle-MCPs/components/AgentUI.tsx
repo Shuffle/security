@@ -1652,6 +1652,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
   const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
+  const [inputScrolled, setInputScrolled] = useState(false);
+
   // Callback ref: measure the chip the instant it mounts (and whenever the
   // element is swapped out because the template label changed), so the
   // textarea's first-line indent is never stale or zero.
