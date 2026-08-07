@@ -867,6 +867,23 @@ const ScheduledCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) =>
   );
 };
 
+/** Compact live countdown text (no chip/icon) for the duration column. */
+const DurationCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) => {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const remaining = resumeAtMs - nowMs;
+  return (
+    <Tooltip title={`Scheduled to continue at ${new Date(resumeAtMs).toLocaleString()}`} arrow>
+      <Box component="span" sx={{ whiteSpace: 'nowrap', cursor: 'default' }}>
+        {remaining > 0 ? `in ${formatTimeLeft(remaining)}` : 'due now'}
+      </Box>
+    </Tooltip>
+  );
+};
+
 
 const StatusIcon: React.FC<{ status?: string; resumeAtMs?: number }> = ({ status, resumeAtMs }) => {
   const s = (status || '').toUpperCase();
