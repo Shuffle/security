@@ -838,16 +838,33 @@ const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
 
 // ── Inner: timeline item ──────────────────────────────────────────────────────
 
-const StatusIcon: React.FC<{ status?: string }> = ({ status }) => {
+const StatusIcon: React.FC<{ status?: string; resumeAtMs?: number }> = ({ status, resumeAtMs }) => {
   const s = (status || '').toUpperCase();
+  const isScheduledWait = s === 'WAITING' && !!resumeAtMs;
+  // Tick while a scheduled wait is counting down so the tooltip stays accurate.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isScheduledWait) return;
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [isScheduledWait]);
   let node: React.ReactNode;
   let label: string;
   if (s === 'RUNNING' || s === 'EXECUTING' || s === '') {
     node = <CircularProgress size={18} sx={{ color: STATUS_COLORS.running }} />;
     label = 'Running';
   } else if (s === 'WAITING') {
-    node = <PauseIcon size={20} />;
-    label = 'Waiting for input';
+    if (isScheduledWait) {
+      const remaining = (resumeAtMs as number) - nowMs;
+      const at = new Date(resumeAtMs as number).toLocaleTimeString();
+      node = <ScheduleIcon size={20} />;
+      label = remaining > 0
+        ? `Scheduled — continues in ${formatTimeLeft(remaining)} (at ${at})`
+        : `Scheduled — due now (${at})`;
+    } else {
+      node = <PauseIcon size={20} />;
+      label = 'Waiting for input';
+    }
   } else if (s === 'FINISHED' || s === 'SUCCESS') {
     node = <CheckCircleIcon size={20} />;
     label = 'Finished successfully';
