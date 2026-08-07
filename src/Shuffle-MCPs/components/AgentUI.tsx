@@ -4144,11 +4144,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       // previously customised the tools for this template, in
                       // which case their own selection wins.
                       const override = readPresetAppsOverride(preset.id);
-                      if (override) {
+                      if (override && override.length > 0) {
                         setChosenApps(override);
                       } else if (preset.defaultApps && preset.defaultApps.length > 0) {
                         setChosenApps(preset.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
+                      } else {
+                        setChosenApps([]);
                       }
+                      seededPresetIdRef.current = preset.id;
+
                       if (onSelectPreset) {
                         onSelectPreset(preset);
                         return;
