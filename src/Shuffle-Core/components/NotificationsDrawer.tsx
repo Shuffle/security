@@ -132,19 +132,27 @@ const NotificationsDrawer = ({
   }, [open, load]);
 
   const inScope = useCallback(
-    (n: ExecutionNotification) =>
-      scope === 'executions' ? Boolean(getExecutionId(n)) : Boolean(n.workflow_id) || !getExecutionId(n),
+    (n: ExecutionNotification) => {
+      if (scope === 'agents') return isAgentNotification(n);
+      if (scope === 'executions') return Boolean(getExecutionId(n)) && !isAgentNotification(n);
+      return (Boolean(n.workflow_id) || !getExecutionId(n)) && !isAgentNotification(n);
+    },
     [scope],
   );
 
   const counts = useMemo(() => {
     let executions = 0;
     let workflows = 0;
+    let agents = 0;
     items.forEach((n) => {
+      if (isAgentNotification(n)) {
+        agents += 1;
+        return;
+      }
       if (getExecutionId(n)) executions += 1;
       if (n.workflow_id || !getExecutionId(n)) workflows += 1;
     });
-    return { executions, workflows };
+    return { executions, workflows, agents };
   }, [items]);
 
   const visible = useMemo(
