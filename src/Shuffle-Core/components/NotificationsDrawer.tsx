@@ -13,6 +13,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Drawer,
   IconButton,
   InputAdornment,
@@ -27,6 +31,7 @@ import {
   OpenInNew as ExploreIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
 import { SegmentedControl } from './ui/segmented-control';
@@ -123,6 +128,8 @@ const NotificationsDrawer = ({
   const [scope, setScope] = useState<ScopeValue>('workflows');
   const [query, setQuery] = useState('');
   const [showRead, setShowRead] = useState(true);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -172,17 +179,23 @@ const NotificationsDrawer = ({
     [],
   );
 
-  // Clear every notification for the org.
+  // Clear every notification for the org. Only update local state after the
+  // server confirms, otherwise notifications reappear on the next refresh.
   const clearAll = useCallback(async () => {
-    setItems([]);
+    setClearing(true);
     try {
-      await fetch(getApiUrl('/api/v1/notifications/clear'), {
+      const resp = await fetch(getApiUrl('/api/v1/notifications/clear'), {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       });
-    } catch {
-      /* reload will resync on next open */
+      if (!resp.ok) throw new Error(`Clear failed (${resp.status})`);
+      setItems([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to clear notifications');
       load();
+    } finally {
+      setClearing(false);
+      setConfirmClearOpen(false);
     }
   }, [load]);
 
@@ -342,8 +355,8 @@ const NotificationsDrawer = ({
               <span>
                 <Button
                   size="small"
-                  onClick={clearAll}
-                  disabled={items.length === 0}
+                  onClick={() => setConfirmClearOpen(true)}
+                  disabled={items.length === 0 || clearing}
                   sx={{
                     ml: 'auto',
                     height: 32,
@@ -358,7 +371,7 @@ const NotificationsDrawer = ({
                     '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--border))' },
                   }}
                 >
-                  Close all
+                  {clearing ? <CircularProgress size={14} /> : 'Close all'}
                 </Button>
               </span>
             </Tooltip>
@@ -576,6 +589,87 @@ const NotificationsDrawer = ({
           </Box>
         </Box>
       </Box>
+
+      {/* Confirmation dialog for "Close all" */}
+      <Dialog
+        open={confirmClearOpen}
+        onClose={() => setConfirmClearOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            border: '1px solid hsl(var(--border))',
+            backgroundColor: 'hsl(var(--background))',
+            backgroundImage: 'none',
+          },
+        }}
+        sx={{ zIndex: 9999 }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pr: 6 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'hsl(var(--warning) / 0.15)',
+              color: 'hsl(var(--warning))',
+              flexShrink: 0,
+            }}
+          >
+            <WarningAmberIcon sx={{ fontSize: 20 }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+            Clear all notifications?
+          </Typography>
+          <IconButton
+            aria-label="Close"
+            onClick={() => setConfirmClearOpen(false)}
+            size="small"
+            sx={{ position: 'absolute', right: 12, top: 12, color: 'hsl(var(--muted-foreground))' }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderColor: 'hsl(var(--border))' }}>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            This will mark every notification for this organization as read. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            onClick={() => setConfirmClearOpen(false)}
+            variant="outlined"
+            disabled={clearing}
+            sx={{
+              height: 36,
+              textTransform: 'none',
+              borderColor: 'hsl(var(--border))',
+              color: 'hsl(var(--foreground))',
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={clearAll}
+            variant="contained"
+            disabled={clearing}
+            startIcon={clearing ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{
+              height: 36,
+              textTransform: 'none',
+              backgroundColor: 'hsl(var(--destructive))',
+              color: 'hsl(var(--destructive-foreground))',
+              '&:hover': { backgroundColor: 'hsl(var(--destructive) / 0.9)' },
+            }}
+          >
+            Clear all
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Drawer>
   );
 };
