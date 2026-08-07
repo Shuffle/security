@@ -20,6 +20,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Badge,
   Drawer,
   Box,
   Typography,
@@ -42,8 +43,10 @@ import {
   Stop as StopIcon,
   ContentCopy as ContentCopyIcon,
   Link as LinkIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
+import ExecutionNotificationsDrawer from './ExecutionNotificationsDrawer';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import shuffleLogo from '@/assets/shuffle-logo.png';
 import singulAgentIcon from '@/assets/singul-agent-icon.png';
@@ -161,6 +164,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
   const [loading, setLoading] = useState(true);
   const [aborting, setAborting] = useState(false);
   const [debugResult, setDebugResult] = useState<any | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
 
