@@ -1166,7 +1166,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
             )
           ) : (
-            <StatusIcon status={effectiveStatus} />
+            <StatusIcon status={effectiveStatus} resumeAtMs={getScheduledResumeMs(details)} />
           )}
         </Box>
         <Box sx={{ width: 24, display: 'flex', justifyContent: 'center' }}>
