@@ -233,12 +233,29 @@ const NotificationsDrawer = ({
     [workflowItems, agentItems],
   );
 
-  const visible = useMemo(() => {
-    const source = scope === 'agents' ? agentItems : workflowItems;
-    return source.filter(
-      (n) => matchesQuery(n, query.trim()) && (showRead || n.read !== true),
-    );
-  }, [scope, agentItems, workflowItems, query, showRead]);
+  const matchesScope = useCallback(
+    (n: ExecutionNotification) => matchesQuery(n, query.trim()) && (showRead || n.read !== true),
+    [query, showRead],
+  );
+
+  const workflowVisible = useMemo(
+    () => workflowItems.filter(matchesScope),
+    [workflowItems, matchesScope],
+  );
+  const agentVisible = useMemo(
+    () => agentItems.filter(matchesScope),
+    [agentItems, matchesScope],
+  );
+
+  const visible = useMemo(
+    () => (scope === 'agents' ? agentVisible : workflowVisible),
+    [scope, agentVisible, workflowVisible],
+  );
+
+  const filtering = query.trim().length > 0 || !showRead;
+
+  const pillCount = (visibleCount: number, totalCount: number): number | string =>
+    filtering && visibleCount !== totalCount ? `${visibleCount}/${totalCount}` : totalCount;
 
 
   return (
