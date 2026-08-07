@@ -423,13 +423,63 @@ const NotificationsDrawer = ({
                     {n.description}
                   </Typography>
                 )}
-                {n.created_at ? (
-                  <Typography
-                    sx={{ fontSize: '0.6875rem', color: 'hsl(var(--muted-foreground) / 0.7)', mt: 1 }}
+                {/* Stats row: first seen, last seen, times seen */}
+                {(n.first_seen || n.last_seen || n.created_at || (n.times_seen != null && n.times_seen > 0)) && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 0.5,
+                      mt: 1,
+                    }}
                   >
-                    {formatTime(n.created_at)}
-                  </Typography>
-                ) : null}
+                    {(n.first_seen || n.created_at) && (
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          color: 'hsl(var(--muted-foreground) / 0.8)',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: '6px',
+                        }}
+                      >
+                        First seen: {formatTime(n.first_seen || n.created_at)}
+                      </Typography>
+                    )}
+                    {n.last_seen && (
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          color: 'hsl(var(--muted-foreground) / 0.8)',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: '6px',
+                        }}
+                      >
+                        Last seen: {formatTime(n.last_seen)}
+                      </Typography>
+                    )}
+                    {n.times_seen != null && n.times_seen > 0 && (
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          color: 'hsl(var(--muted-foreground) / 0.8)',
+                          bgcolor: 'hsl(var(--muted) / 0.4)',
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: '6px',
+                        }}
+                      >
+                        Times seen: {n.times_seen}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
                 {/* Per-notification actions */}
                 <Box
                   sx={{
