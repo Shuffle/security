@@ -3371,7 +3371,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // starting point, not a forced set.
   useEffect(() => {
     if (!selectedPreset) return;
+    // Do not write the previous template's tools onto the newly selected one.
+    if (seededPresetIdRef.current !== selectedPreset.id) return;
     writePresetAppsOverride(selectedPreset.id, chosenApps.filter((a) => !!a?.name));
+
   }, [chosenApps, selectedPreset]);
   const goToTab = (t: TabKey) => {
     if (t === 'start') {
