@@ -355,8 +355,8 @@ const NotificationsDrawer = ({
               <span>
                 <Button
                   size="small"
-                  onClick={clearAll}
-                  disabled={items.length === 0}
+                  onClick={() => setConfirmClearOpen(true)}
+                  disabled={items.length === 0 || clearing}
                   sx={{
                     ml: 'auto',
                     height: 32,
@@ -371,7 +371,7 @@ const NotificationsDrawer = ({
                     '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--border))' },
                   }}
                 >
-                  Close all
+                  {clearing ? <CircularProgress size={14} /> : 'Close all'}
                 </Button>
               </span>
             </Tooltip>
