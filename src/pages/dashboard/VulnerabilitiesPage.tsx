@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, Plus, RefreshCw, Search, Zap, ArrowRight, Wrench, Sparkles, AlertTriangle, Globe, LogIn, Loader2, MonitorCheck, Rocket as RocketLaunchIcon } from 'lucide-react';
+import { Shield, Plus, RefreshCw, Search, Zap, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, Wrench, Sparkles, AlertTriangle, Globe, LogIn, Loader2, MonitorCheck, Rocket as RocketLaunchIcon } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useVulnerabilities, Vulnerability, VulnSeverity, VulnCategory } from '@/hooks/useVulnerabilities';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
@@ -403,8 +403,58 @@ interface VulnTableProps {
   emptyDescription: string;
 }
 
+const SEVERITY_ORDER: Record<VulnSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+
+type SortKey = 'severity' | 'title' | 'category' | 'source' | 'status' | 'first_seen';
+
 const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTitle, emptyDescription }: VulnTableProps) => {
   const navigate = useNavigate();
+  const [sortKey, setSortKey] = useState<SortKey>('severity');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sorted = [...vulnerabilities].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === 'severity') {
+      cmp = (SEVERITY_ORDER[a.severity] ?? 99) - (SEVERITY_ORDER[b.severity] ?? 99);
+    } else if (sortKey === 'first_seen') {
+      cmp = (a.first_seen ? new Date(a.first_seen).getTime() : 0) - (b.first_seen ? new Date(b.first_seen).getTime() : 0);
+    } else if (sortKey === 'title') {
+      cmp = (a.title || '').localeCompare(b.title || '');
+    } else if (sortKey === 'category') {
+      cmp = (CATEGORY_LABELS[a.category] || a.category || '').localeCompare(CATEGORY_LABELS[b.category] || b.category || '');
+    } else if (sortKey === 'source') {
+      cmp = (a.source || '').localeCompare(b.source || '');
+    } else if (sortKey === 'status') {
+      cmp = (STATUS_LABELS[a.status] || a.status || '').localeCompare(STATUS_LABELS[b.status] || b.status || '');
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const SortHead = ({ label, sortKeyValue, className }: { label: string; sortKeyValue: SortKey; className?: string }) => (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => toggleSort(sortKeyValue)}
+        className="inline-flex items-center gap-1 text-inherit hover:text-foreground transition-colors"
+      >
+        {label}
+        {sortKey === sortKeyValue ? (
+          sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+        ) : (
+          <ArrowUpDown size={12} className="opacity-30" />
+        )}
+      </button>
+    </TableHead>
+  );
   const openDetail = (id: string, e?: React.MouseEvent) => {
     // Strip "::hostname" expansion suffix to get the canonical OSV id used as datastore key.
     const baseId = String(id).split('::')[0];
@@ -440,18 +490,16 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Severity</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead className="w-[140px]">Category</TableHead>
-            <TableHead className="w-[150px]">Asset / User</TableHead>
-            <TableHead className="w-[100px]">Source</TableHead>
-            <TableHead className="w-[100px]">Status</TableHead>
-            <TableHead className="w-[110px]">First Seen</TableHead>
-            <TableHead className="w-[120px] text-right">Actions</TableHead>
+            <SortHead label="Severity" sortKeyValue="severity" className="w-[100px]" />
+            <SortHead label="Title" sortKeyValue="title" />
+            <SortHead label="Category" sortKeyValue="category" className="w-[140px]" />
+            <SortHead label="Source" sortKeyValue="source" className="w-[110px]" />
+            <SortHead label="Status" sortKeyValue="status" className="w-[100px]" />
+            <SortHead label="First Seen" sortKeyValue="first_seen" className="w-[110px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {vulnerabilities.map(vuln => (
+          {sorted.map(vuln => (
             <TableRow
               key={vuln.id}
               className="cursor-pointer hover:bg-muted/30"
@@ -473,9 +521,6 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
                 <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[vuln.category] || vuln.category}</span>
               </TableCell>
               <TableCell>
-                <span className="text-sm text-foreground">{vuln.asset_name || vuln.asset_id || '—'}</span>
-              </TableCell>
-              <TableCell>
                 <span className="text-xs text-muted-foreground">{vuln.source || '—'}</span>
               </TableCell>
               <TableCell>
@@ -486,22 +531,10 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
                   {vuln.first_seen ? new Date(vuln.first_seen).toLocaleDateString() : '—'}
                 </span>
               </TableCell>
-              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={onRemediate}>
-                        <Wrench size={12} />
-                        Remediate
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Run automated remediation on this vulnerability</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>
+
       </Table>
     </div>
   );
