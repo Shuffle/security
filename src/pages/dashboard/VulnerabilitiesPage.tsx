@@ -153,15 +153,50 @@ const PublicVulnerabilitiesView = () => {
   );
 };
 
+const VULN_FILTERS_STORAGE_KEY = 'vulnerabilities-list-filters';
+
+const loadStoredFilters = (): Record<string, unknown> => {
+  try {
+    const raw = safeLocalStorage.getItem(VULN_FILTERS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 const AuthenticatedVulnerabilitiesView = () => {
   const isAdmin = useIsAdmin();
   const isSupport = useIsSupport();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [severityFilter, setSeverityFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('open');
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const stored = useState(loadStoredFilters)[0];
+  const [searchQuery, setSearchQuery] = useState<string>(typeof stored.searchQuery === 'string' ? stored.searchQuery : '');
+  const [severityFilter, setSeverityFilter] = useState<string>(typeof stored.severityFilter === 'string' ? stored.severityFilter : 'all');
+  const [categoryFilter, setCategoryFilter] = useState<string>(typeof stored.categoryFilter === 'string' ? stored.categoryFilter : 'all');
+  const [statusFilter, setStatusFilter] = useState<string>(typeof stored.statusFilter === 'string' ? stored.statusFilter : 'open');
+  const [sourceFilter, setSourceFilter] = useState<string>(typeof stored.sourceFilter === 'string' ? stored.sourceFilter : 'all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(typeof stored.dateFrom === 'string' ? new Date(stored.dateFrom) : undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(typeof stored.dateTo === 'string' ? new Date(stored.dateTo) : undefined);
+  const [sortKey, setSortKey] = useState<SortKey>(typeof stored.sortKey === 'string' ? (stored.sortKey as SortKey) : 'severity');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(stored.sortDir === 'desc' ? 'desc' : 'asc');
+
+  useEffect(() => {
+    try {
+      safeLocalStorage.setItem(VULN_FILTERS_STORAGE_KEY, JSON.stringify({
+        searchQuery,
+        severityFilter,
+        categoryFilter,
+        statusFilter,
+        sourceFilter,
+        dateFrom: dateFrom ? dateFrom.toISOString() : undefined,
+        dateTo: dateTo ? dateTo.toISOString() : undefined,
+        sortKey,
+        sortDir,
+      }));
+    } catch {
+      // ignore quota errors
+    }
+  }, [searchQuery, severityFilter, categoryFilter, statusFilter, sourceFilter, dateFrom, dateTo, sortKey, sortDir]);
 
   const [aiScanOpen, setAiScanOpen] = useState(false);
   const [aiScanLoading, setAiScanLoading] = useState(false);
@@ -192,6 +227,7 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (severityFilter !== 'all' && v.severity !== severityFilter) return false;
     if (categoryFilter !== 'all' && v.category !== categoryFilter) return false;
     if (statusFilter !== 'all' && v.status !== statusFilter) return false;
+    if (sourceFilter !== 'all' && (v.source || '') !== sourceFilter) return false;
     if (dateFrom || dateTo) {
       const ts = v.first_seen ? new Date(v.first_seen).getTime() : 0;
       if (!ts) return false;
@@ -201,6 +237,7 @@ const AuthenticatedVulnerabilitiesView = () => {
     return true;
 
   });
+
 
   const handleAiScan = useCallback(async () => {
     setAiScanLoading(true);
