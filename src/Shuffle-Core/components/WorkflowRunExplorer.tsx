@@ -392,16 +392,8 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               }
             />
           )}
-          {hasNotifications && (
-            <MetaRow
-              label="Notifications"
-              value={
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--severity-medium))', fontWeight: 600 }}>
-                  {notifCount}
-                </Box>
-              }
-            />
-          )}
+          {/* Notifications are surfaced as a clickable icon in the Details header */}
+
           {(exec.execution_source || exec.authgroup) && (
             <MetaRow label="Source" value={sourceLabel(exec)} accent />
           )}
