@@ -83,14 +83,42 @@ const findTime = (text: string): { h: number; m: number; matched: string } | nul
   return null;
 };
 
-const findDay = (text: string): { day: number; matched: string } | null => {
+const findDay = (text: string): { day: number; matched: string; plural: boolean } | null => {
   for (const [name, d] of Object.entries(DAY_NAMES)) {
-    const re = new RegExp(`\\b${name}\\b`, 'i');
+    // "mondays" (plural) reads as a recurring weekly slot, "monday" does not.
+    const re = new RegExp(`\\b${name}(s)?\\b`, 'i');
     const m = text.match(re);
-    if (m) return { day: d, matched: m[0] };
+    if (m) return { day: d, matched: m[0], plural: Boolean(m[1]) };
   }
   return null;
 };
+
+const MONTH_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Next calendar date matching `day` (0-6) at h:m, strictly in the future. */
+const nextDateForWeekday = (day: number, h: number, m: number): Date => {
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+  let delta = (day - target.getDay() + 7) % 7;
+  if (delta === 0 && target.getTime() <= now.getTime()) delta = 7;
+  target.setDate(target.getDate() + delta);
+  return target;
+};
+
+/** A hint pinned to one specific date — cron includes day-of-month + month. */
+const onceHint = (
+  target: Date,
+  confidence: ScheduleHint['confidence'],
+  matchedText: string,
+): ScheduleHint => ({
+  cron: `${target.getMinutes()} ${target.getHours()} ${target.getDate()} ${target.getMonth() + 1} *`,
+  label: `Once on ${DAY_LABEL[target.getDay()]}, ${MONTH_LABEL[target.getMonth()]} ${target.getDate()} at ${fmtTime(target.getHours(), target.getMinutes())}`,
+  confidence,
+  matchedText,
+  once: true,
+  runAt: target.toISOString(),
+});
+
 
 const findPartOfDay = (text: string): { h: number; matched: string } | null => {
   for (const [name, h] of Object.entries(PART_OF_DAY)) {
