@@ -196,8 +196,14 @@ const NotificationsDrawer = ({
   }, [items]);
 
   const visible = useMemo(
-    () => items.filter((n) => inScope(n) && matchesQuery(n, query.trim())),
-    [items, inScope, query],
+    () =>
+      items.filter(
+        (n) =>
+          inScope(n) &&
+          matchesQuery(n, query.trim()) &&
+          (showRead || n.read !== true),
+      ),
+    [items, inScope, query, showRead],
   );
 
   const drawerWidth = `min(${width}px, 100vw)`;
