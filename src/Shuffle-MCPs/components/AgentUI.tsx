@@ -3491,7 +3491,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Detect natural-language scheduling intent in the prompt (e.g. "daily at 6 am",
   // "next monday at 2am", "every 15 minutes"). Used to highlight the Schedule
   // button and pre-seed the cron picker.
-  const scheduleHint = useMemo(() => parseScheduleHint(actionInput), [actionInput]);
+  // One-off reminders ("in 15 minutes", "in 2 days", "this coming monday") are
+  // executed by the agent itself, so they must not surface the Schedule button
+  // or pre-seed a recurring cron — only true recurrences drive the UI.
+  const scheduleHint = useMemo(() => {
+    const parsed = parseScheduleHint(actionInput);
+    return parsed && parsed.once ? null : parsed;
+  }, [actionInput]);
+
   // Track which hint we last auto-applied so we never overwrite a manual pick.
   const lastAppliedHintRef = useRef<string | null>(null);
   useEffect(() => {
