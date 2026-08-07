@@ -226,6 +226,14 @@ const NotificationsDrawer = ({
       anchor="right"
       open={open}
       onClose={onClose}
+      sx={{
+        '& .MuiDrawer-paper': {
+          width: { xs: '100vw', sm: `${width}px` },
+          minWidth: { xs: '100vw', sm: `${minWidth}px` },
+          maxWidth: { xs: '100vw', sm: `${maxWidth}px` },
+          flex: { xs: '0 0 100vw', sm: `0 0 ${width}px` },
+        },
+      }}
       PaperProps={{
         sx: {
           width: { xs: '100vw', sm: `${width}px` },
