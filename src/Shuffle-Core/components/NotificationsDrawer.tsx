@@ -134,6 +134,39 @@ const NotificationsDrawer = ({
     if (open) load();
   }, [open, load]);
 
+  // Mark a single notification as read (Close) or disabled.
+  const actOnNotification = useCallback(
+    async (id: string, disabled = false) => {
+      if (!id) return;
+      const qs = disabled ? '?disabled=true' : '';
+      // Optimistically update local state so the UI feels instant.
+      setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      try {
+        await fetch(getApiUrl(`/api/v1/notifications/${id}/markasread${qs}`), {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        });
+      } catch {
+        /* keep optimistic state */
+      }
+    },
+    [],
+  );
+
+  // Clear every notification for the org.
+  const clearAll = useCallback(async () => {
+    setItems([]);
+    try {
+      await fetch(getApiUrl('/api/v1/notifications/clear'), {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      });
+    } catch {
+      /* reload will resync on next open */
+      load();
+    }
+  }, [load]);
+
   const inScope = useCallback(
     (n: ExecutionNotification) => {
       if (scope === 'agents') return isAgentNotification(n);
