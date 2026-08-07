@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   CircularProgress,
   Drawer,
   IconButton,
@@ -20,8 +21,10 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  Block as BlockIcon,
+  CheckCircleOutline as CheckCircleIcon,
   Close as CloseIcon,
-  Launch as LaunchIcon,
+  OpenInNew as ExploreIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
