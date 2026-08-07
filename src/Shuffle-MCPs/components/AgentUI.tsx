@@ -1653,6 +1653,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
   const [inputScrolled, setInputScrolled] = useState(false);
+  const [promptSingleLine, setPromptSingleLine] = useState(true);
 
   // Callback ref: measure the chip the instant it mounts (and whenever the
   // element is swapped out because the template label changed), so the
@@ -1723,6 +1724,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (!el) return;
     if (el.scrollTop <= 1 && inputScrolled) setInputScrolled(false);
   }, [actionInput, inputScrolled]);
+
+  // Track whether the prompt currently renders on a single line so the box can
+  // stay fully pill-shaped until the text wraps.
+  useEffect(() => {
+    const el = inputRef.current as unknown as HTMLTextAreaElement | null;
+    if (!el) { setPromptSingleLine(true); return; }
+    const measure = () => {
+      const lh = parseFloat(window.getComputedStyle(el).lineHeight || '0') || 20;
+      const single = el.scrollHeight <= lh * 1.6;
+      setPromptSingleLine((prev) => (prev === single ? prev : single));
+    };
+    const raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+  }, [actionInput]);
 
 
 
@@ -4031,7 +4046,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: 0.5,
-              borderRadius: attachedImages.length > 0 ? 4 : '18px',
+              borderRadius: attachedImages.length > 0 ? 4 : (promptSingleLine ? '999px' : '18px'),
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               px: 2.25,
@@ -4150,7 +4165,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   '& .MuiInputBase-input': {
                     pt: '5px',
                     pb: 0,
-                    lineHeight: 1.45,
+                    lineHeight: 1.55,
                     textIndent: !hidePresets ? `${(presetsChipWidth || 96) + 8}px` : 0,
                   },
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
