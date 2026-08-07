@@ -514,7 +514,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                   );
                 })()}
                 {appName ? (
-                  <Tooltip title={appName} arrow>
+                  <Tooltip title={r?.status ? `${appName} — ${r.status}` : appName} arrow>
                     <Box
                       component={r?.action?.app_id ? 'a' : 'span'}
                       {...(r?.action?.app_id
@@ -527,7 +527,19 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                         imageUrl={imgSrc}
                         size={28}
                         alt={appName}
-                        style={{ borderRadius: '50%', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
+                        style={{
+                          borderRadius: '50%',
+                          border: `2px solid ${
+                            r?.status === 'SUCCESS' || r?.status === 'FINISHED'
+                              ? 'hsl(140 60% 55%)'
+                              : r?.status === 'FAILURE' || r?.status === 'ABORTED'
+                              ? 'hsl(var(--destructive))'
+                              : r?.status
+                              ? 'hsl(45 90% 55%)'
+                              : 'hsl(var(--border))'
+                          }`,
+                          backgroundColor: 'hsl(var(--muted))',
+                        }}
                       />
                     </Box>
                   </Tooltip>
@@ -570,24 +582,6 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                     </Tooltip>
                   );
                 })()}
-                {r?.status && (
-
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      textTransform: 'uppercase',
-                      fontWeight: 600,
-                      color:
-                        r.status === 'SUCCESS' || r.status === 'FINISHED'
-                          ? 'hsl(140 60% 55%)'
-                          : r.status === 'FAILURE' || r.status === 'ABORTED'
-                          ? 'hsl(var(--destructive))'
-                          : 'hsl(45 90% 55%)',
-                    }}
-                  >
-                    {r.status}
-                  </Typography>
-                )}
               </Box>
               {r?.result && (
                 <Box sx={{ mt: 0.5 }}>
