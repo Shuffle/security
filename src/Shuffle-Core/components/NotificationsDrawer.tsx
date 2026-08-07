@@ -206,10 +206,6 @@ const NotificationsDrawer = ({
     [items, inScope, query, showRead],
   );
 
-  const drawerWidth = `min(${width}px, 100vw)`;
-  const drawerMinWidth = `min(${minWidth}px, 100vw)`;
-  const drawerMaxWidth = `min(${maxWidth}px, 100vw)`;
-
   return (
     <Drawer
       anchor="right"
@@ -217,9 +213,10 @@ const NotificationsDrawer = ({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: drawerWidth,
-          minWidth: drawerMinWidth,
-          maxWidth: drawerMaxWidth,
+          width: { xs: '100vw', sm: `${width}px` },
+          minWidth: { xs: '100vw', sm: `${minWidth}px` },
+          maxWidth: { xs: '100vw', sm: `${maxWidth}px` },
+          flexShrink: 0,
           backgroundColor: 'hsl(var(--background))',
           backgroundImage: 'none',
           color: 'hsl(var(--foreground))',
