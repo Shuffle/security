@@ -192,20 +192,49 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
 
 
   // ── Near-future one-off phrases ────────────────────────────────────────
-  // "in 15 minutes", "in 2 hours" — schedule once at now + offset.
-  const inMin = text.match(/\bin\s+(\d+)\s*(?:m|min|mins|minute|minutes)\b/);
-  const inHr = !inMin ? text.match(/\bin\s+(\d+)\s*(?:h|hr|hrs|hour|hours)\b/) : null;
-  if (inMin || inHr) {
-    const offsetMs = inMin
-      ? parseInt(inMin[1], 10) * 60_000
-      : parseInt(inHr![1], 10) * 3_600_000;
-    return onceHint(new Date(Date.now() + offsetMs), 'high', (inMin || inHr)![0]);
+  // Relative offsets: "in 15 min", "in 2 days", "2 days from now", "in an
+  // hour", "in half an hour", "3 weeks later", "in a couple of hours".
+  const rel = findRelativeOffset(text);
+  if (rel) {
+    const target = new Date(Date.now() + rel.ms);
+    // A day/week/month offset with an explicit time lands on that clock time.
+    if (rel.unitDays && (t || part)) target.setHours(hour ?? 9, minute, 0, 0);
+    if (rel.unitDays) target.setSeconds(0, 0);
+    return onceHint(target, 'high', rel.matched);
   }
 
   // "later today", "later", "soon", "shortly", "in a bit" — ~2 hours out.
   const laterMatch = text.match(/\b(later\s+today|later\s+tonight|later\s+this\s+(?:morning|afternoon|evening)|later|soon|shortly|in\s+a\s+bit|in\s+a\s+while|in\s+a\s+moment)\b/);
   if (laterMatch && hour === null) {
     return onceHint(new Date(Date.now() + 2 * 3_600_000), 'medium', laterMatch[0]);
+  }
+
+  // "end of day" / "end of the week" / "end of the month"
+  const endOf = text.match(/\bend\s+of\s+(?:the\s+)?(day|today|week|month)\b/);
+  if (endOf && !isDaily && !isWeekly && !isMonthly) {
+    const target = new Date();
+    const which = endOf[1];
+    if (which === 'day' || which === 'today') {
+      target.setHours(hour ?? 17, minute, 0, 0);
+      if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
+    } else if (which === 'week') {
+      const delta = (5 - target.getDay() + 7) % 7; // upcoming Friday
+      target.setDate(target.getDate() + (delta === 0 ? 7 : delta));
+      target.setHours(hour ?? 17, minute, 0, 0);
+    } else {
+      target.setMonth(target.getMonth() + 1, 0); // last day of this month
+      target.setHours(hour ?? 17, minute, 0, 0);
+    }
+    return onceHint(target, 'medium', endOf[0]);
+  }
+
+  // "the day after tomorrow" / "day after tomorrow"
+  const dayAfter = text.match(/\b(?:the\s+)?day\s+after\s+tomorrow\b/);
+  if (dayAfter) {
+    const target = new Date();
+    target.setDate(target.getDate() + 2);
+    target.setHours(hour ?? 9, minute, 0, 0);
+    return onceHint(target, 'high', dayAfter[0]);
   }
 
   if (/\btonight\b/.test(text) && !isDaily && !isWeekly) {
@@ -227,13 +256,38 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
     if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
     return onceHint(target, 'medium', hits.join(' ') || 'today');
   }
+  // "this morning/afternoon/evening" — a single upcoming moment today.
+  const thisPart = text.match(/\bthis\s+(morning|afternoon|evening)\b/);
+  if (thisPart && !isDaily && !isWeekly) {
+    const target = new Date();
+    target.setHours(hour ?? PART_OF_DAY[thisPart[1]], minute, 0, 0);
+    if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
+    return onceHint(target, 'medium', thisPart[0]);
+  }
+  // "next week" / "next month" without a weekday.
+  const nextSpan = !day ? text.match(/\bnext\s+(week|month)\b/) : null;
+  if (nextSpan && !isWeekly && !isMonthly && !isDaily) {
+    const target = new Date();
+    if (nextSpan[1] === 'week') target.setDate(target.getDate() + 7);
+    else target.setMonth(target.getMonth() + 1);
+    target.setHours(hour ?? 9, minute, 0, 0);
+    return onceHint(target, 'medium', nextSpan[0]);
+  }
   if (day && oneOffDayPhrase && !isWeekly && !isMonthly && !isWeekdays && !isDaily) {
+    const target = nextDateForWeekday(day.day, hour ?? 9, minute);
+    // "next monday" means the week after the upcoming one when today is early
+    // in the week — keep it simple: push a week only when explicitly "next".
+    if (/\bnext\s+(?:week\s+)?\w*\s*$/.test('') === false && /\bnext\b/.test(text)) {
+      const upcomingDelta = Math.round((target.getTime() - Date.now()) / 86_400_000);
+      if (upcomingDelta < 2) target.setDate(target.getDate() + 7);
+    }
     return onceHint(
-      nextDateForWeekday(day.day, hour ?? 9, minute),
+      target,
       hour !== null ? 'high' : 'medium',
       hits.join(' ') || day.matched,
     );
   }
+
 
 
   // ── 5. Build cron from collected pieces ─────────────────────────────────
