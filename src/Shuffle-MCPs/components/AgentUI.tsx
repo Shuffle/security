@@ -1650,8 +1650,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // still prepended when no preset is selected.
   const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId });
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
-  const presetsChipRef = useRef<HTMLButtonElement>(null);
+  const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
+  // Callback ref: measure the chip the instant it mounts (and whenever the
+  // element is swapped out because the template label changed), so the
+  // textarea's first-line indent is never stale or zero.
+  const presetsChipRef = useCallback((node: HTMLButtonElement | null) => {
+    presetsChipNodeRef.current = node;
+    if (node) setPresetsChipWidth(node.getBoundingClientRect().width);
+  }, []);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Restore the last used preset from localStorage so the choice survives
