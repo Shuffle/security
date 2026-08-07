@@ -1664,6 +1664,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  // The template whose tool set is currently loaded. Tool changes are only
+  // persisted as an override once the template's own tools have been seeded.
+  const seededPresetIdRef = useRef<string | null>(null);
+
 
   // Restore the last used preset from localStorage so the choice survives
   // reloads, matching how assigned agent tools are remembered.
