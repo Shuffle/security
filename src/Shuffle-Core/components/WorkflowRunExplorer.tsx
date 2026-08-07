@@ -576,8 +576,19 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                   )}
                 </Box>
                 {(() => {
-                  const delay = Number((r as any)?.action?.delay ?? (wfAction as any)?.delay ?? 0);
+                  const idMatched = r?.action?.id
+                    ? (exec.workflow?.actions || []).find((a: any) => a?.id === r.action.id)
+                    : undefined;
+                  const delay = Number(
+                    (idMatched as any)?.execution_delay ??
+                    (wfAction as any)?.execution_delay ??
+                    (r as any)?.action?.execution_delay ??
+                    (r as any)?.action?.delay ??
+                    (wfAction as any)?.delay ??
+                    0
+                  );
                   if (!Number.isFinite(delay) || delay <= 0) return null;
+
                   const label = delay >= 3600
                     ? `${Math.floor(delay / 3600)}h ${Math.floor((delay % 3600) / 60)}m`
                     : delay >= 60
