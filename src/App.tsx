@@ -118,6 +118,7 @@ import { DemoCompletionWatcher } from '@/components/demo/DemoCompletionWatcher';
 import { DemoResumePill } from '@/components/demo/DemoResumePill';
 import GlobalAgentDrawer from '@/components/agent/GlobalAgentDrawer';
 import GlobalWorkflowRunDrawer from '@/components/agent/GlobalWorkflowRunDrawer';
+import GlobalNotificationsDrawer from '@/components/notifications/GlobalNotificationsDrawer';
 import { useUsecaseAgentFilters } from '@/hooks/useUsecaseAgentFilters';
 
 
@@ -214,6 +215,7 @@ const ThemedApp = () => {
           <ScrollToTop />
           <GlobalAgentDrawer />
           <GlobalWorkflowRunDrawer />
+          <GlobalNotificationsDrawer />
           <DemoProvider>
           <DemoTourDrawer />
           <DemoSpotlight />
