@@ -1724,6 +1724,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (el.scrollTop <= 1 && inputScrolled) setInputScrolled(false);
   }, [actionInput, inputScrolled]);
 
+  // Track whether the prompt currently renders on a single line so the box can
+  // stay fully pill-shaped until the text wraps.
+  useEffect(() => {
+    const el = inputRef.current as unknown as HTMLTextAreaElement | null;
+    if (!el) { setPromptSingleLine(true); return; }
+    const measure = () => {
+      const lh = parseFloat(window.getComputedStyle(el).lineHeight || '0') || 20;
+      const single = el.scrollHeight <= lh * 1.6;
+      setPromptSingleLine((prev) => (prev === single ? prev : single));
+    };
+    const raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+  }, [actionInput, attachedImages.length]);
+
 
 
 
