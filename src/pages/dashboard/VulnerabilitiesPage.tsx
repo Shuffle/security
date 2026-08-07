@@ -438,25 +438,73 @@ interface VulnTableProps {
   emptyIcon: React.ReactNode;
   emptyTitle: string;
   emptyDescription: string;
+  sortKey: SortKey;
+  sortDir: 'asc' | 'desc';
+  onSortKeyChange: (k: SortKey) => void;
+  onSortDirChange: (d: 'asc' | 'desc') => void;
+  severityFilter: string;
+  categoryFilter: string;
+  statusFilter: string;
+  sourceFilter: string;
+  onSeverityChange: (v: string) => void;
+  onCategoryChange: (v: string) => void;
+  onStatusChange: (v: string) => void;
+  onSourceChange: (v: string) => void;
 }
 
 const SEVERITY_ORDER: Record<VulnSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 
 type SortKey = 'severity' | 'title' | 'category' | 'source' | 'status' | 'first_seen';
 
-const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTitle, emptyDescription }: VulnTableProps) => {
+const VulnTable = ({
+  vulnerabilities,
+  isLoading,
+  onRemediate,
+  emptyIcon,
+  emptyTitle,
+  emptyDescription,
+  sortKey,
+  sortDir,
+  onSortKeyChange,
+  onSortDirChange,
+  severityFilter,
+  categoryFilter,
+  statusFilter,
+  sourceFilter,
+  onSeverityChange,
+  onCategoryChange,
+  onStatusChange,
+  onSourceChange,
+}: VulnTableProps) => {
   const navigate = useNavigate();
-  const [sortKey, setSortKey] = useState<SortKey>('severity');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
-      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+      onSortDirChange(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortKey(key);
-      setSortDir('asc');
+      onSortKeyChange(key);
+      onSortDirChange('asc');
     }
   };
+
+  /** Click a cell value to filter by it; click again to clear. */
+  const FilterCellButton = ({
+    label,
+    active,
+    onToggle,
+    className,
+  }: { label: string; active: boolean; onToggle: () => void; className?: string }) => (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      title={active ? 'Clear this filter' : `Filter by ${label}`}
+      className={`text-left rounded px-1 -mx-1 transition-colors hover:bg-muted/50 hover:text-foreground ${active ? 'text-foreground font-medium' : ''} ${className || ''}`}
+    >
+      {label}
+    </button>
+  );
+
+
 
   const sorted = [...vulnerabilities].sort((a, b) => {
     let cmp = 0;
