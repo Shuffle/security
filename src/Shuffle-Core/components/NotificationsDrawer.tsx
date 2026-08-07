@@ -330,7 +330,7 @@ const NotificationsDrawer = ({
               ariaLabel="Notification scope"
               options={[
                 { value: 'workflows', label: 'Workflows', count: counts.workflows },
-                { value: 'executions', label: 'Executions', count: counts.executions },
+                
                 { value: 'agents', label: 'Agents', count: counts.agents },
               ]}
             />
