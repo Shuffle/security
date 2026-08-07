@@ -1,17 +1,16 @@
 /**
- * ExecutionNotificationsDrawer — right-side drawer listing the notifications
- * from the organization, defaulting to the ones for a single workflow execution.
+ * NotificationsDrawer — right-side drawer listing the organization's
+ * notifications. Usable anywhere in the platform, not just from an execution.
  *
- * Self-contained Shuffle-Core surface: it only needs an `executionId` (and
- * optionally the `workflowId`) and fetches `/api/v1/notifications` itself,
- * filtering down to the entries that belong to this run. Rendering follows the
- * same notification shape used everywhere else in the app (title, description,
- * created_at, reference_url).
+ * When opened with an `executionId`, the search field is pre-filled with that
+ * id so the list is scoped to the run without any extra filter chips.
+ *
+ * Any component can open the global instance by dispatching the
+ * `notifications:open` window event with an optional `{ executionId }`.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
-  Chip,
   CircularProgress,
   Drawer,
   IconButton,
@@ -19,16 +18,17 @@ import {
   TextField,
   Tooltip,
   Typography,
-  Divider,
-  Button,
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
+  Close as CloseIcon,
   Launch as LaunchIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
+import { SegmentedControl } from './ui/segmented-control';
+
+export const NOTIFICATIONS_OPEN_EVENT = 'notifications:open';
 
 export interface ExecutionNotification {
   id?: string;
@@ -43,16 +43,19 @@ export interface ExecutionNotification {
   [key: string]: any;
 }
 
-export interface ExecutionNotificationsDrawerProps {
+export interface NotificationsDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** Optional execution context — pre-fills the search field. */
   executionId?: string;
   workflowId?: string;
-  /** Drawer width in px. Defaults to 720. */
+  /** Drawer width in px. Defaults to 620. */
   width?: number;
   minWidth?: number;
   maxWidth?: number;
 }
+
+type ScopeValue = 'workflows' | 'executions';
 
 const formatTime = (ts?: number): string => {
   if (!ts) return '';
@@ -64,17 +67,11 @@ const formatTime = (ts?: number): string => {
   }
 };
 
-const matchesExecution = (
-  n: ExecutionNotification,
-  executionId: string,
-  workflowId?: string,
-): boolean => {
-  if (!executionId) return false;
-  if (n.execution_id === executionId) return true;
+const getExecutionId = (n: ExecutionNotification): string => {
+  if (n.execution_id) return String(n.execution_id);
   const ref = String(n.reference_url || '');
-  if (ref.includes(executionId)) return true;
-  if (workflowId && n.workflow_id === workflowId && ref.includes(executionId)) return true;
-  return false;
+  const match = ref.match(/execution_id=([a-zA-Z0-9-]+)/);
+  return match ? match[1] : '';
 };
 
 const matchesQuery = (n: ExecutionNotification, q: string): boolean => {
@@ -84,23 +81,25 @@ const matchesQuery = (n: ExecutionNotification, q: string): boolean => {
     .some((v) => String(v || '').toLowerCase().includes(needle));
 };
 
-const ExecutionNotificationsDrawer = ({
+const NotificationsDrawer = ({
   open,
   onClose,
   executionId,
   workflowId,
-  width = 720,
-  minWidth = 480,
-  maxWidth = 900,
-}: ExecutionNotificationsDrawerProps) => {
+  width = 620,
+  minWidth = 420,
+  maxWidth = 820,
+}: NotificationsDrawerProps) => {
   const [items, setItems] = useState<ExecutionNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scopedToExecution, setScopedToExecution] = useState(Boolean(executionId));
+  const [scope, setScope] = useState<ScopeValue>('workflows');
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    if (open) setScopedToExecution(Boolean(executionId));
+    if (!open) return;
+    setQuery(executionId ? String(executionId) : '');
+    setScope(executionId ? 'executions' : 'workflows');
   }, [open, executionId]);
 
   const load = useCallback(async () => {
@@ -113,10 +112,7 @@ const ExecutionNotificationsDrawer = ({
       });
       if (!resp.ok) throw new Error(`Failed to load notifications (${resp.status})`);
       const data = await resp.json();
-      const all: ExecutionNotification[] = Array.isArray(data?.notifications)
-        ? data.notifications
-        : [];
-      setItems(all);
+      setItems(Array.isArray(data?.notifications) ? data.notifications : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems([]);
@@ -129,16 +125,25 @@ const ExecutionNotificationsDrawer = ({
     if (open) load();
   }, [open, load]);
 
-  const visible = useMemo(() => {
-    const scoped = scopedToExecution && executionId
-      ? items.filter((n) => matchesExecution(n, executionId, workflowId))
-      : items;
-    return scoped.filter((n) => matchesQuery(n, query.trim()));
-  }, [items, scopedToExecution, executionId, workflowId, query]);
+  const inScope = useCallback(
+    (n: ExecutionNotification) =>
+      scope === 'executions' ? Boolean(getExecutionId(n)) : Boolean(n.workflow_id || workflowId === undefined),
+    [scope, workflowId],
+  );
 
-  const scopedCount = useMemo(
-    () => (executionId ? items.filter((n) => matchesExecution(n, executionId, workflowId)).length : 0),
-    [items, executionId, workflowId],
+  const counts = useMemo(() => {
+    let executions = 0;
+    let workflows = 0;
+    items.forEach((n) => {
+      if (getExecutionId(n)) executions += 1;
+      if (n.workflow_id) workflows += 1;
+    });
+    return { executions, workflows };
+  }, [items]);
+
+  const visible = useMemo(
+    () => items.filter((n) => inScope(n) && matchesQuery(n, query.trim())),
+    [items, inScope, query],
   );
 
   const drawerWidth = `min(${width}px, 100vw)`;
@@ -155,99 +160,58 @@ const ExecutionNotificationsDrawer = ({
           width: drawerWidth,
           minWidth: drawerMinWidth,
           maxWidth: drawerMaxWidth,
-          flex: `0 0 ${drawerWidth}`,
-          background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
+          backgroundColor: 'hsl(var(--background))',
+          backgroundImage: 'none',
           color: 'hsl(var(--foreground))',
           borderLeft: '1px solid hsl(var(--border))',
-        },
-      }}
-      sx={{
-        '& .MuiDrawer-paper': {
-          boxSizing: 'border-box',
-          width: `${drawerWidth} !important`,
-          minWidth: `${drawerMinWidth} !important`,
-          maxWidth: `${drawerMaxWidth} !important`,
-          flex: `0 0 ${drawerWidth} !important`,
         },
       }}
     >
       <Box
         sx={{
-          bgcolor: 'hsl(var(--card))',
-          color: 'hsl(var(--foreground))',
-          p: { xs: '0 10px 50px 10px', sm: '25px 15px 150px 15px' },
           height: '100%',
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
-        {/* Breadcrumb / back */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton onClick={onClose} size="small" sx={{ color: 'hsl(var(--foreground))', mr: 1 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h6"
-            onClick={onClose}
-            sx={{ cursor: 'pointer', color: 'hsl(var(--foreground))', fontWeight: 600 }}
-          >
-            Back to details
-          </Typography>
-        </Box>
-        <Divider sx={{ my: 1.5, bgcolor: 'hsl(var(--border))' }} />
+        {/* Header */}
+        <Box sx={{ px: 3, pt: 3, pb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography sx={{ flex: 1, fontSize: '1.125rem', fontWeight: 600 }}>
+              Notifications
+            </Typography>
+            <Tooltip title="Refresh" arrow>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={load}
+                  disabled={loading}
+                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                >
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <IconButton size="small" onClick={onClose} sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
 
-        {/* Header row */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            px: 1.25,
-            py: 1,
-            border: '1px solid hsl(var(--border))',
-            borderRadius: 1.5,
-            mb: 1.5,
-            position: 'sticky',
-            top: 0,
-            zIndex: 3,
-            bgcolor: 'hsl(var(--card))',
-          }}
-        >
-          <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
-            Notifications
-          </Typography>
-          <Tooltip title="Refresh" arrow>
-            <span>
-              <IconButton size="small" onClick={load} disabled={loading} sx={{ color: 'hsl(var(--foreground))' }}>
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-
-        {/* Filter / search bar */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            mb: 1.5,
-            flexWrap: 'wrap',
-          }}
-        >
           <TextField
             size="small"
+            fullWidth
             placeholder="Search notifications"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             sx={{
-              flex: 1,
-              minWidth: 200,
               '& .MuiOutlinedInput-root': {
-                bgcolor: 'hsl(var(--muted) / 0.4)',
-                borderRadius: 1,
-                '& fieldset': { borderColor: 'hsl(var(--border))' },
-                '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                bgcolor: 'hsl(var(--muted) / 0.35)',
+                borderRadius: '999px',
+                fontSize: '0.8125rem',
+                '& fieldset': { borderColor: 'transparent' },
+                '&:hover fieldset': { borderColor: 'transparent' },
+                '&.Mui-focused fieldset': { borderColor: 'hsl(var(--border))' },
               },
             }}
             InputProps={{
@@ -258,181 +222,129 @@ const ExecutionNotificationsDrawer = ({
               ),
             }}
           />
-          {executionId ? (
-            <Tooltip title="Only show notifications from the current execution" arrow>
-              <Chip
-                size="small"
-                label={`This execution (${scopedCount})`}
-                variant={scopedToExecution ? 'filled' : 'outlined'}
-                onClick={() => setScopedToExecution((v) => !v)}
-                sx={{
-                  height: 28,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  color: scopedToExecution ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                  bgcolor: scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
-                  borderColor: 'hsl(var(--border))',
-                  '&:hover': {
-                    bgcolor: scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
-                  },
-                }}
-              />
-            </Tooltip>
-          ) : null}
-          <Chip
-            size="small"
-            label={`All (${items.length})`}
-            variant={scopedToExecution ? 'outlined' : 'filled'}
-            onClick={() => setScopedToExecution(false)}
-            sx={{
-              height: 28,
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              color: !scopedToExecution ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-              bgcolor: !scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
-              borderColor: 'hsl(var(--border))',
-              '&:hover': {
-                bgcolor: !scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
-              },
-            }}
+
+          <SegmentedControl<ScopeValue>
+            size="sm"
+            variant="filled"
+            value={scope}
+            onChange={setScope}
+            ariaLabel="Notification scope"
+            options={[
+              { value: 'workflows', label: 'Workflows', count: counts.workflows },
+              { value: 'executions', label: 'Executions', count: counts.executions },
+            ]}
           />
         </Box>
 
         {/* Body */}
-        {loading && visible.length === 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress size={28} sx={{ color: 'hsl(var(--muted-foreground))' }} />
-          </Box>
-        )}
+        <Box sx={{ flex: 1, overflowY: 'auto', px: 3, pb: 6 }}>
+          {loading && visible.length === 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress size={24} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+            </Box>
+          )}
 
-        {error && (
-          <Box
-            sx={{
-              border: '1px solid hsl(var(--destructive) / 0.4)',
-              borderRadius: 1.5,
-              p: 1.5,
-              bgcolor: 'hsl(var(--destructive) / 0.08)',
-              mb: 1.5,
-            }}
-          >
-            <Typography sx={{ fontSize: '0.8125rem', color: 'hsl(var(--destructive))' }}>
+          {error && (
+            <Typography sx={{ fontSize: '0.8125rem', color: 'hsl(var(--destructive))', py: 2 }}>
               {error}
             </Typography>
-          </Box>
-        )}
+          )}
 
-        {!loading && !error && visible.length === 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 1.5,
-              py: 6,
-            }}
-          >
-            <Typography sx={{ fontSize: '0.875rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
-              {scopedToExecution && executionId
-                ? 'No notifications for this execution'
-                : 'No notifications found'}
-            </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={load}
+          {!loading && !error && visible.length === 0 && (
+            <Typography
               sx={{
-                textTransform: 'none',
-                borderColor: 'hsl(var(--border))',
+                fontSize: '0.8125rem',
                 color: 'hsl(var(--muted-foreground))',
+                textAlign: 'center',
+                py: 8,
               }}
             >
-              Refresh
-            </Button>
-          </Box>
-        )}
+              No notifications found
+            </Typography>
+          )}
 
-        {visible.map((n, i) => (
-          <Box
-            key={n.id || `${i}`}
-            sx={{
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 1.5,
-              p: 1.75,
-              mb: 1.25,
-              bgcolor: 'hsl(var(--card))',
-              transition: 'border-color 0.15s ease',
-              '&:hover': {
-                borderColor: 'hsl(var(--muted-foreground) / 0.5)',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-              <Typography
-                sx={{ flex: 1, fontSize: '0.875rem', fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.3 }}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {visible.map((n, i) => (
+              <Box
+                key={n.id || `${i}`}
+                sx={{
+                  borderRadius: '14px',
+                  p: 2,
+                  bgcolor: 'hsl(var(--muted) / 0.25)',
+                  transition: 'background-color 0.15s ease',
+                  '&:hover': { bgcolor: 'hsl(var(--muted) / 0.45)' },
+                  '&:hover .notif-launch': { opacity: 1 },
+                }}
               >
-                {n.title || 'Notification'}
-              </Typography>
-              {n.read === false && (
-                <Box
-                  sx={{
-                    flexShrink: 0,
-                    mt: 0.25,
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 0.5,
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    color: 'hsl(var(--primary))',
-                    bgcolor: 'hsl(var(--primary) / 0.12)',
-                    border: '1px solid hsl(var(--primary) / 0.3)',
-                    lineHeight: 1,
-                  }}
-                >
-                  Unread
-                </Box>
-              )}
-              {n.reference_url && (
-                <Tooltip title="Open reference" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={() => window.open(n.reference_url, '_blank', 'noopener,noreferrer')}
-                    sx={{ color: 'hsl(var(--muted-foreground))' }}
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  {n.read === false && (
+                    <Box
+                      sx={{
+                        mt: '6px',
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: 'hsl(var(--primary))',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <Typography
+                    sx={{
+                      flex: 1,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: 'hsl(var(--foreground))',
+                      lineHeight: 1.35,
+                    }}
                   >
-                    <LaunchIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Box>
-            {n.description && (
-              <Typography
-                sx={{
-                  fontSize: '0.8125rem',
-                  color: 'hsl(var(--muted-foreground))',
-                  mt: 0.75,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  lineHeight: 1.5,
-                }}
-              >
-                {n.description}
-              </Typography>
-            )}
-            {n.created_at ? (
-              <Typography
-                sx={{
-                  fontSize: '0.6875rem',
-                  color: 'hsl(var(--muted-foreground) / 0.7)',
-                  mt: 1,
-                }}
-              >
-                {formatTime(n.created_at)}
-              </Typography>
-            ) : null}
+                    {n.title || 'Notification'}
+                  </Typography>
+                  {n.reference_url && (
+                    <Tooltip title="Open reference" arrow>
+                      <IconButton
+                        className="notif-launch"
+                        size="small"
+                        onClick={() => window.open(n.reference_url, '_blank', 'noopener,noreferrer')}
+                        sx={{
+                          color: 'hsl(var(--muted-foreground))',
+                          opacity: 0,
+                          transition: 'opacity 0.15s ease',
+                        }}
+                      >
+                        <LaunchIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
+                {n.description && (
+                  <Typography
+                    sx={{
+                      fontSize: '0.8125rem',
+                      color: 'hsl(var(--muted-foreground))',
+                      mt: 0.5,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {n.description}
+                  </Typography>
+                )}
+                {n.created_at ? (
+                  <Typography
+                    sx={{ fontSize: '0.6875rem', color: 'hsl(var(--muted-foreground) / 0.7)', mt: 1 }}
+                  >
+                    {formatTime(n.created_at)}
+                  </Typography>
+                ) : null}
+              </Box>
+            ))}
           </Box>
-        ))}
+        </Box>
       </Box>
     </Drawer>
   );
 };
 
-export default ExecutionNotificationsDrawer;
+export default NotificationsDrawer;
