@@ -4053,7 +4053,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               py: 1.75,
 
               position: 'relative',
-              transition: 'border-color 0.15s ease, box-shadow 0.15s ease, border-radius 0.1s ease',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
               '&:focus-within': {
                 borderColor: 'hsl(var(--primary))',
                 boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
