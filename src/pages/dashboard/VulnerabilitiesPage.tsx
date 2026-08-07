@@ -490,18 +490,16 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Severity</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead className="w-[140px]">Category</TableHead>
-            <TableHead className="w-[150px]">Asset / User</TableHead>
-            <TableHead className="w-[100px]">Source</TableHead>
-            <TableHead className="w-[100px]">Status</TableHead>
-            <TableHead className="w-[110px]">First Seen</TableHead>
-            <TableHead className="w-[120px] text-right">Actions</TableHead>
+            <SortHead label="Severity" sortKeyValue="severity" className="w-[100px]" />
+            <SortHead label="Title" sortKeyValue="title" />
+            <SortHead label="Category" sortKeyValue="category" className="w-[140px]" />
+            <SortHead label="Source" sortKeyValue="source" className="w-[110px]" />
+            <SortHead label="Status" sortKeyValue="status" className="w-[100px]" />
+            <SortHead label="First Seen" sortKeyValue="first_seen" className="w-[110px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {vulnerabilities.map(vuln => (
+          {sorted.map(vuln => (
             <TableRow
               key={vuln.id}
               className="cursor-pointer hover:bg-muted/30"
@@ -523,9 +521,6 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
                 <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[vuln.category] || vuln.category}</span>
               </TableCell>
               <TableCell>
-                <span className="text-sm text-foreground">{vuln.asset_name || vuln.asset_id || '—'}</span>
-              </TableCell>
-              <TableCell>
                 <span className="text-xs text-muted-foreground">{vuln.source || '—'}</span>
               </TableCell>
               <TableCell>
@@ -536,22 +531,10 @@ const VulnTable = ({ vulnerabilities, isLoading, onRemediate, emptyIcon, emptyTi
                   {vuln.first_seen ? new Date(vuln.first_seen).toLocaleDateString() : '—'}
                 </span>
               </TableCell>
-              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={onRemediate}>
-                        <Wrench size={12} />
-                        Remediate
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Run automated remediation on this vulnerability</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>
+
       </Table>
     </div>
   );
