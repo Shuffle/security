@@ -185,13 +185,11 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
   // A single upcoming day ("this coming monday", "next monday", "on monday")
   // is a one-off reminder — only "every monday" / "mondays" / "weekly" repeat.
   const recurringDayPhrase = day
-    ? new RegExp(`\\b(?:every|each)\\s+(?:other\\s+)?${day.matched}\\b`).test(text) || day.plural
+    ? day.plural || new RegExp(`\\b(?:every|each)\\s+(?:other\\s+)?${day.matched}\\b`).test(text)
     : false;
-  const oneOffDayPhrase = day && !recurringDayPhrase
-    && (/\b(this\s+coming|coming|this|next|on|upcoming|by)\s+\w*\s*$/.test(text.slice(0, text.indexOf(day.matched)).trimEnd() + ' ')
-      || /\b(this\s+coming|coming|this|next|on|upcoming|by)\s+/.test(text)
-      || true);
+  const oneOffDayPhrase = Boolean(day) && !recurringDayPhrase;
   if (/\bnext\b/.test(text)) hits.push('next');
+
 
   // ── Near-future one-off phrases ────────────────────────────────────────
   // "in 15 minutes", "in 2 hours" — schedule once at now + offset.
