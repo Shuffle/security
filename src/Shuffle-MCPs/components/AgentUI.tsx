@@ -1733,11 +1733,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const measure = () => {
       const lh = parseFloat(window.getComputedStyle(el).lineHeight || '0') || 20;
       const single = el.scrollHeight <= lh * 1.6;
-      setPromptSingleLine((prev) => (prev === single ? prev : single));
+      setPromptSingleLine((prev) => {
+        if (prev === single) return prev;
+        // Going back to a single line leaves the caret painted at x=0 (before
+        // the Templates chip) until the textarea re-lays-out its selection.
+        // Re-applying the current selection forces the caret to the indented
+        // first-line position.
+        if (single && document.activeElement === el) {
+          requestAnimationFrame(() => {
+            const start = el.selectionStart;
+            const end = el.selectionEnd;
+            try { el.setSelectionRange(start, end); } catch { /* ignore */ }
+          });
+        }
+        return single;
+      });
     };
     const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
   }, [actionInput]);
+
 
 
 
