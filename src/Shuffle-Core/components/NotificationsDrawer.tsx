@@ -9,6 +9,7 @@
  * `notifications:open` window event with an optional `{ executionId }`.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import {
   Box,
   Button,
@@ -197,8 +198,15 @@ const NotificationsDrawer = ({
           credentials: 'include',
           headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         });
+        if (disabled === undefined) {
+          toast.success('Notification marked as read');
+        } else if (disabled) {
+          toast.success('Notification disabled');
+        } else {
+          toast.success('Notification enabled');
+        }
       } catch {
-        /* keep optimistic state */
+        toast.error('Failed to update notification');
       }
     },
     [],
