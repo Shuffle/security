@@ -47,6 +47,8 @@ export interface ExecutionNotification {
   first_seen?: number;
   last_seen?: number;
   times_seen?: number;
+  updated_at?: number;
+  amount?: number;
   read?: boolean;
   severity?: string;
   execution_id?: string;
