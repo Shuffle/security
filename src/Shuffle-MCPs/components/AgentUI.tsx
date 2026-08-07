@@ -688,6 +688,51 @@ interface TimelineItem {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+/**
+ * Seconds a WAITING decision asked to wait before the agent resumes.
+ * The backend may put this on the decision, its run_details, its details
+ * blob, or as a `delay` field.
+ */
+const getDecisionDelaySeconds = (dec: any): number => {
+  if (!dec || typeof dec !== 'object') return 0;
+  const candidates: unknown[] = [
+    dec.delay,
+    dec.delay_seconds,
+    dec.run_details?.delay,
+    dec.details?.delay,
+    dec.details?.delay_seconds,
+  ];
+  for (const f of dec.fields || []) {
+    if (/^delay/i.test(String(f?.key || ''))) candidates.push(f?.value);
+  }
+  for (const c of candidates) {
+    const n = Number(c);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+};
+
+/** Epoch ms when a delayed WAITING decision is expected to continue. */
+const getScheduledResumeMs = (dec: any): number => {
+  const delaySec = getDecisionDelaySeconds(dec);
+  if (!delaySec) return 0;
+  const rd = dec?.run_details || {};
+  const base = Number(rd.completed_at || rd.started_at || 0);
+  if (!base) return 0;
+  const baseMs = base > 1e12 ? base : base * 1000;
+  return baseMs + delaySec * 1000;
+};
+
+const formatTimeLeft = (ms: number): string => {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
+
 const validateJson = (raw: unknown): { valid: boolean; result: any } => {
   if (raw == null) return { valid: false, result: null };
   if (typeof raw === 'object') return { valid: true, result: raw };
@@ -793,16 +838,33 @@ const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
 
 // ── Inner: timeline item ──────────────────────────────────────────────────────
 
-const StatusIcon: React.FC<{ status?: string }> = ({ status }) => {
+const StatusIcon: React.FC<{ status?: string; resumeAtMs?: number }> = ({ status, resumeAtMs }) => {
   const s = (status || '').toUpperCase();
+  const isScheduledWait = s === 'WAITING' && !!resumeAtMs;
+  // Tick while a scheduled wait is counting down so the tooltip stays accurate.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isScheduledWait) return;
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [isScheduledWait]);
   let node: React.ReactNode;
   let label: string;
   if (s === 'RUNNING' || s === 'EXECUTING' || s === '') {
     node = <CircularProgress size={18} sx={{ color: STATUS_COLORS.running }} />;
     label = 'Running';
   } else if (s === 'WAITING') {
-    node = <PauseIcon size={20} />;
-    label = 'Waiting for input';
+    if (isScheduledWait) {
+      const remaining = (resumeAtMs as number) - nowMs;
+      const at = new Date(resumeAtMs as number).toLocaleTimeString();
+      node = <ScheduleIcon size={20} />;
+      label = remaining > 0
+        ? `Scheduled — continues in ${formatTimeLeft(remaining)} (at ${at})`
+        : `Scheduled — due now (${at})`;
+    } else {
+      node = <PauseIcon size={20} />;
+      label = 'Waiting for input';
+    }
   } else if (s === 'FINISHED' || s === 'SUCCESS') {
     node = <CheckCircleIcon size={20} />;
     label = 'Finished successfully';
@@ -1104,7 +1166,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
             )
           ) : (
-            <StatusIcon status={effectiveStatus} />
+            <StatusIcon status={effectiveStatus} resumeAtMs={getScheduledResumeMs(details)} />
           )}
         </Box>
         <Box sx={{ width: 24, display: 'flex', justifyContent: 'center' }}>
@@ -3260,6 +3322,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     };
 
     let lastWasFinalise = false;
+    let lastWasScheduledWait = false;
     for (const it of items) {
       if (it.type === 'decision') {
         const decStart = it.start_time || 0;
@@ -3271,6 +3334,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
         withProcessing.push(it);
         prevDecEnd = it.end_time || decStart || prevDecEnd;
         lastWasFinalise = isFinalise(it);
+        // A WAITING decision with a delay is scheduled to resume later — that
+        // is not the agent processing, so no live timer row after it.
+        lastWasScheduledWait =
+          (it.status || '').toUpperCase() === 'WAITING' && !!getScheduledResumeMs(it.details);
       } else {
         withProcessing.push(it);
       }
@@ -3283,7 +3350,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // Live tail: while the run is still executing, show a "Processing" row after
     // the last decision that counts up in realtime once at least 1s of dead time
     // has elapsed, so it is obvious how long ago the last step happened.
-    if (runStillExecuting && prevDecEnd > 0 && liveNowSec - prevDecEnd >= 1) {
+    if (runStillExecuting && !lastWasScheduledWait && prevDecEnd > 0 && liveNowSec - prevDecEnd >= 1) {
+
       withProcessing.push({
         label: '',
         type: 'decision',
