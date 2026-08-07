@@ -1,6 +1,6 @@
 /**
  * ExecutionNotificationsDrawer — right-side drawer listing the notifications
- * created by a single workflow execution.
+ * from the organization, defaulting to the ones for a single workflow execution.
  *
  * Self-contained Shuffle-Core surface: it only needs an `executionId` (and
  * optionally the `workflowId`) and fetches `/api/v1/notifications` itself,
@@ -8,19 +8,22 @@
  * same notification shape used everywhere else in the app (title, description,
  * created_at, reference_url).
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Chip,
   CircularProgress,
   Drawer,
   IconButton,
+  InputAdornment,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Launch as LaunchIcon,
+  Search as SearchIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
@@ -41,7 +44,7 @@ export interface ExecutionNotification {
 export interface ExecutionNotificationsDrawerProps {
   open: boolean;
   onClose: () => void;
-  executionId: string;
+  executionId?: string;
   workflowId?: string;
   /** Drawer width in px. Defaults to 520. */
   width?: number;
@@ -70,6 +73,13 @@ const matchesExecution = (
   return false;
 };
 
+const matchesQuery = (n: ExecutionNotification, q: string): boolean => {
+  if (!q) return true;
+  const needle = q.toLowerCase();
+  return [n.title, n.description, n.reference_url, n.execution_id, n.workflow_id, n.severity]
+    .some((v) => String(v || '').toLowerCase().includes(needle));
+};
+
 const ExecutionNotificationsDrawer = ({
   open,
   onClose,
@@ -80,9 +90,14 @@ const ExecutionNotificationsDrawer = ({
   const [items, setItems] = useState<ExecutionNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scopedToExecution, setScopedToExecution] = useState(Boolean(executionId));
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (open) setScopedToExecution(Boolean(executionId));
+  }, [open, executionId]);
 
   const load = useCallback(async () => {
-    if (!executionId) return;
     setLoading(true);
     setError(null);
     try {
@@ -95,18 +110,30 @@ const ExecutionNotificationsDrawer = ({
       const all: ExecutionNotification[] = Array.isArray(data?.notifications)
         ? data.notifications
         : [];
-      setItems(all.filter((n) => matchesExecution(n, executionId, workflowId)));
+      setItems(all);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [executionId, workflowId]);
+  }, []);
 
   useEffect(() => {
     if (open) load();
   }, [open, load]);
+
+  const visible = useMemo(() => {
+    const scoped = scopedToExecution && executionId
+      ? items.filter((n) => matchesExecution(n, executionId, workflowId))
+      : items;
+    return scoped.filter((n) => matchesQuery(n, query.trim()));
+  }, [items, scopedToExecution, executionId, workflowId, query]);
+
+  const scopedCount = useMemo(
+    () => (executionId ? items.filter((n) => matchesExecution(n, executionId, workflowId)).length : 0),
+    [items, executionId, workflowId],
+  );
 
   return (
     <Drawer
@@ -153,8 +180,73 @@ const ExecutionNotificationsDrawer = ({
         </Tooltip>
       </Box>
 
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          px: 2,
+          py: 1.25,
+          borderBottom: '1px solid hsl(var(--border))',
+          flexWrap: 'wrap',
+        }}
+      >
+        <TextField
+          size="small"
+          placeholder="Search notifications"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          sx={{ flex: 1, minWidth: 200 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" sx={{ color: 'hsl(var(--muted-foreground))' }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+        {executionId ? (
+          <Tooltip title="Only show notifications from the current execution" arrow>
+            <Chip
+              size="small"
+              label={`This execution (${scopedCount})`}
+              variant={scopedToExecution ? 'filled' : 'outlined'}
+              onClick={() => setScopedToExecution((v) => !v)}
+              sx={{
+                height: 28,
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                color: scopedToExecution ? 'hsl(var(--background))' : 'hsl(var(--muted-foreground))',
+                bgcolor: scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
+                borderColor: 'hsl(var(--border))',
+                '&:hover': {
+                  bgcolor: scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
+                },
+              }}
+            />
+          </Tooltip>
+        ) : null}
+        <Chip
+          size="small"
+          label={`All (${items.length})`}
+          variant={scopedToExecution ? 'outlined' : 'filled'}
+          onClick={() => setScopedToExecution(false)}
+          sx={{
+            height: 28,
+            fontSize: '0.75rem',
+            cursor: 'pointer',
+            color: !scopedToExecution ? 'hsl(var(--background))' : 'hsl(var(--muted-foreground))',
+            bgcolor: !scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
+            borderColor: 'hsl(var(--border))',
+            '&:hover': {
+              bgcolor: !scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
+            },
+          }}
+        />
+      </Box>
+
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-        {loading && items.length === 0 && (
+        {loading && visible.length === 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
             <CircularProgress size={22} />
           </Box>
@@ -166,13 +258,15 @@ const ExecutionNotificationsDrawer = ({
           </Typography>
         )}
 
-        {!loading && !error && items.length === 0 && (
+        {!loading && !error && visible.length === 0 && (
           <Typography sx={{ fontSize: '0.8125rem', color: 'hsl(var(--muted-foreground))' }}>
-            No notifications found for this execution.
+            {scopedToExecution && executionId
+              ? 'No notifications found for this execution.'
+              : 'No notifications found.'}
           </Typography>
         )}
 
-        {items.map((n, i) => (
+        {visible.map((n, i) => (
           <Box
             key={n.id || `${i}`}
             sx={{
