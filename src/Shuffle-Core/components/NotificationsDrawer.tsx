@@ -375,22 +375,6 @@ const NotificationsDrawer = ({
                   >
                     {n.title || 'Notification'}
                   </Typography>
-                  {n.reference_url && (
-                    <Tooltip title="Open reference" arrow>
-                      <IconButton
-                        className="notif-launch"
-                        size="small"
-                        onClick={() => window.open(n.reference_url, '_blank', 'noopener,noreferrer')}
-                        sx={{
-                          color: 'hsl(var(--muted-foreground))',
-                          opacity: 0,
-                          transition: 'opacity 0.15s ease',
-                        }}
-                      >
-                        <LaunchIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
                 </Box>
                 {n.description && (
                   <Typography
