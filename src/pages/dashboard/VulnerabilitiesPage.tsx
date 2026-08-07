@@ -157,7 +157,7 @@ const VULN_FILTERS_STORAGE_KEY = 'vulnerabilities-list-filters';
 
 const loadStoredFilters = (): Record<string, unknown> => {
   try {
-    const raw = safeLocalStorage.getItem(VULN_FILTERS_STORAGE_KEY);
+    const raw = localStorage.getItem(VULN_FILTERS_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -182,7 +182,7 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   useEffect(() => {
     try {
-      safeLocalStorage.setItem(VULN_FILTERS_STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(VULN_FILTERS_STORAGE_KEY, JSON.stringify({
         searchQuery,
         severityFilter,
         categoryFilter,
