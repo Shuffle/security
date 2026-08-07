@@ -1405,19 +1405,44 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               </Tooltip>
             );
           })()}
-          {item.type === 'decision' && (details?.run_details as any)?.debug_url && (
-            <Tooltip title="Open debug URL">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={() => window.open(getShuffleCoreFormUrl((details!.run_details as any).debug_url), '_blank', 'noopener,noreferrer')}
-                  sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
-                >
-                  <OpenInNewIcon size={16} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          )}
+          {item.type === 'decision' && (details?.run_details as any)?.debug_url && (() => {
+            const rawDebugUrl = String((details!.run_details as any).debug_url);
+            // Pull the execution id out of the debug URL so we can open the
+            // in-app execution sidebar instead of a new browser tab.
+            let debugExecutionId = '';
+            try {
+              const qp = rawDebugUrl.split('?')[1] || '';
+              debugExecutionId = new URLSearchParams(qp).get('execution_id') || '';
+            } catch { /* noop */ }
+            if (!debugExecutionId) {
+              const m = rawDebugUrl.match(/[0-9a-fA-F-]{36}/g);
+              if (m && m.length > 0) debugExecutionId = m[m.length - 1];
+            }
+            return (
+              <Tooltip title={debugExecutionId ? 'View full execution' : 'Open debug URL'}>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      if (debugExecutionId) {
+                        try {
+                          window.dispatchEvent(new CustomEvent('workflow-run:open', {
+                            detail: { executionId: debugExecutionId },
+                          }));
+                          return;
+                        } catch { /* noop */ }
+                      }
+                      window.open(getShuffleCoreFormUrl(rawDebugUrl), '_blank', 'noopener,noreferrer');
+                    }}
+                    sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
+                  >
+                    {debugExecutionId ? <PanelRightOpenIcon size={16} /> : <OpenInNewIcon size={16} />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            );
+          })()}
+
         </Box>
       </Box>
 
