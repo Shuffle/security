@@ -947,7 +947,42 @@ const formatAgo = (sec: number): string => {
   return `${Math.floor(diff / 86400)}d ago`;
 };
 
+// A scheduled WAITING row is still "running" from the user's point of view —
+// its bar keeps filling from its start time up to now so the elapsed time is
+// visible even though the row has no real end timestamp yet.
+const ScheduledLiveBar: React.FC<{
+  startSec: number;
+  originalStartTime: number;
+  totalDuration: number;
+  maxWidth: number;
+}> = ({ startSec, originalStartTime, totalDuration, maxWidth }) => {
+  const [nowSec, setNowSec] = useState(() => Date.now() / 1000);
+  useEffect(() => {
+    const t = setInterval(() => setNowSec(Date.now() / 1000), 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (!(startSec > 0) || !(totalDuration > 0) || !(maxWidth > 0)) return null;
+  const elapsed = Math.max(0, nowSec - startSec);
+  const rawWidth = Math.max(4, (elapsed / totalDuration) * maxWidth);
+  const width = Math.min(rawWidth, maxWidth);
+  const rawOffset = ((startSec - originalStartTime) / totalDuration) * maxWidth;
+  const offset = Math.min(Math.max(0, rawOffset), Math.max(0, maxWidth - width));
+  return (
+    <Box sx={{
+      position: 'absolute',
+      left: `${(offset / maxWidth) * 100}%`,
+      width: `${(width / maxWidth) * 100}%`,
+      height: 8,
+      top: 1,
+      bgcolor: 'var(--timeline-bar-color)',
+      borderRadius: 1,
+      transition: 'all 0.2s ease, background-color 0.15s ease',
+    }} />
+  );
+};
+
 const TimelineRow: React.FC<TimelineRowProps> = ({
+
   item, index, open, onToggle, appsById, totalDuration, originalStartTime,
   maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
   onRerunAgent, onRerunDecision, agentRequestLoading, getFormUrl, runFinished,
@@ -1255,7 +1290,14 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         ) : ''}>
           <Box sx={{ width: maxWidth, maxWidth, minWidth: 40, position: 'relative', height: 10, flexShrink: 1, flexBasis: maxWidth, overflow: 'hidden' }}>
-            {showTiming && !isScheduledWait && (
+            {isScheduledWait ? (
+              <ScheduledLiveBar
+                startSec={itemStart}
+                originalStartTime={originalStartTime}
+                totalDuration={totalDuration}
+                maxWidth={maxWidth}
+              />
+            ) : showTiming && (
               <Box sx={{
                 position: 'absolute',
                 left: `${leftPct}%`,
@@ -1267,6 +1309,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                 transition: 'all 0.2s ease, background-color 0.15s ease',
               }} />
             )}
+
           </Box>
         </Tooltip>
 
