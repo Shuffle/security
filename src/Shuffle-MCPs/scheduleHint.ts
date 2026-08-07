@@ -21,7 +21,16 @@ export interface ScheduleHint {
   confidence: 'low' | 'medium' | 'high';
   /** The substring of the input that triggered the match (for highlighting). */
   matchedText: string;
+  /**
+   * True when the phrasing describes a single upcoming moment ("this coming
+   * Monday", "tomorrow at 9") rather than a repeating schedule. The cron is
+   * then pinned to that exact date so it does not fire every week.
+   */
+  once?: boolean;
+  /** ISO timestamp of the single occurrence, when `once` is true. */
+  runAt?: string;
 }
+
 
 const DAY_NAMES: Record<string, number> = {
   sunday: 0, sun: 0,
@@ -74,14 +83,42 @@ const findTime = (text: string): { h: number; m: number; matched: string } | nul
   return null;
 };
 
-const findDay = (text: string): { day: number; matched: string } | null => {
+const findDay = (text: string): { day: number; matched: string; plural: boolean } | null => {
   for (const [name, d] of Object.entries(DAY_NAMES)) {
-    const re = new RegExp(`\\b${name}\\b`, 'i');
+    // "mondays" (plural) reads as a recurring weekly slot, "monday" does not.
+    const re = new RegExp(`\\b${name}(s)?\\b`, 'i');
     const m = text.match(re);
-    if (m) return { day: d, matched: m[0] };
+    if (m) return { day: d, matched: m[0], plural: Boolean(m[1]) };
   }
   return null;
 };
+
+const MONTH_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Next calendar date matching `day` (0-6) at h:m, strictly in the future. */
+const nextDateForWeekday = (day: number, h: number, m: number): Date => {
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+  let delta = (day - target.getDay() + 7) % 7;
+  if (delta === 0 && target.getTime() <= now.getTime()) delta = 7;
+  target.setDate(target.getDate() + delta);
+  return target;
+};
+
+/** A hint pinned to one specific date — cron includes day-of-month + month. */
+const onceHint = (
+  target: Date,
+  confidence: ScheduleHint['confidence'],
+  matchedText: string,
+): ScheduleHint => ({
+  cron: `${target.getMinutes()} ${target.getHours()} ${target.getDate()} ${target.getMonth() + 1} *`,
+  label: `Once on ${DAY_LABEL[target.getDay()]}, ${MONTH_LABEL[target.getMonth()]} ${target.getDate()} at ${fmtTime(target.getHours(), target.getMinutes())}`,
+  confidence,
+  matchedText,
+  once: true,
+  runAt: target.toISOString(),
+});
+
 
 const findPartOfDay = (text: string): { h: number; matched: string } | null => {
   for (const [name, h] of Object.entries(PART_OF_DAY)) {
@@ -145,8 +182,14 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
   if (isWeekdays) hits.push('weekdays');
   if (isMonthly) hits.push('monthly');
 
-  // Future word — "next monday at 2am" is treated as weekly Monday.
+  // A single upcoming day ("this coming monday", "next monday", "on monday")
+  // is a one-off reminder — only "every monday" / "mondays" / "weekly" repeat.
+  const recurringDayPhrase = day
+    ? day.plural || new RegExp(`\\b(?:every|each)\\s+(?:other\\s+)?${day.matched}\\b`).test(text)
+    : false;
+  const oneOffDayPhrase = Boolean(day) && !recurringDayPhrase;
   if (/\bnext\b/.test(text)) hits.push('next');
+
 
   // ── Near-future one-off phrases ────────────────────────────────────────
   // "in 15 minutes", "in 2 hours" — schedule once at now + offset.
@@ -156,41 +199,40 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
     const offsetMs = inMin
       ? parseInt(inMin[1], 10) * 60_000
       : parseInt(inHr![1], 10) * 3_600_000;
-    const target = new Date(Date.now() + offsetMs);
-    const th = target.getHours();
-    const tm = target.getMinutes();
-    return {
-      cron: `${tm} ${th} * * *`,
-      label: `Today at ${fmtTime(th, tm)}`,
-      confidence: 'high',
-      matchedText: (inMin || inHr)![0],
-    };
+    return onceHint(new Date(Date.now() + offsetMs), 'high', (inMin || inHr)![0]);
   }
 
   // "later today", "later", "soon", "shortly", "in a bit" — ~2 hours out.
   const laterMatch = text.match(/\b(later\s+today|later\s+tonight|later\s+this\s+(?:morning|afternoon|evening)|later|soon|shortly|in\s+a\s+bit|in\s+a\s+while|in\s+a\s+moment)\b/);
   if (laterMatch && hour === null) {
-    const target = new Date(Date.now() + 2 * 3_600_000);
-    const th = target.getHours();
-    const tm = target.getMinutes();
-    return {
-      cron: `${tm} ${th} * * *`,
-      label: `Today at ${fmtTime(th, tm)}`,
-      confidence: 'medium',
-      matchedText: laterMatch[0],
-    };
+    return onceHint(new Date(Date.now() + 2 * 3_600_000), 'medium', laterMatch[0]);
   }
 
-  if (/\btonight\b/.test(text) && hour === null) {
-    return { cron: '0 21 * * *', label: 'Daily at 9:00 PM (tonight)', confidence: 'medium', matchedText: 'tonight' };
+  if (/\btonight\b/.test(text) && !isDaily && !isWeekly) {
+    const h = hour ?? 21;
+    const target = new Date();
+    target.setHours(h, minute, 0, 0);
+    if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
+    return onceHint(target, 'medium', 'tonight');
   }
-  if (/\btomorrow\b/.test(text) && hour !== null) {
-    return {
-      cron: `${minute} ${hour} * * *`,
-      label: `Daily at ${fmtTime(hour, minute)}`,
-      confidence: 'medium',
-      matchedText: hits.join(' '),
-    };
+  if (/\btomorrow\b/.test(text) && !isDaily && !isWeekly) {
+    const target = new Date();
+    target.setDate(target.getDate() + 1);
+    target.setHours(hour ?? 9, minute, 0, 0);
+    return onceHint(target, 'medium', hits.join(' ') || 'tomorrow');
+  }
+  if (/\btoday\b/.test(text) && hour !== null && !isDaily && !isWeekly) {
+    const target = new Date();
+    target.setHours(hour, minute, 0, 0);
+    if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
+    return onceHint(target, 'medium', hits.join(' ') || 'today');
+  }
+  if (day && oneOffDayPhrase && !isWeekly && !isMonthly && !isWeekdays && !isDaily) {
+    return onceHint(
+      nextDateForWeekday(day.day, hour ?? 9, minute),
+      hour !== null ? 'high' : 'medium',
+      hits.join(' ') || day.matched,
+    );
   }
 
 
@@ -203,6 +245,7 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
       matchedText: hits.join(' '),
     };
   }
+
   if (isWeekdays && hour !== null) {
     return {
       cron: `${minute} ${hour} * * 1-5`,
