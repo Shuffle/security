@@ -136,8 +136,12 @@ const NotificationsDrawer = ({
 
   useEffect(() => {
     if (!open) return;
-    setQuery(executionId ? String(executionId) : '');
+    const initialQuery = executionId ? String(executionId) : '';
+    setQuery(initialQuery);
     setScope('workflows');
+    // Hide read notifications by default — unless we are already searching
+    // for something specific (e.g. an execution id), in which case show all.
+    setShowRead(initialQuery.length > 0);
   }, [open, executionId]);
 
   const load = useCallback(async () => {
