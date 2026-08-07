@@ -838,6 +838,36 @@ const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
 
 // ── Inner: timeline item ──────────────────────────────────────────────────────
 
+/** Live countdown chip for a WAITING decision that resumes at a known time. */
+const ScheduledCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) => {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const remaining = resumeAtMs - nowMs;
+  return (
+    <Tooltip title={`Continues at ${new Date(resumeAtMs).toLocaleString()}`} arrow>
+      <Chip
+        icon={<ScheduleIcon size={12} />}
+        label={remaining > 0 ? `in ${formatTimeLeft(remaining)}` : 'due now'}
+        size="small"
+        sx={{
+          height: 22,
+          bgcolor: 'transparent',
+          border: '1px dashed hsl(var(--border))',
+          color: 'hsl(var(--muted-foreground))',
+          fontSize: '0.7rem',
+          fontWeight: 500,
+          flexShrink: 0,
+          '& .MuiChip-icon': { color: 'hsl(var(--muted-foreground))', ml: 0.75, mr: -0.25 },
+        }}
+      />
+    </Tooltip>
+  );
+};
+
+
 const StatusIcon: React.FC<{ status?: string; resumeAtMs?: number }> = ({ status, resumeAtMs }) => {
   const s = (status || '').toUpperCase();
   const isScheduledWait = s === 'WAITING' && !!resumeAtMs;
