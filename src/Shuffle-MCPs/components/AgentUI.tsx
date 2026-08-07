@@ -4035,7 +4035,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               px: 2.25,
-              py: 0.75,
+              py: 1.75,
+
               position: 'relative',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease, border-radius 0.15s ease',
               '&:focus-within': {
@@ -4066,7 +4067,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
               {!hidePresets && (
                 <Box sx={{
-                  position: 'absolute', left: '14px', top: '11px',
+                  position: 'absolute', left: '14px', top: '19px',
                   height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                   // While the textarea is scrolled, line 1 (the indented one) is
                   // out of view and later lines would run under the chip.
