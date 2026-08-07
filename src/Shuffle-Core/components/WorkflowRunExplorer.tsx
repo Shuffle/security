@@ -382,38 +382,6 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         const showWarning = hasNotifications || longRunning;
         return (
         <Box sx={{ px: 1 }}>
-          {showWarning && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 1,
-                px: 1.25,
-                py: 1,
-                mb: 1.5,
-                border: '1px solid hsl(var(--severity-medium) / 0.6)',
-                bgcolor: 'hsl(var(--severity-medium) / 0.1)',
-                borderRadius: 1.5,
-                color: 'hsl(var(--foreground))',
-              }}
-            >
-              <Box sx={{ color: 'hsl(var(--severity-medium))', mt: '2px', fontSize: 16, lineHeight: 1 }}>!</Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'hsl(var(--severity-medium))' }}>
-                  Needs attention
-                </Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
-                  {hasNotifications && (
-                    <>Created {notifCount} notification{notifCount === 1 ? '' : 's'} — the workflow reported an issue.</>
-                  )}
-                  {hasNotifications && longRunning && ' '}
-                  {longRunning && (
-                    <>Still executing after more than 5 minutes — may be stuck.</>
-                  )}
-                </Typography>
-              </Box>
-            </Box>
-          )}
           {exec.status && (
             <MetaRow
               label="Status"
