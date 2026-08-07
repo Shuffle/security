@@ -589,6 +589,87 @@ const NotificationsDrawer = ({
           </Box>
         </Box>
       </Box>
+
+      {/* Confirmation dialog for "Close all" */}
+      <Dialog
+        open={confirmClearOpen}
+        onClose={() => setConfirmClearOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            border: '1px solid hsl(var(--border))',
+            backgroundColor: 'hsl(var(--background))',
+            backgroundImage: 'none',
+          },
+        }}
+        sx={{ zIndex: 9999 }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pr: 6 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'hsl(var(--warning) / 0.15)',
+              color: 'hsl(var(--warning))',
+              flexShrink: 0,
+            }}
+          >
+            <WarningAmberIcon sx={{ fontSize: 20 }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+            Clear all notifications?
+          </Typography>
+          <IconButton
+            aria-label="Close"
+            onClick={() => setConfirmClearOpen(false)}
+            size="small"
+            sx={{ position: 'absolute', right: 12, top: 12, color: 'hsl(var(--muted-foreground))' }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderColor: 'hsl(var(--border))' }}>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            This will mark every notification for this organization as read. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            onClick={() => setConfirmClearOpen(false)}
+            variant="outlined"
+            disabled={clearing}
+            sx={{
+              height: 36,
+              textTransform: 'none',
+              borderColor: 'hsl(var(--border))',
+              color: 'hsl(var(--foreground))',
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={clearAll}
+            variant="contained"
+            disabled={clearing}
+            startIcon={clearing ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{
+              height: 36,
+              textTransform: 'none',
+              backgroundColor: 'hsl(var(--destructive))',
+              color: 'hsl(var(--destructive-foreground))',
+              '&:hover': { backgroundColor: 'hsl(var(--destructive) / 0.9)' },
+            }}
+          >
+            Clear all
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Drawer>
   );
 };
