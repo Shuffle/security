@@ -352,8 +352,14 @@ const AuthenticatedVulnerabilitiesView = () => {
           onCategoryChange={setCategoryFilter}
           statusFilter={statusFilter}
           onStatusChange={setStatusFilter}
+          severityCounts={severityCounts as unknown as Record<string, number>}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
           readiness={isSupport ? <VulnerabilityReadinessBanner /> : undefined}
         />
+
       </Box>
 
 
