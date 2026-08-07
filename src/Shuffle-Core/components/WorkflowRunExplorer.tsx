@@ -377,43 +377,10 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
       {exec && (() => {
         const startedMs = exec.started_at ? exec.started_at * 1000 : 0;
         const longRunning = isRunning(exec.status) && startedMs > 0 && (Date.now() - startedMs) > 5 * 60 * 1000;
-        const notifCount = Number(exec.notifications_created) || 0;
-        const hasNotifications = notifCount > 0;
-        const showWarning = hasNotifications || longRunning;
+
+
         return (
         <Box sx={{ px: 1 }}>
-          {showWarning && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 1,
-                px: 1.25,
-                py: 1,
-                mb: 1.5,
-                border: '1px solid hsl(var(--severity-medium) / 0.6)',
-                bgcolor: 'hsl(var(--severity-medium) / 0.1)',
-                borderRadius: 1.5,
-                color: 'hsl(var(--foreground))',
-              }}
-            >
-              <Box sx={{ color: 'hsl(var(--severity-medium))', mt: '2px', fontSize: 16, lineHeight: 1 }}>!</Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'hsl(var(--severity-medium))' }}>
-                  Needs attention
-                </Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
-                  {hasNotifications && (
-                    <>Created {notifCount} notification{notifCount === 1 ? '' : 's'} — the workflow reported an issue.</>
-                  )}
-                  {hasNotifications && longRunning && ' '}
-                  {longRunning && (
-                    <>Still executing after more than 5 minutes — may be stuck.</>
-                  )}
-                </Typography>
-              </Box>
-            </Box>
-          )}
           {exec.status && (
             <MetaRow
               label="Status"
@@ -547,7 +514,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                   );
                 })()}
                 {appName ? (
-                  <Tooltip title={appName} arrow>
+                  <Tooltip title={r?.status ? `${appName} — ${r.status}` : appName} arrow>
                     <Box
                       component={r?.action?.app_id ? 'a' : 'span'}
                       {...(r?.action?.app_id
@@ -560,7 +527,19 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                         imageUrl={imgSrc}
                         size={28}
                         alt={appName}
-                        style={{ borderRadius: '50%', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--muted))' }}
+                        style={{
+                          borderRadius: '50%',
+                          border: `2px solid ${
+                            r?.status === 'SUCCESS' || r?.status === 'FINISHED'
+                              ? 'hsl(140 60% 55%)'
+                              : r?.status === 'FAILURE' || r?.status === 'ABORTED'
+                              ? 'hsl(var(--destructive))'
+                              : r?.status
+                              ? 'hsl(45 90% 55%)'
+                              : 'hsl(var(--border))'
+                          }`,
+                          backgroundColor: 'hsl(var(--muted))',
+                        }}
                       />
                     </Box>
                   </Tooltip>
@@ -603,24 +582,6 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                     </Tooltip>
                   );
                 })()}
-                {r?.status && (
-
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      textTransform: 'uppercase',
-                      fontWeight: 600,
-                      color:
-                        r.status === 'SUCCESS' || r.status === 'FINISHED'
-                          ? 'hsl(140 60% 55%)'
-                          : r.status === 'FAILURE' || r.status === 'ABORTED'
-                          ? 'hsl(var(--destructive))'
-                          : 'hsl(45 90% 55%)',
-                    }}
-                  >
-                    {r.status}
-                  </Typography>
-                )}
               </Box>
               {r?.result && (
                 <Box sx={{ mt: 0.5 }}>
