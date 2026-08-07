@@ -86,6 +86,21 @@ const getExecutionId = (n: ExecutionNotification): string => {
   return match ? match[1] : '';
 };
 
+const SEVERITY_MAP: Record<string, string> = {
+  critical: 'var(--severity-critical)',
+  high: 'var(--severity-high)',
+  medium: 'var(--severity-medium)',
+  warning: 'var(--severity-medium)',
+  low: 'var(--severity-low)',
+  info: 'var(--severity-info)',
+  informational: 'var(--severity-info)',
+};
+
+const getSeverityColor = (sev?: string): string | null => {
+  if (!sev) return null;
+  return SEVERITY_MAP[sev.toLowerCase()] || null;
+};
+
 const matchesQuery = (n: ExecutionNotification, q: string): boolean => {
   if (!q) return true;
   const needle = q.toLowerCase();
