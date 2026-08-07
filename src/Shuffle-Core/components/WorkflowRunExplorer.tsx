@@ -20,6 +20,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Badge,
   Drawer,
   Box,
   Typography,
@@ -42,8 +43,10 @@ import {
   Stop as StopIcon,
   ContentCopy as ContentCopyIcon,
   Link as LinkIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
+import ExecutionNotificationsDrawer from './ExecutionNotificationsDrawer';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import shuffleLogo from '@/assets/shuffle-logo.png';
 import singulAgentIcon from '@/assets/singul-agent-icon.png';
@@ -161,6 +164,7 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
   const [loading, setLoading] = useState(true);
   const [aborting, setAborting] = useState(false);
   const [debugResult, setDebugResult] = useState<any | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
 
@@ -275,6 +279,36 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         }}
       >
         <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>Details</Typography>
+        {exec && Number(exec.notifications_created) > 0 && (
+          <Tooltip
+            title={`${Number(exec.notifications_created)} notification${Number(exec.notifications_created) === 1 ? '' : 's'} — click to view`}
+            arrow
+          >
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => setNotificationsOpen(true)}
+                sx={{ color: 'hsl(var(--severity-medium))' }}
+              >
+                <Badge
+                  badgeContent={Number(exec.notifications_created)}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      bgcolor: 'hsl(var(--severity-medium))',
+                      color: 'hsl(var(--background))',
+                      fontSize: '0.625rem',
+                      height: 16,
+                      minWidth: 16,
+                    },
+                  }}
+                >
+                  <NotificationsIcon fontSize="small" />
+                </Badge>
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
+
         {exec && isRunning(exec.status) && (
           <Tooltip title="Abort workflow" arrow>
             <span>
@@ -392,16 +426,8 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               }
             />
           )}
-          {hasNotifications && (
-            <MetaRow
-              label="Notifications"
-              value={
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--severity-medium))', fontWeight: 600 }}>
-                  {notifCount}
-                </Box>
-              }
-            />
-          )}
+          {/* Notifications are surfaced as a clickable icon in the Details header */}
+
           {(exec.execution_source || exec.authgroup) && (
             <MetaRow label="Source" value={sourceLabel(exec)} accent />
           )}
@@ -740,7 +766,15 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
           );
         })()}
       </Dialog>
+
+      <ExecutionNotificationsDrawer
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        executionId={executionId}
+        workflowId={exec?.workflow?.id}
+      />
     </Box>
+
   );
 };
 
