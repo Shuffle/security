@@ -962,11 +962,17 @@ const ScheduledLiveBar: React.FC<{
     return () => clearInterval(t);
   }, []);
   if (!(startSec > 0) || !(totalDuration > 0) || !(maxWidth > 0)) return null;
+  // The left edge is the row's real start position on the shared track and must
+  // never be slid left to make room for the bar — an ongoing wait grows to the
+  // right only, so the width is what gets clamped to the remaining track.
+  const rawOffset = ((startSec - originalStartTime) / totalDuration) * maxWidth;
+  const offset = Number.isFinite(rawOffset)
+    ? Math.min(Math.max(0, rawOffset), Math.max(0, maxWidth - 4))
+    : 0;
   const elapsed = Math.max(0, nowSec - startSec);
   const rawWidth = Math.max(4, (elapsed / totalDuration) * maxWidth);
-  const width = Math.min(rawWidth, maxWidth);
-  const rawOffset = ((startSec - originalStartTime) / totalDuration) * maxWidth;
-  const offset = Math.min(Math.max(0, rawOffset), Math.max(0, maxWidth - width));
+  const width = Math.min(Number.isFinite(rawWidth) ? rawWidth : 4, maxWidth - offset);
+
   return (
     <Box sx={{
       position: 'absolute',
