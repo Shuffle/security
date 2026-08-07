@@ -16,9 +16,9 @@ import { getDatastoreItem, setDatastoreItem } from '@/Shuffle-MCPs/datastore';
 
 export const AGENT_PROMPT_PREFIX_CATEGORY = 'agent-prompt-prefix';
 
-/** Default seed used until the user saves their own prefix. */
-export const DEFAULT_AGENT_PROMPT_PREFIX =
-  'You are the Shuffle Tools agent. Use the connected Shuffle tools to help me with the request that follows.';
+/** Default seed used until the user saves their own prefix.
+ * Empty by default — the backend system prompt handles agent identity. */
+export const DEFAULT_AGENT_PROMPT_PREFIX = '';
 
 const decodePrompt = (raw: unknown): string | null => {
   if (raw == null) return null;
