@@ -21,7 +21,16 @@ export interface ScheduleHint {
   confidence: 'low' | 'medium' | 'high';
   /** The substring of the input that triggered the match (for highlighting). */
   matchedText: string;
+  /**
+   * True when the phrasing describes a single upcoming moment ("this coming
+   * Monday", "tomorrow at 9") rather than a repeating schedule. The cron is
+   * then pinned to that exact date so it does not fire every week.
+   */
+  once?: boolean;
+  /** ISO timestamp of the single occurrence, when `once` is true. */
+  runAt?: string;
 }
+
 
 const DAY_NAMES: Record<string, number> = {
   sunday: 0, sun: 0,
