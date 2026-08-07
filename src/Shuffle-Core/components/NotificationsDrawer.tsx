@@ -39,6 +39,9 @@ export interface ExecutionNotification {
   description?: string;
   reference_url?: string;
   created_at?: number;
+  first_seen?: number;
+  last_seen?: number;
+  times_seen?: number;
   read?: boolean;
   severity?: string;
   execution_id?: string;
