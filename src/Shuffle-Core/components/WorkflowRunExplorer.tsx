@@ -289,14 +289,11 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               <IconButton
                 size="small"
                 onClick={() => setNotificationsOpen(true)}
-                sx={{ color: 'hsl(var(--severity-medium))' }}
               >
                 <Badge
                   badgeContent={Number(exec.notifications_created)}
                   sx={{
                     '& .MuiBadge-badge': {
-                      bgcolor: 'hsl(var(--severity-medium))',
-                      color: 'hsl(var(--background))',
                       fontSize: '0.625rem',
                       height: 16,
                       minWidth: 16,
@@ -577,7 +574,6 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                     <Tooltip title={`Delayed by ${label} before running`} arrow>
                       <ScheduleIcon
                         fontSize="small"
-                        sx={{ color: 'hsl(45 90% 55%)' }}
                       />
                     </Tooltip>
                   );
