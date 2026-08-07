@@ -275,12 +275,12 @@ export const parseScheduleHint = (input: string): ScheduleHint | null => {
   }
   if (day && oneOffDayPhrase && !isWeekly && !isMonthly && !isWeekdays && !isDaily) {
     const target = nextDateForWeekday(day.day, hour ?? 9, minute);
-    // "next monday" means the week after the upcoming one when today is early
-    // in the week — keep it simple: push a week only when explicitly "next".
-    if (/\bnext\s+(?:week\s+)?\w*\s*$/.test('') === false && /\bnext\b/.test(text)) {
+    // "next monday" pushes past an imminent occurrence (today/tomorrow).
+    if (/\bnext\b/.test(text)) {
       const upcomingDelta = Math.round((target.getTime() - Date.now()) / 86_400_000);
       if (upcomingDelta < 2) target.setDate(target.getDate() + 7);
     }
+
     return onceHint(
       target,
       hour !== null ? 'high' : 'medium',
