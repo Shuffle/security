@@ -155,7 +155,9 @@ const UNIT_ALIASES: Record<string, keyof typeof UNIT_MS> = {
   mo: 'month', mon: 'month', month: 'month', months: 'month',
 };
 
-const QUANTITY = '\\d+(?:\\.\\d+)?|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|couple(?:\\s+of)?|few|several|dozen|half\\s+an?|half\\s+a';
+// Longest alternatives first so "a couple of" is not swallowed by bare "a".
+const QUANTITY = '\\d+(?:\\.\\d+)?|half\\s+an?|a\\s+couple(?:\\s+of)?|couple(?:\\s+of)?|a\\s+few|few|several|a\\s+dozen|dozen|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|an|a';
+
 const UNIT = 's|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks|mo|month|months';
 
 const quantityValue = (raw: string): number | null => {
