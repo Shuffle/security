@@ -19,9 +19,11 @@ import {
   TextField,
   Tooltip,
   Typography,
+  Divider,
+  Button,
 } from '@mui/material';
 import {
-  Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
   Launch as LaunchIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
@@ -46,8 +48,10 @@ export interface ExecutionNotificationsDrawerProps {
   onClose: () => void;
   executionId?: string;
   workflowId?: string;
-  /** Drawer width in px. Defaults to 520. */
+  /** Drawer width in px. Defaults to 720. */
   width?: number;
+  minWidth?: number;
+  maxWidth?: number;
 }
 
 const formatTime = (ts?: number): string => {
@@ -85,7 +89,9 @@ const ExecutionNotificationsDrawer = ({
   onClose,
   executionId,
   workflowId,
-  width = 520,
+  width = 720,
+  minWidth = 480,
+  maxWidth = 900,
 }: ExecutionNotificationsDrawerProps) => {
   const [items, setItems] = useState<ExecutionNotification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,135 +141,214 @@ const ExecutionNotificationsDrawer = ({
     [items, executionId, workflowId],
   );
 
+  const drawerWidth = `min(${width}px, 100vw)`;
+  const drawerMinWidth = `min(${minWidth}px, 100vw)`;
+  const drawerMaxWidth = `min(${maxWidth}px, 100vw)`;
+
   return (
     <Drawer
       anchor="right"
       open={open}
       onClose={onClose}
-      slotProps={{
-        paper: {
-          sx: {
-            width: { xs: '100%', sm: width },
-            maxWidth: '100vw',
-            bgcolor: 'hsl(var(--card))',
-            color: 'hsl(var(--foreground))',
-            backgroundImage: 'none',
-            borderLeft: '1px solid hsl(var(--border))',
-          },
+      PaperProps={{
+        sx: {
+          width: drawerWidth,
+          minWidth: drawerMinWidth,
+          maxWidth: drawerMaxWidth,
+          flex: `0 0 ${drawerWidth}`,
+          background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
+          color: 'hsl(var(--foreground))',
+          borderLeft: '1px solid hsl(var(--border))',
+        },
+      }}
+      sx={{
+        '& .MuiDrawer-paper': {
+          boxSizing: 'border-box',
+          width: `${drawerWidth} !important`,
+          minWidth: `${drawerMinWidth} !important`,
+          maxWidth: `${drawerMaxWidth} !important`,
+          flex: `0 0 ${drawerWidth} !important`,
         },
       }}
     >
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 2,
-          py: 1.5,
-          borderBottom: '1px solid hsl(var(--border))',
+          bgcolor: 'hsl(var(--card))',
+          color: 'hsl(var(--foreground))',
+          p: { xs: '0 10px 50px 10px', sm: '25px 15px 150px 15px' },
+          height: '100%',
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
       >
-        <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
-          Notifications
-        </Typography>
-        <Tooltip title="Refresh" arrow>
-          <span>
-            <IconButton size="small" onClick={load} disabled={loading}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Close" arrow>
-          <IconButton size="small" onClick={onClose}>
-            <CloseIcon fontSize="small" />
+        {/* Breadcrumb / back */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <IconButton onClick={onClose} size="small" sx={{ color: 'hsl(var(--foreground))', mr: 1 }}>
+            <ArrowBackIcon />
           </IconButton>
-        </Tooltip>
-      </Box>
+          <Typography
+            variant="h6"
+            onClick={onClose}
+            sx={{ cursor: 'pointer', color: 'hsl(var(--foreground))', fontWeight: 600 }}
+          >
+            Back to details
+          </Typography>
+        </Box>
+        <Divider sx={{ my: 1.5, bgcolor: 'hsl(var(--border))' }} />
 
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 2,
-          py: 1.25,
-          borderBottom: '1px solid hsl(var(--border))',
-          flexWrap: 'wrap',
-        }}
-      >
-        <TextField
-          size="small"
-          placeholder="Search notifications"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          sx={{ flex: 1, minWidth: 200 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: 'hsl(var(--muted-foreground))' }} />
-              </InputAdornment>
-            ),
-          }}
-        />
-        {executionId ? (
-          <Tooltip title="Only show notifications from the current execution" arrow>
-            <Chip
-              size="small"
-              label={`This execution (${scopedCount})`}
-              variant={scopedToExecution ? 'filled' : 'outlined'}
-              onClick={() => setScopedToExecution((v) => !v)}
-              sx={{
-                height: 28,
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                color: scopedToExecution ? 'hsl(var(--background))' : 'hsl(var(--muted-foreground))',
-                bgcolor: scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
-                borderColor: 'hsl(var(--border))',
-                '&:hover': {
-                  bgcolor: scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
-                },
-              }}
-            />
-          </Tooltip>
-        ) : null}
-        <Chip
-          size="small"
-          label={`All (${items.length})`}
-          variant={scopedToExecution ? 'outlined' : 'filled'}
-          onClick={() => setScopedToExecution(false)}
+        {/* Header row */}
+        <Box
           sx={{
-            height: 28,
-            fontSize: '0.75rem',
-            cursor: 'pointer',
-            color: !scopedToExecution ? 'hsl(var(--background))' : 'hsl(var(--muted-foreground))',
-            bgcolor: !scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
-            borderColor: 'hsl(var(--border))',
-            '&:hover': {
-              bgcolor: !scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
-            },
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1.25,
+            py: 1,
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 1.5,
+            mb: 1.5,
+            position: 'sticky',
+            top: 0,
+            zIndex: 3,
+            bgcolor: 'hsl(var(--card))',
           }}
-        />
-      </Box>
+        >
+          <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
+            Notifications
+          </Typography>
+          <Tooltip title="Refresh" arrow>
+            <span>
+              <IconButton size="small" onClick={load} disabled={loading} sx={{ color: 'hsl(var(--foreground))' }}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+        {/* Filter / search bar */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            mb: 1.5,
+            flexWrap: 'wrap',
+          }}
+        >
+          <TextField
+            size="small"
+            placeholder="Search notifications"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            sx={{
+              flex: 1,
+              minWidth: 200,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'hsl(var(--muted) / 0.4)',
+                borderRadius: 1,
+                '& fieldset': { borderColor: 'hsl(var(--border))' },
+                '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          {executionId ? (
+            <Tooltip title="Only show notifications from the current execution" arrow>
+              <Chip
+                size="small"
+                label={`This execution (${scopedCount})`}
+                variant={scopedToExecution ? 'filled' : 'outlined'}
+                onClick={() => setScopedToExecution((v) => !v)}
+                sx={{
+                  height: 28,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  color: scopedToExecution ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                  bgcolor: scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
+                  borderColor: 'hsl(var(--border))',
+                  '&:hover': {
+                    bgcolor: scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
+                  },
+                }}
+              />
+            </Tooltip>
+          ) : null}
+          <Chip
+            size="small"
+            label={`All (${items.length})`}
+            variant={scopedToExecution ? 'outlined' : 'filled'}
+            onClick={() => setScopedToExecution(false)}
+            sx={{
+              height: 28,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              color: !scopedToExecution ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+              bgcolor: !scopedToExecution ? 'hsl(var(--primary))' : 'transparent',
+              borderColor: 'hsl(var(--border))',
+              '&:hover': {
+                bgcolor: !scopedToExecution ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--muted) / 0.4)',
+              },
+            }}
+          />
+        </Box>
+
+        {/* Body */}
         {loading && visible.length === 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress size={22} />
+            <CircularProgress size={28} sx={{ color: 'hsl(var(--muted-foreground))' }} />
           </Box>
         )}
 
         {error && (
-          <Typography sx={{ fontSize: '0.8125rem', color: 'hsl(var(--destructive))' }}>
-            {error}
-          </Typography>
+          <Box
+            sx={{
+              border: '1px solid hsl(var(--destructive) / 0.4)',
+              borderRadius: 1.5,
+              p: 1.5,
+              bgcolor: 'hsl(var(--destructive) / 0.08)',
+              mb: 1.5,
+            }}
+          >
+            <Typography sx={{ fontSize: '0.8125rem', color: 'hsl(var(--destructive))' }}>
+              {error}
+            </Typography>
+          </Box>
         )}
 
         {!loading && !error && visible.length === 0 && (
-          <Typography sx={{ fontSize: '0.8125rem', color: 'hsl(var(--muted-foreground))' }}>
-            {scopedToExecution && executionId
-              ? 'No notifications found for this execution.'
-              : 'No notifications found.'}
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1.5,
+              py: 6,
+            }}
+          >
+            <Typography sx={{ fontSize: '0.875rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+              {scopedToExecution && executionId
+                ? 'No notifications for this execution'
+                : 'No notifications found'}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={load}
+              sx={{
+                textTransform: 'none',
+                borderColor: 'hsl(var(--border))',
+                color: 'hsl(var(--muted-foreground))',
+              }}
+            >
+              Refresh
+            </Button>
+          </Box>
         )}
 
         {visible.map((n, i) => (
@@ -272,30 +357,39 @@ const ExecutionNotificationsDrawer = ({
             sx={{
               border: '1px solid hsl(var(--border))',
               borderRadius: 1.5,
-              p: 1.5,
+              p: 1.75,
               mb: 1.25,
-              bgcolor: 'hsl(var(--background))',
+              bgcolor: 'hsl(var(--card))',
+              transition: 'border-color 0.15s ease',
+              '&:hover': {
+                borderColor: 'hsl(var(--muted-foreground) / 0.5)',
+              },
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
               <Typography
-                sx={{ flex: 1, fontSize: '0.875rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}
+                sx={{ flex: 1, fontSize: '0.875rem', fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.3 }}
               >
                 {n.title || 'Notification'}
               </Typography>
               {n.read === false && (
-                <Chip
-                  size="small"
-                  label="Unread"
+                <Box
                   sx={{
-                    height: 20,
+                    flexShrink: 0,
+                    mt: 0.25,
+                    px: 0.75,
+                    py: 0.25,
+                    borderRadius: 0.5,
                     fontSize: '0.6875rem',
-                    color: 'hsl(var(--severity-medium))',
-                    borderColor: 'hsl(var(--severity-medium) / 0.6)',
-                    bgcolor: 'hsl(var(--severity-medium) / 0.1)',
+                    fontWeight: 600,
+                    color: 'hsl(var(--primary))',
+                    bgcolor: 'hsl(var(--primary) / 0.12)',
+                    border: '1px solid hsl(var(--primary) / 0.3)',
+                    lineHeight: 1,
                   }}
-                  variant="outlined"
-                />
+                >
+                  Unread
+                </Box>
               )}
               {n.reference_url && (
                 <Tooltip title="Open reference" arrow>
@@ -314,16 +408,23 @@ const ExecutionNotificationsDrawer = ({
                 sx={{
                   fontSize: '0.8125rem',
                   color: 'hsl(var(--muted-foreground))',
-                  mt: 0.5,
+                  mt: 0.75,
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
+                  lineHeight: 1.5,
                 }}
               >
                 {n.description}
               </Typography>
             )}
             {n.created_at ? (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'hsl(var(--muted-foreground))', mt: 0.75 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.6875rem',
+                  color: 'hsl(var(--muted-foreground) / 0.7)',
+                  mt: 1,
+                }}
+              >
                 {formatTime(n.created_at)}
               </Typography>
             ) : null}
