@@ -409,6 +409,20 @@ const NotificationsDrawer = ({
                       }}
                     />
                   )}
+                  {getSeverityColor(n.severity) && (
+                    <Tooltip title={`Severity: ${n.severity}`} arrow>
+                      <Box
+                        sx={{
+                          mt: '2px',
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: `hsl(${getSeverityColor(n.severity)})`,
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Tooltip>
+                  )}
                   <Typography
                     sx={{
                       flex: 1,
