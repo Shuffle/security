@@ -188,7 +188,7 @@ export function SegmentedControl<V extends string = string>({
               <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: 6 }}>
                 {opt.label}
               </span>
-              {!isAction && typeof opt.count === "number" && (
+              {!isAction && opt.count != null && (
                 <span
                   style={{
                     position: "relative",
