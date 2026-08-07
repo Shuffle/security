@@ -92,9 +92,9 @@ const NotificationsDrawer = ({
   onClose,
   executionId,
   workflowId,
-  width = 620,
-  minWidth = 420,
-  maxWidth = 820,
+  width = 560,
+  minWidth = 360,
+  maxWidth = 560,
 }: NotificationsDrawerProps) => {
   const [items, setItems] = useState<ExecutionNotification[]>([]);
   const [loading, setLoading] = useState(false);
