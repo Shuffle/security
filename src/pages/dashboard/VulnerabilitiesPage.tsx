@@ -591,10 +591,16 @@ const VulnTable = ({
               onClick={(e) => openDetail(vuln.id, e)}
               onAuxClick={(e) => e.button === 1 && window.open(`/vulnerabilities/${encodeURIComponent(String(vuln.id).split('::')[0])}`, '_blank')}
             >
-              <TableCell>
-                <Badge variant="outline" className={`text-xs capitalize ${SEVERITY_COLORS[vuln.severity]}`}>
-                  {vuln.severity}
-                </Badge>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => onSeverityChange(severityFilter === vuln.severity ? 'all' : vuln.severity)}
+                  title={severityFilter === vuln.severity ? 'Clear this filter' : `Filter by ${vuln.severity}`}
+                >
+                  <Badge variant="outline" className={`text-xs capitalize cursor-pointer ${SEVERITY_COLORS[vuln.severity]} ${severityFilter === vuln.severity ? 'ring-1 ring-current' : ''}`}>
+                    {vuln.severity}
+                  </Badge>
+                </button>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-0.5">
@@ -602,15 +608,30 @@ const VulnTable = ({
                   {vuln.cve_id && <span className="text-xs text-muted-foreground font-mono">{vuln.cve_id}</span>}
                 </div>
               </TableCell>
-              <TableCell>
-                <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[vuln.category] || vuln.category}</span>
+              <TableCell className="text-xs text-muted-foreground">
+                <FilterCellButton
+                  label={CATEGORY_LABELS[vuln.category] || vuln.category}
+                  active={categoryFilter === vuln.category}
+                  onToggle={() => onCategoryChange(categoryFilter === vuln.category ? 'all' : vuln.category)}
+                />
               </TableCell>
-              <TableCell>
-                <span className="text-xs text-muted-foreground">{vuln.source || '—'}</span>
+              <TableCell className="text-xs text-muted-foreground">
+                {vuln.source ? (
+                  <FilterCellButton
+                    label={vuln.source}
+                    active={sourceFilter === vuln.source}
+                    onToggle={() => onSourceChange(sourceFilter === vuln.source ? 'all' : (vuln.source as string))}
+                  />
+                ) : '—'}
               </TableCell>
-              <TableCell>
-                <span className="text-xs text-muted-foreground">{STATUS_LABELS[vuln.status] || vuln.status}</span>
+              <TableCell className="text-xs text-muted-foreground">
+                <FilterCellButton
+                  label={STATUS_LABELS[vuln.status] || vuln.status}
+                  active={statusFilter === vuln.status}
+                  onToggle={() => onStatusChange(statusFilter === vuln.status ? 'all' : vuln.status)}
+                />
               </TableCell>
+
               <TableCell>
                 <span className="text-xs text-muted-foreground">
                   {vuln.first_seen ? new Date(vuln.first_seen).toLocaleDateString() : '—'}
