@@ -155,3 +155,12 @@ import { CategoryAutomationsDialog as CategoryAutomationsDialogRaw } from './com
 export const CategoryAutomationsDialog = withTheme(CategoryAutomationsDialogRaw, 'CategoryAutomationsDialog');
 export type { CategoryAutomationsDialogProps } from './components/CategoryAutomationsDialog';
 
+
+// Notifications drawer — usable anywhere in the platform.
+import NotificationsDrawerRaw from './components/NotificationsDrawer';
+export const NotificationsDrawer = withTheme(NotificationsDrawerRaw, 'NotificationsDrawer');
+export { NOTIFICATIONS_OPEN_EVENT } from './components/NotificationsDrawer';
+export type {
+  NotificationsDrawerProps,
+  ExecutionNotification,
+} from './components/NotificationsDrawer';
