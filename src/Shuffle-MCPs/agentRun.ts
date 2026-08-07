@@ -292,19 +292,25 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     params.tool_ids = request.toolIds;
   }
 
-  // Some presets map to dedicated agent paths (e.g. /api/v1/agent/workflow-edit).
-  // For those, we encode the preset in the URL and skip the body field.
-  const presetPath =
-    request.presetId === 'build-workflows'
-      ? '/api/v1/agent/workflow-edit'
-      : request.presetId === 'handle-notifications'
-        ? '/api/v1/agent/handle-notifications'
-        : null;
+  // Every template maps to its own dedicated agent path (/api/v1/agent/{name}).
+  // For those, we encode the template in the URL and skip the body field.
+  const PRESET_PATHS: Record<string, string> = {
+    'build-workflows': 'workflow-edit',
+    'handle-notifications': 'handle-notifications',
+    'incident-response': 'incident-response',
+    'host-monitor-control': 'host-monitor-control',
+    support: 'support',
+    vulnerability: 'vulnerability',
+    detection: 'detection',
+  };
+  const presetSlug = request.presetId ? PRESET_PATHS[request.presetId] : undefined;
+  const presetPath = presetSlug ? `/api/v1/agent/${presetSlug}` : null;
 
   // Pass selected preset to the backend so it can apply the prompt and tools.
   if (request.presetId && !presetPath) {
     params.preset_id = request.presetId;
   }
+
 
   const payload = {
     jsonrpc: '2.0',
