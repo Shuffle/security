@@ -63,7 +63,7 @@ function normalizeOsvSeverity(raw?: string | null): VulnSeverity {
  *     `affected[].package.ecosystem`, optional `hosts: [{ hostname, paths }]`.
  *     We expand to one Vulnerability row per affected hostname.
  */
-function parseRecord(raw: any): Vulnerability[] {
+function parseRecord(raw: any, discoveredAt?: number): Vulnerability[] {
   try {
     const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (!data || !data.id) return [];
@@ -79,7 +79,8 @@ function parseRecord(raw: any): Vulnerability[] {
       const cveId = isCve ? data.id : (data.aliases || []).find((a: string) => /^CVE-/i.test(a));
       const title = data.summary || data.id;
       const description = data.details || '';
-      const firstSeen = data.published || data.modified || '';
+      const discovered = discoveredAt ? new Date(discoveredAt * 1000).toISOString() : '';
+      const firstSeen = discovered || data.published || data.modified || '';
       const lastSeen = data.modified || data.published || '';
       const source = ecosystem ? `osv:${ecosystem.toLowerCase()}` : 'osv';
       const hosts: Array<{ hostname: string; paths?: any[]; resolution?: any }> = Array.isArray(data.hosts) ? data.hosts : [];
@@ -155,7 +156,7 @@ function parseRecord(raw: any): Vulnerability[] {
       asset_name: data.asset_name || '',
       cve_id: data.cve_id || '',
       remediation: data.remediation || '',
-      first_seen: data.first_seen || '',
+      first_seen: (discoveredAt ? new Date(discoveredAt * 1000).toISOString() : '') || data.first_seen || '',
       last_seen: data.last_seen || '',
       resolved_at: data.resolved_at || '',
     }];
@@ -184,7 +185,7 @@ export const useVulnerabilities = ({ tab = 'assets' }: UseVulnerabilitiesOptions
     for (const item of items) {
       try {
         const parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
-        out.push(...parseRecord(parsed));
+        out.push(...parseRecord(parsed, (item as any).created));
       } catch {
         // skip
       }
