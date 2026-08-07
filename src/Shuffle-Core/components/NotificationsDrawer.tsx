@@ -179,17 +179,23 @@ const NotificationsDrawer = ({
     [],
   );
 
-  // Clear every notification for the org.
+  // Clear every notification for the org. Only update local state after the
+  // server confirms, otherwise notifications reappear on the next refresh.
   const clearAll = useCallback(async () => {
-    setItems([]);
+    setClearing(true);
     try {
-      await fetch(getApiUrl('/api/v1/notifications/clear'), {
+      const resp = await fetch(getApiUrl('/api/v1/notifications/clear'), {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       });
-    } catch {
-      /* reload will resync on next open */
+      if (!resp.ok) throw new Error(`Clear failed (${resp.status})`);
+      setItems([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to clear notifications');
       load();
+    } finally {
+      setClearing(false);
+      setConfirmClearOpen(false);
     }
   }, [load]);
 
