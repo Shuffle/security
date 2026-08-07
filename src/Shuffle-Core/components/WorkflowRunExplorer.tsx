@@ -275,6 +275,36 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
         }}
       >
         <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>Details</Typography>
+        {exec && Number(exec.notifications_created) > 0 && (
+          <Tooltip
+            title={`${Number(exec.notifications_created)} notification${Number(exec.notifications_created) === 1 ? '' : 's'} — click to view`}
+            arrow
+          >
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => setNotificationsOpen(true)}
+                sx={{ color: 'hsl(var(--severity-medium))' }}
+              >
+                <Badge
+                  badgeContent={Number(exec.notifications_created)}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      bgcolor: 'hsl(var(--severity-medium))',
+                      color: 'hsl(var(--background))',
+                      fontSize: '0.625rem',
+                      height: 16,
+                      minWidth: 16,
+                    },
+                  }}
+                >
+                  <NotificationsIcon fontSize="small" />
+                </Badge>
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
+
         {exec && isRunning(exec.status) && (
           <Tooltip title="Abort workflow" arrow>
             <span>
