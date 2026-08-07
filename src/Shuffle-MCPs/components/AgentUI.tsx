@@ -4053,7 +4053,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
               {!hidePresets && (
-                <Box sx={{ position: 'absolute', left: '14px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }}>
+                <Box sx={{
+                  position: 'absolute', left: '14px', top: '11px',
+                  height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
+                  // While the textarea is scrolled, line 1 (the indented one) is
+                  // out of view and later lines would run under the chip.
+                  opacity: inputScrolled ? 0 : 1,
+                  pointerEvents: inputScrolled ? 'none' : 'auto',
+                  transition: 'opacity 0.12s ease',
+                }}>
+
 
 
                   <AgentPresets
