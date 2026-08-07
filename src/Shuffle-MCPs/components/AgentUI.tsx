@@ -4118,7 +4118,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     pt: '5px',
                     pb: 0,
                     lineHeight: 1.45,
-                    textIndent: !hidePresets && actionInput.length === 0 ? `${presetsChipWidth + 8}px` : 0,
+                    textIndent: !hidePresets ? `${(presetsChipWidth || 96) + 8}px` : 0,
                   },
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
                 }}
