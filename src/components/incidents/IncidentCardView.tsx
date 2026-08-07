@@ -586,10 +586,11 @@ export const IncidentCardView = ({
                             Requires sync
                           </Box>
                         ) : (
-                          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--muted-foreground))', fontStyle: 'italic', fontWeight: 500, fontSize: '0.85rem' }}>
-                            Invalid data. Validate ingest or contact support@shuffler.io
+                          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--muted-foreground))', fontStyle: 'italic', fontWeight: 500 }}>
+                            Untitled incident
                           </Box>
                         )
+
                       )}
                     </Typography>
                   )}
