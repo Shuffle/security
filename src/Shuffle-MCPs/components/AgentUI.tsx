@@ -4035,9 +4035,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
               {!hidePresets && (
-                <Box sx={actionInput.length === 0
-                  ? { position: 'absolute', left: '14px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }
-                  : { display: 'flex', alignItems: 'center', mb: 0.75 }}>
+                <Box sx={{ position: 'absolute', left: '14px', top: '11px', height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1 }}>
+
 
                   <AgentPresets
                     variant="floating"
