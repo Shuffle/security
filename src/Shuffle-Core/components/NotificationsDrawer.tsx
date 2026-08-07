@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   CircularProgress,
   Drawer,
   IconButton,
@@ -20,8 +21,10 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  Block as BlockIcon,
+  CheckCircleOutline as CheckCircleIcon,
   Close as CloseIcon,
-  Launch as LaunchIcon,
+  OpenInNew as ExploreIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
@@ -131,6 +134,39 @@ const NotificationsDrawer = ({
     if (open) load();
   }, [open, load]);
 
+  // Mark a single notification as read (Close) or disabled.
+  const actOnNotification = useCallback(
+    async (id: string, disabled = false) => {
+      if (!id) return;
+      const qs = disabled ? '?disabled=true' : '';
+      // Optimistically update local state so the UI feels instant.
+      setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      try {
+        await fetch(getApiUrl(`/api/v1/notifications/${id}/markasread${qs}`), {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        });
+      } catch {
+        /* keep optimistic state */
+      }
+    },
+    [],
+  );
+
+  // Clear every notification for the org.
+  const clearAll = useCallback(async () => {
+    setItems([]);
+    try {
+      await fetch(getApiUrl('/api/v1/notifications/clear'), {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      });
+    } catch {
+      /* reload will resync on next open */
+      load();
+    }
+  }, [load]);
+
   const inScope = useCallback(
     (n: ExecutionNotification) => {
       if (scope === 'agents') return isAgentNotification(n);
@@ -235,18 +271,44 @@ const NotificationsDrawer = ({
             }}
           />
 
-          <SegmentedControl<ScopeValue>
-            size="sm"
-            variant="filled"
-            value={scope}
-            onChange={setScope}
-            ariaLabel="Notification scope"
-            options={[
-              { value: 'workflows', label: 'Workflows', count: counts.workflows },
-              { value: 'executions', label: 'Executions', count: counts.executions },
-              { value: 'agents', label: 'Agents', count: counts.agents },
-            ]}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SegmentedControl<ScopeValue>
+              size="sm"
+              variant="filled"
+              value={scope}
+              onChange={setScope}
+              ariaLabel="Notification scope"
+              options={[
+                { value: 'workflows', label: 'Workflows', count: counts.workflows },
+                { value: 'executions', label: 'Executions', count: counts.executions },
+                { value: 'agents', label: 'Agents', count: counts.agents },
+              ]}
+            />
+            <Tooltip title="Clear every notification" arrow>
+              <span>
+                <Button
+                  size="small"
+                  onClick={clearAll}
+                  disabled={items.length === 0}
+                  sx={{
+                    ml: 'auto',
+                    height: 32,
+                    minWidth: 0,
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: 'hsl(var(--muted-foreground))',
+                    textTransform: 'none',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '999px',
+                    '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--border))' },
+                  }}
+                >
+                  Close all
+                </Button>
+              </span>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* Body */}
@@ -286,7 +348,6 @@ const NotificationsDrawer = ({
                   bgcolor: 'hsl(var(--muted) / 0.25)',
                   transition: 'background-color 0.15s ease',
                   '&:hover': { bgcolor: 'hsl(var(--muted) / 0.45)' },
-                  '&:hover .notif-launch': { opacity: 1 },
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -313,22 +374,6 @@ const NotificationsDrawer = ({
                   >
                     {n.title || 'Notification'}
                   </Typography>
-                  {n.reference_url && (
-                    <Tooltip title="Open reference" arrow>
-                      <IconButton
-                        className="notif-launch"
-                        size="small"
-                        onClick={() => window.open(n.reference_url, '_blank', 'noopener,noreferrer')}
-                        sx={{
-                          color: 'hsl(var(--muted-foreground))',
-                          opacity: 0,
-                          transition: 'opacity 0.15s ease',
-                        }}
-                      >
-                        <LaunchIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
                 </Box>
                 {n.description && (
                   <Typography
@@ -351,6 +396,63 @@ const NotificationsDrawer = ({
                     {formatTime(n.created_at)}
                   </Typography>
                 ) : null}
+                {/* Per-notification actions */}
+                <Box
+                  sx={{
+                    mt: 1.25,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  {n.reference_url && (
+                    <Tooltip title="Explore" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => window.open(n.reference_url, '_blank', 'noopener,noreferrer')}
+                        sx={{
+                          color: 'hsl(var(--muted-foreground))',
+                          '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted) / 0.6)' },
+                        }}
+                      >
+                        <ExploreIcon sx={{ fontSize: 17 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {n.id && (
+                    <Tooltip title="Close" arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          disabled={n.read === true}
+                          onClick={() => actOnNotification(n.id!, false)}
+                          sx={{
+                            color: 'hsl(var(--muted-foreground))',
+                            '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--muted) / 0.6)' },
+                            '&.Mui-disabled': { opacity: 0.35 },
+                          }}
+                        >
+                          <CheckCircleIcon sx={{ fontSize: 17 }} />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  )}
+                  {n.id && (
+                    <Tooltip title="Disable" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => actOnNotification(n.id!, true)}
+                        sx={{
+                          color: 'hsl(var(--muted-foreground))',
+                          '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted) / 0.6)' },
+                        }}
+                      >
+                        <BlockIcon sx={{ fontSize: 17 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
               </Box>
             ))}
           </Box>
