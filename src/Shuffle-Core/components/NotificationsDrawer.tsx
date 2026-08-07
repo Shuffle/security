@@ -271,18 +271,44 @@ const NotificationsDrawer = ({
             }}
           />
 
-          <SegmentedControl<ScopeValue>
-            size="sm"
-            variant="filled"
-            value={scope}
-            onChange={setScope}
-            ariaLabel="Notification scope"
-            options={[
-              { value: 'workflows', label: 'Workflows', count: counts.workflows },
-              { value: 'executions', label: 'Executions', count: counts.executions },
-              { value: 'agents', label: 'Agents', count: counts.agents },
-            ]}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SegmentedControl<ScopeValue>
+              size="sm"
+              variant="filled"
+              value={scope}
+              onChange={setScope}
+              ariaLabel="Notification scope"
+              options={[
+                { value: 'workflows', label: 'Workflows', count: counts.workflows },
+                { value: 'executions', label: 'Executions', count: counts.executions },
+                { value: 'agents', label: 'Agents', count: counts.agents },
+              ]}
+            />
+            <Tooltip title="Clear every notification" arrow>
+              <span>
+                <Button
+                  size="small"
+                  onClick={clearAll}
+                  disabled={items.length === 0}
+                  sx={{
+                    ml: 'auto',
+                    height: 32,
+                    minWidth: 0,
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: 'hsl(var(--muted-foreground))',
+                    textTransform: 'none',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '999px',
+                    '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)', borderColor: 'hsl(var(--border))' },
+                  }}
+                >
+                  Close all
+                </Button>
+              </span>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* Body */}
