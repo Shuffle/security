@@ -1735,19 +1735,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const single = el.scrollHeight <= lh * 1.6;
       setPromptSingleLine((prev) => {
         if (prev === single) return prev;
-        // Going back to a single line leaves the caret painted at x=0 (before
-        // the Templates chip) until the textarea re-lays-out its selection.
-        // Re-applying the current selection forces the caret to the indented
-        // first-line position.
-        if (single && document.activeElement === el) {
-          requestAnimationFrame(() => {
-            const start = el.selectionStart;
-            const end = el.selectionEnd;
-            try { el.setSelectionRange(start, end); } catch { /* ignore */ }
-          });
-        }
+        // Switching between one and multiple lines can leave the caret painted
+        // at the wrong x-position (the browser does not re-lay-out the
+        // first-line text-indent). Nudging the inline text-indent forces a
+        // reflow in BOTH directions and puts the caret back where the glyphs
+        // actually are.
+        requestAnimationFrame(() => {
+          const cs = window.getComputedStyle(el);
+          const base = parseFloat(cs.textIndent || '0') || 0;
+          el.style.textIndent = `${base + 0.01}px`;
+          void el.offsetHeight;
+          el.style.textIndent = '';
+        });
         return single;
       });
+
     };
     const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
