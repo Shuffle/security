@@ -21,7 +21,8 @@ import {
   MenuItem,
   CircularProgress,
 } from '@mui/material';
-import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as WarningAmberIcon, Users as PeopleIcon, Building2 as BusinessIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronUp as ExpandLess, ChevronDown as ExpandMore, Search as SearchIcon, Settings as SettingsIcon, FileText as DescriptionIcon, Fingerprint as FingerprintIcon, SlidersHorizontal as TuneIcon, Rss as RssFeedIcon, Radar as RadarIcon, LogOut as LogoutIcon, ShieldCheck as AdminPanelSettingsIcon, Rocket as RocketLaunchIcon } from 'lucide-react';
+import { NOTIFICATIONS_OPEN_EVENT } from '@/Shuffle-Core';
+import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as WarningAmberIcon, Users as PeopleIcon, Building2 as BusinessIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronUp as ExpandLess, ChevronDown as ExpandMore, Search as SearchIcon, Settings as SettingsIcon, FileText as DescriptionIcon, Fingerprint as FingerprintIcon, SlidersHorizontal as TuneIcon, Rss as RssFeedIcon, Radar as RadarIcon, LogOut as LogoutIcon, ShieldCheck as AdminPanelSettingsIcon, Rocket as RocketLaunchIcon, Bell as BellIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { SHUFFLE_AUTOMATION_URL } from '@/Shuffle-MCPs/api';
@@ -1160,6 +1161,23 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           >
             <AdminPanelSettingsIcon size={18} style={{ color: 'hsl(var(--muted-foreground))' }} />
             Tenant Admin
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setUserMenuAnchor(null);
+              window.dispatchEvent(new CustomEvent(NOTIFICATIONS_OPEN_EVENT));
+            }}
+            sx={{
+              py: 1.25,
+              px: 2,
+              gap: 1.5,
+              fontSize: '0.875rem',
+              color: 'hsl(var(--foreground))',
+              '&:hover': { backgroundColor: 'hsl(var(--muted))' },
+            }}
+          >
+            <BellIcon size={18} style={{ color: 'hsl(var(--muted-foreground))' }} />
+            Notifications
           </MenuItem>
           <MenuItem
             component={Link}
