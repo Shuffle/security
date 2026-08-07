@@ -44,6 +44,7 @@ import {
   ContentCopy as ContentCopyIcon,
   Link as LinkIcon,
   Notifications as NotificationsIcon,
+  Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader } from '../api';
 import ExecutionNotificationsDrawer from './ExecutionNotificationsDrawer';
