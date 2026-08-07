@@ -302,22 +302,8 @@ const AuthenticatedVulnerabilitiesView = () => {
 
 
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
-        {(['critical', 'high', 'medium', 'low'] as VulnSeverity[]).map(sev => (
-          <div
-            key={sev}
-            className="rounded-lg border border-border bg-transparent backdrop-blur-md p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => setSeverityFilter(severityFilter === sev ? 'all' : sev)}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`w-2 h-2 rounded-full ${SEVERITY_DOT_COLORS[sev]}`} />
-              <span className="text-sm text-muted-foreground capitalize">{sev}</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground">{severityCounts[sev]}</span>
-          </div>
-        ))}
-      </div>
+
+
 
       {/* Main content + sidebar */}
       <Box
