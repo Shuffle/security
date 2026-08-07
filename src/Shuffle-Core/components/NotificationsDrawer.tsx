@@ -50,6 +50,7 @@ export interface ExecutionNotification {
   updated_at?: number;
   amount?: number;
   read?: boolean;
+  ignored?: boolean;
   severity?: string;
   execution_id?: string;
   workflow_id?: string;
@@ -181,12 +182,16 @@ const NotificationsDrawer = ({
 
   // Mark a single notification as read (Close) or disabled.
   const actOnNotification = useCallback(
-    async (id: string, disabled = false) => {
+    async (id: string, disabled?: boolean) => {
       if (!id) return;
-      const qs = disabled ? '?disabled=true' : '';
+      const qs = disabled === undefined ? '' : `?disabled=${disabled ? 'true' : 'false'}`;
       // Optimistically update local state so the UI feels instant.
-      setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-      setAgentItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      const patch = (n: ExecutionNotification) =>
+        n.id === id
+          ? { ...n, read: disabled === undefined ? true : n.read, ...(disabled === undefined ? {} : { ignored: disabled }) }
+          : n;
+      setItems((prev) => prev.map(patch));
+      setAgentItems((prev) => prev.map(patch));
       try {
         await fetch(getApiUrl(`/api/v1/notifications/${id}/markasread${qs}`), {
           credentials: 'include',
@@ -613,7 +618,7 @@ const NotificationsDrawer = ({
                         <IconButton
                           size="small"
                           disabled={n.read === true}
-                          onClick={() => actOnNotification(n.id!, false)}
+                          onClick={() => actOnNotification(n.id!)}
                           sx={{
                             color: 'hsl(var(--muted-foreground))',
                             '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--muted) / 0.6)' },
@@ -626,12 +631,12 @@ const NotificationsDrawer = ({
                     </Tooltip>
                   )}
                   {n.id && (
-                    <Tooltip title="Disable" arrow>
+                    <Tooltip title={n.ignored === true ? 'Enable notification' : 'Disable notification'} arrow>
                       <IconButton
                         size="small"
-                        onClick={() => actOnNotification(n.id!, true)}
+                        onClick={() => actOnNotification(n.id!, n.ignored !== true)}
                         sx={{
-                          color: 'hsl(var(--muted-foreground))',
+                          color: n.ignored === true ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))',
                           '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted) / 0.6)' },
                         }}
                       >
