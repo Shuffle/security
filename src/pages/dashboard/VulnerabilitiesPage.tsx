@@ -192,7 +192,14 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (severityFilter !== 'all' && v.severity !== severityFilter) return false;
     if (categoryFilter !== 'all' && v.category !== categoryFilter) return false;
     if (statusFilter !== 'all' && v.status !== statusFilter) return false;
+    if (dateFrom || dateTo) {
+      const ts = v.first_seen ? new Date(v.first_seen).getTime() : 0;
+      if (!ts) return false;
+      if (dateFrom && ts < new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate()).getTime()) return false;
+      if (dateTo && ts > new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59, 999).getTime()) return false;
+    }
     return true;
+
   });
 
   const handleAiScan = useCallback(async () => {
