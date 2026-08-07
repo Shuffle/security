@@ -3333,6 +3333,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
         withProcessing.push(it);
         prevDecEnd = it.end_time || decStart || prevDecEnd;
         lastWasFinalise = isFinalise(it);
+        // A WAITING decision with a delay is scheduled to resume later — that
+        // is not the agent processing, so no live timer row after it.
+        lastWasScheduledWait =
+          (it.status || '').toUpperCase() === 'WAITING' && !!getScheduledResumeMs(it.details);
       } else {
         withProcessing.push(it);
       }
@@ -3345,7 +3349,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // Live tail: while the run is still executing, show a "Processing" row after
     // the last decision that counts up in realtime once at least 1s of dead time
     // has elapsed, so it is obvious how long ago the last step happened.
-    if (runStillExecuting && prevDecEnd > 0 && liveNowSec - prevDecEnd >= 1) {
+    if (runStillExecuting && !lastWasScheduledWait && prevDecEnd > 0 && liveNowSec - prevDecEnd >= 1) {
+
       withProcessing.push({
         label: '',
         type: 'decision',
