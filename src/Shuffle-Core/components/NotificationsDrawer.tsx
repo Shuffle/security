@@ -47,6 +47,8 @@ export interface ExecutionNotification {
   first_seen?: number;
   last_seen?: number;
   times_seen?: number;
+  updated_at?: number;
+  amount?: number;
   read?: boolean;
   severity?: string;
   execution_id?: string;
@@ -423,115 +425,111 @@ const NotificationsDrawer = ({
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                  {n.read === false && (
-                    <Box
-                      sx={{
-                        mt: '6px',
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        bgcolor: 'hsl(var(--primary))',
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
-                  {getSeverityColor(n.severity) && (
-                    <Tooltip title={`Severity: ${n.severity}`} arrow>
-                      <Box
-                        sx={{
-                          mt: '2px',
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          bgcolor: `hsl(${getSeverityColor(n.severity)})`,
-                          flexShrink: 0,
-                        }}
-                      />
-                    </Tooltip>
-                  )}
-                  <Typography
-                    sx={{
-                      flex: 1,
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      color: 'hsl(var(--foreground))',
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {n.title || 'Notification'}
-                  </Typography>
-                </Box>
-                {n.description && (
-                  <Typography
-                    sx={{
-                      fontSize: '0.8125rem',
-                      color: 'hsl(var(--muted-foreground))',
-                      mt: 0.5,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {n.description}
-                  </Typography>
-                )}
-                {/* Stats row: first seen, last seen, times seen */}
-                {(n.first_seen || n.last_seen || n.created_at || (n.times_seen != null && n.times_seen > 0)) && (
+                  {/* Leading indicator column keeps every text line aligned */}
                   <Box
                     sx={{
+                      width: 8,
+                      flexShrink: 0,
                       display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 0.5,
-                      mt: 1,
+                      justifyContent: 'center',
+                      pt: '5px',
                     }}
                   >
-                    {(n.first_seen || n.created_at) && (
-                      <Typography
-                        component="span"
+                    {getSeverityColor(n.severity) ? (
+                      <Tooltip title={`Severity: ${n.severity}`} arrow>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: `hsl(${getSeverityColor(n.severity)})`,
+                          }}
+                        />
+                      </Tooltip>
+                    ) : n.read === false ? (
+                      <Box
                         sx={{
-                          fontSize: '0.6875rem',
-                          color: 'hsl(var(--muted-foreground) / 0.8)',
-                          bgcolor: 'hsl(var(--muted) / 0.4)',
-                          px: 0.75,
-                          py: 0.25,
-                          borderRadius: '6px',
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          bgcolor: 'hsl(var(--primary))',
                         }}
-                      >
-                        First seen: {formatTime(n.first_seen || n.created_at)}
-                      </Typography>
-                    )}
-                    {n.last_seen && (
-                      <Typography
-                        component="span"
-                        sx={{
-                          fontSize: '0.6875rem',
-                          color: 'hsl(var(--muted-foreground) / 0.8)',
-                          bgcolor: 'hsl(var(--muted) / 0.4)',
-                          px: 0.75,
-                          py: 0.25,
-                          borderRadius: '6px',
-                        }}
-                      >
-                        Last seen: {formatTime(n.last_seen)}
-                      </Typography>
-                    )}
-                    {n.times_seen != null && n.times_seen > 0 && (
-                      <Typography
-                        component="span"
-                        sx={{
-                          fontSize: '0.6875rem',
-                          color: 'hsl(var(--muted-foreground) / 0.8)',
-                          bgcolor: 'hsl(var(--muted) / 0.4)',
-                          px: 0.75,
-                          py: 0.25,
-                          borderRadius: '6px',
-                        }}
-                      >
-                        Times seen: {n.times_seen}
-                      </Typography>
-                    )}
+                      />
+                    ) : null}
                   </Box>
-                )}
+
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'hsl(var(--foreground))',
+                        lineHeight: 1.4,
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {n.title || 'Notification'}
+                    </Typography>
+
+                    {n.description && (
+                      <Typography
+                        sx={{
+                          fontSize: '0.8125rem',
+                          color: 'hsl(var(--muted-foreground))',
+                          mt: 0.5,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {n.description}
+                      </Typography>
+                    )}
+
+                    {/* Stats row: first seen, last seen, times seen */}
+                    {(() => {
+                      const firstSeen = n.first_seen || n.created_at;
+                      const lastSeen = n.last_seen || n.updated_at;
+                      const timesSeen =
+                        n.times_seen != null ? n.times_seen : n.amount;
+                      const stats: string[] = [];
+                      if (firstSeen) stats.push(`First seen: ${formatTime(firstSeen)}`);
+                      if (lastSeen) stats.push(`Last seen: ${formatTime(lastSeen)}`);
+                      if (timesSeen != null && Number(timesSeen) > 0) {
+                        stats.push(`Times seen: ${timesSeen}`);
+                      }
+                      if (stats.length === 0) return null;
+                      return (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 0.5,
+                            mt: 1,
+                          }}
+                        >
+                          {stats.map((label) => (
+                            <Typography
+                              key={label}
+                              component="span"
+                              sx={{
+                                fontSize: '0.6875rem',
+                                color: 'hsl(var(--muted-foreground) / 0.8)',
+                                bgcolor: 'hsl(var(--muted) / 0.4)',
+                                px: 0.75,
+                                py: 0.25,
+                                borderRadius: '6px',
+                              }}
+                            >
+                              {label}
+                            </Typography>
+                          ))}
+                        </Box>
+                      );
+                    })()}
+                  </Box>
+                </Box>
+
                 {/* Per-notification actions */}
                 <Box
                   sx={{
