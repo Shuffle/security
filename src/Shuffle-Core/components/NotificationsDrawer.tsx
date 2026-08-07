@@ -66,7 +66,7 @@ export interface NotificationsDrawerProps {
   maxWidth?: number;
 }
 
-type ScopeValue = 'workflows' | 'executions' | 'agents';
+type ScopeValue = 'workflows' | 'agents';
 
 const isAgentNotification = (n: ExecutionNotification): boolean => {
   if (n.agent_id || n.agent_name) return true;
