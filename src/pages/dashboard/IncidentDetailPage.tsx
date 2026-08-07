@@ -4427,9 +4427,7 @@ const IncidentDetailPage = () => {
               if (newObservables.length > editedObservables.length) {
                 setEditedObservables(newObservables);
               }
-              if (newCount > prevCount) {
-                toast.info(`${newCount - prevCount} new observable${newCount - prevCount > 1 ? 's' : ''} detected`, { duration: 4000 });
-              }
+              // Silently refresh observables — no toast needed
               console.log(`[ObsRefresh] Refreshed observables: ${prevCount} → ${newCount}`);
             }
           }
@@ -4803,9 +4801,7 @@ const IncidentDetailPage = () => {
             if (newObservables.length > editedObservables.length) {
               setEditedObservables(newObservables);
             }
-            if (newCount > prevCount) {
-              toast.info(`${newCount - prevCount} new observable${newCount - prevCount > 1 ? 's' : ''} detected`, { duration: 4000 });
-            }
+            // Silently refresh observables — no toast needed
             console.log(`[ObsRefresh/Comment] Refreshed observables: ${prevCount} → ${newCount}`);
           }
         }
