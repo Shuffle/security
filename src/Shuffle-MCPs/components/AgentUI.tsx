@@ -1719,7 +1719,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Keep the chip visible again once the textarea is back at the top (e.g. the
   // prompt was cleared or shortened, which does not always fire onScroll).
   useEffect(() => {
-    const el = inputRef.current as HTMLTextAreaElement | null;
+    const el = inputRef.current as unknown as HTMLTextAreaElement | null;
     if (!el) return;
     if (el.scrollTop <= 1 && inputScrolled) setInputScrolled(false);
   }, [actionInput, inputScrolled]);
