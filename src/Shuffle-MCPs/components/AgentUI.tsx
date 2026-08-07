@@ -1736,7 +1736,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     };
     const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
-  }, [actionInput, attachedImages.length]);
+  }, [actionInput]);
 
 
 
