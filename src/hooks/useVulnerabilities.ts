@@ -63,6 +63,14 @@ function normalizeOsvSeverity(raw?: string | null): VulnSeverity {
  *     `affected[].package.ecosystem`, optional `hosts: [{ hostname, paths }]`.
  *     We expand to one Vulnerability row per affected hostname.
  */
+/** Datastore timestamps may be seconds or milliseconds — normalize to ISO. */
+function toIso(ts?: number): string {
+  if (!ts || !Number.isFinite(ts)) return '';
+  const ms = ts > 1e12 ? ts : ts * 1000;
+  const d = new Date(ms);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
+
 function parseRecord(raw: any, discoveredAt?: number): Vulnerability[] {
   try {
     const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -79,7 +87,7 @@ function parseRecord(raw: any, discoveredAt?: number): Vulnerability[] {
       const cveId = isCve ? data.id : (data.aliases || []).find((a: string) => /^CVE-/i.test(a));
       const title = data.summary || data.id;
       const description = data.details || '';
-      const discovered = discoveredAt ? new Date(discoveredAt * 1000).toISOString() : '';
+      const discovered = toIso(discoveredAt);
       const firstSeen = discovered || data.published || data.modified || '';
       const lastSeen = data.modified || data.published || '';
       const source = ecosystem ? `osv:${ecosystem.toLowerCase()}` : 'osv';
@@ -156,7 +164,7 @@ function parseRecord(raw: any, discoveredAt?: number): Vulnerability[] {
       asset_name: data.asset_name || '',
       cve_id: data.cve_id || '',
       remediation: data.remediation || '',
-      first_seen: (discoveredAt ? new Date(discoveredAt * 1000).toISOString() : '') || data.first_seen || '',
+      first_seen: toIso(discoveredAt) || data.first_seen || '',
       last_seen: data.last_seen || '',
       resolved_at: data.resolved_at || '',
     }];
