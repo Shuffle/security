@@ -160,6 +160,9 @@ const AuthenticatedVulnerabilitiesView = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('open');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
   const [aiScanOpen, setAiScanOpen] = useState(false);
   const [aiScanLoading, setAiScanLoading] = useState(false);
   const [aiScanResult, setAiScanResult] = useState<string | null>(null);
@@ -189,7 +192,14 @@ const AuthenticatedVulnerabilitiesView = () => {
     if (severityFilter !== 'all' && v.severity !== severityFilter) return false;
     if (categoryFilter !== 'all' && v.category !== categoryFilter) return false;
     if (statusFilter !== 'all' && v.status !== statusFilter) return false;
+    if (dateFrom || dateTo) {
+      const ts = v.first_seen ? new Date(v.first_seen).getTime() : 0;
+      if (!ts) return false;
+      if (dateFrom && ts < new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate()).getTime()) return false;
+      if (dateTo && ts > new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59, 999).getTime()) return false;
+    }
     return true;
+
   });
 
   const handleAiScan = useCallback(async () => {
@@ -302,22 +312,8 @@ const AuthenticatedVulnerabilitiesView = () => {
 
 
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
-        {(['critical', 'high', 'medium', 'low'] as VulnSeverity[]).map(sev => (
-          <div
-            key={sev}
-            className="rounded-lg border border-border bg-transparent backdrop-blur-md p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => setSeverityFilter(severityFilter === sev ? 'all' : sev)}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`w-2 h-2 rounded-full ${SEVERITY_DOT_COLORS[sev]}`} />
-              <span className="text-sm text-muted-foreground capitalize">{sev}</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground">{severityCounts[sev]}</span>
-          </div>
-        ))}
-      </div>
+
+
 
       {/* Main content + sidebar */}
       <Box
@@ -366,8 +362,14 @@ const AuthenticatedVulnerabilitiesView = () => {
           onCategoryChange={setCategoryFilter}
           statusFilter={statusFilter}
           onStatusChange={setStatusFilter}
+          severityCounts={severityCounts as unknown as Record<string, number>}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
           readiness={isSupport ? <VulnerabilityReadinessBanner /> : undefined}
         />
+
       </Box>
 
 
