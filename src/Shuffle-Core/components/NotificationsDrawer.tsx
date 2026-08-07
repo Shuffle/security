@@ -55,7 +55,13 @@ export interface NotificationsDrawerProps {
   maxWidth?: number;
 }
 
-type ScopeValue = 'workflows' | 'executions';
+type ScopeValue = 'workflows' | 'executions' | 'agents';
+
+const isAgentNotification = (n: ExecutionNotification): boolean => {
+  if (n.agent_id || n.agent_name) return true;
+  const ref = String(n.reference_url || '');
+  return /\/agents\b|execution_type=agent|type=agent/i.test(ref);
+};
 
 const formatTime = (ts?: number): string => {
   if (!ts) return '';
@@ -86,9 +92,9 @@ const NotificationsDrawer = ({
   onClose,
   executionId,
   workflowId,
-  width = 620,
-  minWidth = 420,
-  maxWidth = 820,
+  width = 560,
+  minWidth = 360,
+  maxWidth = 560,
 }: NotificationsDrawerProps) => {
   const [items, setItems] = useState<ExecutionNotification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -126,19 +132,27 @@ const NotificationsDrawer = ({
   }, [open, load]);
 
   const inScope = useCallback(
-    (n: ExecutionNotification) =>
-      scope === 'executions' ? Boolean(getExecutionId(n)) : Boolean(n.workflow_id) || !getExecutionId(n),
+    (n: ExecutionNotification) => {
+      if (scope === 'agents') return isAgentNotification(n);
+      if (scope === 'executions') return Boolean(getExecutionId(n)) && !isAgentNotification(n);
+      return (Boolean(n.workflow_id) || !getExecutionId(n)) && !isAgentNotification(n);
+    },
     [scope],
   );
 
   const counts = useMemo(() => {
     let executions = 0;
     let workflows = 0;
+    let agents = 0;
     items.forEach((n) => {
+      if (isAgentNotification(n)) {
+        agents += 1;
+        return;
+      }
       if (getExecutionId(n)) executions += 1;
       if (n.workflow_id || !getExecutionId(n)) workflows += 1;
     });
-    return { executions, workflows };
+    return { executions, workflows, agents };
   }, [items]);
 
   const visible = useMemo(
@@ -146,8 +160,6 @@ const NotificationsDrawer = ({
     [items, inScope, query],
   );
 
-  const drawerWidth = `min(${width}px, 100vw)`;
-  const drawerMinWidth = `min(${minWidth}px, 100vw)`;
   const drawerMaxWidth = `min(${maxWidth}px, 100vw)`;
 
   return (
@@ -157,8 +169,8 @@ const NotificationsDrawer = ({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: drawerWidth,
-          minWidth: drawerMinWidth,
+          width: '100%',
+          minWidth: `min(${minWidth}px, 100vw)`,
           maxWidth: drawerMaxWidth,
           backgroundColor: 'hsl(var(--background))',
           backgroundImage: 'none',
@@ -232,6 +244,7 @@ const NotificationsDrawer = ({
             options={[
               { value: 'workflows', label: 'Workflows', count: counts.workflows },
               { value: 'executions', label: 'Executions', count: counts.executions },
+              { value: 'agents', label: 'Agents', count: counts.agents },
             ]}
           />
         </Box>
