@@ -86,6 +86,21 @@ const getExecutionId = (n: ExecutionNotification): string => {
   return match ? match[1] : '';
 };
 
+const SEVERITY_MAP: Record<string, string> = {
+  critical: 'var(--severity-critical)',
+  high: 'var(--severity-high)',
+  medium: 'var(--severity-medium)',
+  warning: 'var(--severity-medium)',
+  low: 'var(--severity-low)',
+  info: 'var(--severity-info)',
+  informational: 'var(--severity-info)',
+};
+
+const getSeverityColor = (sev?: string): string | null => {
+  if (!sev) return null;
+  return SEVERITY_MAP[sev.toLowerCase()] || null;
+};
+
 const matchesQuery = (n: ExecutionNotification, q: string): boolean => {
   if (!q) return true;
   const needle = q.toLowerCase();
@@ -206,10 +221,6 @@ const NotificationsDrawer = ({
     [items, inScope, query, showRead],
   );
 
-  const drawerWidth = `min(${width}px, 100vw)`;
-  const drawerMinWidth = `min(${minWidth}px, 100vw)`;
-  const drawerMaxWidth = `min(${maxWidth}px, 100vw)`;
-
   return (
     <Drawer
       anchor="right"
@@ -217,9 +228,10 @@ const NotificationsDrawer = ({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: drawerWidth,
-          minWidth: drawerMinWidth,
-          maxWidth: drawerMaxWidth,
+          width: { xs: '100vw', sm: `${width}px` },
+          minWidth: { xs: '100vw', sm: `${minWidth}px` },
+          maxWidth: { xs: '100vw', sm: `${maxWidth}px` },
+          flexShrink: 0,
           backgroundColor: 'hsl(var(--background))',
           backgroundImage: 'none',
           color: 'hsl(var(--foreground))',
@@ -396,6 +408,20 @@ const NotificationsDrawer = ({
                         flexShrink: 0,
                       }}
                     />
+                  )}
+                  {getSeverityColor(n.severity) && (
+                    <Tooltip title={`Severity: ${n.severity}`} arrow>
+                      <Box
+                        sx={{
+                          mt: '2px',
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: `hsl(${getSeverityColor(n.severity)})`,
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Tooltip>
                   )}
                   <Typography
                     sx={{
