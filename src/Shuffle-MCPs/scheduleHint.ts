@@ -167,7 +167,7 @@ const quantityValue = (raw: string): number | null => {
     const n = parseFloat(q);
     return Number.isFinite(n) ? n : null;
   }
-  const key = q.split(' ')[0];
+  const key = q.replace(/^an?\s+/, '').split(' ')[0];
   return WORD_NUMBERS[key] ?? null;
 };
 
