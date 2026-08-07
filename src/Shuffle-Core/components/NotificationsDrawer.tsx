@@ -296,6 +296,28 @@ const NotificationsDrawer = ({
                 { value: 'agents', label: 'Agents', count: counts.agents },
               ]}
             />
+            <Tooltip title={showRead ? 'Hiding read notifications' : 'Showing all notifications'} arrow>
+              <span>
+                <Button
+                  size="small"
+                  onClick={() => setShowRead((v) => !v)}
+                  sx={{
+                    height: 32,
+                    minWidth: 0,
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: showRead ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))',
+                    textTransform: 'none',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '999px',
+                    '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)' },
+                  }}
+                >
+                  {showRead ? 'Hide read' : 'Show read'}
+                </Button>
+              </span>
+            </Tooltip>
             <Tooltip title="Clear every notification" arrow>
               <span>
                 <Button
