@@ -5083,14 +5083,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </span>
               </Tooltip>
               {execution?.execution_id && (() => {
-                // Without an execution authorization token the explorer cannot
-                // fetch the run and would only render "Execution not found".
-                // Disable the button up-front and explain why instead.
-                const canOpenRun = Boolean(execution.authorization);
+                // The explorer needs both an authorization token and a run the
+                // backend still has. `runExplorerAvailable` is probed with the
+                // explorer's own fetch, so we never open a drawer that would
+                // only say "Execution not found or is no longer available."
+                const canOpenRun = Boolean(execution.authorization) && runExplorerAvailable === 'yes';
+                const tooltipTitle = !execution.authorization
+                  ? 'Execution details are no longer available for this run (missing execution authorization)'
+                  : runExplorerAvailable === 'checking'
+                    ? 'Checking if execution details are available…'
+                    : runExplorerAvailable === 'no'
+                      ? 'Execution details are no longer available for this run'
+                      : 'View full execution';
                 return (
-                  <Tooltip title={canOpenRun
-                    ? 'View full execution'
-                    : 'Execution details are no longer available for this run (missing execution authorization)'}>
+                  <Tooltip title={tooltipTitle}>
                     <span>
                       <IconButton
                         size="small"
