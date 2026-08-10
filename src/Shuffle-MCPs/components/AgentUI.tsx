@@ -2131,6 +2131,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [finishAnswerRaw, setFinishAnswerRaw] = useState(false);
   const [continuationText, setContinuationText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // True once at least one successful execution payload has been rendered, so
+  // later transient poll failures do not replace good data with an error.
+  const hasExecutionDataRef = useRef(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialViewParam = searchParams.get('agentView');
 
@@ -2660,6 +2663,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Fetch execution result (poll-friendly) ──
   const getExecution = useCallback(async (executionId: string, authorization: string) => {
+    if (activeExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
     if (!executionId || !authorization) return;
     try {
       const resp = await fetch(resolveUrl('/api/v1/streams/results'), {
@@ -2676,13 +2680,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // back into state — otherwise the UI snaps to the old execution.)
       if (activeExecutionIdRef.current !== executionId) return;
       if (!resp.ok) {
-        setError(`Could not fetch execution (${resp.status}).`);
+        // A single failed poll must not hide a timeline we already rendered.
+        if (!hasExecutionDataRef.current) setError(`Could not fetch execution (${resp.status}).`);
         return;
       }
       const json = await resp.json();
       if (activeExecutionIdRef.current !== executionId) return;
       if (json?.success === false) {
-        setError(json.reason || 'Failed to load agent data.');
+        if (!hasExecutionDataRef.current) setError(json.reason || 'Failed to load agent data.');
         return;
       }
       setExecution({ ...json, execution_id: executionId, authorization });
@@ -2698,9 +2703,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setAgentActionResult(actionResult);
       const v = validateJson(actionResult?.result);
       if (v.valid) setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
+      hasExecutionDataRef.current = true;
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error.');
+      // Transient network blips ("Failed to fetch") happen while polling a
+      // long-running execution. Only surface them when nothing loaded yet.
+      if (!hasExecutionDataRef.current) setError(err instanceof Error ? err.message : 'Network error.');
     }
   }, []);
 
