@@ -964,6 +964,7 @@ export interface WorkflowRunExplorerDrawerProps extends WorkflowRunExplorerProps
 export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps> = ({
   open,
   executionId,
+  authorization,
   onClose,
   width = 720,
   minWidth = 480,
