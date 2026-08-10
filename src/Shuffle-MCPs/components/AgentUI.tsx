@@ -2905,7 +2905,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // reports FINISHED. So we keep polling (slower) while any decision is still
   // unfinished, and for a grace window after the user submits something.
   useEffect(() => {
-    if (!execution?.execution_id || !execution?.authorization) return;
+    if (!execution?.execution_id) return;
     const status = (execution.status || '').toUpperCase();
     const TERMINAL = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
     const isTerminal = TERMINAL.includes(status);
