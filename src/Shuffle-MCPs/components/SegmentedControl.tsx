@@ -133,6 +133,7 @@ export function SegmentedControl<V extends string = string>({
   className,
   ariaLabel,
   layoutId,
+  trailing,
 }: SegmentedControlProps<V>) {
   const autoId = useUniqueId("segmented");
   const groupId = layoutId ?? autoId;
