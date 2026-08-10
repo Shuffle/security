@@ -17,13 +17,15 @@
  * branch of the host `/dashboard` page.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip as MuiTooltip, Typography } from '@mui/material';
+import { Box, CircularProgress, FormControl, IconButton, InputLabel, ListSubheader, MenuItem, Select, Tooltip as MuiTooltip, Typography } from '@mui/material';
 import { RefreshCw as RefreshIcon, X as CloseIcon, Download as DownloadIcon } from 'lucide-react';
 import { useDatastore } from '../../hooks/useDatastore';
 import { DATASTORE_CATEGORIES } from '@shuffleio/shuffle-mcps';
 import { getApiUrl, getAuthHeader } from '../../api';
 import DashboardOverview, { type OverviewProps } from './DashboardOverview';
 import AutomationDashboard, { type AutomationDashboardProps, AUTOMATION_RANGE_OPTIONS } from './AutomationDashboard';
+import AgentsDashboard from './AgentsDashboard';
+import VulnerabilitiesDashboard from './VulnerabilitiesDashboard';
 import { SegmentedControl } from '../ui/segmented-control';
 import type { ShuffleCoreHostProps } from '../../types/host-props';
 import { useSyncHostBaseUrl } from '../../useSyncHostBaseUrl';
@@ -41,8 +43,20 @@ export interface CombinedDashboardProps
   /** Default tab on first mount. Persisted to localStorage thereafter.
    *  Defaults to 'automation' for standalone/embedded consumers; the Shuffle
    *  Security host passes 'security' explicitly. */
-  defaultTab?: 'security' | 'automation';
+  defaultTab?: DashboardTab;
 }
+
+/** Available dashboard surfaces, grouped in the header dropdown under
+ *  "Security" (Security Operations, Vulnerabilities) and "Automation"
+ *  (Automation, Agents). */
+export type DashboardTab = 'security' | 'vulnerabilities' | 'automation' | 'agents';
+const DASHBOARD_TABS: DashboardTab[] = ['security', 'vulnerabilities', 'automation', 'agents'];
+const TAB_LABELS: Record<DashboardTab, string> = {
+  security: 'Security Operations',
+  vulnerabilities: 'Vulnerabilities',
+  automation: 'Automation',
+  agents: 'Agents',
+};
 
 // ── helpers (mirrors DashboardPage.overviewIncidents transform) ─────────────
 const SEV_MAP: Record<number, string> = { 1: 'informational', 2: 'low', 3: 'medium', 4: 'high', 5: 'critical', 6: 'critical' };
@@ -97,10 +111,10 @@ const CombinedDashboard = ({
   useSyncHostBaseUrl(host.globalUrl);
 
   // ── Shared filter state (mirrors DashboardPage) ──────────────────────────
-  const [tab, setTab] = useState<'security' | 'automation'>(() => {
+  const [tab, setTab] = useState<DashboardTab>(() => {
     try {
-      const stored = localStorage.getItem('shuffle_dashboard_tab');
-      if (stored === 'security' || stored === 'automation') return stored;
+      const stored = localStorage.getItem('shuffle_dashboard_tab') as DashboardTab | null;
+      if (stored && DASHBOARD_TABS.includes(stored)) return stored;
     } catch { /* noop */ }
     return defaultTab;
   });
@@ -324,15 +338,32 @@ const CombinedDashboard = ({
   const sharedHeader = (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', minHeight: 36 }}>
-        <SegmentedControl
-          ariaLabel="Dashboard view"
-          value={tab}
-          onChange={(v) => setTab(v as 'security' | 'automation')}
-          options={[
-            { value: 'security', label: 'Security Operations' },
-            { value: 'automation', label: 'Automation' },
-          ]}
-        />
+        <FormControl size="small" sx={{ minWidth: 210 }}>
+          <Select
+            value={tab}
+            onChange={(e) => setTab(e.target.value as DashboardTab)}
+            inputProps={{ 'aria-label': 'Dashboard view' }}
+            sx={{
+              height: 36,
+              borderRadius: '999px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+            }}
+            MenuProps={{ PaperProps: { sx: { mt: 0.5, borderRadius: '10px' } } }}
+          >
+            <ListSubheader sx={{ fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 2.4, color: 'hsl(var(--muted-foreground))', bgcolor: 'transparent' }}>
+              Security
+            </ListSubheader>
+            <MenuItem value="security">{TAB_LABELS.security}</MenuItem>
+            <MenuItem value="vulnerabilities">{TAB_LABELS.vulnerabilities}</MenuItem>
+            <ListSubheader sx={{ fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 2.4, color: 'hsl(var(--muted-foreground))', bgcolor: 'transparent' }}>
+              Automation
+            </ListSubheader>
+            <MenuItem value="automation">{TAB_LABELS.automation}</MenuItem>
+            <MenuItem value="agents">{TAB_LABELS.agents}</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: customRangeLabel ? 220 : 130 }}>
@@ -367,14 +398,14 @@ const CombinedDashboard = ({
             ))}
           </Select>
         </FormControl>
-        <Box sx={{ alignSelf: 'flex-end', opacity: tab === 'security' ? 0.5 : 1, pointerEvents: tab === 'security' ? 'none' : 'auto' }}>
+        <Box sx={{ alignSelf: 'flex-end', opacity: tab === 'automation' ? 1 : 0.5, pointerEvents: tab === 'automation' ? 'auto' : 'none' }}>
           <SegmentedControl
             ariaLabel="Mode"
             value={mode}
             onChange={(v) => setMode(v as 'workflows' | 'apps')}
             options={[
-              { value: 'workflows', label: 'Workflows', disabled: tab === 'security' },
-              { value: 'apps', label: 'Apps', disabled: tab === 'security' },
+              { value: 'workflows', label: 'Workflows', disabled: tab !== 'automation' },
+              { value: 'apps', label: 'Apps', disabled: tab !== 'automation' },
             ]}
           />
         </Box>
@@ -417,7 +448,26 @@ const CombinedDashboard = ({
     <Box sx={{ maxWidth: 1100, width: '100%', mx: 'auto', pt: '25px', display: 'flex', flexDirection: 'column', gap: 3 }}>
       {sharedHeader}
       <Box ref={dashboardRef}>
-        {tab === 'automation' ? (
+        {tab === 'agents' ? (
+          <AgentsDashboard
+            {...host}
+            orgId={orgId}
+            days={parseInt(days, 10) || 30}
+            gran={gran}
+            customRange={customRange}
+            onRangeSelect={(fromMs, toMs) => setCustomRange({ fromMs, toMs })}
+            refreshKey={(refreshKeyProp ?? 0) + internalRefreshKey}
+          />
+        ) : tab === 'vulnerabilities' ? (
+          <VulnerabilitiesDashboard
+            {...host}
+            days={parseInt(days, 10) || 30}
+            gran={gran}
+            customRange={customRange}
+            onRangeSelect={(fromMs, toMs) => setCustomRange({ fromMs, toMs })}
+            refreshKey={(refreshKeyProp ?? 0) + internalRefreshKey}
+          />
+        ) : tab === 'automation' ? (
           <AutomationDashboard
             {...host}
             orgId={orgId}
