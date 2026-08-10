@@ -15,12 +15,16 @@ import { useTheme } from '@/context/ThemeContext';
 
 const GlobalWorkflowRunDrawer = () => {
   const [executionId, setExecutionId] = useState<string | null>(null);
+  const [authorization, setAuthorization] = useState<string | undefined>(undefined);
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ executionId?: string }>).detail;
-      if (detail?.executionId) setExecutionId(String(detail.executionId));
+      const detail = (e as CustomEvent<{ executionId?: string; authorization?: string }>).detail;
+      if (detail?.executionId) {
+        setExecutionId(String(detail.executionId));
+        setAuthorization(detail.authorization ? String(detail.authorization) : undefined);
+      }
     };
     window.addEventListener('workflow-run:open', handler as EventListener);
     return () => window.removeEventListener('workflow-run:open', handler as EventListener);
@@ -30,7 +34,8 @@ const GlobalWorkflowRunDrawer = () => {
     <WorkflowRunExplorerDrawer
       open={!!executionId}
       executionId={executionId || ''}
-      onClose={() => setExecutionId(null)}
+      authorization={authorization}
+      onClose={() => { setExecutionId(null); setAuthorization(undefined); }}
       theme={resolvedTheme}
     />
   );
