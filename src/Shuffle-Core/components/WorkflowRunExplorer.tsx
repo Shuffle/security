@@ -122,6 +122,18 @@ export const fetchExecution = async (
   }
 };
 
+/** `execution_source` for datastore automations is `datastore|<category>|<key>`. */
+const datastoreSourceParts = (exec: WorkflowExecution): { category: string; key: string } | null => {
+  const raw = (exec.execution_source || '').trim();
+  if (!raw.toLowerCase().startsWith('datastore')) return null;
+  const parts = raw.split('|');
+  if (parts.length < 3) return null;
+  const category = parts[1].trim();
+  const key = parts[2].trim();
+  if (!category || !key) return null;
+  return { category, key };
+};
+
 const sourceLabel = (exec: WorkflowExecution): string => {
   const src = exec.execution_source || '';
   if (src.startsWith('datastore')) return 'Datastore Automation';
