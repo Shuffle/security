@@ -2756,11 +2756,29 @@ const AgentUI: React.FC<AgentUIProps> = ({
     let cancelled = false;
     setRunExplorerAvailable('checking');
     (async () => {
-      const found = await fetchExecutionSnapshot(eid, auth);
-      if (!cancelled) setRunExplorerAvailable(found ? 'yes' : 'no');
+      let found = await fetchExecutionSnapshot(eid, auth);
+      if (!found && !cancelled) {
+        // Transient failures (rate limits, cold reads) are common while a run
+        // is live — retry once before declaring the run unavailable.
+        await new Promise((r) => setTimeout(r, 1500));
+        if (cancelled) return;
+        found = await fetchExecutionSnapshot(eid, auth);
+      }
+      if (cancelled) return;
+      // If we are successfully rendering this run's data ourselves, the run
+      // clearly exists — never mark it unavailable.
+      setRunExplorerAvailable(found || hasExecutionDataRef.current ? 'yes' : 'no');
     })();
     return () => { cancelled = true; };
   }, [execution?.execution_id, execution?.authorization]);
+
+  // Any successfully rendered poll proves the execution exists.
+  useEffect(() => {
+    if (execution?.authorization && (execution?.results?.length || 0) > 0) {
+      setRunExplorerAvailable('yes');
+    }
+  }, [execution?.authorization, execution?.results?.length]);
+
 
 
   // Attach to an explicit execution (props) or one passed via URL params.
