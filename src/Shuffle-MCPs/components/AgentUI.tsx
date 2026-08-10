@@ -43,6 +43,7 @@ import {
   AlertTriangle as WarningIcon,
   Search as SearchIcon,
 } from 'lucide-react';
+import { fetchExecution as fetchExecutionSnapshot } from '@/Shuffle-Core/components/WorkflowRunExplorer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Avatar,
