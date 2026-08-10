@@ -2168,6 +2168,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [finishAnswerRaw, setFinishAnswerRaw] = useState(false);
   const [continuationText, setContinuationText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // Non-blocking warning shown when polling fails while we already have data.
+  // Cleared as soon as a poll succeeds again.
+  const [pollWarning, setPollWarning] = useState<string | null>(null);
   // True once at least one successful execution payload has been rendered, so
   // later transient poll failures do not replace good data with an error.
   const hasExecutionDataRef = useRef(false);
