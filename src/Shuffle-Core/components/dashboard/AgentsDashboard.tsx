@@ -244,13 +244,13 @@ export const AgentsDashboard = ({
 
       <Panel title="Agent runs over time">
         {loading ? (
-          <ChartShimmer height={260} />
+          <ChartShimmer height={260} variant="bars" />
         ) : !hasData ? (
           <EmptyState text="No agent runs in this period." />
         ) : (
           <Box sx={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} {...drag.handlers}>
+              <BarChart data={trend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} {...drag.chartProps}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} />
@@ -270,7 +270,7 @@ export const AgentsDashboard = ({
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
         <Panel title="Run outcomes">
           {loading ? (
-            <ChartShimmer height={220} />
+            <ChartShimmer height={220} variant="bars" />
           ) : !statusBreakdown.length ? (
             <EmptyState text="No agent outcomes yet." />
           ) : (
@@ -294,7 +294,7 @@ export const AgentsDashboard = ({
 
         <Panel title="Most used tools">
           {loading ? (
-            <ChartShimmer height={220} />
+            <ChartShimmer height={220} variant="bars" />
           ) : !topTools.length ? (
             <EmptyState text="No tools have been used by the agent yet." />
           ) : (
