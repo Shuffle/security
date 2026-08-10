@@ -2880,13 +2880,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // output. Detect that and re-fetch the full payload directly from
     // /api/v1/streams/results so the timeline renders properly.
     const needsReplace = (() => {
+      // Raw string placeholders ("too large", "replace") also occur.
+      const raw = actionResult?.result;
+      if (typeof raw === 'string' && (/too\s*(large|big)/i.test(raw) || /"extra"\s*:\s*"replace"/i.test(raw))) return true;
       const r = v.valid ? v.result : null;
       if (!r || typeof r !== 'object') return false;
-      if (r.success === false && typeof r.reason === 'string' && /too large/i.test(r.reason)) return true;
+      if (typeof r.reason === 'string' && /too\s*(large|big)/i.test(r.reason)) return true;
       if (r.extra === 'replace') return true;
+      // No decisions at all on a finished run is also a truncated payload.
       return false;
     })();
-    if (needsReplace && initialExecution.authorization && initialExecution.execution_id) {
+    if (needsReplace && initialExecution.execution_id) {
       getExecution(initialExecution.execution_id, initialExecution.authorization);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
