@@ -61,6 +61,14 @@ export interface SegmentedControlProps<V extends string = string> {
   ariaLabel?: string;
   /** Unique id so multiple segmented controls on a page do not share their pill. */
   layoutId?: string;
+  /**
+   * Optional node rendered INSIDE the pill container, after the options.
+   * Use this to append host-framework elements (e.g. a rich tooltip-wrapped
+   * spinner) so they line up with the other items while keeping their own
+   * tooltip/interaction behaviour that the framework-agnostic control
+   * cannot provide via the plain `title` attribute.
+   */
+  trailing?: React.ReactNode;
 }
 
 type SizeTokens = {
@@ -125,6 +133,7 @@ export function SegmentedControl<V extends string = string>({
   className,
   ariaLabel,
   layoutId,
+  trailing,
 }: SegmentedControlProps<V>) {
   const autoId = useUniqueId("segmented");
   const groupId = layoutId ?? autoId;
@@ -278,6 +287,17 @@ export function SegmentedControl<V extends string = string>({
             </button>
           );
         })}
+        {trailing != null && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              alignSelf: "center",
+            }}
+          >
+            {trailing}
+          </span>
+        )}
       </div>
     </LayoutGroup>
   );

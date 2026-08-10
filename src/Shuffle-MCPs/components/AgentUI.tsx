@@ -3805,27 +3805,35 @@ const AgentUI: React.FC<AgentUIProps> = ({
               }
             },
           },
-          // Live run indicator lives INSIDE the pill so it lines up with the
-          // other items instead of floating outside the border/background.
-          ...(runIsActive && activeTab === 'start'
-            ? ([
-                { type: 'divider', key: 'div-run' },
-                {
-                  type: 'action',
-                  key: 'running',
-                  label: (
-                    <CircularProgress
-                      size={14}
-                      thickness={5}
-                      sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}
-                    />
-                  ),
-                  title: 'Current agent run is still in progress',
-                  onClick: () => {},
-                },
-              ] as const)
-            : []),
+          // The live run indicator is rendered via the `trailing` slot below so
+          // it can use a proper MUI Tooltip while still lining up inside the
+          // pill with the other items.
         ]}
+        trailing={
+          runIsActive && activeTab === 'start' ? (
+            <>
+              <span
+                aria-hidden
+                style={{
+                  width: 1,
+                  height: 18,
+                  margin: '0 6px',
+                  background: 'hsl(var(--border))',
+                  alignSelf: 'center',
+                }}
+              />
+              <Tooltip title="Current agent run is still in progress" arrow>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <CircularProgress
+                    size={14}
+                    thickness={5}
+                    sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}
+                  />
+                </span>
+              </Tooltip>
+            </>
+          ) : undefined
+        }
       />
     </Box>
   );
