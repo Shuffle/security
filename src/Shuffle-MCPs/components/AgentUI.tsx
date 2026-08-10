@@ -2763,12 +2763,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // none, keep the last good state and just clear the error.
       const payloadHasResults = Array.isArray(json?.results) ? json.results.length > 0 : Boolean(json);
       if (hasExecutionDataRef.current && !payloadHasResults) {
-        setExecution((prev) => (prev ? { ...prev, ...json, results: (prev as any).results, execution_id: executionId, authorization } : { ...json, execution_id: executionId, authorization }));
+        setExecution((prev) => (prev ? { ...prev, ...json, results: (prev as any).results, execution_id: executionId, authorization: auth } : { ...json, execution_id: executionId, authorization: auth }));
         setError(null);
         return;
       }
 
-      setExecution({ ...json, execution_id: executionId, authorization });
+      setExecution({ ...json, execution_id: executionId, authorization: auth });
       if (actionResult) setAgentActionResult(actionResult);
       if (v.valid) {
         setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
