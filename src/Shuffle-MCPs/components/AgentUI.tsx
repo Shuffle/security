@@ -3834,13 +3834,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 style={{
                   width: 1,
                   height: 18,
-                  margin: '0 6px',
+                  margin: '0 10px',
                   background: 'hsl(var(--border))',
                   alignSelf: 'center',
                 }}
               />
               <Tooltip title="Current agent run is still in progress" arrow>
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', paddingRight: 6 }}>
                   <CircularProgress
                     size={14}
                     thickness={5}
