@@ -189,7 +189,14 @@ const classifyRunSource = (run: AgentRun): RunSourceInfo => {
 
   // Datastore automation can be detected either via execution_source or by
   // finding the standardized Key:/Category: markers anywhere on the run.
-  const ds = findDatastoreTaskInRun(run);
+  // `execution_source` for datastore automations looks like
+  // `datastore|<category>|<key>`.
+  const sourceParts = raw.split('|');
+  const fromSource =
+    src.startsWith('datastore') && sourceParts.length > 2
+      ? { category: sourceParts[1].trim(), key: sourceParts[2].trim() }
+      : null;
+  const ds = findDatastoreTaskInRun(run) || fromSource;
   if (
     ds ||
     src.includes('datastore') ||
@@ -200,13 +207,14 @@ const classifyRunSource = (run: AgentRun): RunSourceInfo => {
       kind: 'datastore',
       label: 'Datastore automation',
       reason: ds
-        ? `Started by datastore automation (category "${ds.category}", key "${ds.key}"). Click to open in Datastore.`
+        ? `Category: ${ds.category}\nKey: ${ds.key}\nClick to open it in the Datastore.`
         : 'Started by a datastore automation (e.g. enrichment trigger).',
       icon: <Database size={SOURCE_ICON_SIZE} />,
       datastoreKey: ds?.key,
       datastoreCategory: ds?.category,
     };
   }
+
 
 
   if (src.includes('schedule') || src.includes('cron')) {
@@ -616,8 +624,9 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
             title={
               <Box sx={{ lineHeight: 1.4 }}>
                 <Box sx={{ fontWeight: 600 }}>{sourceInfo.label}</Box>
-                <Box sx={{ opacity: 0.85 }}>{sourceInfo.reason}</Box>
+                <Box sx={{ opacity: 0.85, whiteSpace: 'pre-line' }}>{sourceInfo.reason}</Box>
               </Box>
+
             }
             placement="top"
             arrow
