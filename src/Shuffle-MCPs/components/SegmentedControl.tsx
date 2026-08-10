@@ -287,6 +287,17 @@ export function SegmentedControl<V extends string = string>({
             </button>
           );
         })}
+        {trailing != null && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              alignSelf: "center",
+            }}
+          >
+            {trailing}
+          </span>
+        )}
       </div>
     </LayoutGroup>
   );
