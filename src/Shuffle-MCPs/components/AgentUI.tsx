@@ -5202,18 +5202,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </span>
               </Tooltip>
               {execution?.execution_id && (() => {
-                // The explorer needs both an authorization token and a run the
-                // backend still has. `runExplorerAvailable` is probed with the
-                // explorer's own fetch, so we never open a drawer that would
-                // only say "Execution not found or is no longer available."
-                const canOpenRun = Boolean(execution.authorization) && runExplorerAvailable === 'yes';
-                const tooltipTitle = !execution.authorization
-                  ? 'Execution details are no longer available for this run (missing execution authorization)'
-                  : runExplorerAvailable === 'checking'
-                    ? 'Checking if execution details are available…'
-                    : runExplorerAvailable === 'no'
-                      ? 'Execution details are no longer available for this run'
-                      : 'View full execution';
+                // If we are already rendering this run's data, the execution is
+                // by definition available — never claim otherwise. Only when we
+                // have an id but no data at all AND the probe says "no" do we
+                // disable the button.
+                const hasRenderedRun = Boolean(
+                  (Array.isArray(execution.results) && execution.results.length > 0) ||
+                  execution.workflow ||
+                  execution.status,
+                );
+                const canOpenRun = hasRenderedRun || runExplorerAvailable !== 'no';
+                const tooltipTitle = canOpenRun
+                  ? 'View full execution'
+                  : 'Execution details are no longer available for this run';
+
                 return (
                   <Tooltip title={tooltipTitle}>
                     <span>
