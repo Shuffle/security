@@ -2715,15 +2715,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [JSON.stringify((agentData as any)?.allowed_actions || []), availableApps]);
 
   // ── Fetch execution result (poll-friendly) ──
-  const getExecution = useCallback(async (executionId: string, authorization: string) => {
+  const getExecution = useCallback(async (executionId: string, authorization?: string) => {
     if (loadedExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
-    if (!executionId || !authorization) return;
+    if (!executionId) return;
+    // Sideloaded runs (from the activity listing) often have no explicit
+    // authorization token. The streams API accepts the execution id itself
+    // when the session is authenticated, so fall back to that.
+    const auth = authorization || executionId;
     try {
       const resp = await fetch(resolveUrl('/api/v1/streams/results'), {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...resolveHeaders() },
-        body: JSON.stringify({ execution_id: executionId, authorization }),
+        body: JSON.stringify({ execution_id: executionId, authorization: auth }),
       });
       // Discard stale responses: if the user has since started a different
       // run (or cleared this one), do not write old data back into state.
@@ -2759,12 +2763,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // none, keep the last good state and just clear the error.
       const payloadHasResults = Array.isArray(json?.results) ? json.results.length > 0 : Boolean(json);
       if (hasExecutionDataRef.current && !payloadHasResults) {
-        setExecution((prev) => (prev ? { ...prev, ...json, results: (prev as any).results, execution_id: executionId, authorization } : { ...json, execution_id: executionId, authorization }));
+        setExecution((prev) => (prev ? { ...prev, ...json, results: (prev as any).results, execution_id: executionId, authorization: auth } : { ...json, execution_id: executionId, authorization: auth }));
         setError(null);
         return;
       }
 
-      setExecution({ ...json, execution_id: executionId, authorization });
+      setExecution({ ...json, execution_id: executionId, authorization: auth });
       if (actionResult) setAgentActionResult(actionResult);
       if (v.valid) {
         setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
@@ -2876,13 +2880,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // output. Detect that and re-fetch the full payload directly from
     // /api/v1/streams/results so the timeline renders properly.
     const needsReplace = (() => {
+      // Raw string placeholders ("too large", "replace") also occur.
+      const raw = actionResult?.result;
+      if (typeof raw === 'string' && (/too\s*(large|big)/i.test(raw) || /"extra"\s*:\s*"replace"/i.test(raw))) return true;
       const r = v.valid ? v.result : null;
       if (!r || typeof r !== 'object') return false;
-      if (r.success === false && typeof r.reason === 'string' && /too large/i.test(r.reason)) return true;
+      if (typeof r.reason === 'string' && /too\s*(large|big)/i.test(r.reason)) return true;
       if (r.extra === 'replace') return true;
+      // No decisions at all on a finished run is also a truncated payload.
       return false;
     })();
-    if (needsReplace && initialExecution.authorization && initialExecution.execution_id) {
+    if (needsReplace && initialExecution.execution_id) {
       getExecution(initialExecution.execution_id, initialExecution.authorization);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2897,7 +2905,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // reports FINISHED. So we keep polling (slower) while any decision is still
   // unfinished, and for a grace window after the user submits something.
   useEffect(() => {
-    if (!execution?.execution_id || !execution?.authorization) return;
+    if (!execution?.execution_id) return;
     const status = (execution.status || '').toUpperCase();
     const TERMINAL = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
     const isTerminal = TERMINAL.includes(status);
@@ -2907,7 +2915,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     });
     const id = setInterval(() => {
       if (isTerminal && !hasPendingDecision && Date.now() > keepPollingUntilRef.current) return;
-      getExecution(execution.execution_id!, execution.authorization!);
+      getExecution(execution.execution_id!, execution.authorization);
     }, isTerminal ? 5000 : 3000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
