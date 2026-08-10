@@ -111,10 +111,10 @@ const CombinedDashboard = ({
   useSyncHostBaseUrl(host.globalUrl);
 
   // ── Shared filter state (mirrors DashboardPage) ──────────────────────────
-  const [tab, setTab] = useState<'security' | 'automation'>(() => {
+  const [tab, setTab] = useState<DashboardTab>(() => {
     try {
-      const stored = localStorage.getItem('shuffle_dashboard_tab');
-      if (stored === 'security' || stored === 'automation') return stored;
+      const stored = localStorage.getItem('shuffle_dashboard_tab') as DashboardTab | null;
+      if (stored && DASHBOARD_TABS.includes(stored)) return stored;
     } catch { /* noop */ }
     return defaultTab;
   });
