@@ -2696,7 +2696,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
         if (!hasExecutionDataRef.current) setError(json.reason || 'Failed to load agent data.');
         return;
       }
-      setExecution({ ...json, execution_id: executionId, authorization });
 
       // Find AI Agent result for the timeline
       let actionResult: any = null;
@@ -2706,9 +2705,28 @@ const AgentUI: React.FC<AgentUIProps> = ({
       } else {
         actionResult = json;
       }
-      setAgentActionResult(actionResult);
       const v = validateJson(actionResult?.result);
-      if (v.valid) setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
+
+      // A degraded/partial poll response must never wipe a timeline we have
+      // already rendered. When we previously had data but this payload carries
+      // none, keep the last good state and just clear the error.
+      const payloadHasResults = Array.isArray(json?.results) ? json.results.length > 0 : Boolean(json);
+      if (hasExecutionDataRef.current && !payloadHasResults) {
+        setExecution((prev) => (prev ? { ...prev, ...json, results: (prev as any).results, execution_id: executionId, authorization } : { ...json, execution_id: executionId, authorization }));
+        setError(null);
+        return;
+      }
+
+      setExecution({ ...json, execution_id: executionId, authorization });
+      if (actionResult) setAgentActionResult(actionResult);
+      if (v.valid) {
+        setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
+      } else if (hasExecutionDataRef.current) {
+        // Keep the previously parsed agent payload, only refresh run metadata.
+        setAgentData((prev) => (prev && Object.keys(prev).length > 0
+          ? { ...prev, started_at: json.started_at ?? (prev as any).started_at, completed_at: json.completed_at ?? (prev as any).completed_at, status: json.status ?? (prev as any).status }
+          : prev));
+      }
       hasExecutionDataRef.current = true;
       loadedExecutionIdRef.current = executionId;
       setError(null);
