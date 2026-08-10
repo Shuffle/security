@@ -2140,6 +2140,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const hasExecutionDataRef = useRef(false);
   /** Execution id the last successful payload belonged to. */
   const loadedExecutionIdRef = useRef<string | null>(null);
+  /**
+   * Whether the execution sidebar can actually load this run. We probe the
+   * exact same endpoint the explorer uses, so the "View full execution"
+   * button is disabled instead of opening a drawer that only says
+   * "Execution not found or is no longer available."
+   */
+  const [runExplorerAvailable, setRunExplorerAvailable] = useState<'checking' | 'yes' | 'no'>('checking');
   const [searchParams, setSearchParams] = useSearchParams();
   const initialViewParam = searchParams.get('agentView');
 
