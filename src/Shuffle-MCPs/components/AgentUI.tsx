@@ -2174,6 +2174,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
   /** Execution id the last successful payload belonged to. */
   const loadedExecutionIdRef = useRef<string | null>(null);
   /**
+   * Epoch ms until which we keep polling even after the run reports a terminal
+   * status. Continuations (and reruns) keep producing decisions in the
+   * background while the parent execution already says FINISHED, so stopping
+   * the poll on the first terminal status freezes the timeline.
+   */
+  const keepPollingUntilRef = useRef<number>(0);
+  /**
    * Whether the execution sidebar can actually load this run. We probe the
    * exact same endpoint the explorer uses, so the "View full execution"
    * button is disabled instead of opening a drawer that only says
@@ -2884,16 +2891,28 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Poll while running. Continue indefinitely until we see a terminal status
   // (FINISHED / FAILURE / ABORTED). We never give up on our own — long
   // executions just keep streaming results back.
+  //
+  // A terminal status is NOT always the end: continuations and reruns keep
+  // adding decisions in the background while the parent execution already
+  // reports FINISHED. So we keep polling (slower) while any decision is still
+  // unfinished, and for a grace window after the user submits something.
   useEffect(() => {
     if (!execution?.execution_id || !execution?.authorization) return;
     const status = (execution.status || '').toUpperCase();
     const TERMINAL = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
-    if (TERMINAL.includes(status)) return;
+    const isTerminal = TERMINAL.includes(status);
+    const hasPendingDecision = ((agentData?.decisions as any[]) || []).some((d) => {
+      const s = String(d?.run_details?.status || '').toUpperCase();
+      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
+    });
     const id = setInterval(() => {
+      if (isTerminal && !hasPendingDecision && Date.now() > keepPollingUntilRef.current) return;
       getExecution(execution.execution_id!, execution.authorization!);
-    }, 3000);
+    }, isTerminal ? 5000 : 3000);
     return () => clearInterval(id);
-  }, [execution?.execution_id, execution?.authorization, execution?.status, getExecution]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [execution?.execution_id, execution?.authorization, execution?.status, agentData?.decisions, getExecution]);
+
 
   // ── Submit input ──
   const submitInput = useCallback(async (text: string) => {
@@ -3114,6 +3133,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
 
     setAgentRequestLoading(true);
+    // The parent execution may already be FINISHED — keep polling so the new
+    // decisions produced by this continuation stream into the timeline.
+    keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     const wfId = execution.workflow?.id || execution.execution_id;
     const params = new URLSearchParams({
       reference_execution: execution.execution_id,
@@ -3336,6 +3358,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       (agentData?.decisions || []).map((d: any) => d?.run_details?.id || ''),
     );
     setAgentRequestLoading(true);
+    keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     try {
       const resp = await fetch(resolveUrl(`/api/v1/apps/agent/run?rerun=true&decision_id=${encodeURIComponent(decisionId)}`), {
         method: 'POST',
@@ -3484,6 +3507,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
         }
       }
     }
+
+    // Some runs end without an explicit finish/finalise decision (for example
+    // after a user-input continuation). The run is still over, so fall back to
+    // the last decision id so the continuation input stays available.
+    if (!finishId && runIsFinished) {
+      const decs: any[] = (agentData?.decisions as any[]) || [];
+      for (let i = decs.length - 1; i >= 0; i--) {
+        const id = decs[i]?.run_details?.id;
+        if (id) { finishId = id; break; }
+      }
+    }
+
+
 
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
     // else preserves insertion order (the index `i` from the decisions array).
