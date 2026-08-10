@@ -155,6 +155,8 @@ const humanizeLabel = (label?: string | null): string | null => {
 export interface WorkflowRunExplorerProps {
   /** Execution id to inspect. Required. */
   executionId: string;
+  /** Execution authorization token. Required for agent / stream executions. */
+  authorization?: string;
   /** Optional close handler (renders a small breadcrumb back button). */
   onClose?: () => void;
   /** Polling interval in ms for in-progress runs. Defaults to 3000. */
@@ -163,6 +165,7 @@ export interface WorkflowRunExplorerProps {
 
 export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
   executionId,
+  authorization,
   onClose,
   pollIntervalMs = 3000,
 }) => {
@@ -175,11 +178,14 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
   const cancelledRef = useRef(false);
 
   const load = React.useCallback(async () => {
-    const data = await fetchExecution(executionId);
+    let data = await fetchExecution(executionId, authorization);
+    // Retry without the token if it was rejected: some executions are
+    // readable through the session/API key alone.
+    if (!data && authorization) data = await fetchExecution(executionId);
     if (cancelledRef.current) return;
     setExec(data);
     setLoading(false);
-  }, [executionId]);
+  }, [executionId, authorization]);
 
   useEffect(() => {
     cancelledRef.current = false;
