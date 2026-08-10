@@ -1410,9 +1410,12 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             // Pull the execution id out of the debug URL so we can open the
             // in-app execution sidebar instead of a new browser tab.
             let debugExecutionId = '';
+            let debugAuthorization = '';
             try {
               const qp = rawDebugUrl.split('?')[1] || '';
-              debugExecutionId = new URLSearchParams(qp).get('execution_id') || '';
+              const parsed = new URLSearchParams(qp);
+              debugExecutionId = parsed.get('execution_id') || '';
+              debugAuthorization = parsed.get('authorization') || '';
             } catch { /* noop */ }
             if (!debugExecutionId) {
               const m = rawDebugUrl.match(/[0-9a-fA-F-]{36}/g);
@@ -1427,7 +1430,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                       if (debugExecutionId) {
                         try {
                           window.dispatchEvent(new CustomEvent('workflow-run:open', {
-                            detail: { executionId: debugExecutionId },
+                            detail: {
+                              executionId: debugExecutionId,
+                              authorization: debugAuthorization || undefined,
+                            },
                           }));
                           return;
                         } catch { /* noop */ }
@@ -5025,7 +5031,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       onClick={() => {
                         try {
                           window.dispatchEvent(new CustomEvent('workflow-run:open', {
-                            detail: { executionId: execution.execution_id },
+                            detail: {
+                              executionId: execution.execution_id,
+                              authorization: execution.authorization,
+                            },
                           }));
                         } catch { /* noop */ }
                       }}
