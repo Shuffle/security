@@ -447,6 +447,26 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
               );
             }
             const label = sourceLabel(exec);
+            // Auth Group — tooltip with the group name (checked before parent per sourceLabel)
+            if (exec.authgroup) {
+              return (
+                <MetaRow
+                  label="Source"
+                  accent
+                  value={
+                    <Tooltip
+                      title={`Auth group: ${exec.authgroup}`}
+                      placement="top"
+                      arrow
+                    >
+                      <Box component="span" sx={{ cursor: 'default' }}>
+                        {label}
+                      </Box>
+                    </Tooltip>
+                  }
+                />
+              );
+            }
             // Parent Workflow — link to the parent execution
             if (exec.execution_parent) {
               const href = `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(exec.execution_parent)}`;
@@ -467,26 +487,6 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                         rel="noopener noreferrer"
                         sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
                       >
-                        {label}
-                      </Box>
-                    </Tooltip>
-                  }
-                />
-              );
-            }
-            // Auth Group — tooltip with the group name
-            if (exec.authgroup) {
-              return (
-                <MetaRow
-                  label="Source"
-                  accent
-                  value={
-                    <Tooltip
-                      title={`Auth group: ${exec.authgroup}`}
-                      placement="top"
-                      arrow
-                    >
-                      <Box component="span" sx={{ cursor: 'default' }}>
                         {label}
                       </Box>
                     </Tooltip>
