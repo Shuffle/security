@@ -1004,6 +1004,7 @@ export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps>
       {open && executionId && (
         <WorkflowRunExplorer
           executionId={executionId}
+          authorization={authorization}
           onClose={onClose}
           pollIntervalMs={pollIntervalMs}
         />
