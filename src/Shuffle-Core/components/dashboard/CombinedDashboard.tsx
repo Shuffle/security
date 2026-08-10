@@ -43,8 +43,20 @@ export interface CombinedDashboardProps
   /** Default tab on first mount. Persisted to localStorage thereafter.
    *  Defaults to 'automation' for standalone/embedded consumers; the Shuffle
    *  Security host passes 'security' explicitly. */
-  defaultTab?: 'security' | 'automation';
+  defaultTab?: DashboardTab;
 }
+
+/** Available dashboard surfaces, grouped in the header dropdown under
+ *  "Security" (Security Operations, Vulnerabilities) and "Automation"
+ *  (Automation, Agents). */
+export type DashboardTab = 'security' | 'vulnerabilities' | 'automation' | 'agents';
+const DASHBOARD_TABS: DashboardTab[] = ['security', 'vulnerabilities', 'automation', 'agents'];
+const TAB_LABELS: Record<DashboardTab, string> = {
+  security: 'Security Operations',
+  vulnerabilities: 'Vulnerabilities',
+  automation: 'Automation',
+  agents: 'Agents',
+};
 
 // ── helpers (mirrors DashboardPage.overviewIncidents transform) ─────────────
 const SEV_MAP: Record<number, string> = { 1: 'informational', 2: 'low', 3: 'medium', 4: 'high', 5: 'critical', 6: 'critical' };
