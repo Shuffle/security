@@ -43,6 +43,7 @@ import {
   AlertTriangle as WarningIcon,
   Search as SearchIcon,
 } from 'lucide-react';
+import { fetchExecution as fetchExecutionSnapshot } from '@/Shuffle-Core/components/WorkflowRunExplorer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Avatar,
@@ -2140,6 +2141,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const hasExecutionDataRef = useRef(false);
   /** Execution id the last successful payload belonged to. */
   const loadedExecutionIdRef = useRef<string | null>(null);
+  /**
+   * Whether the execution sidebar can actually load this run. We probe the
+   * exact same endpoint the explorer uses, so the "View full execution"
+   * button is disabled instead of opening a drawer that only says
+   * "Execution not found or is no longer available."
+   */
+  const [runExplorerAvailable, setRunExplorerAvailable] = useState<'checking' | 'yes' | 'no'>('checking');
   const [searchParams, setSearchParams] = useSearchParams();
   const initialViewParam = searchParams.get('agentView');
 
@@ -2736,6 +2744,24 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (!hasExecutionDataRef.current) setError(err instanceof Error ? err.message : 'Network error.');
     }
   }, []);
+
+  // ── Probe whether the execution sidebar can load this run ──
+  // Uses the explorer's own fetch so the answer matches exactly what the
+  // drawer would render. Re-probes when the execution (or its token) changes.
+  useEffect(() => {
+    const eid = execution?.execution_id;
+    const auth = execution?.authorization;
+    if (!eid) { setRunExplorerAvailable('checking'); return; }
+    if (!auth) { setRunExplorerAvailable('no'); return; }
+    let cancelled = false;
+    setRunExplorerAvailable('checking');
+    (async () => {
+      const found = await fetchExecutionSnapshot(eid, auth);
+      if (!cancelled) setRunExplorerAvailable(found ? 'yes' : 'no');
+    })();
+    return () => { cancelled = true; };
+  }, [execution?.execution_id, execution?.authorization]);
+
 
   // Attach to an explicit execution (props) or one passed via URL params.
   // Props take precedence over URL params.
@@ -5057,14 +5083,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </span>
               </Tooltip>
               {execution?.execution_id && (() => {
-                // Without an execution authorization token the explorer cannot
-                // fetch the run and would only render "Execution not found".
-                // Disable the button up-front and explain why instead.
-                const canOpenRun = Boolean(execution.authorization);
+                // The explorer needs both an authorization token and a run the
+                // backend still has. `runExplorerAvailable` is probed with the
+                // explorer's own fetch, so we never open a drawer that would
+                // only say "Execution not found or is no longer available."
+                const canOpenRun = Boolean(execution.authorization) && runExplorerAvailable === 'yes';
+                const tooltipTitle = !execution.authorization
+                  ? 'Execution details are no longer available for this run (missing execution authorization)'
+                  : runExplorerAvailable === 'checking'
+                    ? 'Checking if execution details are available…'
+                    : runExplorerAvailable === 'no'
+                      ? 'Execution details are no longer available for this run'
+                      : 'View full execution';
                 return (
-                  <Tooltip title={canOpenRun
-                    ? 'View full execution'
-                    : 'Execution details are no longer available for this run (missing execution authorization)'}>
+                  <Tooltip title={tooltipTitle}>
                     <span>
                       <IconButton
                         size="small"
