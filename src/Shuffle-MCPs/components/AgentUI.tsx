@@ -3508,6 +3508,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
     }
 
+    // Some runs end without an explicit finish/finalise decision (for example
+    // after a user-input continuation). The run is still over, so fall back to
+    // the last decision id so the continuation input stays available.
+    if (!finishId && runIsFinished) {
+      const decs: any[] = (agentData?.decisions as any[]) || [];
+      for (let i = decs.length - 1; i >= 0; i--) {
+        const id = decs[i]?.run_details?.id;
+        if (id) { finishId = id; break; }
+      }
+    }
+
+
+
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
     // else preserves insertion order (the index `i` from the decisions array).
     // Timestamps are intentionally NOT used — they're often missing or 0,
