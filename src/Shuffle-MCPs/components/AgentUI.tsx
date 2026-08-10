@@ -2930,13 +2930,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const s = String(d?.run_details?.status || '').toUpperCase();
       return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
     });
+    // The run is done and a final answer is on screen — stop polling entirely.
+    if (isTerminal && !hasPendingDecision && runComplete) {
+      keepPollingUntilRef.current = 0;
+      return;
+    }
     const id = setInterval(() => {
       if (isTerminal && !hasPendingDecision && Date.now() > keepPollingUntilRef.current) return;
       getExecution(execution.execution_id!, execution.authorization);
     }, isTerminal ? 5000 : 3000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [execution?.execution_id, execution?.authorization, execution?.status, agentData?.decisions, getExecution]);
+  }, [execution?.execution_id, execution?.authorization, execution?.status, agentData?.decisions, runComplete, getExecution]);
 
 
   // ── Submit input ──
