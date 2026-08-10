@@ -1264,7 +1264,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               fontSize: '0.7rem',
               fontWeight: 500,
               textTransform: 'capitalize',
-              minWidth: 80,
+              width: 92,
+              minWidth: 92,
+              maxWidth: 92,
+              flexShrink: 0,
               fontStyle: isProcessing ? 'italic' : 'normal',
             }}
           />
