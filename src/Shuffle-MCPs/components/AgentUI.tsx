@@ -1320,7 +1320,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           </Box>
         </Tooltip>
 
-        <Box sx={{ width: isScheduledWait ? 92 : 60, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right', lineHeight: 1.3 }}>
+        <Box sx={{ width: 84, flexShrink: 0, fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textAlign: 'right', lineHeight: 1.3, whiteSpace: 'nowrap' }}>
           {isScheduledWait ? (
             <DurationCountdown resumeAtMs={scheduledResumeMs} />
           ) : showTiming ? `${dur.toFixed(2)}s` : ''}
