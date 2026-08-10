@@ -3681,6 +3681,31 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
 
+  // Mark the run complete once it is terminal and a final answer has landed,
+  // so the poller can stop instead of running out the grace window.
+  useEffect(() => {
+    const status = (execution?.status || '').toUpperCase();
+    const isTerminal = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
+    const hasPendingDecision = ((agentData?.decisions as any[]) || []).some((d) => {
+      const s = String(d?.run_details?.status || '').toUpperCase();
+      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
+    });
+    setRunComplete(Boolean(isTerminal && !hasPendingDecision && (finishAnswer || finishDecisionId)));
+  }, [execution?.status, agentData?.decisions, finishAnswer, finishDecisionId]);
+
+  // Auto-focus the continuation field when the run finishes, so it is obvious
+  // the execution can be continued.
+  useEffect(() => {
+    if (!finishDecisionId || agentRequestLoading) return;
+    if (continuationFocusedForRef.current === finishDecisionId) return;
+    continuationFocusedForRef.current = finishDecisionId;
+    const t = setTimeout(() => {
+      const el = continuationInputRef.current;
+      if (el && document.activeElement !== el) el.focus({ preventScroll: true });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [finishDecisionId, agentRequestLoading]);
+
 
 
   const toggleOpen = (i: number) =>
