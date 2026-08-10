@@ -624,8 +624,9 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
             title={
               <Box sx={{ lineHeight: 1.4 }}>
                 <Box sx={{ fontWeight: 600 }}>{sourceInfo.label}</Box>
-                <Box sx={{ opacity: 0.85 }}>{sourceInfo.reason}</Box>
+                <Box sx={{ opacity: 0.85, whiteSpace: 'pre-line' }}>{sourceInfo.reason}</Box>
               </Box>
+
             }
             placement="top"
             arrow
