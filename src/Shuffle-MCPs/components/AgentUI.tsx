@@ -1335,7 +1335,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
 
         {/* Per-row actions: Approve/Deny, Rerun */}
         <Box
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1, minWidth: 68, justifyContent: 'flex-end' }}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1, width: 68, minWidth: 68, flexShrink: 0, justifyContent: 'flex-end' }}
           onClick={(e) => {
             // Only swallow the click when it actually lands on a button —
             // otherwise the empty area inside this row-actions box would
