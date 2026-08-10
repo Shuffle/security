@@ -2174,6 +2174,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
   /** Execution id the last successful payload belonged to. */
   const loadedExecutionIdRef = useRef<string | null>(null);
   /**
+   * Epoch ms until which we keep polling even after the run reports a terminal
+   * status. Continuations (and reruns) keep producing decisions in the
+   * background while the parent execution already says FINISHED, so stopping
+   * the poll on the first terminal status freezes the timeline.
+   */
+  const keepPollingUntilRef = useRef<number>(0);
+  /**
    * Whether the execution sidebar can actually load this run. We probe the
    * exact same endpoint the explorer uses, so the "View full execution"
    * button is disabled instead of opening a drawer that only says
