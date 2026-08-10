@@ -2167,6 +2167,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [simpleSubmitAttempted, setSimpleSubmitAttempted] = useState(false);
   const [finishAnswerRaw, setFinishAnswerRaw] = useState(false);
   const [continuationText, setContinuationText] = useState('');
+  /**
+   * True once the run is terminal AND a final answer has landed. Polling stops
+   * immediately at that point instead of running out the continuation grace
+   * window.
+   */
+  const [runComplete, setRunComplete] = useState(false);
+  /** Continuation input — focused automatically once the run finishes. */
+  const continuationInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const continuationFocusedForRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Non-blocking warning shown when polling fails while we already have data.
   // Cleared as soon as a poll succeeds again.
@@ -2921,13 +2930,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const s = String(d?.run_details?.status || '').toUpperCase();
       return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
     });
+    // The run is done and a final answer is on screen — stop polling entirely.
+    if (isTerminal && !hasPendingDecision && runComplete) {
+      keepPollingUntilRef.current = 0;
+      return;
+    }
     const id = setInterval(() => {
       if (isTerminal && !hasPendingDecision && Date.now() > keepPollingUntilRef.current) return;
       getExecution(execution.execution_id!, execution.authorization);
     }, isTerminal ? 5000 : 3000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [execution?.execution_id, execution?.authorization, execution?.status, agentData?.decisions, getExecution]);
+  }, [execution?.execution_id, execution?.authorization, execution?.status, agentData?.decisions, runComplete, getExecution]);
 
 
   // ── Submit input ──
@@ -3151,6 +3165,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setAgentRequestLoading(true);
     // The parent execution may already be FINISHED — keep polling so the new
     // decisions produced by this continuation stream into the timeline.
+    setRunComplete(false);
     keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     const wfId = execution.workflow?.id || execution.execution_id;
     const params = new URLSearchParams({
@@ -3374,6 +3389,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       (agentData?.decisions || []).map((d: any) => d?.run_details?.id || ''),
     );
     setAgentRequestLoading(true);
+    setRunComplete(false);
     keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     try {
       const resp = await fetch(resolveUrl(`/api/v1/apps/agent/run?rerun=true&decision_id=${encodeURIComponent(decisionId)}`), {
@@ -3666,6 +3682,31 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const total = Math.max(1, end - startSafe);
     return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
+
+  // Mark the run complete once it is terminal and a final answer has landed,
+  // so the poller can stop instead of running out the grace window.
+  useEffect(() => {
+    const status = (execution?.status || '').toUpperCase();
+    const isTerminal = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
+    const hasPendingDecision = ((agentData?.decisions as any[]) || []).some((d) => {
+      const s = String(d?.run_details?.status || '').toUpperCase();
+      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
+    });
+    setRunComplete(Boolean(isTerminal && !hasPendingDecision && (finishAnswer || finishDecisionId)));
+  }, [execution?.status, agentData?.decisions, finishAnswer, finishDecisionId]);
+
+  // Auto-focus the continuation field when the run finishes, so it is obvious
+  // the execution can be continued.
+  useEffect(() => {
+    if (!finishDecisionId || agentRequestLoading) return;
+    if (continuationFocusedForRef.current === finishDecisionId) return;
+    continuationFocusedForRef.current = finishDecisionId;
+    const t = setTimeout(() => {
+      const el = continuationInputRef.current;
+      if (el && document.activeElement !== el) el.focus({ preventScroll: true });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [finishDecisionId, agentRequestLoading]);
 
 
 
@@ -5684,6 +5725,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     minRows={1}
                     maxRows={4}
                     placeholder={continuationPlaceholder}
+                    inputRef={continuationInputRef}
+                    autoFocus
                     value={continuationText}
                     onChange={(e) => setContinuationText(e.target.value)}
                     onKeyDown={(e) => {
