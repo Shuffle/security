@@ -3358,6 +3358,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       (agentData?.decisions || []).map((d: any) => d?.run_details?.id || ''),
     );
     setAgentRequestLoading(true);
+    keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     try {
       const resp = await fetch(resolveUrl(`/api/v1/apps/agent/run?rerun=true&decision_id=${encodeURIComponent(decisionId)}`), {
         method: 'POST',
