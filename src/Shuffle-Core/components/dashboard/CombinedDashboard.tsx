@@ -17,13 +17,15 @@
  * branch of the host `/dashboard` page.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Select, Tooltip as MuiTooltip, Typography } from '@mui/material';
+import { Box, CircularProgress, FormControl, IconButton, InputLabel, ListSubheader, MenuItem, Select, Tooltip as MuiTooltip, Typography } from '@mui/material';
 import { RefreshCw as RefreshIcon, X as CloseIcon, Download as DownloadIcon } from 'lucide-react';
 import { useDatastore } from '../../hooks/useDatastore';
 import { DATASTORE_CATEGORIES } from '@shuffleio/shuffle-mcps';
 import { getApiUrl, getAuthHeader } from '../../api';
 import DashboardOverview, { type OverviewProps } from './DashboardOverview';
 import AutomationDashboard, { type AutomationDashboardProps, AUTOMATION_RANGE_OPTIONS } from './AutomationDashboard';
+import AgentsDashboard from './AgentsDashboard';
+import VulnerabilitiesDashboard from './VulnerabilitiesDashboard';
 import { SegmentedControl } from '../ui/segmented-control';
 import type { ShuffleCoreHostProps } from '../../types/host-props';
 import { useSyncHostBaseUrl } from '../../useSyncHostBaseUrl';
