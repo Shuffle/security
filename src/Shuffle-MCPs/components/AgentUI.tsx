@@ -3165,6 +3165,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setAgentRequestLoading(true);
     // The parent execution may already be FINISHED — keep polling so the new
     // decisions produced by this continuation stream into the timeline.
+    setRunComplete(false);
     keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     const wfId = execution.workflow?.id || execution.execution_id;
     const params = new URLSearchParams({
@@ -3388,6 +3389,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       (agentData?.decisions || []).map((d: any) => d?.run_details?.id || ''),
     );
     setAgentRequestLoading(true);
+    setRunComplete(false);
     keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     try {
       const resp = await fetch(resolveUrl(`/api/v1/apps/agent/run?rerun=true&decision_id=${encodeURIComponent(decisionId)}`), {
