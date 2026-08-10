@@ -4304,7 +4304,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
               {!hidePresets && (
                 <Box sx={{
-                  position: 'absolute', left: '14px', top: '19px',
+                  position: 'absolute', left: '17px', top: '19px',
                   height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                   // While the textarea is scrolled, line 1 (the indented one) is
                   // out of view and later lines would run under the chip.
@@ -4392,7 +4392,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     pt: '5px',
                     pb: 0,
                     lineHeight: 1.55,
-                    textIndent: !hidePresets ? `${(presetsChipWidth || 96) + 8}px` : 0,
+                    textIndent: !hidePresets ? `${(presetsChipWidth || 96) + 11}px` : 0,
                   },
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
                 }}
