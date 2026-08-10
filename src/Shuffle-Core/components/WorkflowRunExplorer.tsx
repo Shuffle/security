@@ -97,7 +97,10 @@ const countRelevantErrors = (result: any): number => {
   return count || 0;
 };
 
-const fetchExecution = async (executionId: string): Promise<WorkflowExecution | null> => {
+const fetchExecution = async (
+  executionId: string,
+  authorization?: string,
+): Promise<WorkflowExecution | null> => {
   try {
     const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
       method: 'POST',
@@ -106,7 +109,9 @@ const fetchExecution = async (executionId: string): Promise<WorkflowExecution | 
         'Content-Type': 'application/json',
         ...getAuthHeader(),
       },
-      body: JSON.stringify({ execution_id: executionId, authorization: executionId }),
+      // The execution authorization token is required for agent//streams runs.
+      // Fall back to the execution id for runs opened without one.
+      body: JSON.stringify({ execution_id: executionId, authorization: authorization || executionId }),
     });
     if (!resp.ok) return null;
     const text = await resp.text();
