@@ -338,15 +338,32 @@ const CombinedDashboard = ({
   const sharedHeader = (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', minHeight: 36 }}>
-        <SegmentedControl
-          ariaLabel="Dashboard view"
-          value={tab}
-          onChange={(v) => setTab(v as 'security' | 'automation')}
-          options={[
-            { value: 'security', label: 'Security Operations' },
-            { value: 'automation', label: 'Automation' },
-          ]}
-        />
+        <FormControl size="small" sx={{ minWidth: 210 }}>
+          <Select
+            value={tab}
+            onChange={(e) => setTab(e.target.value as DashboardTab)}
+            inputProps={{ 'aria-label': 'Dashboard view' }}
+            sx={{
+              height: 36,
+              borderRadius: '999px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+            }}
+            MenuProps={{ PaperProps: { sx: { mt: 0.5, borderRadius: '10px' } } }}
+          >
+            <ListSubheader sx={{ fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 2.4, color: 'hsl(var(--muted-foreground))', bgcolor: 'transparent' }}>
+              Security
+            </ListSubheader>
+            <MenuItem value="security">{TAB_LABELS.security}</MenuItem>
+            <MenuItem value="vulnerabilities">{TAB_LABELS.vulnerabilities}</MenuItem>
+            <ListSubheader sx={{ fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 2.4, color: 'hsl(var(--muted-foreground))', bgcolor: 'transparent' }}>
+              Automation
+            </ListSubheader>
+            <MenuItem value="automation">{TAB_LABELS.automation}</MenuItem>
+            <MenuItem value="agents">{TAB_LABELS.agents}</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: customRangeLabel ? 220 : 130 }}>
