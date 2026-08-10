@@ -97,7 +97,7 @@ const countRelevantErrors = (result: any): number => {
   return count || 0;
 };
 
-const fetchExecution = async (
+export const fetchExecution = async (
   executionId: string,
   authorization?: string,
 ): Promise<WorkflowExecution | null> => {
