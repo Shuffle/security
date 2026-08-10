@@ -97,7 +97,10 @@ const countRelevantErrors = (result: any): number => {
   return count || 0;
 };
 
-const fetchExecution = async (executionId: string): Promise<WorkflowExecution | null> => {
+const fetchExecution = async (
+  executionId: string,
+  authorization?: string,
+): Promise<WorkflowExecution | null> => {
   try {
     const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
       method: 'POST',
@@ -106,7 +109,9 @@ const fetchExecution = async (executionId: string): Promise<WorkflowExecution | 
         'Content-Type': 'application/json',
         ...getAuthHeader(),
       },
-      body: JSON.stringify({ execution_id: executionId, authorization: executionId }),
+      // The execution authorization token is required for agent//streams runs.
+      // Fall back to the execution id for runs opened without one.
+      body: JSON.stringify({ execution_id: executionId, authorization: authorization || executionId }),
     });
     if (!resp.ok) return null;
     const text = await resp.text();
@@ -150,6 +155,8 @@ const humanizeLabel = (label?: string | null): string | null => {
 export interface WorkflowRunExplorerProps {
   /** Execution id to inspect. Required. */
   executionId: string;
+  /** Execution authorization token. Required for agent / stream executions. */
+  authorization?: string;
   /** Optional close handler (renders a small breadcrumb back button). */
   onClose?: () => void;
   /** Polling interval in ms for in-progress runs. Defaults to 3000. */
@@ -158,6 +165,7 @@ export interface WorkflowRunExplorerProps {
 
 export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
   executionId,
+  authorization,
   onClose,
   pollIntervalMs = 3000,
 }) => {
@@ -170,11 +178,15 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
   const cancelledRef = useRef(false);
 
   const load = React.useCallback(async () => {
-    const data = await fetchExecution(executionId);
+    let data = await fetchExecution(executionId, authorization);
+    // Retry without the token if it was rejected: some executions are
+    // readable through the session/API key alone.
+    if (!data && authorization) data = await fetchExecution(executionId);
     if (cancelledRef.current) return;
-    setExec(data);
+    // Keep the last good snapshot if a poll fails transiently.
+    setExec((prev) => data || prev);
     setLoading(false);
-  }, [executionId]);
+  }, [executionId, authorization]);
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -952,6 +964,7 @@ export interface WorkflowRunExplorerDrawerProps extends WorkflowRunExplorerProps
 export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps> = ({
   open,
   executionId,
+  authorization,
   onClose,
   width = 720,
   minWidth = 480,
@@ -991,6 +1004,7 @@ export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps>
       {open && executionId && (
         <WorkflowRunExplorer
           executionId={executionId}
+          authorization={authorization}
           onClose={onClose}
           pollIntervalMs={pollIntervalMs}
         />

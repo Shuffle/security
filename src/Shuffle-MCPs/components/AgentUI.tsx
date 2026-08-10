@@ -1410,9 +1410,12 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             // Pull the execution id out of the debug URL so we can open the
             // in-app execution sidebar instead of a new browser tab.
             let debugExecutionId = '';
+            let debugAuthorization = '';
             try {
               const qp = rawDebugUrl.split('?')[1] || '';
-              debugExecutionId = new URLSearchParams(qp).get('execution_id') || '';
+              const parsed = new URLSearchParams(qp);
+              debugExecutionId = parsed.get('execution_id') || '';
+              debugAuthorization = parsed.get('authorization') || '';
             } catch { /* noop */ }
             if (!debugExecutionId) {
               const m = rawDebugUrl.match(/[0-9a-fA-F-]{36}/g);
@@ -1427,7 +1430,10 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                       if (debugExecutionId) {
                         try {
                           window.dispatchEvent(new CustomEvent('workflow-run:open', {
-                            detail: { executionId: debugExecutionId },
+                            detail: {
+                              executionId: debugExecutionId,
+                              authorization: debugAuthorization || undefined,
+                            },
                           }));
                           return;
                         } catch { /* noop */ }
@@ -2125,6 +2131,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [finishAnswerRaw, setFinishAnswerRaw] = useState(false);
   const [continuationText, setContinuationText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // True once at least one successful execution payload has been rendered, so
+  // later transient poll failures do not replace good data with an error.
+  const hasExecutionDataRef = useRef(false);
+  /** Execution id the last successful payload belonged to. */
+  const loadedExecutionIdRef = useRef<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialViewParam = searchParams.get('agentView');
 
@@ -2654,6 +2665,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Fetch execution result (poll-friendly) ──
   const getExecution = useCallback(async (executionId: string, authorization: string) => {
+    if (loadedExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
     if (!executionId || !authorization) return;
     try {
       const resp = await fetch(resolveUrl('/api/v1/streams/results'), {
@@ -2670,13 +2682,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // back into state — otherwise the UI snaps to the old execution.)
       if (activeExecutionIdRef.current !== executionId) return;
       if (!resp.ok) {
-        setError(`Could not fetch execution (${resp.status}).`);
+        // A single failed poll must not hide a timeline we already rendered.
+        if (!hasExecutionDataRef.current) setError(`Could not fetch execution (${resp.status}).`);
         return;
       }
       const json = await resp.json();
       if (activeExecutionIdRef.current !== executionId) return;
       if (json?.success === false) {
-        setError(json.reason || 'Failed to load agent data.');
+        if (!hasExecutionDataRef.current) setError(json.reason || 'Failed to load agent data.');
         return;
       }
       setExecution({ ...json, execution_id: executionId, authorization });
@@ -2692,9 +2705,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setAgentActionResult(actionResult);
       const v = validateJson(actionResult?.result);
       if (v.valid) setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
+      hasExecutionDataRef.current = true;
+      loadedExecutionIdRef.current = executionId;
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error.');
+      // Transient network blips ("Failed to fetch") happen while polling a
+      // long-running execution. Only surface them when nothing loaded yet.
+      if (!hasExecutionDataRef.current) setError(err instanceof Error ? err.message : 'Network error.');
     }
   }, []);
 
@@ -5025,7 +5042,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       onClick={() => {
                         try {
                           window.dispatchEvent(new CustomEvent('workflow-run:open', {
-                            detail: { executionId: execution.execution_id },
+                            detail: {
+                              executionId: execution.execution_id,
+                              authorization: execution.authorization,
+                            },
                           }));
                         } catch { /* noop */ }
                       }}
