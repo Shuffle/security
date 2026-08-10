@@ -3133,6 +3133,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
 
     setAgentRequestLoading(true);
+    // The parent execution may already be FINISHED — keep polling so the new
+    // decisions produced by this continuation stream into the timeline.
+    keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     const wfId = execution.workflow?.id || execution.execution_id;
     const params = new URLSearchParams({
       reference_execution: execution.execution_id,
