@@ -568,7 +568,7 @@ const NotificationsDrawer = ({
                   size="small"
                   onClick={() => {
                     setQuery('');
-                    setShowRead(false);
+                    setShowRead(true);
                   }}
                   sx={{
                     height: 32,
