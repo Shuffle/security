@@ -6,6 +6,10 @@
  * scoped to a Shuffle backend origin) fails repeatedly inside a short window,
  * subsequent calls fail-fast with a synthetic 503 for a cooldown period.
  *
+ * The breaker is "half-open": shortly after tripping it lets a single probe
+ * request through. If that probe succeeds the endpoint is restored immediately
+ * instead of staying blocked for the full cooldown.
+ *
  * This is a safety net — components and hooks should still throttle / cache
  * their own requests. The breaker only kicks in when something has gone wrong
  * (a useEffect missing deps, a render loop, an unreachable backend).
@@ -16,7 +20,9 @@
 
 const FAIL_THRESHOLD = 12;     // failures inside the rolling window
 const ROLLING_WINDOW_MS = 5_000;
-const COOLDOWN_MS = 30_000;
+const COOLDOWN_MS = 10_000;
+const PROBE_AFTER_MS = 1_500;  // half-open: allow one probe this soon after tripping
+const MAX_PROBE_BACKOFF_MS = 5_000;
 const HARD_BURST_THRESHOLD = 30; // any 30 calls (success or fail) in 1s ⇒ trip
 const HARD_BURST_WINDOW_MS = 1_000;
 
@@ -24,6 +30,8 @@ interface EndpointState {
   failures: number[];      // recent failure timestamps
   attempts: number[];      // recent attempt timestamps (for burst detection)
   blockedUntil: number;    // 0 when not blocked
+  probeAfter: number;      // earliest time a half-open probe may be sent
+  probing: boolean;        // a probe request is currently in flight
   warned: boolean;
 }
 
@@ -34,10 +42,25 @@ let allowedOrigins: Set<string> = new Set();
 const getEntry = (key: string): EndpointState => {
   let entry = state.get(key);
   if (!entry) {
-    entry = { failures: [], attempts: [], blockedUntil: 0, warned: false };
+    entry = { failures: [], attempts: [], blockedUntil: 0, probeAfter: 0, probing: false, warned: false };
     state.set(key, entry);
   }
   return entry;
+};
+
+const trip = (entry: EndpointState, now: number, cooldownMs = COOLDOWN_MS) => {
+  entry.blockedUntil = now + cooldownMs;
+  entry.probeAfter = now + PROBE_AFTER_MS;
+  entry.probing = false;
+};
+
+const reset = (entry: EndpointState) => {
+  entry.failures.length = 0;
+  entry.attempts.length = 0;
+  entry.blockedUntil = 0;
+  entry.probeAfter = 0;
+  entry.probing = false;
+  entry.warned = false;
 };
 
 const prune = (arr: number[], now: number, windowMs: number) => {
@@ -105,8 +128,7 @@ export const registerProtectedOrigin = (url: string | undefined | null) => {
 
 /** Manually force the breaker open for a key — used by negative-cached helpers. */
 export const tripBreaker = (urlOrKey: string, cooldownMs = COOLDOWN_MS) => {
-  const entry = getEntry(urlOrKey);
-  entry.blockedUntil = Date.now() + cooldownMs;
+  trip(getEntry(urlOrKey), Date.now(), cooldownMs);
 };
 
 export const installFetchBreaker = () => {
@@ -122,27 +144,45 @@ export const installFetchBreaker = () => {
 
     const entry = getEntry(key);
     const now = Date.now();
+    let isProbe = false;
 
     if (entry.blockedUntil > now) {
-      return synthetic503(key, entry.blockedUntil - now);
+      // Half-open: let a single request through to see if the endpoint recovered.
+      if (!entry.probing && now >= entry.probeAfter) {
+        entry.probing = true;
+        isProbe = true;
+      } else {
+        return synthetic503(key, entry.blockedUntil - now);
+      }
     }
 
     // Burst detection — protects against pure render-loop spam regardless of
-    // success/failure.
-    entry.attempts.push(now);
-    prune(entry.attempts, now, HARD_BURST_WINDOW_MS);
-    if (entry.attempts.length > HARD_BURST_THRESHOLD) {
-      entry.blockedUntil = now + COOLDOWN_MS;
-      if (!entry.warned) {
-        entry.warned = true;
-        // eslint-disable-next-line no-console
-        console.error(
-          `[fetchBreaker] Burst detected on ${key} (${entry.attempts.length} calls / ${HARD_BURST_WINDOW_MS}ms). ` +
-            `Blocking for ${COOLDOWN_MS / 1000}s. Fix the caller — this is almost always a missing useEffect dep or a render loop.`,
-        );
+    // success/failure. Probes bypass it (they are single requests by design).
+    if (!isProbe) {
+      entry.attempts.push(now);
+      prune(entry.attempts, now, HARD_BURST_WINDOW_MS);
+      if (entry.attempts.length > HARD_BURST_THRESHOLD) {
+        trip(entry, now);
+        if (!entry.warned) {
+          entry.warned = true;
+          // eslint-disable-next-line no-console
+          console.error(
+            `[fetchBreaker] Burst detected on ${key} (${entry.attempts.length} calls / ${HARD_BURST_WINDOW_MS}ms). ` +
+              `Blocking for up to ${COOLDOWN_MS / 1000}s (probing again in ${PROBE_AFTER_MS / 1000}s). ` +
+              `Fix the caller — this is almost always a missing useEffect dep or a render loop.`,
+          );
+        }
+        return synthetic503(key, COOLDOWN_MS);
       }
-      return synthetic503(key, COOLDOWN_MS);
     }
+
+    const onProbeFailure = (ts: number) => {
+      if (!isProbe) return;
+      entry.probing = false;
+      // Back off a little before the next probe, but never past the cooldown.
+      entry.probeAfter = ts + Math.min(MAX_PROBE_BACKOFF_MS, PROBE_AFTER_MS * 2);
+      entry.blockedUntil = Math.max(entry.blockedUntil, ts + PROBE_AFTER_MS);
+    };
 
     let response: Response;
     try {
@@ -151,14 +191,15 @@ export const installFetchBreaker = () => {
       const ts = Date.now();
       entry.failures.push(ts);
       prune(entry.failures, ts, ROLLING_WINDOW_MS);
-      if (entry.failures.length >= FAIL_THRESHOLD) {
-        entry.blockedUntil = ts + COOLDOWN_MS;
+      onProbeFailure(ts);
+      if (!isProbe && entry.failures.length >= FAIL_THRESHOLD) {
+        trip(entry, ts);
         if (!entry.warned) {
           entry.warned = true;
           // eslint-disable-next-line no-console
           console.error(
             `[fetchBreaker] ${entry.failures.length} network errors on ${key} in ${ROLLING_WINDOW_MS / 1000}s. ` +
-              `Blocking for ${COOLDOWN_MS / 1000}s.`,
+              `Blocking for up to ${COOLDOWN_MS / 1000}s.`,
           );
         }
       }
@@ -169,21 +210,24 @@ export const installFetchBreaker = () => {
       const ts = Date.now();
       entry.failures.push(ts);
       prune(entry.failures, ts, ROLLING_WINDOW_MS);
-      if (entry.failures.length >= FAIL_THRESHOLD) {
-        entry.blockedUntil = ts + COOLDOWN_MS;
+      onProbeFailure(ts);
+      if (!isProbe && entry.failures.length >= FAIL_THRESHOLD) {
+        trip(entry, ts);
         if (!entry.warned) {
           entry.warned = true;
           // eslint-disable-next-line no-console
           console.error(
             `[fetchBreaker] ${entry.failures.length} ${response.status}s on ${key} in ${ROLLING_WINDOW_MS / 1000}s. ` +
-              `Blocking for ${COOLDOWN_MS / 1000}s.`,
+              `Blocking for up to ${COOLDOWN_MS / 1000}s.`,
           );
         }
       }
     } else if (response.status < 400) {
-      // success ⇒ reset failure window for this endpoint
-      entry.failures.length = 0;
-      entry.warned = false;
+      // success ⇒ endpoint is healthy again, close the breaker immediately
+      reset(entry);
+    } else {
+      // 4xx: the endpoint is reachable — stop blocking it.
+      if (isProbe) reset(entry);
     }
     return response;
   }) as typeof window.fetch;
