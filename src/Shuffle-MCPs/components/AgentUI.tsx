@@ -2167,6 +2167,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [simpleSubmitAttempted, setSimpleSubmitAttempted] = useState(false);
   const [finishAnswerRaw, setFinishAnswerRaw] = useState(false);
   const [continuationText, setContinuationText] = useState('');
+  /**
+   * True once the run is terminal AND a final answer has landed. Polling stops
+   * immediately at that point instead of running out the continuation grace
+   * window.
+   */
+  const [runComplete, setRunComplete] = useState(false);
+  /** Continuation input — focused automatically once the run finishes. */
+  const continuationInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const continuationFocusedForRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Non-blocking warning shown when polling fails while we already have data.
   // Cleared as soon as a poll succeeds again.
