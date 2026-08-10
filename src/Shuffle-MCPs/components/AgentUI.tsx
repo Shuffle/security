@@ -3530,10 +3530,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
         withProcessing.push(it);
         prevDecEnd = it.end_time || decStart || prevDecEnd;
         lastWasFinalise = isFinalise(it);
-        // A WAITING decision with a delay is scheduled to resume later — that
+        // A decision with a delay is scheduled to resume later — that
         // is not the agent processing, so no live timer row after it.
-        lastWasScheduledWait =
-          (it.status || '').toUpperCase() === 'WAITING' && !!getScheduledResumeMs(it.details);
+        lastWasScheduledWait = ['WAITING', 'RUNNING', 'EXECUTING', ''].includes((it.status || '').toUpperCase())
+          && !!getScheduledResumeMs(it.details);
+
       } else {
         withProcessing.push(it);
       }
