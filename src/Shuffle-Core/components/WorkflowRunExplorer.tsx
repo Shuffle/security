@@ -405,9 +405,36 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
           )}
           {/* Notifications are surfaced as a clickable icon in the Details header */}
 
-          {(exec.execution_source || exec.authgroup) && (
-            <MetaRow label="Source" value={sourceLabel(exec)} accent />
-          )}
+          {(exec.execution_source || exec.authgroup) && (() => {
+            const ds = datastoreSourceParts(exec);
+            if (!ds) return <MetaRow label="Source" value={sourceLabel(exec)} accent />;
+            const href = `https://shuffler.io/admin?tab=datastore&category=${encodeURIComponent(ds.category)}&key=${encodeURIComponent(ds.key)}`;
+            return (
+              <MetaRow
+                label="Source"
+                accent
+                value={
+                  <Tooltip
+                    title={`Category: ${ds.category}\nKey: ${ds.key}`}
+                    placement="top"
+                    arrow
+                    componentsProps={{ tooltip: { sx: { whiteSpace: 'pre-line' } } }}
+                  >
+                    <Box
+                      component="a"
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+                    >
+                      Datastore Automation
+                    </Box>
+                  </Tooltip>
+                }
+              />
+            );
+          })()}
+
           {exec.started_at ? (
             <MetaRow
               label="Started"
