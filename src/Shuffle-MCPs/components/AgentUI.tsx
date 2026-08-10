@@ -2915,7 +2915,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     });
     const id = setInterval(() => {
       if (isTerminal && !hasPendingDecision && Date.now() > keepPollingUntilRef.current) return;
-      getExecution(execution.execution_id!, execution.authorization!);
+      getExecution(execution.execution_id!, execution.authorization);
     }, isTerminal ? 5000 : 3000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
