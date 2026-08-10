@@ -2663,7 +2663,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Fetch execution result (poll-friendly) ──
   const getExecution = useCallback(async (executionId: string, authorization: string) => {
-    if (activeExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
+    if (loadedExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
     if (!executionId || !authorization) return;
     try {
       const resp = await fetch(resolveUrl('/api/v1/streams/results'), {
