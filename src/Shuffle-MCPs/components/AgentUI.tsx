@@ -1425,14 +1425,15 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               const m = rawDebugUrl.match(/[0-9a-fA-F-]{36}/g);
               if (m && m.length > 0) debugExecutionId = m[m.length - 1];
             }
-            // The in-app explorer needs both an execution id and its
-            // authorization token; without them it can only render
-            // "Execution not found", so disable rather than open an empty drawer.
-            const canOpenRun = Boolean(debugExecutionId && debugAuthorization);
+            // The explorer can resolve a run from the execution id alone (it
+            // falls back to the session-authenticated fetch), so only the id
+            // is required. The authorization token, when present in the debug
+            // URL, is passed along as an extra hint.
+            const canOpenRun = Boolean(debugExecutionId);
             return (
               <Tooltip title={canOpenRun
                 ? 'View full execution'
-                : 'Execution details are no longer available for this step (missing execution authorization)'}>
+                : 'Execution details are no longer available for this step (missing execution id)'}>
                 <span>
                   <IconButton
                     size="small"
