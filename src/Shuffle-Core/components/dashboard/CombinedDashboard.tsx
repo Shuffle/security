@@ -448,7 +448,26 @@ const CombinedDashboard = ({
     <Box sx={{ maxWidth: 1100, width: '100%', mx: 'auto', pt: '25px', display: 'flex', flexDirection: 'column', gap: 3 }}>
       {sharedHeader}
       <Box ref={dashboardRef}>
-        {tab === 'automation' ? (
+        {tab === 'agents' ? (
+          <AgentsDashboard
+            {...host}
+            orgId={orgId}
+            days={parseInt(days, 10) || 30}
+            gran={gran}
+            customRange={customRange}
+            onRangeSelect={(fromMs, toMs) => setCustomRange({ fromMs, toMs })}
+            refreshKey={(refreshKeyProp ?? 0) + internalRefreshKey}
+          />
+        ) : tab === 'vulnerabilities' ? (
+          <VulnerabilitiesDashboard
+            {...host}
+            days={parseInt(days, 10) || 30}
+            gran={gran}
+            customRange={customRange}
+            onRangeSelect={(fromMs, toMs) => setCustomRange({ fromMs, toMs })}
+            refreshKey={(refreshKeyProp ?? 0) + internalRefreshKey}
+          />
+        ) : tab === 'automation' ? (
           <AutomationDashboard
             {...host}
             orgId={orgId}
