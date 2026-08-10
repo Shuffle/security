@@ -2715,15 +2715,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [JSON.stringify((agentData as any)?.allowed_actions || []), availableApps]);
 
   // ── Fetch execution result (poll-friendly) ──
-  const getExecution = useCallback(async (executionId: string, authorization: string) => {
+  const getExecution = useCallback(async (executionId: string, authorization?: string) => {
     if (loadedExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
-    if (!executionId || !authorization) return;
+    if (!executionId) return;
+    // Sideloaded runs (from the activity listing) often have no explicit
+    // authorization token. The streams API accepts the execution id itself
+    // when the session is authenticated, so fall back to that.
+    const auth = authorization || executionId;
     try {
       const resp = await fetch(resolveUrl('/api/v1/streams/results'), {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...resolveHeaders() },
-        body: JSON.stringify({ execution_id: executionId, authorization }),
+        body: JSON.stringify({ execution_id: executionId, authorization: auth }),
       });
       // Discard stale responses: if the user has since started a different
       // run (or cleared this one), do not write old data back into state.
