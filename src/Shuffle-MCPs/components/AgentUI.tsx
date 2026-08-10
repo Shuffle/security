@@ -1421,28 +1421,32 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               const m = rawDebugUrl.match(/[0-9a-fA-F-]{36}/g);
               if (m && m.length > 0) debugExecutionId = m[m.length - 1];
             }
+            // The in-app explorer needs both an execution id and its
+            // authorization token; without them it can only render
+            // "Execution not found", so disable rather than open an empty drawer.
+            const canOpenRun = Boolean(debugExecutionId && debugAuthorization);
             return (
-              <Tooltip title={debugExecutionId ? 'View full execution' : 'Open debug URL'}>
+              <Tooltip title={canOpenRun
+                ? 'View full execution'
+                : 'Execution details are no longer available for this step (missing execution authorization)'}>
                 <span>
                   <IconButton
                     size="small"
+                    disabled={!canOpenRun}
                     onClick={() => {
-                      if (debugExecutionId) {
-                        try {
-                          window.dispatchEvent(new CustomEvent('workflow-run:open', {
-                            detail: {
-                              executionId: debugExecutionId,
-                              authorization: debugAuthorization || undefined,
-                            },
-                          }));
-                          return;
-                        } catch { /* noop */ }
-                      }
-                      window.open(getShuffleCoreFormUrl(rawDebugUrl), '_blank', 'noopener,noreferrer');
+                      if (!canOpenRun) return;
+                      try {
+                        window.dispatchEvent(new CustomEvent('workflow-run:open', {
+                          detail: {
+                            executionId: debugExecutionId,
+                            authorization: debugAuthorization,
+                          },
+                        }));
+                      } catch { /* noop */ }
                     }}
                     sx={{ color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--primary))' } }}
                   >
-                    {debugExecutionId ? <PanelRightOpenIcon size={16} /> : <OpenInNewIcon size={16} />}
+                    <PanelRightOpenIcon size={16} />
                   </IconButton>
                 </span>
               </Tooltip>
