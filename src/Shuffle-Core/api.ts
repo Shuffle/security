@@ -39,7 +39,13 @@ const getEnvVar = (key: string): string | undefined => {
 export const isDevEnvironment = (): boolean => {
   if (getEnvVar('VITE_SHUFFLE_API_URL')) return false;
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  return hostname.includes('lovableproject.com') || hostname.includes('id-preview--');
+  // Every Lovable-hosted host (sandbox, id-preview--, preview--, and the
+  // published *.lovable.app site) is a testing environment and must talk to
+  // the dev backend, never to its own origin.
+  return hostname.includes('lovableproject.com')
+    || hostname.includes('id-preview--')
+    || hostname.endsWith('.lovable.app')
+    || hostname.endsWith('.lovable.dev');
 };
 
 export const isCloudDomain = (): boolean => {
