@@ -5115,6 +5115,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
             })()}
 
 
+            {pollWarning && !error && (
+              <Box sx={{
+                width: '100%', p: 1.5, borderRadius: 1.5,
+                display: 'flex', alignItems: 'center', gap: 1,
+                border: '1px solid hsl(var(--warning, 38 92% 50%) / 0.4)',
+                bgcolor: 'hsl(var(--warning, 38 92% 50%) / 0.08)',
+                color: 'hsl(var(--warning, 38 92% 50%))',
+                fontSize: '0.8rem',
+              }}>
+                <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                {pollWarning}
+              </Box>
+            )}
             {error && (
               <Box sx={{
                 width: '100%', p: 1.5, borderRadius: 1.5,
@@ -5254,6 +5267,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
               })()}
             </Box>
 
+            {pollWarning && !error && (
+              <Box sx={{
+                p: 1.5, borderRadius: 1.5, mb: 2,
+                display: 'flex', alignItems: 'center', gap: 1,
+                border: '1px solid hsl(var(--warning, 38 92% 50%) / 0.4)',
+                bgcolor: 'hsl(var(--warning, 38 92% 50%) / 0.08)',
+                color: 'hsl(var(--warning, 38 92% 50%))',
+                fontSize: '0.8rem',
+              }}>
+                <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                {pollWarning}
+              </Box>
+            )}
             {error && (
               <Box sx={{
                 p: 1.5, borderRadius: 1.5, mb: 2,
