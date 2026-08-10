@@ -5124,7 +5124,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 color: 'hsl(var(--warning, 38 92% 50%))',
                 fontSize: '0.8rem',
               }}>
-                <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                <WarningIcon size={14} style={{ flexShrink: 0 }} />
                 {pollWarning}
               </Box>
             )}
@@ -5276,7 +5276,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 color: 'hsl(var(--warning, 38 92% 50%))',
                 fontSize: '0.8rem',
               }}>
-                <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                <WarningIcon size={14} style={{ flexShrink: 0 }} />
                 {pollWarning}
               </Box>
             )}
