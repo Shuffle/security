@@ -183,7 +183,8 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
     // readable through the session/API key alone.
     if (!data && authorization) data = await fetchExecution(executionId);
     if (cancelledRef.current) return;
-    setExec(data);
+    // Keep the last good snapshot if a poll fails transiently.
+    setExec((prev) => data || prev);
     setLoading(false);
   }, [executionId, authorization]);
 
