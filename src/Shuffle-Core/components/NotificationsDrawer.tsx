@@ -21,6 +21,8 @@ import {
   Drawer,
   IconButton,
   InputAdornment,
+  MenuItem,
+
   TextField,
   Tooltip,
   Typography,
@@ -135,6 +137,84 @@ const NotificationsDrawer = ({
   const [showRead, setShowRead] = useState(true);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  // Notification workflow configuration (org defaults)
+  const [orgId, setOrgId] = useState<string>('');
+  const [orgDefaults, setOrgDefaults] = useState<Record<string, any>>({});
+  const [workflows, setWorkflows] = useState<Array<{ id: string; name: string }>>([]);
+  const [notificationWorkflow, setNotificationWorkflow] = useState<string>('');
+  const [savingWorkflow, setSavingWorkflow] = useState(false);
+
+  // Load the active org (for its `defaults`) and the available workflows so the
+  // notification workflow dropdown can be populated.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const headers = { 'Content-Type': 'application/json', ...getAuthHeader() };
+    (async () => {
+      try {
+        const infoResp = await fetch(getApiUrl('/api/v1/getinfo'), { credentials: 'include', headers });
+        if (!infoResp.ok) return;
+        const info = await infoResp.json();
+        const activeOrg = String(info?.active_org?.id || info?.org_id || '');
+        if (!activeOrg || cancelled) return;
+        setOrgId(activeOrg);
+
+        const [orgResp, wfResp] = await Promise.all([
+          fetch(getApiUrl(`/api/v1/orgs/${activeOrg}`), { credentials: 'include', headers }),
+          fetch(getApiUrl('/api/v1/workflows'), { credentials: 'include', headers }),
+        ]);
+        if (orgResp.ok && !cancelled) {
+          const org = await orgResp.json();
+          const defaults = (org?.defaults || org?.org?.defaults || {}) as Record<string, any>;
+          setOrgDefaults(defaults);
+          setNotificationWorkflow(String(defaults?.notification_workflow || ''));
+        }
+        if (wfResp.ok && !cancelled) {
+          const data = await wfResp.json();
+          const list = Array.isArray(data) ? data : (data?.workflows || []);
+          setWorkflows(
+            list
+              .filter((w: any) => w?.id)
+              .map((w: any) => ({ id: String(w.id), name: String(w.name || w.id) }))
+              .sort((a, b) => a.name.localeCompare(b.name)),
+          );
+        }
+      } catch {
+        /* configuration is optional — ignore failures */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
+  const saveNotificationWorkflow = useCallback(
+    async (workflowIdValue: string) => {
+      if (!orgId) return;
+      const previous = notificationWorkflow;
+      setNotificationWorkflow(workflowIdValue);
+      setSavingWorkflow(true);
+      try {
+        const resp = await fetch(getApiUrl(`/api/v1/orgs/${orgId}`), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+          body: JSON.stringify({
+            org_id: orgId,
+            defaults: { ...orgDefaults, notification_workflow: workflowIdValue },
+          }),
+        });
+        if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
+        setOrgDefaults((prev) => ({ ...prev, notification_workflow: workflowIdValue }));
+        toast.success(workflowIdValue ? 'Notification workflow updated' : 'Notification workflow removed');
+      } catch {
+        setNotificationWorkflow(previous);
+        toast.error('Failed to update notification workflow');
+      } finally {
+        setSavingWorkflow(false);
+      }
+    },
+    [orgId, orgDefaults, notificationWorkflow],
+  );
+
 
   useEffect(() => {
     if (!open) return;
@@ -315,6 +395,35 @@ const NotificationsDrawer = ({
             <Typography sx={{ flex: 1, fontSize: '1.125rem', fontWeight: 600 }}>
               Notifications
             </Typography>
+            <Tooltip title="Workflow executed when a notification is created" arrow>
+              <TextField
+                select
+                size="small"
+                value={notificationWorkflow}
+                onChange={(e) => saveNotificationWorkflow(e.target.value)}
+                disabled={!orgId || savingWorkflow}
+                SelectProps={{ displayEmpty: true, MenuProps: { PaperProps: { sx: { maxHeight: 360 } } } }}
+                sx={{
+                  minWidth: 200,
+                  '& .MuiOutlinedInput-root': {
+                    height: 32,
+                    borderRadius: '999px',
+                    fontSize: '0.75rem',
+                    bgcolor: 'hsl(var(--muted) / 0.35)',
+                    '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  },
+                }}
+              >
+                <MenuItem value="" sx={{ fontSize: '0.75rem' }}>
+                  No notification workflow
+                </MenuItem>
+                {workflows.map((wf) => (
+                  <MenuItem key={wf.id} value={wf.id} sx={{ fontSize: '0.75rem' }}>
+                    {wf.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Tooltip>
             <Tooltip title="Refresh" arrow>
               <span>
                 <IconButton
@@ -327,6 +436,7 @@ const NotificationsDrawer = ({
                 </IconButton>
               </span>
             </Tooltip>
+
             <IconButton size="small" onClick={onClose} sx={{ color: 'hsl(var(--muted-foreground))' }}>
               <CloseIcon fontSize="small" />
             </IconButton>
