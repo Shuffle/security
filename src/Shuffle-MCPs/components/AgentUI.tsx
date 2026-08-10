@@ -2134,6 +2134,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // True once at least one successful execution payload has been rendered, so
   // later transient poll failures do not replace good data with an error.
   const hasExecutionDataRef = useRef(false);
+  /** Execution id the last successful payload belonged to. */
+  const loadedExecutionIdRef = useRef<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialViewParam = searchParams.get('agentView');
 
@@ -2704,6 +2706,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const v = validateJson(actionResult?.result);
       if (v.valid) setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
       hasExecutionDataRef.current = true;
+      loadedExecutionIdRef.current = executionId;
       setError(null);
     } catch (err) {
       // Transient network blips ("Failed to fetch") happen while polling a
