@@ -393,6 +393,35 @@ const NotificationsDrawer = ({
             <Typography sx={{ flex: 1, fontSize: '1.125rem', fontWeight: 600 }}>
               Notifications
             </Typography>
+            <Tooltip title="Workflow executed when a notification is created" arrow>
+              <TextField
+                select
+                size="small"
+                value={notificationWorkflow}
+                onChange={(e) => saveNotificationWorkflow(e.target.value)}
+                disabled={!orgId || savingWorkflow}
+                SelectProps={{ displayEmpty: true, MenuProps: { PaperProps: { sx: { maxHeight: 360 } } } }}
+                sx={{
+                  minWidth: 200,
+                  '& .MuiOutlinedInput-root': {
+                    height: 32,
+                    borderRadius: '999px',
+                    fontSize: '0.75rem',
+                    bgcolor: 'hsl(var(--muted) / 0.35)',
+                    '& fieldset': { borderColor: 'hsl(var(--border))' },
+                  },
+                }}
+              >
+                <MenuItem value="" sx={{ fontSize: '0.75rem' }}>
+                  No notification workflow
+                </MenuItem>
+                {workflows.map((wf) => (
+                  <MenuItem key={wf.id} value={wf.id} sx={{ fontSize: '0.75rem' }}>
+                    {wf.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Tooltip>
             <Tooltip title="Refresh" arrow>
               <span>
                 <IconButton
@@ -405,6 +434,7 @@ const NotificationsDrawer = ({
                 </IconButton>
               </span>
             </Tooltip>
+
             <IconButton size="small" onClick={onClose} sx={{ color: 'hsl(var(--muted-foreground))' }}>
               <CloseIcon fontSize="small" />
             </IconButton>
