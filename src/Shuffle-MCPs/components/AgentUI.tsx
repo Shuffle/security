@@ -5725,6 +5725,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     minRows={1}
                     maxRows={4}
                     placeholder={continuationPlaceholder}
+                    inputRef={continuationInputRef}
+                    autoFocus
                     value={continuationText}
                     onChange={(e) => setContinuationText(e.target.value)}
                     onKeyDown={(e) => {
