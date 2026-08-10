@@ -419,27 +419,94 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
 
           {(exec.execution_source || exec.authgroup) && (() => {
             const ds = datastoreSourceParts(exec);
-            if (!ds) return <MetaRow label="Source" value={sourceLabel(exec)} accent />;
-            const href = `https://shuffler.io/admin?tab=datastore&category=${encodeURIComponent(ds.category)}&key=${encodeURIComponent(ds.key)}`;
+            if (ds) {
+              const href = `https://shuffler.io/admin?tab=datastore&category=${encodeURIComponent(ds.category)}&key=${encodeURIComponent(ds.key)}`;
+              return (
+                <MetaRow
+                  label="Source"
+                  accent
+                  value={
+                    <Tooltip
+                      title={`Category: ${ds.category}\nKey: ${ds.key}`}
+                      placement="top"
+                      arrow
+                      componentsProps={{ tooltip: { sx: { whiteSpace: 'pre-line' } } }}
+                    >
+                      <Box
+                        component="a"
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
+                        Datastore Automation
+                      </Box>
+                    </Tooltip>
+                  }
+                />
+              );
+            }
+            const label = sourceLabel(exec);
+            // Auth Group — tooltip with the group name (checked before parent per sourceLabel)
+            if (exec.authgroup) {
+              return (
+                <MetaRow
+                  label="Source"
+                  accent
+                  value={
+                    <Tooltip
+                      title={`Auth group: ${exec.authgroup}`}
+                      placement="top"
+                      arrow
+                    >
+                      <Box component="span" sx={{ cursor: 'default' }}>
+                        {label}
+                      </Box>
+                    </Tooltip>
+                  }
+                />
+              );
+            }
+            // Parent Workflow — link to the parent execution
+            if (exec.execution_parent) {
+              const href = `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(exec.execution_parent)}`;
+              return (
+                <MetaRow
+                  label="Source"
+                  accent
+                  value={
+                    <Tooltip
+                      title={`Parent execution: ${exec.execution_parent}`}
+                      placement="top"
+                      arrow
+                    >
+                      <Box
+                        component="a"
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
+                        {label}
+                      </Box>
+                    </Tooltip>
+                  }
+                />
+              );
+            }
+            // Generic source — tooltip with the raw value
             return (
               <MetaRow
                 label="Source"
                 accent
                 value={
                   <Tooltip
-                    title={`Category: ${ds.category}\nKey: ${ds.key}`}
+                    title={exec.execution_source || 'default'}
                     placement="top"
                     arrow
-                    componentsProps={{ tooltip: { sx: { whiteSpace: 'pre-line' } } }}
                   >
-                    <Box
-                      component="a"
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
-                    >
-                      Datastore Automation
+                    <Box component="span" sx={{ cursor: 'default' }}>
+                      {label}
                     </Box>
                   </Tooltip>
                 }
@@ -460,7 +527,27 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             />
           ) : null}
           {exec.workflow?.actions?.[0]?.environment && (
-            <MetaRow label="Location" value={exec.workflow.actions[0].environment} accent />
+            <MetaRow
+              label="Location"
+              accent
+              value={
+                <Tooltip
+                  title={`Environment: ${exec.workflow.actions[0].environment}`}
+                  placement="top"
+                  arrow
+                >
+                  <Box
+                    component="a"
+                    href={`https://shuffler.io/admin?tab=locations`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+                  >
+                    {exec.workflow.actions[0].environment}
+                  </Box>
+                </Tooltip>
+              }
+            />
           )}
 
 
