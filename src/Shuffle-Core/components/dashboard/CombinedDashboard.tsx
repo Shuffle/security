@@ -398,14 +398,14 @@ const CombinedDashboard = ({
             ))}
           </Select>
         </FormControl>
-        <Box sx={{ alignSelf: 'flex-end', opacity: tab === 'security' ? 0.5 : 1, pointerEvents: tab === 'security' ? 'none' : 'auto' }}>
+        <Box sx={{ alignSelf: 'flex-end', opacity: tab === 'automation' ? 1 : 0.5, pointerEvents: tab === 'automation' ? 'auto' : 'none' }}>
           <SegmentedControl
             ariaLabel="Mode"
             value={mode}
             onChange={(v) => setMode(v as 'workflows' | 'apps')}
             options={[
-              { value: 'workflows', label: 'Workflows', disabled: tab === 'security' },
-              { value: 'apps', label: 'Apps', disabled: tab === 'security' },
+              { value: 'workflows', label: 'Workflows', disabled: tab !== 'automation' },
+              { value: 'apps', label: 'Apps', disabled: tab !== 'automation' },
             ]}
           />
         </Box>
