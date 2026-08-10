@@ -2744,6 +2744,24 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
   }, []);
 
+  // ── Probe whether the execution sidebar can load this run ──
+  // Uses the explorer's own fetch so the answer matches exactly what the
+  // drawer would render. Re-probes when the execution (or its token) changes.
+  useEffect(() => {
+    const eid = execution?.execution_id;
+    const auth = execution?.authorization;
+    if (!eid) { setRunExplorerAvailable('checking'); return; }
+    if (!auth) { setRunExplorerAvailable('no'); return; }
+    let cancelled = false;
+    setRunExplorerAvailable('checking');
+    (async () => {
+      const found = await fetchExecutionSnapshot(eid, auth);
+      if (!cancelled) setRunExplorerAvailable(found ? 'yes' : 'no');
+    })();
+    return () => { cancelled = true; };
+  }, [execution?.execution_id, execution?.authorization]);
+
+
   // Attach to an explicit execution (props) or one passed via URL params.
   // Props take precedence over URL params.
   useEffect(() => {
