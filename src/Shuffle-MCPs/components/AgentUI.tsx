@@ -3527,6 +3527,30 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
     }
 
+    // Runs sometimes finish without any finish/finalise text, but still carry
+    // an `output` field on the agent payload or on the last decision. Fall
+    // back to that so "Run finished" is never empty when output exists.
+    if (!finishAns) {
+      const stringify = (v: unknown): string => {
+        if (v == null) return '';
+        if (typeof v === 'string') return v.trim();
+        try { return JSON.stringify(v, null, 2); } catch { return ''; }
+      };
+      const candidates: unknown[] = [];
+      const ad: any = agentData || {};
+      candidates.push(ad.output, ad.result, ad.answer);
+      const decs: any[] = (ad.decisions as any[]) || [];
+      for (let i = decs.length - 1; i >= 0; i--) {
+        const d = decs[i] || {};
+        candidates.push(d.output, d.run_details?.output, d.details?.output, d.result);
+      }
+      for (const c of candidates) {
+        const text = stringify(c);
+        if (text) { finishAns = text; break; }
+      }
+    }
+
+
 
 
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
