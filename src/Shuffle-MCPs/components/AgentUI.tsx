@@ -2742,12 +2742,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (!resp.ok) {
         // A single failed poll must not hide a timeline we already rendered.
         if (!hasExecutionDataRef.current) setError(`Could not fetch execution (${resp.status}).`);
+        else setPollWarning(`Live updates are failing (${resp.status}). Showing the last known state.`);
         return;
       }
       const json = await resp.json();
       if (activeExecutionIdRef.current !== executionId) return;
       if (json?.success === false) {
         if (!hasExecutionDataRef.current) setError(json.reason || 'Failed to load agent data.');
+        else setPollWarning(json.reason || 'Live updates are failing. Showing the last known state.');
         return;
       }
 
@@ -2768,6 +2770,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (hasExecutionDataRef.current && !payloadHasResults) {
         setExecution((prev) => (prev ? { ...prev, ...json, results: (prev as any).results, execution_id: executionId, authorization: auth } : { ...json, execution_id: executionId, authorization: auth }));
         setError(null);
+        setPollWarning(null);
         return;
       }
 
@@ -2784,10 +2787,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       hasExecutionDataRef.current = true;
       loadedExecutionIdRef.current = executionId;
       setError(null);
+      setPollWarning(null);
     } catch (err) {
       // Transient network blips ("Failed to fetch") happen while polling a
       // long-running execution. Only surface them when nothing loaded yet.
       if (!hasExecutionDataRef.current) setError(err instanceof Error ? err.message : 'Network error.');
+      else setPollWarning(`Live updates are failing (${err instanceof Error ? err.message : 'network error'}). Showing the last known state.`);
     }
   }, []);
 
