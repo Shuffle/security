@@ -1972,6 +1972,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Once the textarea has mounted, measure the actual available width for a
   // one-line placeholder (accounting for the Templates chip's text-indent) and
   // pick a suggestion that fully fits — no arbitrary character cutoff.
+  const pickedPlaceholderRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (!shouldTypewrite) return;
     const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
@@ -1984,8 +1985,27 @@ const AgentUI: React.FC<AgentUIProps> = ({
       - parseFloat(cs.paddingLeft || '0')
       - parseFloat(cs.paddingRight || '0')
       - parseFloat(cs.textIndent || '0');
-    const picked = getRandomAgentPromptPlaceholderForWidth(Math.max(0, contentWidth - 4), font);
+    const available = Math.max(0, contentWidth - 4);
+    // Keep the already-picked placeholder as long as it still fits. Browser
+    // zoom / resizes re-run this effect, and re-picking would restart the
+    // typewriter animation on every zoom step.
+    const already = pickedPlaceholderRef.current;
+    if (already) {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.font = font;
+          if (ctx.measureText(already).width <= available) return;
+        } else {
+          return;
+        }
+      } catch { return; }
+    }
+    const picked = getRandomAgentPromptPlaceholderForWidth(available, font);
+    pickedPlaceholderRef.current = picked;
     setFullPlaceholder(picked);
+
     // Re-run when the chip width changes (affects text-indent, and therefore
     // the available room for the placeholder on line 1).
   }, [shouldTypewrite, presetsChipWidth, hidePresets]);
