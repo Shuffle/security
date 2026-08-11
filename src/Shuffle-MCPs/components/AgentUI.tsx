@@ -599,6 +599,8 @@ export interface AgentUIProps {
   onAppsChange?: (apps: AgentUIApp[]) => void;
   /** Called whenever the active top-level view changes (start / simple / detailed). */
   onViewChange?: (view: 'start' | 'simple' | 'detailed') => void;
+  /** Called whenever the "Start | Simple | Detailed" tab bar becomes visible or hidden. */
+  onRunSwitcherVisibleChange?: (visible: boolean) => void;
   /**
    * Called when the user saves a recurring schedule (cron expression) for the
    * current prompt. When omitted, a toast is shown indicating scheduling is
@@ -1796,6 +1798,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   onRun,
   onAppsChange,
   onViewChange,
+  onRunSwitcherVisibleChange,
   onSchedule,
   apiKey,
   apiBaseUrl,
@@ -3776,6 +3779,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     onViewChange?.(activeTab);
   }, [activeTab, onViewChange]);
+  useEffect(() => {
+    onRunSwitcherVisibleChange?.(showRunSwitcher);
+  }, [showRunSwitcher, onRunSwitcherVisibleChange]);
   useEffect(() => {
     onAppsChange?.(chosenApps);
   }, [chosenApps, onAppsChange]);
