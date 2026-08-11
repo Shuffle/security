@@ -3780,6 +3780,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     onViewChange?.(activeTab);
   }, [activeTab, onViewChange]);
   useEffect(() => {
+    onRunSwitcherVisibleChange?.(showRunSwitcher);
+  }, [showRunSwitcher, onRunSwitcherVisibleChange]);
+  useEffect(() => {
     onAppsChange?.(chosenApps);
   }, [chosenApps, onAppsChange]);
   // Remember tool customisations per template so a template's defaults are a
