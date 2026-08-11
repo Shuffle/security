@@ -312,11 +312,60 @@ const AgentsView = ({
             </Typography>
           </Box>
         )}
+        {!runSwitcherVisible && !promoDismissed && (
+          <Box
+            sx={{
+              display: 'flex', alignItems: 'center', gap: 2,
+              p: 2, borderRadius: 2,
+              border: '1px solid hsl(var(--primary) / 0.3)',
+              bgcolor: 'hsl(var(--primary) / 0.06)',
+            }}
+          >
+            <Box
+              sx={{
+                flexShrink: 0, width: 40, height: 40, borderRadius: 1.5,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bgcolor: 'hsl(var(--primary) / 0.12)',
+                color: 'hsl(var(--primary))',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                Need more AI credits for your agents?
+              </Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
+                Increase your AI credit allocation to run more agents in parallel, handle larger workloads, and enable continuous monitoring.
+              </Typography>
+            </Box>
+            <Box
+              component="button"
+              onClick={dismissPromo}
+              aria-label="Dismiss"
+              sx={{
+                all: 'unset', cursor: 'pointer', flexShrink: 0,
+                width: 28, height: 28, borderRadius: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'hsl(var(--muted-foreground))',
+                '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </Box>
+          </Box>
+        )}
         <AgentUI
           key={prefill.key}
           maxWidth={maxWidth}
           apiBaseUrl={globalUrl}
           onViewChange={setAgentView}
+          onRunSwitcherVisibleChange={setRunSwitcherVisible}
           onSchedule={effectiveSchedule}
           apiKey={apiKey}
           orgId={orgId}
