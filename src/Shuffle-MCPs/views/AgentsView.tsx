@@ -71,6 +71,7 @@ export interface AgentsViewProps extends ShuffleHostProps {
 
 const APPS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const DEFAULT_APPS_STORAGE_KEY = 'shuffle-agents-selected-apps';
+const PROMO_DISMISSED_KEY = 'shuffle-agents-credit-promo-dismissed';
 
 const readPersistedApps = (storageKey: string): AgentUIApp[] | undefined => {
   try {
@@ -139,12 +140,24 @@ const AgentsView = ({
 
   const [selectedRun, setSelectedRun] = useState<AgentRun | null>(null);
   const [agentView, setAgentView] = useState<'start' | 'simple' | 'detailed'>('start');
+  const [runSwitcherVisible, setRunSwitcherVisible] = useState(false);
+  const [promoDismissed, setPromoDismissed] = useState<boolean>(() => {
+    try {
+      if (typeof window === 'undefined') return false;
+      return window.localStorage.getItem(PROMO_DISMISSED_KEY) === 'true';
+    } catch { return false; }
+  });
   const [prefill, setPrefill] = useState<{ input: string; apps: AgentUIApp[]; key: number }>({
     input: '',
     apps: hydratedInitialApps,
     key: 0,
   });
   const [editing, setEditing] = useState<{ workflowId: string; name: string } | null>(null);
+
+  const dismissPromo = useCallback(() => {
+    setPromoDismissed(true);
+    try { window.localStorage.setItem(PROMO_DISMISSED_KEY, 'true'); } catch { /* ignore */ }
+  }, []);
 
   // Internal persistence of the chip row (24h TTL). Forwards to host onAppsChange.
   const handleAppsChange = useCallback((apps: AgentUIApp[]) => {
