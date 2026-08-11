@@ -82,7 +82,7 @@ import {
 import { AppFallbackIcon } from './AppFallbackIcon';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import AgentPresets, { AGENT_PRESETS, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
+import AgentPresets, { AGENT_PRESETS, filterAgentPresets, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
 
 import { useAgentPromptPrefix } from '@/Shuffle-MCPs/useAgentPromptPrefix';
 
@@ -1868,9 +1868,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     try {
       const lastId = localStorage.getItem(LAST_PRESET_STORAGE_KEY);
       if (!lastId) return;
-      const list = presets && presets.length > 0 ? presets : AGENT_PRESETS;
+      const list = filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS);
       const match = list.find((p) => p.id === lastId);
-      if (!match) return;
+      if (!match || match.enabled === false) return;
       setSelectedPreset(match);
       // Restoring a template must also restore ITS tools — otherwise whatever
       // tools were left over from another template stay selected (and get
