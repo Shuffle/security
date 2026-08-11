@@ -114,7 +114,10 @@ export interface AgentPresetsProps {
 export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const list = presets && presets.length > 0 ? presets : AGENT_PRESETS;
+  const list = useMemo(
+    () => filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS),
+    [presets],
+  );
 
   const MAX_LABEL_CHARS = 18;
   const displayLabel = selectedPreset
