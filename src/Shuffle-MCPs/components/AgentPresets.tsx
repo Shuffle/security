@@ -96,6 +96,25 @@ export const AGENT_PRESETS: AgentPreset[] = [
   },
 ];
 
+/** True when the signed-in user is a Shuffle support user (/getinfo => support). */
+const isSupportUser = (): boolean => {
+  try {
+    const raw = localStorage.getItem('shuffle_user_info');
+    return raw ? JSON.parse(raw)?.support === true : false;
+  } catch {
+    return false;
+  }
+};
+
+/** Templates that are support-only for now — disabled ("coming soon") for everyone else. */
+const SUPPORT_ONLY_PRESET_IDS = ['host-monitor-control'];
+
+/** Disables support-only templates unless the current user is a support user. */
+export const filterAgentPresets = (list: AgentPreset[]): AgentPreset[] => {
+  if (isSupportUser()) return list;
+  return list.map((p) => (SUPPORT_ONLY_PRESET_IDS.includes(p.id) ? { ...p, enabled: false } : p));
+};
+
 export interface AgentPresetsProps {
   /** Inline variant sits inside the prompt input row alongside action buttons. */
   variant?: 'default' | 'inline' | 'floating';
@@ -114,7 +133,10 @@ export interface AgentPresetsProps {
 export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const list = presets && presets.length > 0 ? presets : AGENT_PRESETS;
+  const list = useMemo(
+    () => filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS),
+    [presets],
+  );
 
   const MAX_LABEL_CHARS = 18;
   const displayLabel = selectedPreset
