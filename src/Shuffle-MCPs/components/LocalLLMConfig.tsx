@@ -322,7 +322,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
             <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
               {isShuffleAI ? (
                 <>
-                  Using Shuffle AI. No configuration is required. Pick another provider above to use your own endpoint.{' '}
+                  Using Shuffle AI. No configuration is required. Pick another provider above to use your own endpoint. Our models are hosted on GCP, and your data stays within your tenant's region.{' '}
                   <Box component="a" href="https://shuffler.io/docs/AI#using-self-hosted-ai-models" target="_blank" rel="noopener noreferrer" sx={{ color: 'hsl(var(--primary))', textDecoration: 'underline' }}>
                     Read the docs
                   </Box>
