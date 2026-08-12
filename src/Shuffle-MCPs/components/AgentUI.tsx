@@ -340,6 +340,8 @@ interface RunFinishedSummaryProps {
   status: string;
   isRunning: boolean;
   finishAnswer: string;
+  /** Secondary line (the finish decision's `reason`) shown under the answer. */
+  finishNote?: string;
   raw: boolean;
   onToggleRaw: () => void;
   decisionCount?: number;
@@ -353,6 +355,7 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
   status,
   isRunning,
   finishAnswer,
+  finishNote,
   raw,
   onToggleRaw,
   decisionCount,
@@ -461,6 +464,19 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
             <FinishAnswerMarkdown text={normalizeMarkdown(finishAnswer)} />
           )}
         </Box>
+      )}
+
+      {finishAnswer && finishNote && !raw && (
+        <Typography
+          sx={{
+            mt: 1,
+            fontSize: '0.75rem',
+            lineHeight: 1.5,
+            color: 'hsl(var(--muted-foreground))',
+          }}
+        >
+          {finishNote}
+        </Typography>
       )}
     </>
   );
@@ -5468,6 +5484,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         status={status}
                         isRunning={isRunning}
                         finishAnswer={finishAnswer}
+                        finishNote={finishNote}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                         decisionCount={decisionCount}
@@ -5710,6 +5727,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         status={detailedStatus}
                         isRunning={false}
                         finishAnswer={finishAnswer}
+                        finishNote={finishNote}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
