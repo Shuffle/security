@@ -465,7 +465,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           onToggle={() => setExpanded((prev) => !prev)}
           onAuthChange={handleAuthChange}
           onTestConnection={(appId, authId) => handleTestConnection(appId, authId)}
-          onSaveAuth={(appId, creds) => handleSaveAuth(appId, creds, OPENAI_APP_NAME)}
+          onSaveAuth={(appId, creds) => handleSaveProviderAuth(appId, creds)}
           apiAuthEntries={openaiEntries}
           onRefreshAuth={refreshAuth}
           disableUrlPrefill
