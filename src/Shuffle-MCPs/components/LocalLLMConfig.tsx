@@ -249,11 +249,14 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   };
 
 
-  /** The currently active (primary) OpenAI-compatible authentication. */
-  const activeEntry = useMemo(
-    () => openaiEntries.find((e: any) => e?.active === true) || openaiEntries[0],
+  /** The currently active (primary) OpenAI-compatible authentication.
+   *  Separate from the fallback so we know whether `active: true` is set. */
+  const activeEntryRaw = useMemo(
+    () => openaiEntries.find((e: any) => e?.active === true),
     [openaiEntries],
   );
+  const activeEntry = activeEntryRaw || openaiEntries[0];
+
 
   const effectivePreset = useMemo(() => {
     if (selectedPreset) return selectedPreset;
