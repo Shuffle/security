@@ -501,6 +501,8 @@ import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET } from '@/Shuf
 import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
+import AgentAttachmentsButton from '@/Shuffle-MCPs/components/AgentAttachmentsButton';
+import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
 
 
 // ── Types ──────────────────────────────────────────────────────────────────────
