@@ -5864,9 +5864,33 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       />
                       {hasInFlightDecision && (
                         <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
-                          One or more steps never completed, so something may have gone wrong during this run. Continue the run below to let the agent pick up where it stopped.
+                          One or more steps never completed, so something may have gone wrong during this run.{" "}
+                          <Box
+                            component="span"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              continuationInputRef.current?.focus();
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                continuationInputRef.current?.focus();
+                              }
+                            }}
+                            sx={{
+                              color: 'hsl(var(--primary))',
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              '&:hover': { color: 'hsl(var(--primary))', filter: 'brightness(1.15)' },
+                            }}
+                          >
+                            Continue the run below
+                          </Box>
+                          {" "}to let the agent pick up where it stopped.
                         </Typography>
                       )}
+
 
                     </Box>
 
