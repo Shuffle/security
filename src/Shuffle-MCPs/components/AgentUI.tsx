@@ -115,6 +115,9 @@ const LAST_PRESET_STORAGE_KEY = 'agent_last_preset_id';
  * the defaults never get force-reapplied over it.
  */
 const PRESET_APPS_STORAGE_KEY = 'agent_preset_apps_overrides';
+/** Storage bucket used when no template is selected. */
+const NO_PRESET_KEY = '__none__';
+
 
 const readPresetAppsOverride = (presetId: string): Array<{ name: string; id?: string; icon?: string }> | null => {
   try {
@@ -1892,7 +1895,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // tools were left over from another template stay selected (and get
       // written back as this template's override).
       const override = readPresetAppsOverride(match.id);
-      if (override && override.length > 0) {
+      if (override) {
+        // An empty override is a real choice ("I removed every tool") — honor it.
         setChosenApps(override);
       } else if (match.defaultApps && match.defaultApps.length > 0) {
         setChosenApps(match.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
@@ -2114,7 +2118,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
     { name: 'http' },
     { name: 'shuffle_tools' },
   ];
-  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(apps ?? defaultApps ?? BUILTIN_DEFAULT_APPS);
+  // Without a template, the user's own tool selection is remembered under the
+  // NO_PRESET bucket — otherwise removing `http` / `shuffle_tools` would be
+  // undone by the built-in defaults on every reload.
+  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(
+    apps ?? defaultApps ?? readPresetAppsOverride(NO_PRESET_KEY) ?? BUILTIN_DEFAULT_APPS,
+  );
+
   // Apps the caller has authenticated — used to resolve icons by name and as
   // suggestions in the picker. NOT auto-selected as `chosenApps`.
   const [availableApps, setAvailableApps] = useState<AgentUIApp[]>([]);
@@ -3826,10 +3836,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Remember tool customisations per template so a template's defaults are a
   // starting point, not a forced set.
   useEffect(() => {
-    if (!selectedPreset) return;
+    const key = selectedPreset?.id ?? NO_PRESET_KEY;
     // Do not write the previous template's tools onto the newly selected one.
-    if (seededPresetIdRef.current !== selectedPreset.id) return;
-    writePresetAppsOverride(selectedPreset.id, chosenApps.filter((a) => !!a?.name));
+    if (selectedPreset && seededPresetIdRef.current !== selectedPreset.id) return;
+    writePresetAppsOverride(key, chosenApps.filter((a) => !!a?.name));
+
 
   }, [chosenApps, selectedPreset]);
   const goToTab = (t: TabKey) => {
