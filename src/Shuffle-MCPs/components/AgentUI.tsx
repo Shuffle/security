@@ -4606,7 +4606,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               },
             }}>
               {attachedImages.length > 0 && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                <Box ref={attachmentsRowRef} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                   {attachedImages.map((img, idx) => (
                     <Box key={`${img.name}-${idx}`} sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 1,
