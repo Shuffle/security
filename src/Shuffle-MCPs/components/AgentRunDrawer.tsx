@@ -92,7 +92,7 @@ const AgentRunDrawer = ({
   permissionsDisabled = false,
   permissionsDisabledTooltip = 'Coming soon',
   agentUIProps,
-  width = 520,
+  width = 595,
   title = 'Agent',
   subtitle = 'Run actions and manage permissions',
   className,
