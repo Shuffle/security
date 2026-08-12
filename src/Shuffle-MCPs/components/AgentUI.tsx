@@ -2170,6 +2170,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [execution, setExecution] = useState<ExecutionData | null>(null);
   const [agentData, setAgentData] = useState<{ decisions?: AgentDecision[]; original_input?: string; status?: string; started_at?: number; completed_at?: number; [k: string]: any }>({});
   const [agentActionResult, setAgentActionResult] = useState<any>(null);
+  // Images attached to the run's `llm_requests` (deep-walked, deduped).
+  const llmImageAttachments = useMemo(
+    () => collectLlmImageAttachments(agentData),
+    [agentData],
+  );
   const [showStarter, setShowStarter] = useState(true);
   const [scheduleAnchor, setScheduleAnchor] = useState<HTMLElement | null>(null);
   const [scheduleCron, setScheduleCron] = useState('0 * * * *');
