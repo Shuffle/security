@@ -2117,7 +2117,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
     { name: 'http' },
     { name: 'shuffle_tools' },
   ];
-  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(apps ?? defaultApps ?? BUILTIN_DEFAULT_APPS);
+  // Without a template, the user's own tool selection is remembered under the
+  // NO_PRESET bucket — otherwise removing `http` / `shuffle_tools` would be
+  // undone by the built-in defaults on every reload.
+  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(
+    apps ?? defaultApps ?? readPresetAppsOverride(NO_PRESET_KEY) ?? BUILTIN_DEFAULT_APPS,
+  );
+
   // Apps the caller has authenticated — used to resolve icons by name and as
   // suggestions in the picker. NOT auto-selected as `chosenApps`.
   const [availableApps, setAvailableApps] = useState<AgentUIApp[]>([]);
