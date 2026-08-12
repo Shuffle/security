@@ -403,14 +403,8 @@ const AuthenticatedVulnerabilitiesView = () => {
 
         <VulnerabilitySidebar
           vulnerabilities={vulnerabilities}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
           severityFilter={severityFilter}
           onSeverityChange={setSeverityFilter}
-          categoryFilter={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
           severityCounts={severityCounts as unknown as Record<string, number>}
           dateFrom={dateFrom}
           dateTo={dateTo}
