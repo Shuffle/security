@@ -233,7 +233,7 @@ export default function AppSearchDrawer({
   // ShuffleMCP's `selectedApps` prop expects. Only `objectID` and `name` are
   // used for matching; the rest are placeholders.
   const projectedSelectedApps = (selectedApps || []).map((a) => ({
-    objectID: a.id || `name:${(a.name || '').toLowerCase().replace(/[\s-]+/g, '_')}`,
+    objectID: a.id || `name:${(a.name || '').toLowerCase().replace(/[\s_\-]+/g, '')}`,
     name: a.name,
     image_url: a.icon || '',
     description: '',
@@ -271,7 +271,7 @@ export default function AppSearchDrawer({
 
     // Multi-select mode: toggle in/out of the chosen list, keep the drawer open.
     if (multiSelect && onSelectionChange) {
-      const norm = (s: string) => (s || '').toLowerCase().replace(/[\s-]+/g, '_');
+      const norm = (s: string) => (s || '').toLowerCase().replace(/[\s_\-]+/g, '');
       const current = selectedApps || [];
       const targetSlug = norm(appInfo.name);
       const exists = current.some(
@@ -576,7 +576,7 @@ export default function AppSearchDrawer({
                     showCategories={true}
                     showCheckbox={multiSelect}
                     multiSelect={multiSelect}
-                    selectedApps={selectedApps && selectedApps.length ? projectedSelectedApps : undefined}
+                    selectedApps={selectedApps ? projectedSelectedApps : undefined}
                     disableAutoSelectValidatedApps
                     hideAuthStatus={hideAuthStatus}
                     preventDefault={true}

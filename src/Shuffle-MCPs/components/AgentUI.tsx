@@ -5772,18 +5772,29 @@ const AgentUI: React.FC<AgentUIProps> = ({
           colorMode={colorMode}
           onSelectionChange={(next) => {
             const added = next.length > chosenApps.length;
-            setChosenApps(
-              next.map((app) => {
+            // Dedupe by normalized name so an app seeded from a previous run
+            // (name-only, no Algolia id) cannot linger as a second, invisible
+            // entry that keeps the picker row highlighted after deselecting.
+            const slug = (s?: string) => (s || '').toLowerCase().replace(/[\s_-]+/g, '');
+            const seen = new Set<string>();
+            const mapped = next
+              .map((app) => {
                 const known = availableApps.find(
-                  (a) => a.name?.toLowerCase() === app.name?.toLowerCase(),
+                  (a) => slug(a.name) === slug(app.name),
                 );
                 return {
                   name: app.name,
                   icon: app.icon || known?.icon,
                   id: app.id || known?.id || undefined,
                 };
-              }),
-            );
+              })
+              .filter((app) => {
+                const key = slug(app.name);
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              });
+            setChosenApps(mapped);
             // Picking an app for a category requirement resolves that chip
             // and closes the picker.
             if (categoryTarget && added) {
