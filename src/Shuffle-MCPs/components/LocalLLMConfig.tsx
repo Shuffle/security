@@ -282,6 +282,15 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // Model dropdown lives inside the AppAuthCard via extraFieldsSlot so its
   // value is persisted as a credential field on Save.
 
+  // Always keep a default model selected for the active provider.
+  useEffect(() => {
+    const models = PROVIDER_MODELS[effectivePreset];
+    if (!models?.length) return;
+    if ((authState.credentials?.model || '').trim()) return;
+    handleAuthChange(OPENAI_APP_ID, { ...authState.credentials, model: models[0] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectivePreset, authState.credentials?.model]);
+
   const isShuffleAI = effectivePreset === SHUFFLE_AI_PRESET;
   const orgId = userdata?.active_org?.id;
   const [orgData, setOrgData] = useState<{
