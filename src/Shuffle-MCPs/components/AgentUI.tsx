@@ -2214,6 +2214,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
    * window.
    */
   const [runComplete, setRunComplete] = useState(false);
+  /**
+   * Optimistic continuation state. When the user submits "Continue this agent
+   * run" we immediately pretend the agent is working again (a Processing row,
+   * no "Run finished" summary) until the backend produces a new decision.
+   */
+  const [optimisticContinue, setOptimisticContinue] = useState<{ at: number; decisions: number } | null>(null);
   /** Continuation input — focused automatically once the run finishes. */
   const continuationInputRef = useRef<HTMLTextAreaElement | null>(null);
   const continuationFocusedForRef = useRef<string | null>(null);
