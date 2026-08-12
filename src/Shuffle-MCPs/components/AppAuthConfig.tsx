@@ -250,6 +250,9 @@ export interface AppAuthCardProps extends ShuffleHostProps {
     credentials: Record<string, string>;
     setField: (key: string, value: string) => void;
   }) => React.ReactNode;
+  /** Known-ahead-of-time auth schema. When provided the fields render
+   *  instantly and no app-config request is made (no "Loading configuration"). */
+  initialAuthConfig?: AppAuthentication;
 }
 
 
