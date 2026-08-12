@@ -236,6 +236,14 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPreset, currentUrl, hasOpenAIEntries, activeEntry]);
 
+  /** Saved authentications that belong to the currently selected provider.
+   *  When any exist we show the normal auth selector (so they can be picked,
+   *  tested and deleted) instead of forcing the "Add New Authentication" form. */
+  const providerEntries = useMemo(
+    () => openaiEntries.filter((e: any) => providerOfEntry(e) === effectivePreset),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [openaiEntries, effectivePreset],
+  );
 
 
   /**
@@ -352,7 +360,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    * POST /api/v1/chat/completions?authentication_id=<id>
    */
   const handleTestLLMConnection = async (_appId: string, authenticationId?: string) => {
-    const authId = authenticationId || openaiEntries[0]?.id;
+    const authId = authenticationId || (providerEntries[0] as any)?.id || (activeEntry as any)?.id;
     if (!authId) {
       setLlmTest({
         status: 'error',
@@ -687,7 +695,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           onAuthChange={handleAuthChange}
           onTestConnection={(appId, authId) => handleTestLLMConnection(appId, authId)}
           onSaveAuth={(appId, creds) => handleSaveProviderAuth(appId, creds)}
-          apiAuthEntries={openaiEntries}
+          apiAuthEntries={providerEntries}
           onRefreshAuth={refreshAuth}
           disableUrlPrefill
           hideHeader
@@ -696,7 +704,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideUrlFields
           initialAuthConfig={OPENAI_AUTH_SCHEMA}
           borderless
-          compactAuthForm
+          compactAuthForm={providerEntries.length === 0}
           suppressSaveToast
 
           extraFieldsSlot={
