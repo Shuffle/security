@@ -1192,8 +1192,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
     if (!runFinished) return item.status;
     // The finalise row IS the run's completion — never leave it spinning once
     // the run itself reports FINISHED, even if the row carries no status.
-    if (isFinaliseRow && (s === '' || s === 'RUNNING' || s === 'WAITING')) return 'FINISHED';
-    if (s === 'RUNNING' || s === 'WAITING') return 'IGNORED';
+    if (isFinaliseRow && (s === '' || s === 'RUNNING' || s === 'WAITING' || s === 'EXECUTING')) return 'FINISHED';
+    // The run is over, so a step still claiming to run never concluded — most
+    // likely it crashed. Never leave it spinning.
+    if (s === '' || s === 'RUNNING' || s === 'WAITING' || s === 'EXECUTING') return 'IGNORED';
+
     return item.status;
   })();
 
@@ -3848,10 +3851,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const optimisticContinueText = optimisticContinue?.text || undefined;
 
   /**
-   * True when any decision row is still in-flight (spinner visible). The run
-   * must not claim "Run finished" while a step is still spinning.
+   * True when a decision never concluded (still marked running/waiting) even
+   * though the run itself has ended — typically an agent crash. Used to warn
+   * the user that the run may be incomplete.
    */
   const hasInFlightDecision = useMemo(
+
     () => ((agentData?.decisions as any[]) || []).some((d) => {
       const s = String(d?.run_details?.status || '').toUpperCase();
       return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
@@ -5548,7 +5553,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 {(() => {
                   const status = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
                   const decisionCount = (agentData?.decisions || []).length;
-                  const isRunning = optimisticRunning || hasInFlightDecision || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
+                  const isRunning = optimisticRunning || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
                   const rawStartedAt = agentData?.started_at || execution?.started_at || 0;
                   // Normalize: backend may return Unix milliseconds (UnixMillis) or seconds.
                   const startedAtSec = rawStartedAt > 1e12 ? Math.floor(rawStartedAt / 1000) : rawStartedAt;
@@ -5772,8 +5777,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {viewMode === 'detailed' && (() => {
               const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
               const detailedIsRunning = optimisticRunning
-                || hasInFlightDecision
                 || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
+
 
               const detailedRunFinished = !detailedIsRunning;
               
@@ -5860,6 +5865,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
+                      {hasInFlightDecision && (
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                          <WarningIcon size={14} color={STATUS_COLORS.warning} style={{ marginTop: 2, flexShrink: 0 }} />
+                          <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+                            One or more steps never completed, so something may have gone wrong during this run. Continue the run below to let the agent pick up where it stopped.
+                          </Typography>
+                        </Box>
+                      )}
+
                     </Box>
                   )}
                 </>
