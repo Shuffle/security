@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
 import {
   Autocomplete,
   Box,
@@ -53,19 +54,23 @@ const OPENAI_ALGOLIA_APP: AlgoliaSearchApp = {
 
 const CUSTOM_MODEL = 'Custom…';
 
-// Curated 2026-era model lists per provider. Custom value can always be typed in.
+// Curated 2026-era model lists per provider. The FIRST entry is the default
+// selected for that provider, and is the best general-purpose model for
+// security analysis work (strong reasoning, sane cost/latency).
+// Custom value can always be typed in.
 const PROVIDER_MODELS: Record<string, string[]> = {
   OpenAI: ['gpt-5.5', 'gpt-5.5-pro', 'gpt-5.4', 'gpt-5.4-pro', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.2', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4.1', 'o4-mini'],
-  Anthropic: ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5', 'claude-opus-4', 'claude-sonnet-4', 'claude-3-7-sonnet-latest'],
+  Anthropic: ['claude-sonnet-4-5', 'claude-opus-4-5', 'claude-haiku-4-5', 'claude-opus-4', 'claude-sonnet-4', 'claude-3-7-sonnet-latest'],
   'Google Gemini': ['gemini-3-pro-preview', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview', 'gemini-3.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'],
   Mistral: ['mistral-large-2026', 'mistral-medium-3', 'mistral-small-3.2', 'codestral-2026', 'magistral-medium-2026', 'ministral-8b-latest'],
   Groq: ['llama-4-maverick-17b-128e', 'llama-4-scout-17b-16e', 'llama-3.3-70b-versatile', 'deepseek-r1-distill-llama-70b', 'qwen-3-32b', 'kimi-k2-instruct'],
   DeepSeek: ['deepseek-v3.5', 'deepseek-v3', 'deepseek-r1', 'deepseek-coder-v3'],
   'Together AI': ['meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'deepseek-ai/DeepSeek-V3', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen3-235B-A22B'],
-  OpenRouter: ['openai/gpt-5.5', 'openai/gpt-5.4', 'anthropic/claude-opus-4.5', 'anthropic/claude-sonnet-4.5', 'google/gemini-3-pro-preview', 'google/gemini-3-flash-preview', 'meta-llama/llama-4-maverick', 'deepseek/deepseek-v3.5', 'x-ai/grok-4'],
-  'Ollama (localhost)': ['llama3.3', 'llama3.2', 'qwen3', 'qwen3:32b', 'deepseek-r1', 'deepseek-r1:70b', 'mistral-small3', 'phi4', 'gemma3'],
-  'LM Studio (localhost)': ['llama-3.3-70b-instruct', 'qwen3-32b', 'deepseek-r1-distill-qwen-32b', 'mistral-small-3', 'phi-4', 'gemma-3-27b'],
+  OpenRouter: ['anthropic/claude-sonnet-4.5', 'openai/gpt-5.5', 'openai/gpt-5.4', 'anthropic/claude-opus-4.5', 'google/gemini-3-pro-preview', 'google/gemini-3-flash-preview', 'meta-llama/llama-4-maverick', 'deepseek/deepseek-v3.5', 'x-ai/grok-4'],
+  'Ollama (localhost)': ['llama3.3', 'qwen3', 'llama3.2', 'qwen3:32b', 'deepseek-r1', 'deepseek-r1:70b', 'mistral-small3', 'phi4', 'gemma3'],
+  'LM Studio (localhost)': ['qwen3-32b', 'llama-3.3-70b-instruct', 'deepseek-r1-distill-qwen-32b', 'mistral-small-3', 'phi-4', 'gemma-3-27b'],
 };
+
 
 export interface AgentLocalModel {
   url: string;
@@ -161,6 +166,65 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     return detectLLMProvider(currentUrl)?.label || CUSTOM_PRESET;
   }, [selectedPreset, currentUrl, hasOpenAIEntries]);
 
+  /** Which provider a saved OpenAI auth entry belongs to (label first, URL as fallback). */
+  const providerOfEntry = (entry: any): string => {
+    const label = String(entry?.label || '');
+    const match = ENDPOINT_PRESETS.find(
+      (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase().includes(p.label.toLowerCase()),
+    );
+    if (match) return match.label;
+    const url = ((entry?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
+      .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
+    return detectLLMProvider(url)?.label || CUSTOM_PRESET;
+  };
+
+  /**
+   * Per-provider configuration state used to mark the provider list:
+   * 'valid' (green, validated) or 'configured' (yellow, saved but unvalidated).
+   */
+  const providerStatus = useMemo(() => {
+    const map: Record<string, 'valid' | 'configured'> = {};
+    for (const entry of openaiEntries) {
+      const provider = providerOfEntry(entry);
+      const isValid = (entry as any)?.validation?.valid === true;
+      if (isValid) map[provider] = 'valid';
+      else if (!map[provider]) map[provider] = 'configured';
+    }
+    if (!hasOpenAIEntries) map[SHUFFLE_AI_PRESET] = 'valid';
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openaiEntries, hasOpenAIEntries]);
+
+  /**
+   * Save with the provider baked into the label, then remove any other
+   * authentication for the same provider so there is only ever one per
+   * provider.
+   */
+  const handleSaveProviderAuth = async (appId: string, creds: Record<string, string>): Promise<boolean> => {
+    const provider = effectivePreset || detectLLMProvider(creds.url || '')?.label || CUSTOM_PRESET;
+    const duplicates = openaiEntries.filter((e) => providerOfEntry(e) === provider && e.id);
+    const ok = await handleSaveAuth(appId, creds, OPENAI_APP_NAME, `${OPENAI_APP_NAME} - ${provider}`);
+    if (!ok) return false;
+    let deletedAny = false;
+    for (const entry of duplicates) {
+      try {
+        const resp = await fetch(getApiUrl(`/api/v1/apps/authentication/${entry.id}`), {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (resp.ok) deletedAny = true;
+      } catch (err) {
+        console.error('[LocalLLMConfig] Failed to remove duplicate provider auth:', err);
+      }
+    }
+    if (deletedAny) {
+      await refreshAuth();
+      refreshAllIntegrationStatus();
+    }
+    return true;
+  };
+
   const applyShuffleAI = async () => {
     let deletedAny = false;
     for (const entry of openaiEntries) {
@@ -219,6 +283,15 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // Model dropdown lives inside the AppAuthCard via extraFieldsSlot so its
   // value is persisted as a credential field on Save.
 
+  // Always keep a default model selected for the active provider.
+  useEffect(() => {
+    const models = PROVIDER_MODELS[effectivePreset];
+    if (!models?.length) return;
+    if ((authState.credentials?.model || '').trim()) return;
+    handleAuthChange(OPENAI_APP_ID, { ...authState.credentials, model: models[0] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectivePreset, authState.credentials?.model]);
+
   const isShuffleAI = effectivePreset === SHUFFLE_AI_PRESET;
   const orgId = userdata?.active_org?.id;
   const [orgData, setOrgData] = useState<{
@@ -273,11 +346,25 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           isOptionEqualToValue={(opt, val) => opt === val}
           renderOption={(props, option) => {
             const preset = ENDPOINT_PRESETS.find((p) => p.label === option);
+            const status = providerStatus[option];
             return (
               <li {...props} key={option}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
                   <ProviderLogo label={option} url={preset?.url} />
                   <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--popover-foreground))', flexShrink: 0 }}>{option}</Typography>
+                  {status && (
+                    <Check
+                      size={14}
+                      strokeWidth={3}
+                      style={{
+                        flexShrink: 0,
+                        color: status === 'valid'
+                          ? 'hsl(var(--severity-low))'
+                          : 'hsl(var(--severity-medium))',
+                      }}
+                      aria-label={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                    />
+                  )}
                   {preset?.url && (
                     <Typography component="span" sx={{ ml: 'auto', minWidth: 0, flex: '0 1 auto', color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {preset.url}
@@ -378,7 +465,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           onToggle={() => setExpanded((prev) => !prev)}
           onAuthChange={handleAuthChange}
           onTestConnection={(appId, authId) => handleTestConnection(appId, authId)}
-          onSaveAuth={(appId, creds) => handleSaveAuth(appId, creds, OPENAI_APP_NAME)}
+          onSaveAuth={(appId, creds) => handleSaveProviderAuth(appId, creds)}
           apiAuthEntries={openaiEntries}
           onRefreshAuth={refreshAuth}
           disableUrlPrefill
@@ -388,6 +475,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideUrlFields
           borderless
           compactAuthForm
+          suppressSaveToast
 
           extraFieldsSlot={
             (PROVIDER_MODELS[effectivePreset]?.length ?? 0) > 0
