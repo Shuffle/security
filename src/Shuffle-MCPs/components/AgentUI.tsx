@@ -3835,10 +3835,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Remember tool customisations per template so a template's defaults are a
   // starting point, not a forced set.
   useEffect(() => {
-    if (!selectedPreset) return;
+    const key = selectedPreset?.id ?? NO_PRESET_KEY;
     // Do not write the previous template's tools onto the newly selected one.
-    if (seededPresetIdRef.current !== selectedPreset.id) return;
-    writePresetAppsOverride(selectedPreset.id, chosenApps.filter((a) => !!a?.name));
+    if (selectedPreset && seededPresetIdRef.current !== selectedPreset.id) return;
+    writePresetAppsOverride(key, chosenApps.filter((a) => !!a?.name));
+
 
   }, [chosenApps, selectedPreset]);
   const goToTab = (t: TabKey) => {
