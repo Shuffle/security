@@ -563,7 +563,11 @@ export const AppAuthCard = ({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [appConfig, setAppConfig] = useState<DecodedApp | null>(null);
+  const [appConfig, setAppConfig] = useState<DecodedApp | null>(
+    initialAuthConfig
+      ? ({ authentication: initialAuthConfig } as unknown as DecodedApp)
+      : null,
+  );
 
   // Refresh auth entries every time the card is expanded
   useEffect(() => {
