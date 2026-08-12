@@ -532,7 +532,10 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     // If this provider already has a saved authentication, make it the
     // primary one (active: true) and deactivate the others.
     const existing = openaiEntries.find((e: any) => e?.id && providerOfEntry(e) === label);
-    if (existing?.id) void setActiveAuthEntry(existing.id);
+    // Pass the already-loaded entries so switching provider does not trigger an
+    // extra authentication GET before the PUT.
+    if (existing?.id) void setActiveAuthEntry(existing.id, openaiEntries as any[]);
+
     const preset = ENDPOINT_PRESETS.find((p) => p.label === label);
     if (!preset) return;
 
