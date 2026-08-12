@@ -1644,22 +1644,18 @@ export const AppAuthCard = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: localTestStatus === 'success' 
-                            ? 'hsl(var(--severity-low) / 0.1)' 
+                          backgroundColor: localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                            ? 'hsl(var(--severity-low) / 0.1)'
                             : localTestStatus === 'error'
                             ? 'hsl(var(--destructive) / 0.1)'
-                            : localTestStatus === 'pending_validation'
-                            ? 'hsl(var(--severity-medium) / 0.1)'
                             : isTested
                             ? 'hsl(var(--severity-low) / 0.1)'
                             : isConfigured
                             ? 'hsl(var(--severity-medium) / 0.1)' // Yellow for configured but not tested
                             : 'hsl(var(--muted-foreground) / 0.1)',
                           border: `1px solid ${
-                            localTestStatus === 'success' 
-                              ? 'hsl(var(--severity-low) / 0.2)' 
-                              : localTestStatus === 'pending_validation'
-                              ? 'hsl(var(--severity-medium) / 0.2)'
+                            localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                              ? 'hsl(var(--severity-low) / 0.2)'
                               : localTestStatus === 'error'
                               ? 'hsl(var(--destructive) / 0.2)'
                               : isTested
