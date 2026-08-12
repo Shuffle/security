@@ -116,14 +116,19 @@ let _trackedOrgId: string | null = cached.orgId;
 let _hostBaseUrl: string | null = null;
 
 const REGION_EVENT = 'shuffle:region-url';
+let _lastBroadcastUrl: string | null = cached.url;
 
 const persistRegion = (url: string | null, orgId: string | null) => {
   if (typeof window === 'undefined') return;
+  const changed = url !== _lastBroadcastUrl;
+  _lastBroadcastUrl = url;
   try {
     if (url) localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ url, orgId }));
     else localStorage.removeItem(REGION_STORAGE_KEY);
   } catch { /* ignore */ }
-  // Broadcast so the other api module (Shuffle-Core) and other tabs stay in sync.
+  // Broadcast only when the URL itself changed, so the other api module
+  // (Shuffle-Core) and other tabs stay in sync without redundant events.
+  if (!changed) return;
   try { window.dispatchEvent(new CustomEvent(REGION_EVENT, { detail: { url, orgId } })); } catch { /* ignore */ }
 };
 
@@ -134,6 +139,7 @@ if (typeof window !== 'undefined') {
     const next = readCachedRegion();
     if (next.url !== _regionUrl) {
       _regionUrl = next.url;
+      _lastBroadcastUrl = next.url;
       console.log(`[API] Region URL synced to: ${_regionUrl || 'default'}`);
     }
     _trackedOrgId = next.orgId;
