@@ -10,6 +10,7 @@ import {
   DialogContentText,
   DialogTitle,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
