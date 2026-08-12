@@ -1168,12 +1168,12 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
       {!dialogOnly && (<>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Radar size={28} className="text-primary" />
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">Monitors</h1>
-            <p className="text-sm text-muted-foreground">Monitor host compliance and security posture across your endpoints</p>
-          </div>
+        <div>
+          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            Monitors
+            <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">Beta</span>
+          </h1>
+          <p className="text-sm text-muted-foreground">Monitor host compliance and security posture across your endpoints</p>
         </div>
 
         <div className="flex items-center gap-2">
