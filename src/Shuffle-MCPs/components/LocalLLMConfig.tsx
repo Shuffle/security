@@ -13,7 +13,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
+import { AppAuthCard, isAuthVerifiedLocally } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
@@ -254,7 +254,10 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     const map: Record<string, 'valid' | 'configured'> = {};
     for (const entry of openaiEntries) {
       const provider = providerOfEntry(entry);
-      const isValid = (entry as any)?.validation?.valid === true;
+      const authId = (entry as any)?.id || (entry as any)?.label || '';
+      const isValid =
+        (entry as any)?.validation?.valid === true ||
+        (authId ? isAuthVerifiedLocally(OPENAI_APP_ID, authId) : false);
       if (isValid) map[provider] = 'valid';
       else if (!map[provider]) map[provider] = 'configured';
     }

@@ -305,6 +305,10 @@ const removeVerifiedFromStorage = (appId: string, authId: string) => {
   writeVerifiedToStorage(appId, authId, null);
 };
 
+/** Public helper: has this auth been verified locally (200 OK on test)? */
+export const isAuthVerifiedLocally = (appId: string, authId: string): boolean =>
+  readVerifiedFromStorage(appId, authId) === 'success';
+
 /** Build initial verified map from localStorage for the given auth entries. */
 const buildInitialVerifiedMap = (
   appId: string,
@@ -590,7 +594,9 @@ export const AppAuthCard = ({
 
   // Compute configured/tested status for the SELECTED auth entry only (not any auth)
   const isConfigured = selectedAuth?.active === true;
-  const isTested = selectedAuth?.validation?.valid === true;
+  const isTested =
+    selectedAuth?.validation?.valid === true ||
+    testStatusPerAuth[selectedAuthId] === 'success';
   
   // Get last validation timestamp (prefer selected auth, fallback to any validated entry)
   const getLastValidTimestamp = (): number | undefined => {
@@ -1343,11 +1349,11 @@ export const AppAuthCard = ({
               <>
                 {/* Configured status chip */}
                 <Chip
-                  label={isConfigured ? 'Configured' : 'Not configured'}
+                  label={isTested ? 'Validated' : isConfigured ? 'Configured' : 'Not configured'}
                   size="small"
                   sx={{
-                    backgroundColor: isConfigured ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
-                    color: isConfigured ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
+                    backgroundColor: isTested ? 'hsl(var(--severity-low) / 0.15)' : isConfigured ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
+                    color: isTested ? 'hsl(var(--severity-low))' : isConfigured ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
                     fontWeight: 500,
                     fontSize: { xs: '0.6rem', sm: '0.65rem' },
                     height: { xs: 22, sm: 24 },
@@ -1471,7 +1477,9 @@ export const AppAuthCard = ({
                       const entryId = authEntry.id || authEntry.label || index.toString();
                       const entryLabel = authEntry.label || `Auth ${index + 1}`;
                       const isActive = authEntry.active === true;
-                      const isValid = authEntry.validation?.valid === true;
+                      const isValid =
+                        authEntry.validation?.valid === true ||
+                        testStatusPerAuth[entryId] === 'success';
                       
                       // Format timestamp for tooltips
                       const formatTimestamp = (ts?: number): string => {
@@ -1493,18 +1501,18 @@ export const AppAuthCard = ({
                                 placement="top"
                               >
                                 <Chip
-                                  label={isActive ? 'Configured' : 'Not configured'}
+                                  label={isValid ? 'Validated' : isActive ? 'Configured' : 'Not configured'}
                                   size="small"
                                   sx={{
                                     height: 20,
                                     fontSize: '0.6rem',
-                                    backgroundColor: isActive ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
-                                    color: isActive ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
+                                    backgroundColor: isValid ? 'hsl(var(--severity-low) / 0.15)' : isActive ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
+                                    color: isValid ? 'hsl(var(--severity-low))' : isActive ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
                                   }}
                                 />
                               </Tooltip>
                               <Tooltip 
-                                title={lastValidDate ? `Last valid: ${formatTimestamp(lastValidDate)}` : 'Never validated'}
+                                title={lastValidDate ? `Last valid: ${formatTimestamp(lastValidDate)}` : isValid ? 'Connection verified' : 'Never validated'}
                                 arrow
                                 placement="top"
                               >
@@ -1519,6 +1527,7 @@ export const AppAuthCard = ({
                                   }}
                                 />
                               </Tooltip>
+
                               {isLatest && (
                                 <Chip
                                   label="Latest"
