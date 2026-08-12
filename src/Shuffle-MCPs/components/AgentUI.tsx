@@ -501,6 +501,8 @@ import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET } from '@/Shuf
 import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
+import AgentAttachmentsButton from '@/Shuffle-MCPs/components/AgentAttachmentsButton';
+import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
 
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -2168,6 +2170,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [execution, setExecution] = useState<ExecutionData | null>(null);
   const [agentData, setAgentData] = useState<{ decisions?: AgentDecision[]; original_input?: string; status?: string; started_at?: number; completed_at?: number; [k: string]: any }>({});
   const [agentActionResult, setAgentActionResult] = useState<any>(null);
+  // Images attached to the run's `llm_requests` (deep-walked, deduped).
+  const llmImageAttachments = useMemo(
+    () => collectLlmImageAttachments(agentData),
+    [agentData],
+  );
   const [showStarter, setShowStarter] = useState(true);
   const [scheduleAnchor, setScheduleAnchor] = useState<HTMLElement | null>(null);
   const [scheduleCron, setScheduleCron] = useState('0 * * * *');
@@ -5318,6 +5325,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Tooltip>
                 ) : null;
               })()}
+              <AgentAttachmentsButton attachments={llmImageAttachments} />
               <Tooltip title={rerunAgentPending ? 'Rerun starting…' : 'Rerun with the same prompt and tools'}>
                 <span>
                   <IconButton
