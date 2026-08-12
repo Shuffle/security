@@ -207,17 +207,35 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
   const hasOpenAIEntries = openaiEntries.length > 0;
 
-  /** Which provider a saved OpenAI auth entry belongs to (label first, URL as fallback). */
+  /** Which provider a saved OpenAI auth entry belongs to.
+   *  URL wins (it is authoritative), then the label — legacy labels look like
+   *  "OpenAI - Anthropic", so the app-name prefix is stripped before matching
+   *  to avoid classifying every entry as OpenAI. */
   const providerOfEntry = (entry: any): string => {
-    const label = String(entry?.label || '');
+    const url = ((entry?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
+      .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
+    if (url) return detectLLMProvider(url)?.label || CUSTOM_PRESET;
+
+    const rawLabel = String(entry?.label || '');
+    const label = rawLabel
+      .replace(new RegExp(`^\\s*${OPENAI_APP_NAME}\\s*-\\s*`, 'i'), '')
+      .trim();
     const match = ENDPOINT_PRESETS.find(
+      (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase() === p.label.toLowerCase(),
+    ) || ENDPOINT_PRESETS.find(
       (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase().includes(p.label.toLowerCase()),
     );
     if (match) return match.label;
-    const url = ((entry?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
-      .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
-    return detectLLMProvider(url)?.label || CUSTOM_PRESET;
+    return CUSTOM_PRESET;
   };
+
+  /** Display label without the redundant "OpenAI - " app-name prefix. */
+  const displayLabelOfEntry = (entry: any): string => {
+    const raw = String(entry?.label || '');
+    const stripped = raw.replace(new RegExp(`^\\s*${OPENAI_APP_NAME}\\s*-\\s*`, 'i'), '').trim();
+    return stripped || raw;
+  };
+
 
   /** The currently active (primary) OpenAI-compatible authentication. */
   const activeEntry = useMemo(
