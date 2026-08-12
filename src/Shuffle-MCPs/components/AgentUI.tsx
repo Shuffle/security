@@ -3850,19 +3850,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const optimisticRunning = Boolean(optimisticContinue);
   const optimisticContinueText = optimisticContinue?.text || undefined;
 
-  /**
-   * True when a decision never concluded (still marked running/waiting) even
-   * though the run itself has ended — typically an agent crash. Used to warn
-   * the user that the run may be incomplete.
-   */
-  const hasInFlightDecision = useMemo(
-
-    () => ((agentData?.decisions as any[]) || []).some((d) => {
-      const s = String(d?.run_details?.status || '').toUpperCase();
-      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
-    }),
-    [agentData?.decisions],
-  );
 
 
 
