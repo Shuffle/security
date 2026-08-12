@@ -5865,14 +5865,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
-                      {hasInFlightDecision && (
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                          <WarningIcon size={14} color={STATUS_COLORS.warning} style={{ marginTop: 2, flexShrink: 0 }} />
-                          <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
-                            One or more steps never completed, so something may have gone wrong during this run. Continue the run below to let the agent pick up where it stopped.
-                          </Typography>
-                        </Box>
-                      )}
 
                     </Box>
                   )}
