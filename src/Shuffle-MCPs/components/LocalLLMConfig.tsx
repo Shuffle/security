@@ -473,11 +473,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           errorMessage: 'The provider responded, but returned no message content.',
         });
       } else {
+        rememberValidatedAuth(authId);
         setLlmTest({
           status: 'connected',
           successMessage: `Connection verified${model ? ` • ${model}` : ''} • Reply: ${String(content).trim().slice(0, 60)}`,
         });
       }
+
     } catch (error) {
       setLlmTest({
         status: 'error',
