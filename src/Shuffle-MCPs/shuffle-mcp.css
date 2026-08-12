@@ -335,7 +335,8 @@
   padding: var(--singul-item-padding);
   cursor: pointer;
   border-bottom: var(--singul-item-border);
-  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out;
   overflow: hidden;
   outline: none;
 }
@@ -346,6 +347,20 @@
 
 .singul-dropdown-item:hover {
   background-color: var(--singul-item-hover-bg);
+  box-shadow: inset 2px 0 0 var(--singul-accent-color);
+}
+
+.singul-dropdown-item:active {
+  transform: scale(0.995);
+}
+
+/* Make it obvious the row is selectable: the checkbox lights up on hover. */
+.singul-dropdown-item:hover .singul-checkbox {
+  border-color: var(--singul-accent-color);
+}
+
+.singul-dropdown-item:hover .singul-app-icon {
+  border-color: var(--singul-accent-color);
 }
 
 .singul-dropdown-item.singul-selected {
@@ -370,7 +385,10 @@
 
 .singul-dropdown-grid .singul-dropdown-item:hover,
 .singul-results-grid .singul-dropdown-item:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--singul-accent-color);
+  background-color: var(--singul-item-hover-bg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
 }
 
 .singul-dropdown-grid .singul-dropdown-item.singul-selected,
@@ -378,6 +396,7 @@
   border-color: var(--singul-item-selected-border);
   background-color: var(--singul-item-selected-bg);
 }
+
 
 .singul-app-info {
   display: flex;
