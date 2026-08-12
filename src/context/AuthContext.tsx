@@ -116,8 +116,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           resetRegionUrl();
         }
 
-        // Set region URL from response (will validate it's a shuffler.io subdomain)
-        setRegionUrl(data.region_url, newOrgId);
+        // Set region URL from response (top-level first, then active_org)
+        const resolvedRegionUrl = data.region_url || data.active_org?.region_url || null;
+        setRegionUrl(resolvedRegionUrl, newOrgId);
 
         const info = {
           username: data.username,
