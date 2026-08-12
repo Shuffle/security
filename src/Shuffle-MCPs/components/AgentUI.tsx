@@ -3654,16 +3654,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
     }
 
-    // Some runs end without an explicit finish/finalise decision (for example
-    // after a user-input continuation). The run is still over, so fall back to
-    // the last decision id so the continuation input stays available.
+    // Always send the latest finish decision's ID when continuing. If no
+    // finish decision exists, the backend still needs a marker so we send the
+    // literal string "MISSING" rather than guessing a fallback decision ID.
     if (!finishId && runIsFinished) {
-      const decs: any[] = (agentData?.decisions as any[]) || [];
-      for (let i = decs.length - 1; i >= 0; i--) {
-        const id = decs[i]?.run_details?.id;
-        if (id) { finishId = id; break; }
-      }
+      finishId = 'MISSING';
     }
+
 
     // The agent's `output` field carries the actual answer, while the finish
     // decision's `reason` is usually just a one-line rationale ("Answer the
