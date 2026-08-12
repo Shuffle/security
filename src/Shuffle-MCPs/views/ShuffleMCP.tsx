@@ -175,6 +175,12 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [authenticatedApps, setAuthenticatedApps] = useState<AppAuthentication[]>(externalAuthenticatedApps || []);
   const [authenticatedAppsLoading, setAuthenticatedAppsLoading] = useState<boolean>(!externalAuthenticatedApps);
   const [drawerApp, setDrawerApp] = useState<AlgoliaSearchApp | null>(null);
+  // First paint guard: keep a skeleton on screen until the first Algolia
+  // search AND the private-app fetch have both resolved, so the list is only
+  // revealed once selected apps are known and sorted. Without this the list
+  // pops in, then visibly reshuffles when selections/private apps arrive.
+  const [initialSettled, setInitialSettled] = useState(false);
+  const firstSearchDoneRef = useRef(false);
 
   const hasInitialized = useRef(false);
 
@@ -427,9 +433,29 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
       setHasMore(false);
     } finally {
       if (isAppend) setIsLoadingMore(false);
-      else setIsLoading(false);
+      else {
+        firstSearchDoneRef.current = true;
+        setIsLoading(false);
+      }
     }
   }, [hitsPerPage, algoliaIndexName, privateApps.length, results.length]);
+
+  // Reveal the list only once the first search and private apps have resolved,
+  // taking a fresh snapshot of the selection so the sort is right first time.
+  useEffect(() => {
+    if (initialSettled) return;
+    if (!firstSearchDoneRef.current || isLoading || privateAppsLoading) return;
+    initialSelectedAppsRef.current = selectedApps;
+    setInitialSettled(true);
+  }, [initialSettled, isLoading, privateAppsLoading, selectedApps]);
+
+  // Failsafe: never leave the skeleton up forever if a fetch never resolves.
+  useEffect(() => {
+    const t = setTimeout(() => setInitialSettled(true), 6000);
+    return () => clearTimeout(t);
+  }, []);
+
+
 
   // Infinite scroll: load next page when scrolled near bottom of results
   const canLoadMore = hasMore && !isLoading && !isLoadingMore && results.length < MAX_RESULTS;
@@ -907,7 +933,9 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               ...(layout === 'grid' ? { display: 'grid' } : {}),
             }}
           >
-            {displayResults.length > 0 ? (
+            {!initialSettled ? (
+              <InfiniteScrollSkeleton layout={layout} gridColumns={typeof gridColumns === 'number' ? gridColumns : (gridColumns.md || 3)} />
+            ) : displayResults.length > 0 ? (
               <>
                 {displayResults.map((app, index) => renderAppItem(app, index))}
                 {isLoadingMore && (
@@ -949,7 +977,9 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               ...(layout === 'grid' ? { display: 'grid' } : {}),
             }}
           >
-            {displayResults.length > 0 ? (
+            {!initialSettled ? (
+              <InfiniteScrollSkeleton layout={layout} gridColumns={typeof gridColumns === 'number' ? gridColumns : (gridColumns.md || 3)} />
+            ) : displayResults.length > 0 ? (
               <>
                 {displayResults.map((app, index) => renderAppItem(app, index))}
                 {isLoadingMore && (
