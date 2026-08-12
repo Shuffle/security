@@ -594,7 +594,9 @@ export const AppAuthCard = ({
 
   // Compute configured/tested status for the SELECTED auth entry only (not any auth)
   const isConfigured = selectedAuth?.active === true;
-  const isTested = selectedAuth?.validation?.valid === true;
+  const isTested =
+    selectedAuth?.validation?.valid === true ||
+    testStatusPerAuth[selectedAuthId] === 'success';
   
   // Get last validation timestamp (prefer selected auth, fallback to any validated entry)
   const getLastValidTimestamp = (): number | undefined => {
