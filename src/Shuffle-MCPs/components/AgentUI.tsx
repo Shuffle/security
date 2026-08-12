@@ -1859,6 +1859,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
   const [inputScrolled, setInputScrolled] = useState(false);
   const [promptSingleLine, setPromptSingleLine] = useState(true);
+  // Height of the attachment chip row (0 when nothing is attached). The
+  // floating Templates chip is absolutely positioned, so it must be pushed
+  // down by this amount to avoid overlapping the attachments.
+  const [attachmentsRowHeight, setAttachmentsRowHeight] = useState(0);
+  const attachmentsRowRef = useCallback((node: HTMLDivElement | null) => {
+    setAttachmentsRowHeight(node ? node.getBoundingClientRect().height : 0);
+  }, []);
+
 
   // Callback ref: measure the chip the instant it mounts (and whenever the
   // element is swapped out because the template label changed), so the
@@ -4598,7 +4606,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               },
             }}>
               {attachedImages.length > 0 && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                <Box ref={attachmentsRowRef} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                   {attachedImages.map((img, idx) => (
                     <Box key={`${img.name}-${idx}`} sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 1,
@@ -4620,7 +4628,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
               {!hidePresets && (
                 <Box sx={{
-                  position: 'absolute', left: '17px', top: '19px',
+                  position: 'absolute', left: '17px', top: `${19 + (attachedImages.length > 0 ? attachmentsRowHeight + 4 : 0)}px`,
                   height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                   // While the textarea is scrolled, line 1 (the indented one) is
                   // out of view and later lines would run under the chip.
