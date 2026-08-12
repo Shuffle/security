@@ -702,8 +702,14 @@ export const IncidentCardView = ({
                       />
                     </>
                   )}
-                  {/* Tenant name — only shown when the current org actually has sub-tenants. */}
-                  {isParentOrg && incident.orgName && !(incident.sharedOrgs && incident.sharedOrgs.length > 1) && (
+                  {/* Tenant name — only shown for incidents that belong to a
+                       different tenant than the current one. The current tenant
+                       is implied and doesn't need a label. */}
+                  {isParentOrg &&
+                    incident.orgId &&
+                    incident.orgId !== currentOrgId &&
+                    incident.orgName &&
+                    !(incident.sharedOrgs && incident.sharedOrgs.length > 1) && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                         •
