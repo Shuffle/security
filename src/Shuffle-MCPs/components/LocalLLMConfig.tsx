@@ -18,6 +18,10 @@ import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { refreshAllIntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
+import {
+  fetchAuthenticatedApps as fetchSharedAuthenticatedApps,
+  invalidateAuthenticatedAppsCache,
+} from '@/Shuffle-MCPs/authenticatedApps';
 import { UsageBar } from '@/Shuffle-MCPs/components/UsageBar';
 import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
@@ -190,16 +194,22 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     return detectLLMProvider(url)?.label || CUSTOM_PRESET;
   };
 
+  /** The currently active (primary) OpenAI-compatible authentication. */
+  const activeEntry = useMemo(
+    () => openaiEntries.find((e: any) => e?.active === true) || openaiEntries[0],
+    [openaiEntries],
+  );
+
   const effectivePreset = useMemo(() => {
     if (selectedPreset) return selectedPreset;
     if (!currentUrl && !hasOpenAIEntries) return SHUFFLE_AI_PRESET;
     if (currentUrl) return detectLLMProvider(currentUrl)?.label || CUSTOM_PRESET;
     // Saved authentications exist but no URL is loaded yet (fields can be
-    // masked). Derive the provider from the saved entry so the panel never
-    // renders as an empty, provider-less card.
-    return providerOfEntry(openaiEntries[0]);
+    // masked). Derive the provider from the active saved entry so the panel
+    // never renders as an empty, provider-less card.
+    return providerOfEntry(activeEntry);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPreset, currentUrl, hasOpenAIEntries, openaiEntries]);
+  }, [selectedPreset, currentUrl, hasOpenAIEntries, activeEntry]);
 
 
 
@@ -221,34 +231,89 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   }, [openaiEntries, hasOpenAIEntries]);
 
   /**
-   * Save with the provider baked into the label, then remove any other
-   * authentication for the same provider so there is only ever one per
-   * provider.
+   * Multiple LLM authentications can coexist. Exactly one of them — the
+   * primary provider — carries `active: true`; every other OpenAI-compatible
+   * authentication is written back with `active: false`. Nothing is deleted.
+   *
+   * Secret field values are replaced with the backend placeholder so the
+   * stored credentials survive the update (same pattern as auth renaming).
    */
-  const handleSaveProviderAuth = async (appId: string, creds: Record<string, string>): Promise<boolean> => {
-    const provider = effectivePreset || detectLLMProvider(creds.url || '')?.label || CUSTOM_PRESET;
-    const duplicates = openaiEntries.filter((e) => providerOfEntry(e) === provider && e.id);
-    const ok = await handleSaveAuth(appId, creds, OPENAI_APP_NAME, `${OPENAI_APP_NAME} - ${provider}`);
-    if (!ok) return false;
-    let deletedAny = false;
-    for (const entry of duplicates) {
+  const setActiveAuthEntry = async (activeId: string | null) => {
+    const placeholder = 'Secret. Replaced during app execution!';
+    let entries: any[] = [];
+    try {
+      invalidateAuthenticatedAppsCache();
+      entries = (await fetchSharedAuthenticatedApps()) as any[];
+    } catch {
+      entries = openaiEntries as any[];
+    }
+    const llmEntries = entries.filter(
+      (a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID,
+    );
+
+    let changed = false;
+    for (const entry of llmEntries) {
+      if (!entry?.id) continue;
+      const shouldBeActive = entry.id === activeId;
+      if (entry.active === shouldBeActive) continue;
+
+      const body: Record<string, any> = { ...entry, active: shouldBeActive };
+      if (Array.isArray(entry.fields)) {
+        body.fields = entry.fields.map((f: any) =>
+          typeof f?.value === 'string' ? { ...f, value: placeholder } : f,
+        );
+      } else if (entry.fields && typeof entry.fields === 'object') {
+        const masked: Record<string, any> = {};
+        for (const [key, val] of Object.entries(entry.fields)) {
+          masked[key] = typeof val === 'string' ? placeholder : val;
+        }
+        body.fields = masked;
+      }
+
       try {
-        const resp = await fetch(getApiUrl(`/api/v1/apps/authentication/${entry.id}`), {
-          method: 'DELETE',
+        const resp = await fetch(getApiUrl('/api/v1/apps/authentication'), {
+          method: 'PUT',
           credentials: 'include',
-          headers: { ...getAuthHeader() },
+          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         });
-        if (resp.ok) deletedAny = true;
+        if (resp.ok) changed = true;
       } catch (err) {
-        console.error('[LocalLLMConfig] Failed to remove duplicate provider auth:', err);
+        console.error('[LocalLLMConfig] Failed to update active state on LLM auth:', err);
       }
     }
-    if (deletedAny) {
+
+    if (changed) {
+      invalidateAuthenticatedAppsCache();
       await refreshAuth();
       refreshAllIntegrationStatus();
     }
+  };
+
+  /**
+   * Save with the provider baked into the label, then mark the saved provider
+   * as the primary (active) one. Other providers are kept, just deactivated.
+   */
+  const handleSaveProviderAuth = async (appId: string, creds: Record<string, string>): Promise<boolean> => {
+    const provider = effectivePreset || detectLLMProvider(creds.url || '')?.label || CUSTOM_PRESET;
+    const ok = await handleSaveAuth(appId, creds, OPENAI_APP_NAME, `${OPENAI_APP_NAME} - ${provider}`);
+    if (!ok) return false;
+
+    // Find the freshly saved entry for this provider and make it the primary.
+    try {
+      invalidateAuthenticatedAppsCache();
+      const entries = (await fetchSharedAuthenticatedApps()) as any[];
+      const match = entries
+        .filter((a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID)
+        .filter((a: any) => providerOfEntry(a) === provider)
+        .sort((a: any, b: any) => (Number(b?.edited || b?.created || 0) - Number(a?.edited || a?.created || 0)))[0];
+      if (match?.id) await setActiveAuthEntry(match.id);
+    } catch (err) {
+      console.error('[LocalLLMConfig] Failed to set primary LLM provider:', err);
+    }
     return true;
   };
+
 
   /**
    * LLM-specific connection test: sends a minimal OpenAI ChatCompletion
@@ -352,27 +417,12 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
   const applyShuffleAI = async () => {
-    let deletedAny = false;
-    for (const entry of openaiEntries) {
-      if (!entry.id) continue;
-      try {
-        const resp = await fetch(getApiUrl(`/api/v1/apps/authentication/${entry.id}`), {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: { ...getAuthHeader() },
-        });
-        if (resp.ok) deletedAny = true;
-      } catch (err) {
-        console.error('[LocalLLMConfig] Failed to delete OpenAI auth when switching to Shuffle AI:', err);
-      }
-    }
+    // Keep every saved LLM authentication, but deactivate all of them so
+    // Shuffle AI becomes the primary provider.
+    await setActiveAuthEntry(null);
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
     setCustomUrl('');
-    if (deletedAny) {
-      await refreshAuth();
-      refreshAllIntegrationStatus();
-    }
   };
 
   const handlePresetChange = (label: string) => {
@@ -386,8 +436,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
       return;
     }
     setSelectedPreset(label);
+    // If this provider already has a saved authentication, make it the
+    // primary one (active: true) and deactivate the others.
+    const existing = openaiEntries.find((e: any) => e?.id && providerOfEntry(e) === label);
+    if (existing?.id) void setActiveAuthEntry(existing.id);
     const preset = ENDPOINT_PRESETS.find((p) => p.label === label);
     if (!preset) return;
+
     // Auto-select the top model for this provider so the user does not have
     // to manually pick one. Custom-typed values are preserved if already set.
     const topModel = PROVIDER_MODELS[label]?.[0] || '';
@@ -688,13 +743,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
         <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Switch to Shuffle AI?</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
-            Switching to Shuffle AI will remove your existing OpenAI app authentication. Any other workflow or app using this OpenAI authentication will lose access. Do you want to continue?
+            Switching to Shuffle AI will keep your saved provider authentications, but none of them will be used as the primary AI provider. You can switch back at any time. Do you want to continue?
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setConfirmShuffleAIOpen(false)} sx={{ color: 'hsl(var(--muted-foreground))', textTransform: 'none', height: 36 }}>Cancel</Button>
           <Button onClick={async () => { setConfirmShuffleAIOpen(false); await applyShuffleAI(); }} sx={{ bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', textTransform: 'none', height: 36, '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' } }}>
-            Remove and use Shuffle AI
+            Use Shuffle AI
           </Button>
         </DialogActions>
       </Dialog>
