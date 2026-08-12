@@ -115,6 +115,9 @@ const LAST_PRESET_STORAGE_KEY = 'agent_last_preset_id';
  * the defaults never get force-reapplied over it.
  */
 const PRESET_APPS_STORAGE_KEY = 'agent_preset_apps_overrides';
+/** Storage bucket used when no template is selected. */
+const NO_PRESET_KEY = '__none__';
+
 
 const readPresetAppsOverride = (presetId: string): Array<{ name: string; id?: string; icon?: string }> | null => {
   try {
