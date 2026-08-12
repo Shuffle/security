@@ -3855,13 +3855,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
    * though the run itself has ended — typically an agent crash. Used to warn
    * the user that the run may be incomplete.
    */
-  const hasInFlightDecision = useMemo(
-    () => ((agentData?.decisions as any[]) || []).some((d) => {
+  const stuckDecision = useMemo(() => {
+    const list = ((agentData?.decisions as any[]) || []).filter((d) => {
       const s = String(d?.run_details?.status || '').toUpperCase();
       return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
-    }),
-    [agentData?.decisions],
-  );
+    });
+    return list.length ? list[list.length - 1] : null;
+  }, [agentData?.decisions]);
+
+  const hasInFlightDecision = Boolean(stuckDecision);
+
+  /** The stuck decision can only be rerun when the backend gave it an id. */
+  const stuckDecisionId = stuckDecision?.run_details?.id || null;
+
 
 
   const toggleOpen = (i: number) =>
@@ -5882,33 +5888,83 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
                       {hasInFlightDecision && (
-                        <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
-                          One or more steps never completed, so something may have gone wrong during this run.{" "}
-                          <Box
-                            component="span"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              continuationInputRef.current?.focus();
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                continuationInputRef.current?.focus();
-                              }
-                            }}
-                            sx={{
-                              color: 'hsl(var(--primary))',
-                              textDecoration: 'underline',
-                              cursor: 'pointer',
-                              '&:hover': { color: 'hsl(var(--primary))', filter: 'brightness(1.15)' },
-                            }}
-                          >
-                            Continue the run below
+                        stuckDecisionId ? (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+                              One or more steps never completed, so something may have gone wrong during this run.
+                              The safest fix is to rerun the step that stopped.
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                disableElevation
+                                disabled={agentRequestLoading || rerunningDecisionId === stuckDecisionId}
+                                onClick={() => rerunDecision(stuckDecision)}
+                                sx={{
+                                  height: 36,
+                                  textTransform: 'none',
+                                  fontSize: '0.8rem',
+                                  bgcolor: 'hsl(var(--primary))',
+                                  color: 'hsl(var(--primary-foreground))',
+                                  '&:hover': { bgcolor: 'hsl(var(--primary))', filter: 'brightness(1.1)' },
+                                }}
+                              >
+                                {rerunningDecisionId === stuckDecisionId ? 'Rerunning step…' : 'Rerun the stopped step'}
+                              </Button>
+                              <Box
+                                component="span"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => { continuationInputRef.current?.focus(); }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    continuationInputRef.current?.focus();
+                                  }
+                                }}
+                                sx={{
+                                  fontSize: '0.75rem',
+                                  color: 'hsl(var(--muted-foreground))',
+                                  textDecoration: 'underline',
+                                  cursor: 'pointer',
+                                  '&:hover': { color: 'hsl(var(--primary))' },
+                                }}
+                              >
+                                Or continue the run below
+                              </Box>
+                            </Box>
                           </Box>
-                          {" "}to let the agent pick up where it stopped.
-                        </Typography>
+                        ) : (
+                          <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+                            One or more steps never completed, so something may have gone wrong during this run.{" "}
+                            <Box
+                              component="span"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => {
+                                continuationInputRef.current?.focus();
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  continuationInputRef.current?.focus();
+                                }
+                              }}
+                              sx={{
+                                color: 'hsl(var(--primary))',
+                                textDecoration: 'underline',
+                                cursor: 'pointer',
+                                '&:hover': { color: 'hsl(var(--primary))', filter: 'brightness(1.15)' },
+                              }}
+                            >
+                              Continue the run below
+                            </Box>
+                            {" "}to let the agent pick up where it stopped.
+                          </Typography>
+                        )
                       )}
+
 
 
                     </Box>
