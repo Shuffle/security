@@ -250,6 +250,9 @@ export interface AppAuthCardProps extends ShuffleHostProps {
     credentials: Record<string, string>;
     setField: (key: string, value: string) => void;
   }) => React.ReactNode;
+  /** Known-ahead-of-time auth schema. When provided the fields render
+   *  instantly and no app-config request is made (no "Loading configuration"). */
+  initialAuthConfig?: AppAuthentication;
 }
 
 
@@ -288,6 +291,7 @@ export const AppAuthCard = ({
   compactAuthForm,
   suppressSaveToast,
   extraFieldsSlot,
+  initialAuthConfig,
 
   globalUrl,
   userdata,
@@ -559,7 +563,11 @@ export const AppAuthCard = ({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [appConfig, setAppConfig] = useState<DecodedApp | null>(null);
+  const [appConfig, setAppConfig] = useState<DecodedApp | null>(
+    initialAuthConfig
+      ? ({ authentication: initialAuthConfig } as unknown as DecodedApp)
+      : null,
+  );
 
   // Refresh auth entries every time the card is expanded
   useEffect(() => {

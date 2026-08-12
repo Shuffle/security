@@ -56,6 +56,31 @@ const OPENAI_ALGOLIA_APP: AlgoliaSearchApp = {
   verified: true,
 };
 
+/** The OpenAI-compatible auth schema is fixed (url + apikey), so we render the
+ *  fields immediately instead of waiting on an app-config request. */
+const OPENAI_AUTH_SCHEMA = {
+  type: 'authentication',
+  required: true,
+  parameters: [
+    {
+      id: 'url',
+      name: 'url',
+      description: 'Base URL of the OpenAI-compatible endpoint',
+      example: 'https://api.openai.com/v1',
+      required: true,
+      schema: { type: 'string' },
+    },
+    {
+      id: 'apikey',
+      name: 'apikey',
+      description: 'API key for the provider',
+      example: '',
+      required: true,
+      schema: { type: 'string' },
+    },
+  ],
+};
+
 
 const CUSTOM_MODEL = 'Custom…';
 
@@ -663,6 +688,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideStatusChips
           hideDocsLink
           hideUrlFields
+          initialAuthConfig={OPENAI_AUTH_SCHEMA}
           borderless
           compactAuthForm
           suppressSaveToast
