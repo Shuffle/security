@@ -126,21 +126,38 @@ export interface LocalLLMConfigProps extends ShuffleHostProps {
 
 const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, serverside, theme, colorMode }: LocalLLMConfigProps) => {
   useSyncHostBaseUrl(globalUrl);
-  const { authStates, authenticatedApps, handleAuthChange, handleTestConnection, handleSaveAuth, refreshAuth } = useAppAuth();
+  const { authStates, authenticatedApps, handleAuthChange, handleSaveAuth, refreshAuth } = useAppAuth();
   const [expanded, setExpanded] = useState(true);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [confirmShuffleAIOpen, setConfirmShuffleAIOpen] = useState(false);
+  /** Local override for the LLM chat test so the shared app-auth test (which
+   *  refetches the whole auth list mid-test and makes the card flicker) is
+   *  never used for LLM providers. */
+  const [llmTest, setLlmTest] = useState<{
+    status: 'testing' | 'connected' | 'error';
+    successMessage?: string;
+    errorMessage?: string;
+  } | null>(null);
 
   const openaiEntries = authenticatedApps.filter(
     (a) => a.app?.name?.toLowerCase() === 'openai' || a.app?.id === OPENAI_APP_ID,
   );
 
-  const authState = authStates[OPENAI_APP_ID] || {
+  const baseAuthState = authStates[OPENAI_APP_ID] || {
     systemId: OPENAI_APP_ID,
     status: 'pending' as const,
     credentials: {},
   };
+  const authState = llmTest
+    ? {
+        ...baseAuthState,
+        status: llmTest.status,
+        successMessage: llmTest.successMessage,
+        errorMessage: llmTest.errorMessage,
+      }
+    : baseAuthState;
+
 
   // Prefer the in-memory edit (authState.credentials), but fall back to the
   // persisted URL on the saved auth entry so we can auto-detect the vendor
