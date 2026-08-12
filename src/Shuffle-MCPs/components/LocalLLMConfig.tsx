@@ -177,12 +177,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // from the auth selector.
 
   const hasOpenAIEntries = openaiEntries.length > 0;
-  const effectivePreset = useMemo(() => {
-    if (selectedPreset) return selectedPreset;
-    if (!currentUrl && !hasOpenAIEntries) return SHUFFLE_AI_PRESET;
-    if (!currentUrl) return '';
-    return detectLLMProvider(currentUrl)?.label || CUSTOM_PRESET;
-  }, [selectedPreset, currentUrl, hasOpenAIEntries]);
 
   /** Which provider a saved OpenAI auth entry belongs to (label first, URL as fallback). */
   const providerOfEntry = (entry: any): string => {
@@ -194,6 +188,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     const url = ((entry?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
       .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
     return detectLLMProvider(url)?.label || CUSTOM_PRESET;
+
   };
 
   /**
