@@ -82,13 +82,17 @@ let _trackedOrgId: string | null = _cachedRegion.orgId;
 let _hostBaseUrl: string | null = null;
 
 const REGION_EVENT = 'shuffle:region-url';
+let _lastBroadcastUrl: string | null = _cachedRegion.url;
 
 const persistRegion = (url: string | null, orgId: string | null) => {
   if (typeof window === 'undefined') return;
+  const changed = url !== _lastBroadcastUrl;
+  _lastBroadcastUrl = url;
   try {
     if (url) localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ url, orgId }));
     else localStorage.removeItem(REGION_STORAGE_KEY);
   } catch { /* ignore */ }
+  if (!changed) return;
   try { window.dispatchEvent(new CustomEvent(REGION_EVENT, { detail: { url, orgId } })); } catch { /* ignore */ }
 };
 
@@ -100,6 +104,7 @@ if (typeof window !== 'undefined') {
       const raw = localStorage.getItem(REGION_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
       _regionUrl = parsed?.url || null;
+      _lastBroadcastUrl = _regionUrl;
       _trackedOrgId = parsed?.orgId || null;
     } catch { /* ignore */ }
   };
