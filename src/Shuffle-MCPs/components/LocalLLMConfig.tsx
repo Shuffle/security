@@ -253,7 +253,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   /**
    * LLM-specific connection test: sends a minimal OpenAI ChatCompletion
    * request through the saved authentication.
-   * POST /api/v1/chat/conversations?authentication_id=<id>
+   * POST /api/v1/chat/completions?authentication_id=<id>
    */
   const handleTestLLMConnection = async (_appId: string, authenticationId?: string) => {
     const authId = authenticationId || openaiEntries[0]?.id;
@@ -273,7 +273,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     setLlmTest({ status: 'testing' });
     try {
       const response = await fetch(
-        getApiUrl(`/api/v1/chat/conversations?authentication_id=${encodeURIComponent(authId)}`),
+        getApiUrl(`/api/v1/chat/completions?authentication_id=${encodeURIComponent(authId)}`),
         {
           method: 'POST',
           credentials: 'include',
