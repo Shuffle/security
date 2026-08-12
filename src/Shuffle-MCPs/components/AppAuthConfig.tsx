@@ -1349,11 +1349,11 @@ export const AppAuthCard = ({
               <>
                 {/* Configured status chip */}
                 <Chip
-                  label={isConfigured ? 'Configured' : 'Not configured'}
+                  label={isTested ? 'Validated' : isConfigured ? 'Configured' : 'Not configured'}
                   size="small"
                   sx={{
-                    backgroundColor: isConfigured ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
-                    color: isConfigured ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
+                    backgroundColor: isTested ? 'hsl(var(--severity-low) / 0.15)' : isConfigured ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
+                    color: isTested ? 'hsl(var(--severity-low))' : isConfigured ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
                     fontWeight: 500,
                     fontSize: { xs: '0.6rem', sm: '0.65rem' },
                     height: { xs: 22, sm: 24 },
