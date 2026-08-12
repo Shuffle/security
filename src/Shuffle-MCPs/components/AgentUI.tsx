@@ -1224,13 +1224,12 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // On hover we reveal the real status color so context is still one tap away.
   const hoverBarColor = isProcessing
     ? 'hsl(var(--muted-foreground) / 0.45)'
-    : effectiveStatus === 'IGNORED'
-      ? STATUS_COLORS.warning
-      : effectiveStatus === 'FINISHED'
-        ? STATUS_COLORS.finished
-        : isFailed
-          ? STATUS_COLORS.error
-          : STATUS_COLORS.running;
+    : effectiveStatus === 'FINISHED' || effectiveStatus === 'IGNORED'
+      ? STATUS_COLORS.finished
+      : isFailed
+        ? STATUS_COLORS.error
+        : STATUS_COLORS.running;
+
 
   const isRerunTarget =
     !!rerunningDecisionId &&
