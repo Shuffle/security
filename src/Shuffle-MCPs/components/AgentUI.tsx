@@ -1859,6 +1859,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
   const [inputScrolled, setInputScrolled] = useState(false);
   const [promptSingleLine, setPromptSingleLine] = useState(true);
+  // Height of the attachment chip row (0 when nothing is attached). The
+  // floating Templates chip is absolutely positioned, so it must be pushed
+  // down by this amount to avoid overlapping the attachments.
+  const [attachmentsRowHeight, setAttachmentsRowHeight] = useState(0);
+  const attachmentsRowRef = useCallback((node: HTMLDivElement | null) => {
+    setAttachmentsRowHeight(node ? node.getBoundingClientRect().height : 0);
+  }, []);
+
 
   // Callback ref: measure the chip the instant it mounts (and whenever the
   // element is swapped out because the template label changed), so the
