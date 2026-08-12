@@ -13,7 +13,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { AppAuthCard, isAuthVerifiedLocally } from '@/Shuffle-MCPs/components/AppAuthConfig';
+import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
@@ -249,11 +249,14 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   };
 
 
-  /** The currently active (primary) OpenAI-compatible authentication. */
-  const activeEntry = useMemo(
-    () => openaiEntries.find((e: any) => e?.active === true) || openaiEntries[0],
+  /** The currently active (primary) OpenAI-compatible authentication.
+   *  Separate from the fallback so we know whether `active: true` is set. */
+  const activeEntryRaw = useMemo(
+    () => openaiEntries.find((e: any) => e?.active === true),
     [openaiEntries],
   );
+  const activeEntry = activeEntryRaw || openaiEntries[0];
+
 
   const effectivePreset = useMemo(() => {
     if (selectedPreset) return selectedPreset;
@@ -279,28 +282,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   );
 
 
-
-
-
-  /**
-   * Per-provider configuration state used to mark the provider list:
-   * 'valid' (green, validated) or 'configured' (yellow, saved but unvalidated).
-   */
-  const providerStatus = useMemo(() => {
-    const map: Record<string, 'valid' | 'configured'> = {};
-    for (const entry of openaiEntries) {
-      const provider = providerOfEntry(entry);
-      const authId = (entry as any)?.id || (entry as any)?.label || '';
-      const isValid =
-        (entry as any)?.validation?.valid === true ||
-        (authId ? isAuthVerifiedLocally(OPENAI_APP_ID, authId) : false);
-      if (isValid) map[provider] = 'valid';
-      else if (!map[provider]) map[provider] = 'configured';
-    }
-    if (!hasOpenAIEntries) map[SHUFFLE_AI_PRESET] = 'valid';
-    return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openaiEntries, hasOpenAIEntries]);
 
   /**
    * Multiple LLM authentications can coexist. Exactly one of them — the
@@ -662,7 +643,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           isOptionEqualToValue={(opt, val) => opt === val}
           renderOption={(props, option) => {
             const preset = ENDPOINT_PRESETS.find((p) => p.label === option);
-            const status = providerStatus[option];
+            const activeProvider = activeEntryRaw ? providerOfEntry(activeEntryRaw) : SHUFFLE_AI_PRESET;
+            const isSelected = option === activeProvider;
             return (
               <li {...props} key={option}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
@@ -673,9 +655,9 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                       {preset.url}
                     </Typography>
                   )}
-                  {status && (
+                  {isSelected && (
                     <Tooltip
-                      title={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                      title="Selected provider"
                       placement="right"
                       arrow
                     >
@@ -683,13 +665,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                         <Check
                           size={14}
                           strokeWidth={3}
-                          style={{
-                            flexShrink: 0,
-                            color: status === 'valid'
-                              ? 'hsl(var(--severity-low))'
-                              : 'hsl(var(--severity-medium))',
-                          }}
-                          aria-label={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                          style={{ flexShrink: 0, color: 'hsl(var(--severity-low))' }}
+                          aria-label="Selected provider"
                         />
                       </Box>
                     </Tooltip>
