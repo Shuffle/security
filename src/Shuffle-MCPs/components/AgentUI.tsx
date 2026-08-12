@@ -2749,9 +2749,24 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // back into state — otherwise the UI snaps to the old execution.)
       if (activeExecutionIdRef.current !== executionId) return;
       if (!resp.ok) {
+        // Error responses still carry a JSON body with a `reason` — surface it
+        // instead of a bare status code.
+        let reason = '';
+        try {
+          const body = await resp.clone().json();
+          reason = typeof body?.reason === 'string' ? body.reason : '';
+        } catch {
+          try {
+            const text = (await resp.clone().text())?.trim();
+            if (text && text.length < 300 && !text.startsWith('<')) reason = text;
+          } catch { /* ignore */ }
+        }
         // A single failed poll must not hide a timeline we already rendered.
-        if (!hasExecutionDataRef.current) setError(`Could not fetch execution (${resp.status}).`);
-        else setPollWarning(`Live updates are failing (${resp.status}). Showing the last known state.`);
+        if (!hasExecutionDataRef.current) {
+          setError(reason ? `${reason} (${resp.status})` : `Could not fetch execution (${resp.status}).`);
+        } else {
+          setPollWarning(reason ? `${reason} (${resp.status}) Showing the last known state.` : `Live updates are failing (${resp.status}). Showing the last known state.`);
+        }
         return;
       }
       const json = await resp.json();
