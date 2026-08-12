@@ -10,6 +10,7 @@ import {
   DialogContentText,
   DialogTitle,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
@@ -352,23 +353,31 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
                   <ProviderLogo label={option} url={preset?.url} />
                   <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--popover-foreground))', flexShrink: 0 }}>{option}</Typography>
-                  {status && (
-                    <Check
-                      size={14}
-                      strokeWidth={3}
-                      style={{
-                        flexShrink: 0,
-                        color: status === 'valid'
-                          ? 'hsl(var(--severity-low))'
-                          : 'hsl(var(--severity-medium))',
-                      }}
-                      aria-label={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
-                    />
-                  )}
                   {preset?.url && (
                     <Typography component="span" sx={{ ml: 'auto', minWidth: 0, flex: '0 1 auto', color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {preset.url}
                     </Typography>
+                  )}
+                  {status && (
+                    <Tooltip
+                      title={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                      placement="right"
+                      arrow
+                    >
+                      <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0, ml: preset?.url ? 0 : 'auto' }}>
+                        <Check
+                          size={14}
+                          strokeWidth={3}
+                          style={{
+                            flexShrink: 0,
+                            color: status === 'valid'
+                              ? 'hsl(var(--severity-low))'
+                              : 'hsl(var(--severity-medium))',
+                          }}
+                          aria-label={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                        />
+                      </Box>
+                    </Tooltip>
                   )}
                 </Box>
               </li>
