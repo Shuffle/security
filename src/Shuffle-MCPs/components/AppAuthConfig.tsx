@@ -286,6 +286,7 @@ export const AppAuthCard = ({
   hideUrlFields,
   borderless,
   compactAuthForm,
+  suppressSaveToast,
   extraFieldsSlot,
 
   globalUrl,
