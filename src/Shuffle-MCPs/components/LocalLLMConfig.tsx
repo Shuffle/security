@@ -475,6 +475,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideUrlFields
           borderless
           compactAuthForm
+          suppressSaveToast
 
           extraFieldsSlot={
             (PROVIDER_MODELS[effectivePreset]?.length ?? 0) > 0
