@@ -469,15 +469,10 @@ export const AppAuthCard = ({
       );
       const wasTestedAuthPreValidated = wasPreValidatedPerAuth[testingAuthId] || false;
       
-      // If auth was already validated before testing, trust the 200 response
-      // (Re-tests don't always update the backend validation status)
-      if (wasTestedAuthPreValidated) {
-        setTestStatusForAuth(testingAuthId, 'success');
-      } else {
-        // For newly tested auths, check if backend has validated
-        const isBackendValidated = testedAuth?.validation?.valid === true;
-        setTestStatusForAuth(testingAuthId, isBackendValidated ? 'success' : 'pending_validation');
-      }
+      // If we got a 200 OK back, the test passed. The backend validation flag
+      // is not a reliable signal for most app authentications, so we trust the
+      // connection test result.
+      setTestStatusForAuth(testingAuthId, 'success');
       // Store the success/warning messages for this auth
       setTestMessagesForAuth(testingAuthId, {
         successMessage: authState.successMessage,
@@ -1600,17 +1595,13 @@ export const AppAuthCard = ({
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        backgroundColor: localTestStatus === 'success' 
-                          ? 'hsl(var(--severity-low))' 
-                          : localTestStatus === 'pending_validation'
-                          ? 'hsl(var(--severity-medium))'
+                        backgroundColor: localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                          ? 'hsl(var(--severity-low))'
                           : localTestStatus === 'error'
                           ? 'hsl(var(--destructive))'
                           : 'hsl(var(--muted-foreground))',
-                        boxShadow: localTestStatus === 'success' 
+                        boxShadow: localTestStatus === 'success' || localTestStatus === 'pending_validation'
                           ? '0 0 8px hsl(var(--severity-low) / 0.6)'
-                          : localTestStatus === 'pending_validation'
-                          ? '0 0 8px hsl(var(--severity-medium) / 0.6)'
                           : localTestStatus === 'error'
                           ? '0 0 8px hsl(var(--destructive) / 0.6)'
                           : '0 0 8px hsl(var(--muted-foreground) / 0.4)',
@@ -1622,10 +1613,8 @@ export const AppAuthCard = ({
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                       }}>
-                        {localTestStatus === 'success' 
-                          ? 'Verified Authentication' 
-                          : localTestStatus === 'pending_validation'
-                          ? 'Awaiting Backend Validation'
+                        {localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                          ? 'Verified Authentication'
                           : localTestStatus === 'error'
                           ? 'Test Failed'
                           : 'Pending Verification'}
@@ -1655,22 +1644,18 @@ export const AppAuthCard = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: localTestStatus === 'success' 
-                            ? 'hsl(var(--severity-low) / 0.1)' 
+                          backgroundColor: localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                            ? 'hsl(var(--severity-low) / 0.1)'
                             : localTestStatus === 'error'
                             ? 'hsl(var(--destructive) / 0.1)'
-                            : localTestStatus === 'pending_validation'
-                            ? 'hsl(var(--severity-medium) / 0.1)'
                             : isTested
                             ? 'hsl(var(--severity-low) / 0.1)'
                             : isConfigured
                             ? 'hsl(var(--severity-medium) / 0.1)' // Yellow for configured but not tested
                             : 'hsl(var(--muted-foreground) / 0.1)',
                           border: `1px solid ${
-                            localTestStatus === 'success' 
-                              ? 'hsl(var(--severity-low) / 0.2)' 
-                              : localTestStatus === 'pending_validation'
-                              ? 'hsl(var(--severity-medium) / 0.2)'
+                            localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                              ? 'hsl(var(--severity-low) / 0.2)'
                               : localTestStatus === 'error'
                               ? 'hsl(var(--destructive) / 0.2)'
                               : isTested
@@ -1775,27 +1760,23 @@ export const AppAuthCard = ({
                             )}
                           </Box>
                           <Typography sx={{ 
-                            color: localTestStatus === 'success' 
-                              ? 'hsl(var(--severity-low))' 
-                              : localTestStatus === 'pending_validation'
-                              ? 'hsl(var(--severity-medium))'
+                            color: localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                              ? 'hsl(var(--severity-low))'
                               : localTestStatus === 'error'
                               ? 'hsl(var(--destructive))'
                               : isTested
                               ? 'hsl(var(--severity-low))'
                               : isConfigured
                               ? 'hsl(var(--severity-medium))' // Yellow for configured but not tested
-                              : 'hsl(var(--muted-foreground))', 
+                              : 'hsl(var(--muted-foreground))',
                             fontSize: '0.75rem',
                             mt: 0.25,
                             fontWeight: (localTestStatus !== 'untested' || isTested || isConfigured) ? 500 : 400,
                           }}>
-                            {localTestStatus === 'success' 
-                              ? '✓ Connection verified' 
-                              : localTestStatus === 'pending_validation'
-                              ? '⏳ Test passed, awaiting backend validation'
+                            {localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                              ? 'Connection verified'
                               : localTestStatus === 'error'
-                              ? '✗ Test failed'
+                              ? 'Test failed'
                               : localTestStatus === 'testing'
                               ? 'Testing...'
                               : 'Not tested in this session'}
@@ -1925,50 +1906,6 @@ export const AppAuthCard = ({
                           </Box>
                         </Alert>
 
-                      </Box>
-                    )}
-                    {localTestStatus === 'pending_validation' && (
-                      <Box sx={{ 
-                        px: { xs: 2, sm: 2.5 }, 
-                        pb: { xs: 2, sm: 2.5 },
-                      }}>
-                        <Alert
-                          severity="warning"
-                          sx={{
-                            backgroundColor: 'hsl(var(--severity-medium) / 0.1)',
-                            color: 'hsl(var(--severity-medium))',
-                            border: '1px solid hsl(var(--severity-medium) / 0.2)',
-                            borderRadius: 2,
-                            '& .MuiAlert-icon': { color: 'hsl(var(--severity-medium))' },
-                          }}
-                        >
-                          <Box>
-                            <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
-                              Test passed (Status 200), but not marked as validated
-                            </Typography>
-                            <Typography sx={{ fontSize: '0.85rem', opacity: 0.9, mb: 1 }}>
-                              The API returned success, but Shuffle hasn't confirmed the validation yet. This could mean credentials are correct but the app needs additional setup.
-                            </Typography>
-                            <Link 
-                              href={`${API_CONFIG.baseUrl}/admin?tab=app_auth`}
-                              target="_blank"
-                              sx={{ 
-                                color: 'hsl(var(--severity-medium))', 
-                                fontWeight: 500,
-                                fontSize: '0.85rem',
-                                textDecoration: 'underline',
-                                '&:hover': { opacity: 0.8 }
-                              }}
-                            >
-                              Check status in Admin → App Authentication
-                            </Link>
-                            {localTestMessages.executionId && (
-                              <Box sx={{ mt: 1.5 }}>
-                                <ViewExecutionButton executionId={localTestMessages.executionId} />
-                              </Box>
-                            )}
-                          </Box>
-                        </Alert>
                       </Box>
                     )}
                   </Box>
