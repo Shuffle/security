@@ -236,6 +236,14 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPreset, currentUrl, hasOpenAIEntries, activeEntry]);
 
+  /** Saved authentications that belong to the currently selected provider.
+   *  When any exist we show the normal auth selector (so they can be picked,
+   *  tested and deleted) instead of forcing the "Add New Authentication" form. */
+  const providerEntries = useMemo(
+    () => openaiEntries.filter((e: any) => providerOfEntry(e) === effectivePreset),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [openaiEntries, effectivePreset],
+  );
 
 
   /**
