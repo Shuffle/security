@@ -3855,13 +3855,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
    * though the run itself has ended — typically an agent crash. Used to warn
    * the user that the run may be incomplete.
    */
-  const hasInFlightDecision = useMemo(
-    () => ((agentData?.decisions as any[]) || []).some((d) => {
+  const stuckDecision = useMemo(() => {
+    const list = ((agentData?.decisions as any[]) || []).filter((d) => {
       const s = String(d?.run_details?.status || '').toUpperCase();
       return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
-    }),
-    [agentData?.decisions],
-  );
+    });
+    return list.length ? list[list.length - 1] : null;
+  }, [agentData?.decisions]);
+
+  const hasInFlightDecision = Boolean(stuckDecision);
+
+  /** The stuck decision can only be rerun when the backend gave it an id. */
+  const stuckDecisionId = stuckDecision?.run_details?.id || null;
+
 
 
   const toggleOpen = (i: number) =>
