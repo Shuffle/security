@@ -467,12 +467,19 @@ export const AppAuthCard = ({
             onTestConnection(app.objectID, newestId);
           }, 500);
         }
-      } else if (!userHasSelected) {
+      } else if (
+        !userHasSelected ||
+        (selectedAuthId !== ADD_NEW_AUTH &&
+          !apiAuthEntries.some((a) => (a.id || a.label || '') === selectedAuthId))
+      ) {
+        // Either nothing picked yet, or the current selection no longer exists
+        // in the list (e.g. the provider changed) — fall back to the default.
         setSelectedAuthId(getBestDefaultAuth(apiAuthEntries));
       }
     }
+
     prevEntryCountRef.current = apiAuthEntries.length;
-  }, [apiAuthEntries, userHasSelected]);
+  }, [apiAuthEntries, userHasSelected, selectedAuthId]);
 
   // Helper to update test status for a specific auth and persist verified state
   const setTestStatusForAuth = useCallback((authId: string, status: TestStatusValue) => {
