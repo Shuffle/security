@@ -1501,18 +1501,18 @@ export const AppAuthCard = ({
                                 placement="top"
                               >
                                 <Chip
-                                  label={isActive ? 'Configured' : 'Not configured'}
+                                  label={isValid ? 'Validated' : isActive ? 'Configured' : 'Not configured'}
                                   size="small"
                                   sx={{
                                     height: 20,
                                     fontSize: '0.6rem',
-                                    backgroundColor: isActive ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
-                                    color: isActive ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
+                                    backgroundColor: isValid ? 'hsl(var(--severity-low) / 0.15)' : isActive ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
+                                    color: isValid ? 'hsl(var(--severity-low))' : isActive ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
                                   }}
                                 />
                               </Tooltip>
                               <Tooltip 
-                                title={lastValidDate ? `Last valid: ${formatTimestamp(lastValidDate)}` : 'Never validated'}
+                                title={lastValidDate ? `Last valid: ${formatTimestamp(lastValidDate)}` : isValid ? 'Connection verified' : 'Never validated'}
                                 arrow
                                 placement="top"
                               >
@@ -1527,6 +1527,7 @@ export const AppAuthCard = ({
                                   }}
                                 />
                               </Tooltip>
+
                               {isLatest && (
                                 <Chip
                                   label="Latest"
