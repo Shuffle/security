@@ -1192,8 +1192,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
     if (!runFinished) return item.status;
     // The finalise row IS the run's completion — never leave it spinning once
     // the run itself reports FINISHED, even if the row carries no status.
-    if (isFinaliseRow && (s === '' || s === 'RUNNING' || s === 'WAITING')) return 'FINISHED';
-    if (s === 'RUNNING' || s === 'WAITING') return 'IGNORED';
+    if (isFinaliseRow && (s === '' || s === 'RUNNING' || s === 'WAITING' || s === 'EXECUTING')) return 'FINISHED';
+    // The run is over, so a step still claiming to run never concluded — most
+    // likely it crashed. Never leave it spinning.
+    if (s === '' || s === 'RUNNING' || s === 'WAITING' || s === 'EXECUTING') return 'IGNORED';
+
     return item.status;
   })();
 
