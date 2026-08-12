@@ -243,6 +243,107 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     return true;
   };
 
+  /**
+   * LLM-specific connection test: sends a minimal OpenAI ChatCompletion
+   * request through the saved authentication.
+   * POST /api/v1/chat/conversations?authentication_id=<id>
+   */
+  const handleTestLLMConnection = async (_appId: string, authenticationId?: string) => {
+    const authId = authenticationId || openaiEntries[0]?.id;
+    if (!authId) {
+      setLlmTest({
+        status: 'error',
+        errorMessage: 'Save the authentication first, then run the test.',
+      });
+      return;
+    }
+
+    const model =
+      ((authState.credentials?.model as string) || '').trim() ||
+      PROVIDER_MODELS[effectivePreset]?.[0] ||
+      '';
+
+    setLlmTest({ status: 'testing' });
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/v1/chat/conversations?authentication_id=${encodeURIComponent(authId)}`),
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            ...getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...(model ? { model } : {}),
+            messages: [
+              { role: 'system', content: 'You are a connection test. Answer with one word.' },
+              { role: 'user', content: 'Reply with the single word: OK' },
+            ],
+            max_tokens: 16,
+            temperature: 0,
+            stream: false,
+          }),
+        },
+      );
+
+      const raw = await response.text();
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = null;
+      }
+
+      const apiError =
+        (typeof data?.error === 'string' && data.error) ||
+        data?.error?.message ||
+        (data?.success === false ? data?.reason || 'The provider rejected the request.' : '');
+
+      const content =
+        data?.choices?.[0]?.message?.content ??
+        data?.choices?.[0]?.text ??
+        data?.result ??
+        data?.answer ??
+        '';
+
+      if (!response.ok || apiError) {
+        setLlmTest({
+          status: 'error',
+          errorMessage:
+            apiError ||
+            `Connection failed (HTTP ${response.status}). Check the endpoint URL, API key and model.`,
+        });
+      } else if (!content || !String(content).trim()) {
+        setLlmTest({
+          status: 'error',
+          errorMessage: 'The provider responded, but returned no message content.',
+        });
+      } else {
+        setLlmTest({
+          status: 'connected',
+          successMessage: `Connection verified${model ? ` • ${model}` : ''} • Reply: ${String(content).trim().slice(0, 60)}`,
+        });
+      }
+    } catch (error) {
+      setLlmTest({
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : 'Connection test failed.',
+      });
+    }
+
+    // Refresh once the test has settled so provider checkmarks update. This is
+    // intentionally after the result is set, so the card does not flicker
+    // while the test is running.
+    try {
+      await refreshAuth();
+      refreshAllIntegrationStatus();
+    } catch {
+      /* noop */
+    }
+  };
+
+
   const applyShuffleAI = async () => {
     let deletedAny = false;
     for (const entry of openaiEntries) {
