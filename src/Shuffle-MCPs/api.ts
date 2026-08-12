@@ -110,15 +110,10 @@ const isShufflerSubdomain = (url: string): boolean => {
 
 /**
  * Set the dynamic region URL from getinfo response.
- * Only applies if the URL is a shuffler.io subdomain and different from default.
+ * ALWAYS honored for the current org/tenant (including dev/preview) as long as
+ * the URL is a valid shuffler.io subdomain different from the default backend.
  */
 export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string | undefined | null) => {
-  // In dev environments, don't override — always use dev backend
-  if (isDevEnvironment()) {
-    _trackedOrgId = orgId || null;
-    return;
-  }
-
   _trackedOrgId = orgId || null;
 
   if (regionUrl && isShufflerSubdomain(regionUrl)) {
