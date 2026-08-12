@@ -555,6 +555,18 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // Model dropdown lives inside the AppAuthCard via extraFieldsSlot so its
   // value is persisted as a credential field on Save.
 
+  // The URL field is hidden in this panel (it comes from the provider preset),
+  // but it is still a mandatory credential. Keep it seeded at all times so the
+  // form is valid as soon as the API key is typed.
+  useEffect(() => {
+    const preset = ENDPOINT_PRESETS.find((p) => p.label === effectivePreset);
+    const presetUrl = effectivePreset === CUSTOM_PRESET ? customUrl : preset?.url || '';
+    if (!presetUrl) return;
+    if (((authState.credentials?.url as string) || '').trim()) return;
+    handleAuthChange(OPENAI_APP_ID, { ...authState.credentials, url: presetUrl });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectivePreset, customUrl, authState.credentials?.url]);
+
   // Always keep a default model selected for the active provider.
   useEffect(() => {
     const models = PROVIDER_MODELS[effectivePreset];
@@ -563,6 +575,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     handleAuthChange(OPENAI_APP_ID, { ...authState.credentials, model: models[0] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectivePreset, authState.credentials?.model]);
+
 
   const isShuffleAI = effectivePreset === SHUFFLE_AI_PRESET;
   const orgId = userdata?.active_org?.id;
