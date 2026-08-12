@@ -263,14 +263,19 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    * Secret field values are replaced with the backend placeholder so the
    * stored credentials survive the update (same pattern as auth renaming).
    */
-  const setActiveAuthEntry = async (activeId: string | null) => {
+  const setActiveAuthEntry = async (activeId: string | null, preloadedEntries?: any[]) => {
     const placeholder = 'Secret. Replaced during app execution!';
     let entries: any[] = [];
-    try {
-      invalidateAuthenticatedAppsCache();
-      entries = (await fetchSharedAuthenticatedApps()) as any[];
-    } catch {
-      entries = openaiEntries as any[];
+    if (preloadedEntries) {
+      // Caller already fetched a fresh list — do not hit the API again.
+      entries = preloadedEntries;
+    } else {
+      try {
+        invalidateAuthenticatedAppsCache();
+        entries = (await fetchSharedAuthenticatedApps()) as any[];
+      } catch {
+        entries = openaiEntries as any[];
+      }
     }
     const llmEntries = entries.filter(
       (a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID,
@@ -325,14 +330,15 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     if (!ok) return false;
 
     // Find the freshly saved entry for this provider and make it the primary.
+    // handleSaveAuth already invalidated + refetched, so this hits the shared
+    // cache instead of firing another GET.
     try {
-      invalidateAuthenticatedAppsCache();
       const entries = (await fetchSharedAuthenticatedApps()) as any[];
       const match = entries
         .filter((a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID)
         .filter((a: any) => providerOfEntry(a) === provider)
         .sort((a: any, b: any) => (Number(b?.edited || b?.created || 0) - Number(a?.edited || a?.created || 0)))[0];
-      if (match?.id) await setActiveAuthEntry(match.id);
+      if (match?.id) await setActiveAuthEntry(match.id, entries);
     } catch (err) {
       console.error('[LocalLLMConfig] Failed to set primary LLM provider:', err);
     }
