@@ -3796,6 +3796,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return () => clearTimeout(t);
   }, [finishDecisionId, agentRequestLoading]);
 
+  // Clear the optimistic continuation as soon as the backend produces a new
+  // decision (or the run visibly restarts), with a hard 5 minute safety stop.
+  useEffect(() => {
+    if (!optimisticContinue) return;
+    const count = (agentData?.decisions || []).length;
+    if (count > optimisticContinue.decisions) {
+      setOptimisticContinue(null);
+      return;
+    }
+    const t = setTimeout(() => setOptimisticContinue(null), 5 * 60 * 1000);
+    return () => clearTimeout(t);
+  }, [optimisticContinue, agentData?.decisions]);
+
+  /** True while we are pretending the agent is working after a continuation. */
+  const optimisticRunning = Boolean(optimisticContinue);
+
 
 
   const toggleOpen = (i: number) =>
