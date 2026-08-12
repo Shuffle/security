@@ -687,7 +687,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           onAuthChange={handleAuthChange}
           onTestConnection={(appId, authId) => handleTestLLMConnection(appId, authId)}
           onSaveAuth={(appId, creds) => handleSaveProviderAuth(appId, creds)}
-          apiAuthEntries={openaiEntries}
+          apiAuthEntries={providerEntries}
           onRefreshAuth={refreshAuth}
           disableUrlPrefill
           hideHeader
