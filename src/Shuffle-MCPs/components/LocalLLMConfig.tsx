@@ -591,7 +591,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           isExpanded={expanded}
           onToggle={() => setExpanded((prev) => !prev)}
           onAuthChange={handleAuthChange}
-          onTestConnection={(appId, authId) => handleTestConnection(appId, authId)}
+          onTestConnection={(appId, authId) => handleTestLLMConnection(appId, authId)}
           onSaveAuth={(appId, creds) => handleSaveProviderAuth(appId, creds)}
           apiAuthEntries={openaiEntries}
           onRefreshAuth={refreshAuth}
