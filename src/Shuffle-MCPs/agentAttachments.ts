@@ -88,7 +88,10 @@ export const collectLlmImageAttachments = (root: unknown, maxDepth = 10): LlmIma
     }
 
     const rec = node as Record<string, unknown>;
-    const reqs = rec.llm_requests ?? (rec as any).llmRequests;
+    let reqs = rec.llm_requests ?? (rec as any).llmRequests;
+    if (typeof reqs === 'string') {
+      try { reqs = JSON.parse(reqs); } catch { reqs = undefined; }
+    }
     if (Array.isArray(reqs)) {
       for (const req of reqs) collectFromRequest(req, found);
     }
