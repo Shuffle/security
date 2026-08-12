@@ -489,9 +489,12 @@ export const AppAuthCard = ({
     auth => (auth.id || auth.label || '') === selectedAuthId
   );
   
-  // Helper to update test status for a specific auth
+  // Helper to update test status for a specific auth and persist verified state
   const setTestStatusForAuth = (authId: string, status: TestStatusValue) => {
     setTestStatusPerAuth(prev => ({ ...prev, [authId]: status }));
+    if (status === 'success') {
+      writeVerifiedToStorage(app.objectID, authId, 'success');
+    }
   };
   
   // Helper to update test messages for a specific auth
