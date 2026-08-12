@@ -449,6 +449,13 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
     setInitialSettled(true);
   }, [initialSettled, isLoading, privateAppsLoading, selectedApps]);
 
+  // Failsafe: never leave the skeleton up forever if a fetch never resolves.
+  useEffect(() => {
+    const t = setTimeout(() => setInitialSettled(true), 6000);
+    return () => clearTimeout(t);
+  }, []);
+
+
 
   // Infinite scroll: load next page when scrolled near bottom of results
   const canLoadMore = hasMore && !isLoading && !isLoadingMore && results.length < MAX_RESULTS;
