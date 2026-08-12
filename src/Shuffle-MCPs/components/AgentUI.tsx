@@ -5723,7 +5723,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {/* Detailed timeline view */}
             {viewMode === 'detailed' && (() => {
               const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
-              const detailedIsRunning = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
+              const detailedIsRunning = optimisticRunning
+                || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
               const detailedRunFinished = !detailedIsRunning;
               
               return (
