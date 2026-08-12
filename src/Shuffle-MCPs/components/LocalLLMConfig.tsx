@@ -663,6 +663,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideStatusChips
           hideDocsLink
           hideUrlFields
+          initialAuthConfig={OPENAI_AUTH_SCHEMA}
           borderless
           compactAuthForm
           suppressSaveToast
