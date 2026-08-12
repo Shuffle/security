@@ -84,11 +84,11 @@ const PublicVulnerabilitiesView = () => {
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/15 text-primary shrink-0">
-          <Shield size={20} />
-        </div>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Vulnerabilities</h1>
+          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            Vulnerabilities
+            <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">Beta</span>
+          </h1>
           <p className="text-sm text-muted-foreground">
             Look up any CVE, GHSA, or OSV advisory — public, no sign-in required.
           </p>
@@ -275,12 +275,12 @@ const AuthenticatedVulnerabilitiesView = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Shield size={28} className="text-primary" />
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">Vulnerabilities</h1>
-            <p className="text-sm text-muted-foreground">Track and manage vulnerabilities across your assets and users</p>
-          </div>
+        <div>
+          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            Vulnerabilities
+            <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">Beta</span>
+          </h1>
+          <p className="text-sm text-muted-foreground">Track and manage vulnerabilities across your assets and users</p>
         </div>
         <div className="flex items-center gap-2">
           {isSupport && (
@@ -403,14 +403,8 @@ const AuthenticatedVulnerabilitiesView = () => {
 
         <VulnerabilitySidebar
           vulnerabilities={vulnerabilities}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
           severityFilter={severityFilter}
           onSeverityChange={setSeverityFilter}
-          categoryFilter={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
           severityCounts={severityCounts as unknown as Record<string, number>}
           dateFrom={dateFrom}
           dateTo={dateTo}
