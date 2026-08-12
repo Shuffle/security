@@ -5777,6 +5777,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       />
                     ));
                   })()}
+                  {optimisticRunning && (
+                    <Box sx={{
+                      borderTop: '1px solid hsl(var(--border))',
+                      px: 2, py: 1.5,
+                      display: 'flex', alignItems: 'center', gap: 1.25,
+                      bgcolor: 'hsl(var(--muted) / 0.2)',
+                    }}>
+                      <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                        Processing
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                        Sending your message to the agent…
+                      </Typography>
+                    </Box>
+                  )}
                   {detailedRunFinished && (
                     <Box sx={{
                       borderTop: '1px solid hsl(var(--border))',
