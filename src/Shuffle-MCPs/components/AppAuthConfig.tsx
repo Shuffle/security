@@ -464,7 +464,10 @@ export const AppAuthCard = ({
         
         // Auto-test the new auth if not already validated and not already auto-tested
         const newestEntry = sorted[0];
-        const alreadyValid = newestEntry?.validation?.valid === true;
+        // Already-validated OR currently-active entries must never be
+        // auto-tested — switching the provider filter can make an existing,
+        // known-good auth look "new" to this effect.
+        const alreadyValid = newestEntry?.validation?.valid === true || newestEntry?.active === true;
         if (!alreadyValid && newestId !== autoTestFiredRef.current) {
           autoTestFiredRef.current = newestId;
           // Small delay to let state settle before firing test

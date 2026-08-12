@@ -5114,7 +5114,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     sx={{
                       all: 'unset', cursor: 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                      px: 1.5, py: 0.5,
+                      pl: 2.5, pr: 1.5, py: 0.5,
                       borderRadius: 999,
                       fontSize: '0.8rem', fontWeight: 500,
                       color: 'hsl(var(--muted-foreground))',
