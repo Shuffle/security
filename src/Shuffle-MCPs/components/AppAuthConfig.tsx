@@ -1410,50 +1410,19 @@ export const AppAuthCard = ({
           }}>
             {/* Auth status chip - show "Auth not required" for no-auth apps */}
             {!hideStatusChips && (isNoAuthRequired(auth) ? (
-              <Chip
-                label="Auth not required"
-                size="small"
-                sx={{
-                  backgroundColor: 'hsl(var(--severity-info) / 0.15)',
-                  color: 'hsl(var(--severity-info))',
-                  fontWeight: 500,
-                  fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                  height: { xs: 22, sm: 24 },
-                }}
-              />
+              <AuthStatusChip status="no-auth" />
             ) : (
               <>
                 {/* Configured status chip */}
-                <Chip
-                  label={isTested ? 'Validated' : isConfigured ? 'Configured' : 'Not configured'}
-                  size="small"
-                  sx={{
-                    backgroundColor: isTested ? 'hsl(var(--severity-low) / 0.15)' : isConfigured ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
-                    color: isTested ? 'hsl(var(--severity-low))' : isConfigured ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
-                    fontWeight: 500,
-                    fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                    height: { xs: 22, sm: 24 },
-                  }}
+                <AuthStatusChip
+                  status={isTested ? 'validated' : isConfigured ? 'configured' : 'not-configured'}
                 />
                 {/* Tested status chip */}
-                <Tooltip 
-                  title={isTested ? `Last validated: ${formatLastValidDate()}` : ''} 
-                  arrow
-                  disableHoverListener={!isTested}
-                >
-                  <Chip
-                    label={isTested ? 'Tested' : 'Not tested'}
-                    size="small"
-                    sx={{
-                      backgroundColor: isTested ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--muted) / 0.8)',
-                      color: isTested ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))',
-                      fontWeight: 500,
-                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                      height: { xs: 22, sm: 24 },
-                      cursor: isTested ? 'help' : 'default',
-                    }}
-                  />
-                </Tooltip>
+                <AuthStatusChip
+                  status={isTested ? 'tested' : 'not-tested'}
+                  tooltip={isTested ? `Last validated: ${formatLastValidDate()}` : undefined}
+                />
+
               </>
             ))}
             {!hideDocsLink && (
