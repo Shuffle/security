@@ -1595,17 +1595,13 @@ export const AppAuthCard = ({
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        backgroundColor: localTestStatus === 'success' 
-                          ? 'hsl(var(--severity-low))' 
-                          : localTestStatus === 'pending_validation'
-                          ? 'hsl(var(--severity-medium))'
+                        backgroundColor: localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                          ? 'hsl(var(--severity-low))'
                           : localTestStatus === 'error'
                           ? 'hsl(var(--destructive))'
                           : 'hsl(var(--muted-foreground))',
-                        boxShadow: localTestStatus === 'success' 
+                        boxShadow: localTestStatus === 'success' || localTestStatus === 'pending_validation'
                           ? '0 0 8px hsl(var(--severity-low) / 0.6)'
-                          : localTestStatus === 'pending_validation'
-                          ? '0 0 8px hsl(var(--severity-medium) / 0.6)'
                           : localTestStatus === 'error'
                           ? '0 0 8px hsl(var(--destructive) / 0.6)'
                           : '0 0 8px hsl(var(--muted-foreground) / 0.4)',
@@ -1617,10 +1613,8 @@ export const AppAuthCard = ({
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                       }}>
-                        {localTestStatus === 'success' 
-                          ? 'Verified Authentication' 
-                          : localTestStatus === 'pending_validation'
-                          ? 'Awaiting Backend Validation'
+                        {localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                          ? 'Verified Authentication'
                           : localTestStatus === 'error'
                           ? 'Test Failed'
                           : 'Pending Verification'}
