@@ -177,12 +177,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // from the auth selector.
 
   const hasOpenAIEntries = openaiEntries.length > 0;
-  const effectivePreset = useMemo(() => {
-    if (selectedPreset) return selectedPreset;
-    if (!currentUrl && !hasOpenAIEntries) return SHUFFLE_AI_PRESET;
-    if (!currentUrl) return '';
-    return detectLLMProvider(currentUrl)?.label || CUSTOM_PRESET;
-  }, [selectedPreset, currentUrl, hasOpenAIEntries]);
 
   /** Which provider a saved OpenAI auth entry belongs to (label first, URL as fallback). */
   const providerOfEntry = (entry: any): string => {
@@ -195,6 +189,19 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
       .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
     return detectLLMProvider(url)?.label || CUSTOM_PRESET;
   };
+
+  const effectivePreset = useMemo(() => {
+    if (selectedPreset) return selectedPreset;
+    if (!currentUrl && !hasOpenAIEntries) return SHUFFLE_AI_PRESET;
+    if (currentUrl) return detectLLMProvider(currentUrl)?.label || CUSTOM_PRESET;
+    // Saved authentications exist but no URL is loaded yet (fields can be
+    // masked). Derive the provider from the saved entry so the panel never
+    // renders as an empty, provider-less card.
+    return providerOfEntry(openaiEntries[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPreset, currentUrl, hasOpenAIEntries, openaiEntries]);
+
+
 
   /**
    * Per-provider configuration state used to mark the provider list:
