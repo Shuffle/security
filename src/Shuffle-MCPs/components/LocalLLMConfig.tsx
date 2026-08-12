@@ -278,18 +278,24 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     [openaiEntries, effectivePreset],
   );
 
-  /** Providers that have at least one saved, validated authentication. */
+  /** Providers that have at least one saved, validated authentication.
+   *  The backend clears `validation.valid` when an entry is written back with
+   *  masked secrets (every provider switch does this), so a local memory of
+   *  previously validated auth ids is unioned in. */
   const validatedProviderLabels = useMemo(() => {
     const set = new Set<string>();
+    const remembered = getValidatedAuthIds();
     for (const entry of openaiEntries) {
-      if (entry?.validation?.valid === true) {
+      const isValid = entry?.validation?.valid === true || (entry?.id && remembered.has(entry.id));
+      if (isValid) {
         const label = providerOfEntry(entry);
         if (label) set.add(label);
       }
     }
     return set;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openaiEntries]);
+  }, [openaiEntries, llmTest]);
+
 
 
 
