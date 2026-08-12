@@ -248,48 +248,168 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                   No templates match "{query}"
                 </Typography>
               </Box>
-            ) : filtered.map((p) => (
-              <Box
-                key={p.id}
-                role="button"
-                aria-disabled={!p.enabled}
-                onClick={p.enabled ? () => {
-                  onSelectPreset?.(p);
-                  setAnchorEl(null);
-                  setQuery('');
-                } : undefined}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 1.25,
-                  py: 1,
-                  px: 1.5,
-                  cursor: p.enabled ? 'pointer' : 'not-allowed',
-                  '&:hover': { bgcolor: p.enabled ? 'hsl(var(--muted))' : 'transparent' },
-                }}
-              >
+            ) : (
+              <>
+                {filtered.map((p) => (
+                  <Box
+                    key={p.id}
+                    role="button"
+                    aria-disabled={!p.enabled}
+                    onClick={p.enabled ? () => {
+                      onSelectPreset?.(p);
+                      setAnchorEl(null);
+                      setQuery('');
+                    } : undefined}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 1.25,
+                      py: 1,
+                      px: 1.5,
+                      cursor: p.enabled ? 'pointer' : 'not-allowed',
+                      '&:hover': { bgcolor: p.enabled ? 'hsl(var(--muted))' : 'transparent' },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        mt: 0.25,
+                        width: 26,
+                        height: 26,
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'hsl(var(--muted))',
+                        color: 'hsl(var(--muted-foreground))',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {p.icon}
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                          {p.label}
+                        </Typography>
+                        {!p.enabled && (
+                          <Typography
+                            sx={{
+                              fontSize: '0.65rem',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: 0.5,
+                              color: 'hsl(var(--muted-foreground))',
+                              bgcolor: 'hsl(var(--muted))',
+                              px: 0.75,
+                              py: 0.25,
+                              borderRadius: 999,
+                              lineHeight: 1,
+                              flexShrink: 0,
+                            }}
+                          >
+                            coming soon
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>
+                        {p.description}
+                      </Typography>
+                    </Box>
+                    {(p.defaultApps?.length ?? 0) > 0 && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, flexShrink: 0 }}>
+                        {p.defaultApps!.map((app) => (
+                          <Tooltip
+                            key={app.name}
+                            title={prettyAppName(app.name)}
+                            placement="top"
+                            arrow
+                            enterDelay={150}
+                            disableInteractive
+                            slotProps={{
+                              popper: {
+                                // The template list lives inside a Popper that can move
+                                // (async icon loads, filtering). A portalled tooltip keeps
+                                // its stale anchor position, so keep it in-flow and let
+                                // popper.js re-evaluate against the viewport.
+                                disablePortal: true,
+                                modifiers: [
+                                  { name: 'flip', enabled: true, options: { fallbackPlacements: ['bottom', 'left'] } },
+                                  { name: 'preventOverflow', enabled: true, options: { boundary: 'viewport', padding: 8 } },
+                                ],
+                              },
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                                bgcolor: 'hsl(var(--muted))',
+                                border: '1px solid hsl(var(--border))',
+                                color: 'hsl(var(--muted-foreground))',
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                filter: 'grayscale(1)',
+                                opacity: 0.65,
+                                transition: 'filter 120ms ease, opacity 120ms ease',
+                                '&:hover': { filter: 'none', opacity: 1, color: 'hsl(var(--foreground))' },
+                              }}
+                            >
+                              <AppFallbackIcon
+                                name={prettyAppName(app.name)}
+                                imageUrl={app.icon}
+                                size={22}
+                                style={{ borderRadius: 4 }}
+                              />
+
+                            </Box>
+                          </Tooltip>
+                        ))}
+                      </Box>
+                    )}
+
+                  </Box>
+                ))}
                 <Box
+                  role="button"
+                  aria-disabled
                   sx={{
-                    mt: 0.25,
-                    width: 26,
-                    height: 26,
-                    borderRadius: 1,
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: 'hsl(var(--muted))',
-                    color: 'hsl(var(--muted-foreground))',
-                    flexShrink: 0,
+                    alignItems: 'flex-start',
+                    gap: 1.25,
+                    py: 1,
+                    px: 1.5,
+                    cursor: 'not-allowed',
+                    '&:hover': { bgcolor: 'transparent' },
+                    borderTop: filtered.length > 0 ? '1px solid hsl(var(--border))' : undefined,
+                    mt: filtered.length > 0 ? 0.5 : 0,
                   }}
                 >
-                  {p.icon}
-                </Box>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                      {p.label}
-                    </Typography>
-                    {!p.enabled && (
+                  <Box
+                    sx={{
+                      mt: 0.25,
+                      width: 26,
+                      height: 26,
+                      borderRadius: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'hsl(var(--muted))',
+                      color: 'hsl(var(--muted-foreground))',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Plus size={14} />
+                  </Box>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                        Add your own
+                      </Typography>
                       <Typography
                         sx={{
                           fontSize: '0.65rem',
@@ -307,115 +427,14 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                       >
                         coming soon
                       </Typography>
-                    )}
+                    </Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>
+                      Create custom templates for your organization.
+                    </Typography>
                   </Box>
-                  <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>
-                    {p.description}
-                  </Typography>
                 </Box>
-                {(p.defaultApps?.length ?? 0) > 0 && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, flexShrink: 0 }}>
-                    {p.defaultApps!.map((app) => (
-                      <Tooltip
-                        key={app.name}
-                        title={prettyAppName(app.name)}
-                        placement="top"
-                        arrow
-                        enterDelay={150}
-                        disableInteractive
-                        slotProps={{
-                          popper: {
-                            // The template list lives inside a Popper that can move
-                            // (async icon loads, filtering). A portalled tooltip keeps
-                            // its stale anchor position, so keep it in-flow and let
-                            // popper.js re-evaluate against the viewport.
-                            disablePortal: true,
-                            modifiers: [
-                              { name: 'flip', enabled: true, options: { fallbackPlacements: ['bottom', 'left'] } },
-                              { name: 'preventOverflow', enabled: true, options: { boundary: 'viewport', padding: 8 } },
-                            ],
-                          },
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflow: 'hidden',
-                            bgcolor: 'hsl(var(--muted))',
-                            border: '1px solid hsl(var(--border))',
-                            color: 'hsl(var(--muted-foreground))',
-                            fontSize: '0.62rem',
-                            fontWeight: 700,
-                            filter: 'grayscale(1)',
-                            opacity: 0.65,
-                            transition: 'filter 120ms ease, opacity 120ms ease',
-                            '&:hover': { filter: 'none', opacity: 1, color: 'hsl(var(--foreground))' },
-                          }}
-                        >
-                          <AppFallbackIcon
-                            name={prettyAppName(app.name)}
-                            imageUrl={app.icon}
-                            size={22}
-                            style={{ borderRadius: 4 }}
-                          />
-
-                        </Box>
-                      </Tooltip>
-                    ))}
-                  </Box>
-                )}
-
-              </Box>
-            ))}
-          </Box>
-          <Box sx={{ px: 1.5, py: 1, borderTop: '1px solid hsl(var(--border))' }}>
-            <Button
-              fullWidth
-              disabled
-              size="small"
-              startIcon={<Plus size={14} />}
-              sx={{
-                justifyContent: 'space-between',
-                textTransform: 'none',
-                fontSize: '0.78rem',
-                fontWeight: 500,
-                color: 'hsl(var(--muted-foreground))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 1.5,
-                px: 1.25,
-                py: 0.75,
-                '&.Mui-disabled': {
-                  color: 'hsl(var(--muted-foreground))',
-                  borderColor: 'hsl(var(--border))',
-                },
-              }}
-              endIcon={
-                <Typography
-                  sx={{
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    color: 'hsl(var(--muted-foreground))',
-                    bgcolor: 'hsl(var(--muted))',
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 999,
-                    lineHeight: 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  coming soon
-                </Typography>
-              }
-            >
-              Add your own
-            </Button>
+              </>
+            )}
           </Box>
         </Paper>
       </ClickAwayListener>
