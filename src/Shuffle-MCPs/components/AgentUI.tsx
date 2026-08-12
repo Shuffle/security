@@ -5772,7 +5772,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {viewMode === 'detailed' && (() => {
               const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
               const detailedIsRunning = optimisticRunning
+                || hasInFlightDecision
                 || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
+
               const detailedRunFinished = !detailedIsRunning;
               
               return (
