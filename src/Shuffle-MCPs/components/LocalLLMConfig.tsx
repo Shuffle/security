@@ -578,6 +578,31 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
   const isShuffleAI = effectivePreset === SHUFFLE_AI_PRESET;
+  /** The URL field is only hidden when the provider is a real hosted endpoint
+   *  that we prefill. Self-hosted / localhost / local-IP endpoints (Ollama,
+   *  LM Studio, Custom) must remain editable inside the configure form. */
+  const urlIsEditable = (() => {
+    if (isShuffleAI) return false;
+    const preset = ENDPOINT_PRESETS.find((p) => p.label === effectivePreset);
+    const presetUrl = (preset?.url || '').trim();
+    if (!presetUrl) return true;
+    let host = '';
+    try {
+      host = new URL(presetUrl).hostname.toLowerCase();
+    } catch {
+      return true;
+    }
+    const isLocal =
+      host === 'localhost' ||
+      host === '::1' ||
+      host.endsWith('.local') ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    return isLocal;
+  })();
+
   const orgId = userdata?.active_org?.id;
   const [orgData, setOrgData] = useState<{
     sync_features?: Record<string, { usage?: number; limit?: number }>;
@@ -738,18 +763,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
         </Box>
       )}
 
-      {effectivePreset === CUSTOM_PRESET && (
-        <TextField
-          size="small"
-          fullWidth
-          placeholder="https://your-self-hosted-endpoint.example.com"
-          value={customUrl || currentUrl}
-          onChange={(e) => handleCustomUrlChange(e.target.value)}
-          helperText="Enter the base URL of your OpenAI-compatible endpoint"
-          sx={{ '& .MuiFormHelperText-root': { color: 'hsl(var(--muted-foreground))' } }}
-        />
-      )}
-
       {!isShuffleAI && (
         <AppAuthCard
           app={OPENAI_ALGOLIA_APP}
@@ -765,7 +778,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideHeader
           hideStatusChips
           hideDocsLink
-          hideUrlFields
+          hideUrlFields={!urlIsEditable}
+
           initialAuthConfig={OPENAI_AUTH_SCHEMA}
           borderless
           compactAuthForm={false}
