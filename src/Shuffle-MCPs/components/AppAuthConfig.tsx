@@ -240,6 +240,10 @@ export interface AppAuthCardProps extends ShuffleHostProps {
    *  credentials form (with the small "Test Authentication" CTA) is always
    *  visible so users can edit & retest in one place. */
   compactAuthForm?: boolean;
+  /** Always render the "Select authentication" dropdown, even when there are no
+   *  saved entries yet, so the UI does not switch between two different shapes. */
+  alwaysShowAuthSelector?: boolean;
+
   /** Suppress the "Authentication saved" success toast (embedded flows that
    *  already give their own feedback, e.g. the LLM provider config). */
   suppressSaveToast?: boolean;
@@ -343,6 +347,8 @@ export const AppAuthCard = ({
   hideUrlFields,
   borderless,
   compactAuthForm,
+  alwaysShowAuthSelector,
+
   suppressSaveToast,
   extraFieldsSlot,
   initialAuthConfig,
@@ -1471,7 +1477,7 @@ export const AppAuthCard = ({
             }}
           >
             {/* Auth Selection Dropdown - always at top */}
-            {!compactAuthForm && apiAuthEntries.length > 0 && (
+            {!compactAuthForm && (apiAuthEntries.length > 0 || alwaysShowAuthSelector) && (
 
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 1 }}>
