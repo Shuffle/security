@@ -152,6 +152,7 @@ const AgentRunDrawer = ({
 
   const effectiveLocalLLMSlot = localLLMSlot ?? (
     <LocalLLMConfig
+      open={open}
       globalUrl={globalUrl}
       userdata={userdata}
       isLoaded={isLoaded}

@@ -204,6 +204,7 @@ const AgentsView = ({
   const effectiveLocalLLMSlot = useMemo(
     () => localLLMSlot ?? (
       <LocalLLMConfig
+        open={builtInDrawer.open}
         globalUrl={globalUrl}
         userdata={userdata}
         isLoaded={isLoaded}
@@ -213,7 +214,7 @@ const AgentsView = ({
         colorMode={colorMode}
       />
     ),
-    [localLLMSlot, globalUrl, userdata, isLoaded, isLoggedIn, serverside, resolvedTheme, colorMode],
+    [localLLMSlot, builtInDrawer.open, globalUrl, userdata, isLoaded, isLoggedIn, serverside, resolvedTheme, colorMode],
   );
 
   const handleChooseLLM = useCallback(() => {

@@ -154,9 +154,13 @@ export interface LocalLLMConfigProps extends ShuffleHostProps {
   hasOpenAIAuth?: boolean;
   onSave?: (model: AgentLocalModel) => void;
   onTestResult?: (result: LocalLLMTestResult) => void;
+  /** When the panel is rendered inside a drawer, pass the drawer open state
+   *  so the provider selector can reset to the currently active provider each
+   *  time the drawer opens. */
+  open?: boolean;
 }
 
-const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, serverside, theme, colorMode }: LocalLLMConfigProps) => {
+const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, serverside, theme, colorMode, open }: LocalLLMConfigProps) => {
   useSyncHostBaseUrl(globalUrl);
   const { authStates, authenticatedApps, handleAuthChange, handleSaveAuth, refreshAuth } = useAppAuth();
   const [expanded, setExpanded] = useState(true);
@@ -257,6 +261,14 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   );
   const activeEntry = activeEntryRaw || openaiEntries[0];
 
+  /** The label of the provider that is currently active (active: true). This
+   *  is the single source of truth for what should appear in the "Choose LLM"
+   *  area, regardless of what the user last looked at in the drawer. */
+  const activeProviderLabel = useMemo(() => {
+    if (!activeEntryRaw) return null;
+    return providerOfEntry(activeEntryRaw);
+  }, [activeEntryRaw, providerOfEntry]);
+
 
   const effectivePreset = useMemo(() => {
     if (selectedPreset) return selectedPreset;
@@ -346,7 +358,15 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
       await refreshAuth();
       // No integration was added/removed — only the `active` flag moved, so we
       // deliberately skip refreshAllIntegrationStatus() here to avoid a third
-      // authentication GET on every provider switch.
+      // authentication GET on every provider switch. Still broadcast the change
+      // so listeners (e.g. the AgentUI chip) can refresh immediately.
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(new CustomEvent('integrations-changed', { detail: { source: 'llm-active-change' } }));
+        } catch {
+          /* noop */
+        }
+      }
     }
   };
 
@@ -486,6 +506,19 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
       /* noop */
     }
   };
+
+  /** Keep the provider selector aligned with the currently active provider.
+   *  When the drawer opens, or the active provider changes elsewhere, reset
+   *  the UI so it shows the active one instead of the last one the user
+   *  merely looked at. */
+  useEffect(() => {
+    if (!open) return;
+    if (!activeProviderLabel) return;
+    if (selectedPreset === activeProviderLabel) return;
+    setSelectedPreset(activeProviderLabel);
+    rememberPreset(activeProviderLabel);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, activeProviderLabel]);
 
   const applyShuffleAI = async () => {
     // Keep every saved LLM authentication, but deactivate all of them so
