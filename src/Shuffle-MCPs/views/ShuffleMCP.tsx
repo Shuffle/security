@@ -433,9 +433,22 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
       setHasMore(false);
     } finally {
       if (isAppend) setIsLoadingMore(false);
-      else setIsLoading(false);
+      else {
+        firstSearchDoneRef.current = true;
+        setIsLoading(false);
+      }
     }
   }, [hitsPerPage, algoliaIndexName, privateApps.length, results.length]);
+
+  // Reveal the list only once the first search and private apps have resolved,
+  // taking a fresh snapshot of the selection so the sort is right first time.
+  useEffect(() => {
+    if (initialSettled) return;
+    if (!firstSearchDoneRef.current || isLoading || privateAppsLoading) return;
+    initialSelectedAppsRef.current = selectedApps;
+    setInitialSettled(true);
+  }, [initialSettled, isLoading, privateAppsLoading, selectedApps]);
+
 
   // Infinite scroll: load next page when scrolled near bottom of results
   const canLoadMore = hasMore && !isLoading && !isLoadingMore && results.length < MAX_RESULTS;
