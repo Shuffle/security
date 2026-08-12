@@ -513,10 +513,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    *  merely looked at. */
   useEffect(() => {
     if (!open) return;
-    if (!activeProviderLabel) return;
-    if (selectedPreset === activeProviderLabel) return;
-    setSelectedPreset(activeProviderLabel);
-    rememberPreset(activeProviderLabel);
+    // When no OpenAI-compatible auth is active, the canonical provider is
+    // Shuffle AI. Reset the selector to that so the drawer doesn't reopen
+    // showing whatever provider the user merely looked at last time.
+    const target = activeProviderLabel || SHUFFLE_AI_PRESET;
+    if (selectedPreset === target) return;
+    setSelectedPreset(target);
+    rememberPreset(target);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeProviderLabel]);
 
