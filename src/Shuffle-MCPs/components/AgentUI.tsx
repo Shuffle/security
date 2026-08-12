@@ -3850,8 +3850,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const optimisticRunning = Boolean(optimisticContinue);
   const optimisticContinueText = optimisticContinue?.text || undefined;
 
-
-
+  /**
+   * True when a decision never concluded (still marked running/waiting) even
+   * though the run itself has ended — typically an agent crash. Used to warn
+   * the user that the run may be incomplete.
+   */
+  const hasInFlightDecision = useMemo(
+    () => ((agentData?.decisions as any[]) || []).some((d) => {
+      const s = String(d?.run_details?.status || '').toUpperCase();
+      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
+    }),
+    [agentData?.decisions],
+  );
 
 
   const toggleOpen = (i: number) =>
@@ -5852,8 +5862,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
+                      {hasInFlightDecision && (
+                        <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+                          One or more steps never completed, so something may have gone wrong during this run. Continue the run below to let the agent pick up where it stopped.
+                        </Typography>
+                      )}
 
                     </Box>
+
                   )}
                 </>
               )}
