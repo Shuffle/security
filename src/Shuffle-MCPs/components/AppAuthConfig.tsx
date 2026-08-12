@@ -617,7 +617,7 @@ export const AppAuthCard = ({
   // NOTE: switching the active provider (e.g. OpenAI -> Shuffle AI) rewrites the
   // auth entry with masked secrets, which clears `validation.valid` on the backend.
   // The locally remembered validation keeps the "Validated" state intact.
-  const isRememberedValid = React.useMemo(
+  const isRememberedValid = useMemo(
     () => !!selectedAuth?.id && getValidatedAuthIds().has(selectedAuth.id),
     [selectedAuth?.id, testStatusPerAuth],
   );
