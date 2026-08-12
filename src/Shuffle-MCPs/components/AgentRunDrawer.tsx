@@ -320,6 +320,7 @@ const AgentRunDrawer = ({
               hideHeroIcon
               title=""
               subtitle={null}
+              maxWidth={width - 32}
               {...agentUIProps}
               apiBaseUrl={agentUIProps?.apiBaseUrl ?? globalUrl}
               theme={agentUIProps?.theme ?? theme}
