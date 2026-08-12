@@ -138,6 +138,17 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
   persistRegion(null, _trackedOrgId);
 };
 
+export const applyRegionFromPayload = (
+  payload: any,
+  orgIdOverride?: string | null,
+): string | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const orgId = orgIdOverride ?? payload?.active_org?.id ?? payload?.org_id ?? null;
+  const regionUrl = payload?.region_url || payload?.active_org?.region_url || null;
+  setRegionUrl(regionUrl, orgId);
+  return regionUrl;
+};
+
 export const resetRegionUrl = () => { _regionUrl = null; persistRegion(null, null); };
 
 export const getTrackedOrgId = (): string | null => _trackedOrgId;
