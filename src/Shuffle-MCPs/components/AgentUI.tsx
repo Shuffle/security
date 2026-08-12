@@ -5168,6 +5168,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
                       px: 1.5, py: 0.5,
                       borderRadius: 999,
+                      borderLeft: '1px solid hsl(var(--border))',
+                      ml: 0.5,
                       fontSize: '0.8rem', fontWeight: 500,
                       color: 'hsl(var(--muted-foreground))',
                       bgcolor: 'transparent',
