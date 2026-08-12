@@ -1775,12 +1775,10 @@ export const AppAuthCard = ({
                             mt: 0.25,
                             fontWeight: (localTestStatus !== 'untested' || isTested || isConfigured) ? 500 : 400,
                           }}>
-                            {localTestStatus === 'success' 
-                              ? '✓ Connection verified' 
-                              : localTestStatus === 'pending_validation'
-                              ? '⏳ Test passed, awaiting backend validation'
+                            {localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                              ? 'Connection verified'
                               : localTestStatus === 'error'
-                              ? '✗ Test failed'
+                              ? 'Test failed'
                               : localTestStatus === 'testing'
                               ? 'Testing...'
                               : 'Not tested in this session'}
