@@ -330,8 +330,9 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     if (!ok) return false;
 
     // Find the freshly saved entry for this provider and make it the primary.
+    // handleSaveAuth already invalidated + refetched, so this hits the shared
+    // cache instead of firing another GET.
     try {
-      invalidateAuthenticatedAppsCache();
       const entries = (await fetchSharedAuthenticatedApps()) as any[];
       const match = entries
         .filter((a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID)
