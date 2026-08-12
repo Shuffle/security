@@ -263,14 +263,19 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    * Secret field values are replaced with the backend placeholder so the
    * stored credentials survive the update (same pattern as auth renaming).
    */
-  const setActiveAuthEntry = async (activeId: string | null) => {
+  const setActiveAuthEntry = async (activeId: string | null, preloadedEntries?: any[]) => {
     const placeholder = 'Secret. Replaced during app execution!';
     let entries: any[] = [];
-    try {
-      invalidateAuthenticatedAppsCache();
-      entries = (await fetchSharedAuthenticatedApps()) as any[];
-    } catch {
-      entries = openaiEntries as any[];
+    if (preloadedEntries) {
+      // Caller already fetched a fresh list — do not hit the API again.
+      entries = preloadedEntries;
+    } else {
+      try {
+        invalidateAuthenticatedAppsCache();
+        entries = (await fetchSharedAuthenticatedApps()) as any[];
+      } catch {
+        entries = openaiEntries as any[];
+      }
     }
     const llmEntries = entries.filter(
       (a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID,
