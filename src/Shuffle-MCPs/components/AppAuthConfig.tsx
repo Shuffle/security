@@ -431,6 +431,7 @@ export const AppAuthCard = ({
           return next;
         });
         removeVerifiedFromStorage(app.objectID, authId);
+        forgetValidatedAuth(authId);
         invalidateAuthenticatedAppsCache();
         if (onRefreshAuth) await onRefreshAuth();
       }
@@ -499,6 +500,7 @@ export const AppAuthCard = ({
     setTestStatusPerAuth(prev => ({ ...prev, [authId]: status }));
     if (status === 'success') {
       writeVerifiedToStorage(app.objectID, authId, 'success');
+      rememberValidatedAuth(authId);
     }
   }, [app.objectID]);
 
