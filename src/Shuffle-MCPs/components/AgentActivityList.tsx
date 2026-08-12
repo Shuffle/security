@@ -591,6 +591,7 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
   const duration = formatDuration(run);
   const tools = getRunTools(run);
   const decisionCount = getDecisionCount(run);
+  const attachmentCount = collectLlmImageAttachments(run).length;
 
   return (
     <Box
