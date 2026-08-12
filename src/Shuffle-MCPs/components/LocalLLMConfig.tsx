@@ -417,27 +417,12 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
   const applyShuffleAI = async () => {
-    let deletedAny = false;
-    for (const entry of openaiEntries) {
-      if (!entry.id) continue;
-      try {
-        const resp = await fetch(getApiUrl(`/api/v1/apps/authentication/${entry.id}`), {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: { ...getAuthHeader() },
-        });
-        if (resp.ok) deletedAny = true;
-      } catch (err) {
-        console.error('[LocalLLMConfig] Failed to delete OpenAI auth when switching to Shuffle AI:', err);
-      }
-    }
+    // Keep every saved LLM authentication, but deactivate all of them so
+    // Shuffle AI becomes the primary provider.
+    await setActiveAuthEntry(null);
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
     setCustomUrl('');
-    if (deletedAny) {
-      await refreshAuth();
-      refreshAllIntegrationStatus();
-    }
   };
 
   const handlePresetChange = (label: string) => {
@@ -451,8 +436,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
       return;
     }
     setSelectedPreset(label);
+    // If this provider already has a saved authentication, make it the
+    // primary one (active: true) and deactivate the others.
+    const existing = openaiEntries.find((e: any) => e?.id && providerOfEntry(e) === label);
+    if (existing?.id) void setActiveAuthEntry(existing.id);
     const preset = ENDPOINT_PRESETS.find((p) => p.label === label);
     if (!preset) return;
+
     // Auto-select the top model for this provider so the user does not have
     // to manually pick one. Custom-typed values are preserved if already set.
     const topModel = PROVIDER_MODELS[label]?.[0] || '';
