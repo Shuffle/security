@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 
 import { toast } from '@/Shuffle-MCPs/toast';
+import { AuthStatusChip } from '@/Shuffle-MCPs/components/AuthStatusChip';
+
 import {
   Box,
   Typography,
