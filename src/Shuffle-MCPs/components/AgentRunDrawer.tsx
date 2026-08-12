@@ -62,7 +62,7 @@ export interface AgentRunDrawerProps extends ShuffleHostProps {
   permissionsDisabledTooltip?: string;
   /** Forwarded to the embedded AgentUI (apiKey, apiBaseUrl, orgId, etc.). */
   agentUIProps?: Partial<AgentUIProps>;
-  /** Drawer width override (default: 480 px on >=sm, full-width on xs). */
+  /** Drawer width override (default: 595 px on >=sm, full-width on xs). */
   width?: number;
   /** Header title. Default: "Agent". */
   title?: string;
@@ -92,7 +92,7 @@ const AgentRunDrawer = ({
   permissionsDisabled = false,
   permissionsDisabledTooltip = 'Coming soon',
   agentUIProps,
-  width = 520,
+  width = 595,
   title = 'Agent',
   subtitle = 'Run actions and manage permissions',
   className,
@@ -320,6 +320,7 @@ const AgentRunDrawer = ({
               hideHeroIcon
               title=""
               subtitle={null}
+              maxWidth={width - 32}
               {...agentUIProps}
               apiBaseUrl={agentUIProps?.apiBaseUrl ?? globalUrl}
               theme={agentUIProps?.theme ?? theme}
