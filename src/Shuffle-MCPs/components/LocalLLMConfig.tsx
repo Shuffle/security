@@ -278,6 +278,20 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     [openaiEntries, effectivePreset],
   );
 
+  /** Providers that have at least one saved, validated authentication. */
+  const validatedProviderLabels = useMemo(() => {
+    const set = new Set<string>();
+    for (const entry of openaiEntries) {
+      if (entry?.validation?.valid === true) {
+        const label = providerOfEntry(entry);
+        if (label) set.add(label);
+      }
+    }
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openaiEntries]);
+
+
 
 
   /**
@@ -670,15 +684,38 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
             const preset = ENDPOINT_PRESETS.find((p) => p.label === option);
             const activeProvider = activeEntryRaw ? providerOfEntry(activeEntryRaw) : SHUFFLE_AI_PRESET;
             const isSelected = option === activeProvider;
+            const isValidated = option !== SHUFFLE_AI_PRESET && validatedProviderLabels.has(option);
             return (
               <li {...props} key={option}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
                   <ProviderLogo label={option} url={preset?.url} />
                   <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--popover-foreground))', flexShrink: 0 }}>{option}</Typography>
+                  <Box sx={{ flex: 1, minWidth: 0 }} />
                   {preset?.url && (
-                    <Typography component="span" sx={{ ml: 'auto', minWidth: 0, flex: '0 1 auto', color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Typography component="span" sx={{ minWidth: 0, flex: '0 1 auto', color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
                       {preset.url}
                     </Typography>
+                  )}
+                  {isValidated && (
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        flexShrink: 0,
+                        px: 0.75,
+                        py: 0.25,
+                        borderRadius: 1,
+                        bgcolor: 'hsl(var(--severity-low) / 0.15)',
+                        color: 'hsl(var(--severity-low))',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      Validated
+                    </Box>
                   )}
                   {isSelected && (
                     <Tooltip
@@ -686,7 +723,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                       placement="right"
                       arrow
                     >
-                      <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0, ml: preset?.url ? 0 : 'auto' }}>
+                      <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}>
                         <Check
                           size={14}
                           strokeWidth={3}

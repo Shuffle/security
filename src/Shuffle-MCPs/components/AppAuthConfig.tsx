@@ -2032,50 +2032,37 @@ export const AppAuthCard = ({
                         </Alert>
                       </Box>
                     )}
-                    {localTestStatus === 'success' && (
+                    {localTestStatus === 'success' && localTestMessages.warningMessage && (
                       <Box sx={{ 
                         px: { xs: 2, sm: 2.5 }, 
                         pb: { xs: 2, sm: 2.5 },
                       }}>
                         <Alert
-                          severity={localTestMessages.warningMessage ? "warning" : "success"}
+                          severity="warning"
                           sx={{
-                            backgroundColor: localTestMessages.warningMessage 
-                              ? 'hsl(var(--severity-medium) / 0.1)' 
-                              : 'hsl(var(--severity-low) / 0.1)',
-                            color: localTestMessages.warningMessage ? 'hsl(var(--severity-medium))' : 'hsl(var(--severity-low))',
-                            border: localTestMessages.warningMessage 
-                              ? '1px solid hsl(var(--severity-medium) / 0.2)' 
-                              : '1px solid hsl(var(--severity-low) / 0.2)',
+                            backgroundColor: 'hsl(var(--severity-medium) / 0.1)',
+                            color: 'hsl(var(--severity-medium))',
+                            border: '1px solid hsl(var(--severity-medium) / 0.2)',
                             borderRadius: 2,
                             '& .MuiAlert-icon': { 
-                              color: localTestMessages.warningMessage ? 'hsl(var(--severity-medium))' : 'hsl(var(--severity-low))' 
+                              color: 'hsl(var(--severity-medium))',
                             },
                           }}
                         >
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, width: '100%' }}>
                             <Box sx={{ flex: 1 }}>
-                              {localTestMessages.warningMessage ? (
-                                <>
-                                  <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
-                                    {localTestMessages.successMessage || 'Connection probably working'}
-                                  </Typography>
-                                  <Typography sx={{ fontSize: '0.85rem', opacity: 0.9 }}>
-                                    {localTestMessages.warningMessage}
-                                  </Typography>
-                                </>
-                              ) : (
-                                <Typography sx={{ fontSize: '0.875rem' }}>
-                                  {localTestMessages.successMessage || 'Connection verified successfully'}
-                                </Typography>
-                              )}
+                              <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
+                                {localTestMessages.successMessage || 'Connection probably working'}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                                {localTestMessages.warningMessage}
+                              </Typography>
                             </Box>
                             {localTestMessages.executionId && (
                               <ViewExecutionButton executionId={localTestMessages.executionId} />
                             )}
                           </Box>
                         </Alert>
-
                       </Box>
                     )}
                   </Box>
