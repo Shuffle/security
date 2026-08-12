@@ -1477,7 +1477,9 @@ export const AppAuthCard = ({
                       const entryId = authEntry.id || authEntry.label || index.toString();
                       const entryLabel = authEntry.label || `Auth ${index + 1}`;
                       const isActive = authEntry.active === true;
-                      const isValid = authEntry.validation?.valid === true;
+                      const isValid =
+                        authEntry.validation?.valid === true ||
+                        testStatusPerAuth[entryId] === 'success';
                       
                       // Format timestamp for tooltips
                       const formatTimestamp = (ts?: number): string => {
