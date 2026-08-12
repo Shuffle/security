@@ -1557,8 +1557,9 @@ export const AppAuthCard = ({
                             }}>
                               {entryLabel}
                             </Typography>
-                            {/* Delete button for non-validated entries */}
-                            {!isValid && (
+                            {/* Delete button, available for every entry */}
+                            {(
+
                               <Tooltip title="Delete authentication" arrow placement="top">
                                 <IconButton
                                   size="small"
