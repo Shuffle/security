@@ -707,13 +707,13 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
               </Typography>
             </>
           )}
-          {decisionCount > 0 && (
+          {attachmentCount > 0 && (
             <>
               <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', opacity: 0.4 }}>·</Typography>
               <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--muted-foreground))', opacity: 0.7 }}>
-                <GitBranch size={11} />
+                <ImageIcon size={11} />
                 <Typography sx={{ fontSize: '0.72rem', color: 'inherit' }}>
-                  {decisionCount} {decisionCount === 1 ? 'decision' : 'decisions'}
+                  {attachmentCount} {attachmentCount === 1 ? 'attachment' : 'attachments'}
                 </Typography>
               </Box>
             </>
