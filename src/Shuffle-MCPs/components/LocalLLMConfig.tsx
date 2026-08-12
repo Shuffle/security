@@ -363,9 +363,12 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     if (changed) {
       invalidateAuthenticatedAppsCache();
       await refreshAuth();
-      refreshAllIntegrationStatus();
+      // No integration was added/removed — only the `active` flag moved, so we
+      // deliberately skip refreshAllIntegrationStatus() here to avoid a third
+      // authentication GET on every provider switch.
     }
   };
+
 
   /**
    * Save with the provider baked into the label, then mark the saved provider
@@ -506,7 +509,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   const applyShuffleAI = async () => {
     // Keep every saved LLM authentication, but deactivate all of them so
     // Shuffle AI becomes the primary provider. Nothing is deleted.
-    await setActiveAuthEntry(null);
+    await setActiveAuthEntry(null, openaiEntries as any[]);
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
     rememberPreset(SHUFFLE_AI_PRESET);
@@ -529,7 +532,10 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     // If this provider already has a saved authentication, make it the
     // primary one (active: true) and deactivate the others.
     const existing = openaiEntries.find((e: any) => e?.id && providerOfEntry(e) === label);
-    if (existing?.id) void setActiveAuthEntry(existing.id);
+    // Pass the already-loaded entries so switching provider does not trigger an
+    // extra authentication GET before the PUT.
+    if (existing?.id) void setActiveAuthEntry(existing.id, openaiEntries as any[]);
+
     const preset = ENDPOINT_PRESETS.find((p) => p.label === label);
     if (!preset) return;
 
