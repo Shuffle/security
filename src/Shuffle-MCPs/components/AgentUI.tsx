@@ -3261,6 +3261,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       });
       const json = await resp.json();
       if (json.success === false) {
+        setOptimisticContinue(null);
         toast({ title: 'Failed to submit', description: json.reason || 'Try again later.', variant: 'destructive' });
       } else {
         // No success toast — the UI updates inline.
@@ -3271,11 +3272,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
         }, 600);
       }
     } catch (err) {
+      setOptimisticContinue(null);
       toast({ title: 'Network error', description: String(err), variant: 'destructive' });
     } finally {
       setAgentRequestLoading(false);
     }
-  }, [execution, getExecution]);
+  }, [execution, getExecution, agentData?.decisions]);
 
   // ── Rerun the whole agent with the original input ──
   // Instead of silently re-submitting (which leaves the user staring at the
