@@ -55,12 +55,30 @@ const collectFromRequest = (req: unknown, out: LlmImageAttachment[]) => {
  * Deep-walk any agent payload and return every image attached to an
  * `llm_requests` entry, de-duplicated by URL and in first-seen order.
  */
-export const collectLlmImageAttachments = (root: unknown, maxDepth = 6): LlmImageAttachment[] => {
+export const collectLlmImageAttachments = (root: unknown, maxDepth = 10): LlmImageAttachment[] => {
   const found: LlmImageAttachment[] = [];
   const seen = new Set<unknown>();
 
   const walk = (node: unknown, depth: number) => {
-    if (depth > maxDepth || !node || typeof node !== 'object') return;
+    if (depth > maxDepth || !node) return;
+
+    // Execution results from the activity list keep the agent payload as a
+    // JSON-encoded string (the detail view parses it before rendering), so we
+    // parse strings that could contain `llm_requests` and keep walking.
+    if (typeof node === 'string') {
+      if (node.length < 24 || node.length > 5_000_000) return;
+      if (!node.includes('llm_requests') && !node.includes('image_url')) return;
+      const trimmed = node.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return;
+      try {
+        walk(JSON.parse(trimmed), depth + 1);
+      } catch {
+        /* not JSON — ignore */
+      }
+      return;
+    }
+
+    if (typeof node !== 'object') return;
     if (seen.has(node)) return;
     seen.add(node);
 
@@ -70,12 +88,16 @@ export const collectLlmImageAttachments = (root: unknown, maxDepth = 6): LlmImag
     }
 
     const rec = node as Record<string, unknown>;
-    const reqs = rec.llm_requests ?? (rec as any).llmRequests;
+    let reqs = rec.llm_requests ?? (rec as any).llmRequests;
+    if (typeof reqs === 'string') {
+      try { reqs = JSON.parse(reqs); } catch { reqs = undefined; }
+    }
     if (Array.isArray(reqs)) {
       for (const req of reqs) collectFromRequest(req, found);
     }
     for (const value of Object.values(rec)) walk(value, depth + 1);
   };
+
 
   walk(root, 0);
 
