@@ -573,7 +573,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   // normalized name so callers can pre-select apps without knowing the
   // canonical Algolia objectID (e.g. AgentUI's chosenApps).
   const isAppSelected = useCallback((app: AlgoliaSearchApp) => {
-    const norm = (s?: string) => (s || '').toLowerCase().replace(/[\s-]+/g, '_');
+    const norm = (s?: string) => (s || '').toLowerCase().replace(/[\s_\-]+/g, '');
     const target = norm(app.name);
     return internalSelectedApps.some(
       (a) => a.objectID === app.objectID || (target && norm(a.name) === target),
