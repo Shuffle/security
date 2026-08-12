@@ -139,6 +139,9 @@ const ProviderLogo = ({ label, url }: { label: string; url?: string }) => {
 };
 
 
+/** Remembers the last selected AI provider across reloads. */
+const LLM_PRESET_STORAGE_KEY = 'shuffle-llm-provider';
+
 export const getLocalModel = (): AgentLocalModel => ({ url: '', apikey: '', model: '' });
 export const saveLocalModelConfig = (_model: AgentLocalModel) => {};
 export const testLocalLLM = async (_config: AgentLocalModel): Promise<LocalLLMTestResult> => ({
@@ -157,7 +160,16 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   useSyncHostBaseUrl(globalUrl);
   const { authStates, authenticatedApps, handleAuthChange, handleSaveAuth, refreshAuth } = useAppAuth();
   const [expanded, setExpanded] = useState(true);
-  const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [selectedPreset, setSelectedPreset] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem(LLM_PRESET_STORAGE_KEY) || '';
+      return ENDPOINT_PRESETS.some((p) => p.label === stored) ? stored : '';
+    } catch {
+      return '';
+    }
+  });
+
+
   const [customUrl, setCustomUrl] = useState<string>('');
   const [confirmShuffleAIOpen, setConfirmShuffleAIOpen] = useState(false);
   /** Local override for the LLM chat test so the shared app-auth test (which
@@ -482,12 +494,22 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   };
 
 
+  /** Persist the provider choice so /agents restores it on the next load. */
+  const rememberPreset = (label: string) => {
+    try {
+      localStorage.setItem(LLM_PRESET_STORAGE_KEY, label);
+    } catch {
+      /* noop */
+    }
+  };
+
   const applyShuffleAI = async () => {
     // Keep every saved LLM authentication, but deactivate all of them so
-    // Shuffle AI becomes the primary provider.
+    // Shuffle AI becomes the primary provider. Nothing is deleted.
     await setActiveAuthEntry(null);
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
+    rememberPreset(SHUFFLE_AI_PRESET);
     setCustomUrl('');
   };
 
@@ -502,6 +524,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
       return;
     }
     setSelectedPreset(label);
+    rememberPreset(label);
+
     // If this provider already has a saved authentication, make it the
     // primary one (active: true) and deactivate the others.
     const existing = openaiEntries.find((e: any) => e?.id && providerOfEntry(e) === label);
