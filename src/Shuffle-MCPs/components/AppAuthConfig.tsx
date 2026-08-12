@@ -469,15 +469,10 @@ export const AppAuthCard = ({
       );
       const wasTestedAuthPreValidated = wasPreValidatedPerAuth[testingAuthId] || false;
       
-      // If auth was already validated before testing, trust the 200 response
-      // (Re-tests don't always update the backend validation status)
-      if (wasTestedAuthPreValidated) {
-        setTestStatusForAuth(testingAuthId, 'success');
-      } else {
-        // For newly tested auths, check if backend has validated
-        const isBackendValidated = testedAuth?.validation?.valid === true;
-        setTestStatusForAuth(testingAuthId, isBackendValidated ? 'success' : 'pending_validation');
-      }
+      // If we got a 200 OK back, the test passed. The backend validation flag
+      // is not a reliable signal for most app authentications, so we trust the
+      // connection test result.
+      setTestStatusForAuth(testingAuthId, 'success');
       // Store the success/warning messages for this auth
       setTestMessagesForAuth(testingAuthId, {
         successMessage: authState.successMessage,
