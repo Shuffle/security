@@ -77,7 +77,8 @@ const isShufflerSubdomain = (url: string): boolean => {
 };
 
 export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string | undefined | null) => {
-  if (isDevEnvironment()) { _trackedOrgId = orgId || null; return; }
+  // region_url from getinfo is ALWAYS honored for the current org/tenant,
+  // including dev/preview environments.
   _trackedOrgId = orgId || null;
   if (regionUrl && isShufflerSubdomain(regionUrl)) {
     const normalized = regionUrl.replace(/\/+$/, '');
