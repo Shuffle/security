@@ -1910,50 +1910,6 @@ export const AppAuthCard = ({
 
                       </Box>
                     )}
-                    {localTestStatus === 'pending_validation' && (
-                      <Box sx={{ 
-                        px: { xs: 2, sm: 2.5 }, 
-                        pb: { xs: 2, sm: 2.5 },
-                      }}>
-                        <Alert
-                          severity="warning"
-                          sx={{
-                            backgroundColor: 'hsl(var(--severity-medium) / 0.1)',
-                            color: 'hsl(var(--severity-medium))',
-                            border: '1px solid hsl(var(--severity-medium) / 0.2)',
-                            borderRadius: 2,
-                            '& .MuiAlert-icon': { color: 'hsl(var(--severity-medium))' },
-                          }}
-                        >
-                          <Box>
-                            <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
-                              Test passed (Status 200), but not marked as validated
-                            </Typography>
-                            <Typography sx={{ fontSize: '0.85rem', opacity: 0.9, mb: 1 }}>
-                              The API returned success, but Shuffle hasn't confirmed the validation yet. This could mean credentials are correct but the app needs additional setup.
-                            </Typography>
-                            <Link 
-                              href={`${API_CONFIG.baseUrl}/admin?tab=app_auth`}
-                              target="_blank"
-                              sx={{ 
-                                color: 'hsl(var(--severity-medium))', 
-                                fontWeight: 500,
-                                fontSize: '0.85rem',
-                                textDecoration: 'underline',
-                                '&:hover': { opacity: 0.8 }
-                              }}
-                            >
-                              Check status in Admin → App Authentication
-                            </Link>
-                            {localTestMessages.executionId && (
-                              <Box sx={{ mt: 1.5 }}>
-                                <ViewExecutionButton executionId={localTestMessages.executionId} />
-                              </Box>
-                            )}
-                          </Box>
-                        </Alert>
-                      </Box>
-                    )}
                   </Box>
                 )}
               </Box>
