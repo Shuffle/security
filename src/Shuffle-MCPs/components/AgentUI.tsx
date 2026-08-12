@@ -5827,21 +5827,40 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       />
                     ));
                   })()}
-                  {optimisticRunning && (
-                    <Box sx={{
-                      borderTop: '1px solid hsl(var(--border))',
-                      px: 2, py: 1.5,
-                      display: 'flex', alignItems: 'center', gap: 1.25,
-                      bgcolor: 'hsl(var(--muted) / 0.2)',
-                    }}>
-                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
-                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, fontStyle: 'italic', color: 'hsl(var(--muted-foreground))' }}>
-                        Processing
-                      </Typography>
-                      <Box sx={{ flex: 1 }} />
-                      <ElapsedSeconds sinceMs={optimisticContinue?.at || Date.now()} />
-                    </Box>
+                  {optimisticRunning && timeline[timeline.length - 1]?.category !== 'processing' && (
+                    <TimelineRow
+                      key="optimistic-processing"
+                      item={{
+                        label: '',
+                        type: 'decision',
+                        category: 'processing',
+                        status: 'EXECUTING',
+                        start_time: Math.floor((optimisticContinue?.at || Date.now()) / 1000),
+                        end_time: liveNowSec,
+                        details: undefined as any,
+                      }}
+                      index={timeline.length}
+                      open={false}
+                      onToggle={() => {}}
+                      appsById={appsById}
+                      totalDuration={totalDuration}
+                      originalStartTime={originalStartTime}
+                      maxWidth={210}
+                      questionAnswers={questionAnswers}
+                      setQuestionAnswers={setQuestionAnswers}
+                      onSubmitQuestions={submitQuestions}
+                      onRerunAgent={rerunAgent}
+                      onRerunDecision={rerunDecision}
+                      agentRequestLoading={agentRequestLoading}
+                      getFormUrl={getFormUrl}
+                      runFinished={false}
+                      onAuthenticateApp={(name, id) => setAuthDrawerApp({ name, id })}
+                      onRefreshAuthenticatedApps={() => { loadAuthenticatedApps(); }}
+                      isAppAuthenticated={isAppAuthenticated}
+                      authAppsLoading={authAppsLoading}
+                    />
                   )}
+
                   {detailedRunFinished && (
                     <Box sx={{
                       borderTop: '1px solid hsl(var(--border))',
