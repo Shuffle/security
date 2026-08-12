@@ -912,8 +912,9 @@ const StatusIcon: React.FC<{ status?: string; resumeAtMs?: number }> = ({ status
     node = <ErrorIcon size={20} color={'hsl(var(--destructive))'} />;
     label = s === 'ABORTED' ? 'Aborted' : 'Failed';
   } else if (s === 'IGNORED' || s === 'IGNORE') {
-    node = <WarningIcon size={20} color={STATUS_COLORS.warning} />;
+    node = <Box sx={{ width: 20, height: 20 }} />;
     label = 'Ignored — skipped after run finished';
+
   } else {
     node = <HourglassDisabledIcon size={20} color={'hsl(var(--muted-foreground))'} />;
     label = 'Pending';
@@ -1223,13 +1224,12 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   // On hover we reveal the real status color so context is still one tap away.
   const hoverBarColor = isProcessing
     ? 'hsl(var(--muted-foreground) / 0.45)'
-    : effectiveStatus === 'IGNORED'
-      ? STATUS_COLORS.warning
-      : effectiveStatus === 'FINISHED'
-        ? STATUS_COLORS.finished
-        : isFailed
-          ? STATUS_COLORS.error
-          : STATUS_COLORS.running;
+    : effectiveStatus === 'FINISHED' || effectiveStatus === 'IGNORED'
+      ? STATUS_COLORS.finished
+      : isFailed
+        ? STATUS_COLORS.error
+        : STATUS_COLORS.running;
+
 
   const isRerunTarget =
     !!rerunningDecisionId &&
@@ -3850,19 +3850,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const optimisticRunning = Boolean(optimisticContinue);
   const optimisticContinueText = optimisticContinue?.text || undefined;
 
-  /**
-   * True when a decision never concluded (still marked running/waiting) even
-   * though the run itself has ended — typically an agent crash. Used to warn
-   * the user that the run may be incomplete.
-   */
-  const hasInFlightDecision = useMemo(
-
-    () => ((agentData?.decisions as any[]) || []).some((d) => {
-      const s = String(d?.run_details?.status || '').toUpperCase();
-      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
-    }),
-    [agentData?.decisions],
-  );
 
 
 
@@ -5865,14 +5852,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
-                      {hasInFlightDecision && (
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                          <WarningIcon size={14} color={STATUS_COLORS.warning} style={{ marginTop: 2, flexShrink: 0 }} />
-                          <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
-                            One or more steps never completed, so something may have gone wrong during this run. Continue the run below to let the agent pick up where it stopped.
-                          </Typography>
-                        </Box>
-                      )}
 
                     </Box>
                   )}
