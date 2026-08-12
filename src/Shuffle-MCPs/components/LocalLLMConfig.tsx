@@ -139,6 +139,9 @@ const ProviderLogo = ({ label, url }: { label: string; url?: string }) => {
 };
 
 
+/** Remembers the last selected AI provider across reloads. */
+const LLM_PRESET_STORAGE_KEY = 'shuffle-llm-provider';
+
 export const getLocalModel = (): AgentLocalModel => ({ url: '', apikey: '', model: '' });
 export const saveLocalModelConfig = (_model: AgentLocalModel) => {};
 export const testLocalLLM = async (_config: AgentLocalModel): Promise<LocalLLMTestResult> => ({
