@@ -305,6 +305,10 @@ const removeVerifiedFromStorage = (appId: string, authId: string) => {
   writeVerifiedToStorage(appId, authId, null);
 };
 
+/** Public helper: has this auth been verified locally (200 OK on test)? */
+export const isAuthVerifiedLocally = (appId: string, authId: string): boolean =>
+  readVerifiedFromStorage(appId, authId) === 'success';
+
 /** Build initial verified map from localStorage for the given auth entries. */
 const buildInitialVerifiedMap = (
   appId: string,
