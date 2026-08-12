@@ -958,6 +958,10 @@ interface TimelineRowProps {
   rerunningDecisionId?: string | null;
   /** True when this row sits after the decision the user just rerun. */
   dimmedByRerun?: boolean;
+  /** When set, this run has just been continued optimistically: the trailing
+   *  finalise row is re-presented as the new "Continue" step with the user's
+   *  input, instead of a stale spinning "Finalise". */
+  optimisticContinueText?: string;
 }
 
 /** Compact relative time, e.g. "44m ago". Input is Unix seconds. */
@@ -1009,13 +1013,28 @@ const ScheduledLiveBar: React.FC<{
   );
 };
 
+/** Live "N.NNs" counter for an ongoing processing row. */
+const ElapsedSeconds: React.FC<{ sinceMs: number }> = ({ sinceMs }) => {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const secs = Math.max(0, (nowMs - sinceMs) / 1000);
+  return (
+    <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
+      {secs.toFixed(2)}s
+    </Typography>
+  );
+};
+
 const TimelineRow: React.FC<TimelineRowProps> = ({
 
   item, index, open, onToggle, appsById, totalDuration, originalStartTime,
   maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
   onRerunAgent, onRerunDecision, agentRequestLoading, getFormUrl, runFinished,
   onAuthenticateApp, onRefreshAuthenticatedApps, isAppAuthenticated, authAppsLoading = false, highlight = false,
-  rerunningDecisionId = null, dimmedByRerun = false,
+  rerunningDecisionId = null, dimmedByRerun = false, optimisticContinueText,
 }) => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const validate = validateJson(item.details);
@@ -1065,8 +1084,17 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   } else if (details?.reason) {
     displayLabel = details.reason;
   }
+  const isFinishLikeRow =
+    item.category === 'finalise' || item.category === 'finish' ||
+    details?.action === 'finalise' || details?.action === 'finish';
+  // Optimistic continuation: the previous finalise row becomes the new
+  // "Continue" step carrying the user's input.
+  const isOptimisticContinueRow = Boolean(optimisticContinueText) && isFinishLikeRow;
   if (!isProcessing) {
-    if (details?.action === 'finish' || item.category === 'finish' || details?.action === 'finalise') {
+    if (isOptimisticContinueRow) {
+      displayType = 'continue';
+      displayLabel = `User Input: ${optimisticContinueText}`;
+    } else if (details?.action === 'finish' || item.category === 'finish' || details?.action === 'finalise') {
       displayType = 'finalise';
     } else if (isContinuationDecision(details)) {
       displayType = 'continue';
@@ -1159,6 +1187,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
     details?.action === 'finalise' || details?.action === 'finish';
   const effectiveStatus = (() => {
     const s = (item.status || '').toUpperCase();
+    // An optimistically continued row is done — never leave it spinning.
+    if (isOptimisticContinueRow) return 'FINISHED';
     if (!runFinished) return item.status;
     // The finalise row IS the run's completion — never leave it spinning once
     // the run itself reports FINISHED, even if the row carries no status.
@@ -2219,7 +2249,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
    * run" we immediately pretend the agent is working again (a Processing row,
    * no "Run finished" summary) until the backend produces a new decision.
    */
-  const [optimisticContinue, setOptimisticContinue] = useState<{ at: number; decisions: number } | null>(null);
+  const [optimisticContinue, setOptimisticContinue] = useState<{ at: number; decisions: number; text?: string } | null>(null);
   /** Continuation input — focused automatically once the run finishes. */
   const continuationInputRef = useRef<HTMLTextAreaElement | null>(null);
   const continuationFocusedForRef = useRef<string | null>(null);
@@ -3238,7 +3268,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // decisions produced by this continuation stream into the timeline.
     setRunComplete(false);
     // Optimistically flip the UI back into "working" mode straight away.
-    setOptimisticContinue({ at: Date.now(), decisions: (agentData?.decisions || []).length });
+    setOptimisticContinue({
+      at: Date.now(),
+      decisions: (agentData?.decisions || []).length,
+      text: isContinuation && typeof answers?.continue === 'string' ? String(answers.continue).trim() : undefined,
+    });
     keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     const wfId = execution.workflow?.id || execution.execution_id;
     const params = new URLSearchParams({
@@ -3811,6 +3845,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   /** True while we are pretending the agent is working after a continuation. */
   const optimisticRunning = Boolean(optimisticContinue);
+  const optimisticContinueText = optimisticContinue?.text || undefined;
 
 
 
@@ -5774,6 +5809,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         highlight={highlightedIndex === i}
                         rerunningDecisionId={rerunningDecisionId}
                         dimmedByRerun={rerunIdx >= 0 && i > rerunIdx}
+                        optimisticContinueText={optimisticContinueText}
                       />
                     ));
                   })()}
@@ -5784,13 +5820,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       display: 'flex', alignItems: 'center', gap: 1.25,
                       bgcolor: 'hsl(var(--muted) / 0.2)',
                     }}>
-                      <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
-                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground) / 0.5)' }} />
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, fontStyle: 'italic', color: 'hsl(var(--muted-foreground))' }}>
                         Processing
                       </Typography>
-                      <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
-                        Sending your message to the agent…
-                      </Typography>
+                      <Box sx={{ flex: 1 }} />
+                      <ElapsedSeconds sinceMs={optimisticContinue?.at || Date.now()} />
                     </Box>
                   )}
                   {detailedRunFinished && (
