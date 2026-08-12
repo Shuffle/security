@@ -271,6 +271,56 @@ const itemVariants = {
 
 const ADD_NEW_AUTH = '__add_new__';
 
+/** LocalStorage key prefix for per-app/per-auth connection test results. */
+const VERIFIED_STORAGE_KEY = 'shuffle-appauth-verified';
+
+const verifiedStorageKey = (appId: string, authId: string) =>
+  `${VERIFIED_STORAGE_KEY}-${appId}-${authId}`;
+
+const readVerifiedFromStorage = (appId: string, authId: string): 'success' | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = localStorage.getItem(verifiedStorageKey(appId, authId));
+    return value === 'success' ? 'success' : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeVerifiedToStorage = (appId: string, authId: string, status: 'success' | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = verifiedStorageKey(appId, authId);
+    if (status === 'success') {
+      localStorage.setItem(key, 'success');
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    /* ignore storage errors */
+  }
+};
+
+const removeVerifiedFromStorage = (appId: string, authId: string) => {
+  writeVerifiedToStorage(appId, authId, null);
+};
+
+/** Build initial verified map from localStorage for the given auth entries. */
+const buildInitialVerifiedMap = (
+  appId: string,
+  entries: ApiAuthEntry[]
+): Record<string, 'success'> => {
+  const map: Record<string, 'success'> = {};
+  entries.forEach((entry) => {
+    const authId = entry.id || entry.label || '';
+    if (!authId) return;
+    if (readVerifiedFromStorage(appId, authId) === 'success') {
+      map[authId] = 'success';
+    }
+  });
+  return map;
+};
+
 export const AppAuthCard = ({
   app,
   authState,
