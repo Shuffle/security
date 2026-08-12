@@ -1563,11 +1563,22 @@ export const AppAuthCard = ({
                               <Tooltip title="Delete authentication" arrow placement="top">
                                 <IconButton
                                   size="small"
+                                  // MUI Select opens on mousedown/touchstart, so the
+                                  // click handler alone is not enough when this row is
+                                  // rendered as the closed selected value.
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                  onTouchStart={(e) => {
+                                    e.stopPropagation();
+                                  }}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
                                     setDeleteConfirmAuthId(entryId);
                                   }}
+
                                   sx={{
                                     color: 'hsl(var(--muted-foreground))',
                                     p: 0.5,
