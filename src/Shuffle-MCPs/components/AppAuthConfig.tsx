@@ -12,6 +12,10 @@ import {
 } from 'lucide-react';
 
 import { toast } from '@/Shuffle-MCPs/toast';
+import { AuthStatusChip } from '@/Shuffle-MCPs/components/AuthStatusChip';
+import { getValidatedAuthIds, rememberValidatedAuth, forgetValidatedAuth } from '@/Shuffle-MCPs/validatedAuthMemory';
+
+
 import {
   Box,
   Typography,
@@ -427,6 +431,7 @@ export const AppAuthCard = ({
           return next;
         });
         removeVerifiedFromStorage(app.objectID, authId);
+        forgetValidatedAuth(authId);
         invalidateAuthenticatedAppsCache();
         if (onRefreshAuth) await onRefreshAuth();
       }
@@ -495,6 +500,7 @@ export const AppAuthCard = ({
     setTestStatusPerAuth(prev => ({ ...prev, [authId]: status }));
     if (status === 'success') {
       writeVerifiedToStorage(app.objectID, authId, 'success');
+      rememberValidatedAuth(authId);
     }
   }, [app.objectID]);
 
@@ -1410,50 +1416,19 @@ export const AppAuthCard = ({
           }}>
             {/* Auth status chip - show "Auth not required" for no-auth apps */}
             {!hideStatusChips && (isNoAuthRequired(auth) ? (
-              <Chip
-                label="Auth not required"
-                size="small"
-                sx={{
-                  backgroundColor: 'hsl(var(--severity-info) / 0.15)',
-                  color: 'hsl(var(--severity-info))',
-                  fontWeight: 500,
-                  fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                  height: { xs: 22, sm: 24 },
-                }}
-              />
+              <AuthStatusChip status="no-auth" />
             ) : (
               <>
                 {/* Configured status chip */}
-                <Chip
-                  label={isTested ? 'Validated' : isConfigured ? 'Configured' : 'Not configured'}
-                  size="small"
-                  sx={{
-                    backgroundColor: isTested ? 'hsl(var(--severity-low) / 0.15)' : isConfigured ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
-                    color: isTested ? 'hsl(var(--severity-low))' : isConfigured ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
-                    fontWeight: 500,
-                    fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                    height: { xs: 22, sm: 24 },
-                  }}
+                <AuthStatusChip
+                  status={isTested ? 'validated' : isConfigured ? 'configured' : 'not-configured'}
                 />
                 {/* Tested status chip */}
-                <Tooltip 
-                  title={isTested ? `Last validated: ${formatLastValidDate()}` : ''} 
-                  arrow
-                  disableHoverListener={!isTested}
-                >
-                  <Chip
-                    label={isTested ? 'Tested' : 'Not tested'}
-                    size="small"
-                    sx={{
-                      backgroundColor: isTested ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--muted) / 0.8)',
-                      color: isTested ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))',
-                      fontWeight: 500,
-                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                      height: { xs: 22, sm: 24 },
-                      cursor: isTested ? 'help' : 'default',
-                    }}
-                  />
-                </Tooltip>
+                <AuthStatusChip
+                  status={isTested ? 'tested' : 'not-tested'}
+                  tooltip={isTested ? `Last validated: ${formatLastValidDate()}` : undefined}
+                />
+
               </>
             ))}
             {!hideDocsLink && (
@@ -1555,7 +1530,9 @@ export const AppAuthCard = ({
                       const isActive = authEntry.active === true;
                       const isValid =
                         authEntry.validation?.valid === true ||
-                        testStatusPerAuth[entryId] === 'success';
+                        testStatusPerAuth[entryId] === 'success' ||
+                        (!!authEntry.id && getValidatedAuthIds().has(authEntry.id));
+
                       
                       // Format timestamp for tooltips
                       const formatTimestamp = (ts?: number): string => {
@@ -1571,53 +1548,22 @@ export const AppAuthCard = ({
                         <MenuItem key={entryId} value={entryId} sx={{ color: 'hsl(var(--foreground))', py: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', minWidth: 0 }}>
                             <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-                              <Tooltip 
-                                title={isActive ? `Created: ${formatTimestamp(configuredDate)}` : 'Not configured'}
-                                arrow
-                                placement="top"
-                              >
-                                <Chip
-                                  label={isValid ? 'Validated' : isActive ? 'Configured' : 'Not configured'}
-                                  size="small"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: '0.6rem',
-                                    backgroundColor: isValid ? 'hsl(var(--severity-low) / 0.15)' : isActive ? 'hsl(var(--severity-medium) / 0.15)' : 'hsl(var(--destructive) / 0.15)',
-                                    color: isValid ? 'hsl(var(--severity-low))' : isActive ? 'hsl(var(--severity-medium))' : 'hsl(var(--destructive))',
-                                  }}
-                                />
-                              </Tooltip>
-                              <Tooltip 
-                                title={lastValidDate ? `Last valid: ${formatTimestamp(lastValidDate)}` : isValid ? 'Connection verified' : 'Never validated'}
-                                arrow
-                                placement="top"
-                              >
-                                <Chip
-                                  label={isValid ? 'Tested' : 'Not tested'}
-                                  size="small"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: '0.6rem',
-                                    backgroundColor: isValid ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--muted) / 0.8)',
-                                    color: isValid ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))',
-                                  }}
-                                />
-                              </Tooltip>
+                              <AuthStatusChip
+                                dense
+                                status={isValid ? 'validated' : isActive ? 'configured' : 'not-configured'}
+                                tooltip={isActive ? `Created: ${formatTimestamp(configuredDate)}` : 'Not configured'}
+                              />
+                              <AuthStatusChip
+                                dense
+                                status={isValid ? 'tested' : 'not-tested'}
+                                tooltip={lastValidDate ? `Last valid: ${formatTimestamp(lastValidDate)}` : isValid ? 'Connection verified' : 'Never validated'}
+                              />
 
                               {isLatest && (
-                                <Chip
-                                  label="Latest"
-                                  size="small"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: '0.6rem',
-                                    fontWeight: 700,
-                                    backgroundColor: 'hsl(var(--infra-email) / 0.15)',
-                                    color: 'hsl(var(--infra-email))',
-                                  }}
-                                />
+                                <AuthStatusChip dense status="latest" />
                               )}
                             </Box>
+
                             <Typography sx={{ 
                               flex: 1, 
                               overflow: 'hidden', 

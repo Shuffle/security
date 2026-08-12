@@ -25,6 +25,9 @@ import {
 import { UsageBar } from '@/Shuffle-MCPs/components/UsageBar';
 import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { AuthStatusChip } from '@/Shuffle-MCPs/components/AuthStatusChip';
+import { getValidatedAuthIds, rememberValidatedAuth } from '@/Shuffle-MCPs/validatedAuthMemory';
+
 import {
   ENDPOINT_PRESETS,
   PROVIDER_DOMAINS,
@@ -278,18 +281,24 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     [openaiEntries, effectivePreset],
   );
 
-  /** Providers that have at least one saved, validated authentication. */
+  /** Providers that have at least one saved, validated authentication.
+   *  The backend clears `validation.valid` when an entry is written back with
+   *  masked secrets (every provider switch does this), so a local memory of
+   *  previously validated auth ids is unioned in. */
   const validatedProviderLabels = useMemo(() => {
     const set = new Set<string>();
+    const remembered = getValidatedAuthIds();
     for (const entry of openaiEntries) {
-      if (entry?.validation?.valid === true) {
+      const isValid = entry?.validation?.valid === true || (entry?.id && remembered.has(entry.id));
+      if (isValid) {
         const label = providerOfEntry(entry);
         if (label) set.add(label);
       }
     }
     return set;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openaiEntries]);
+  }, [openaiEntries, llmTest]);
+
 
 
 
@@ -473,11 +482,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           errorMessage: 'The provider responded, but returned no message content.',
         });
       } else {
+        rememberValidatedAuth(authId);
         setLlmTest({
           status: 'connected',
           successMessage: `Connection verified${model ? ` • ${model}` : ''} • Reply: ${String(content).trim().slice(0, 60)}`,
         });
       }
+
     } catch (error) {
       setLlmTest({
         status: 'error',
@@ -697,26 +708,11 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                     </Typography>
                   )}
                   {isValidated && (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        flexShrink: 0,
-                        px: 0.75,
-                        py: 0.25,
-                        borderRadius: 1,
-                        bgcolor: 'hsl(var(--severity-low) / 0.15)',
-                        color: 'hsl(var(--severity-low))',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.02em',
-                      }}
-                    >
-                      Validated
+                    <Box sx={{ display: 'inline-flex', flexShrink: 0 }}>
+                      <AuthStatusChip dense status="validated" />
                     </Box>
                   )}
+
                   {isSelected && (
                     <Tooltip
                       title="Selected provider"
