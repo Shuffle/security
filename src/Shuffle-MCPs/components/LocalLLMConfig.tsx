@@ -665,7 +665,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           isOptionEqualToValue={(opt, val) => opt === val}
           renderOption={(props, option) => {
             const preset = ENDPOINT_PRESETS.find((p) => p.label === option);
-            const status = providerStatus[option];
+            const activeProvider = activeEntryRaw ? providerOfEntry(activeEntryRaw) : SHUFFLE_AI_PRESET;
+            const isSelected = option === activeProvider;
             return (
               <li {...props} key={option}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
@@ -676,9 +677,9 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                       {preset.url}
                     </Typography>
                   )}
-                  {status && (
+                  {isSelected && (
                     <Tooltip
-                      title={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                      title="Selected provider"
                       placement="right"
                       arrow
                     >
@@ -686,13 +687,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                         <Check
                           size={14}
                           strokeWidth={3}
-                          style={{
-                            flexShrink: 0,
-                            color: status === 'valid'
-                              ? 'hsl(var(--severity-low))'
-                              : 'hsl(var(--severity-medium))',
-                          }}
-                          aria-label={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                          style={{ flexShrink: 0, color: 'hsl(var(--severity-low))' }}
+                          aria-label="Selected provider"
                         />
                       </Box>
                     </Tooltip>
