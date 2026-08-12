@@ -278,6 +278,20 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     [openaiEntries, effectivePreset],
   );
 
+  /** Providers that have at least one saved, validated authentication. */
+  const validatedProviderLabels = useMemo(() => {
+    const set = new Set<string>();
+    for (const entry of openaiEntries) {
+      if (entry?.validation?.valid === true) {
+        const label = providerOfEntry(entry);
+        if (label) set.add(label);
+      }
+    }
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openaiEntries]);
+
+
 
 
   /**
