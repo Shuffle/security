@@ -470,6 +470,14 @@ export const AppAuthCard = ({
     prevEntryCountRef.current = apiAuthEntries.length;
   }, [apiAuthEntries, userHasSelected]);
 
+  // Helper to update test status for a specific auth and persist verified state
+  const setTestStatusForAuth = useCallback((authId: string, status: TestStatusValue) => {
+    setTestStatusPerAuth(prev => ({ ...prev, [authId]: status }));
+    if (status === 'success') {
+      writeVerifiedToStorage(app.objectID, authId, 'success');
+    }
+  }, [app.objectID]);
+
   // Persist server-side validated entries as verified in localStorage so the
   // green indicator survives reloads without needing a manual re-test.
   useEffect(() => {
