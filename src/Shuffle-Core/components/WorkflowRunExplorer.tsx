@@ -467,9 +467,12 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
                 />
               );
             }
-            // Parent Workflow — link to the parent execution
+            // Parent Workflow — the parent workflow id lives in execution_source
             if (exec.execution_parent) {
-              const href = `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(exec.execution_parent)}`;
+              const parentWorkflowId = (exec.execution_source || '').trim();
+              const href = parentWorkflowId
+                ? `https://shuffler.io/workflows/${encodeURIComponent(parentWorkflowId)}?view=executions&execution_id=${encodeURIComponent(exec.execution_parent)}`
+                : `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(exec.execution_parent)}`;
               return (
                 <MetaRow
                   label="Source"
