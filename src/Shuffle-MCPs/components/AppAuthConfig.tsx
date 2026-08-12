@@ -13,6 +13,8 @@ import {
 
 import { toast } from '@/Shuffle-MCPs/toast';
 import { AuthStatusChip } from '@/Shuffle-MCPs/components/AuthStatusChip';
+import { getValidatedAuthIds, rememberValidatedAuth, forgetValidatedAuth } from '@/Shuffle-MCPs/validatedAuthMemory';
+
 
 import {
   Box,
