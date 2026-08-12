@@ -157,7 +157,14 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   useSyncHostBaseUrl(globalUrl);
   const { authStates, authenticatedApps, handleAuthChange, handleSaveAuth, refreshAuth } = useAppAuth();
   const [expanded, setExpanded] = useState(true);
-  const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [selectedPreset, setSelectedPreset] = useState<string>(() => {
+    try {
+      return localStorage.getItem(LLM_PRESET_STORAGE_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
+
   const [customUrl, setCustomUrl] = useState<string>('');
   const [confirmShuffleAIOpen, setConfirmShuffleAIOpen] = useState(false);
   /** Local override for the LLM chat test so the shared app-auth test (which
