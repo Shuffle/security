@@ -3655,11 +3655,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
 
     // Always send the latest finish decision's ID when continuing. If no
-    // finish decision exists, the backend still needs a marker so we send the
-    // literal string "MISSING" rather than guessing a fallback decision ID.
+    // finish decision exists, the backend still needs a marker so we send
+    // "MISSING_<short_id>" rather than guessing a fallback decision ID.
     if (!finishId && runIsFinished) {
-      finishId = 'MISSING';
+      const shortId = (execution?.execution_id || '').slice(-8) || crypto.randomUUID().slice(0, 8);
+      finishId = `MISSING_${shortId}`;
     }
+
 
 
     // The agent's `output` field carries the actual answer, while the finish
