@@ -469,6 +469,17 @@ export const AppAuthCard = ({
     }
     prevEntryCountRef.current = apiAuthEntries.length;
   }, [apiAuthEntries, userHasSelected]);
+
+  // Persist server-side validated entries as verified in localStorage so the
+  // green indicator survives reloads without needing a manual re-test.
+  useEffect(() => {
+    apiAuthEntries.forEach((entry) => {
+      const authId = entry.id || entry.label || '';
+      if (entry.validation?.valid === true && authId) {
+        setTestStatusForAuth(authId, 'success');
+      }
+    });
+  }, [apiAuthEntries]);
   
   // Track pre-validation state when auth selection changes (for first-time tests)
   useEffect(() => {
