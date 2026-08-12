@@ -360,7 +360,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    * POST /api/v1/chat/completions?authentication_id=<id>
    */
   const handleTestLLMConnection = async (_appId: string, authenticationId?: string) => {
-    const authId = authenticationId || openaiEntries[0]?.id;
+    const authId = authenticationId || (providerEntries[0] as any)?.id || (activeEntry as any)?.id;
     if (!authId) {
       setLlmTest({
         status: 'error',
