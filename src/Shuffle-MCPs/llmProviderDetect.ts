@@ -102,3 +102,58 @@ export const getProviderLogoUrl = (label: string | undefined, url?: string): str
   }
   return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '';
 };
+
+/**
+ * Single source of truth for "which LLM provider is currently active".
+ *
+ * Both the AgentUI "Choose LLM" chip and the LocalLLMConfig sidebar must
+ * agree, so they both call this with the raw `/api/v1/apps/authentication`
+ * entries. Rules:
+ *  - only the entry flagged `active: true` counts (validation state is
+ *    irrelevant — an active-but-failing provider is still the active one)
+ *  - the `url` field wins, then the entry label (legacy labels look like
+ *    "OpenAI - Anthropic", so the app-name prefix is stripped)
+ *  - no active OpenAI-compatible entry => Shuffle AI
+ */
+const OPENAI_AUTH_APP_ID = '5d19dd82517870c68d40cacad9b5ca91';
+
+export const isOpenAICompatibleAuthEntry = (entry: any): boolean => {
+  const app = entry?.app || entry;
+  const name = String(app?.name || '').toLowerCase();
+  return name === 'openai' || app?.id === OPENAI_AUTH_APP_ID;
+};
+
+export const providerLabelOfAuthEntry = (entry: any): string => {
+  const url = ((entry?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
+    .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
+  if (url.trim()) return detectLLMProvider(url)?.label || CUSTOM_PRESET;
+
+  const label = String(entry?.label || '')
+    .replace(/^\s*openai\s*-\s*/i, '')
+    .trim();
+  if (label) {
+    const match = ENDPOINT_PRESETS.find(
+      (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase() === p.label.toLowerCase(),
+    ) || ENDPOINT_PRESETS.find(
+      (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase().includes(p.label.toLowerCase()),
+    );
+    if (match) return match.label;
+  }
+  return CUSTOM_PRESET;
+};
+
+export const findActiveLLMAuthEntry = (entries: any[] | undefined | null): any | null =>
+  (entries || []).find((e) => isOpenAICompatibleAuthEntry(e) && e?.active === true) || null;
+
+export const resolveActiveLLMProvider = (
+  entries: any[] | undefined | null,
+): { label: string; url: string; logo: string } => {
+  const active = findActiveLLMAuthEntry(entries);
+  if (!active) {
+    return { label: SHUFFLE_AI_PRESET, url: '', logo: getProviderLogoUrl(SHUFFLE_AI_PRESET) };
+  }
+  const url = (((active?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
+    .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '').trim();
+  const label = providerLabelOfAuthEntry(active);
+  return { label, url, logo: getProviderLogoUrl(label, url) };
+};

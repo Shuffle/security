@@ -31,6 +31,7 @@ import {
   SHUFFLE_AI_PRESET,
   CUSTOM_PRESET,
   detectLLMProvider,
+  providerLabelOfAuthEntry,
 } from '@/Shuffle-MCPs/llmProviderDetect';
 
 const OPENAI_APP_NAME = 'OpenAI';
@@ -162,7 +163,7 @@ export interface LocalLLMConfigProps extends ShuffleHostProps {
 
 const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, serverside, theme, colorMode, open }: LocalLLMConfigProps) => {
   useSyncHostBaseUrl(globalUrl);
-  const { authStates, authenticatedApps, handleAuthChange, handleSaveAuth, refreshAuth } = useAppAuth();
+  const { authStates, authenticatedApps, handleAuthChange, handleSaveAuth, refreshAuth, loading: authLoading } = useAppAuth();
   const [expanded, setExpanded] = useState(true);
   const [selectedPreset, setSelectedPreset] = useState<string>(() => {
     try {
@@ -227,23 +228,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    *  URL wins (it is authoritative), then the label — legacy labels look like
    *  "OpenAI - Anthropic", so the app-name prefix is stripped before matching
    *  to avoid classifying every entry as OpenAI. */
-  const providerOfEntry = (entry: any): string => {
-    const url = ((entry?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
-      .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
-    if (url) return detectLLMProvider(url)?.label || CUSTOM_PRESET;
-
-    const rawLabel = String(entry?.label || '');
-    const label = rawLabel
-      .replace(new RegExp(`^\\s*${OPENAI_APP_NAME}\\s*-\\s*`, 'i'), '')
-      .trim();
-    const match = ENDPOINT_PRESETS.find(
-      (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase() === p.label.toLowerCase(),
-    ) || ENDPOINT_PRESETS.find(
-      (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase().includes(p.label.toLowerCase()),
-    );
-    if (match) return match.label;
-    return CUSTOM_PRESET;
-  };
+  const providerOfEntry = (entry: any): string => providerLabelOfAuthEntry(entry);
 
   /** Display label without the redundant "OpenAI - " app-name prefix. */
   const displayLabelOfEntry = (entry: any): string => {
@@ -513,6 +498,10 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    *  merely looked at. */
   useEffect(() => {
     if (!open) return;
+    // Never reset while the auth list is still loading — doing so would flip
+    // the selector to Shuffle AI and persist it, then flip back once the
+    // active provider arrives (the inconsistency users saw).
+    if (authLoading) return;
     // When no OpenAI-compatible auth is active, the canonical provider is
     // Shuffle AI. Reset the selector to that so the drawer doesn't reopen
     // showing whatever provider the user merely looked at last time.
@@ -521,7 +510,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     setSelectedPreset(target);
     rememberPreset(target);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, activeProviderLabel]);
+  }, [open, activeProviderLabel, authLoading]);
 
   const applyShuffleAI = async () => {
     // Keep every saved LLM authentication, but deactivate all of them so

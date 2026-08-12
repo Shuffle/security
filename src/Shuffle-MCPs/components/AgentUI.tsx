@@ -497,7 +497,7 @@ import { getApiUrl, getAuthHeader, API_CONFIG, getShuffleCoreFormUrl } from '@/S
 import { fetchApps } from '@/Shuffle-MCPs/appsCache';
 import { resolveApps } from '@/Shuffle-MCPs/resolveApp';
 import { toast } from '@/Shuffle-MCPs/toast';
-import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET } from '@/Shuffle-MCPs/llmProviderDetect';
+import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET, resolveActiveLLMProvider } from '@/Shuffle-MCPs/llmProviderDetect';
 import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
@@ -2621,31 +2621,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const list = Array.isArray(result) ? result : (result?.data || []);
       const seen = new Set<string>();
       const loaded: AgentUIApp[] = [];
-      let detectedFromEntries: { label: string; url: string; logo: string } | null = null;
       for (const entry of list) {
         const app = entry?.app || entry;
         const name: string | undefined = app?.name;
         if (!name) continue;
         const valid = entry?.active || entry?.validation?.valid || entry?.hasValidAuth || app?.is_valid || app?.tested;
         if (valid === false) continue;
-        // Capture the OpenAI auth URL so the "Choose LLM" chip can show the
-        // vendor logo derived from it (OpenAI, Anthropic, Groq, etc.).
-        // Always prefer the entry that is currently marked active. If no
-        // OpenAI-compatible auth is active, the default provider is Shuffle AI.
-        if (name.toLowerCase() === 'openai' || app?.id === '5d19dd82517870c68d40cacad9b5ca91') {
-          const urlField = (entry?.fields || []).find((f: any) => (f?.key || '').toLowerCase() === 'url');
-          const urlVal = (urlField?.value || '').trim();
-          if (urlVal) {
-            const preset = detectLLMProvider(urlVal);
-            if (preset) {
-              const info = { label: preset.label, url: urlVal, logo: getProviderLogoUrl(preset.label, urlVal) };
-              if (entry?.active === true) {
-                detectedFromEntries = info;
-                break;
-              }
-            }
-          }
-        }
         const key = normalizeAgentAppName(name);
         if (seen.has(key)) continue;
         seen.add(key);
@@ -2659,10 +2640,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // Always update — even an empty list — so revoked auth re-enables the
       // "requires authentication" banner instead of being stuck on stale state.
       setAvailableApps(loaded);
-      // When no OpenAI auth is active, the default provider is Shuffle AI.
-      setDetectedLLM(
-        detectedFromEntries || { label: SHUFFLE_AI_PRESET, url: '', logo: getProviderLogoUrl(SHUFFLE_AI_PRESET) },
-      );
+      // Shared resolver — the exact same logic the LocalLLM sidebar uses, so
+      // the chip and the sidebar can never disagree. Runs on the RAW list
+      // (validation state must not hide an active provider).
+      setDetectedLLM(resolveActiveLLMProvider(list));
     } catch {
       // silent — caller can still pick apps manually
     } finally {
