@@ -59,6 +59,7 @@ import {
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
+import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
 import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
