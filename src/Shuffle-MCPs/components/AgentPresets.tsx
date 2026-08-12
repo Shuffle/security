@@ -373,6 +373,50 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
               </Box>
             ))}
           </Box>
+          <Box sx={{ px: 1.5, py: 1, borderTop: '1px solid hsl(var(--border))' }}>
+            <Button
+              fullWidth
+              disabled
+              size="small"
+              startIcon={<Plus size={14} />}
+              sx={{
+                justifyContent: 'space-between',
+                textTransform: 'none',
+                fontSize: '0.78rem',
+                fontWeight: 500,
+                color: 'hsl(var(--muted-foreground))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 1.5,
+                px: 1.25,
+                py: 0.75,
+                '&.Mui-disabled': {
+                  color: 'hsl(var(--muted-foreground))',
+                  borderColor: 'hsl(var(--border))',
+                },
+              }}
+              endIcon={
+                <Typography
+                  sx={{
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    color: 'hsl(var(--muted-foreground))',
+                    bgcolor: 'hsl(var(--muted))',
+                    px: 0.75,
+                    py: 0.25,
+                    borderRadius: 999,
+                    lineHeight: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  coming soon
+                </Typography>
+              }
+            >
+              Add your own
+            </Button>
+          </Box>
         </Paper>
       </ClickAwayListener>
     </Popper>
