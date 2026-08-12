@@ -1895,7 +1895,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // tools were left over from another template stay selected (and get
       // written back as this template's override).
       const override = readPresetAppsOverride(match.id);
-      if (override && override.length > 0) {
+      if (override) {
+        // An empty override is a real choice ("I removed every tool") — honor it.
         setChosenApps(override);
       } else if (match.defaultApps && match.defaultApps.length > 0) {
         setChosenApps(match.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
