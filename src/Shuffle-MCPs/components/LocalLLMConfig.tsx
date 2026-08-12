@@ -363,9 +363,12 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     if (changed) {
       invalidateAuthenticatedAppsCache();
       await refreshAuth();
-      refreshAllIntegrationStatus();
+      // No integration was added/removed — only the `active` flag moved, so we
+      // deliberately skip refreshAllIntegrationStatus() here to avoid a third
+      // authentication GET on every provider switch.
     }
   };
+
 
   /**
    * Save with the provider baked into the label, then mark the saved provider
