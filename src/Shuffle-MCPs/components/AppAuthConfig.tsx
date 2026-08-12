@@ -750,6 +750,17 @@ export const AppAuthCard = ({
   // selectors) into the local form state so the field reflects the choice.
   useEffect(() => {
     const incoming = authState.credentials || {};
+    // Any url-like value coming from outside (provider preset) — used as a
+    // fallback when the schema's URL param key differs from the incoming key
+    // (e.g. incoming "url" vs schema "openai_url").
+    let incomingUrl = '';
+    for (const [k, v] of Object.entries(incoming)) {
+      const lk = k.toLowerCase();
+      if ((lk.includes('url') || lk.includes('endpoint') || lk.includes('host')) && typeof v === 'string' && v.trim()) {
+        incomingUrl = v.trim();
+        break;
+      }
+    }
     setLocalCredentials((prev) => {
       let changed = false;
       const next = { ...prev };
@@ -762,10 +773,19 @@ export const AppAuthCard = ({
           changed = true;
         }
       }
+      if (incomingUrl) {
+        for (const { key } of urlParams()) {
+          if (!(next[key] || '').trim()) {
+            next[key] = incomingUrl;
+            changed = true;
+          }
+        }
+      }
       return changed ? next : prev;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authState.credentials]);
+  }, [authState.credentials, auth?.parameters]);
+
 
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsContent, setDocsContent] = useState<string>('');
