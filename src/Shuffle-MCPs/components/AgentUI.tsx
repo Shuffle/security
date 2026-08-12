@@ -3459,7 +3459,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Build timeline ──
 
-  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer } = useMemo(() => {
+  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote } = useMemo(() => {
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
       const n = Number(t) || 0;
@@ -3500,6 +3500,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
     let finishId = '';
     let finishAns = '';
+    let finishNote = '';
     let lastKnownEnd = toSec(agentData?.started_at || execution?.started_at);
     for (const dec of agentData?.decisions || []) {
       const rd = dec.run_details || {};
@@ -3707,7 +3708,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const end = items.reduce((acc, it) => Math.max(acc, it.end_time || acc), 0);
     const startSafe = start === Infinity ? 0 : start;
     const total = Math.max(1, end - startSafe);
-    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns };
+    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
 
   // Mark the run complete once it is terminal and a final answer has landed,
