@@ -926,7 +926,9 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
               ...(layout === 'grid' ? { display: 'grid' } : {}),
             }}
           >
-            {displayResults.length > 0 ? (
+            {!initialSettled ? (
+              <InfiniteScrollSkeleton layout={layout} gridColumns={typeof gridColumns === 'number' ? gridColumns : (gridColumns.md || 3)} />
+            ) : displayResults.length > 0 ? (
               <>
                 {displayResults.map((app, index) => renderAppItem(app, index))}
                 {isLoadingMore && (
