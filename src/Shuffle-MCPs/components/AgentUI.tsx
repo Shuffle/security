@@ -340,6 +340,8 @@ interface RunFinishedSummaryProps {
   status: string;
   isRunning: boolean;
   finishAnswer: string;
+  /** Secondary line (the finish decision's `reason`) shown under the answer. */
+  finishNote?: string;
   raw: boolean;
   onToggleRaw: () => void;
   decisionCount?: number;
@@ -353,6 +355,7 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
   status,
   isRunning,
   finishAnswer,
+  finishNote,
   raw,
   onToggleRaw,
   decisionCount,
@@ -461,6 +464,19 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
             <FinishAnswerMarkdown text={normalizeMarkdown(finishAnswer)} />
           )}
         </Box>
+      )}
+
+      {finishAnswer && finishNote && !raw && (
+        <Typography
+          sx={{
+            mt: 1,
+            fontSize: '0.75rem',
+            lineHeight: 1.5,
+            color: 'hsl(var(--muted-foreground))',
+          }}
+        >
+          {finishNote}
+        </Typography>
       )}
     </>
   );
@@ -3459,7 +3475,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Build timeline ──
 
-  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer } = useMemo(() => {
+  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote } = useMemo(() => {
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
       const n = Number(t) || 0;
@@ -3500,6 +3516,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
     let finishId = '';
     let finishAns = '';
+    let finishNote = '';
     let lastKnownEnd = toSec(agentData?.started_at || execution?.started_at);
     for (const dec of agentData?.decisions || []) {
       const rd = dec.run_details || {};
@@ -3552,6 +3569,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         } else {
           finishAns = fieldText || reasonText;
         }
+        finishNote = reasonText;
       }
     }
 
@@ -3566,10 +3584,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
     }
 
-    // Runs sometimes finish without any finish/finalise text, but still carry
-    // an `output` field on the agent payload or on the last decision. Fall
-    // back to that so "Run finished" is never empty when output exists.
-    if (!finishAns) {
+    // The agent's `output` field carries the actual answer, while the finish
+    // decision's `reason` is usually just a one-line rationale ("Answer the
+    // conversational query directly."). Prefer `output` as the main answer and
+    // keep the finish reason as a secondary note underneath.
+    {
       const stringify = (v: unknown): string => {
         if (v == null) return '';
         if (typeof v === 'string') return v.trim();
@@ -3583,11 +3602,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
         const d = decs[i] || {};
         candidates.push(d.output, d.run_details?.output, d.details?.output, d.result);
       }
+      let outputText = '';
       for (const c of candidates) {
         const text = stringify(c);
-        if (text) { finishAns = text; break; }
+        if (text) { outputText = text; break; }
       }
+      if (outputText) {
+        if (finishAns && finishAns !== outputText) {
+          // Keep the finish text as the secondary note when it differs.
+          finishNote = finishAns;
+        }
+        finishAns = outputText;
+      }
+      if (finishNote && finishNote === finishAns) finishNote = '';
     }
+
 
 
 
@@ -3695,7 +3724,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const end = items.reduce((acc, it) => Math.max(acc, it.end_time || acc), 0);
     const startSafe = start === Infinity ? 0 : start;
     const total = Math.max(1, end - startSafe);
-    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns };
+    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
 
   // Mark the run complete once it is terminal and a final answer has landed,
@@ -5455,6 +5484,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         status={status}
                         isRunning={isRunning}
                         finishAnswer={finishAnswer}
+                        finishNote={finishNote}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                         decisionCount={decisionCount}
@@ -5697,6 +5727,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         status={detailedStatus}
                         isRunning={false}
                         finishAnswer={finishAnswer}
+                        finishNote={finishNote}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
