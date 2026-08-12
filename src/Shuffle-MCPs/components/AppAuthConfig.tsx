@@ -1760,17 +1760,15 @@ export const AppAuthCard = ({
                             )}
                           </Box>
                           <Typography sx={{ 
-                            color: localTestStatus === 'success' 
-                              ? 'hsl(var(--severity-low))' 
-                              : localTestStatus === 'pending_validation'
-                              ? 'hsl(var(--severity-medium))'
+                            color: localTestStatus === 'success' || localTestStatus === 'pending_validation'
+                              ? 'hsl(var(--severity-low))'
                               : localTestStatus === 'error'
                               ? 'hsl(var(--destructive))'
                               : isTested
                               ? 'hsl(var(--severity-low))'
                               : isConfigured
                               ? 'hsl(var(--severity-medium))' // Yellow for configured but not tested
-                              : 'hsl(var(--muted-foreground))', 
+                              : 'hsl(var(--muted-foreground))',
                             fontSize: '0.75rem',
                             mt: 0.25,
                             fontWeight: (localTestStatus !== 'untested' || isTested || isConfigured) ? 500 : 400,
