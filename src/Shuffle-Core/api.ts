@@ -62,10 +62,32 @@ const getDefaultBaseUrl = (): string => {
   return PROD_BACKEND;
 };
 
-let _regionUrl: string | null = null;
-let _trackedOrgId: string | null = null;
+const REGION_STORAGE_KEY = 'shuffle_region_url';
+
+// Hydrate from localStorage so the first request after a reload already hits
+// the correct region without waiting for /api/v1/getinfo.
+const _cachedRegion = (() => {
+  if (typeof window === 'undefined') return { url: null as string | null, orgId: null as string | null };
+  try {
+    const raw = localStorage.getItem(REGION_STORAGE_KEY);
+    if (!raw) return { url: null, orgId: null };
+    const parsed = JSON.parse(raw);
+    return { url: parsed?.url || null, orgId: parsed?.orgId || null };
+  } catch { return { url: null, orgId: null }; }
+})();
+
+let _regionUrl: string | null = _cachedRegion.url;
+let _trackedOrgId: string | null = _cachedRegion.orgId;
 // Host-injected base URL (highest priority — set via setHostBaseUrl).
 let _hostBaseUrl: string | null = null;
+
+const persistRegion = (url: string | null, orgId: string | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (url) localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ url, orgId }));
+    else localStorage.removeItem(REGION_STORAGE_KEY);
+  } catch { /* ignore */ }
+};
 
 const isShufflerSubdomain = (url: string): boolean => {
   try {
@@ -82,12 +104,18 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
   _trackedOrgId = orgId || null;
   if (regionUrl && isShufflerSubdomain(regionUrl)) {
     const normalized = regionUrl.replace(/\/+$/, '');
-    if (normalized !== PROD_BACKEND) { _regionUrl = normalized; return; }
+    if (normalized !== PROD_BACKEND) {
+      _regionUrl = normalized;
+      persistRegion(_regionUrl, _trackedOrgId);
+      return;
+    }
   }
   _regionUrl = null;
+  persistRegion(null, _trackedOrgId);
 };
 
-export const resetRegionUrl = () => { _regionUrl = null; };
+export const resetRegionUrl = () => { _regionUrl = null; persistRegion(null, null); };
+
 export const getTrackedOrgId = (): string | null => _trackedOrgId;
 
 /**

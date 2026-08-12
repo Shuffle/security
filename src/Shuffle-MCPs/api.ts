@@ -91,12 +91,37 @@ const getDefaultBaseUrl = (): string => {
 };
 
 // Dynamic region URL state (only applies in production, not dev)
-let _regionUrl: string | null = null;
-let _trackedOrgId: string | null = null;
+const REGION_STORAGE_KEY = 'shuffle_region_url';
+
+/** Read the cached region URL (persisted per org) so the very first request
+ *  after a reload already targets the right region — no waiting for getinfo. */
+const readCachedRegion = (): { url: string | null; orgId: string | null } => {
+  if (typeof window === 'undefined') return { url: null, orgId: null };
+  try {
+    const raw = localStorage.getItem(REGION_STORAGE_KEY);
+    if (!raw) return { url: null, orgId: null };
+    const parsed = JSON.parse(raw);
+    return { url: parsed?.url || null, orgId: parsed?.orgId || null };
+  } catch {
+    return { url: null, orgId: null };
+  }
+};
+
+const cached = readCachedRegion();
+let _regionUrl: string | null = cached.url;
+let _trackedOrgId: string | null = cached.orgId;
 // Host-injected base URL (set via setHostBaseUrl from a host that passes
 // `globalUrl` through ShuffleHostProps). Highest priority — overrides region
 // URL and the auto-detected default. Use this for self-hosted backends.
 let _hostBaseUrl: string | null = null;
+
+const persistRegion = (url: string | null, orgId: string | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (url) localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ url, orgId }));
+    else localStorage.removeItem(REGION_STORAGE_KEY);
+  } catch { /* ignore */ }
+};
 
 /** Check if a URL is a valid shuffler.io subdomain */
 const isShufflerSubdomain = (url: string): boolean => {
@@ -112,6 +137,7 @@ const isShufflerSubdomain = (url: string): boolean => {
  * Set the dynamic region URL from getinfo response.
  * ALWAYS honored for the current org/tenant (including dev/preview) as long as
  * the URL is a valid shuffler.io subdomain different from the default backend.
+ * Persisted in localStorage so later page loads do not have to wait on getinfo.
  */
 export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string | undefined | null) => {
   _trackedOrgId = orgId || null;
@@ -121,6 +147,7 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
     const normalized = regionUrl.replace(/\/+$/, '');
     if (normalized !== PROD_BACKEND) {
       _regionUrl = normalized;
+      persistRegion(_regionUrl, _trackedOrgId);
       console.log(`[API] Region URL set to: ${_regionUrl}`);
       return;
     }
@@ -128,6 +155,7 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
 
   // No valid region override — use default
   _regionUrl = null;
+  persistRegion(null, _trackedOrgId);
 };
 
 /**
@@ -138,7 +166,9 @@ export const resetRegionUrl = () => {
     console.log(`[API] Region URL reset to default (org changed)`);
   }
   _regionUrl = null;
+  persistRegion(null, null);
 };
+
 
 /**
  * Host override — call from a top-level component (or `useSyncHostBaseUrl`)
