@@ -696,7 +696,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideUrlFields
           initialAuthConfig={OPENAI_AUTH_SCHEMA}
           borderless
-          compactAuthForm
+          compactAuthForm={providerEntries.length === 0}
           suppressSaveToast
 
           extraFieldsSlot={
