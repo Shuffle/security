@@ -2214,6 +2214,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
    * window.
    */
   const [runComplete, setRunComplete] = useState(false);
+  /**
+   * Optimistic continuation state. When the user submits "Continue this agent
+   * run" we immediately pretend the agent is working again (a Processing row,
+   * no "Run finished" summary) until the backend produces a new decision.
+   */
+  const [optimisticContinue, setOptimisticContinue] = useState<{ at: number; decisions: number } | null>(null);
   /** Continuation input — focused automatically once the run finishes. */
   const continuationInputRef = useRef<HTMLTextAreaElement | null>(null);
   const continuationFocusedForRef = useRef<string | null>(null);
@@ -3231,6 +3237,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // The parent execution may already be FINISHED — keep polling so the new
     // decisions produced by this continuation stream into the timeline.
     setRunComplete(false);
+    // Optimistically flip the UI back into "working" mode straight away.
+    setOptimisticContinue({ at: Date.now(), decisions: (agentData?.decisions || []).length });
     keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     const wfId = execution.workflow?.id || execution.execution_id;
     const params = new URLSearchParams({
@@ -3253,6 +3261,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       });
       const json = await resp.json();
       if (json.success === false) {
+        setOptimisticContinue(null);
         toast({ title: 'Failed to submit', description: json.reason || 'Try again later.', variant: 'destructive' });
       } else {
         // No success toast — the UI updates inline.
@@ -3263,11 +3272,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
         }, 600);
       }
     } catch (err) {
+      setOptimisticContinue(null);
       toast({ title: 'Network error', description: String(err), variant: 'destructive' });
     } finally {
       setAgentRequestLoading(false);
     }
-  }, [execution, getExecution]);
+  }, [execution, getExecution, agentData?.decisions]);
 
   // ── Rerun the whole agent with the original input ──
   // Instead of silently re-submitting (which leaves the user staring at the
@@ -3785,6 +3795,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }, 150);
     return () => clearTimeout(t);
   }, [finishDecisionId, agentRequestLoading]);
+
+  // Clear the optimistic continuation as soon as the backend produces a new
+  // decision (or the run visibly restarts), with a hard 5 minute safety stop.
+  useEffect(() => {
+    if (!optimisticContinue) return;
+    const count = (agentData?.decisions || []).length;
+    if (count > optimisticContinue.decisions) {
+      setOptimisticContinue(null);
+      return;
+    }
+    const t = setTimeout(() => setOptimisticContinue(null), 5 * 60 * 1000);
+    return () => clearTimeout(t);
+  }, [optimisticContinue, agentData?.decisions]);
+
+  /** True while we are pretending the agent is working after a continuation. */
+  const optimisticRunning = Boolean(optimisticContinue);
 
 
 
@@ -5474,7 +5500,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 {(() => {
                   const status = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
                   const decisionCount = (agentData?.decisions || []).length;
-                  const isRunning = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
+                  const isRunning = optimisticRunning || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
                   const rawStartedAt = agentData?.started_at || execution?.started_at || 0;
                   // Normalize: backend may return Unix milliseconds (UnixMillis) or seconds.
                   const startedAtSec = rawStartedAt > 1e12 ? Math.floor(rawStartedAt / 1000) : rawStartedAt;
@@ -5697,7 +5723,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {/* Detailed timeline view */}
             {viewMode === 'detailed' && (() => {
               const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
-              const detailedIsRunning = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
+              const detailedIsRunning = optimisticRunning
+                || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
               const detailedRunFinished = !detailedIsRunning;
               
               return (
@@ -5750,6 +5777,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       />
                     ));
                   })()}
+                  {optimisticRunning && (
+                    <Box sx={{
+                      borderTop: '1px solid hsl(var(--border))',
+                      px: 2, py: 1.5,
+                      display: 'flex', alignItems: 'center', gap: 1.25,
+                      bgcolor: 'hsl(var(--muted) / 0.2)',
+                    }}>
+                      <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} />
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                        Processing
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                        Sending your message to the agent…
+                      </Typography>
+                    </Box>
+                  )}
                   {detailedRunFinished && (
                     <Box sx={{
                       borderTop: '1px solid hsl(var(--border))',
@@ -5776,7 +5819,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             })()}
 
             {/* Continuation form (after a finish decision) */}
-            {finishDecisionId && (
+            {finishDecisionId && !optimisticRunning && (
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
                 <Box sx={{ width: '100%', maxWidth: 640 }}>
                   <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mb: 0.75, textAlign: 'center' }}>
