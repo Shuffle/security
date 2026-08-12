@@ -3552,6 +3552,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         } else {
           finishAns = fieldText || reasonText;
         }
+        finishNote = reasonText;
       }
     }
 
@@ -3566,10 +3567,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
     }
 
-    // Runs sometimes finish without any finish/finalise text, but still carry
-    // an `output` field on the agent payload or on the last decision. Fall
-    // back to that so "Run finished" is never empty when output exists.
-    if (!finishAns) {
+    // The agent's `output` field carries the actual answer, while the finish
+    // decision's `reason` is usually just a one-line rationale ("Answer the
+    // conversational query directly."). Prefer `output` as the main answer and
+    // keep the finish reason as a secondary note underneath.
+    {
       const stringify = (v: unknown): string => {
         if (v == null) return '';
         if (typeof v === 'string') return v.trim();
@@ -3583,11 +3585,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
         const d = decs[i] || {};
         candidates.push(d.output, d.run_details?.output, d.details?.output, d.result);
       }
+      let outputText = '';
       for (const c of candidates) {
         const text = stringify(c);
-        if (text) { finishAns = text; break; }
+        if (text) { outputText = text; break; }
       }
+      if (outputText) {
+        if (finishAns && finishAns !== outputText) {
+          // Keep the finish text as the secondary note when it differs.
+          finishNote = finishAns;
+        }
+        finishAns = outputText;
+      }
+      if (finishNote && finishNote === finishAns) finishNote = '';
     }
+
 
 
 
