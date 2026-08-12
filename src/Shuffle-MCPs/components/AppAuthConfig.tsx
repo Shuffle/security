@@ -1526,7 +1526,9 @@ export const AppAuthCard = ({
                       const isActive = authEntry.active === true;
                       const isValid =
                         authEntry.validation?.valid === true ||
-                        testStatusPerAuth[entryId] === 'success';
+                        testStatusPerAuth[entryId] === 'success' ||
+                        (!!authEntry.id && getValidatedAuthIds().has(authEntry.id));
+
                       
                       // Format timestamp for tooltips
                       const formatTimestamp = (ts?: number): string => {
