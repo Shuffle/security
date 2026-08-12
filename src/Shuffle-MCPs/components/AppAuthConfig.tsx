@@ -614,10 +614,19 @@ export const AppAuthCard = ({
   const showAddNewForm = compactAuthForm ? true : selectedAuthId === ADD_NEW_AUTH;
 
   // Compute configured/tested status for the SELECTED auth entry only (not any auth)
-  const isConfigured = selectedAuth?.active === true;
+  // NOTE: switching the active provider (e.g. OpenAI -> Shuffle AI) rewrites the
+  // auth entry with masked secrets, which clears `validation.valid` on the backend.
+  // The locally remembered validation keeps the "Validated" state intact.
+  const isRememberedValid = React.useMemo(
+    () => !!selectedAuth?.id && getValidatedAuthIds().has(selectedAuth.id),
+    [selectedAuth?.id, testStatusPerAuth],
+  );
+  const isConfigured = selectedAuth?.active === true || isRememberedValid;
   const isTested =
     selectedAuth?.validation?.valid === true ||
-    testStatusPerAuth[selectedAuthId] === 'success';
+    testStatusPerAuth[selectedAuthId] === 'success' ||
+    isRememberedValid;
+
   
   // Get last validation timestamp (prefer selected auth, fallback to any validated entry)
   const getLastValidTimestamp = (): number | undefined => {
