@@ -283,28 +283,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
 
-
-
-  /**
-   * Per-provider configuration state used to mark the provider list:
-   * 'valid' (green, validated) or 'configured' (yellow, saved but unvalidated).
-   */
-  const providerStatus = useMemo(() => {
-    const map: Record<string, 'valid' | 'configured'> = {};
-    for (const entry of openaiEntries) {
-      const provider = providerOfEntry(entry);
-      const authId = (entry as any)?.id || (entry as any)?.label || '';
-      const isValid =
-        (entry as any)?.validation?.valid === true ||
-        (authId ? isAuthVerifiedLocally(OPENAI_APP_ID, authId) : false);
-      if (isValid) map[provider] = 'valid';
-      else if (!map[provider]) map[provider] = 'configured';
-    }
-    if (!hasOpenAIEntries) map[SHUFFLE_AI_PRESET] = 'valid';
-    return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openaiEntries, hasOpenAIEntries]);
-
   /**
    * Multiple LLM authentications can coexist. Exactly one of them — the
    * primary provider — carries `active: true`; every other OpenAI-compatible
