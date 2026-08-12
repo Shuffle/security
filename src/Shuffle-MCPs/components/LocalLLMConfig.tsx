@@ -25,6 +25,9 @@ import {
 import { UsageBar } from '@/Shuffle-MCPs/components/UsageBar';
 import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { AuthStatusChip } from '@/Shuffle-MCPs/components/AuthStatusChip';
+import { getValidatedAuthIds, rememberValidatedAuth } from '@/Shuffle-MCPs/validatedAuthMemory';
+
 import {
   ENDPOINT_PRESETS,
   PROVIDER_DOMAINS,
