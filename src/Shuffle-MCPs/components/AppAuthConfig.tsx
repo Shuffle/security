@@ -1176,6 +1176,23 @@ export const AppAuthCard = ({
     return null;
   };
 
+  // Every parameter that looks like a URL/endpoint/host, whether the field is
+  // visible in the form or hidden behind a preset selector.
+  const urlParams = (): Array<{ key: string; label: string }> => {
+    if (!auth?.parameters) return [];
+    return auth.parameters
+      .map((param, index) => {
+        const nameOrId = (param.name || param.id || '').toLowerCase();
+        const isUrlField = nameOrId.includes('url') || nameOrId.includes('endpoint') || nameOrId.includes('host');
+        if (!isUrlField) return null;
+        return {
+          key: param.id || param.name || `param_${index}`,
+          label: param.name || param.id || 'URL',
+        };
+      })
+      .filter(Boolean) as Array<{ key: string; label: string }>;
+  };
+
   // Check if all required fields are valid for saving
   const isFormValid = (): boolean => {
     // Check for any field errors
@@ -1185,6 +1202,13 @@ export const AppAuthCard = ({
     for (const [key, value] of Object.entries(localCredentials)) {
       const error = validateField(key, value);
       if (error) return false;
+    }
+
+    // URL fields are mandatory even when hidden — a saved auth without a URL
+    // is useless, so never let it slip through.
+    for (const { key } of urlParams()) {
+      const value = (localCredentials[key] || '').trim();
+      if (!value || !isValidUrl(value)) return false;
     }
     
     // Check parameters are filled — every visible (non-URL when hidden) parameter must have a value
@@ -1207,6 +1231,22 @@ export const AppAuthCard = ({
   };
 
   const handleSave = async () => {
+    // Hard block: never PUT an authentication that is missing its URL.
+    const missingUrl = urlParams().filter(({ key }) => {
+      const value = (localCredentials[key] || '').trim();
+      return !value || !isValidUrl(value);
+    });
+    if (missingUrl.length > 0) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        ...Object.fromEntries(missingUrl.map(({ key }) => [key, 'A valid URL is required'])),
+      }));
+      toast.error('URL is required', {
+        description: `Set a valid URL for: ${missingUrl.map((m) => m.label).join(', ')}`,
+      });
+      return;
+    }
+
     setSaving(true);
     setSaveSuccess(null);
     const success = await onSaveAuth(app.objectID, localCredentials);
@@ -1226,6 +1266,7 @@ export const AppAuthCard = ({
     }
 
   };
+
 
   // Helper to update local credentials and notify parent
   const handleCredentialChange = (key: string, value: string) => {
