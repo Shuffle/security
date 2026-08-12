@@ -38,6 +38,7 @@ import {
   GitBranch,
   Globe,
   Hand,
+  Image as ImageIcon,
   Loader2,
   Server,
   Workflow as WorkflowIcon,
