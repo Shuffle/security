@@ -3847,6 +3847,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const optimisticRunning = Boolean(optimisticContinue);
   const optimisticContinueText = optimisticContinue?.text || undefined;
 
+  /**
+   * True when any decision row is still in-flight (spinner visible). The run
+   * must not claim "Run finished" while a step is still spinning.
+   */
+  const hasInFlightDecision = useMemo(
+    () => ((agentData?.decisions as any[]) || []).some((d) => {
+      const s = String(d?.run_details?.status || '').toUpperCase();
+      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
+    }),
+    [agentData?.decisions],
+  );
+
+
 
 
   const toggleOpen = (i: number) =>
@@ -5535,7 +5548,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 {(() => {
                   const status = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
                   const decisionCount = (agentData?.decisions || []).length;
-                  const isRunning = optimisticRunning || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
+                  const isRunning = optimisticRunning || hasInFlightDecision || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
                   const rawStartedAt = agentData?.started_at || execution?.started_at || 0;
                   // Normalize: backend may return Unix milliseconds (UnixMillis) or seconds.
                   const startedAtSec = rawStartedAt > 1e12 ? Math.floor(rawStartedAt / 1000) : rawStartedAt;
@@ -5759,7 +5772,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {viewMode === 'detailed' && (() => {
               const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
               const detailedIsRunning = optimisticRunning
+                || hasInFlightDecision
                 || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
+
               const detailedRunFinished = !detailedIsRunning;
               
               return (
