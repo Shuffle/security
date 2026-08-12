@@ -16,7 +16,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { toast } from '@/lib/toast';
-import { getApiUrl, getAuthHeader, resetRegionUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
@@ -127,12 +127,18 @@ const AdminPage = () => {
         resetRegionUrl();
         localStorage.removeItem('shuffle-theme');
 
+        // /change responds with the new tenant's region_url — apply it via the
+        // shared setter so the getinfo below already targets the right region.
+        const changeData = await response.json().catch(() => null);
+        applyRegionFromPayload(changeData, requestedOrg);
+
         // Validate the switch actually took effect before refreshing the UI.
         const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
           credentials: 'include',
           headers: { ...getAuthHeader() },
         });
         const info = infoRes.ok ? await infoRes.json() : null;
+        applyRegionFromPayload(info);
         const newOrgId = info?.active_org?.id;
         if (newOrgId && previousOrgId && newOrgId === previousOrgId) {
           toast.error('Organization did not change');

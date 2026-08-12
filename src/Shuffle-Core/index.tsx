@@ -118,7 +118,7 @@ export { ShuffleCoreThemeProvider };
 export type { ShuffleColorMode };
 export { usePageMeta } from './usePageMeta';
 export { toast, setToastImpl } from './toast';
-export { API_CONFIG, getApiUrl, getAuthHeader, shuffleFetch, setRegionUrl, resetRegionUrl, setHostBaseUrl, getHostBaseUrl } from './api';
+export { API_CONFIG, getApiUrl, getAuthHeader, shuffleFetch, setRegionUrl, resetRegionUrl, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl } from './api';
 export { useSyncHostBaseUrl } from './useSyncHostBaseUrl';
 export { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
 

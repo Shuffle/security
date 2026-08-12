@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { getApiUrl, API_CONFIG, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId } from '@/Shuffle-MCPs/api';
+import { getApiUrl, API_CONFIG, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 
 interface Organization {
@@ -117,8 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Set region URL from response (top-level first, then active_org)
-        const resolvedRegionUrl = data.region_url || data.active_org?.region_url || null;
-        setRegionUrl(resolvedRegionUrl, newOrgId);
+        applyRegionFromPayload(data, newOrgId);
 
         const info = {
           username: data.username,
@@ -258,6 +257,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!response.ok) {
         console.warn('Org change API returned non-OK:', response.status);
+      } else {
+        // /change responds with the new tenant's region_url — apply it through
+        // the same setter/broadcast path as getinfo so later calls (including
+        // the getinfo below) already hit the right region.
+        const changeData = await response.json().catch(() => null);
+        applyRegionFromPayload(changeData, orgId);
       }
 
       // Always call getinfo after org change to resolve the new region_url

@@ -187,6 +187,23 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
 };
 
 /**
+ * Single entry point for applying a region from ANY backend response that
+ * carries one (`/api/v1/getinfo`, `/api/v1/orgs/{id}/change`, ...). Extracts
+ * `region_url` (top-level first, then `active_org`) and routes it through
+ * `setRegionUrl`, so setting + broadcasting always happens in one place.
+ */
+export const applyRegionFromPayload = (
+  payload: any,
+  orgIdOverride?: string | null,
+): string | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const orgId = orgIdOverride ?? payload?.active_org?.id ?? payload?.org_id ?? null;
+  const regionUrl = payload?.region_url || payload?.active_org?.region_url || null;
+  setRegionUrl(regionUrl, orgId);
+  return regionUrl;
+};
+
+/**
  * Called when org changes. Resets region URL to default until next getinfo.
  */
 export const resetRegionUrl = () => {
