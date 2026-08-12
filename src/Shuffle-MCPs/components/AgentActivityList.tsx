@@ -38,6 +38,7 @@ import {
   GitBranch,
   Globe,
   Hand,
+  Image as ImageIcon,
   Loader2,
   Server,
   Workflow as WorkflowIcon,
@@ -58,6 +59,7 @@ import {
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
+import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
 import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
@@ -589,6 +591,7 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
   const duration = formatDuration(run);
   const tools = getRunTools(run);
   const decisionCount = getDecisionCount(run);
+  const attachmentCount = collectLlmImageAttachments(run).length;
 
   return (
     <Box
@@ -711,6 +714,17 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
                 <GitBranch size={11} />
                 <Typography sx={{ fontSize: '0.72rem', color: 'inherit' }}>
                   {decisionCount} {decisionCount === 1 ? 'decision' : 'decisions'}
+                </Typography>
+              </Box>
+            </>
+          )}
+          {attachmentCount > 0 && (
+            <>
+              <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', opacity: 0.4 }}>·</Typography>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'hsl(var(--muted-foreground))', opacity: 0.7 }}>
+                <ImageIcon size={11} />
+                <Typography sx={{ fontSize: '0.72rem', color: 'inherit' }}>
+                  {attachmentCount} {attachmentCount === 1 ? 'attachment' : 'attachments'}
                 </Typography>
               </Box>
             </>
