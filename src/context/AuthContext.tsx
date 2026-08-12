@@ -257,6 +257,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!response.ok) {
         console.warn('Org change API returned non-OK:', response.status);
+      } else {
+        // /change responds with the new tenant's region_url — apply it through
+        // the same setter/broadcast path as getinfo so later calls (including
+        // the getinfo below) already hit the right region.
+        const changeData = await response.json().catch(() => null);
+        applyRegionFromPayload(changeData, orgId);
       }
 
       // Always call getinfo after org change to resolve the new region_url
