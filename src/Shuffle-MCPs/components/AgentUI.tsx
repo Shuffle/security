@@ -3034,15 +3034,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const s = String(d?.run_details?.status || '').toUpperCase();
       return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
     });
-    // The run is done and a final answer is on screen — stop polling entirely.
-    if (isTerminal && !hasPendingDecision && runComplete) {
-      keepPollingUntilRef.current = 0;
-      return;
-    }
+    // The run looks done and a final answer is on screen. Do NOT stop polling
+    // completely: the backend can flip the same execution back to RUNNING
+    // (continuations, reruns, background steps). Keep a slow heartbeat so the
+    // UI never claims FINISHED while the backend says otherwise.
+    const settled = isTerminal && !hasPendingDecision && runComplete;
+    if (settled) keepPollingUntilRef.current = 0;
+    const intervalMs = settled ? 15000 : isTerminal ? 5000 : 3000;
     const id = setInterval(() => {
-      if (isTerminal && !hasPendingDecision && Date.now() > keepPollingUntilRef.current) return;
       getExecution(execution.execution_id!, execution.authorization);
-    }, isTerminal ? 5000 : 3000);
+    }, intervalMs);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [execution?.execution_id, execution?.authorization, execution?.status, agentData?.decisions, runComplete, getExecution]);
