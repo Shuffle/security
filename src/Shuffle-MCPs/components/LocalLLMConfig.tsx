@@ -705,26 +705,11 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                     </Typography>
                   )}
                   {isValidated && (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        flexShrink: 0,
-                        px: 0.75,
-                        py: 0.25,
-                        borderRadius: 1,
-                        bgcolor: 'hsl(var(--severity-low) / 0.15)',
-                        color: 'hsl(var(--severity-low))',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.02em',
-                      }}
-                    >
-                      Validated
+                    <Box sx={{ display: 'inline-flex', flexShrink: 0 }}>
+                      <AuthStatusChip dense status="validated" />
                     </Box>
                   )}
+
                   {isSelected && (
                     <Tooltip
                       title="Selected provider"
