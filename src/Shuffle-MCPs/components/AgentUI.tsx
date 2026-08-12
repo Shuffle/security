@@ -497,7 +497,7 @@ import { getApiUrl, getAuthHeader, API_CONFIG, getShuffleCoreFormUrl } from '@/S
 import { fetchApps } from '@/Shuffle-MCPs/appsCache';
 import { resolveApps } from '@/Shuffle-MCPs/resolveApp';
 import { toast } from '@/Shuffle-MCPs/toast';
-import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET } from '@/Shuffle-MCPs/llmProviderDetect';
+import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET, resolveActiveLLMProvider } from '@/Shuffle-MCPs/llmProviderDetect';
 import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
