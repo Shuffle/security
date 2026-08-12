@@ -156,7 +156,9 @@ export const getHostBaseUrl = (): string | null => _hostBaseUrl;
 
 export const API_CONFIG = {
   get baseUrl(): string {
-    const url = _hostBaseUrl || _regionUrl || getDefaultBaseUrl();
+    // In test/dev environments (Lovable preview, VITE_SHUFFLE_API_URL) the
+    // test backend always wins — region_url must not redirect us to prod.
+    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (_regionUrl || getDefaultBaseUrl()));
     try { registerProtectedOrigin(url); } catch { /* noop */ }
     return url;
   },

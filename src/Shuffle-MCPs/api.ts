@@ -216,7 +216,9 @@ export const getTrackedOrgId = (): string | null => _trackedOrgId;
 export const API_CONFIG = {
   // Shuffle backend URL — host override beats region URL beats default.
   get baseUrl(): string {
-    const url = _hostBaseUrl || _regionUrl || getDefaultBaseUrl();
+    // In test/dev environments (Lovable preview, VITE_SHUFFLE_API_URL) the
+    // test backend always wins — region_url must not redirect us to prod.
+    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (_regionUrl || getDefaultBaseUrl()));
     // Register origin once so the breaker watches it. registerProtectedOrigin
     // is idempotent.
     try { registerProtectedOrigin(url); } catch { /* noop */ }
