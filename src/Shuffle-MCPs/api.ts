@@ -115,13 +115,35 @@ let _trackedOrgId: string | null = cached.orgId;
 // URL and the auto-detected default. Use this for self-hosted backends.
 let _hostBaseUrl: string | null = null;
 
+const REGION_EVENT = 'shuffle:region-url';
+
 const persistRegion = (url: string | null, orgId: string | null) => {
   if (typeof window === 'undefined') return;
   try {
     if (url) localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ url, orgId }));
     else localStorage.removeItem(REGION_STORAGE_KEY);
   } catch { /* ignore */ }
+  // Broadcast so the other api module (Shuffle-Core) and other tabs stay in sync.
+  try { window.dispatchEvent(new CustomEvent(REGION_EVENT, { detail: { url, orgId } })); } catch { /* ignore */ }
 };
+
+// Keep this module in sync when the region is set from the other api module
+// (or another tab). Without this, half the app keeps hitting shuffler.io.
+if (typeof window !== 'undefined') {
+  const sync = () => {
+    const next = readCachedRegion();
+    if (next.url !== _regionUrl) {
+      _regionUrl = next.url;
+      console.log(`[API] Region URL synced to: ${_regionUrl || 'default'}`);
+    }
+    _trackedOrgId = next.orgId;
+  };
+  window.addEventListener(REGION_EVENT, sync);
+  window.addEventListener('storage', (e) => {
+    if (e.key === REGION_STORAGE_KEY) sync();
+  });
+}
+
 
 /** Check if a URL is a valid shuffler.io subdomain */
 const isShufflerSubdomain = (url: string): boolean => {
