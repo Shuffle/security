@@ -20,6 +20,7 @@ import {
 import { statusConfig, severityColors, isKnownStatus } from '@/config/incidentConfig';
 import { useState, useEffect, useRef } from 'react';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Resolves a source-app logo for an incident card.
@@ -265,6 +266,9 @@ export const IncidentCardView = ({
   isParentOrg = false,
   threadCounts,
 }: IncidentCardViewProps) => {
+
+  const { userInfo } = useAuth();
+  const currentOrgId = userInfo?.active_org?.id;
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hasRendered, setHasRendered] = useState(false);
@@ -698,8 +702,14 @@ export const IncidentCardView = ({
                       />
                     </>
                   )}
-                  {/* Tenant name — only shown when the current org actually has sub-tenants. */}
-                  {isParentOrg && incident.orgName && !(incident.sharedOrgs && incident.sharedOrgs.length > 1) && (
+                  {/* Tenant name — only shown for incidents that belong to a
+                       different tenant than the current one. The current tenant
+                       is implied and doesn't need a label. */}
+                  {isParentOrg &&
+                    incident.orgId &&
+                    incident.orgId !== currentOrgId &&
+                    incident.orgName &&
+                    !(incident.sharedOrgs && incident.sharedOrgs.length > 1) && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                         •
