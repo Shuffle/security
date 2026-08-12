@@ -175,6 +175,12 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   const [authenticatedApps, setAuthenticatedApps] = useState<AppAuthentication[]>(externalAuthenticatedApps || []);
   const [authenticatedAppsLoading, setAuthenticatedAppsLoading] = useState<boolean>(!externalAuthenticatedApps);
   const [drawerApp, setDrawerApp] = useState<AlgoliaSearchApp | null>(null);
+  // First paint guard: keep a skeleton on screen until the first Algolia
+  // search AND the private-app fetch have both resolved, so the list is only
+  // revealed once selected apps are known and sorted. Without this the list
+  // pops in, then visibly reshuffles when selections/private apps arrive.
+  const [initialSettled, setInitialSettled] = useState(false);
+  const firstSearchDoneRef = useRef(false);
 
   const hasInitialized = useRef(false);
 
