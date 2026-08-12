@@ -345,11 +345,25 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           isOptionEqualToValue={(opt, val) => opt === val}
           renderOption={(props, option) => {
             const preset = ENDPOINT_PRESETS.find((p) => p.label === option);
+            const status = providerStatus[option];
             return (
               <li {...props} key={option}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
                   <ProviderLogo label={option} url={preset?.url} />
                   <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--popover-foreground))', flexShrink: 0 }}>{option}</Typography>
+                  {status && (
+                    <Check
+                      size={14}
+                      strokeWidth={3}
+                      style={{
+                        flexShrink: 0,
+                        color: status === 'valid'
+                          ? 'hsl(var(--severity-low))'
+                          : 'hsl(var(--severity-medium))',
+                      }}
+                      aria-label={status === 'valid' ? 'Configured and working' : 'Configured, not validated'}
+                    />
+                  )}
                   {preset?.url && (
                     <Typography component="span" sx={{ ml: 'auto', minWidth: 0, flex: '0 1 auto', color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {preset.url}
