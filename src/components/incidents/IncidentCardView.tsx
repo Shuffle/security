@@ -267,6 +267,9 @@ export const IncidentCardView = ({
   threadCounts,
 }: IncidentCardViewProps) => {
 
+  const { userInfo } = useAuth();
+  const currentOrgId = userInfo?.active_org?.id;
+
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hasRendered, setHasRendered] = useState(false);
   const renderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
