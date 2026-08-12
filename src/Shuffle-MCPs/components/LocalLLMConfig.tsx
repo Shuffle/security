@@ -18,6 +18,10 @@ import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { refreshAllIntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
+import {
+  fetchAuthenticatedApps as fetchSharedAuthenticatedApps,
+  invalidateAuthenticatedAppsCache,
+} from '@/Shuffle-MCPs/authenticatedApps';
 import { UsageBar } from '@/Shuffle-MCPs/components/UsageBar';
 import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
