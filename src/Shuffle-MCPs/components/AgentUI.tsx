@@ -3237,6 +3237,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // The parent execution may already be FINISHED — keep polling so the new
     // decisions produced by this continuation stream into the timeline.
     setRunComplete(false);
+    // Optimistically flip the UI back into "working" mode straight away.
+    setOptimisticContinue({ at: Date.now(), decisions: (agentData?.decisions || []).length });
     keepPollingUntilRef.current = Date.now() + 10 * 60 * 1000;
     const wfId = execution.workflow?.id || execution.execution_id;
     const params = new URLSearchParams({
