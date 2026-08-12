@@ -165,6 +165,65 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     return detectLLMProvider(currentUrl)?.label || CUSTOM_PRESET;
   }, [selectedPreset, currentUrl, hasOpenAIEntries]);
 
+  /** Which provider a saved OpenAI auth entry belongs to (label first, URL as fallback). */
+  const providerOfEntry = (entry: any): string => {
+    const label = String(entry?.label || '');
+    const match = ENDPOINT_PRESETS.find(
+      (p) => p.label !== SHUFFLE_AI_PRESET && label.toLowerCase().includes(p.label.toLowerCase()),
+    );
+    if (match) return match.label;
+    const url = ((entry?.fields as Array<{ key?: string; value?: string }> | undefined) || [])
+      .find((f) => (f?.key || '').toLowerCase() === 'url')?.value || '';
+    return detectLLMProvider(url)?.label || CUSTOM_PRESET;
+  };
+
+  /**
+   * Per-provider configuration state used to mark the provider list:
+   * 'valid' (green, validated) or 'configured' (yellow, saved but unvalidated).
+   */
+  const providerStatus = useMemo(() => {
+    const map: Record<string, 'valid' | 'configured'> = {};
+    for (const entry of openaiEntries) {
+      const provider = providerOfEntry(entry);
+      const isValid = (entry as any)?.validation?.valid === true;
+      if (isValid) map[provider] = 'valid';
+      else if (!map[provider]) map[provider] = 'configured';
+    }
+    if (!hasOpenAIEntries) map[SHUFFLE_AI_PRESET] = 'valid';
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openaiEntries, hasOpenAIEntries]);
+
+  /**
+   * Save with the provider baked into the label, then remove any other
+   * authentication for the same provider so there is only ever one per
+   * provider.
+   */
+  const handleSaveProviderAuth = async (appId: string, creds: Record<string, string>): Promise<boolean> => {
+    const provider = effectivePreset || detectLLMProvider(creds.url || '')?.label || CUSTOM_PRESET;
+    const duplicates = openaiEntries.filter((e) => providerOfEntry(e) === provider && e.id);
+    const ok = await handleSaveAuth(appId, creds, OPENAI_APP_NAME, `${OPENAI_APP_NAME} - ${provider}`);
+    if (!ok) return false;
+    let deletedAny = false;
+    for (const entry of duplicates) {
+      try {
+        const resp = await fetch(getApiUrl(`/api/v1/apps/authentication/${entry.id}`), {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        });
+        if (resp.ok) deletedAny = true;
+      } catch (err) {
+        console.error('[LocalLLMConfig] Failed to remove duplicate provider auth:', err);
+      }
+    }
+    if (deletedAny) {
+      await refreshAuth();
+      refreshAllIntegrationStatus();
+    }
+    return true;
+  };
+
   const applyShuffleAI = async () => {
     let deletedAny = false;
     for (const entry of openaiEntries) {
