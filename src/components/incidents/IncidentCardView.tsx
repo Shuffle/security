@@ -20,6 +20,7 @@ import {
 import { statusConfig, severityColors, isKnownStatus } from '@/config/incidentConfig';
 import { useState, useEffect, useRef } from 'react';
 import { useSourceAppImage } from '@/hooks/useSourceAppImage';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Resolves a source-app logo for an incident card.
