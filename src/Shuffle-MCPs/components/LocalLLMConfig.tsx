@@ -509,7 +509,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   const applyShuffleAI = async () => {
     // Keep every saved LLM authentication, but deactivate all of them so
     // Shuffle AI becomes the primary provider. Nothing is deleted.
-    await setActiveAuthEntry(null);
+    await setActiveAuthEntry(null, openaiEntries as any[]);
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
     rememberPreset(SHUFFLE_AI_PRESET);
