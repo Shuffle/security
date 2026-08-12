@@ -13,7 +13,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
+import { AppAuthCard, isAuthVerifiedLocally } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
