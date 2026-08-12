@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
 import {
   Autocomplete,
   Box,
