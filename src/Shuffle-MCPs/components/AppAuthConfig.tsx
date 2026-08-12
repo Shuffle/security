@@ -271,6 +271,56 @@ const itemVariants = {
 
 const ADD_NEW_AUTH = '__add_new__';
 
+/** LocalStorage key prefix for per-app/per-auth connection test results. */
+const VERIFIED_STORAGE_KEY = 'shuffle-appauth-verified';
+
+const verifiedStorageKey = (appId: string, authId: string) =>
+  `${VERIFIED_STORAGE_KEY}-${appId}-${authId}`;
+
+const readVerifiedFromStorage = (appId: string, authId: string): 'success' | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = localStorage.getItem(verifiedStorageKey(appId, authId));
+    return value === 'success' ? 'success' : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeVerifiedToStorage = (appId: string, authId: string, status: 'success' | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = verifiedStorageKey(appId, authId);
+    if (status === 'success') {
+      localStorage.setItem(key, 'success');
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    /* ignore storage errors */
+  }
+};
+
+const removeVerifiedFromStorage = (appId: string, authId: string) => {
+  writeVerifiedToStorage(appId, authId, null);
+};
+
+/** Build initial verified map from localStorage for the given auth entries. */
+const buildInitialVerifiedMap = (
+  appId: string,
+  entries: ApiAuthEntry[]
+): Record<string, 'success'> => {
+  const map: Record<string, 'success'> = {};
+  entries.forEach((entry) => {
+    const authId = entry.id || entry.label || '';
+    if (!authId) return;
+    if (readVerifiedFromStorage(appId, authId) === 'success') {
+      map[authId] = 'success';
+    }
+  });
+  return map;
+};
+
 export const AppAuthCard = ({
   app,
   authState,
@@ -323,10 +373,12 @@ export const AppAuthCard = ({
   // Track if user has made an explicit selection (to prevent auto-override on refresh)
   const [userHasSelected, setUserHasSelected] = useState(false);
   
-  // Track test status PER authentication ID for this session
+  // Track test status PER authentication ID for this session (plus localStorage for verified)
   // This ensures switching between auths shows each one's test result correctly
   type TestStatusValue = 'untested' | 'testing' | 'success' | 'pending_validation' | 'error';
-  const [testStatusPerAuth, setTestStatusPerAuth] = useState<Record<string, TestStatusValue>>({});
+  const [testStatusPerAuth, setTestStatusPerAuth] = useState<Record<string, TestStatusValue>>(() =>
+    buildInitialVerifiedMap(app.objectID, apiAuthEntries)
+  );
   
   // Track test messages per auth (error message, success message, warning message)
   const [testMessagesPerAuth, setTestMessagesPerAuth] = useState<Record<string, {
@@ -354,11 +406,17 @@ export const AppAuthCard = ({
         headers: { ...getAuthHeader() },
       });
       if (response.ok) {
-        // If we deleted the selected auth, reset selection
+        // If we deleted the selected auth, reset selection and clear localStorage
         if (selectedAuthId === authId) {
           setSelectedAuthId(ADD_NEW_AUTH);
           setUserHasSelected(false);
         }
+        setTestStatusPerAuth(prev => {
+          const next = { ...prev };
+          delete next[authId];
+          return next;
+        });
+        removeVerifiedFromStorage(app.objectID, authId);
         invalidateAuthenticatedAppsCache();
         if (onRefreshAuth) await onRefreshAuth();
       }
@@ -411,6 +469,25 @@ export const AppAuthCard = ({
     }
     prevEntryCountRef.current = apiAuthEntries.length;
   }, [apiAuthEntries, userHasSelected]);
+
+  // Helper to update test status for a specific auth and persist verified state
+  const setTestStatusForAuth = useCallback((authId: string, status: TestStatusValue) => {
+    setTestStatusPerAuth(prev => ({ ...prev, [authId]: status }));
+    if (status === 'success') {
+      writeVerifiedToStorage(app.objectID, authId, 'success');
+    }
+  }, [app.objectID]);
+
+  // Persist server-side validated entries as verified in localStorage so the
+  // green indicator survives reloads without needing a manual re-test.
+  useEffect(() => {
+    apiAuthEntries.forEach((entry) => {
+      const authId = entry.id || entry.label || '';
+      if (entry.validation?.valid === true && authId) {
+        setTestStatusForAuth(authId, 'success');
+      }
+    });
+  }, [apiAuthEntries, setTestStatusForAuth]);
   
   // Track pre-validation state when auth selection changes (for first-time tests)
   useEffect(() => {
@@ -431,10 +508,6 @@ export const AppAuthCard = ({
     auth => (auth.id || auth.label || '') === selectedAuthId
   );
   
-  // Helper to update test status for a specific auth
-  const setTestStatusForAuth = (authId: string, status: TestStatusValue) => {
-    setTestStatusPerAuth(prev => ({ ...prev, [authId]: status }));
-  };
   
   // Helper to update test messages for a specific auth
   const setTestMessagesForAuth = (authId: string, messages: {
