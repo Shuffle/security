@@ -358,7 +358,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    */
   const handleSaveProviderAuth = async (appId: string, creds: Record<string, string>): Promise<boolean> => {
     const provider = effectivePreset || detectLLMProvider(creds.url || '')?.label || CUSTOM_PRESET;
-    const ok = await handleSaveAuth(appId, creds, OPENAI_APP_NAME, `${OPENAI_APP_NAME} - ${provider}`);
+    const ok = await handleSaveAuth(appId, creds, OPENAI_APP_NAME, provider);
     if (!ok) return false;
 
     // Find the freshly saved entry for this provider and make it the primary.
