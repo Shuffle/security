@@ -406,11 +406,17 @@ export const AppAuthCard = ({
         headers: { ...getAuthHeader() },
       });
       if (response.ok) {
-        // If we deleted the selected auth, reset selection
+        // If we deleted the selected auth, reset selection and clear localStorage
         if (selectedAuthId === authId) {
           setSelectedAuthId(ADD_NEW_AUTH);
           setUserHasSelected(false);
         }
+        setTestStatusPerAuth(prev => {
+          const next = { ...prev };
+          delete next[authId];
+          return next;
+        });
+        removeVerifiedFromStorage(app.objectID, authId);
         invalidateAuthenticatedAppsCache();
         if (onRefreshAuth) await onRefreshAuth();
       }
