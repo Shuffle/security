@@ -81,13 +81,32 @@ let _trackedOrgId: string | null = _cachedRegion.orgId;
 // Host-injected base URL (highest priority — set via setHostBaseUrl).
 let _hostBaseUrl: string | null = null;
 
+const REGION_EVENT = 'shuffle:region-url';
+
 const persistRegion = (url: string | null, orgId: string | null) => {
   if (typeof window === 'undefined') return;
   try {
     if (url) localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ url, orgId }));
     else localStorage.removeItem(REGION_STORAGE_KEY);
   } catch { /* ignore */ }
+  try { window.dispatchEvent(new CustomEvent(REGION_EVENT, { detail: { url, orgId } })); } catch { /* ignore */ }
 };
+
+// Stay in sync with the Shuffle-MCPs api module (AuthContext only calls
+// setRegionUrl there) and with other tabs.
+if (typeof window !== 'undefined') {
+  const sync = () => {
+    try {
+      const raw = localStorage.getItem(REGION_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      _regionUrl = parsed?.url || null;
+      _trackedOrgId = parsed?.orgId || null;
+    } catch { /* ignore */ }
+  };
+  window.addEventListener(REGION_EVENT, sync);
+  window.addEventListener('storage', (e) => { if (e.key === REGION_STORAGE_KEY) sync(); });
+}
+
 
 const isShufflerSubdomain = (url: string): boolean => {
   try {
