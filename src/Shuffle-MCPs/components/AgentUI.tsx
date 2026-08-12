@@ -5862,8 +5862,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
+                      {hasInFlightDecision && (
+                        <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+                          One or more steps never completed, so something may have gone wrong during this run. Continue the run below to let the agent pick up where it stopped.
+                        </Typography>
+                      )}
 
                     </Box>
+
                   )}
                 </>
               )}
