@@ -743,13 +743,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
         <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Switch to Shuffle AI?</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
-            Switching to Shuffle AI will remove your existing OpenAI app authentication. Any other workflow or app using this OpenAI authentication will lose access. Do you want to continue?
+            Switching to Shuffle AI will keep your saved provider authentications, but none of them will be used as the primary AI provider. You can switch back at any time. Do you want to continue?
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setConfirmShuffleAIOpen(false)} sx={{ color: 'hsl(var(--muted-foreground))', textTransform: 'none', height: 36 }}>Cancel</Button>
           <Button onClick={async () => { setConfirmShuffleAIOpen(false); await applyShuffleAI(); }} sx={{ bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', textTransform: 'none', height: 36, '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' } }}>
-            Remove and use Shuffle AI
+            Use Shuffle AI
           </Button>
         </DialogActions>
       </Dialog>
