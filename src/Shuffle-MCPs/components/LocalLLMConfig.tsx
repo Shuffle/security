@@ -738,18 +738,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
         </Box>
       )}
 
-      {effectivePreset === CUSTOM_PRESET && (
-        <TextField
-          size="small"
-          fullWidth
-          placeholder="https://your-self-hosted-endpoint.example.com"
-          value={customUrl || currentUrl}
-          onChange={(e) => handleCustomUrlChange(e.target.value)}
-          helperText="Enter the base URL of your OpenAI-compatible endpoint"
-          sx={{ '& .MuiFormHelperText-root': { color: 'hsl(var(--muted-foreground))' } }}
-        />
-      )}
-
       {!isShuffleAI && (
         <AppAuthCard
           app={OPENAI_ALGOLIA_APP}
@@ -765,7 +753,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           hideHeader
           hideStatusChips
           hideDocsLink
-          hideUrlFields
+          hideUrlFields={!urlIsEditable}
+
           initialAuthConfig={OPENAI_AUTH_SCHEMA}
           borderless
           compactAuthForm={false}
