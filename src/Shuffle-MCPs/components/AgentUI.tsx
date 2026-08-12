@@ -5387,6 +5387,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   Status: {execution?.status || agentData?.status || '—'} · {execution?.execution_id?.slice(0, 8) || ''}
                 </Typography>
               </Box>
+              <AgentAttachmentsButton attachments={llmImageAttachments} />
               {(() => {
                 const topStatus = String(execution?.status || agentData?.status || '').toUpperCase();
                 const topRunning = !!(execution?.execution_id || agentRequestLoading) && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(topStatus);
@@ -5407,7 +5408,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Tooltip>
                 ) : null;
               })()}
-              <AgentAttachmentsButton attachments={llmImageAttachments} />
               <Tooltip title={rerunAgentPending ? 'Rerun starting…' : 'Rerun with the same prompt and tools'}>
                 <span>
                   <IconButton
