@@ -373,10 +373,12 @@ export const AppAuthCard = ({
   // Track if user has made an explicit selection (to prevent auto-override on refresh)
   const [userHasSelected, setUserHasSelected] = useState(false);
   
-  // Track test status PER authentication ID for this session
+  // Track test status PER authentication ID for this session (plus localStorage for verified)
   // This ensures switching between auths shows each one's test result correctly
   type TestStatusValue = 'untested' | 'testing' | 'success' | 'pending_validation' | 'error';
-  const [testStatusPerAuth, setTestStatusPerAuth] = useState<Record<string, TestStatusValue>>({});
+  const [testStatusPerAuth, setTestStatusPerAuth] = useState<Record<string, TestStatusValue>>(() =>
+    buildInitialVerifiedMap(app.objectID, apiAuthEntries)
+  );
   
   // Track test messages per auth (error message, success message, warning message)
   const [testMessagesPerAuth, setTestMessagesPerAuth] = useState<Record<string, {
