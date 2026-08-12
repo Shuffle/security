@@ -479,7 +479,7 @@ export const AppAuthCard = ({
     }
 
     prevEntryCountRef.current = apiAuthEntries.length;
-  }, [apiAuthEntries, userHasSelected]);
+  }, [apiAuthEntries, userHasSelected, selectedAuthId]);
 
   // Helper to update test status for a specific auth and persist verified state
   const setTestStatusForAuth = useCallback((authId: string, status: TestStatusValue) => {
