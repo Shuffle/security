@@ -117,8 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Set region URL from response (top-level first, then active_org)
-        const resolvedRegionUrl = data.region_url || data.active_org?.region_url || null;
-        setRegionUrl(resolvedRegionUrl, newOrgId);
+        applyRegionFromPayload(data, newOrgId);
 
         const info = {
           username: data.username,
