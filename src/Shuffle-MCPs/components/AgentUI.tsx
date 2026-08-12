@@ -5548,7 +5548,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 {(() => {
                   const status = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
                   const decisionCount = (agentData?.decisions || []).length;
-                  const isRunning = optimisticRunning || hasInFlightDecision || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
+                  const isRunning = optimisticRunning || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(status);
                   const rawStartedAt = agentData?.started_at || execution?.started_at || 0;
                   // Normalize: backend may return Unix milliseconds (UnixMillis) or seconds.
                   const startedAtSec = rawStartedAt > 1e12 ? Math.floor(rawStartedAt / 1000) : rawStartedAt;
