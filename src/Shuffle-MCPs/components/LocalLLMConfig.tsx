@@ -337,7 +337,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
         .filter((a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID)
         .filter((a: any) => providerOfEntry(a) === provider)
         .sort((a: any, b: any) => (Number(b?.edited || b?.created || 0) - Number(a?.edited || a?.created || 0)))[0];
-      if (match?.id) await setActiveAuthEntry(match.id);
+      if (match?.id) await setActiveAuthEntry(match.id, entries);
     } catch (err) {
       console.error('[LocalLLMConfig] Failed to set primary LLM provider:', err);
     }
