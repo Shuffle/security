@@ -254,16 +254,17 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPreset, currentUrl, hasOpenAIEntries, activeEntry]);
 
-  /** Saved authentications that belong to the currently selected provider.
-   *  When any exist we show the normal auth selector (so they can be picked,
-   *  tested and deleted) instead of forcing the "Add New Authentication" form. */
+  /** Every saved OpenAI-compatible authentication.
+   *  All providers (OpenAI, Anthropic, custom endpoints) share the SAME OpenAI
+   *  app authentication — the OpenAI app is just the request FORMAT. So the
+   *  selector always lists every saved entry, regardless of which preset is
+   *  currently selected, instead of forcing the "Add New Authentication" form. */
   const providerEntries = useMemo(
-    () => openaiEntries
-      .filter((e: any) => providerOfEntry(e) === effectivePreset)
-      .map((e: any) => ({ ...e, label: displayLabelOfEntry(e) })),
+    () => openaiEntries.map((e: any) => ({ ...e, label: displayLabelOfEntry(e) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [openaiEntries, effectivePreset],
+    [openaiEntries],
   );
+
 
 
 
