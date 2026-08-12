@@ -369,6 +369,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   };
 
   const handlePresetChange = (label: string) => {
+    setLlmTest(null);
     if (label === SHUFFLE_AI_PRESET) {
       if (hasOpenAIEntries) {
         setConfirmShuffleAIOpen(true);
