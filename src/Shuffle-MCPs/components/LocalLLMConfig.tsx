@@ -162,11 +162,13 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   const [expanded, setExpanded] = useState(true);
   const [selectedPreset, setSelectedPreset] = useState<string>(() => {
     try {
-      return localStorage.getItem(LLM_PRESET_STORAGE_KEY) || '';
+      const stored = localStorage.getItem(LLM_PRESET_STORAGE_KEY) || '';
+      return ENDPOINT_PRESETS.some((p) => p.label === stored) ? stored : '';
     } catch {
       return '';
     }
   });
+
 
   const [customUrl, setCustomUrl] = useState<string>('');
   const [confirmShuffleAIOpen, setConfirmShuffleAIOpen] = useState(false);
