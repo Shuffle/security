@@ -5819,7 +5819,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             })()}
 
             {/* Continuation form (after a finish decision) */}
-            {finishDecisionId && (
+            {finishDecisionId && !optimisticRunning && (
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
                 <Box sx={{ width: '100%', maxWidth: 640 }}>
                   <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mb: 0.75, textAlign: 'center' }}>
