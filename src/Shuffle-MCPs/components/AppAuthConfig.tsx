@@ -240,6 +240,9 @@ export interface AppAuthCardProps extends ShuffleHostProps {
    *  credentials form (with the small "Test Authentication" CTA) is always
    *  visible so users can edit & retest in one place. */
   compactAuthForm?: boolean;
+  /** Suppress the "Authentication saved" success toast (embedded flows that
+   *  already give their own feedback, e.g. the LLM provider config). */
+  suppressSaveToast?: boolean;
   /** Render additional fields inside the expanded body, above the credential
    *  inputs. The slot receives the live `localCredentials` and a `setField`
    *  helper so its values are persisted as part of the auth on Save. */
