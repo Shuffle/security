@@ -479,7 +479,7 @@ export const AppAuthCard = ({
         setTestStatusForAuth(authId, 'success');
       }
     });
-  }, [apiAuthEntries]);
+  }, [apiAuthEntries, setTestStatusForAuth]);
   
   // Track pre-validation state when auth selection changes (for first-time tests)
   useEffect(() => {
