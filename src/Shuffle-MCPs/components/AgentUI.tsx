@@ -958,6 +958,10 @@ interface TimelineRowProps {
   rerunningDecisionId?: string | null;
   /** True when this row sits after the decision the user just rerun. */
   dimmedByRerun?: boolean;
+  /** When set, this run has just been continued optimistically: the trailing
+   *  finalise row is re-presented as the new "Continue" step with the user's
+   *  input, instead of a stale spinning "Finalise". */
+  optimisticContinueText?: string;
 }
 
 /** Compact relative time, e.g. "44m ago". Input is Unix seconds. */
@@ -1015,7 +1019,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   maxWidth, questionAnswers, setQuestionAnswers, onSubmitQuestions,
   onRerunAgent, onRerunDecision, agentRequestLoading, getFormUrl, runFinished,
   onAuthenticateApp, onRefreshAuthenticatedApps, isAppAuthenticated, authAppsLoading = false, highlight = false,
-  rerunningDecisionId = null, dimmedByRerun = false,
+  rerunningDecisionId = null, dimmedByRerun = false, optimisticContinueText,
 }) => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const validate = validateJson(item.details);
@@ -1065,8 +1069,17 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
   } else if (details?.reason) {
     displayLabel = details.reason;
   }
+  const isFinishLikeRow =
+    item.category === 'finalise' || item.category === 'finish' ||
+    details?.action === 'finalise' || details?.action === 'finish';
+  // Optimistic continuation: the previous finalise row becomes the new
+  // "Continue" step carrying the user's input.
+  const isOptimisticContinueRow = Boolean(optimisticContinueText) && isFinishLikeRow;
   if (!isProcessing) {
-    if (details?.action === 'finish' || item.category === 'finish' || details?.action === 'finalise') {
+    if (isOptimisticContinueRow) {
+      displayType = 'continue';
+      displayLabel = `User Input: ${optimisticContinueText}`;
+    } else if (details?.action === 'finish' || item.category === 'finish' || details?.action === 'finalise') {
       displayType = 'finalise';
     } else if (isContinuationDecision(details)) {
       displayType = 'continue';
@@ -1159,6 +1172,8 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
     details?.action === 'finalise' || details?.action === 'finish';
   const effectiveStatus = (() => {
     const s = (item.status || '').toUpperCase();
+    // An optimistically continued row is done — never leave it spinning.
+    if (isOptimisticContinueRow) return 'FINISHED';
     if (!runFinished) return item.status;
     // The finalise row IS the run's completion — never leave it spinning once
     // the run itself reports FINISHED, even if the row carries no status.
