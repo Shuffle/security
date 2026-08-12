@@ -5325,6 +5325,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Tooltip>
                 ) : null;
               })()}
+              <AgentAttachmentsButton attachments={llmImageAttachments} />
               <Tooltip title={rerunAgentPending ? 'Rerun starting…' : 'Rerun with the same prompt and tools'}>
                 <span>
                   <IconButton
