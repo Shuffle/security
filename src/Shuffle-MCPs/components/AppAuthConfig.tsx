@@ -501,12 +501,12 @@ export const AppAuthCard = ({
   );
   
   // Helper to update test status for a specific auth and persist verified state
-  const setTestStatusForAuth = (authId: string, status: TestStatusValue) => {
+  const setTestStatusForAuth = useCallback((authId: string, status: TestStatusValue) => {
     setTestStatusPerAuth(prev => ({ ...prev, [authId]: status }));
     if (status === 'success') {
       writeVerifiedToStorage(app.objectID, authId, 'success');
     }
-  };
+  }, [app.objectID]);
   
   // Helper to update test messages for a specific auth
   const setTestMessagesForAuth = (authId: string, messages: {
