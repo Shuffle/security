@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { Link, useLocation } from 'react-router-dom';
+import { algoliasearch } from 'algoliasearch';
+
 
 import { Box, CircularProgress, Avatar, AvatarGroup, Tooltip, Stack, Typography, Link as MuiLink, Button } from '@mui/material';
 import { Clock as ClockIcon, Github as GithubIcon, RefreshCw as RefreshCwIcon } from 'lucide-react';
@@ -28,6 +30,23 @@ interface RemoteDocMeta {
 interface MarkdownRendererProps {
   slug?: string;
 }
+
+interface DocSuggestion {
+  path: string;
+  label: string;
+  snippet?: string;
+}
+
+interface DocsHit {
+  title?: string;
+  filename?: string;
+  data?: string;
+  urlpath?: string;
+}
+
+// Public Algolia search credentials (same index used by the global search popup).
+const docsSearchClient = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957bed552');
+
 
 // Fetch a doc from the Shuffle Core /api/v1/docs/{name} endpoint.
 // The API returns { success, reason: <markdown>, meta: {...} }.
@@ -72,6 +91,9 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<DocSuggestion[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+
   const isSupport = useIsSupport();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { hash } = useLocation();
@@ -107,6 +129,58 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   useEffect(() => {
     loadContent();
   }, [loadContent]);
+
+  // When a doc 404s, suggest the top matching documentation pages from Algolia.
+  useEffect(() => {
+    if (!error) {
+      setSuggestions([]);
+      setSuggestLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setSuggestLoading(true);
+    (async () => {
+      try {
+        const res = await docsSearchClient.searchSingleIndex({
+          indexName: 'documentation',
+          searchParams: {
+            query: slug.replace(/[-_]+/g, ' '),
+            hitsPerPage: 8,
+            attributesToRetrieve: ['title', 'filename', 'data', 'urlpath'],
+          },
+        });
+        const seen = new Set<string>();
+        const items: DocSuggestion[] = [];
+        for (const raw of res.hits as unknown as DocsHit[]) {
+          const rawPath = typeof raw.urlpath === 'string' ? raw.urlpath.trim() : '';
+          const filename = (raw.filename || '').replace(/\.md$/i, '');
+          const pathWithoutHash = rawPath.split('#')[0];
+          const docSlugValue = pathWithoutHash.startsWith('/docs/')
+            ? pathWithoutHash.slice('/docs/'.length).replace(/^\/+|\/+$/g, '')
+            : filename.replace(/[_\s]+/g, '-').toLowerCase();
+          if (!docSlugValue || seen.has(docSlugValue)) continue;
+          seen.add(docSlugValue);
+          items.push({
+            path: rawPath.startsWith('/docs/') ? rawPath : `/docs/${docSlugValue}`,
+            label:
+              raw.title?.trim() ||
+              (filename || docSlugValue).replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            snippet: (raw.data || '').replace(/\s+/g, ' ').trim().slice(0, 160),
+          });
+          if (items.length >= 3) break;
+        }
+        if (!cancelled) setSuggestions(items);
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setSuggestLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [error, slug]);
+
 
   // Give every heading a stable id, then scroll to the hash target once the
   // markdown has rendered (docs links carry anchors like "#cloud_specific_example").
@@ -178,12 +252,63 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   if (error) {
     return (
       <Box>
-        <Box sx={{ py: 4, textAlign: 'center', color: 'error.main' }}>
-          {error}
+        <Box sx={{ py: 4 }}>
+          <Typography sx={{ color: 'error.main', textAlign: 'center' }}>{error}</Typography>
+
+          {(suggestLoading || suggestions.length > 0) && (
+            <Box sx={{ mt: 3, maxWidth: 640, mx: 'auto' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                {suggestLoading ? 'Looking for related documentation…' : 'Related documentation'}
+              </Typography>
+              {suggestLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress size={18} />
+                </Box>
+              ) : (
+                <Stack spacing={1}>
+                  {suggestions.map((s) => (
+                    <Box
+                      key={s.path}
+                      component={Link}
+                      to={s.path}
+                      sx={{
+                        display: 'block',
+                        p: 1.5,
+                        borderRadius: 1,
+                        border: '1px solid hsl(var(--border))',
+                        background: 'hsl(var(--card))',
+                        textDecoration: 'none',
+                        '&:hover': { borderColor: 'primary.main' },
+                      }}
+                    >
+                      <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.9rem' }}>
+                        {s.label}
+                      </Typography>
+                      {s.snippet && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'text.secondary',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {s.snippet}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          )}
         </Box>
       </Box>
     );
   }
+
 
 
   return (
