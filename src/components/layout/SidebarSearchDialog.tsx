@@ -312,8 +312,32 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     }
   }, []);
 
+  // Debounced fan-out: Algolia (apps + documentation) and correlations.
+  useEffect(() => {
+    if (appDebounceRef.current) clearTimeout(appDebounceRef.current);
+    if (corrDebounceRef.current) clearTimeout(corrDebounceRef.current);
+
+    if (!query.trim()) {
+      setAppResults([]);
+      setDocResults([]);
+      setCorrelationResults([]);
+      setLoading(false);
+      setCorrelationsLoading(false);
+      return;
+    }
+
+    appDebounceRef.current = setTimeout(() => searchAlgolia(query), 200);
+    corrDebounceRef.current = setTimeout(() => searchCorrelations(query), 350);
+
+    return () => {
+      if (appDebounceRef.current) clearTimeout(appDebounceRef.current);
+      if (corrDebounceRef.current) clearTimeout(corrDebounceRef.current);
+    };
+  }, [query, searchAlgolia, searchCorrelations]);
+
   // Incident lookups are covered by the correlations endpoint, which already
   // tells us whether an incident exists. No per-keystroke datastore reads.
+
 
 
   // Reset on open
