@@ -9,7 +9,7 @@
  */
 
 const PROTECTED_KEY_PATTERNS: RegExp[] = [
-  /^shuffle-/i,         // shuffle-theme, shuffle-org, shuffle-session etc.
+  /^shuffle[-_]/i,      // shuffle-theme, shuffle_api_key, shuffle_user_info etc.
   /^supabase\./i,       // supabase auth tokens
   /^sb-/i,              // supabase client storage
   /token/i,
@@ -38,17 +38,12 @@ const listKeysBySize = (skipKey: string): SizedKey[] => {
   const out: SizedKey[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k || k === skipKey) continue;
+    if (!k || k === skipKey || isProtected(k)) continue;
     const v = localStorage.getItem(k) ?? "";
     out.push({ key: k, size: k.length + v.length });
   }
-  // Largest first; protected keys sorted last so they are evicted only if needed.
-  out.sort((a, b) => {
-    const ap = isProtected(a.key) ? 1 : 0;
-    const bp = isProtected(b.key) ? 1 : 0;
-    if (ap !== bp) return ap - bp;
-    return b.size - a.size;
-  });
+  // Largest first. Authentication and session keys are never eviction candidates.
+  out.sort((a, b) => b.size - a.size);
   return out;
 };
 

@@ -49,7 +49,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading: authLoading, refreshUserInfo } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading, authenticateWithApiKey } = useAuth();
 
   const isLogin = mode === 'login';
   
@@ -657,10 +657,9 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                           setError('');
                           
                           try {
-                            // Store API key temporarily to test it
-                            API_CONFIG.setApiKey(apiKey.trim());
-                            
-                            // Verify the API key works by calling getinfo
+                            // Verify the API key before persisting it. The key is
+                            // sent explicitly for this request so other mounted
+                            // API consumers cannot observe an unverified key.
                             let response: Response;
                             try {
                               response = await fetch(getApiUrl('/api/v1/getinfo'), {
@@ -673,7 +672,6 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                               });
                             } catch (fetchError) {
                               // Network error, CORS error, or connection refused
-                              API_CONFIG.setApiKey(null); // Remove invalid key
                               throw new Error('Network error: Unable to connect to server. Please check your connection.');
                             }
                             
@@ -681,22 +679,21 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                             try {
                               data = await response.json();
                             } catch (parseError) {
-                              API_CONFIG.setApiKey(null);
                               throw new Error(`Server returned invalid response (status: ${response.status})`);
                             }
                             
                             if (!response.ok || data.success !== true) {
-                              API_CONFIG.setApiKey(null);
                               throw new Error(data.reason || 'Invalid API key');
                             }
                             
                             // API key is valid
+                            API_CONFIG.setApiKey(apiKey.trim());
                             setSuccess(true);
                             localStorage.setItem('shuffle_has_logged_in', 'true');
-                            await refreshUserInfo();
-                            setTimeout(() => {
-                              window.location.reload();
-                            }, 500);
+                            // Reuse the successful getinfo payload. Calling
+                            // refreshUserInfo and then reloading caused two more
+                            // duplicate getinfo requests during API-key login.
+                            authenticateWithApiKey(data);
                           } catch (err) {
                             setError(err instanceof Error ? err.message : 'Failed to authenticate with API key');
                           } finally {
