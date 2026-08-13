@@ -25,6 +25,7 @@ import { HostDetailPanel } from '@/components/monitors/HostDetailPanel';
 import { MonitorHostTable } from '@/components/monitors/MonitorHostTable';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useParams, useNavigate } from 'react-router-dom';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const DEFAULT_TAB = 'mobile';
@@ -123,7 +124,21 @@ const parseItem = (item: DatastoreItem, category: AssetCategory): ParsedAsset | 
 const AssetsPage = () => {
   usePageMeta({ title: 'Assets', description: 'Unified inventory across endpoints, cloud, identity, and code' });
 
-  const [activeTab, setActiveTab] = useState<string>(DEFAULT_TAB);
+  const { tab: tabParam } = useParams();
+  const navigate = useNavigate();
+
+  // URL <-> tab mapping. /assets/users is an alias for the identity users tab.
+  const slugToTab = useMemo(() => {
+    const map: Record<string, string> = { users: 'identity_users', endpoints: 'mobile' };
+    ASSET_CATEGORIES.forEach(c => { map[c.id] = c.id; });
+    return map;
+  }, []);
+  const tabToSlug = useCallback((id: string) => (id === 'identity_users' ? 'users' : id), []);
+
+  const activeTab = slugToTab[(tabParam || '').toLowerCase()] || DEFAULT_TAB;
+  const setActiveTab = useCallback((id: string) => {
+    navigate(`/assets/${tabToSlug(id)}`);
+  }, [navigate, tabToSlug]);
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
