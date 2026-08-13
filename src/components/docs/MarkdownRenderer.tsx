@@ -72,6 +72,9 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<DocSuggestion[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+
   const isSupport = useIsSupport();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { hash } = useLocation();
