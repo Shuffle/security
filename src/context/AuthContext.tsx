@@ -119,6 +119,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Set region URL from response (top-level first, then active_org)
         applyRegionFromPayload(data, newOrgId);
 
+        // Persist the API key getinfo hands back so every subsequent request
+        // carries `Authorization: Bearer ...` instead of relying on the
+        // cross-site session cookie (which browsers frequently drop).
+        const returnedKey =
+          (typeof data.apikey === 'string' && data.apikey) ||
+          (typeof data.api_key === 'string' && data.api_key) ||
+          (typeof data.active_org?.apikey === 'string' && data.active_org.apikey) ||
+          '';
+        if (returnedKey && returnedKey !== API_CONFIG.apiKey) {
+          try { API_CONFIG.setApiKey(returnedKey); } catch { /* ignore */ }
+        }
+
+
         const info = {
           username: data.username,
           id: data.id,
