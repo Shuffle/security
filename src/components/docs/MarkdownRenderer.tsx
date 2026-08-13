@@ -263,6 +263,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         },
       }}
     >
+      {resetCacheButton}
       {meta && (meta.contributors?.length || meta.read_time || meta.link) && (
         <Stack
           direction="row"
