@@ -178,12 +178,63 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   if (error) {
     return (
       <Box>
-        <Box sx={{ py: 4, textAlign: 'center', color: 'error.main' }}>
-          {error}
+        <Box sx={{ py: 4 }}>
+          <Typography sx={{ color: 'error.main', textAlign: 'center' }}>{error}</Typography>
+
+          {(suggestLoading || suggestions.length > 0) && (
+            <Box sx={{ mt: 3, maxWidth: 640, mx: 'auto' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                {suggestLoading ? 'Looking for related documentation…' : 'Related documentation'}
+              </Typography>
+              {suggestLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress size={18} />
+                </Box>
+              ) : (
+                <Stack spacing={1}>
+                  {suggestions.map((s) => (
+                    <Box
+                      key={s.path}
+                      component={Link}
+                      to={s.path}
+                      sx={{
+                        display: 'block',
+                        p: 1.5,
+                        borderRadius: 1,
+                        border: '1px solid hsl(var(--border))',
+                        background: 'hsl(var(--card))',
+                        textDecoration: 'none',
+                        '&:hover': { borderColor: 'primary.main' },
+                      }}
+                    >
+                      <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.9rem' }}>
+                        {s.label}
+                      </Typography>
+                      {s.snippet && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'text.secondary',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {s.snippet}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          )}
         </Box>
       </Box>
     );
   }
+
 
 
   return (
