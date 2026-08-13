@@ -104,7 +104,12 @@ const withStoredApiKey = (input: RequestInfo | URL, init?: RequestInit): Request
 
   try {
     const url = new URL(urlStr, window.location.href);
-    if (!url.pathname.startsWith('/api/') || !allowedOrigins.has(url.origin)) return init;
+    const isKnownShuffleOrigin = allowedOrigins.has(url.origin)
+      || url.origin === window.location.origin
+      || url.hostname === 'shuffler.io'
+      || url.hostname.endsWith('.shuffler.io')
+      || url.hostname === 'tunnel.schemaless.org';
+    if (!url.pathname.startsWith('/api/') || !isKnownShuffleOrigin) return init;
 
     const apiKey = window.localStorage.getItem('shuffle_api_key');
     if (!apiKey) return init;
