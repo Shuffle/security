@@ -10,7 +10,7 @@
  * frontend no longer seeds the prompt or pre-selects tools locally. Disabled
  * presets render with a "coming soon" chip and are not clickable.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 import { AppFallbackIcon } from './AppFallbackIcon';
@@ -99,8 +99,15 @@ export const AGENT_PRESETS: AgentPreset[] = [
 /** True when the signed-in user is a Shuffle support user (/getinfo => support). */
 const isSupportUser = (): boolean => {
   try {
-    const raw = localStorage.getItem('shuffle_user_info');
-    return raw ? JSON.parse(raw)?.support === true : false;
+    const keys = ['shuffle_user_info', 'userinfo', 'user_info'];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) || {};
+      const support = parsed?.support ?? parsed?.user?.support ?? parsed?.userdata?.support;
+      if (support === true || support === 'true') return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -114,6 +121,7 @@ export const filterAgentPresets = (list: AgentPreset[]): AgentPreset[] => {
   if (isSupportUser()) return list;
   return list.map((p) => (SUPPORT_ONLY_PRESET_IDS.includes(p.id) ? { ...p, enabled: false } : p));
 };
+
 
 export interface AgentPresetsProps {
   /** Inline variant sits inside the prompt input row alongside action buttons. */
@@ -133,10 +141,20 @@ export interface AgentPresetsProps {
 export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  // Support status hydrates asynchronously (/getinfo), so re-read it when the
+  // dropdown opens and when storage changes instead of only on first mount.
+  const [supportTick, setSupportTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setSupportTick((t) => t + 1);
+    window.addEventListener('storage', bump);
+    return () => window.removeEventListener('storage', bump);
+  }, []);
   const list = useMemo(
     () => filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS),
-    [presets],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [presets, supportTick, open],
   );
+
 
   const MAX_LABEL_CHARS = 18;
   const displayLabel = selectedPreset
