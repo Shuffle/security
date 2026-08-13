@@ -202,12 +202,29 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
           });
           if (items.length >= 3) break;
         }
-        if (!cancelled) setSuggestions(items);
+        let final = items;
+        if (final.length === 0) {
+          // Fall back to the local docs list when Algolia has no match.
+          const list = await fetchDocsList();
+          const query = slug.replace(/[-_]+/g, ' ').toLowerCase();
+          const scored = list
+            .map((d) => {
+              const label = d.name.replace(/[_-]+/g, ' ');
+              const lower = label.toLowerCase();
+              const score = lower.includes(query) || query.includes(lower) ? 2 : 0;
+              return { d, label, score };
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+          final = scored.map(({ d, label }) => ({ path: `/docs/${docSlug(d.name)}`, label }));
+        }
+        if (!cancelled) setSuggestions(final);
       } catch {
         if (!cancelled) setSuggestions([]);
       } finally {
         if (!cancelled) setSuggestLoading(false);
       }
+
     })();
     return () => {
       cancelled = true;
