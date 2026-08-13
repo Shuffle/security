@@ -29,6 +29,23 @@ interface MarkdownRendererProps {
   slug?: string;
 }
 
+interface DocSuggestion {
+  path: string;
+  label: string;
+  snippet?: string;
+}
+
+interface DocsHit {
+  title?: string;
+  filename?: string;
+  data?: string;
+  urlpath?: string;
+}
+
+// Public Algolia search credentials (same index used by the global search popup).
+const docsSearchClient = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957bed552');
+
+
 // Fetch a doc from the Shuffle Core /api/v1/docs/{name} endpoint.
 // The API returns { success, reason: <markdown>, meta: {...} }.
 const fetchRemoteDoc = async (
