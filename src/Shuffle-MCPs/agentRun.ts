@@ -393,7 +393,7 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     }
 
     // JSON response — parse and check for execution stub
-    const data = JSON.parse(rawText);
+    const data = unwrapJsonRpcEnvelope(JSON.parse(rawText), payload.id) as any;
 
     if (isExecutionStub(data)) {
       if (request.skipPolling) {
