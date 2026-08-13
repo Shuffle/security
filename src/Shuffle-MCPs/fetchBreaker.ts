@@ -87,6 +87,43 @@ const keyFor = (input: RequestInfo | URL, init?: RequestInit): string | null => 
   }
 };
 
+/**
+ * Legacy areas of the dashboard still call window.fetch directly instead of
+ * shuffleFetch/getAuthHeader. Keep API-key authentication invariant at the
+ * transport boundary so every request to a registered Shuffle /api/* origin
+ * carries the developer key after login.
+ */
+const withStoredApiKey = (input: RequestInfo | URL, init?: RequestInit): RequestInit | undefined => {
+  if (typeof window === 'undefined') return init;
+
+  let urlStr: string;
+  if (typeof input === 'string') urlStr = input;
+  else if (input instanceof URL) urlStr = input.toString();
+  else if (input && typeof (input as Request).url === 'string') urlStr = (input as Request).url;
+  else return init;
+
+  try {
+    const url = new URL(urlStr, window.location.href);
+    if (!url.pathname.startsWith('/api/') || !allowedOrigins.has(url.origin)) return init;
+
+    const apiKey = window.localStorage.getItem('shuffle_api_key');
+    if (!apiKey) return init;
+
+    const requestHeaders = typeof Request !== 'undefined' && input instanceof Request
+      ? input.headers
+      : undefined;
+    const headers = new Headers(requestHeaders);
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, name) => headers.set(name, value));
+    }
+    if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${apiKey}`);
+
+    return { ...init, headers };
+  } catch {
+    return init;
+  }
+};
+
 const synthetic503 = (key: string, retryInMs: number): Response =>
   new Response(
     JSON.stringify({
@@ -122,8 +159,9 @@ export const installFetchBreaker = () => {
   const original = window.fetch.bind(window);
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const key = keyFor(input, init);
-    if (!key) return original(input, init);
+    const authenticatedInit = withStoredApiKey(input, init);
+    const key = keyFor(input, authenticatedInit);
+    if (!key) return original(input, authenticatedInit);
 
     const entry = getEntry(key);
     const now = Date.now();
@@ -169,7 +207,7 @@ export const installFetchBreaker = () => {
 
     let response: Response;
     try {
-      response = await original(input, init);
+      response = await original(input, authenticatedInit);
     } catch (err) {
       const ts = Date.now();
       entry.failures.push(ts);
