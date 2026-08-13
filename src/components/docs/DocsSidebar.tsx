@@ -1,6 +1,6 @@
-import { Home as HomeIcon, Settings as SettingsIcon, Server as DnsIcon, Radio as SensorsIcon, ExternalLink as OpenInNewIcon, AlertTriangle as ReportProblemIcon, Radar as RadarIcon, Download as DownloadIcon, FileText as FileTextIcon, ChevronDown as ChevronDownIcon, BookOpen as BookOpenIcon } from 'lucide-react';
+import { ExternalLink as OpenInNewIcon, Download as DownloadIcon, FileText as FileTextIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   List,
@@ -8,8 +8,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Menu,
-  MenuItem,
   Typography,
 } from '@mui/material';
 import { fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
@@ -24,15 +22,6 @@ interface DocLink {
 interface DocsSidebarProps {
   onNavigate?: () => void;
 }
-
-const docLinks: DocLink[] = [
-  { label: 'Overview', slug: 'index', icon: <HomeIcon /> },
-  { label: 'Getting Started', slug: 'getting-started', icon: <SettingsIcon /> },
-  { label: 'Incident Creation', slug: 'incident-creation', icon: <ReportProblemIcon /> },
-  { label: 'Shuffle Pipelines', slug: 'shuffle-pipelines', icon: <SensorsIcon /> },
-  { label: 'Monitoring', slug: 'monitoring', icon: <RadarIcon /> },
-  { label: 'Self-Hosting', slug: 'setup', icon: <DnsIcon /> },
-];
 
 const externalLinks: DocLink[] = [
   {
@@ -65,11 +54,6 @@ interface RemoteDoc {
   read_time?: number;
 }
 
-// Slugs already covered by local docs — hide these from the remote fallback list
-const LOCAL_SLUGS = new Set(['index', 'getting-started', 'incident-creation', 'shuffle-pipelines', 'monitoring', 'setup']);
-// Remote names that map onto our local slugs (avoid duplicates)
-const LOCAL_REMOTE_ALIASES = new Set(['getting_started']);
-
 const toLabel = (name: string) =>
   name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -77,22 +61,19 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [remoteDocs, setRemoteDocs] = useState<RemoteDoc[]>([]);
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const menuOpen = Boolean(menuAnchor);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const list = await fetchDocsList();
       const mapped: RemoteDoc[] = list
-        .filter((d) => d?.name && !LOCAL_REMOTE_ALIASES.has(d.name))
+        .filter((d) => d?.name)
         .map((d) => ({
           name: d.name,
           slug: docSlug(d.name),
           label: toLabel(d.name),
           read_time: d.read_time,
         }))
-        .filter((d) => !LOCAL_SLUGS.has(d.slug))
         .sort((a, b) => a.label.localeCompare(b.label));
       if (!cancelled) setRemoteDocs(mapped);
     })();
@@ -103,6 +84,8 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   const handleClick = () => {
     onNavigate?.();
   };
+
+
 
 
   return (
@@ -130,46 +113,14 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
       </Typography>
       
       <List sx={{ px: 1, mt: 1 }}>
-        {docLinks.map((link) => (
-          <ListItem key={link.slug} disablePadding>
+        {remoteDocs.map((doc) => (
+          <ListItem key={doc.slug} disablePadding>
             <ListItemButton
-              component={Link}
-              to={link.slug === 'index' ? '/docs' : `/docs/${link.slug}`}
-              onClick={handleClick}
-              selected={slug === link.slug || (slug === 'index' && link.slug === 'index')}
-              sx={{
-                borderRadius: 1,
-                mx: 1,
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 102, 0, 0.15)',
-                  },
-                  '& .MuiListItemIcon-root': {
-                    color: 'primary.main',
-                  },
-                  '& .MuiListItemText-primary': {
-                    color: 'primary.main',
-                    fontWeight: 600,
-                  },
-                },
+              onClick={() => {
+                handleClick();
+                navigate(`/docs/${doc.slug}`);
               }}
-            >
-              <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-                {link.icon}
-              </ListItemIcon>
-              <ListItemText primary={link.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-
-      {remoteDocs.length > 0 && (
-        <List sx={{ px: 1, mt: 0 }}>
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={(e) => setMenuAnchor(e.currentTarget)}
-              selected={remoteDocs.some((d) => d.slug === slug)}
+              selected={slug === doc.slug}
               sx={{
                 borderRadius: 1,
                 mx: 1,
@@ -182,66 +133,22 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
               }}
             >
               <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-                <BookOpenIcon size={20} />
+                <FileTextIcon size={18} />
               </ListItemIcon>
-              <ListItemText primary="Reference Docs" />
-              <ChevronDownIcon
-                size={16}
-                style={{
-                  transition: 'transform 150ms ease',
-                  transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  opacity: 0.7,
-                }}
+              <ListItemText
+                primary={doc.label}
+                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
               />
+              {doc.read_time ? (
+                <Typography variant="caption" sx={{ color: 'text.disabled', ml: 1 }}>
+                  {doc.read_time}m
+                </Typography>
+              ) : null}
             </ListItemButton>
           </ListItem>
-          <Menu
-            anchorEl={menuAnchor}
-            open={menuOpen}
-            onClose={() => setMenuAnchor(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-            slotProps={{
-              paper: {
-                sx: {
-                  maxHeight: 420,
-                  minWidth: 240,
-                  mt: 0.5,
-                },
-              },
-            }}
-          >
-            {remoteDocs.map((doc) => (
-              <MenuItem
-                key={doc.slug}
-                selected={slug === doc.slug}
-                onClick={() => {
-                  setMenuAnchor(null);
-                  handleClick();
-                  navigate(`/docs/${doc.slug}`);
-                }}
-                sx={{
-                  fontSize: '0.875rem',
-                  gap: 1.25,
-                  '&.Mui-selected': {
-                    backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                    color: 'primary.main',
-                    fontWeight: 600,
-                  },
-                }}
-              >
-                <FileTextIcon size={16} style={{ opacity: 0.7, flexShrink: 0 }} />
-                <Box component="span" sx={{ flex: 1 }}>{doc.label}</Box>
-                {doc.read_time ? (
-                  <Typography variant="caption" sx={{ color: 'text.disabled', ml: 1 }}>
-                    {doc.read_time}m
-                  </Typography>
-                ) : null}
-              </MenuItem>
-            ))}
-          </Menu>
-        </List>
-      )}
+        ))}
+      </List>
+
 
 
 
