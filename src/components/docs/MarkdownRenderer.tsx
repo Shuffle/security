@@ -536,7 +536,10 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
               const isRelativeDoc = !/^[a-z][a-z\d+.-]*:/i.test(href) && /(?:^|\/)\.?\.?\/?[^/#?]+\.md(?:$|[?#])/i.test(href);
               const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
               if ((isSameOrigin && isDocsPath) || isRelativeDoc) {
-                const path = normalizeDocPath(parsed.pathname);
+                const relativeName = parsed.pathname.split('/').filter(Boolean).pop()?.replace(/\.md$/i, '');
+                const path = isRelativeDoc && !isDocsPath && relativeName
+                  ? `/docs/${docSlug(relativeName)}`
+                  : normalizeDocPath(parsed.pathname);
                 return <Link to={`${path}${parsed.search}${parsed.hash}`}>{children}</Link>;
               }
               if (href.startsWith('/') && isSameOrigin) {
