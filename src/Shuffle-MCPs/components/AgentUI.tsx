@@ -3822,13 +3822,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
    */
   const stuckDecision = useMemo(() => {
     const list = ((agentData?.decisions as any[]) || []).filter((d) => {
+      // Only a real, identifiable decision can be stuck (and rerun).
+      if (!d?.run_details?.id) return false;
       const s = String(d?.run_details?.status || '').toUpperCase();
-      return s === '' || s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
+      return s === 'RUNNING' || s === 'EXECUTING' || s === 'WAITING';
     });
     return list.length ? list[list.length - 1] : null;
   }, [agentData?.decisions]);
 
-  const hasInFlightDecision = Boolean(stuckDecision);
+  const hasInFlightDecision = Boolean(stuckDecision?.run_details?.id);
+
 
   /** The stuck decision can only be rerun when the backend gave it an id. */
   const stuckDecisionId = stuckDecision?.run_details?.id || null;
