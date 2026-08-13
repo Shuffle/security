@@ -1,6 +1,6 @@
 /**
  * SidebarSearchDialog — Ctrl+K powered search popup for the sidebar.
- * Searches apps via Algolia + correlations via /api/v2/correlations + workflows via /api/v1/workflows + local nav items.
+ * Searches apps and documentation via Algolia + correlations via /api/v2/correlations + workflows via /api/v1/workflows + local nav items.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -17,7 +17,6 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
-import { fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
 
 const ALGOLIA_APP_ID = 'JNSS5CFDZZ';
 const ALGOLIA_API_KEY = '33e4e3564f4f060e96e0531957bed552';
@@ -73,6 +72,8 @@ interface DocItem {
   name: string;
   slug: string;
   label: string;
+  path?: string;
+  snippet?: string;
 }
 
 interface DocResult {
@@ -84,6 +85,41 @@ type SearchResult = NavResult | AppResult | CorrelationResult | WorkflowResult |
 
 const docLabel = (name: string) =>
   name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+interface AlgoliaDocHit {
+  objectID: string;
+  title?: string;
+  filename?: string;
+  data?: string;
+  urlpath?: string;
+  _highlightResult?: {
+    data?: { value?: string };
+  };
+}
+
+const algoliaDocToItem = (hit: AlgoliaDocHit): DocItem | null => {
+  const rawPath = typeof hit.urlpath === 'string' ? hit.urlpath.trim() : '';
+  const pathWithoutHash = rawPath.split('#')[0];
+  const filename = typeof hit.filename === 'string' ? hit.filename.trim() : '';
+  const fallbackName = filename.replace(/\.md$/i, '');
+  const slug = pathWithoutHash.startsWith('/docs/')
+    ? pathWithoutHash.slice('/docs/'.length).replace(/^\/+|\/+$/g, '')
+    : fallbackName.replace(/[_\s]+/g, '-').toLowerCase();
+  if (!slug) return null;
+
+  const highlighted = hit._highlightResult?.data?.value;
+  const rawSnippet = typeof highlighted === 'string' && highlighted.trim()
+    ? highlighted.replace(/<[^>]+>/g, '')
+    : typeof hit.data === 'string' ? hit.data : '';
+
+  return {
+    name: filename || slug,
+    slug,
+    label: hit.title?.trim() || docLabel(fallbackName || slug),
+    path: rawPath.startsWith('/docs/') ? rawPath : `/docs/${slug}`,
+    snippet: rawSnippet.replace(/\s+/g, ' ').trim().slice(0, 150),
+  };
+};
 
 const navItems: NavResult[] = [
   { type: 'nav', label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={16} /> },
@@ -116,7 +152,7 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
   const [correlationResults, setCorrelationResults] = useState<CorrelationItem[]>([]);
   const [workflowResults, setWorkflowResults] = useState<WorkflowItem[]>([]);
   const [incidentResults, setIncidentResults] = useState<IncidentItem[]>([]);
-  const [docsList, setDocsList] = useState<DocItem[]>([]);
+  const [docResults, setDocResults] = useState<DocItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [correlationsLoading, setCorrelationsLoading] = useState(false);
   const [incidentLoading, setIncidentLoading] = useState(false);
@@ -125,23 +161,6 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
   const appDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const corrDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const incidentDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Load the remote documentation list once the dialog opens
-  useEffect(() => {
-    if (!open || docsList.length > 0) return;
-    let cancelled = false;
-    (async () => {
-      const list = await fetchDocsList();
-      if (cancelled) return;
-      setDocsList(
-        list
-          .filter((d) => d?.name)
-          .map((d) => ({ name: d.name, slug: docSlug(d.name), label: docLabel(d.name) }))
-          .sort((a, b) => a.label.localeCompare(b.label)),
-      );
-    })();
-    return () => { cancelled = true; };
-  }, [open, docsList.length]);
 
   // Filter workflows locally by query
   useEffect(() => {
@@ -175,15 +194,6 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
 
   // Combined results: nav → workflows → incidents → direct-match correlations
   // → other correlations → apps.
-  const docResults: DocItem[] = query.trim()
-    ? docsList
-        .filter((d) =>
-          d.label.toLowerCase().includes(query.trim().toLowerCase())
-          || d.name.toLowerCase().includes(query.trim().toLowerCase()),
-        )
-        .slice(0, 6)
-    : [];
-
   const results: SearchResult[] = [
     ...filteredNav,
     ...docResults.map((d) => ({ type: 'doc' as const, doc: d })),
@@ -194,21 +204,50 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     ...appResults.map((app) => ({ type: 'app' as const, app })),
   ];
 
-  // Search Algolia
-  const searchApps = useCallback(async (q: string) => {
+  // Search both public Algolia indexes. Documentation results are full-text
+  // matches from the `documentation` index rather than title-only filtering.
+  const searchAlgolia = useCallback(async (q: string) => {
     if (!q.trim()) {
       setAppResults([]);
+      setDocResults([]);
       return;
     }
     setLoading(true);
     try {
-      const res = await client.searchSingleIndex({
-        indexName: 'appsearch',
-        searchParams: { query: q, hitsPerPage: 8 },
-      });
-      setAppResults(res.hits as AlgoliaSearchApp[]);
+      const [appsResponse, docsResponse] = await Promise.all([
+        client.searchSingleIndex({
+          indexName: 'appsearch',
+          searchParams: { query: q, hitsPerPage: 8 },
+        }),
+        client.searchSingleIndex({
+          indexName: 'documentation',
+          searchParams: {
+            query: q,
+            hitsPerPage: 12,
+            attributesToRetrieve: ['title', 'filename', 'data', 'urlpath'],
+            attributesToHighlight: ['data'],
+            highlightPreTag: '',
+            highlightPostTag: '',
+          },
+        }),
+      ]);
+      setAppResults(appsResponse.hits as AlgoliaSearchApp[]);
+
+      const seenDocs = new Set<string>();
+      const docs = (docsResponse.hits as unknown as AlgoliaDocHit[])
+        .map(algoliaDocToItem)
+        .filter((doc): doc is DocItem => {
+          if (!doc) return false;
+          const key = doc.name.toLowerCase();
+          if (seenDocs.has(key)) return false;
+          seenDocs.add(key);
+          return true;
+        })
+        .slice(0, 6);
+      setDocResults(docs);
     } catch {
       setAppResults([]);
+      setDocResults([]);
     } finally {
       setLoading(false);
     }
@@ -289,13 +328,13 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     }
   }, []);
 
-  // Debounced app search (200ms) — only when dialog is open
+  // Debounced Algolia search (200ms) — only when dialog is open
   useEffect(() => {
     if (!open) return;
     if (appDebounceRef.current) clearTimeout(appDebounceRef.current);
-    appDebounceRef.current = setTimeout(() => searchApps(query), 200);
+    appDebounceRef.current = setTimeout(() => searchAlgolia(query), 200);
     return () => { if (appDebounceRef.current) clearTimeout(appDebounceRef.current); };
-  }, [query, searchApps, open]);
+  }, [query, searchAlgolia, open]);
 
   // Debounced correlation search (400ms) — only when dialog is open
   useEffect(() => {
@@ -318,6 +357,7 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     if (open) {
       setQuery('');
       setAppResults([]);
+      setDocResults([]);
       setCorrelationResults([]);
       setWorkflowResults([]);
       setIncidentResults([]);
@@ -340,7 +380,7 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
       // Open workflow in Shuffle Automation
       window.open(`https://shuffler.io/workflows/${result.workflow.id}`, '_blank');
     } else if (result.type === 'doc') {
-      navigate(`/docs/${result.doc.slug}`);
+      navigate(result.doc.path || `/docs/${result.doc.slug}`);
     } else if (result.type === 'incident') {
       navigate(`/incidents/${encodeURIComponent(result.incident.id)}`);
     } else if (result.type === 'correlation') {
@@ -504,7 +544,14 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
                     <Box sx={{ color: 'hsl(var(--muted-foreground))', display: 'flex' }}>
                       <BookOpen size={16} />
                     </Box>
-                    <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{doc.label}</Typography>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.label}</Typography>
+                      {doc.snippet && (
+                        <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {doc.snippet}
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 );
               })}
