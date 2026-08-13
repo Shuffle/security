@@ -365,10 +365,30 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         sx={{ '& p': { mb: 2 } }}
         components={{
           a: ({ href, children }) => {
+            // In-page anchors: scroll to the matching heading
+            if (href?.startsWith('#')) {
+              return (
+                <a
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const target = anchorKey(decodeURIComponent(href.slice(1)));
+                    const headings = Array.from(
+                      containerRef.current?.querySelectorAll('h1, h2, h3, h4') ?? [],
+                    ) as HTMLElement[];
+                    const match = headings.find((h) => anchorKey(h.textContent || '') === target);
+                    match?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
+                  {children}
+                </a>
+              );
+            }
             // Handle internal links
             if (href?.startsWith('/')) {
               return <Link to={href}>{children}</Link>;
             }
+
             // External links
             return (
               <a href={href} target="_blank" rel="noopener noreferrer">
