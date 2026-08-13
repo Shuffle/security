@@ -597,6 +597,18 @@ export interface AgentUIProps {
   autoLoadApps?: boolean;
   /** Authoritative support flag from `/api/v1/getinfo`. */
   isSupport?: boolean;
+  /**
+   * Optional per-skill readiness CTAs. Keyed by skill (preset) id. When the
+   * matching skill is selected and the host reports it has no real content
+   * yet, AgentUI renders a small call-to-action under the prompt.
+   */
+  presetCtas?: Record<string, {
+    /** When false, nothing is rendered (content exists / still loading). */
+    show?: boolean;
+    message: string;
+    actionLabel: string;
+    onAction?: () => void;
+  }>;
   /** Hero title above the prompt. */
   title?: string;
   /** Optional subtitle/description shown under the title. */
@@ -1947,6 +1959,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   presets,
   onSelectPreset,
   isSupport,
+  presetCtas,
 }) => {
   // Per-instance API target. Props win over the shared API_CONFIG so the
   // component can be embedded against a different Shuffle backend without
@@ -5224,6 +5237,38 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Paper>
               </ClickAwayListener>
             </Popper>
+
+            {(() => {
+              const cta = selectedPreset ? presetCtas?.[selectedPreset.id] : undefined;
+              if (!cta || cta.show === false) return null;
+              return (
+                <Box sx={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5,
+                  px: 1.5, py: 1, borderRadius: 2,
+                  border: '1px solid hsl(var(--border))',
+                  bgcolor: 'hsl(var(--muted) / 0.4)',
+                }}>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
+                    {cta.message}
+                  </Typography>
+                  <Button
+                    type="button"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => cta.onAction?.()}
+                    sx={{
+                      height: 30, textTransform: 'none', fontSize: '0.78rem', fontWeight: 600,
+                      whiteSpace: 'nowrap', flexShrink: 0,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))',
+                      '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
+                    }}
+                  >
+                    {cta.actionLabel}
+                  </Button>
+                </Box>
+              );
+            })()}
 
             {!hideAppPicker && (
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
