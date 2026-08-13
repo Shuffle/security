@@ -9,7 +9,7 @@
  */
 
 const PROTECTED_KEY_PATTERNS: RegExp[] = [
-  /^shuffle-/i,         // shuffle-theme, shuffle-org, shuffle-session etc.
+  /^shuffle[-_]/i,      // shuffle-theme, shuffle_api_key, shuffle_user_info etc.
   /^supabase\./i,       // supabase auth tokens
   /^sb-/i,              // supabase client storage
   /token/i,

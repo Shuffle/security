@@ -46,6 +46,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isLoading: boolean;
   refreshUserInfo: () => Promise<void>;
+  authenticateWithApiKey: (data: any) => void;
   setActiveOrg: (orgId: string) => Promise<void>;
   orgMismatchWarning: boolean;
   dismissOrgMismatch: () => void;
@@ -92,6 +93,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setOrgMismatchWarning(false);
   }, []);
 
+  const applyAuthenticatedUserInfo = useCallback((data: any) => {
+    const newOrgId = data.active_org?.id || null;
+    const previousOrgId = getTrackedOrgId();
+
+    if (previousOrgId && newOrgId && previousOrgId !== newOrgId) {
+      resetRegionUrl();
+    }
+
+    applyRegionFromPayload(data, newOrgId);
+
+    const info = {
+      username: data.username,
+      id: data.id,
+      active_org: data.active_org,
+      orgs: data.orgs || [],
+      support: data.support === true || data.support === 'true',
+      app_execution_limit: data.app_execution_limit,
+      app_execution_usage: data.app_execution_usage,
+      sync_features: data.sync_features,
+    };
+    setUserInfo(info);
+    setRuntimeOrgId(newOrgId);
+    localStorage.setItem('shuffle_user_info', JSON.stringify(info));
+    try {
+      window.dispatchEvent(new CustomEvent('shuffle:getinfo', { detail: data }));
+    } catch { /* ignore */ }
+  }, []);
+
   const fetchUserInfo = useCallback(async (_token?: string | null): Promise<'ok' | 'unauthenticated' | 'error'> => {
     try {
       const response = await fetch(getApiUrl('/api/v1/getinfo'), {
@@ -107,36 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('getinfo response:', response.status, data);
 
       if (response.ok && data.success === true) {
-        // Update region URL based on getinfo response
-        const newOrgId = data.active_org?.id || null;
-        const previousOrgId = getTrackedOrgId();
-
-        // If org changed, reset region URL first so subsequent calls use default
-        if (previousOrgId && newOrgId && previousOrgId !== newOrgId) {
-          resetRegionUrl();
-        }
-
-        // Set region URL from response (top-level first, then active_org)
-        applyRegionFromPayload(data, newOrgId);
-
-
-
-        const info = {
-          username: data.username,
-          id: data.id,
-          active_org: data.active_org,
-          orgs: data.orgs || [],
-          support: data.support === true || data.support === 'true',
-          app_execution_limit: data.app_execution_limit,
-          app_execution_usage: data.app_execution_usage,
-          sync_features: data.sync_features,
-        };
-        setUserInfo(info);
-        setRuntimeOrgId(newOrgId);
-        localStorage.setItem('shuffle_user_info', JSON.stringify(info));
-        try {
-          window.dispatchEvent(new CustomEvent('shuffle:getinfo', { detail: data }));
-        } catch { /* ignore */ }
+        applyAuthenticatedUserInfo(data);
         return 'ok';
       }
       // Only treat explicit auth failures (401/403) as logged-out. Other
@@ -152,7 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Failed to fetch user info:', err);
       return 'error';
     }
-  }, []);
+  }, [applyAuthenticatedUserInfo]);
 
   // Verify authentication on mount (runs once when app loads).
   // If we already hydrated from cache, this runs in the background and only
@@ -234,6 +234,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const token = localStorage.getItem('session_token');
     await fetchUserInfo(token);
   }, [fetchUserInfo]);
+
+  const authenticateWithApiKey = useCallback((data: any) => {
+    applyAuthenticatedUserInfo(data);
+    setIsAuthenticated(true);
+    setIsLoading(false);
+  }, [applyAuthenticatedUserInfo]);
 
   const setActiveOrg = useCallback(async (orgId: string) => {
     try {
@@ -319,6 +325,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         isLoading,
         refreshUserInfo,
+        authenticateWithApiKey,
         setActiveOrg,
         orgMismatchWarning,
         dismissOrgMismatch,

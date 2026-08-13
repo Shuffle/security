@@ -49,7 +49,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading: authLoading, refreshUserInfo } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading, authenticateWithApiKey } = useAuth();
 
   const isLogin = mode === 'login';
   
@@ -693,10 +693,10 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                             // API key is valid
                             setSuccess(true);
                             localStorage.setItem('shuffle_has_logged_in', 'true');
-                            await refreshUserInfo();
-                            setTimeout(() => {
-                              window.location.reload();
-                            }, 500);
+                            // Reuse the successful getinfo payload. Calling
+                            // refreshUserInfo and then reloading caused two more
+                            // duplicate getinfo requests during API-key login.
+                            authenticateWithApiKey(data);
                           } catch (err) {
                             setError(err instanceof Error ? err.message : 'Failed to authenticate with API key');
                           } finally {
