@@ -124,17 +124,26 @@ const algoliaDocToItem = (hit: AlgoliaDocHit): DocItem | null => {
   };
 };
 
+const NAV_GROUP_ORDER = ['Pages', 'Security', 'Automation'] as const;
+
 const navItems: NavResult[] = [
-  { type: 'nav', label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={16} /> },
-  { type: 'nav', label: 'Incidents', path: '/incidents', icon: <WarningAmberIcon size={18} /> },
-  { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Bug size={16} /> },
-  { type: 'nav', label: 'Host Monitors', path: '/monitors', icon: <MonitorCheck size={16} /> },
-  { type: 'nav', label: 'Agents', path: '/agents', icon: <AgentIcon size={16} /> },
-  { type: 'nav', label: 'Automation', path: '/usecases', icon: <Activity size={16} /> },
-  { type: 'nav', label: 'Documentation', path: '/docs', icon: <BookOpen size={16} /> },
-  { type: 'nav', label: 'Preferences', path: '/preferences', icon: <TuneIcon size={16} /> },
-  { type: 'nav', label: 'Settings', path: '/settings', icon: <SettingsIcon size={16} /> },
+  { type: 'nav', label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={16} />, group: 'Pages' },
+  { type: 'nav', label: 'Agents', path: '/agents', icon: <AgentIcon size={16} />, group: 'Pages' },
+  { type: 'nav', label: 'Documentation', path: '/docs', icon: <BookOpen size={16} />, group: 'Pages' },
+  { type: 'nav', label: 'Preferences', path: '/preferences', icon: <TuneIcon size={16} />, group: 'Pages', hiddenUnlessSearched: true },
+  { type: 'nav', label: 'Settings', path: '/settings', icon: <SettingsIcon size={16} />, group: 'Pages', hiddenUnlessSearched: true },
+
+  { type: 'nav', label: 'Incidents', path: '/incidents', icon: <WarningAmberIcon size={18} />, group: 'Security' },
+  { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Bug size={16} />, group: 'Security' },
+  { type: 'nav', label: 'Host Monitors', path: '/monitors', icon: <MonitorCheck size={16} />, group: 'Security' },
+
+  { type: 'nav', label: 'Usecases', path: '/usecases', icon: <Activity size={16} />, group: 'Automation' },
+  { type: 'nav', label: 'Workflows', path: 'https://shuffler.io/workflows', icon: <Workflow size={16} />, group: 'Automation', external: true },
+  { type: 'nav', label: 'Apps', path: '/apps', icon: <Braces size={16} />, group: 'Automation' },
+  { type: 'nav', label: 'Storage', path: 'https://shuffler.io/admin?tab=datastore', icon: <HardDrive size={16} />, group: 'Automation', external: true },
+  { type: 'nav', label: 'Files', path: 'https://shuffler.io/admin?tab=files', icon: <DescriptionIcon size={16} />, group: 'Automation', external: true },
 ];
+
 
 const NOISE_KEYS = new Set([
   'new', 'in_progress', 'resolved', 'escalated', 'closed', 'open', 'pending',
