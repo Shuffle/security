@@ -57,6 +57,15 @@ const fetchRemoteDoc = async (
   return null;
 };
 
+// Anchor ids in the Shuffle docs use underscores ("#cloud_specific_example").
+// Normalize heading text and hashes to the same shape so both underscore and
+// dash variants resolve to the same heading.
+const anchorKey = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
 export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [content, setContent] = useState<string>('');
   const [meta, setMeta] = useState<RemoteDocMeta | null>(null);
@@ -64,6 +73,9 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isSupport = useIsSupport();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const { hash } = useLocation();
+
 
   const loadContent = useCallback(async (resetCache = false) => {
     setLoading(true);
