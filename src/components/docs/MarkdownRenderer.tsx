@@ -260,7 +260,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         },
       }}
     >
-      {meta && (meta.contributors?.length || meta.read_time || meta.link || isSupport) && (
+      {((meta && (meta.contributors?.length || meta.read_time || meta.link)) || isSupport) && (
         <Stack
           direction="row"
           spacing={2}
@@ -274,14 +274,14 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
             rowGap: 1,
           }}
         >
-          {meta.read_time ? (
+          {meta?.read_time ? (
             <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
               <ClockIcon size={14} />
               <Typography variant="caption">{meta.read_time} min read</Typography>
             </Stack>
           ) : null}
 
-          {meta.contributors && meta.contributors.length > 0 && (
+          {meta?.contributors && meta.contributors.length > 0 && (
             <AvatarGroup max={6} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.7rem', border: '1px solid', borderColor: 'divider' } }}>
               {meta.contributors.map((c, i) => {
                 const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
@@ -303,28 +303,31 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
             </AvatarGroup>
           )}
 
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
-            {resetCacheButton}
-            {meta.link && (
-              <MuiLink
-                href={meta.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  fontSize: '0.8125rem',
-                  color: 'text.secondary',
-                  textDecoration: 'none',
-                  '&:hover': { color: 'primary.main' },
-                }}
-              >
-                <GithubIcon size={14} />
-                Edit on GitHub
-              </MuiLink>
-            )}
-          </Stack>
+          {meta?.link && (
+            <MuiLink
+              href={meta.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                fontSize: '0.8125rem',
+                color: 'text.secondary',
+                textDecoration: 'none',
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              <GithubIcon size={14} />
+              Edit on GitHub
+            </MuiLink>
+          )}
+
+          {resetCacheButton && (
+            <Stack direction="row" alignItems="center" sx={{ ml: 'auto' }}>
+              {resetCacheButton}
+            </Stack>
+          )}
         </Stack>
       )}
 
