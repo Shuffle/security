@@ -187,10 +187,14 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     setWorkflowResults(filtered.slice(0, 6));
   }, [query, allWorkflows]);
 
-  // Filter nav items by query
-  const filteredNav: NavResult[] = query.trim()
+  // Filter nav items by query, keeping them ordered by group
+  const matchedNav: NavResult[] = query.trim()
     ? navItems.filter((n) => n.label.toLowerCase().includes(query.toLowerCase()))
-    : navItems;
+    : navItems.filter((n) => !n.hiddenUnlessSearched);
+  const filteredNav: NavResult[] = NAV_GROUP_ORDER.flatMap((group) =>
+    matchedNav.filter((n) => (n.group || 'Pages') === group),
+  );
+
 
   // Split correlations into "direct matches" (key equals or starts-with query)
   // and everything else. Direct matches are typically a thread_id or an
