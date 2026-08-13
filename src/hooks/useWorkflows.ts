@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, hasShuffleAuth } from '@/Shuffle-MCPs/api';
 
 export interface WorkflowSummary {
   id: string;
@@ -30,6 +30,9 @@ export const useWorkflows = (orgId?: string) => {
   return useQuery<WorkflowSummary[]>({
     queryKey: ['workflows', orgId || 'active'],
     queryFn: () => fetchWorkflows(orgId),
+    // Skip entirely while unauthenticated (login page) — the call would go out
+    // without an Authorization header and return 401.
+    enabled: hasShuffleAuth(),
     staleTime: 5 * 60 * 1000, // 5 min
     refetchOnWindowFocus: false,
   });

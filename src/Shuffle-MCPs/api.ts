@@ -375,3 +375,19 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
   return headers;
 };
 
+
+/**
+ * True when the browser has some form of Shuffle auth available: either the
+ * API key entered on the login page (`shuffle_api_key`) or a session from a
+ * previous login. Pollers (workflows, notifications, ...) must check this
+ * before firing, otherwise they hammer the backend with unauthenticated
+ * requests that all come back 401 — most visibly on the login page.
+ */
+export const hasShuffleAuth = (): boolean => {
+  try {
+    if (API_CONFIG.apiKey) return true;
+    return !!(localStorage.getItem('session_token') || localStorage.getItem('shuffle_user_info'));
+  } catch {
+    return false;
+  }
+};
