@@ -525,6 +525,8 @@ export interface AgentUIProps {
    * token to be set on `API_CONFIG`).
    */
   autoLoadApps?: boolean;
+  /** Authoritative support flag from `/api/v1/getinfo`. */
+  isSupport?: boolean;
   /** Hero title above the prompt. */
   title?: string;
   /** Optional subtitle/description shown under the title. */
@@ -1861,6 +1863,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   hidePresets = false,
   presets,
   onSelectPreset,
+  isSupport,
 }) => {
   // Per-instance API target. Props win over the shared API_CONFIG so the
   // component can be embedded against a different Shuffle backend without
@@ -1928,7 +1931,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     try {
       const lastId = localStorage.getItem(LAST_PRESET_STORAGE_KEY);
       if (!lastId) return;
-      const list = filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS);
+      const list = filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS, isSupport);
       const match = list.find((p) => p.id === lastId);
       if (!match || match.enabled === false) return;
       setSelectedPreset(match);
@@ -1946,7 +1949,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     } catch {
       /* ignore storage errors */
     }
-  }, [presets, defaultInput]);
+  }, [presets, defaultInput, isSupport]);
 
 
 
@@ -4786,6 +4789,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     variant="floating"
                     chipRef={presetsChipRef}
                     presets={presets}
+                    isSupport={isSupport}
                     selectedPreset={selectedPreset}
                     onRemoveSelected={() => {
                       try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
