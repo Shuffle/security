@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+
 import { Box, CircularProgress, Avatar, AvatarGroup, Tooltip, Stack, Typography, Link as MuiLink, Button } from '@mui/material';
 import { Clock as ClockIcon, Github as GithubIcon, RefreshCw as RefreshCwIcon } from 'lucide-react';
 import { getApiUrl } from '@/Shuffle-MCPs/api';
