@@ -5942,6 +5942,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
+                      {postRunDiscovery}
+
                       {hasInFlightDecision && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                           <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
