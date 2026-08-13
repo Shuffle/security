@@ -108,6 +108,30 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
     loadContent();
   }, [loadContent]);
 
+  // Give every heading a stable id, then scroll to the hash target once the
+  // markdown has rendered (docs links carry anchors like "#cloud_specific_example").
+  useEffect(() => {
+    if (loading || !content) return;
+    const root = containerRef.current;
+    if (!root) return;
+
+    const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4')) as HTMLElement[];
+    headings.forEach((heading) => {
+      const key = anchorKey(heading.textContent || '');
+      if (key && !heading.id) heading.id = key;
+    });
+
+    const target = anchorKey(decodeURIComponent(hash.replace(/^#/, '')));
+    if (!target) return;
+
+    const match = headings.find((heading) => anchorKey(heading.textContent || '') === target);
+    if (match) {
+      // Wait a frame so layout (images, embeds) has settled before scrolling.
+      requestAnimationFrame(() => match.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  }, [content, loading, hash]);
+
+
   const handleResetCache = async () => {
     setResetting(true);
     try {
