@@ -137,7 +137,6 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   if (loading) {
     return (
       <Box>
-        {resetCacheButton}
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
@@ -148,7 +147,6 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   if (error) {
     return (
       <Box>
-        {resetCacheButton}
         <Box sx={{ py: 4, textAlign: 'center', color: 'error.main' }}>
           {error}
         </Box>
