@@ -5215,6 +5215,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Box>
                 </Tooltip>
                 )}
+                <Box
+                  component="span"
+                  aria-hidden
+                  sx={{
+                    width: '1px',
+                    height: 16,
+                    bgcolor: 'hsl(var(--border))',
+                    mx: 0.5,
+                    alignSelf: 'center',
+                    flexShrink: 0,
+                  }}
+                />
                 <Tooltip title={agentRequestLoading ? 'Locked while the agent is running' : ''}>
                   <Box
                     component="button"
@@ -5226,8 +5238,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
                       px: 1.5, py: 0.5,
                       borderRadius: 999,
-                      borderLeft: '1px solid hsl(var(--border))',
-                      ml: 0.5,
                       fontSize: '0.8rem', fontWeight: 500,
                       color: 'hsl(var(--muted-foreground))',
                       bgcolor: 'transparent',
