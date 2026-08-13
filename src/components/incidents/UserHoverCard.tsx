@@ -322,7 +322,7 @@ export const UserHoverCard = ({ username, isAgent, className }: UserHoverCardPro
                   '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.06)' },
                 }}
               >
-                Choose LLM
+                Shuffle AI
               </Button>
             </Box>
           )}

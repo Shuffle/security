@@ -5207,7 +5207,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     ) : (
                       <SettingsIcon size={14} />
                     )}
-                    {detectedLLM?.label || 'Choose LLM'}
+                    {detectedLLM?.label || 'Shuffle AI'}
                   </Box>
                 </Tooltip>
                 )}
