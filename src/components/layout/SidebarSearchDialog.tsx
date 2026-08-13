@@ -14,7 +14,6 @@ import { Box, Typography, InputBase, CircularProgress } from '@mui/material';
 import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Bug, MonitorCheck, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import { getDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 
@@ -137,7 +136,7 @@ const navItems: NavResult[] = [
   { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Bug size={16} />, group: 'Security' },
   { type: 'nav', label: 'Host Monitors', path: '/monitors', icon: <MonitorCheck size={16} />, group: 'Security' },
 
-  { type: 'nav', label: 'Usecases', path: '/usecases', icon: <Activity size={16} />, group: 'Automation' },
+  { type: 'nav', label: 'Usecases', path: '/usecases', icon: <Activity size={16} />, group: 'Pages' },
   { type: 'nav', label: 'Workflows', path: 'https://shuffler.io/workflows', icon: <Workflow size={16} />, group: 'Automation', external: true },
   { type: 'nav', label: 'Apps', path: '/apps', icon: <Braces size={16} />, group: 'Automation' },
   { type: 'nav', label: 'Storage', path: 'https://shuffler.io/admin?tab=datastore', icon: <HardDrive size={16} />, group: 'Automation', external: true },
@@ -167,12 +166,10 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
   const [docResults, setDocResults] = useState<DocItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [correlationsLoading, setCorrelationsLoading] = useState(false);
-  const [incidentLoading, setIncidentLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const appDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const corrDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const incidentDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Filter workflows locally by query
   useEffect(() => {
@@ -382,7 +379,7 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     }
   };
 
-  const isAnyLoading = loading || correlationsLoading || incidentLoading;
+  const isAnyLoading = loading || correlationsLoading;
 
   // Compute global indices for each section
   const docsStartIdx = filteredNav.length;
