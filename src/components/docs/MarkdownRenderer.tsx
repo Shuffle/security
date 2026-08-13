@@ -281,14 +281,20 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   if (error) {
     return (
       <Box>
-        <Box sx={{ py: 4 }}>
-          <Typography sx={{ color: 'error.main', textAlign: 'center' }}>{error}</Typography>
+        <Box sx={{ py: 6, maxWidth: 640, mx: 'auto' }}>
+          <Typography sx={{ color: 'text.primary', fontSize: '1.25rem', fontWeight: 600, mb: 1 }}>
+            This documentation page does not exist
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+            We could not find a document for "{slug}". It may have been renamed or moved.
+          </Typography>
 
           {(suggestLoading || suggestions.length > 0) && (
-            <Box sx={{ mt: 3, maxWidth: 640, mx: 'auto' }}>
+            <Box sx={{ mt: 1 }}>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
                 {suggestLoading ? 'Looking for related documentation…' : 'Related documentation'}
               </Typography>
+
               {suggestLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                   <CircularProgress size={18} />
