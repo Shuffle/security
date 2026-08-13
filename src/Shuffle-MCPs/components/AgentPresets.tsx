@@ -141,10 +141,20 @@ export interface AgentPresetsProps {
 export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  // Support status hydrates asynchronously (/getinfo), so re-read it when the
+  // dropdown opens and when storage changes instead of only on first mount.
+  const [supportTick, setSupportTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setSupportTick((t) => t + 1);
+    window.addEventListener('storage', bump);
+    return () => window.removeEventListener('storage', bump);
+  }, []);
   const list = useMemo(
     () => filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS),
-    [presets],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [presets, supportTick, open],
   );
+
 
   const MAX_LABEL_CHARS = 18;
   const displayLabel = selectedPreset
