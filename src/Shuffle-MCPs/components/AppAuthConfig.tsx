@@ -48,8 +48,6 @@ import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import { API_CONFIG, getApiUrl, getAuthHeader, isDevEnvironment, isCloudDomain } from '@/Shuffle-MCPs/api';
 import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 import { getIngestionCategory } from '@/Shuffle-MCPs/ingestionDetection';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 import { fetchAppConfig as fetchSharedAppConfig } from '@/Shuffle-MCPs/appConfigFetch';
 import { invalidateAuthenticatedAppsCache } from '@/Shuffle-MCPs/authenticatedApps';

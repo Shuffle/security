@@ -33,8 +33,6 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
 import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import AppMcpChat from '@/Shuffle-MCPs/views/AppMcpChat';

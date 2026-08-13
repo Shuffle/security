@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { Link } from 'react-router-dom';
 import { Box, CircularProgress, Avatar, AvatarGroup, Tooltip, Stack, Typography, Link as MuiLink } from '@mui/material';
 import { Clock as ClockIcon, Github as GithubIcon } from 'lucide-react';
@@ -286,8 +285,9 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         </Stack>
       )}
 
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+      <ShuffleMarkdown
+        disableBreaks
+        sx={{ '& p': { mb: 2 } }}
         components={{
           a: ({ href, children }) => {
             // Handle internal links
@@ -304,7 +304,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         }}
       >
         {content}
-      </ReactMarkdown>
+      </ShuffleMarkdown>
     </Box>
   );
 };

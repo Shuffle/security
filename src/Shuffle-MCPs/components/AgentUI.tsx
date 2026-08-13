@@ -307,8 +307,7 @@ const FinishAnswerMarkdown: React.FC<{ text: string }> = ({ text }) => {
     );
   }
   return (
-    <Markdown
-      remarkPlugins={[remarkGfm, remarkBreaks]}
+    <ShuffleMarkdown
       components={{
         code({ inline, className, children, ...props }: any) {
           const content = String(children ?? '').replace(/\n$/, '');
