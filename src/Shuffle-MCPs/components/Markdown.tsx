@@ -19,6 +19,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
+import { VideoEmbed, resolveVideoUrl } from './VideoEmbed';
 
 export interface ShuffleMarkdownProps {
   /** The markdown source. */
