@@ -171,7 +171,56 @@ const deepParseJsonStrings = (obj: any, depth = 0): any => {
   return obj;
 };
 
+/**
+ * Some decisions (e.g. the `shuffle_hostmonitors` screenshot action) return an
+ * execution object whose nested result carries a base64 screenshot, typically at
+ * `decision.run_details.raw_response.body.results[0].result`. We deep-parse the
+ * payload and pull out the object/string that holds the image so it can be
+ * rendered with the same viewer used on Host Monitors → Remote Control.
+ */
+const IMAGE_VALUE_KEYS = ['image_base64', 'imageBase64', 'image', 'screenshot', 'screenshot_base64', 'png', 'jpeg', 'jpg', 'b64', 'base64'];
+const B64_IMAGE_PREFIXES = ['iVBORw0KGgo', '/9j/', 'R0lGOD', 'UklGR'];
+
+const looksLikeBase64Image = (v: unknown): boolean => {
+  if (typeof v !== 'string') return false;
+  const s = v.trim().replace(/\s+/g, '');
+  if (s.length < 200) return false;
+  if (/^data:image\/[a-z+.-]+;base64,/i.test(s)) return true;
+  if (!/^[A-Za-z0-9+/=]+$/.test(s)) return false;
+  return B64_IMAGE_PREFIXES.some((p) => s.startsWith(p));
+};
+
+/** Deep-walk a (possibly JSON-string-encoded) payload for a renderable screenshot. */
+export const extractScreenshotPayload = (raw: unknown, depth = 0): string | null => {
+  if (depth > 8 || raw == null) return null;
+  if (typeof raw === 'string') {
+    if (looksLikeBase64Image(raw)) return raw.trim();
+    const parsed = tryParseJsonObject(raw);
+    return parsed ? extractScreenshotPayload(parsed, depth + 1) : null;
+  }
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const hit = extractScreenshotPayload(item, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  if (typeof raw !== 'object') return null;
+  const rec = raw as Record<string, unknown>;
+  // Prefer the whole object when it holds the image directly — ActionOutputView
+  // then also picks up `cursor` / `screen_size` metadata alongside the image.
+  for (const key of IMAGE_VALUE_KEYS) {
+    if (looksLikeBase64Image(rec[key])) return JSON.stringify(rec);
+  }
+  for (const value of Object.values(rec)) {
+    const hit = extractScreenshotPayload(value, depth + 1);
+    if (hit) return hit;
+  }
+  return null;
+};
+
 /** Try to parse a string as JSON object/array; returns null otherwise. */
+
 const tryParseJsonObject = (raw: string): any => {
   if (!raw) return null;
   const trimmed = raw.trim();
