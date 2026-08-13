@@ -1088,6 +1088,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
 }) => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const validate = validateJson(item.details);
+  const screenshotPayload = useMemo(
+    () => extractScreenshotPayload(validate.valid ? validate.result : item.details),
+    [validate.valid, validate.result, item.details],
+  );
+
   const itemStart = item.start_time || 0;
   const itemEnd = item.end_time || itemStart;
   const hasTiming = itemStart > 0 && itemEnd >= itemStart;
