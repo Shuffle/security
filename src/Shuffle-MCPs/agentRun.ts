@@ -234,6 +234,30 @@ const pollExecutionResult = async (
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * The backend answers `tools/call` with a JSON-RPC envelope:
+ *   { jsonrpc: "2.0", id: <our request id>, status: "FINISHED", result: { … } }
+ * The real execution (execution_id, authorization, output, …) lives in
+ * `result`. When the id matches the request we sent, unwrap it so every
+ * downstream consumer sees the execution object directly.
+ */
+export const unwrapJsonRpcEnvelope = (data: unknown, requestId?: number | string): unknown => {
+  if (typeof data !== 'object' || data === null) return data;
+  const obj = data as Record<string, unknown>;
+  if (obj.result === undefined) return data;
+  if (requestId !== undefined && obj.id !== undefined && String(obj.id) !== String(requestId)) return data;
+  const result = obj.result;
+  if (typeof result !== 'object' || result === null || Array.isArray(result)) return data;
+  const r = result as Record<string, unknown>;
+  const looksLikeExecution =
+    typeof r.execution_id === 'string' || typeof r.authorization === 'string';
+  if (!looksLikeExecution) return data;
+  return {
+    ...(typeof obj.status === 'string' ? { status: obj.status } : {}),
+    ...r,
+  };
+};
+
 // ── Main function ──────────────────────────────────────────────────────────────
 
 /**
@@ -369,7 +393,7 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     }
 
     // JSON response — parse and check for execution stub
-    const data = JSON.parse(rawText);
+    const data = unwrapJsonRpcEnvelope(JSON.parse(rawText), payload.id) as any;
 
     if (isExecutionStub(data)) {
       if (request.skipPolling) {
