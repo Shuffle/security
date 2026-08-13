@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: data.id,
           active_org: data.active_org,
           orgs: data.orgs || [],
-          support: data.support === true,
+          support: data.support === true || data.support === 'true',
           app_execution_limit: data.app_execution_limit,
           app_execution_usage: data.app_execution_usage,
           sync_features: data.sync_features,

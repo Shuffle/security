@@ -9,5 +9,6 @@ import { useAuth } from '@/context/AuthContext';
 
 export const useIsSupport = (): boolean => {
   const { userInfo } = useAuth();
-  return (userInfo as { support?: boolean } | null)?.support === true;
+  const support = (userInfo as { support?: boolean | string } | null)?.support;
+  return support === true || support === 'true';
 };
