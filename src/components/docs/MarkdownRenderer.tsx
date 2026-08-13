@@ -121,18 +121,17 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   };
 
   const resetCacheButton = isSupport ? (
-    <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={handleResetCache}
-        disabled={resetting || loading}
-        startIcon={<RefreshCwIcon size={14} />}
-        sx={{ height: 36, textTransform: 'none' }}
-      >
-        {resetting ? 'Resetting…' : 'Reset Cache'}
-      </Button>
-    </Stack>
+    <Button
+      variant="text"
+      size="small"
+      color="secondary"
+      onClick={handleResetCache}
+      disabled={resetting || loading}
+      startIcon={<RefreshCwIcon size={14} />}
+      sx={{ textTransform: 'none', minWidth: 0, px: 1 }}
+    >
+      {resetting ? 'Resetting…' : 'Reset Cache'}
+    </Button>
   ) : null;
 
   if (loading) {
