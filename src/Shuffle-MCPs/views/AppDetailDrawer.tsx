@@ -5,6 +5,7 @@
  * Accepts either an app name (fetches data) or pre-loaded app info.
  */
 
+import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toast } from '@/Shuffle-MCPs/toast';
 import {
@@ -93,7 +94,7 @@ const CollapsibleDescription = ({ description }: { description: string }) => {
         '& ul, & ol': { pl: 2, fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))' },
       }}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
+      <ShuffleMarkdown>{description}</ShuffleMarkdown>
       {!expanded && (
         <Typography sx={{ fontSize: '0.68rem', color: 'hsl(var(--primary))', mt: 0.5, fontWeight: 500 }}>Show more…</Typography>
       )}

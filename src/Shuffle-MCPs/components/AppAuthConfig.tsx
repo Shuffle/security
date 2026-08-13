@@ -1,3 +1,4 @@
+import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   CheckCircle2 as CheckCircleIcon,
@@ -2464,7 +2465,7 @@ export const AppAuthCard = ({
                 '& li': { mb: 1 },
               }}
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{docsContent}</ReactMarkdown>
+              <ShuffleMarkdown>{docsContent}</ShuffleMarkdown>
             </Box>
           )}
         </DialogContent>

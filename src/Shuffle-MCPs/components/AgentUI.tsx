@@ -82,6 +82,8 @@ import {
 import { AppFallbackIcon } from './AppFallbackIcon';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
+import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
+
 import AgentPresets, { AGENT_PRESETS, filterAgentPresets, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
 
 import { useAgentPromptPrefix } from '@/Shuffle-MCPs/useAgentPromptPrefix';
@@ -327,7 +329,7 @@ const FinishAnswerMarkdown: React.FC<{ text: string }> = ({ text }) => {
       }}
     >
       {text}
-    </Markdown>
+    </ShuffleMarkdown>
   );
 };
 
@@ -1347,7 +1349,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           '& a': { color: 'hsl(var(--primary))', textDecoration: 'underline', textUnderlineOffset: '2px' },
           '& a:hover': { opacity: 0.85 },
         }}>
-          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(displayLabel)}</Markdown>
+          <ShuffleMarkdown>{normalizeMarkdown(displayLabel)}</ShuffleMarkdown>
         </Box>
         <Tooltip title={isScheduledWait ? (
           <Box component="span" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -1550,7 +1552,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                   return (
                     <Box key={qi} sx={{ mt: 2 }}>
                       <Box sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', mb: 1 }}>
-                        <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(q.question)}</Markdown>
+                        <ShuffleMarkdown>{normalizeMarkdown(q.question)}</ShuffleMarkdown>
                       </Box>
                       <TextField
                         fullWidth
@@ -1630,7 +1632,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           }}>
             {unansweredQuestions.map((q, qi) => (
               <Box key={qi} sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', '& p': { my: 0.5 } }}>
-                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(q.question)}</Markdown>
+                <ShuffleMarkdown>{normalizeMarkdown(q.question)}</ShuffleMarkdown>
               </Box>
             ))}
           </Box>
@@ -5672,7 +5674,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                                 return (
                                   <Box key={qi}>
                                     <Box sx={{ fontSize: '0.9rem', color: 'hsl(var(--foreground))', mb: 1, '& p': { my: 0.5 } }}>
-                                      <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{normalizeMarkdown(q.question)}</Markdown>
+                                      <ShuffleMarkdown>{normalizeMarkdown(q.question)}</ShuffleMarkdown>
                                     </Box>
                                     <TextField
                                       fullWidth

@@ -1,3 +1,4 @@
+import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { useState, useRef, useMemo } from 'react';
 import {
   CheckCircle as CheckCircleOutlineIcon,
@@ -627,9 +628,9 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
                   },
                 }}
               >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ShuffleMarkdown>
                   {result}
-                </ReactMarkdown>
+                </ShuffleMarkdown>
               </Box>
             </Box>
           </motion.div>
