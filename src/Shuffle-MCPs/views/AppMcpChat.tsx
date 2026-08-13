@@ -1,3 +1,4 @@
+import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { useState, useRef, useMemo } from 'react';
 import {
   CheckCircle as CheckCircleOutlineIcon,
@@ -15,8 +16,6 @@ import {
 } from '@mui/material';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
@@ -627,9 +626,9 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
                   },
                 }}
               >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ShuffleMarkdown>
                   {result}
-                </ReactMarkdown>
+                </ShuffleMarkdown>
               </Box>
             </Box>
           </motion.div>

@@ -1,3 +1,4 @@
+import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { ArrowLeft as ArrowBackIcon, CheckCircle2 as CheckCircleIcon, AlertCircle as ErrorOutlineIcon, ExternalLink as OpenInNewIcon, RefreshCw as RefreshIcon, Activity as TimelineIcon, Lock as LockOutlinedIcon, ArrowRight as ArrowForwardIcon } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from '@/lib/toast';
@@ -15,8 +16,6 @@ import {
   Tooltip,
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
@@ -91,7 +90,7 @@ const CollapsibleDescription = ({ description }: { description: string }) => {
         },
       }}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
+      <ShuffleMarkdown>{description}</ShuffleMarkdown>
       {!expanded && (
         <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--primary))', mt: 0.5, fontWeight: 500 }}>
           Show more…
