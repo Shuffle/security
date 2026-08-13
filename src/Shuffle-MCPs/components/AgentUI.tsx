@@ -5948,8 +5948,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         finishNote={finishNote}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
-                      />
-                      {postRunDiscovery}
+                      >
+                        {postRunDiscovery}
+                      </RunFinishedSummary>
+
 
                       {hasInFlightDecision && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
