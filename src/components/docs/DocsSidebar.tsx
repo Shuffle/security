@@ -83,26 +83,22 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch(getApiUrl('/api/v1/docs'));
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data?.success || !Array.isArray(data.list)) return;
-        const mapped: RemoteDoc[] = data.list
-          .filter((d: { name?: string }) => d?.name && !LOCAL_REMOTE_ALIASES.has(d.name))
-          .map((d: { name: string; read_time?: number }) => {
-            const s = d.name.replace(/_/g, '-').toLowerCase();
-            return { name: d.name, slug: s, label: toLabel(d.name), read_time: d.read_time };
-          })
-          .filter((d: RemoteDoc) => !LOCAL_SLUGS.has(d.slug))
-          .sort((a: RemoteDoc, b: RemoteDoc) => a.label.localeCompare(b.label));
-        if (!cancelled) setRemoteDocs(mapped);
-      } catch {
-        // Silent fail — remote docs are a nice-to-have
-      }
+      const list = await fetchDocsList();
+      const mapped: RemoteDoc[] = list
+        .filter((d) => d?.name && !LOCAL_REMOTE_ALIASES.has(d.name))
+        .map((d) => ({
+          name: d.name,
+          slug: docSlug(d.name),
+          label: toLabel(d.name),
+          read_time: d.read_time,
+        }))
+        .filter((d) => !LOCAL_SLUGS.has(d.slug))
+        .sort((a, b) => a.label.localeCompare(b.label));
+      if (!cancelled) setRemoteDocs(mapped);
     })();
     return () => { cancelled = true; };
   }, []);
+
 
   const handleClick = () => {
     onNavigate?.();
