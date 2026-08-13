@@ -171,10 +171,27 @@ export const ShuffleMarkdown: React.FC<ShuffleMarkdownProps> = ({
     () => [remarkGfm, ...(disableBreaks ? [] : [remarkBreaks]), ...(remarkPlugins ?? [])],
     [disableBreaks, remarkPlugins],
   );
-  const merged = useMemo(
-    () => ({ ...defaultComponents, ...(components ?? {}) }) as Components,
-    [components],
-  );
+  const merged = useMemo(() => {
+    const next: any = { ...defaultComponents, ...(components ?? {}) };
+    // Video embeds always win, even when a caller overrides `a` / `img`.
+    if (components?.a) {
+      const Custom: any = components.a;
+      next.a = (props: any) => {
+        const video = resolveVideoUrl(props?.href);
+        if (video) return <VideoEmbed video={video} title={typeof props?.children === 'string' ? props.children : undefined} />;
+        return <Custom {...props} />;
+      };
+    }
+    if (components?.img) {
+      const Custom: any = components.img;
+      next.img = (props: any) => {
+        const video = resolveVideoUrl(props?.src);
+        if (video) return <VideoEmbed video={video} title={props?.alt} />;
+        return <Custom {...props} />;
+      };
+    }
+    return next as Components;
+  }, [components]);
 
   return (
     <Box className={className} sx={{ ...(baseSx as object), ...(sx as object) }}>
