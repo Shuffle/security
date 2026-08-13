@@ -43,3 +43,20 @@ export const resolveDocName = async (slug: string, resetCache = false): Promise<
   const match = list.find((d) => docSlug(d.name) === slug.toLowerCase());
   return match?.name ?? null;
 };
+
+// Fetch the raw markdown for an exact document name from /api/v1/docs/{name}.
+export const fetchDocMarkdown = async (name: string, resetCache = false): Promise<string | null> => {
+  try {
+    const res = await fetch(
+      getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${resetCache ? '?resetCache=true' : ''}`),
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
+      return data.reason as string;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+};

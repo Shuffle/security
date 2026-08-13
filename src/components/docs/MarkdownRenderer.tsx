@@ -6,6 +6,7 @@ import { Clock as ClockIcon, Github as GithubIcon, RefreshCw as RefreshCwIcon } 
 import { getApiUrl } from '@/Shuffle-MCPs/api';
 import { resolveDocName } from '@/components/docs/remoteDocs';
 import { useIsSupport } from '@/hooks/useIsSupport';
+import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
 
 
 // Import markdown files statically
@@ -120,19 +121,29 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
     }
   };
 
-  const resetCacheButton = isSupport ? (
-    <Button
-      variant="text"
-      size="small"
-      color="secondary"
-      onClick={handleResetCache}
-      disabled={resetting || loading}
-      startIcon={<RefreshCwIcon size={14} />}
-      sx={{ textTransform: 'none', minWidth: 0, px: 1 }}
-    >
-      {resetting ? 'Resetting…' : 'Reset Cache'}
-    </Button>
-  ) : null;
+  const actionButtons = (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+      {isSupport && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleResetCache}
+          disabled={resetting || loading}
+          startIcon={<RefreshCwIcon size={14} />}
+          sx={{
+            textTransform: 'none',
+            height: 36,
+            borderColor: 'hsl(var(--border))',
+            color: 'text.primary',
+            '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+          }}
+        >
+          {resetting ? 'Resetting…' : 'Reset Cache'}
+        </Button>
+      )}
+      <PrintDocsDialog slug={slug} currentMarkdown={content} disabled={loading || resetting} />
+    </Stack>
+  );
 
   if (loading) {
     return (
@@ -260,7 +271,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         },
       }}
     >
-      {((meta && (meta.contributors?.length || meta.read_time || meta.link)) || isSupport) && (
+      {(
         <Stack
           direction="row"
           spacing={2}
@@ -323,11 +334,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
             </MuiLink>
           )}
 
-          {resetCacheButton && (
-            <Stack direction="row" alignItems="center" sx={{ ml: 'auto' }}>
-              {resetCacheButton}
-            </Stack>
-          )}
+          {actionButtons}
         </Stack>
       )}
 
