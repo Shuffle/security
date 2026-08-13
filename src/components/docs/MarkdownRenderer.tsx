@@ -4,20 +4,11 @@ import { Link } from 'react-router-dom';
 import { Box, CircularProgress, Avatar, AvatarGroup, Tooltip, Stack, Typography, Link as MuiLink, Button } from '@mui/material';
 import { Clock as ClockIcon, Github as GithubIcon, RefreshCw as RefreshCwIcon } from 'lucide-react';
 import { getApiUrl } from '@/Shuffle-MCPs/api';
-import { resolveDocName } from '@/components/docs/remoteDocs';
+import { resolveDocName, fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
 
 
-// Import markdown files statically
-const docs: Record<string, () => Promise<{ default: string }>> = {
-  index: () => import('@/docs/index.md?raw'),
-  'getting-started': () => import('@/docs/getting-started.md?raw'),
-  'incident-creation': () => import('@/docs/incident-creation.md?raw'),
-  'shuffle-pipelines': () => import('@/docs/shuffle-pipelines.md?raw'),
-  monitoring: () => import('@/docs/monitoring.md?raw'),
-  setup: () => import('@/docs/setup.md?raw'),
-};
 
 interface Contributor {
   name?: string;
