@@ -11,7 +11,7 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { Box, Typography, InputBase, CircularProgress } from '@mui/material';
-import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
+import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Bug, MonitorCheck, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
