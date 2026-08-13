@@ -67,7 +67,6 @@ import {
   Typography,
 } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
-import Markdown from 'react-markdown';
 import {
   DEFAULT_AGENT_PROMPT_PLACEHOLDER,
   getRandomAgentPromptPlaceholder,
@@ -80,8 +79,6 @@ import {
   type SuggestionAppRequirement,
 } from './agentSuggestionApps';
 import { AppFallbackIcon } from './AppFallbackIcon';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 
 import AgentPresets, { AGENT_PRESETS, filterAgentPresets, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
