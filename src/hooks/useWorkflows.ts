@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, hasShuffleAuth } from '@/Shuffle-MCPs/api';
 
 export interface WorkflowSummary {
   id: string;
