@@ -192,13 +192,28 @@ const looksLikeBase64Image = (v: unknown): boolean => {
   return B64_IMAGE_PREFIXES.some((p) => s.startsWith(p));
 };
 
+/**
+ * Last-resort text scan: pull a base64 image blob straight out of raw text.
+ * Handles payloads whose JSON is escaped, truncated or otherwise unparseable
+ * (e.g. `"output":"[{\"image\":\"iVBORw0KGgo…`).
+ */
+const scanTextForImage = (text: string): string | null => {
+  if (!text || text.length < 200) return null;
+  const dataUri = text.match(/data:image\/[a-z+.-]+;base64,[A-Za-z0-9+/=]{200,}/i);
+  if (dataUri) return dataUri[0];
+  const bare = text.match(/(?:iVBORw0KGgo|\/9j\/|R0lGOD|UklGR)[A-Za-z0-9+/=]{200,}/);
+  return bare ? bare[0] : null;
+};
+
 /** Deep-walk a (possibly JSON-string-encoded) payload for a renderable screenshot. */
 export const extractScreenshotPayload = (raw: unknown, depth = 0): string | null => {
-  if (depth > 8 || raw == null) return null;
+  if (depth > 12 || raw == null) return null;
   if (typeof raw === 'string') {
     if (looksLikeBase64Image(raw)) return raw.trim();
     const parsed = tryParseJsonObject(raw);
-    return parsed ? extractScreenshotPayload(parsed, depth + 1) : null;
+    const nested = parsed ? extractScreenshotPayload(parsed, depth + 1) : null;
+    if (nested) return nested;
+    return depth === 0 ? scanTextForImage(raw) : null;
   }
   if (Array.isArray(raw)) {
     for (const item of raw) {
@@ -218,8 +233,12 @@ export const extractScreenshotPayload = (raw: unknown, depth = 0): string | null
     const hit = extractScreenshotPayload(value, depth + 1);
     if (hit) return hit;
   }
+  if (depth === 0) {
+    try { return scanTextForImage(JSON.stringify(rec)); } catch { return null; }
+  }
   return null;
 };
+
 
 /** Try to parse a string as JSON object/array; returns null otherwise. */
 
