@@ -67,6 +67,8 @@ export interface AgentsViewProps extends ShuffleHostProps {
   appsStorageKey?: string;
   /** Usecase-backed agent types shown in the activity list filter dropdown. */
   usecaseFilters?: AgentUsecaseFilter[];
+  /** Per-skill readiness CTAs forwarded to the embedded AgentUI. */
+  presetCtas?: AgentUIProps['presetCtas'];
 }
 
 const APPS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -114,6 +116,7 @@ const AgentsView = ({
   disableAppsPersistence,
   appsStorageKey = DEFAULT_APPS_STORAGE_KEY,
   usecaseFilters,
+  presetCtas,
   globalUrl = API_CONFIG.baseUrl,
   isLoaded,
   isLoggedIn,
@@ -322,6 +325,7 @@ const AgentsView = ({
           theme={resolvedTheme}
           colorMode={colorMode}
           onAppsChange={handleAppsChange}
+          presetCtas={presetCtas}
         />
         {agentView === 'start' && (
           <Box id="agent-activity" sx={{ pt: { xs: 4, md: '8vh' }, scrollMarginTop: 80 }}>
