@@ -15,7 +15,9 @@
  */
 import React, { useMemo } from 'react';
 import { Box, type SxProps, type Theme } from '@mui/material';
-import ReactMarkdown, { type Components } from 'react-markdown';
+// Aliased: MUI's `Theme` type carries its own `Components<Theme>` override registry,
+// and bundling both under the bare name `Components` breaks tsup's declaration bundling (TS2709).
+import ReactMarkdown, { type Components as ReactMarkdownComponents } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
@@ -68,7 +70,7 @@ export interface ShuffleMarkdownProps {
   /** The markdown source. */
   children?: string | null;
   /** Component overrides merged on top of the shared defaults. */
-  components?: Components;
+  components?: ReactMarkdownComponents;
   /** Extra remark plugins appended to the defaults. */
   remarkPlugins?: any[];
   /** Disable remark-breaks (for prose docs where blank lines separate paragraphs). */
@@ -124,7 +126,7 @@ const baseSx: SxProps<Theme> = {
   '& img': { maxWidth: '100%', borderRadius: 4 },
 };
 
-const defaultComponents: Components = {
+const defaultComponents: ReactMarkdownComponents = {
   a: ({ href, children, ...props }: any) => {
     const isInternal = typeof href === 'string' && href.startsWith('/');
     const video = isInternal ? null : resolveVideoUrl(href);
@@ -190,7 +192,7 @@ export const ShuffleMarkdown: React.FC<ShuffleMarkdownProps> = ({
         return <Custom {...props} />;
       };
     }
-    return next as Components;
+    return next as ReactMarkdownComponents;
   }, [components]);
 
   return (
