@@ -1,6 +1,6 @@
-import { Home as HomeIcon, Settings as SettingsIcon, Server as DnsIcon, Radio as SensorsIcon, ExternalLink as OpenInNewIcon, AlertTriangle as ReportProblemIcon, Radar as RadarIcon, Download as DownloadIcon, FileText as FileTextIcon, ChevronDown as ChevronDownIcon, BookOpen as BookOpenIcon } from 'lucide-react';
+import { ExternalLink as OpenInNewIcon, Download as DownloadIcon, FileText as FileTextIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   List,
@@ -8,8 +8,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Menu,
-  MenuItem,
   Typography,
 } from '@mui/material';
 import { fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
@@ -24,15 +22,6 @@ interface DocLink {
 interface DocsSidebarProps {
   onNavigate?: () => void;
 }
-
-const docLinks: DocLink[] = [
-  { label: 'Overview', slug: 'index', icon: <HomeIcon /> },
-  { label: 'Getting Started', slug: 'getting-started', icon: <SettingsIcon /> },
-  { label: 'Incident Creation', slug: 'incident-creation', icon: <ReportProblemIcon /> },
-  { label: 'Shuffle Pipelines', slug: 'shuffle-pipelines', icon: <SensorsIcon /> },
-  { label: 'Monitoring', slug: 'monitoring', icon: <RadarIcon /> },
-  { label: 'Self-Hosting', slug: 'setup', icon: <DnsIcon /> },
-];
 
 const externalLinks: DocLink[] = [
   {
@@ -65,11 +54,6 @@ interface RemoteDoc {
   read_time?: number;
 }
 
-// Slugs already covered by local docs — hide these from the remote fallback list
-const LOCAL_SLUGS = new Set(['index', 'getting-started', 'incident-creation', 'shuffle-pipelines', 'monitoring', 'setup']);
-// Remote names that map onto our local slugs (avoid duplicates)
-const LOCAL_REMOTE_ALIASES = new Set(['getting_started']);
-
 const toLabel = (name: string) =>
   name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -77,22 +61,19 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [remoteDocs, setRemoteDocs] = useState<RemoteDoc[]>([]);
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const menuOpen = Boolean(menuAnchor);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const list = await fetchDocsList();
       const mapped: RemoteDoc[] = list
-        .filter((d) => d?.name && !LOCAL_REMOTE_ALIASES.has(d.name))
+        .filter((d) => d?.name)
         .map((d) => ({
           name: d.name,
           slug: docSlug(d.name),
           label: toLabel(d.name),
           read_time: d.read_time,
         }))
-        .filter((d) => !LOCAL_SLUGS.has(d.slug))
         .sort((a, b) => a.label.localeCompare(b.label));
       if (!cancelled) setRemoteDocs(mapped);
     })();
@@ -103,6 +84,8 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   const handleClick = () => {
     onNavigate?.();
   };
+
+
 
 
   return (
