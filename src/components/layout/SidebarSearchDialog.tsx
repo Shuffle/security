@@ -395,7 +395,12 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
 
   const handleSelect = (result: SearchResult) => {
     if (result.type === 'nav') {
-      navigate(result.path);
+      if (result.external) {
+        window.open(result.path, '_blank');
+      } else {
+        navigate(result.path);
+      }
+
     } else if (result.type === 'app') {
       navigate(`/apps?app=${result.app.name}`);
     } else if (result.type === 'workflow') {
