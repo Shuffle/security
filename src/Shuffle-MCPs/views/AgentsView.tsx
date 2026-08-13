@@ -309,6 +309,7 @@ const AgentsView = ({
           apiKey={apiKey}
           orgId={orgId}
           userId={userdata?.id}
+          isSupport={userdata?.support === true || userdata?.support === 'true'}
           onChooseLLM={handleChooseLLM}
           hideChooseLLM={hideChooseLLM}
           defaultInput={prefill.input}

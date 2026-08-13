@@ -117,8 +117,8 @@ const isSupportUser = (): boolean => {
 const SUPPORT_ONLY_PRESET_IDS = ['host-monitor-control'];
 
 /** Disables support-only templates unless the current user is a support user. */
-export const filterAgentPresets = (list: AgentPreset[]): AgentPreset[] => {
-  if (isSupportUser()) return list;
+export const filterAgentPresets = (list: AgentPreset[], support?: boolean): AgentPreset[] => {
+  if (support === true || (support === undefined && isSupportUser())) return list;
   return list.map((p) => (SUPPORT_ONLY_PRESET_IDS.includes(p.id) ? { ...p, enabled: false } : p));
 };
 
@@ -136,9 +136,11 @@ export interface AgentPresetsProps {
   presets?: AgentPreset[];
   /** Ref forwarded to the trigger button so the host can measure its width. */
   chipRef?: React.Ref<HTMLButtonElement>;
+  /** Authoritative support flag from the host's getinfo payload. */
+  isSupport?: boolean;
 }
 
-export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef }: AgentPresetsProps) => {
+export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   // Support status hydrates asynchronously (/getinfo), so re-read it when the
@@ -150,9 +152,9 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     return () => window.removeEventListener('storage', bump);
   }, []);
   const list = useMemo(
-    () => filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS),
+    () => filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS, isSupport),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [presets, supportTick, open],
+    [presets, supportTick, open, isSupport],
   );
 
 
