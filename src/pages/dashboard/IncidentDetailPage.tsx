@@ -9173,7 +9173,7 @@ const IncidentDetailPage = () => {
                     '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.06)' },
                   }}
                 >
-                  Choose LLM
+                  Shuffle AI
                 </Button>
               </Box>
               {/* Currently assigned tools — mirrors the Permissions panel so it
