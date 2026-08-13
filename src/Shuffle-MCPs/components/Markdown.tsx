@@ -15,9 +15,7 @@
  */
 import React, { useMemo } from 'react';
 import { Box, type SxProps, type Theme } from '@mui/material';
-// Aliased: MUI's `Theme` type carries its own `Components<Theme>` override registry,
-// and bundling both under the bare name `Components` breaks tsup's declaration bundling (TS2709).
-import ReactMarkdown, { type Components as ReactMarkdownComponents } from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
@@ -66,11 +64,18 @@ export const MarkdownJsonBlock: React.FC<{ src: object }> = ({ src }) => (
   </Box>
 );
 
+/**
+ * Deliberately loose (not react-markdown's own `Components` type): that type is a mapped
+ * type over `keyof JSX.IntrinsicElements`, which tsup's declaration bundler (rollup-plugin-dts)
+ * cannot inline into this package's published `.d.ts` without erroring (TS2709).
+ */
+type MarkdownComponentOverrides = Record<string, React.ElementType>;
+
 export interface ShuffleMarkdownProps {
   /** The markdown source. */
   children?: string | null;
   /** Component overrides merged on top of the shared defaults. */
-  components?: ReactMarkdownComponents;
+  components?: MarkdownComponentOverrides;
   /** Extra remark plugins appended to the defaults. */
   remarkPlugins?: any[];
   /** Disable remark-breaks (for prose docs where blank lines separate paragraphs). */
@@ -126,7 +131,7 @@ const baseSx: SxProps<Theme> = {
   '& img': { maxWidth: '100%', borderRadius: 4 },
 };
 
-const defaultComponents: ReactMarkdownComponents = {
+const defaultComponents: MarkdownComponentOverrides = {
   a: ({ href, children, ...props }: any) => {
     const isInternal = typeof href === 'string' && href.startsWith('/');
     const video = isInternal ? null : resolveVideoUrl(href);
@@ -192,12 +197,12 @@ export const ShuffleMarkdown: React.FC<ShuffleMarkdownProps> = ({
         return <Custom {...props} />;
       };
     }
-    return next as ReactMarkdownComponents;
+    return next as MarkdownComponentOverrides;
   }, [components]);
 
   return (
     <Box className={className} sx={{ ...(baseSx as object), ...(sx as object) }}>
-      <ReactMarkdown remarkPlugins={plugins} rehypePlugins={[rehypeSanitize]} components={merged}>
+      <ReactMarkdown remarkPlugins={plugins} rehypePlugins={[rehypeSanitize]} components={merged as any}>
         {children ?? ''}
       </ReactMarkdown>
     </Box>
