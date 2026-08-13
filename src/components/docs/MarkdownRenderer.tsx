@@ -260,8 +260,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         },
       }}
     >
-      {resetCacheButton}
-      {meta && (meta.contributors?.length || meta.read_time || meta.link) && (
+      {meta && (meta.contributors?.length || meta.read_time || meta.link || isSupport) && (
         <Stack
           direction="row"
           spacing={2}
@@ -283,52 +282,49 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
           ) : null}
 
           {meta.contributors && meta.contributors.length > 0 && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Contributors
-              </Typography>
-              <AvatarGroup max={6} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.7rem', border: '1px solid', borderColor: 'divider' } }}>
-                {meta.contributors.map((c, i) => {
-                  const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
-                  const avatar = (
-                    <Avatar key={c.url || i} src={c.image} alt={handle}>
-                      {handle.charAt(0).toUpperCase()}
-                    </Avatar>
-                  );
-                  return (
-                    <Tooltip key={c.url || i} title={handle} arrow>
-                      {c.url ? (
-                        <MuiLink href={c.url} target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-flex' }}>
-                          {avatar}
-                        </MuiLink>
-                      ) : avatar}
-                    </Tooltip>
-                  );
-                })}
-              </AvatarGroup>
-            </Stack>
+            <AvatarGroup max={6} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.7rem', border: '1px solid', borderColor: 'divider' } }}>
+              {meta.contributors.map((c, i) => {
+                const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
+                const avatar = (
+                  <Avatar key={c.url || i} src={c.image} alt={handle}>
+                    {handle.charAt(0).toUpperCase()}
+                  </Avatar>
+                );
+                return (
+                  <Tooltip key={c.url || i} title={handle} arrow>
+                    {c.url ? (
+                      <MuiLink href={c.url} target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-flex' }}>
+                        {avatar}
+                      </MuiLink>
+                    ) : avatar}
+                  </Tooltip>
+                );
+              })}
+            </AvatarGroup>
           )}
 
-          {meta.link && (
-            <MuiLink
-              href={meta.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{
-                ml: 'auto',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                fontSize: '0.8125rem',
-                color: 'text.secondary',
-                textDecoration: 'none',
-                '&:hover': { color: 'primary.main' },
-              }}
-            >
-              <GithubIcon size={14} />
-              Edit on GitHub
-            </MuiLink>
-          )}
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+            {resetCacheButton}
+            {meta.link && (
+              <MuiLink
+                href={meta.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  fontSize: '0.8125rem',
+                  color: 'text.secondary',
+                  textDecoration: 'none',
+                  '&:hover': { color: 'primary.main' },
+                }}
+              >
+                <GithubIcon size={14} />
+                Edit on GitHub
+              </MuiLink>
+            )}
+          </Stack>
         </Stack>
       )}
 
