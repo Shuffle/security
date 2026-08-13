@@ -597,6 +597,18 @@ export interface AgentUIProps {
   autoLoadApps?: boolean;
   /** Authoritative support flag from `/api/v1/getinfo`. */
   isSupport?: boolean;
+  /**
+   * Optional per-skill readiness CTAs. Keyed by skill (preset) id. When the
+   * matching skill is selected and the host reports it has no real content
+   * yet, AgentUI renders a small call-to-action under the prompt.
+   */
+  presetCtas?: Record<string, {
+    /** When false, nothing is rendered (content exists / still loading). */
+    show?: boolean;
+    message: string;
+    actionLabel: string;
+    onAction?: () => void;
+  }>;
   /** Hero title above the prompt. */
   title?: string;
   /** Optional subtitle/description shown under the title. */
