@@ -333,11 +333,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
             </MuiLink>
           )}
 
-          {resetCacheButton && (
-            <Stack direction="row" alignItems="center" sx={{ ml: 'auto' }}>
-              {resetCacheButton}
-            </Stack>
-          )}
+          {actionButtons}
         </Stack>
       )}
 
