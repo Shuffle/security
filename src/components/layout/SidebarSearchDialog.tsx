@@ -29,6 +29,9 @@ interface NavResult {
   path: string;
   icon: React.ReactNode;
   indent?: boolean;
+  group?: string;
+  external?: boolean;
+  hiddenUnlessSearched?: boolean;
 }
 
 interface AppResult {
