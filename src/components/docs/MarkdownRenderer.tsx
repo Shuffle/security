@@ -69,34 +69,26 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
     setError(null);
     setMeta(null);
 
-    const loader = docs[slug];
-    if (loader && !resetCache) {
-      try {
-        const module = await loader();
-        setContent(module.default);
-        setLoading(false);
-        return;
-      } catch (err) {
-        console.warn('Local markdown load failed, falling back to remote:', err);
-      }
+    // Resolve the doc to load. `/docs` (index) falls back to the first remote doc.
+    let target = slug;
+    const list = await fetchDocsList(resetCache);
+    if (!list.some((d) => docSlug(d.name) === slug.toLowerCase())) {
+      const preferred =
+        list.find((d) => docSlug(d.name) === 'index') ??
+        list.find((d) => docSlug(d.name) === 'getting-started') ??
+        list[0];
+      if (slug === 'index' && preferred) target = docSlug(preferred.name);
     }
 
-    // Fallback: fetch from Shuffle Core docs API
-    const remote = await fetchRemoteDoc(slug, resetCache);
+    const remote = await fetchRemoteDoc(target, resetCache);
     if (remote) {
       setContent(remote.markdown);
       setMeta(remote.meta);
-    } else if (loader) {
-      try {
-        const module = await loader();
-        setContent(module.default);
-      } catch {
-        setError(`Documentation not found: ${slug}`);
-      }
     } else {
       setError(`Documentation not found: ${slug}`);
     }
     setLoading(false);
+
   }, [slug]);
 
   useEffect(() => {
