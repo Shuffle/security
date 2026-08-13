@@ -6,6 +6,7 @@ import { Clock as ClockIcon, Github as GithubIcon, RefreshCw as RefreshCwIcon } 
 import { getApiUrl } from '@/Shuffle-MCPs/api';
 import { resolveDocName } from '@/components/docs/remoteDocs';
 import { useIsSupport } from '@/hooks/useIsSupport';
+import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
 
 
 // Import markdown files statically
@@ -270,7 +271,7 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         },
       }}
     >
-      {((meta && (meta.contributors?.length || meta.read_time || meta.link)) || isSupport) && (
+      {(
         <Stack
           direction="row"
           spacing={2}
