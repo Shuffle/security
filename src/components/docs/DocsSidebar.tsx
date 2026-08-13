@@ -113,46 +113,14 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
       </Typography>
       
       <List sx={{ px: 1, mt: 1 }}>
-        {docLinks.map((link) => (
-          <ListItem key={link.slug} disablePadding>
+        {remoteDocs.map((doc) => (
+          <ListItem key={doc.slug} disablePadding>
             <ListItemButton
-              component={Link}
-              to={link.slug === 'index' ? '/docs' : `/docs/${link.slug}`}
-              onClick={handleClick}
-              selected={slug === link.slug || (slug === 'index' && link.slug === 'index')}
-              sx={{
-                borderRadius: 1,
-                mx: 1,
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 102, 0, 0.15)',
-                  },
-                  '& .MuiListItemIcon-root': {
-                    color: 'primary.main',
-                  },
-                  '& .MuiListItemText-primary': {
-                    color: 'primary.main',
-                    fontWeight: 600,
-                  },
-                },
+              onClick={() => {
+                handleClick();
+                navigate(`/docs/${doc.slug}`);
               }}
-            >
-              <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-                {link.icon}
-              </ListItemIcon>
-              <ListItemText primary={link.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-
-      {remoteDocs.length > 0 && (
-        <List sx={{ px: 1, mt: 0 }}>
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={(e) => setMenuAnchor(e.currentTarget)}
-              selected={remoteDocs.some((d) => d.slug === slug)}
+              selected={slug === doc.slug}
               sx={{
                 borderRadius: 1,
                 mx: 1,
@@ -165,66 +133,22 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
               }}
             >
               <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-                <BookOpenIcon size={20} />
+                <FileTextIcon size={18} />
               </ListItemIcon>
-              <ListItemText primary="Reference Docs" />
-              <ChevronDownIcon
-                size={16}
-                style={{
-                  transition: 'transform 150ms ease',
-                  transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  opacity: 0.7,
-                }}
+              <ListItemText
+                primary={doc.label}
+                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
               />
+              {doc.read_time ? (
+                <Typography variant="caption" sx={{ color: 'text.disabled', ml: 1 }}>
+                  {doc.read_time}m
+                </Typography>
+              ) : null}
             </ListItemButton>
           </ListItem>
-          <Menu
-            anchorEl={menuAnchor}
-            open={menuOpen}
-            onClose={() => setMenuAnchor(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-            slotProps={{
-              paper: {
-                sx: {
-                  maxHeight: 420,
-                  minWidth: 240,
-                  mt: 0.5,
-                },
-              },
-            }}
-          >
-            {remoteDocs.map((doc) => (
-              <MenuItem
-                key={doc.slug}
-                selected={slug === doc.slug}
-                onClick={() => {
-                  setMenuAnchor(null);
-                  handleClick();
-                  navigate(`/docs/${doc.slug}`);
-                }}
-                sx={{
-                  fontSize: '0.875rem',
-                  gap: 1.25,
-                  '&.Mui-selected': {
-                    backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                    color: 'primary.main',
-                    fontWeight: 600,
-                  },
-                }}
-              >
-                <FileTextIcon size={16} style={{ opacity: 0.7, flexShrink: 0 }} />
-                <Box component="span" sx={{ flex: 1 }}>{doc.label}</Box>
-                {doc.read_time ? (
-                  <Typography variant="caption" sx={{ color: 'text.disabled', ml: 1 }}>
-                    {doc.read_time}m
-                  </Typography>
-                ) : null}
-              </MenuItem>
-            ))}
-          </Menu>
-        </List>
-      )}
+        ))}
+      </List>
+
 
 
 
