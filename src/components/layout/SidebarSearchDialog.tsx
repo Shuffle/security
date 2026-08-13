@@ -314,65 +314,9 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     }
   }, []);
 
-  // Direct-lookup: if the query looks like an incident id (>=6 chars,
-  // alphanumeric / dashes / underscores), try to fetch it as an incident
-  // from the datastore. Lets analysts paste an incident id and jump to it
-  // even though the correlations index would only surface it indirectly.
-  const searchIncident = useCallback(async (q: string) => {
-    const trimmed = q.trim();
-    if (trimmed.length < 6 || !/^[A-Za-z0-9_-]+$/.test(trimmed)) {
-      setIncidentResults([]);
-      return;
-    }
-    setIncidentLoading(true);
-    try {
-      const res = await getDatastoreItem(trimmed, DATASTORE_CATEGORIES.INCIDENTS);
-      if (res.success && res.item) {
-        let title = trimmed;
-        try {
-          const parsed = JSON.parse(res.item.value);
-          title = parsed.title
-            || parsed.finding_info_list?.[0]?.title
-            || parsed.finding_info?.title
-            || parsed.message
-            || trimmed;
-        } catch {
-          /* keep id as title */
-        }
-        setIncidentResults([{ id: trimmed, title }]);
-      } else {
-        setIncidentResults([]);
-      }
-    } catch {
-      setIncidentResults([]);
-    } finally {
-      setIncidentLoading(false);
-    }
-  }, []);
+  // Incident lookups are covered by the correlations endpoint, which already
+  // tells us whether an incident exists. No per-keystroke datastore reads.
 
-  // Debounced Algolia search (200ms) — only when dialog is open
-  useEffect(() => {
-    if (!open) return;
-    if (appDebounceRef.current) clearTimeout(appDebounceRef.current);
-    appDebounceRef.current = setTimeout(() => searchAlgolia(query), 200);
-    return () => { if (appDebounceRef.current) clearTimeout(appDebounceRef.current); };
-  }, [query, searchAlgolia, open]);
-
-  // Debounced correlation search (400ms) — only when dialog is open
-  useEffect(() => {
-    if (!open) return;
-    if (corrDebounceRef.current) clearTimeout(corrDebounceRef.current);
-    corrDebounceRef.current = setTimeout(() => searchCorrelations(query), 400);
-    return () => { if (corrDebounceRef.current) clearTimeout(corrDebounceRef.current); };
-  }, [query, searchCorrelations, open]);
-
-  // Debounced incident id lookup (350ms)
-  useEffect(() => {
-    if (!open) return;
-    if (incidentDebounceRef.current) clearTimeout(incidentDebounceRef.current);
-    incidentDebounceRef.current = setTimeout(() => searchIncident(query), 350);
-    return () => { if (incidentDebounceRef.current) clearTimeout(incidentDebounceRef.current); };
-  }, [query, searchIncident, open]);
 
   // Reset on open
   useEffect(() => {
