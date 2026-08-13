@@ -218,8 +218,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthenticated, userInfo?.active_org?.id]);
 
   const login = useCallback(async (token: string) => {
-    // Clear any existing API key — session login and API key auth are mutually exclusive
-    API_CONFIG.setApiKey(null);
+    // Keep any stored API key. Session cookies are cross-site on preview/tunnel
+    // hosts and are frequently dropped by the browser; the Authorization header
+    // from the API key is the only auth that survives, so wiping it here made
+    // every later request go out unauthenticated (401 spam).
     localStorage.setItem('session_token', token);
     setSessionToken(token);
     setIsAuthenticated(true);
