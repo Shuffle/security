@@ -111,6 +111,7 @@ const AdminPage = () => {
     if (requestedOrg === orgId) return;
 
     const previousOrgId = orgId;
+    setChangingOrg(true);
     const run = async () => {
       try {
         const response = await fetch(getApiUrl(`/api/v1/orgs/${requestedOrg}/change`), {
@@ -122,6 +123,7 @@ const AdminPage = () => {
 
         if (!response.ok) {
           toast.error(`Failed to change organization (${response.status})`);
+          setChangingOrg(false);
           return;
         }
 
@@ -144,6 +146,7 @@ const AdminPage = () => {
         const newOrgId = info?.active_org?.id;
         if (newOrgId && previousOrgId && newOrgId === previousOrgId) {
           toast.error('Organization did not change');
+          setChangingOrg(false);
           return;
         }
 
@@ -154,6 +157,7 @@ const AdminPage = () => {
       } catch (err) {
         console.error('Custom org change failed:', err);
         toast.error('Failed to change organization');
+        setChangingOrg(false);
       }
     };
     run();
@@ -285,6 +289,28 @@ const AdminPage = () => {
   const regionFlag = getRegionFlag(orgRegionUrl);
 
   return (
+    <>
+      {changingOrg && (
+        <Box
+          sx={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            backgroundColor: 'hsla(var(--background) / 0.85)',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <CircularProgress size={32} sx={{ color: 'hsl(var(--primary))' }} />
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            Changing tenant…
+          </Typography>
+        </Box>
+      )}
     <Box sx={{ p: { xs: 0, sm: 0 }, maxWidth: 1200, width: '100%', mx: 'auto' }}>
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: 'hsl(var(--foreground))' }}>
         Tenant Admin
