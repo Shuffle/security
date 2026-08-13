@@ -108,6 +108,58 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
     loadContent();
   }, [loadContent]);
 
+  // When a doc 404s, suggest the top matching documentation pages from Algolia.
+  useEffect(() => {
+    if (!error) {
+      setSuggestions([]);
+      setSuggestLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setSuggestLoading(true);
+    (async () => {
+      try {
+        const res = await docsSearchClient.searchSingleIndex({
+          indexName: 'documentation',
+          searchParams: {
+            query: slug.replace(/[-_]+/g, ' '),
+            hitsPerPage: 8,
+            attributesToRetrieve: ['title', 'filename', 'data', 'urlpath'],
+          },
+        });
+        const seen = new Set<string>();
+        const items: DocSuggestion[] = [];
+        for (const raw of res.hits as unknown as DocsHit[]) {
+          const rawPath = typeof raw.urlpath === 'string' ? raw.urlpath.trim() : '';
+          const filename = (raw.filename || '').replace(/\.md$/i, '');
+          const pathWithoutHash = rawPath.split('#')[0];
+          const docSlugValue = pathWithoutHash.startsWith('/docs/')
+            ? pathWithoutHash.slice('/docs/'.length).replace(/^\/+|\/+$/g, '')
+            : filename.replace(/[_\s]+/g, '-').toLowerCase();
+          if (!docSlugValue || seen.has(docSlugValue)) continue;
+          seen.add(docSlugValue);
+          items.push({
+            path: rawPath.startsWith('/docs/') ? rawPath : `/docs/${docSlugValue}`,
+            label:
+              raw.title?.trim() ||
+              (filename || docSlugValue).replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            snippet: (raw.data || '').replace(/\s+/g, ' ').trim().slice(0, 160),
+          });
+          if (items.length >= 3) break;
+        }
+        if (!cancelled) setSuggestions(items);
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setSuggestLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [error, slug]);
+
+
   // Give every heading a stable id, then scroll to the hash target once the
   // markdown has rendered (docs links carry anchors like "#cloud_specific_example").
   useEffect(() => {
