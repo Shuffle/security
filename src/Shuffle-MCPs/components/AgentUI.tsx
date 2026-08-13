@@ -1813,8 +1813,16 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         );
       })()}
 
+      {/* Screenshot returned by the action (e.g. shuffle_hostmonitors script:screenshot) */}
+      {open && !isProcessing && screenshotPayload && (
+        <Box sx={{ px: 4, pb: 2 }}>
+          <ActionOutputView output={screenshotPayload} />
+        </Box>
+      )}
+
       {/* Raw JSON */}
       {open && !isProcessing && item.details != null && item.details !== '' && (
+
         <Box sx={{ px: 4, pb: 2 }}>
           <Box
             sx={{
