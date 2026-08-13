@@ -4050,6 +4050,23 @@ const AgentUI: React.FC<AgentUIProps> = ({
     lastAppliedHintRef.current = scheduleHint.cron;
   }, [scheduleHint, scheduleAnchor]);
 
+  // Post-run discovery: the same requirements we surface *before* a run
+  // (schedule intent + apps/categories the prompt needs) are still relevant
+  // once the run finishes, so the "Run finished" area can help set them up.
+  const postRunAppReqs = useMemo<SuggestionAppRequirement[]>(() => {
+    const text = (actionInput || '').trim();
+    if (text.length < 4) return [];
+    const reqs = getSuggestionAppRequirements(text, 4);
+    // Drop the generic fallback requirement.
+    const meaningful = reqs.filter((r) => !(r.kind === 'app' && r.value === 'shuffle_tools'));
+    const chosen = chosenApps.map((a) => normalizeAgentAppName(a.name || '').replace(/_/g, ' '));
+    return meaningful.filter((r) => {
+      const target = r.value.toLowerCase().replace(/[_-]+/g, ' ');
+      return !chosen.some((c) => c && (c === target || c.includes(target) || target.includes(c)));
+    });
+  }, [actionInput, chosenApps]);
+
+
   // Compile structured recurrence controls into a 5-field cron expression.
   // Skipped if the user has manually overridden via preset chip / advanced
   // cron text field — that override is cleared whenever they touch a
