@@ -277,10 +277,16 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
 
       if (response.ok) {
         const data = await response.json();
-        const correlationData = Array.isArray(data) ? data : (data.correlations || data.data || []);
-        const filtered = correlationData.filter(
-          (c: CorrelationItem) => !NOISE_KEYS.has(c.key.toLowerCase())
-        );
+        const rawCorrelationData = Array.isArray(data) ? data : (data.correlations || data.data || []);
+        const correlationData = Array.isArray(rawCorrelationData) ? rawCorrelationData : [];
+        const filtered = correlationData.filter((candidate: unknown): candidate is CorrelationItem => {
+          if (!candidate || typeof candidate !== 'object') return false;
+          const correlation = candidate as Partial<CorrelationItem>;
+          if (typeof correlation.key !== 'string' || !correlation.key.trim()) return false;
+          if (!Array.isArray(correlation.ref) || correlation.ref.length === 0) return false;
+          return correlation.ref.some((ref) => typeof ref === 'string' && ref.includes('shuffle-security_incidents'))
+            && !NOISE_KEYS.has(correlation.key.toLowerCase());
+        });
         setCorrelationResults(filtered.slice(0, 8));
       } else {
         setCorrelationResults([]);

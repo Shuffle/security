@@ -704,6 +704,27 @@ export const getDatastoreItem = async (
       },
     };
   }
+
+  // Some cache handlers answer a missing key with HTTP 200 and an otherwise
+  // empty success envelope. Do not expose that envelope as a datastore item:
+  // callers would treat the searched key itself as a real incident even
+  // though no stored value exists.
+  if (typeof data.value !== 'string') {
+    return {
+      success: true,
+      item: undefined,
+      diagnostics: {
+        ...baseDiagnostics,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        bodyPreview: truncateResponsePreview(rawBody),
+        responseShape: 'unknown',
+        itemCount: 0,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
   
   return {
     success: true,
