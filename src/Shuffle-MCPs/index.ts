@@ -243,3 +243,4 @@ export { UsageBar } from '@/Shuffle-MCPs/components/UsageBar';
 export type { UsageBarProps } from '@/Shuffle-MCPs/components/UsageBar';
 
 export { ShuffleMarkdown, default as Markdown } from './components/Markdown';
+export { VideoEmbed, resolveVideoUrl } from './components/VideoEmbed';
