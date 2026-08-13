@@ -50,6 +50,14 @@ const docsSearchClient = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957
 
 // Fetch a doc from the Shuffle Core /api/v1/docs/{name} endpoint.
 // The API returns { success, reason: <markdown>, meta: {...} }.
+// GitHub raw returns a plain "404: Not Found" body for missing files, which the
+// API happily passes through as markdown. Treat those bodies as a missing doc.
+const isMissingDocBody = (markdown: string) => {
+  const trimmed = markdown.trim();
+  if (trimmed.length > 200) return false;
+  return /^(404\s*:?\s*not\s*found|not\s*found|400\s*:\s*.*|no\s*such\s*file.*)$/i.test(trimmed);
+};
+
 const fetchRemoteDoc = async (
   slug: string,
   resetCache = false,
@@ -67,6 +75,7 @@ const fetchRemoteDoc = async (
       if (!res.ok) continue;
       const data = await res.json();
       if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
+        if (isMissingDocBody(data.reason)) continue;
         return { markdown: data.reason, meta: (data.meta as RemoteDocMeta) ?? null };
       }
     } catch {
@@ -75,6 +84,7 @@ const fetchRemoteDoc = async (
   }
   return null;
 };
+
 
 // Anchor ids in the Shuffle docs use underscores ("#cloud_specific_example").
 // Normalize heading text and hashes to the same shape so both underscore and
