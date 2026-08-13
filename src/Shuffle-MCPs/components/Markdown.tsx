@@ -19,6 +19,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
+import { VideoEmbed, resolveVideoUrl } from './VideoEmbed';
 
 export interface ShuffleMarkdownProps {
   /** The markdown source. */
@@ -83,6 +84,11 @@ const baseSx: SxProps<Theme> = {
 const defaultComponents: Components = {
   a: ({ href, children, ...props }: any) => {
     const isInternal = typeof href === 'string' && href.startsWith('/');
+    const video = isInternal ? null : resolveVideoUrl(href);
+    if (video) {
+      const label = typeof children === 'string' ? children : undefined;
+      return <VideoEmbed video={video} title={label} />;
+    }
     return (
       <a
         href={href}
@@ -93,6 +99,11 @@ const defaultComponents: Components = {
         {children}
       </a>
     );
+  },
+  img: ({ src, alt, ...props }: any) => {
+    const video = resolveVideoUrl(src);
+    if (video) return <VideoEmbed video={video} title={alt} />;
+    return <img src={src} alt={alt ?? ''} loading="lazy" {...props} />;
   },
 };
 
