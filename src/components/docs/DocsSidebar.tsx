@@ -12,7 +12,7 @@ import {
   MenuItem,
   Typography,
 } from '@mui/material';
-import { getApiUrl } from '@/Shuffle-MCPs/api';
+import { fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
 interface DocLink {
   label: string;
   slug: string;
