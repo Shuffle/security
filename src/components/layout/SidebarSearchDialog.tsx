@@ -29,6 +29,9 @@ interface NavResult {
   path: string;
   icon: React.ReactNode;
   indent?: boolean;
+  group?: string;
+  external?: boolean;
+  hiddenUnlessSearched?: boolean;
 }
 
 interface AppResult {
@@ -121,17 +124,26 @@ const algoliaDocToItem = (hit: AlgoliaDocHit): DocItem | null => {
   };
 };
 
+const NAV_GROUP_ORDER = ['Pages', 'Security', 'Automation'] as const;
+
 const navItems: NavResult[] = [
-  { type: 'nav', label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={16} /> },
-  { type: 'nav', label: 'Incidents', path: '/incidents', icon: <WarningAmberIcon size={18} /> },
-  { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Bug size={16} /> },
-  { type: 'nav', label: 'Host Monitors', path: '/monitors', icon: <MonitorCheck size={16} /> },
-  { type: 'nav', label: 'Agents', path: '/agents', icon: <AgentIcon size={16} /> },
-  { type: 'nav', label: 'Automation', path: '/usecases', icon: <Activity size={16} /> },
-  { type: 'nav', label: 'Documentation', path: '/docs', icon: <BookOpen size={16} /> },
-  { type: 'nav', label: 'Preferences', path: '/preferences', icon: <TuneIcon size={16} /> },
-  { type: 'nav', label: 'Settings', path: '/settings', icon: <SettingsIcon size={16} /> },
+  { type: 'nav', label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={16} />, group: 'Pages' },
+  { type: 'nav', label: 'Agents', path: '/agents', icon: <AgentIcon size={16} />, group: 'Pages' },
+  { type: 'nav', label: 'Documentation', path: '/docs', icon: <BookOpen size={16} />, group: 'Pages' },
+  { type: 'nav', label: 'Preferences', path: '/preferences', icon: <TuneIcon size={16} />, group: 'Pages', hiddenUnlessSearched: true },
+  { type: 'nav', label: 'Settings', path: '/settings', icon: <SettingsIcon size={16} />, group: 'Pages', hiddenUnlessSearched: true },
+
+  { type: 'nav', label: 'Incidents', path: '/incidents', icon: <WarningAmberIcon size={18} />, group: 'Security' },
+  { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Bug size={16} />, group: 'Security' },
+  { type: 'nav', label: 'Host Monitors', path: '/monitors', icon: <MonitorCheck size={16} />, group: 'Security' },
+
+  { type: 'nav', label: 'Usecases', path: '/usecases', icon: <Activity size={16} />, group: 'Automation' },
+  { type: 'nav', label: 'Workflows', path: 'https://shuffler.io/workflows', icon: <Workflow size={16} />, group: 'Automation', external: true },
+  { type: 'nav', label: 'Apps', path: '/apps', icon: <Braces size={16} />, group: 'Automation' },
+  { type: 'nav', label: 'Storage', path: 'https://shuffler.io/admin?tab=datastore', icon: <HardDrive size={16} />, group: 'Automation', external: true },
+  { type: 'nav', label: 'Files', path: 'https://shuffler.io/admin?tab=files', icon: <DescriptionIcon size={16} />, group: 'Automation', external: true },
 ];
+
 
 const NOISE_KEYS = new Set([
   'new', 'in_progress', 'resolved', 'escalated', 'closed', 'open', 'pending',
@@ -175,10 +187,14 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     setWorkflowResults(filtered.slice(0, 6));
   }, [query, allWorkflows]);
 
-  // Filter nav items by query
-  const filteredNav: NavResult[] = query.trim()
+  // Filter nav items by query, keeping them ordered by group
+  const matchedNav: NavResult[] = query.trim()
     ? navItems.filter((n) => n.label.toLowerCase().includes(query.toLowerCase()))
-    : navItems;
+    : navItems.filter((n) => !n.hiddenUnlessSearched);
+  const filteredNav: NavResult[] = NAV_GROUP_ORDER.flatMap((group) =>
+    matchedNav.filter((n) => (n.group || 'Pages') === group),
+  );
+
 
   // Split correlations into "direct matches" (key equals or starts-with query)
   // and everything else. Direct matches are typically a thread_id or an
@@ -379,7 +395,12 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
 
   const handleSelect = (result: SearchResult) => {
     if (result.type === 'nav') {
-      navigate(result.path);
+      if (result.external) {
+        window.open(result.path, '_blank');
+      } else {
+        navigate(result.path);
+      }
+
     } else if (result.type === 'app') {
       navigate(`/apps?app=${result.app.name}`);
     } else if (result.type === 'workflow') {
@@ -490,38 +511,43 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
 
         {/* Results */}
         <Box sx={{ overflowY: 'auto', flex: 1 }}>
-          {/* Nav section */}
-          {filteredNav.length > 0 && (
-            <Box sx={{ px: 1.5, pt: 1.5, pb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: 1, px: 1, mb: 0.5 }}>
-                Pages
-              </Typography>
-              {filteredNav.map((item, idx) => {
-                const globalIdx = idx;
-                return (
-                  <Box
-                    key={item.path}
-                    onClick={() => handleSelect(item)}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      px: 1.5,
-                      pl: item.indent ? 3.5 : 1.5,
-                      py: 1,
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      backgroundColor: selectedIndex === globalIdx ? 'hsl(var(--muted))' : 'transparent',
-                      '&:hover': { backgroundColor: 'hsl(var(--muted))', opacity: 0.9 },
-                    }}
-                  >
-                    <Box sx={{ color: 'hsl(var(--muted-foreground))', display: 'flex' }}>{item.icon}</Box>
-                    <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{item.label}</Typography>
-                  </Box>
-                );
-              })}
-            </Box>
-          )}
+          {/* Nav sections, grouped */}
+          {filteredNav.length > 0 && NAV_GROUP_ORDER.map((group) => {
+            const items = filteredNav.filter((n) => (n.group || 'Pages') === group);
+            if (items.length === 0) return null;
+            return (
+              <Box key={group} sx={{ px: 1.5, pt: 1.5, pb: 0.5 }}>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: 1, px: 1, mb: 0.5 }}>
+                  {group}
+                </Typography>
+                {items.map((item) => {
+                  const globalIdx = filteredNav.indexOf(item);
+                  return (
+                    <Box
+                      key={item.path}
+                      onClick={() => handleSelect(item)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        px: 1.5,
+                        pl: item.indent ? 3.5 : 1.5,
+                        py: 1,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        backgroundColor: selectedIndex === globalIdx ? 'hsl(var(--muted))' : 'transparent',
+                        '&:hover': { backgroundColor: 'hsl(var(--muted))', opacity: 0.9 },
+                      }}
+                    >
+                      <Box sx={{ color: 'hsl(var(--muted-foreground))', display: 'flex' }}>{item.icon}</Box>
+                      <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{item.label}</Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+            );
+          })}
+
 
           {/* Documentation section */}
           {docResults.length > 0 && (
