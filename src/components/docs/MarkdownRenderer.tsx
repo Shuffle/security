@@ -120,19 +120,29 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
     }
   };
 
-  const resetCacheButton = isSupport ? (
-    <Button
-      variant="text"
-      size="small"
-      color="secondary"
-      onClick={handleResetCache}
-      disabled={resetting || loading}
-      startIcon={<RefreshCwIcon size={14} />}
-      sx={{ textTransform: 'none', minWidth: 0, px: 1 }}
-    >
-      {resetting ? 'Resetting…' : 'Reset Cache'}
-    </Button>
-  ) : null;
+  const actionButtons = (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+      {isSupport && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleResetCache}
+          disabled={resetting || loading}
+          startIcon={<RefreshCwIcon size={14} />}
+          sx={{
+            textTransform: 'none',
+            height: 36,
+            borderColor: 'hsl(var(--border))',
+            color: 'text.primary',
+            '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+          }}
+        >
+          {resetting ? 'Resetting…' : 'Reset Cache'}
+        </Button>
+      )}
+      <PrintDocsDialog slug={slug} currentMarkdown={content} disabled={loading || resetting} />
+    </Stack>
+  );
 
   if (loading) {
     return (
