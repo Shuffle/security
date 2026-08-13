@@ -141,7 +141,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
   const MAX_LABEL_CHARS = 18;
   const displayLabel = selectedPreset
     ? (selectedPreset.label.length > MAX_LABEL_CHARS ? `${selectedPreset.label.slice(0, MAX_LABEL_CHARS - 1).trimEnd()}…` : selectedPreset.label)
-    : 'Templates';
+    : 'Skills';
 
   const trigger = (
     <Button
@@ -215,10 +215,10 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
         >
           <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid hsl(var(--border))' }}>
             <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))' }}>
-              Agent templates
+              Agent skills
             </Typography>
             <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', opacity: 0.7, mt: 0.25 }}>
-              Click a template to seed the prompt. More coming soon.
+              Click a skill to seed the prompt. More coming soon.
             </Typography>
           </Box>
           <Box sx={{ px: 1, pt: 1 }}>
@@ -226,7 +226,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
               autoFocus
               size="small"
               fullWidth
-              placeholder="Search templates…"
+              placeholder="Search skills…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               sx={{
@@ -245,7 +245,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
             {filtered.length === 0 ? (
               <Box sx={{ px: 1.5, py: 2, textAlign: 'center' }}>
                 <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
-                  No templates match "{query}"
+                  No skills match "{query}"
                 </Typography>
               </Box>
             ) : (
@@ -429,7 +429,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                       </Typography>
                     </Box>
                     <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>
-                      Create custom templates for your organization.
+                      Create custom skills for your organization.
                     </Typography>
                   </Box>
                 </Box>
