@@ -99,8 +99,15 @@ export const AGENT_PRESETS: AgentPreset[] = [
 /** True when the signed-in user is a Shuffle support user (/getinfo => support). */
 const isSupportUser = (): boolean => {
   try {
-    const raw = localStorage.getItem('shuffle_user_info');
-    return raw ? JSON.parse(raw)?.support === true : false;
+    const keys = ['shuffle_user_info', 'userinfo', 'user_info'];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) || {};
+      const support = parsed?.support ?? parsed?.user?.support ?? parsed?.userdata?.support;
+      if (support === true || support === 'true') return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -114,6 +121,7 @@ export const filterAgentPresets = (list: AgentPreset[]): AgentPreset[] => {
   if (isSupportUser()) return list;
   return list.map((p) => (SUPPORT_ONLY_PRESET_IDS.includes(p.id) ? { ...p, enabled: false } : p));
 };
+
 
 export interface AgentPresetsProps {
   /** Inline variant sits inside the prompt input row alongside action buttons. */
