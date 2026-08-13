@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+
 import { Box, CircularProgress, Avatar, AvatarGroup, Tooltip, Stack, Typography, Link as MuiLink, Button } from '@mui/material';
 import { Clock as ClockIcon, Github as GithubIcon, RefreshCw as RefreshCwIcon } from 'lucide-react';
 import { getApiUrl } from '@/Shuffle-MCPs/api';
@@ -56,6 +57,15 @@ const fetchRemoteDoc = async (
   return null;
 };
 
+// Anchor ids in the Shuffle docs use underscores ("#cloud_specific_example").
+// Normalize heading text and hashes to the same shape so both underscore and
+// dash variants resolve to the same heading.
+const anchorKey = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
 export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [content, setContent] = useState<string>('');
   const [meta, setMeta] = useState<RemoteDocMeta | null>(null);
@@ -63,6 +73,9 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isSupport = useIsSupport();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const { hash } = useLocation();
+
 
   const loadContent = useCallback(async (resetCache = false) => {
     setLoading(true);
@@ -94,6 +107,30 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   useEffect(() => {
     loadContent();
   }, [loadContent]);
+
+  // Give every heading a stable id, then scroll to the hash target once the
+  // markdown has rendered (docs links carry anchors like "#cloud_specific_example").
+  useEffect(() => {
+    if (loading || !content) return;
+    const root = containerRef.current;
+    if (!root) return;
+
+    const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4')) as HTMLElement[];
+    headings.forEach((heading) => {
+      const key = anchorKey(heading.textContent || '');
+      if (key && !heading.id) heading.id = key;
+    });
+
+    const target = anchorKey(decodeURIComponent(hash.replace(/^#/, '')));
+    if (!target) return;
+
+    const match = headings.find((heading) => anchorKey(heading.textContent || '') === target);
+    if (match) {
+      // Wait a frame so layout (images, embeds) has settled before scrolling.
+      requestAnimationFrame(() => match.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  }, [content, loading, hash]);
+
 
   const handleResetCache = async () => {
     setResetting(true);
@@ -151,7 +188,9 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
 
   return (
     <Box
+      ref={containerRef}
       className="prose prose-invert max-w-none"
+
       sx={{
         '& h1': {
           color: 'text.primary',
@@ -326,10 +365,30 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         sx={{ '& p': { mb: 2 } }}
         components={{
           a: ({ href, children }) => {
+            // In-page anchors: scroll to the matching heading
+            if (href?.startsWith('#')) {
+              return (
+                <a
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const target = anchorKey(decodeURIComponent(href.slice(1)));
+                    const headings = Array.from(
+                      containerRef.current?.querySelectorAll('h1, h2, h3, h4') ?? [],
+                    ) as HTMLElement[];
+                    const match = headings.find((h) => anchorKey(h.textContent || '') === target);
+                    match?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
+                  {children}
+                </a>
+              );
+            }
             // Handle internal links
             if (href?.startsWith('/')) {
               return <Link to={href}>{children}</Link>;
             }
+
             // External links
             return (
               <a href={href} target="_blank" rel="noopener noreferrer">
