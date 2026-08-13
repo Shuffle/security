@@ -19,7 +19,50 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
+import JsonView from 'react18-json-view';
+import 'react18-json-view/src/style.css';
+import 'react18-json-view/src/dark.css';
 import { VideoEmbed, resolveVideoUrl } from './VideoEmbed';
+
+/** Parse a string into an object/array, or return null when it is not JSON. */
+const tryParseJson = (raw: string): object | null => {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if (!((first === '{' && last === '}') || (first === '[' && last === ']'))) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const jsonBoxSx: SxProps<Theme> = {
+  my: 1,
+  p: 1.5,
+  borderRadius: 1,
+  overflow: 'auto',
+  backgroundColor: 'hsl(var(--muted))',
+  border: '1px solid hsl(var(--border))',
+  '& .json-view': { backgroundColor: 'transparent !important', fontSize: '0.82rem' },
+};
+
+/** Standardised JSON tree used inside markdown (same viewer as the rest of the platform). */
+export const MarkdownJsonBlock: React.FC<{ src: object }> = ({ src }) => (
+  <Box sx={jsonBoxSx}>
+    <JsonView
+      src={src}
+      dark
+      collapsed={2}
+      collapseStringMode="word"
+      collapseStringsAfterLength={120}
+      enableClipboard
+      displaySize
+    />
+  </Box>
+);
 
 export interface ShuffleMarkdownProps {
   /** The markdown source. */
