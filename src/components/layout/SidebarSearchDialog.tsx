@@ -11,7 +11,7 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { Box, Typography, InputBase, CircularProgress } from '@mui/material';
-import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
+import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Bug, MonitorCheck, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
@@ -88,24 +88,13 @@ const docLabel = (name: string) =>
 const navItems: NavResult[] = [
   { type: 'nav', label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={16} /> },
   { type: 'nav', label: 'Incidents', path: '/incidents', icon: <WarningAmberIcon size={18} /> },
-  { type: 'nav', label: 'Templates', path: '/templates', icon: <DescriptionIcon size={16} />, indent: true },
-  { type: 'nav', label: 'Custom Fields', path: '/incidents/custom-fields', icon: <TuneIcon size={16} />, indent: true },
-  { type: 'nav', label: 'Monitors', path: '/monitors', icon: <Radar size={16} /> },
-  { type: 'nav', label: 'Detection', path: '/detection', icon: <RadarIcon size={18} /> },
-  { type: 'nav', label: 'Rules', path: '/detection/sigma', icon: <Braces size={16} />, indent: true },
-  { type: 'nav', label: 'Pipelines', path: '/detection/pipelines', icon: <Network size={16} />, indent: true },
-  { type: 'nav', label: 'ATT&CK', path: '/detection/mitre', icon: <Waypoints size={16} />, indent: true },
-  { type: 'nav', label: 'Threat Feeds', path: '/incidents/threat-feeds', icon: <RssFeedIcon size={16} />, indent: true },
-  { type: 'nav', label: 'Observables', path: '/incidents/observables', icon: <FingerprintIcon size={16} />, indent: true },
-  { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Shield size={16} />, indent: true },
-  { type: 'nav', label: 'Assets', path: '/assets', icon: <HardDrive size={16} />, indent: true },
-  { type: 'nav', label: 'Response Actions', path: '/incidents/response-actions', icon: <Shield size={16} />, indent: true },
-  { type: 'nav', label: 'Users', path: '/users', icon: <Users size={16} />, indent: true },
-  { type: 'nav', label: 'Agent', path: '/agents', icon: <AgentIcon size={16} /> },
+  { type: 'nav', label: 'Vulnerabilities', path: '/vulnerabilities', icon: <Bug size={16} /> },
+  { type: 'nav', label: 'Host Monitors', path: '/monitors', icon: <MonitorCheck size={16} /> },
+  { type: 'nav', label: 'Agents', path: '/agents', icon: <AgentIcon size={16} /> },
   { type: 'nav', label: 'Automation', path: '/usecases', icon: <Activity size={16} /> },
   { type: 'nav', label: 'Documentation', path: '/docs', icon: <BookOpen size={16} /> },
+  { type: 'nav', label: 'Preferences', path: '/preferences', icon: <TuneIcon size={16} /> },
   { type: 'nav', label: 'Settings', path: '/settings', icon: <SettingsIcon size={16} /> },
-  { type: 'nav', label: 'Tenants', path: '/organizations', icon: <LayoutDashboard size={16} /> },
 ];
 
 const NOISE_KEYS = new Set([
