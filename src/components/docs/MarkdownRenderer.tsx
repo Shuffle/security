@@ -50,6 +50,14 @@ const docsSearchClient = algoliasearch('JNSS5CFDZZ', '33e4e3564f4f060e96e0531957
 
 // Fetch a doc from the Shuffle Core /api/v1/docs/{name} endpoint.
 // The API returns { success, reason: <markdown>, meta: {...} }.
+// GitHub raw returns a plain "404: Not Found" body for missing files, which the
+// API happily passes through as markdown. Treat those bodies as a missing doc.
+const isMissingDocBody = (markdown: string) => {
+  const trimmed = markdown.trim();
+  if (trimmed.length > 200) return false;
+  return /^(404\s*:?\s*not\s*found|not\s*found|400\s*:\s*.*|no\s*such\s*file.*)$/i.test(trimmed);
+};
+
 const fetchRemoteDoc = async (
   slug: string,
   resetCache = false,
@@ -67,6 +75,7 @@ const fetchRemoteDoc = async (
       if (!res.ok) continue;
       const data = await res.json();
       if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
+        if (isMissingDocBody(data.reason)) continue;
         return { markdown: data.reason, meta: (data.meta as RemoteDocMeta) ?? null };
       }
     } catch {
@@ -75,6 +84,7 @@ const fetchRemoteDoc = async (
   }
   return null;
 };
+
 
 // Anchor ids in the Shuffle docs use underscores ("#cloud_specific_example").
 // Normalize heading text and hashes to the same shape so both underscore and
@@ -192,12 +202,29 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
           });
           if (items.length >= 3) break;
         }
-        if (!cancelled) setSuggestions(items);
+        let final = items;
+        if (final.length === 0) {
+          // Fall back to the local docs list when Algolia has no match.
+          const list = await fetchDocsList();
+          const query = slug.replace(/[-_]+/g, ' ').toLowerCase();
+          const scored = list
+            .map((d) => {
+              const label = d.name.replace(/[_-]+/g, ' ');
+              const lower = label.toLowerCase();
+              const score = lower.includes(query) || query.includes(lower) ? 2 : 0;
+              return { d, label, score };
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+          final = scored.map(({ d, label }) => ({ path: `/docs/${docSlug(d.name)}`, label }));
+        }
+        if (!cancelled) setSuggestions(final);
       } catch {
         if (!cancelled) setSuggestions([]);
       } finally {
         if (!cancelled) setSuggestLoading(false);
       }
+
     })();
     return () => {
       cancelled = true;
@@ -271,14 +298,20 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   if (error) {
     return (
       <Box>
-        <Box sx={{ py: 4 }}>
-          <Typography sx={{ color: 'error.main', textAlign: 'center' }}>{error}</Typography>
+        <Box sx={{ py: 6, maxWidth: 640, mx: 'auto' }}>
+          <Typography sx={{ color: 'text.primary', fontSize: '1.25rem', fontWeight: 600, mb: 1 }}>
+            This documentation page does not exist
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+            We could not find a document for "{slug}". It may have been renamed or moved.
+          </Typography>
 
           {(suggestLoading || suggestions.length > 0) && (
-            <Box sx={{ mt: 3, maxWidth: 640, mx: 'auto' }}>
+            <Box sx={{ mt: 1 }}>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
                 {suggestLoading ? 'Looking for related documentation…' : 'Related documentation'}
               </Typography>
+
               {suggestLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                   <CircularProgress size={18} />
