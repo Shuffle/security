@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { algoliasearch } from 'algoliasearch';
 
 
@@ -85,6 +85,13 @@ const anchorKey = (value: string) =>
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 
+const normalizeDocPath = (pathname: string) => {
+  const match = pathname.match(/(?:^|\/)docs\/([^/]+)$/i);
+  if (!match) return pathname;
+  const name = match[1].replace(/\.md$/i, '');
+  return `/docs/${docSlug(name)}`;
+};
+
 export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [content, setContent] = useState<string>('');
   const [meta, setMeta] = useState<RemoteDocMeta | null>(null);
@@ -96,7 +103,23 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
 
   const isSupport = useIsSupport();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const { hash } = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { hash } = location;
+
+  const scrollToDocAnchor = useCallback((rawHash: string) => {
+    const root = containerRef.current;
+    if (!root) return false;
+    const target = anchorKey(decodeURIComponent(rawHash.replace(/^#/, '')));
+    if (!target) return false;
+    const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4, h5, h6')) as HTMLElement[];
+    const match = headings.find((heading) =>
+      anchorKey(heading.id || '') === target || anchorKey(heading.textContent || '') === target,
+    );
+    if (!match) return false;
+    requestAnimationFrame(() => match.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    return true;
+  }, []);
 
 
   const loadContent = useCallback(async (resetCache = false) => {
@@ -189,21 +212,17 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
     const root = containerRef.current;
     if (!root) return;
 
-    const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4')) as HTMLElement[];
+    const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4, h5, h6')) as HTMLElement[];
     headings.forEach((heading) => {
       const key = anchorKey(heading.textContent || '');
-      if (key && !heading.id) heading.id = key;
+      if (key) {
+        heading.id = key;
+        heading.style.scrollMarginTop = '80px';
+      }
     });
 
-    const target = anchorKey(decodeURIComponent(hash.replace(/^#/, '')));
-    if (!target) return;
-
-    const match = headings.find((heading) => anchorKey(heading.textContent || '') === target);
-    if (match) {
-      // Wait a frame so layout (images, embeds) has settled before scrolling.
-      requestAnimationFrame(() => match.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    }
-  }, [content, loading, hash]);
+    scrollToDocAnchor(hash);
+  }, [content, loading, hash, scrollToDocAnchor]);
 
 
   const handleResetCache = async () => {
@@ -490,28 +509,39 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
         sx={{ '& p': { mb: 2 } }}
         components={{
           a: ({ href, children }) => {
-            // In-page anchors: scroll to the matching heading
+            // In-page anchors update the URL as well as scrolling. Explicitly
+            // scroll too, because selecting the same hash twice does not cause
+            // React Router's location state to change.
             if (href?.startsWith('#')) {
               return (
                 <a
                   href={href}
                   onClick={(e) => {
                     e.preventDefault();
-                    const target = anchorKey(decodeURIComponent(href.slice(1)));
-                    const headings = Array.from(
-                      containerRef.current?.querySelectorAll('h1, h2, h3, h4') ?? [],
-                    ) as HTMLElement[];
-                    const match = headings.find((h) => anchorKey(h.textContent || '') === target);
-                    match?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    navigate(`${location.pathname}${location.search}${href}`);
+                    scrollToDocAnchor(href);
                   }}
                 >
                   {children}
                 </a>
               );
             }
-            // Handle internal links
-            if (href?.startsWith('/')) {
-              return <Link to={href}>{children}</Link>;
+
+            // Reference docs contain a mix of `/docs/name`, `name.md`, and
+            // relative `./name.md` links. Route all of those through the SPA
+            // and preserve their heading hash.
+            if (href) {
+              const parsed = new URL(href, window.location.href);
+              const isSameOrigin = parsed.origin === window.location.origin;
+              const isRelativeDoc = !/^[a-z][a-z\d+.-]*:/i.test(href) && /(?:^|\/)\.?\.?\/?[^/#?]+\.md(?:$|[?#])/i.test(href);
+              const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
+              if ((isSameOrigin && isDocsPath) || isRelativeDoc) {
+                const path = normalizeDocPath(parsed.pathname);
+                return <Link to={`${path}${parsed.search}${parsed.hash}`}>{children}</Link>;
+              }
+              if (href.startsWith('/') && isSameOrigin) {
+                return <Link to={`${parsed.pathname}${parsed.search}${parsed.hash}`}>{children}</Link>;
+              }
             }
 
             // External links
