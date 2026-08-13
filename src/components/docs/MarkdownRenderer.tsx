@@ -188,7 +188,9 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
 
   return (
     <Box
+      ref={containerRef}
       className="prose prose-invert max-w-none"
+
       sx={{
         '& h1': {
           color: 'text.primary',
