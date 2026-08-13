@@ -13,11 +13,16 @@ import {
   Tabs,
   Tab,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { Search, Plus, RefreshCw, MonitorSmartphone, Server, Monitor, Smartphone, Laptop, Tablet, Wifi, HardDrive } from 'lucide-react';
+import { Search, Plus, RefreshCw, Trash2, MonitorSmartphone, Server, Monitor, Smartphone, Laptop, Tablet, Wifi, HardDrive } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMultiDatastore } from '@/hooks/useMultiDatastore';
-import { setDatastoreItem, DatastoreItem } from '@/Shuffle-MCPs/datastore';
+import { setDatastoreItem, deleteDatastoreItem, DatastoreItem } from '@/Shuffle-MCPs/datastore';
 import { ASSET_CATEGORIES, ASSET_CATEGORY_BY_ID, LEGACY_ASSETS_KEY, AssetCategory } from '@/config/assetCategories';
 import { CreateAssetDialog } from '@/components/assets/CreateAssetDialog';
 import { OCSFDeviceInventory, DEVICE_TYPES, RISK_LEVELS } from '@/config/ocsfAssetSchema';
@@ -141,6 +146,8 @@ const AssetsPage = () => {
   }, [navigate, tabToSlug]);
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ParsedAsset | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { states, fetchKey, refetch } = useMultiDatastore();
 
@@ -221,6 +228,27 @@ const AssetsPage = () => {
       toast.error(activeTab === 'identity_users' ? 'Failed to add user' : 'Failed to add asset');
     }
   }, [refetch, activeTab]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    const cat = ASSET_CATEGORY_BY_ID[deleteTarget.categoryId];
+    if (!cat) return;
+    setDeleting(true);
+    let res = await deleteDatastoreItem(deleteTarget.key, cat.datastoreKey);
+    // Legacy mobile records live in the old shared assets key.
+    if (!res.success && deleteTarget.categoryId === 'mobile') {
+      res = await deleteDatastoreItem(deleteTarget.key, LEGACY_ASSETS_KEY);
+    }
+    setDeleting(false);
+    if (res.success) {
+      toast.success(deleteTarget.categoryId === 'identity_users' ? 'User deleted' : 'Asset deleted', { description: deleteTarget.name });
+      setDeleteTarget(null);
+      await refetch(cat.datastoreKey);
+      if (deleteTarget.categoryId === 'mobile') await refetch(LEGACY_ASSETS_KEY);
+    } else {
+      toast.error('Failed to delete', { description: res.error });
+    }
+  }, [deleteTarget, refetch]);
 
   const formatTime = (ts?: string) => {
     if (!ts) return '—';
@@ -430,7 +458,7 @@ const AssetsPage = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: '40px 1.6fr 1fr 0.9fr 0.8fr 0.9fr 1fr',
+              gridTemplateColumns: '40px 1.6fr 1fr 0.9fr 0.8fr 0.9fr 1fr 44px',
               gap: 1,
               px: 2,
               py: 1,
@@ -447,6 +475,7 @@ const AssetsPage = () => {
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Risk</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Owner</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Last Seen</Typography>
+            <span />
           </Box>
 
           {visibleAssets.map(asset => {
@@ -466,7 +495,7 @@ const AssetsPage = () => {
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: '40px 1.6fr 1fr 0.9fr 0.8fr 0.9fr 1fr',
+                    gridTemplateColumns: '40px 1.6fr 1fr 0.9fr 0.8fr 0.9fr 1fr 44px',
                     gap: 1,
                     px: 2,
                     py: 1.5,
@@ -515,12 +544,48 @@ const AssetsPage = () => {
                   <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                     {formatTime(asset.lastSeen)}
                   </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(asset); }}
+                        sx={{ width: 28, height: 28, color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                      >
+                        <Trash2 size={14} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </Box>
               </Card>
             );
           })}
         </Box>
       )}
+
+      <Dialog open={!!deleteTarget} onClose={() => (deleting ? null : setDeleteTarget(null))} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          {deleteTarget?.categoryId === 'identity_users' ? 'Delete user' : 'Delete asset'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '0.875rem' }}>
+            This will permanently remove <strong>{deleteTarget?.name}</strong> from the inventory. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button size="small" onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ height: 36 }}>Cancel</Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={14} color="inherit" /> : <Trash2 size={14} />}
+            sx={{ height: 36 }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <CreateAssetDialog
         open={createOpen}
