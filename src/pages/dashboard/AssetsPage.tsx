@@ -212,8 +212,8 @@ const AssetsPage = () => {
       : asset.type_id === 1 ? ASSET_CATEGORY_BY_ID.compute.datastoreKey
       : ASSET_CATEGORY_BY_ID.mobile.datastoreKey;
 
-    const ok = await setDatastoreItem(targetKey, key, JSON.stringify(asset));
-    if (ok) {
+    const res = await setDatastoreItem(key, JSON.stringify(asset), targetKey);
+    if (res.success) {
       const label = activeTab === 'identity_users' ? 'User added' : 'Asset added';
       toast.success(label, { description: asset.hostname });
       await refetch(targetKey);
