@@ -75,6 +75,8 @@ const AdminPage = () => {
   const [orgDescription, setOrgDescription] = useState('');
   const [orgImage, setOrgImage] = useState('');
   const [orgRegionUrl, setOrgRegionUrl] = useState('');
+  const [changingOrg, setChangingOrg] = useState(false);
+
 
   // Track original values to detect changes
   const [originalName, setOriginalName] = useState('');
