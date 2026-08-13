@@ -120,6 +120,9 @@ import GlobalAgentDrawer from '@/components/agent/GlobalAgentDrawer';
 import GlobalWorkflowRunDrawer from '@/components/agent/GlobalWorkflowRunDrawer';
 import GlobalNotificationsDrawer from '@/components/notifications/GlobalNotificationsDrawer';
 import { useUsecaseAgentFilters } from '@/hooks/useUsecaseAgentFilters';
+import { useHostMonitorCount } from '@/hooks/useHostMonitorCount';
+import { useRealIncidentCount } from '@/hooks/useRealIncidentCount';
+import { useNavigate } from 'react-router-dom';
 
 
 
