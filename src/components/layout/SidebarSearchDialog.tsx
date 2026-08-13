@@ -511,38 +511,43 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
 
         {/* Results */}
         <Box sx={{ overflowY: 'auto', flex: 1 }}>
-          {/* Nav section */}
-          {filteredNav.length > 0 && (
-            <Box sx={{ px: 1.5, pt: 1.5, pb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: 1, px: 1, mb: 0.5 }}>
-                Pages
-              </Typography>
-              {filteredNav.map((item, idx) => {
-                const globalIdx = idx;
-                return (
-                  <Box
-                    key={item.path}
-                    onClick={() => handleSelect(item)}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      px: 1.5,
-                      pl: item.indent ? 3.5 : 1.5,
-                      py: 1,
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      backgroundColor: selectedIndex === globalIdx ? 'hsl(var(--muted))' : 'transparent',
-                      '&:hover': { backgroundColor: 'hsl(var(--muted))', opacity: 0.9 },
-                    }}
-                  >
-                    <Box sx={{ color: 'hsl(var(--muted-foreground))', display: 'flex' }}>{item.icon}</Box>
-                    <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{item.label}</Typography>
-                  </Box>
-                );
-              })}
-            </Box>
-          )}
+          {/* Nav sections, grouped */}
+          {filteredNav.length > 0 && NAV_GROUP_ORDER.map((group) => {
+            const items = filteredNav.filter((n) => (n.group || 'Pages') === group);
+            if (items.length === 0) return null;
+            return (
+              <Box key={group} sx={{ px: 1.5, pt: 1.5, pb: 0.5 }}>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: 1, px: 1, mb: 0.5 }}>
+                  {group}
+                </Typography>
+                {items.map((item) => {
+                  const globalIdx = filteredNav.indexOf(item);
+                  return (
+                    <Box
+                      key={item.path}
+                      onClick={() => handleSelect(item)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        px: 1.5,
+                        pl: item.indent ? 3.5 : 1.5,
+                        py: 1,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        backgroundColor: selectedIndex === globalIdx ? 'hsl(var(--muted))' : 'transparent',
+                        '&:hover': { backgroundColor: 'hsl(var(--muted))', opacity: 0.9 },
+                      }}
+                    >
+                      <Box sx={{ color: 'hsl(var(--muted-foreground))', display: 'flex' }}>{item.icon}</Box>
+                      <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{item.label}</Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+            );
+          })}
+
 
           {/* Documentation section */}
           {docResults.length > 0 && (
