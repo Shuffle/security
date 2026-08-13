@@ -5238,6 +5238,38 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </ClickAwayListener>
             </Popper>
 
+            {(() => {
+              const cta = selectedPreset ? presetCtas?.[selectedPreset.id] : undefined;
+              if (!cta || cta.show === false) return null;
+              return (
+                <Box sx={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5,
+                  px: 1.5, py: 1, borderRadius: 2,
+                  border: '1px solid hsl(var(--border))',
+                  bgcolor: 'hsl(var(--muted) / 0.4)',
+                }}>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
+                    {cta.message}
+                  </Typography>
+                  <Button
+                    type="button"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => cta.onAction?.()}
+                    sx={{
+                      height: 30, textTransform: 'none', fontSize: '0.78rem', fontWeight: 600,
+                      whiteSpace: 'nowrap', flexShrink: 0,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))',
+                      '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
+                    }}
+                  >
+                    {cta.actionLabel}
+                  </Button>
+                </Box>
+              );
+            })()}
+
             {!hideAppPicker && (
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Box
