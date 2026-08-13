@@ -4605,8 +4605,77 @@ const AgentUI: React.FC<AgentUIProps> = ({
       </Popover>
   );
 
+  // Shared post-run discovery block: surfaces the same schedule intent and
+  // missing app/category requirements we show before a run, so the finished
+  // state can help set it up. Used by both the compact and detailed views.
+  const postRunDiscovery = (Boolean(scheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 ? (
+    <Box
+      sx={{
+        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1,
+        p: 1.5, borderRadius: 1.5,
+        border: '1px solid hsl(var(--border))',
+        bgcolor: 'hsl(var(--muted) / 0.35)',
+      }}
+    >
+      <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mr: 0.5 }}>
+        Set this up to run on its own
+      </Typography>
+      {scheduleHint && !scheduleDisabledReason && (
+        <Tooltip title={`Detected schedule: ${scheduleHint.label}. Click to review and save.`} arrow>
+          <Box
+            role="button"
+            onClick={(e) => setScheduleAnchor(e.currentTarget as HTMLElement)}
+            sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.5,
+              px: 1, py: 0.25, borderRadius: 999,
+              border: '1px solid hsl(var(--primary) / 0.7)',
+              bgcolor: 'hsl(var(--primary) / 0.12)',
+              color: 'hsl(var(--primary))',
+              fontSize: '0.8rem', fontWeight: 600,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'hsl(var(--primary) / 0.2)' },
+            }}
+          >
+            <ScheduleIcon size={13} />
+            {scheduleHint.label}
+          </Box>
+        </Tooltip>
+      )}
+      {postRunAppReqs.map((req) => (
+        <Tooltip
+          key={`post-${req.kind}-${req.value}`}
+          title={req.kind === 'category' ? `Needs a ${req.label} — click to pick one` : `Add ${req.label} to this run`}
+          arrow
+        >
+          <Box
+            role="button"
+            onClick={() => {
+              if (req.kind === 'category') setCategoryTarget(req.value);
+              setAppSearchQuery(req.kind === 'category' ? req.value : req.label);
+              setAppSearchOpen(true);
+            }}
+            sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.5,
+              px: 1, py: 0.25, borderRadius: 999,
+              border: '1px dashed hsl(var(--severity-medium) / 0.7)',
+              bgcolor: 'hsl(var(--severity-medium) / 0.12)',
+              color: 'hsl(var(--foreground))',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'hsl(var(--severity-medium) / 0.2)' },
+            }}
+          >
+            <WarningIcon size={13} color={'hsl(var(--severity-medium))'} />
+            {req.label}
+          </Box>
+        </Tooltip>
+      ))}
+    </Box>
+  ) : null;
+
 
   // ── Render ──
+
   return (
     <Box
       className={className}
@@ -5652,70 +5721,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
                         {/* Discovery: keep surfacing the schedule intent and the
                             apps this prompt needs, now that the run finished. */}
-                        {!isRunning && (Boolean(scheduleHint) || postRunAppReqs.length > 0) && (
-                          <Box
-                            sx={{
-                              display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1,
-                              p: 1.5, borderRadius: 1.5,
-                              border: '1px solid hsl(var(--border))',
-                              bgcolor: 'hsl(var(--muted) / 0.35)',
-                            }}
-                          >
-                            <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mr: 0.5 }}>
-                              Set this up to run on its own
-                            </Typography>
-                            {scheduleHint && !scheduleDisabledReason && (
-                              <Tooltip title={`Detected schedule: ${scheduleHint.label}. Click to review and save.`} arrow>
-                                <Box
-                                  role="button"
-                                  onClick={(e) => setScheduleAnchor(e.currentTarget as HTMLElement)}
-                                  sx={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                                    px: 1, py: 0.25, borderRadius: 999,
-                                    border: '1px solid hsl(var(--primary) / 0.7)',
-                                    bgcolor: 'hsl(var(--primary) / 0.12)',
-                                    color: 'hsl(var(--primary))',
-                                    fontSize: '0.8rem', fontWeight: 600,
-                                    cursor: 'pointer',
-                                    '&:hover': { bgcolor: 'hsl(var(--primary) / 0.2)' },
-                                  }}
-                                >
-                                  <ScheduleIcon size={13} />
-                                  {scheduleHint.label}
-                                </Box>
-                              </Tooltip>
-                            )}
-                            {postRunAppReqs.map((req) => (
-                              <Tooltip
-                                key={`post-${req.kind}-${req.value}`}
-                                title={req.kind === 'category' ? `Needs a ${req.label} — click to pick one` : `Add ${req.label} to this run`}
-                                arrow
-                              >
-                                <Box
-                                  role="button"
-                                  onClick={() => {
-                                    if (req.kind === 'category') setCategoryTarget(req.value);
-                                    setAppSearchQuery(req.kind === 'category' ? req.value : req.label);
-                                    setAppSearchOpen(true);
-                                  }}
-                                  sx={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                                    px: 1, py: 0.25, borderRadius: 999,
-                                    border: '1px dashed hsl(var(--severity-medium) / 0.7)',
-                                    bgcolor: 'hsl(var(--severity-medium) / 0.12)',
-                                    color: 'hsl(var(--foreground))',
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer',
-                                    '&:hover': { bgcolor: 'hsl(var(--severity-medium) / 0.2)' },
-                                  }}
-                                >
-                                  <WarningIcon size={13} color={'hsl(var(--severity-medium))'} />
-                                  {req.label}
-                                </Box>
-                              </Tooltip>
-                            ))}
-                          </Box>
-                        )}
+                        {!isRunning && postRunDiscovery}
+
                       </RunFinishedSummary>
 
                       {!finishAnswer && pendingAsk && pendingQuestions.length > 0 ? (
@@ -5942,6 +5949,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       />
+                      {postRunDiscovery}
+
                       {hasInFlightDecision && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                           <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
