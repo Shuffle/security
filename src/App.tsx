@@ -149,6 +149,9 @@ const SupportOnly = ({ children }: { children: React.ReactNode }) => {
 const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
   const { userInfo, isAuthenticated, isLoading } = useAuth();
   const usecaseFilters = useUsecaseAgentFilters();
+  const navigate = useNavigate();
+  const hostMonitorCount = useHostMonitorCount();
+  const incidentCount = useRealIncidentCount();
   const userdata = userInfo ? {
     id: userInfo.id,
     username: userInfo.username,
@@ -166,6 +169,20 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
         isLoggedIn={isAuthenticated}
         permissionsSlot={<PermissionsPanel compact />}
         usecaseFilters={usecaseFilters}
+        presetCtas={{
+          'host-monitor-control': {
+            show: hostMonitorCount === 0,
+            message: 'No host monitors are registered yet. Deploy one to let the agent act on hosts.',
+            actionLabel: 'Add host monitor',
+            onAction: () => navigate('/monitors'),
+          },
+          'incident-response': {
+            show: incidentCount === 0,
+            message: 'No incidents have been ingested yet. Connect a source so the agent has something to triage.',
+            actionLabel: 'Set up ingestion',
+            onAction: () => navigate('/usecases'),
+          },
+        }}
       />
     </>
   );
