@@ -40,12 +40,18 @@ interface MarkdownRendererProps {
 // The API returns { success, reason: <markdown>, meta: {...} }.
 const fetchRemoteDoc = async (
   slug: string,
+  resetCache = false,
 ): Promise<{ markdown: string; meta: RemoteDocMeta | null } | null> => {
-  // Remote docs use underscores (e.g. getting_started); our local slugs use dashes.
-  const candidates = Array.from(new Set([slug, slug.replace(/-/g, '_')]));
+  // Names are case sensitive ("AI", "API") — resolve the exact name from /api/v1/docs.
+  const exact = await resolveDocName(slug, resetCache);
+  const candidates = Array.from(
+    new Set([exact, slug, slug.replace(/-/g, '_')].filter(Boolean) as string[]),
+  );
   for (const name of candidates) {
     try {
-      const res = await fetch(getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}`));
+      const res = await fetch(
+        getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${resetCache ? '?resetCache=true' : ''}`),
+      );
       if (!res.ok) continue;
       const data = await res.json();
       if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
@@ -62,55 +68,95 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   const [content, setContent] = useState<string>('');
   const [meta, setMeta] = useState<RemoteDocMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isSupport = useIsSupport();
 
-  useEffect(() => {
-    const loadContent = async () => {
-      setLoading(true);
-      setError(null);
-      setMeta(null);
+  const loadContent = useCallback(async (resetCache = false) => {
+    setLoading(true);
+    setError(null);
+    setMeta(null);
 
-      const loader = docs[slug];
-      if (loader) {
-        try {
-          const module = await loader();
-          setContent(module.default);
-          setLoading(false);
-          return;
-        } catch (err) {
-          console.warn('Local markdown load failed, falling back to remote:', err);
-        }
+    const loader = docs[slug];
+    if (loader && !resetCache) {
+      try {
+        const module = await loader();
+        setContent(module.default);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.warn('Local markdown load failed, falling back to remote:', err);
       }
+    }
 
-      // Fallback: fetch from Shuffle Core docs API
-      const remote = await fetchRemoteDoc(slug);
-      if (remote) {
-        setContent(remote.markdown);
-        setMeta(remote.meta);
-      } else {
+    // Fallback: fetch from Shuffle Core docs API
+    const remote = await fetchRemoteDoc(slug, resetCache);
+    if (remote) {
+      setContent(remote.markdown);
+      setMeta(remote.meta);
+    } else if (loader) {
+      try {
+        const module = await loader();
+        setContent(module.default);
+      } catch {
         setError(`Documentation not found: ${slug}`);
       }
-      setLoading(false);
-    };
-
-    loadContent();
+    } else {
+      setError(`Documentation not found: ${slug}`);
+    }
+    setLoading(false);
   }, [slug]);
+
+  useEffect(() => {
+    loadContent();
+  }, [loadContent]);
+
+  const handleResetCache = async () => {
+    setResetting(true);
+    try {
+      await loadContent(true);
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const resetCacheButton = isSupport ? (
+    <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={handleResetCache}
+        disabled={resetting || loading}
+        startIcon={<RefreshCwIcon size={14} />}
+        sx={{ height: 36, textTransform: 'none' }}
+      >
+        {resetting ? 'Resetting…' : 'Reset Cache'}
+      </Button>
+    </Stack>
+  ) : null;
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress />
+      <Box>
+        {resetCacheButton}
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ py: 4, textAlign: 'center', color: 'error.main' }}>
-        {error}
+      <Box>
+        {resetCacheButton}
+        <Box sx={{ py: 4, textAlign: 'center', color: 'error.main' }}>
+          {error}
+        </Box>
       </Box>
     );
   }
+
 
   return (
     <Box
