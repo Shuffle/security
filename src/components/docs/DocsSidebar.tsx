@@ -26,13 +26,6 @@ interface DocsSidebarProps {
 
 const externalLinks: DocLink[] = [
   {
-    label: 'Shuffle API Docs',
-    slug: 'api',
-    icon: <OpenInNewIcon />,
-    external: true,
-    href: 'https://shuffler.io/docs/API',
-  },
-  {
     label: 'Shuffle Automation',
     slug: 'shuffle',
     icon: <OpenInNewIcon />,
