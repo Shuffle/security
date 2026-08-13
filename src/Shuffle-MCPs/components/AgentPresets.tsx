@@ -10,7 +10,7 @@
  * frontend no longer seeds the prompt or pre-selects tools locally. Disabled
  * presets render with a "coming soon" chip and are not clickable.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 import { AppFallbackIcon } from './AppFallbackIcon';
