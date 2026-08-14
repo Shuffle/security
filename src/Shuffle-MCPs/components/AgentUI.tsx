@@ -3357,7 +3357,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
       onRun?.({ input: text, success: true, executionId: eid });
     }
-  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, viewMode]);
+    // `selectedPreset` MUST be a dependency: without it the callback keeps a
+    // stale skill (e.g. "Build Workflows") and keeps posting to
+    // /api/v1/agent/workflow-edit after the skill was unselected.
+  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, viewMode, selectedPreset]);
 
   // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
   const autoSubmittedRef = useRef(false);
