@@ -533,6 +533,11 @@ const SingulActionsPreview = ({
                   },
                 }}
                 slotProps={{
+                  popper: {
+                    sx: {
+                      zIndex: 9999,
+                    },
+                  },
                   paper: {
                     sx: {
                       backgroundColor: 'hsl(var(--card))',

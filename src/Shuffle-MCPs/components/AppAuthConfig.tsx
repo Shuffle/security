@@ -2393,6 +2393,7 @@ export const AppAuthCard = ({
         onClose={() => setDocsOpen(false)}
         maxWidth="md"
         fullWidth
+        sx={{ zIndex: 9999 }}
         slotProps={{
           paper: {
             sx: {
