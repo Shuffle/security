@@ -31,6 +31,9 @@ interface Props extends ShuffleHostProps {
    *  to the underlying decision (e.g. switch to the detailed timeline,
    *  expand that row, scroll to it). */
   onJumpToEvidence?: (decisionIndex: number) => void;
+  /** When provided, the banner message becomes a CTA that focuses the
+   *  run's continuation input area below. */
+  onFocusContinue?: () => void;
   /** Stable id used to persist dismissals per-execution. Falls back to
    *  `run.execution_id` if present. When neither is available, dismiss
    *  still works for the current mount but is not persisted. */
