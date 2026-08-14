@@ -90,9 +90,15 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, e
   const tone = isCritical ? 'critical' : 'medium';
   const Icon = isCritical ? AlertTriangle : HelpCircle;
 
-  const message = failureInfo
-    ? failureInfo.reason
-    : `${diagnosis!.title} — ${diagnosis!.explanation}`;
+  // Surface a plain, actionable CTA for failures that can be continued,
+  // while keeping the full diagnosis in the expanded details block.
+  const message = failureInfo && onFocusContinue
+    ? 'Something went wrong with this decision. Please continue in the area below.'
+    : failureInfo
+      ? failureInfo.reason
+      : `${diagnosis!.title} — ${diagnosis!.explanation}`;
+
+  const canFocusContinue = !!onFocusContinue && failureInfo != null;
 
 
 
