@@ -1070,6 +1070,7 @@ export const AppAuthCard = ({
                   '& .MuiSvgIcon-root': { color: 'text.secondary' },
                 }}
                 MenuProps={{
+                  sx: { zIndex: 10000 },
                   slotProps: {
                     paper: {
                       sx: {
