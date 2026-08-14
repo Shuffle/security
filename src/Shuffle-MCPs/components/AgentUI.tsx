@@ -553,7 +553,7 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
         </Typography>
       )}
 
-      {finishAnswer && decisionStringWarnings && decisionStringWarnings.length > 0 && !raw && (
+      {decisionStringWarnings && decisionStringWarnings.length > 0 && !raw && (
         <Box
           sx={{
             mt: 1.5,
