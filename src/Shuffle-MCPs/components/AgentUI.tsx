@@ -413,6 +413,8 @@ interface RunFinishedSummaryProps {
   finishAnswer: string;
   /** Secondary line (the finish decision's `reason`) shown under the answer. */
   finishNote?: string;
+  /** Raw decision strings that were not present in the rendered output — parser failures. */
+  decisionStringWarnings?: string[];
   raw: boolean;
   onToggleRaw: () => void;
   decisionCount?: number;
@@ -427,6 +429,7 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
   isRunning,
   finishAnswer,
   finishNote,
+  decisionStringWarnings,
   raw,
   onToggleRaw,
   decisionCount,
@@ -548,6 +551,46 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
         >
           {finishNote}
         </Typography>
+      )}
+
+      {finishAnswer && decisionStringWarnings && decisionStringWarnings.length > 0 && !raw && (
+        <Box
+          sx={{
+            mt: 1.5,
+            p: 1.5,
+            borderRadius: 1,
+            border: '1px solid hsla(var(--severity-medium) / 0.3)',
+            bgcolor: 'hsla(var(--severity-medium) / 0.08)',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <WarningIcon size={14} style={{ color: 'hsl(var(--severity-medium))', flexShrink: 0 }} />
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'hsl(var(--severity-medium))' }}>
+              Debug warning
+            </Typography>
+          </Box>
+          {decisionStringWarnings.map((text, i) => (
+            <Box
+              key={i}
+              component="pre"
+              sx={{
+                m: 0,
+                p: 1,
+                borderRadius: 0.5,
+                bgcolor: 'hsl(var(--background))',
+                border: '1px solid hsl(var(--border))',
+                fontSize: '0.72rem',
+                fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                color: 'hsl(var(--foreground))',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                mb: i < decisionStringWarnings.length - 1 ? 1 : 0,
+              }}
+            >
+              {text}
+            </Box>
+          ))}
+        </Box>
       )}
     </>
   );
@@ -3621,7 +3664,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Build timeline ──
 
-  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote } = useMemo(() => {
+  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote, decisionStringWarnings } = useMemo(() => {
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
       const n = Number(t) || 0;
@@ -3762,9 +3805,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (finishNote && finishNote === finishAns) finishNote = '';
     }
 
-
-
-
+    // If a decision exposes a `decision_string`, the parser failed to turn it
+    // into a structured decision. Surface it as a debug warning when the raw
+    // decision text is not already present in the rendered output.
+    const decisionStringWarnings: string[] = [];
+    const outputForCompare = (finishAns || '').trim();
+    for (const d of (agentData?.decisions || []) as any[]) {
+      const ds = d?.decision_string;
+      if (ds == null || ds === '') continue;
+      const dsText = typeof ds === 'string' ? ds.trim() : JSON.stringify(ds);
+      if (dsText && !outputForCompare.includes(dsText)) {
+        decisionStringWarnings.push(dsText);
+      }
+    }
 
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
     // else preserves insertion order (the index `i` from the decisions array).
@@ -3869,7 +3922,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const end = items.reduce((acc, it) => Math.max(acc, it.end_time || acc), 0);
     const startSafe = start === Infinity ? 0 : start;
     const total = Math.max(1, end - startSafe);
-    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote };
+    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote, decisionStringWarnings };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
 
   // Mark the run complete once it is terminal and a final answer has landed,
@@ -5801,6 +5854,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         isRunning={isRunning}
                         finishAnswer={finishAnswer}
                         finishNote={finishNote}
+                        decisionStringWarnings={decisionStringWarnings}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                         decisionCount={decisionCount}
@@ -6088,6 +6142,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         isRunning={false}
                         finishAnswer={finishAnswer}
                         finishNote={finishNote}
+                        decisionStringWarnings={decisionStringWarnings}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       >
