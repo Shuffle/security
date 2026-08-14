@@ -143,6 +143,8 @@ const NotificationsDrawer = ({
   const [workflows, setWorkflows] = useState<Array<{ id: string; name: string }>>([]);
   const [notificationWorkflow, setNotificationWorkflow] = useState<string>('');
   const [savingWorkflow, setSavingWorkflow] = useState(false);
+  const [workflowConfigLoading, setWorkflowConfigLoading] = useState(false);
+
 
   // Load the active org (for its `defaults`) and the available workflows so the
   // notification workflow dropdown can be populated.
