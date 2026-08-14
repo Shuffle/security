@@ -5765,6 +5765,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
               run={execution?.results?.length ? execution : agentData}
               sx={{ px: 1.5, pb: 0, mb: 2 }}
               executionId={execution?.execution_id}
+              onFocusContinue={() => {
+                // Focus and briefly highlight the continuation form so the user
+                // knows where to continue the run after a failed decision.
+                const el = continuationInputRef.current;
+                if (el) {
+                  el.focus();
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                setContinueHighlighted(true);
+                window.setTimeout(() => {
+                  setContinueHighlighted(false);
+                }, 2800);
+              }}
               onJumpToEvidence={(decisionIndex) => {
                 // Locate the timeline row for the offending decision and
                 // expand + scroll to it on the detailed view, regardless of
