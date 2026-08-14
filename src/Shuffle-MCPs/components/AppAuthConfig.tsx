@@ -122,7 +122,7 @@ const isOAuth2Type = (type: string | undefined): boolean => {
 
 // Helper to check if auth type indicates no authentication required
 // Returns true for explicit "no auth" types OR apps with no parameters/OAuth config
-const isNoAuthRequired = (auth: AppAuthentication | undefined): boolean => {
+export const isNoAuthRequired = (auth: AppAuthentication | undefined): boolean => {
   if (!auth) return false; // No auth object loaded yet = unknown
   const type = auth.type?.toLowerCase() || '';
   // Explicit "no auth" types
