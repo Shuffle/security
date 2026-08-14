@@ -4841,10 +4841,33 @@ const AgentUI: React.FC<AgentUIProps> = ({
           </Box>
         </Tooltip>
       )}
+      {postRunUnauthedApps.map((a) => (
+        <Tooltip key={`post-auth-${a.id || a.name}`} title={`${(a.name || '').replace(/_/g, ' ')} is not authenticated yet — click to set it up`} arrow>
+          <Box
+            role="button"
+            onClick={() => setAuthDrawerApp({ name: a.name, id: a.id || null })}
+            sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.5,
+              px: 1, py: 0.25, borderRadius: 999,
+              border: '1px solid hsl(var(--severity-medium) / 0.55)',
+              bgcolor: 'hsl(var(--severity-medium) / 0.12)',
+              color: 'hsl(var(--foreground))',
+              fontSize: '0.8rem', textTransform: 'capitalize',
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'hsl(var(--severity-medium) / 0.2)' },
+            }}
+          >
+            <WarningIcon size={13} color={'hsl(var(--severity-medium))'} />
+            {`Authenticate ${(a.name || '').replace(/_/g, ' ')}`}
+          </Box>
+        </Tooltip>
+      ))}
       {postRunAppReqs.map((req) => (
         <Tooltip
           key={`post-${req.kind}-${req.value}`}
-          title={req.kind === 'category' ? `Needs a ${req.label} — click to pick one` : `Add ${req.label} to this run`}
+          title={req.kind === 'category'
+            ? `Suggested from your prompt: no ${req.label} app was used in this run. Click to pick one.`
+            : `Suggested from your prompt: ${req.label} was not used in this run. Click to add it.`}
           arrow
         >
           <Box
