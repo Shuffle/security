@@ -554,6 +554,9 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
   }
 
   if ((parsed as { success?: unknown }).success === false || namedReason) {
+    // Decision-parser failures are handled by the dedicated decision_string
+    // debug block below the final answer, not by this banner.
+    if (namedReason && isDecisionStringParserFailure(namedReason)) return null;
     const ev: DiagnosisEvidence[] = [];
     if (namedEvidence) ev.push(namedEvidence);
     if ((parsed as { success?: unknown }).success === false) {
