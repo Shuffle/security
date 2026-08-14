@@ -535,7 +535,7 @@ const SingulActionsPreview = ({
                 slotProps={{
                   popper: {
                     sx: {
-                      zIndex: 9999,
+                      zIndex: 10000,
                     },
                   },
                   paper: {
