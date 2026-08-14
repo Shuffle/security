@@ -174,15 +174,35 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, e
             style={{ color: `hsl(var(--severity-${tone}))`, flexShrink: 0 }}
           />
           <Typography
+            component={canFocusContinue ? 'span' : undefined}
+            role={canFocusContinue ? 'button' : undefined}
+            tabIndex={canFocusContinue ? 0 : undefined}
+            onClick={canFocusContinue ? handleFocusContinue : undefined}
+            onKeyDown={
+              canFocusContinue
+                ? (e: React.KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleFocusContinue(e);
+                    }
+                  }
+                : undefined
+            }
             sx={{
               flex: 1,
               minWidth: 0,
               fontSize: '0.74rem',
-              color: 'hsl(var(--foreground))',
+              color: canFocusContinue ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
               lineHeight: 1.4,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              ...(canFocusContinue && {
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                textUnderlineOffset: '2px',
+                '&:hover': { color: 'hsl(var(--primary))' },
+              }),
             }}
             title={message}
           >
