@@ -56,10 +56,7 @@ interface AppInfo {
   large_image?: string;
   categories?: string[];
   actions?: unknown[];
-  authentication?: {
-    type?: string;
-    parameters?: { id: string; name: string; description: string; example: string; required: boolean }[];
-  };
+  authentication?: AppAuthentication;
 }
 
 
