@@ -65,11 +65,13 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
   }, [executionId, run]);
 
   const [dismissed, setDismissed] = useState<boolean>(() => readDismissed(dismissKey));
+  const [expanded, setExpanded] = useState(false);
 
   // Re-sync if the underlying execution changes.
   useEffect(() => {
     setDismissed(readDismissed(dismissKey));
   }, [dismissKey]);
+
 
   if (!run || dismissed) return null;
 
