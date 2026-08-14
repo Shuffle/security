@@ -151,6 +151,7 @@ const NotificationsDrawer = ({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    setWorkflowConfigLoading(true);
     const headers = { 'Content-Type': 'application/json', ...getAuthHeader() };
     (async () => {
       try {
@@ -183,10 +184,13 @@ const NotificationsDrawer = ({
         }
       } catch {
         /* configuration is optional — ignore failures */
+      } finally {
+        if (!cancelled) setWorkflowConfigLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, [open]);
+
 
   const saveNotificationWorkflow = useCallback(
     async (workflowIdValue: string) => {
