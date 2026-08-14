@@ -34,7 +34,7 @@ import {
   ToggleButtonGroup,
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { AppAuthCard, isNoAuthRequired } from '@/Shuffle-MCPs/components/AppAuthConfig';
+import { AppAuthCard, isNoAuthRequired, type AppAuthentication } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import AppMcpChat from '@/Shuffle-MCPs/views/AppMcpChat';
 import ApiCallViewer from '@/Shuffle-MCPs/components/ApiCallViewer';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
