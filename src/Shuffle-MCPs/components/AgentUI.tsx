@@ -563,12 +563,16 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
             bgcolor: 'hsla(var(--severity-medium) / 0.08)',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <WarningIcon size={14} style={{ color: 'hsl(var(--severity-medium))', flexShrink: 0 }} />
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'hsl(var(--severity-medium))' }}>
-              Debug warning
-            </Typography>
-          </Box>
+          <Typography
+            sx={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: 'hsl(var(--severity-medium))',
+              mb: 1,
+            }}
+          >
+            Failed decision, Shuffle team notified. Please contact support@shuffler.io if this persists.
+          </Typography>
           {decisionStringWarnings.map((text, i) => (
             <Box
               key={i}
@@ -592,6 +596,7 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
           ))}
         </Box>
       )}
+
     </>
   );
 };

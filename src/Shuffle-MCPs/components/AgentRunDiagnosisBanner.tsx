@@ -65,11 +65,13 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
   }, [executionId, run]);
 
   const [dismissed, setDismissed] = useState<boolean>(() => readDismissed(dismissKey));
+  const [expanded, setExpanded] = useState(false);
 
   // Re-sync if the underlying execution changes.
   useEffect(() => {
     setDismissed(readDismissed(dismissKey));
   }, [dismissKey]);
+
 
   if (!run || dismissed) return null;
 
@@ -87,7 +89,8 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
 
   const message = failureInfo
     ? failureInfo.reason
-    : `${diagnosis!.title} — ${diagnosis!.remediation}`;
+    : `${diagnosis!.title} — ${diagnosis!.explanation}`;
+
 
 
   const firstEvidence = diagnosis?.evidence?.[0] || null;
@@ -179,6 +182,29 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
               />
             </Tooltip>
           )}
+          <Typography
+            component="span"
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); setExpanded((prev) => !prev); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setExpanded((prev) => !prev);
+              }
+            }}
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              color: 'hsl(var(--primary))',
+              cursor: 'pointer',
+              flexShrink: 0,
+              ml: 0.5,
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {expanded ? 'Hide details' : 'Show details'}
+          </Typography>
           <Tooltip title="Dismiss for this execution" placement="top" arrow>
             <IconButton
               size="small"
@@ -197,8 +223,50 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
               <X size={12} />
             </IconButton>
           </Tooltip>
+
         </Box>
+        {expanded && (
+          <Box sx={{ pl: 2.5, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {diagnosis ? (
+              <>
+                <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--foreground))', lineHeight: 1.4 }}>
+                  {diagnosis.explanation}
+                </Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4 }}>
+                  {diagnosis.remediation}
+                </Typography>
+                {diagnosis.snippet && (
+                  <Box
+                    component="pre"
+                    sx={{
+                      m: 0,
+                      p: 0.75,
+                      borderRadius: 0.5,
+                      bgcolor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      fontSize: '0.7rem',
+                      fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                      color: 'hsl(var(--foreground))',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {diagnosis.snippet}
+                  </Box>
+                )}
+              </>
+            ) : failureInfo ? (
+              <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--foreground))', lineHeight: 1.4 }}>
+                {failureInfo.reason}
+              </Typography>
+            ) : null}
+            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, fontStyle: 'italic' }}>
+              Open the Debug section below for the full response.
+            </Typography>
+          </Box>
+        )}
         {showTokenCtas && (
+
           <Box sx={{ pl: 2.5, pt: 0.25 }}>
             <AgentDiagnosisCtas diagnosis={diagnosis} tone={tone} />
           </Box>
