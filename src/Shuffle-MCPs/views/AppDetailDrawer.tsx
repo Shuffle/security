@@ -170,6 +170,8 @@ export default function AppDetailDrawer({
   // Auto-collapse Authentication section when a valid auth exists; expand otherwise.
   // Only fires when validity flips, so user manual toggles are preserved.
   const lastValidAuthRef = useRef<boolean | null>(null);
+  // Track last known "no auth required" state so we can default-collapse once.
+  const lastNoAuthRequiredRef = useRef<boolean | null>(null);
   const [incidentStats, setIncidentStats] = useState<{ ingested: number; forwarded: number } | null>(null);
   const [appNotFound, setAppNotFound] = useState(false);
   const [configError, setConfigError] = useState<{ status: number; message: string } | null>(null);
