@@ -158,7 +158,7 @@ interface AuthParameter {
   };
 }
 
-interface AppAuthentication {
+export interface AppAuthentication {
   type: string;
   description?: string;
   redirect_uri?: string;
