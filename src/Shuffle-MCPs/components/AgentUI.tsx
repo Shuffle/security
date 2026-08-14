@@ -4808,7 +4808,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Shared post-run discovery block: surfaces the same schedule intent and
   // missing app/category requirements we show before a run, so the finished
   // state can help set it up. Used by both the compact and detailed views.
-  const postRunDiscovery = (Boolean(postRunScheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 ? (
+  const postRunDiscovery = (Boolean(postRunScheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 || postRunUnauthedApps.length > 0 ? (
     <Box
       sx={{
         display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1,
