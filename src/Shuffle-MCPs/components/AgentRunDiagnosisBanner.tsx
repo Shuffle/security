@@ -31,6 +31,9 @@ interface Props extends ShuffleHostProps {
    *  to the underlying decision (e.g. switch to the detailed timeline,
    *  expand that row, scroll to it). */
   onJumpToEvidence?: (decisionIndex: number) => void;
+  /** When provided, the banner message becomes a CTA that focuses the
+   *  run's continuation input area below. */
+  onFocusContinue?: () => void;
   /** Stable id used to persist dismissals per-execution. Falls back to
    *  `run.execution_id` if present. When neither is available, dismiss
    *  still works for the current mount but is not persisted. */
@@ -57,7 +60,7 @@ const writeDismissed = (key: string | null) => {
   }
 };
 
-const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Props) => {
+const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, executionId }: Props) => {
   const dismissKey = useMemo(() => {
     if (executionId) return executionId;
     const fromRun = (run as any)?.execution_id;
@@ -87,9 +90,15 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
   const tone = isCritical ? 'critical' : 'medium';
   const Icon = isCritical ? AlertTriangle : HelpCircle;
 
-  const message = failureInfo
-    ? failureInfo.reason
-    : `${diagnosis!.title} — ${diagnosis!.explanation}`;
+  // Surface a plain, actionable CTA for failures that can be continued,
+  // while keeping the full diagnosis in the expanded details block.
+  const message = failureInfo && onFocusContinue
+    ? 'Something went wrong with this decision. Please continue in the area below.'
+    : failureInfo
+      ? failureInfo.reason
+      : `${diagnosis!.title} — ${diagnosis!.explanation}`;
+
+  const canFocusContinue = !!onFocusContinue && failureInfo != null;
 
 
 
@@ -105,6 +114,11 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
 
   const handleJump = () => {
     if (canJump) onJumpToEvidence!(jumpDecisionIndex!);
+  };
+
+  const handleFocusContinue = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation?.();
+    if (canFocusContinue) onFocusContinue!();
   };
 
   const showTokenCtas = diagnosis?.kind === 'token_limit';
@@ -160,15 +174,35 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
             style={{ color: `hsl(var(--severity-${tone}))`, flexShrink: 0 }}
           />
           <Typography
+            component={canFocusContinue ? 'span' : undefined}
+            role={canFocusContinue ? 'button' : undefined}
+            tabIndex={canFocusContinue ? 0 : undefined}
+            onClick={canFocusContinue ? handleFocusContinue : undefined}
+            onKeyDown={
+              canFocusContinue
+                ? (e: React.KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleFocusContinue(e);
+                    }
+                  }
+                : undefined
+            }
             sx={{
               flex: 1,
               minWidth: 0,
               fontSize: '0.74rem',
-              color: 'hsl(var(--foreground))',
+              color: canFocusContinue ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
               lineHeight: 1.4,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              ...(canFocusContinue && {
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                textUnderlineOffset: '2px',
+                '&:hover': { color: 'hsl(var(--primary))' },
+              }),
             }}
             title={message}
           >

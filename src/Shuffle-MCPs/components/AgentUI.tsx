@@ -2368,6 +2368,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Briefly pulses a row + its output box after the diagnosis banner's
   // "Where this was found" jump. Cleared on a timer.
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
+  // Briefly pulses the continuation form after the diagnosis banner's
+  // "continue in the area below" CTA. Cleared on a timer.
+  const [continueHighlighted, setContinueHighlighted] = useState(false);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, { index: number; value: string }>>({});
   const [simpleSubmitAttempted, setSimpleSubmitAttempted] = useState(false);
   const [finishAnswerRaw, setFinishAnswerRaw] = useState(false);
@@ -5762,6 +5765,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
               run={execution?.results?.length ? execution : agentData}
               sx={{ px: 1.5, pb: 0, mb: 2 }}
               executionId={execution?.execution_id}
+              onFocusContinue={() => {
+                // Focus and briefly highlight the continuation form so the user
+                // knows where to continue the run after a failed decision.
+                const el = continuationInputRef.current;
+                if (el) {
+                  el.focus();
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                setContinueHighlighted(true);
+                window.setTimeout(() => {
+                  setContinueHighlighted(false);
+                }, 2800);
+              }}
               onJumpToEvidence={(decisionIndex) => {
                 // Locate the timeline row for the offending decision and
                 // expand + scroll to it on the detailed view, regardless of
@@ -6252,10 +6268,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     p: 1.25, borderRadius: 999,
                     border: '1.5px solid hsl(var(--border))',
                     bgcolor: 'hsl(var(--card))',
+                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                     '&:focus-within': {
                       borderColor: 'hsl(var(--primary))',
                       boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
                     },
+                    ...(continueHighlighted && {
+                      borderColor: 'hsl(var(--primary))',
+                      boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
+                    }),
                   }}
                 >
                   <InputBase
