@@ -118,6 +118,18 @@ export const parseRunResult = (
   }
 };
 
+/** Parser failures that are surfaced as `decision_string` in the run result
+ *  are now handled by the dedicated debug block below the final answer. They
+ *  should not be reported as a generic top-level "Action failed" banner. */
+const isDecisionStringParserFailure = (reason: string): boolean => {
+  if (!reason) return false;
+  const normalized = reason.toLowerCase();
+  return (
+    normalized.includes('produced decisions') &&
+    normalized.includes('none could be executed')
+  );
+};
+
 /** Extract failure info from a failed/aborted run. */
 export const getFailureInfo = (run: DiagnosableRun): { reason: string } | null => {
   const status = run.status?.toUpperCase();
@@ -125,10 +137,19 @@ export const getFailureInfo = (run: DiagnosableRun): { reason: string } | null =
 
   const { parsed } = parseRunResult(run);
   if (parsed && typeof parsed === 'object') {
-    if (parsed.success === false && parsed.reason) return { reason: parsed.reason };
-    if (parsed.message) return { reason: parsed.message };
-    if (parsed.error)
-      return { reason: typeof parsed.error === 'string' ? parsed.error : JSON.stringify(parsed.error) };
+    if (parsed.success === false && parsed.reason) {
+      if (isDecisionStringParserFailure(parsed.reason)) return null;
+      return { reason: parsed.reason };
+    }
+    if (parsed.message) {
+      if (isDecisionStringParserFailure(parsed.message)) return null;
+      return { reason: parsed.message };
+    }
+    if (parsed.error) {
+      const errorText = typeof parsed.error === 'string' ? parsed.error : JSON.stringify(parsed.error);
+      if (isDecisionStringParserFailure(errorText)) return null;
+      return { reason: errorText };
+    }
   }
   return null;
 };
