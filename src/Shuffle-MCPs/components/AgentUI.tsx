@@ -3810,14 +3810,21 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // decision text is not already present in the rendered output.
     const decisionStringWarnings: string[] = [];
     const outputForCompare = (finishAns || '').trim();
-    for (const d of (agentData?.decisions || []) as any[]) {
-      const ds = d?.decision_string;
-      if (ds == null || ds === '') continue;
+    const pushDecisionString = (ds: any) => {
+      if (ds == null || ds === '') return;
       const dsText = typeof ds === 'string' ? ds.trim() : JSON.stringify(ds);
-      if (dsText && !outputForCompare.includes(dsText)) {
-        decisionStringWarnings.push(dsText);
-      }
+      if (!dsText) return;
+      if (outputForCompare.includes(dsText)) return;
+      if (decisionStringWarnings.includes(dsText)) return;
+      decisionStringWarnings.push(dsText);
+    };
+    // Top-level (run object) decision_string, e.g. sibling of `decisions`.
+    pushDecisionString((agentData as any)?.decision_string);
+    for (const d of (agentData?.decisions || []) as any[]) {
+      pushDecisionString(d?.decision_string);
+      pushDecisionString((d as any)?.run_details?.decision_string);
     }
+
 
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
     // else preserves insertion order (the index `i` from the decisions array).
