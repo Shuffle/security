@@ -4252,6 +4252,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
     });
   }, [finishedRunInput, chosenApps]);
 
+  // Same signal the starter view shows ("X is not authenticated"), reused in
+  // the post-run block so both views agree on what is actually missing.
+  const postRunUnauthedApps = useMemo(() => {
+    if (authAppsLoading) return [] as typeof chosenApps;
+    const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
+    return chosenApps.filter((a) => {
+      const slug = normalizeAgentAppName(a.name || '');
+      return !NO_AUTH.has(slug) && !isAppAuthenticated(a.name || '', a.id || null);
+    });
+  }, [authAppsLoading, chosenApps, isAppAuthenticated]);
+
+
+
 
 
   // Compile structured recurrence controls into a 5-field cron expression.
