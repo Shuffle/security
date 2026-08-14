@@ -143,12 +143,15 @@ const NotificationsDrawer = ({
   const [workflows, setWorkflows] = useState<Array<{ id: string; name: string }>>([]);
   const [notificationWorkflow, setNotificationWorkflow] = useState<string>('');
   const [savingWorkflow, setSavingWorkflow] = useState(false);
+  const [workflowConfigLoading, setWorkflowConfigLoading] = useState(false);
+
 
   // Load the active org (for its `defaults`) and the available workflows so the
   // notification workflow dropdown can be populated.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    setWorkflowConfigLoading(true);
     const headers = { 'Content-Type': 'application/json', ...getAuthHeader() };
     (async () => {
       try {
@@ -181,10 +184,13 @@ const NotificationsDrawer = ({
         }
       } catch {
         /* configuration is optional — ignore failures */
+      } finally {
+        if (!cancelled) setWorkflowConfigLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, [open]);
+
 
   const saveNotificationWorkflow = useCallback(
     async (workflowIdValue: string) => {
@@ -395,35 +401,57 @@ const NotificationsDrawer = ({
             <Typography sx={{ flex: 1, fontSize: '1.125rem', fontWeight: 600 }}>
               Notifications
             </Typography>
-            <Tooltip title="Workflow executed when a notification is created" arrow>
-              <TextField
-                select
-                size="small"
-                value={notificationWorkflow}
-                onChange={(e) => saveNotificationWorkflow(e.target.value)}
-                disabled={!orgId || savingWorkflow}
-                SelectProps={{ displayEmpty: true, MenuProps: { PaperProps: { sx: { maxHeight: 360 } } } }}
+            {workflowConfigLoading ? (
+              <Box
                 sx={{
                   minWidth: 200,
-                  '& .MuiOutlinedInput-root': {
-                    height: 32,
-                    borderRadius: '999px',
-                    fontSize: '0.75rem',
-                    bgcolor: 'hsl(var(--muted) / 0.35)',
-                    '& fieldset': { borderColor: 'hsl(var(--border))' },
-                  },
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 1.5,
+                  borderRadius: '999px',
+                  bgcolor: 'hsl(var(--muted) / 0.35)',
+                  border: '1px solid hsl(var(--border))',
+                  color: 'hsl(var(--muted-foreground))',
+                  fontSize: '0.75rem',
                 }}
               >
-                <MenuItem value="" sx={{ fontSize: '0.75rem' }}>
-                  No notification workflow
-                </MenuItem>
-                {workflows.map((wf) => (
-                  <MenuItem key={wf.id} value={wf.id} sx={{ fontSize: '0.75rem' }}>
-                    {wf.name}
+                <CircularProgress size={14} thickness={4} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+                Loading notification workflow...
+              </Box>
+            ) : (
+              <Tooltip title="Workflow executed when a notification is created" arrow>
+                <TextField
+                  select
+                  size="small"
+                  value={notificationWorkflow}
+                  onChange={(e) => saveNotificationWorkflow(e.target.value)}
+                  disabled={!orgId || savingWorkflow}
+                  SelectProps={{ displayEmpty: true, MenuProps: { PaperProps: { sx: { maxHeight: 360 } } } }}
+                  sx={{
+                    minWidth: 200,
+                    '& .MuiOutlinedInput-root': {
+                      height: 32,
+                      borderRadius: '999px',
+                      fontSize: '0.75rem',
+                      bgcolor: 'hsl(var(--muted) / 0.35)',
+                      '& fieldset': { borderColor: 'hsl(var(--border))' },
+                    },
+                  }}
+                >
+                  <MenuItem value="" sx={{ fontSize: '0.75rem' }}>
+                    No notification workflow
                   </MenuItem>
-                ))}
-              </TextField>
-            </Tooltip>
+                  {workflows.map((wf) => (
+                    <MenuItem key={wf.id} value={wf.id} sx={{ fontSize: '0.75rem' }}>
+                      {wf.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Tooltip>
+            )}
+
             <Tooltip title="Refresh" arrow>
               <span>
                 <IconButton
