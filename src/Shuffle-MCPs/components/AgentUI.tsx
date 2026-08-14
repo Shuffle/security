@@ -2821,10 +2821,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (typeof entry !== 'string') continue;
       const parts = entry.split(':');
       if (parts.length < 3 || parts[0] !== 'app') continue;
-      const id = parts[1] || '';
+      let id = parts[1] || '';
       // Format is `app:<id>:<name>`; some backends append the action name as a
       // 4th segment (`app:<id>:<name>:<action>`) — only take the app name.
-      const name = parts[2] || '';
+      let name = parts[2] || '';
+      // Name-keyed form: `app:name:<something>:<real_name>` — there is no app
+      // id at all, so use the LAST segment as the app name and resolve it via
+      // the apps cache / Algolia by name.
+      if (id.toLowerCase() === 'name') {
+        id = '';
+        name = parts[parts.length - 1] || name;
+      }
+
 
       if (!name && !id) continue;
       const key = `${id}|${name}`;
