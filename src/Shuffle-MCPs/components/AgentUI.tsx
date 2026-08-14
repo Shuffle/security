@@ -4795,7 +4795,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Shared post-run discovery block: surfaces the same schedule intent and
   // missing app/category requirements we show before a run, so the finished
   // state can help set it up. Used by both the compact and detailed views.
-  const postRunDiscovery = (Boolean(scheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 ? (
+  const postRunDiscovery = (Boolean(postRunScheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 ? (
     <Box
       sx={{
         display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1,
@@ -4807,8 +4807,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mr: 0.5 }}>
         Set this up to run on its own
       </Typography>
-      {scheduleHint && !scheduleDisabledReason && (
-        <Tooltip title={`Detected schedule: ${scheduleHint.label}. Click to review and save.`} arrow>
+      {postRunScheduleHint && !scheduleDisabledReason && (
+        <Tooltip title={`Detected schedule: ${postRunScheduleHint.label}. Click to review and save.`} arrow>
           <Box
             role="button"
             onClick={(e) => setScheduleAnchor(e.currentTarget as HTMLElement)}
@@ -4824,7 +4824,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             }}
           >
             <ScheduleIcon size={13} />
-            {scheduleHint.label}
+            {postRunScheduleHint.label}
           </Box>
         </Tooltip>
       )}
