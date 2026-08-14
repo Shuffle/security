@@ -34,7 +34,7 @@ import {
   ToggleButtonGroup,
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { AppAuthCard } from '@/Shuffle-MCPs/components/AppAuthConfig';
+import { AppAuthCard, isNoAuthRequired, type AppAuthentication } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import AppMcpChat from '@/Shuffle-MCPs/views/AppMcpChat';
 import ApiCallViewer from '@/Shuffle-MCPs/components/ApiCallViewer';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
@@ -56,10 +56,7 @@ interface AppInfo {
   large_image?: string;
   categories?: string[];
   actions?: unknown[];
-  authentication?: {
-    type?: string;
-    parameters?: { id: string; name: string; description: string; example: string; required: boolean }[];
-  };
+  authentication?: AppAuthentication;
 }
 
 
@@ -170,6 +167,8 @@ export default function AppDetailDrawer({
   // Auto-collapse Authentication section when a valid auth exists; expand otherwise.
   // Only fires when validity flips, so user manual toggles are preserved.
   const lastValidAuthRef = useRef<boolean | null>(null);
+  // Track last known "no auth required" state so we can default-collapse once.
+  const lastNoAuthRequiredRef = useRef<boolean | null>(null);
   const [incidentStats, setIncidentStats] = useState<{ ingested: number; forwarded: number } | null>(null);
   const [appNotFound, setAppNotFound] = useState(false);
   const [configError, setConfigError] = useState<{ status: number; message: string } | null>(null);
@@ -452,9 +451,19 @@ export default function AppDetailDrawer({
     setAuthExpanded(!hasValidAuth);
   }, [hasValidAuth]);
 
+  // Default-collapse the auth section once we know this app requires no authentication.
+  useEffect(() => {
+    if (appLoading) return;
+    const noAuth = isNoAuthRequired(appInfo?.authentication);
+    if (lastNoAuthRequiredRef.current === noAuth) return;
+    lastNoAuthRequiredRef.current = noAuth;
+    if (noAuth) setAuthExpanded(false);
+  }, [appLoading, appInfo?.authentication]);
+
   // Reset tracker when switching apps so the new app starts from current state.
   useEffect(() => {
     lastValidAuthRef.current = null;
+    lastNoAuthRequiredRef.current = null;
   }, [appName]);
 
   const handleActivateToggle = async (opts?: { silent?: boolean }) => {
