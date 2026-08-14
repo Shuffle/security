@@ -182,6 +182,29 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
               />
             </Tooltip>
           )}
+          <Typography
+            component="span"
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); setExpanded((prev) => !prev); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setExpanded((prev) => !prev);
+              }
+            }}
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              color: 'hsl(var(--primary))',
+              cursor: 'pointer',
+              flexShrink: 0,
+              ml: 0.5,
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {expanded ? 'Hide details' : 'Show details'}
+          </Typography>
           <Tooltip title="Dismiss for this execution" placement="top" arrow>
             <IconButton
               size="small"
@@ -200,6 +223,7 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
               <X size={12} />
             </IconButton>
           </Tooltip>
+
         </Box>
         {showTokenCtas && (
           <Box sx={{ pl: 2.5, pt: 0.25 }}>
