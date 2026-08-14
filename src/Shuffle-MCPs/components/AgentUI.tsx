@@ -6255,10 +6255,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     p: 1.25, borderRadius: 999,
                     border: '1.5px solid hsl(var(--border))',
                     bgcolor: 'hsl(var(--card))',
+                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                     '&:focus-within': {
                       borderColor: 'hsl(var(--primary))',
                       boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
                     },
+                    ...(continueHighlighted && {
+                      borderColor: 'hsl(var(--primary))',
+                      boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
+                    }),
                   }}
                 >
                   <InputBase
