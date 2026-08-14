@@ -454,9 +454,19 @@ export default function AppDetailDrawer({
     setAuthExpanded(!hasValidAuth);
   }, [hasValidAuth]);
 
+  // Default-collapse the auth section once we know this app requires no authentication.
+  useEffect(() => {
+    if (appLoading) return;
+    const noAuth = isNoAuthRequired(appInfo?.authentication);
+    if (lastNoAuthRequiredRef.current === noAuth) return;
+    lastNoAuthRequiredRef.current = noAuth;
+    if (noAuth) setAuthExpanded(false);
+  }, [appLoading, appInfo?.authentication]);
+
   // Reset tracker when switching apps so the new app starts from current state.
   useEffect(() => {
     lastValidAuthRef.current = null;
+    lastNoAuthRequiredRef.current = null;
   }, [appName]);
 
   const handleActivateToggle = async (opts?: { silent?: boolean }) => {
