@@ -89,7 +89,8 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Pro
 
   const message = failureInfo
     ? failureInfo.reason
-    : `${diagnosis!.title} — ${diagnosis!.remediation}`;
+    : `${diagnosis!.title} — ${diagnosis!.explanation}`;
+
 
 
   const firstEvidence = diagnosis?.evidence?.[0] || null;
