@@ -2368,6 +2368,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Briefly pulses a row + its output box after the diagnosis banner's
   // "Where this was found" jump. Cleared on a timer.
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
+  // Briefly pulses the continuation form after the diagnosis banner's
+  // "continue in the area below" CTA. Cleared on a timer.
+  const [continueHighlighted, setContinueHighlighted] = useState(false);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, { index: number; value: string }>>({});
   const [simpleSubmitAttempted, setSimpleSubmitAttempted] = useState(false);
   const [finishAnswerRaw, setFinishAnswerRaw] = useState(false);
