@@ -116,6 +116,11 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, e
     if (canJump) onJumpToEvidence!(jumpDecisionIndex!);
   };
 
+  const handleFocusContinue = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation?.();
+    if (canFocusContinue) onFocusContinue!();
+  };
+
   const showTokenCtas = diagnosis?.kind === 'token_limit';
 
   return (
