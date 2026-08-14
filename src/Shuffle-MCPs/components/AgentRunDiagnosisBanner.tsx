@@ -60,7 +60,7 @@ const writeDismissed = (key: string | null) => {
   }
 };
 
-const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, executionId }: Props) => {
+const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, executionId }: Props) => {
   const dismissKey = useMemo(() => {
     if (executionId) return executionId;
     const fromRun = (run as any)?.execution_id;
