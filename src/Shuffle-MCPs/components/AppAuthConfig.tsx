@@ -1633,6 +1633,7 @@ export const AppAuthCard = ({
                 <Dialog
                   open={!!deleteConfirmAuthId}
                   onClose={() => setDeleteConfirmAuthId(null)}
+                  sx={{ zIndex: 9999 }}
                   slotProps={{
                     paper: {
                       sx: {
