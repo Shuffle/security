@@ -4228,8 +4228,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Post-run discovery: the same requirements we surface *before* a run
   // (schedule intent + apps/categories the prompt needs) are still relevant
   // once the run finishes, so the "Run finished" area can help set them up.
+  // IMPORTANT: this must derive from the prompt that produced the *finished
+  // run*, not the live textarea — the textarea is cleared after submit (and
+  // may hold an unrelated draft), which is why the block used to disappear and
+  // then reappear with unrelated suggestions after switching tabs.
+  const finishedRunInput = useMemo(() => resolveRunInput(), [resolveRunInput]);
+
+  const postRunScheduleHint = useMemo(() => {
+    const parsed = parseScheduleHint(finishedRunInput);
+    return parsed && parsed.once ? null : parsed;
+  }, [finishedRunInput]);
+
   const postRunAppReqs = useMemo<SuggestionAppRequirement[]>(() => {
-    const text = (actionInput || '').trim();
+    const text = (finishedRunInput || '').trim();
     if (text.length < 4) return [];
     const reqs = getSuggestionAppRequirements(text, 4);
     // Drop the generic fallback requirement.
@@ -4239,7 +4250,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const target = r.value.toLowerCase().replace(/[_-]+/g, ' ');
       return !chosen.some((c) => c && (c === target || c.includes(target) || target.includes(c)));
     });
-  }, [actionInput, chosenApps]);
+  }, [finishedRunInput, chosenApps]);
+
 
 
   // Compile structured recurrence controls into a 5-field cron expression.
@@ -4783,7 +4795,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Shared post-run discovery block: surfaces the same schedule intent and
   // missing app/category requirements we show before a run, so the finished
   // state can help set it up. Used by both the compact and detailed views.
-  const postRunDiscovery = (Boolean(scheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 ? (
+  const postRunDiscovery = (Boolean(postRunScheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 ? (
     <Box
       sx={{
         display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1,
@@ -4795,8 +4807,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mr: 0.5 }}>
         Set this up to run on its own
       </Typography>
-      {scheduleHint && !scheduleDisabledReason && (
-        <Tooltip title={`Detected schedule: ${scheduleHint.label}. Click to review and save.`} arrow>
+      {postRunScheduleHint && !scheduleDisabledReason && (
+        <Tooltip title={`Detected schedule: ${postRunScheduleHint.label}. Click to review and save.`} arrow>
           <Box
             role="button"
             onClick={(e) => setScheduleAnchor(e.currentTarget as HTMLElement)}
@@ -4812,7 +4824,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             }}
           >
             <ScheduleIcon size={13} />
-            {scheduleHint.label}
+            {postRunScheduleHint.label}
           </Box>
         </Tooltip>
       )}
