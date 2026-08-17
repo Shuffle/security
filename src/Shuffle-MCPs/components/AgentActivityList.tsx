@@ -584,7 +584,13 @@ interface RunRowProps {
   sx?: SxProps<Theme>;
   appIcons?: Record<string, string>;
   onAppClick?: (app: { id?: string; name: string }) => void;
+  apiKey?: string;
+  apiBaseUrl?: string;
+  orgId?: string;
+  abortingIds?: Set<string>;
+  onAbort?: (run: AgentRun) => void;
 }
+
 
 const normToolKey = (s: string) => s.toLowerCase().replace(/[\s_\-]+/g, '_');
 
