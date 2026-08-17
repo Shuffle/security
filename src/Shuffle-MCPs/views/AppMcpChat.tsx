@@ -249,38 +249,40 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
         const data = JSON.parse(rawText);
         let content = '';
 
+        // Find the execution reference so the full debug output can be opened
+        // in the shared execution drawer instead of being dumped inline.
+        const findExecution = (node: unknown, depth = 0): void => {
+          if (!node || typeof node !== 'object' || depth > 5) return;
+          const obj = node as Record<string, unknown>;
+          const execId = obj.execution_id || obj.executionId;
+          if (typeof execId === 'string' && execId) {
+            setExecutionId(execId);
+            if (typeof obj.authorization === 'string') setExecutionAuth(obj.authorization);
+            return;
+          }
+          Object.values(obj).forEach((v) => findExecution(v, depth + 1));
+        };
+        findExecution(data);
+
         if (typeof data === 'string') {
           content = data;
         } else if (data?.result) {
-          // Extract message if result is an object with a message field
           if (typeof data.result === 'object' && data.result !== null) {
-            if (data.result.message) {
-              content = data.result.message;
-            }
-            // Append remaining fields as context if there's more than just message
-            const rest = { ...data.result };
-            delete rest.message;
-            if (Object.keys(rest).length > 0) {
-              const extra = JSON.stringify(rest, null, 2);
-              content = content
-                ? `${content}\n\n\`\`\`json\n${extra}\n\`\`\``
-                : `\`\`\`json\n${extra}\n\`\`\``;
-            }
+            // Only surface human readable output — debug data lives in the drawer
+            content = String(data.result.message || data.result.output || data.result.result || '');
           } else {
             content = String(data.result);
           }
-        } else if (data?.response) {
-          content = typeof data.response === 'string' ? data.response : JSON.stringify(data.response, null, 2);
-        } else if (data?.message) {
+        } else if (typeof data?.response === 'string') {
+          content = data.response;
+        } else if (typeof data?.message === 'string') {
           content = data.message;
-        } else {
-          content = `\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
         }
 
         if (content) {
           setResult(content);
         } else {
-          setResult('No output returned.');
+          setResult('The run completed without a text response. Open the debug view for the full output.');
         }
       }
     } catch (err) {
@@ -291,13 +293,26 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
     }
   };
 
+  const openDebug = () => {
+    if (!executionId) return;
+    window.dispatchEvent(
+      new CustomEvent('workflow-run:open', {
+        cancelable: true,
+        detail: { executionId, authorization: executionAuth || undefined },
+      }),
+    );
+  };
+
   const reset = () => {
     setRunState('idle');
     setQuery('');
     setResult('');
     setIsError(false);
     setInput('');
+    setExecutionId('');
+    setExecutionAuth('');
     setTimeout(() => inputRef.current?.focus(), 50);
+
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
