@@ -5313,8 +5313,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     chipRef={presetsChipRef}
                     presets={presets}
                     isSupport={isSupport}
+                    disabled={textTemplateSelected}
                     selectedPreset={selectedPreset}
                     onRemoveSelected={() => {
+
                       try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
                       setSelectedPreset(null);
                     }}
