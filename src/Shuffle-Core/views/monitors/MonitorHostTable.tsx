@@ -314,6 +314,30 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
     } catch { return { success: true, output: null, error: null }; }
   };
 
+  /**
+   * Newer remote control runners return the full output directly in a top-level
+   * `result` field. Returns null when there is no usable direct result, so the
+   * caller falls back to execution_id polling.
+   */
+  const parseDirectRunResult = (data: unknown): { success: boolean; output: string | null; error: string | null } | null => {
+    if (!data || typeof data !== 'object') return null;
+    const raw = (data as Record<string, unknown>).result;
+    if (raw === undefined || raw === null || raw === '') return null;
+    let inner: unknown = raw;
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (!trimmed) return null;
+      try { inner = JSON.parse(trimmed); } catch { return { success: true, output: trimmed, error: null }; }
+    }
+    if (!inner || typeof inner !== 'object') return { success: true, output: String(inner), error: null };
+    const o = inner as Record<string, unknown>;
+    const output =
+      typeof o.output === 'string' ? o.output :
+      typeof o.result === 'string' ? o.result :
+      JSON.stringify(inner, null, 2);
+    return { success: o.success !== false, output, error: typeof o.error === 'string' ? o.error : null };
+  };
+
   const executeHostAction = async (actionId: string, actionName: string, hostname: string, groupName: string, hostUuid: string, isPredefined = false, skipConfirm = false) => {
     const normalized = (isPredefined ? `script:${actionId}` : actionId).trim().toLowerCase();
     if (!skipConfirm && normalized === 'script:disable_rce') {
