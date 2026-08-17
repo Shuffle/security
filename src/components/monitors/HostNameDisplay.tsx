@@ -46,7 +46,7 @@ export const HostNameDisplay = ({
         <TooltipTrigger asChild>
           <span className={className}>{short}</span>
         </TooltipTrigger>
-        <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
+        <TooltipContent side="bottom" align="start" className="z-[10030] max-w-sm">
           <div className="space-y-0.5">
             {tooltip === 'full' ? (
               <>
