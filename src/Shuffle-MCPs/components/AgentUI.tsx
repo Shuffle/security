@@ -633,6 +633,7 @@ import { resolveApps } from '@/Shuffle-MCPs/resolveApp';
 import { toast } from '@/Shuffle-MCPs/toast';
 import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET, resolveActiveLLMProvider } from '@/Shuffle-MCPs/llmProviderDetect';
 import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
+import { appRequiresAuthentication, isNoAuthApp, normalizeAppName } from '@/Shuffle-MCPs/noAuthApps';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
 import AgentAttachmentsButton from '@/Shuffle-MCPs/components/AgentAttachmentsButton';
@@ -926,20 +927,7 @@ const validateJson = (raw: unknown): { valid: boolean; result: any } => {
  * to lowercase with underscores so "Shuffle Host Monitors",
  * "shuffle-host-monitors" and "shuffle_host_monitors" all match.
  */
-const AGENT_NO_AUTH_APPS = new Set<string>([
-  'shuffle_incidents',
-  'shuffle_host_monitors',
-  'shuffle_monitors',
-  'shuffle_sensors',
-  'shuffle_workflows',
-  'shuffle_datastore',
-  'shuffle_apps',
-  'shuffle_detection',
-  'shuffle_files',
-  'shuffles_app_management',
-]);
-
-const normalizeAgentAppName = (name: string) => name.toLowerCase().replace(/[\s-]+/g, '_');
+const normalizeAgentAppName = (name: string) => normalizeAppName(name);
 
 const extractAuthRequest = (decision: any): { appName: string; appId: string | null } | null => {
   if (!decision || typeof decision !== 'object') return null;
@@ -2602,7 +2590,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // Shuffle's own built-in apps don't require auth inside the Agent area
     // (they piggyback on the user's existing Shuffle session). They DO need
     // auth elsewhere — this short-circuit is scoped to AgentUI only.
-    if (AGENT_NO_AUTH_APPS.has(target)) return true;
+    if (isNoAuthApp(target)) return true;
     return availableApps.some((a) => {
       if (appId && a.id && String(a.id) === String(appId)) return true;
       return !!appName && normalizeAgentAppName(a.name || '') === target;
@@ -4338,10 +4326,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // the post-run block so both views agree on what is actually missing.
   const postRunUnauthedApps = useMemo(() => {
     if (authAppsLoading) return [] as typeof chosenApps;
-    const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
     return chosenApps.filter((a) => {
       const slug = normalizeAgentAppName(a.name || '');
-      return !NO_AUTH.has(slug) && !isAppAuthenticated(a.name || '', a.id || null);
+      return appRequiresAuthentication(slug) && !isAppAuthenticated(a.name || '', a.id || null);
     });
   }, [authAppsLoading, chosenApps, isAppAuthenticated]);
 
@@ -5590,8 +5577,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Tooltip>
                 {chosenApps.map((app, i) => {
                   const slug = normalizeAgentAppName(app.name || '');
-                  const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
-                  const needsAuth = !authAppsLoading && !NO_AUTH.has(slug) && !isAppAuthenticated(app.name || '', app.id || null);
+                                const needsAuth = !authAppsLoading && appRequiresAuthentication(slug) && !isAppAuthenticated(app.name || '', app.id || null);
                   return (
                   <Tooltip
                     key={`${app.name}-${i}`}
@@ -5680,11 +5666,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 the app drawer to set them up. The agent can still run
                 without these — Shuffle will request auth mid-run if needed. */}
             {!hideAppPicker && (() => {
-              const NO_AUTH = new Set([...AGENT_NO_AUTH_APPS, 'http', 'shuffle_tools', 'shuffle-tools', 'tools', 'singul', 'core', 'webhook', 'email']);
-              if (authAppsLoading) return null;
+                        if (authAppsLoading) return null;
               const unauthed = chosenApps.filter((a) => {
                 const slug = normalizeAgentAppName(a.name || '');
-                return !NO_AUTH.has(slug) && !isAppAuthenticated(a.name || '', a.id || null);
+                return appRequiresAuthentication(slug) && !isAppAuthenticated(a.name || '', a.id || null);
               });
               if (unauthed.length === 0) return null;
               return (
