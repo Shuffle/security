@@ -5206,8 +5206,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     transform: 'none',
                     opacity: 1,
                     pointerEvents: 'auto',
-                    // Glide down from the line-1 position instead of snapping.
-                    animation: 'agentSkillChipDrop 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    // Glide down from the line-1 position instead of snapping,
+                    // and also glide back up when returning to a single line.
+                    animation: 'agentSkillChipDrop 300ms cubic-bezier(0.4, 0, 0.2, 1)',
                     '@keyframes agentSkillChipDrop': {
                       from: { transform: 'translateY(-26px)', opacity: 0.6 },
                       to: { transform: 'translateY(0)', opacity: 1 },
