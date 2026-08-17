@@ -2554,13 +2554,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Tick every second while anything run-related is in flight. Deps are
   // intentionally minimal so the interval is NOT torn down and recreated on
   // every poll response — that was making the "Xs" counter look frozen at 1s.
+  // Only ticks when a run actually exists: on the idle start page there is
+  // nothing to count, and a permanent 1s setState re-rendered this whole
+  // (very large) component every second, which made /agents feel laggy.
   useEffect(() => {
+    if (!execution?.execution_id && !agentRequestLoading) return;
     const status = (execution?.status || agentData?.status || '').toUpperCase();
     const TERMINAL = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
     if (TERMINAL.includes(status)) return;
     const id = setInterval(() => setNowTick(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(id);
-  }, [execution?.status, agentData?.status]);
+  }, [execution?.execution_id, execution?.status, agentData?.status, agentRequestLoading]);
+
 
 
   const readImageAsDataUrl = (file: File): Promise<{ dataUrl: string; name: string } | null> =>
