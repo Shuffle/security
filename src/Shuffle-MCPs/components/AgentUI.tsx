@@ -2350,6 +2350,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const rerunDecisionsSigRef = useRef<string>('');
   // Optimistic UI for the top-level "Rerun agent" button.
   const [rerunAgentPending, setRerunAgentPending] = useState(false);
+  const [abortLoading, setAbortLoading] = useState(false);
+
   const [execution, setExecution] = useState<ExecutionData | null>(null);
   const [agentData, setAgentData] = useState<{ decisions?: AgentDecision[]; original_input?: string; status?: string; started_at?: number; completed_at?: number; [k: string]: any }>({});
   const [agentActionResult, setAgentActionResult] = useState<any>(null);
@@ -3567,6 +3569,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // abort the workflow execution; the existing poll loop will then pick up
   // the ABORTED status on its next tick.
   const abortAgent = useCallback(async () => {
+    setAbortLoading(true);
     const execId = execution?.execution_id;
     const auth = execution?.authorization;
     const wfId = (execution as any)?.workflow?.id;
@@ -3599,6 +3602,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (!execId || !wfId) {
       resetToStart();
       toast({ title: 'Run aborted', description: 'The agent had not started yet — reset to Start.' });
+      setAbortLoading(false);
       return;
     }
 
@@ -3617,6 +3621,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '');
         toast({ title: 'Abort failed', description: txt || `HTTP ${resp.status}`, variant: 'destructive' });
+        setAbortLoading(false);
         return;
       }
       toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
@@ -3625,8 +3630,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setTimeout(() => getExecution(execId, auth!), 2500);
     } catch (err) {
       toast({ title: 'Network error', description: String(err), variant: 'destructive' });
+    } finally {
+      setAbortLoading(false);
     }
   }, [execution, resolveUrl, resolveHeaders, getExecution, setSearchParams]);
+
 
 
   // Build a popout URL to answer the agent's question in the standalone Form UI.
@@ -5776,20 +5784,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 const topStatus = String(execution?.status || agentData?.status || '').toUpperCase();
                 const topRunning = !!(execution?.execution_id || agentRequestLoading) && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(topStatus);
                 return topRunning ? (
-                  <Tooltip title={execution?.execution_id ? 'Abort this execution' : 'Cancel and return to Start'}>
+                  <Tooltip title={abortLoading ? 'Aborting…' : execution?.execution_id ? 'Abort this execution' : 'Cancel and return to Start'}>
                     <span>
                       <IconButton
                         size="small"
+                        disabled={abortLoading}
                         onClick={abortAgent}
                         sx={{
                           color: 'hsl(var(--muted-foreground))',
                           '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted))' },
                         }}
                       >
-                        <StopCircleIcon size={18} />
+                        {abortLoading ? <CircularProgress size={16} sx={{ color: 'hsl(var(--destructive))' }} /> : <StopCircleIcon size={18} />}
                       </IconButton>
                     </span>
                   </Tooltip>
+
                 ) : null;
               })()}
               <Tooltip title={rerunAgentPending ? 'Rerun starting…' : 'Rerun with the same prompt and tools'}>
