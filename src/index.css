@@ -475,12 +475,20 @@
   clip-path: inset(0 0 0 var(--app-sidebar-right, 0px));
 }
 
-/* MUI popovers/menus/tooltips must sit above the global left sidebar
-   (zIndex 1400, hover-expanded 1450). Default MUI modal z-index is 1300,
-   which puts menus behind the sidebar. */
+/* MUI overlay hierarchy. App sidebars/drawers use z-index 9999, so every
+   interactive surface they launch must live on a deterministic tier above
+   them. Keep dialogs below their own menus/poppers, and tooltips highest. */
+.MuiDialog-root {
+  z-index: 10010 !important;
+}
+
 .MuiPopover-root,
 .MuiMenu-root,
-.MuiTooltip-popper,
-.MuiAutocomplete-popper {
-  z-index: 10001 !important;
+.MuiAutocomplete-popper,
+.MuiPopper-root:not(.MuiTooltip-popper) {
+  z-index: 10020 !important;
+}
+
+.MuiTooltip-popper {
+  z-index: 10030 !important;
 }

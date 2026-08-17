@@ -153,7 +153,12 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
   MuiButton: { defaultProps: { size: "small" as const } },
   MuiFormControl: { defaultProps: { size: "small" as const } },
   MuiSelect: { defaultProps: { size: "small" as const } },
-  MuiAutocomplete: { defaultProps: { size: "small" as const } },
+  MuiAutocomplete: {
+    defaultProps: {
+      size: "small" as const,
+      slotProps: { popper: { sx: { zIndex: 10020 } } },
+    },
+  },
   MuiInputBase: {
     defaultProps: { size: "small" as const },
     styleOverrides: {
@@ -228,6 +233,7 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
   },
   MuiDialog: {
     defaultProps: { slotProps: { paper: { className: scopeClassName, style: scopeStyle } } },
+    styleOverrides: { root: { zIndex: 10010 } },
   },
   MuiPaper: {
     styleOverrides: {
@@ -241,6 +247,7 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
   MuiMenu: {
     defaultProps: { slotProps: { paper: { className: scopeClassName, style: scopeStyle } } },
     styleOverrides: {
+      root: { zIndex: 10020 },
       paper: {
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
@@ -251,6 +258,7 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
   MuiPopover: {
     defaultProps: { slotProps: { paper: { className: scopeClassName, style: scopeStyle } } },
     styleOverrides: {
+      root: { zIndex: 10020 },
       paper: {
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
@@ -266,7 +274,7 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
       // z-index (1500) puts them UNDER those panels.
       slotProps: {
         tooltip: { className: scopeClassName, style: scopeStyle },
-        popper: { sx: { zIndex: 10000 } },
+        popper: { sx: { zIndex: 10030 } },
       },
     },
   },
