@@ -1546,8 +1546,20 @@ const AgentActivityList = ({
             <AgentRunRow
               key={run.execution_id || idx}
               run={run}
-              onClick={() => onRunClick?.(run)}
-              sx={rowSx}
+              onClick={() => {
+                setLastOpenedAgentRun(run.execution_id);
+                setLastOpenedRunId(run.execution_id || null);
+                onRunClick?.(run);
+              }}
+              sx={[
+                ...(Array.isArray(rowSx) ? rowSx : rowSx ? [rowSx] : []),
+                ...(run.execution_id && run.execution_id === lastOpenedRunId
+                  ? [{
+                      borderColor: 'hsl(var(--primary) / 0.55)',
+                      bgcolor: 'hsl(var(--primary) / 0.06)',
+                    }]
+                  : []),
+              ]}
               appIcons={appIcons}
               onAppClick={(app) => setAppDrawer(app)}
               apiKey={apiKey}
@@ -1557,6 +1569,7 @@ const AgentActivityList = ({
               onAbort={handleAbort}
             />
           ))}
+
 
           {hasMore && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
