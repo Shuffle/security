@@ -2170,7 +2170,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (!el) return;
     if (el.scrollTop <= 1 && inputScrolled) setInputScrolled(false);
     setInputScrollTop(el.scrollTop || 0);
-  }, [actionInput, inputScrolled]);
+    applyChipScroll(el.scrollTop || 0);
+  }, [actionInput, inputScrolled, applyChipScroll]);
+
 
   // Track whether the prompt currently renders on a single line so the box can
   // stay fully pill-shaped until the text wraps.
