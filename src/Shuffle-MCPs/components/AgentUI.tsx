@@ -2339,7 +2339,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
     setSuggestionIndex(-1);
     setSuggestionsDismissed(false);
+    if (!actionInput.trim()) {
+      setTextTemplateSelected(false);
+    }
   }, [actionInput]);
+
   const suggestionsOpen = promptSuggestions.length > 0 && !suggestionsDismissed;
   /** Category requirements pending a concrete app pick, shown in the Tools bar. */
   const [pendingCategories, setPendingCategories] = useState<SuggestionAppRequirement[]>([]);
