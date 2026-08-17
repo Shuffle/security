@@ -346,7 +346,9 @@ const HostTerminalPage = () => {
                         <div className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${recent ? 'bg-[hsl(var(--severity-low))]' : 'bg-muted-foreground/40'}`} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{h.hostname}</p>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          <HostNameDisplay hostname={h.hostname} />
+                        </p>
                         <p className="text-[0.65rem] text-muted-foreground truncate">
                           {h.groupName} · {h.os}
                           {c && <> · {c.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>}
