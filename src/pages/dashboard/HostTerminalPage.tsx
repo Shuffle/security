@@ -13,6 +13,7 @@ import { hostUrlSegment, parseHostUrlSegment } from '@/utils/hostUrlSegment';
 import { useHostActions } from '@/hooks/useHostActions';
 import { HostTerminalView } from '@/components/monitors/HostTerminalView';
 import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirmDialog';
+import { HostNameDisplay } from '@/components/monitors/HostNameDisplay';
 
 interface HostOption {
   uuid: string;
