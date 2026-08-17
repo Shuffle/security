@@ -2062,8 +2062,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
   const [inputScrolled, setInputScrolled] = useState(false);
   // Pixel scroll offset of the prompt textarea, so the floating Skill chip can
-  // scroll together with the text instead of hovering above it.
+  // scroll together with the text instead of hovering above it. Applied
+  // imperatively (not via state) so the chip never lags behind the text.
   const [inputScrollTop, setInputScrollTop] = useState(0);
+  const chipOverlayRef = useRef<HTMLDivElement | null>(null);
+  const applyChipScroll = useCallback((st: number) => {
+    const el = chipOverlayRef.current;
+    if (!el) return;
+    el.style.transform = `translateY(${-st}px)`;
+    el.style.opacity = st > 24 ? '0' : '1';
+    el.style.pointerEvents = st > 4 ? 'none' : 'auto';
+  }, []);
+
   const [promptSingleLine, setPromptSingleLine] = useState(true);
   // Height of the attachment chip row (0 when nothing is attached). The
   // floating Templates chip is absolutely positioned, so it must be pushed
@@ -2160,7 +2170,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (!el) return;
     if (el.scrollTop <= 1 && inputScrolled) setInputScrolled(false);
     setInputScrollTop(el.scrollTop || 0);
-  }, [actionInput, inputScrolled]);
+    applyChipScroll(el.scrollTop || 0);
+  }, [actionInput, inputScrolled, applyChipScroll]);
+
 
   // Track whether the prompt currently renders on a single line so the box can
   // stay fully pill-shaped until the text wraps.
@@ -5092,15 +5104,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
               {!hidePresets && (
-                <Box sx={{
+                <Box ref={chipOverlayRef} sx={{
                   position: 'absolute', left: '17px', top: `${19 + (attachedImages.length > 0 ? attachmentsRowHeight + 4 : 0)}px`,
                   height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                   // The chip scrolls together with the textarea content so text
-                  // never runs underneath it while scrolling.
+                  // never runs underneath it while scrolling. The transform is
+                  // updated imperatively on scroll so it stays in lockstep with
+                  // the text instead of lagging a render behind.
+                  willChange: 'transform',
                   transform: `translateY(${-inputScrollTop}px)`,
                   opacity: inputScrollTop > 24 ? 0 : 1,
                   pointerEvents: inputScrollTop > 4 ? 'none' : 'auto',
                 }}>
+
 
 
 
@@ -5158,9 +5174,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 onKeyDown={onKeyDown}
                 onScroll={(e) => {
                   const st = (e.target as HTMLTextAreaElement).scrollTop;
-                  setInputScrolled(st > 1);
+                  // Move the chip in the same frame as the scroll event.
+                  applyChipScroll(st);
+                  setInputScrolled((prev) => (prev === st > 1 ? prev : st > 1));
                   setInputScrollTop(st);
                 }}
+
 
                 onPaste={(e) => {
                   const items = e.clipboardData?.items;
