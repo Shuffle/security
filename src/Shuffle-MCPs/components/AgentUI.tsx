@@ -5282,6 +5282,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 ml: 'auto',
                 mr: -0.5,
                 flexShrink: 0,
+                // Slide down into the bottom bar when expanding, and back up when collapsing.
+                animation: promptMultiline
+                  ? 'agentButtonsDrop 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+                  : 'agentButtonsRise 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+                '@keyframes agentButtonsDrop': {
+                  from: { transform: 'translateY(-26px)', opacity: 0.6 },
+                  to: { transform: 'translateY(0)', opacity: 1 },
+                },
+                '@keyframes agentButtonsRise': {
+                  from: { transform: 'translateY(26px)', opacity: 0.6 },
+                  to: { transform: 'translateY(0)', opacity: 1 },
+                },
               }}>
               {(() => {
 
