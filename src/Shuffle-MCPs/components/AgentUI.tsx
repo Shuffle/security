@@ -2597,13 +2597,24 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const arr = Array.from(files);
     const nonImages = arr.some((f) => !f.type.startsWith('image/'));
     if (nonImages) setError('Only image files can be attached.');
-    const results = await Promise.all(arr.map(readImageAsDataUrl));
+    // Cap at three images total.
+    const remainingSlots = Math.max(0, 3 - attachedImages.length);
+    const limited = arr.slice(0, remainingSlots);
+    if (remainingSlots === 0) {
+      setError('You can attach a maximum of 3 images.');
+      return;
+    }
+    if (limited.length < arr.length) {
+      setError('Only the first 3 images can be attached.');
+    }
+    const results = await Promise.all(limited.map(readImageAsDataUrl));
     const valid = results.filter((r): r is { dataUrl: string; name: string } => r !== null);
     if (valid.length > 0) {
-      setAttachedImages((prev) => [...prev, ...valid]);
+      setAttachedImages((prev) => [...prev, ...valid].slice(0, 3));
       setError(null);
     }
   };
+
 
   const appsById = useMemo(() => {
     const m: Record<string, AgentUIApp> = {};
