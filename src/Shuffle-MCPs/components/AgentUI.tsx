@@ -2147,10 +2147,35 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const measure = () => {
       const node = inputRef.current as unknown as HTMLTextAreaElement | null;
       if (!node) return;
-      const lh = parseFloat(window.getComputedStyle(node).lineHeight || '0') || 20;
+      const cs = window.getComputedStyle(node);
+      const lh = parseFloat(cs.lineHeight || '0') || 20;
+      const value = node.value || '';
       // An empty prompt is ALWAYS single line, regardless of any stale
       // scrollHeight the browser may still report after the text was cleared.
-      const single = (node.value || '').length === 0 || node.scrollHeight <= lh * 1.6;
+      if (value.length === 0) { setPromptSingleLine(true); return; }
+      // While the box is locked to one line the textarea is height-capped with
+      // overflow hidden, so scrollHeight alone is not a reliable wrap signal.
+      // Measure the text directly against the room available on line 1
+      // (content width minus the Skill chip's text-indent).
+      let textWraps = value.includes('\n');
+      if (!textWraps) {
+        try {
+          const contentWidth = node.clientWidth
+            - (parseFloat(cs.paddingLeft || '0') || 0)
+            - (parseFloat(cs.paddingRight || '0') || 0);
+          const firstLineWidth = contentWidth - (parseFloat(cs.textIndent || '0') || 0);
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (ctx && firstLineWidth > 0) {
+            ctx.font = cs.font && cs.font.trim().length > 0
+              ? cs.font
+              : `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
+            textWraps = ctx.measureText(value).width > firstLineWidth - 2;
+          }
+        } catch { /* fall back to scrollHeight below */ }
+      }
+      const single = !textWraps && node.scrollHeight <= lh * 1.6;
+
       setPromptSingleLine((prev) => {
         if (prev === single) return prev;
         // Switching between one and multiple lines can leave the caret painted
