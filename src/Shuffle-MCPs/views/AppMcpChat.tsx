@@ -4,7 +4,9 @@ import {
   CheckCircle as CheckCircleOutlineIcon,
   AlertCircle as ErrorOutlineIcon,
   Play as PlayArrowRoundedIcon,
-  RotateCcw as RestartAltIcon
+  RotateCcw as RestartAltIcon,
+  Bug as BugIcon
+
 } from 'lucide-react';
 import {
   Box,
