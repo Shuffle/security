@@ -5144,7 +5144,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 inputRef={inputRef}
                 autoFocus
                 multiline
-                minRows={1}
+                // Once expanded, immediately reserve the second line so the
+                // first line does not jump when the text actually wraps.
+                minRows={promptMultiline ? 2 : 1}
                 maxRows={6}
                 fullWidth
                 value={actionInput}
