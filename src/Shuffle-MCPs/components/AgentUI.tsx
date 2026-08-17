@@ -3569,10 +3569,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // abort the workflow execution; the existing poll loop will then pick up
   // the ABORTED status on its next tick.
   const abortAgent = useCallback(async () => {
-    setAbortLoading(true);
+    // Optimistic: flip the button into its destructive loading state and tell
+    // every mounted activity list the run is aborted BEFORE any await, so the
+    // spinner and the background list update on the same frame as the click.
+    flushSync(() => setAbortLoading(true));
     const execId = execution?.execution_id;
     const auth = execution?.authorization;
     const wfId = (execution as any)?.workflow?.id;
+    if (execId) broadcastAgentAborted(execId);
 
     // Bump the run-generation counter and abort any in-flight POST /agent
     // request immediately. This guarantees a slow initial request that
@@ -3581,6 +3585,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     runGenerationRef.current += 1;
     try { runAbortRef.current?.abort(); } catch { /* noop */ }
     runAbortRef.current = null;
+
 
     // Helper: wipe local run state and return to the Start tab.
     const resetToStart = () => {
