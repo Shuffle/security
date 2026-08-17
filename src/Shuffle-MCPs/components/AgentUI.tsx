@@ -2036,7 +2036,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, []);
 
   const [promptSingleLine, setPromptSingleLine] = useState(true);
-  const promptMultiline = !promptSingleLine;
+  const promptMultilineBase = !promptSingleLine;
 
   // Height of the attachment chip row (0 when nothing is attached). The
   // floating Templates chip is absolutely positioned, so it must be pushed
@@ -2479,6 +2479,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [viewMode]);
 
   const [attachedImages, setAttachedImages] = useState<{ dataUrl: string; name: string }[]>([]);
+  // Attachments always force the multiline layout so the attachment chips can
+  // live on the bottom bar next to the Skills chip.
+  const promptMultiline = promptMultilineBase || attachedImages.length > 0;
+  const promptSingleLineLocked = !promptMultiline;
   const [nowTick, setNowTick] = useState(() => Math.floor(Date.now() / 1000));
   // Local fallback start timestamp captured the moment we first see an
   // execution_id, so the "Agent is working… Xs" counter starts ticking
@@ -5051,7 +5055,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: 0.5,
               // Keep the same radius in both states so growing to multiple
               // lines does not visually snap from a pill to a boxy card.
-              borderRadius: attachedImages.length > 0 ? 4 : '28px',
+              borderRadius: '28px',
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               px: 2.25,
@@ -5060,7 +5064,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               // A one-line prompt is a fixed-size control. Lock all three
               // dimensions so TextareaAutosize cannot retain a stale
               // multiline inline height after Skill/focus changes.
-              ...(promptSingleLine && attachedImages.length === 0 ? {
+              ...(promptSingleLineLocked ? {
                 height: '52px',
                 minHeight: '52px',
                 maxHeight: '52px',
@@ -5074,27 +5078,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
               },
             }}>
-              {attachedImages.length > 0 && (
-                <Box ref={attachmentsRowRef} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                  {attachedImages.map((img, idx) => (
-                    <Box key={`${img.name}-${idx}`} sx={{
-                      display: 'inline-flex', alignItems: 'center', gap: 1,
-                      p: 0.5, pr: 1, borderRadius: 1.5,
-                      border: '1px solid hsl(var(--border))',
-                      bgcolor: 'hsl(var(--background))',
-                      maxWidth: '100%',
-                    }}>
-                      <Box component="img" src={img.dataUrl} alt={img.name} sx={{ width: 32, height: 32, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }} />
-                      <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--foreground))', maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {img.name}
-                      </Typography>
-                      <IconButton size="small" onClick={() => setAttachedImages((prev) => prev.filter((_, i) => i !== idx))} sx={{ p: 0.25, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' } }} aria-label="Remove attached image">
-                        <CloseIcon size={12} />
-                      </IconButton>
-                    </Box>
-                  ))}
-                </Box>
-              )}
               <Box sx={{
                 display: 'flex',
                 // One line: everything stays on a single row (chip overlay,
@@ -5105,7 +5088,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 gap: 1,
                 width: '100%',
                 position: 'relative',
-                ...(promptSingleLine ? {
+                ...(promptSingleLineLocked ? {
                   height: '33px',
                   minHeight: '33px',
                   maxHeight: '33px',
@@ -5178,7 +5161,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   // wrap down to their own bottom row.
                   flex: promptMultiline ? '1 0 100%' : '1 1 auto',
                   minWidth: 0,
-                    ...(promptSingleLine ? {
+                    ...(promptSingleLineLocked ? {
                       height: '33px',
                       minHeight: '33px',
                       maxHeight: '33px',
@@ -5193,7 +5176,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     // its own bottom row so the indent is removed.
                     textIndent: (!hidePresets && !promptMultiline) ? `${(presetsChipWidth || 96) + 6}px` : 0,
                     transition: 'text-indent 180ms cubic-bezier(0.4, 0, 0.2, 1)',
-                     ...(promptSingleLine ? {
+                     ...(promptSingleLineLocked ? {
                        height: '33px !important',
                        minHeight: '33px !important',
                        maxHeight: '33px !important',
@@ -5302,12 +5285,35 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
 
+              {attachedImages.length > 0 && (
+                <Box ref={attachmentsRowRef} sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                  {attachedImages.map((img, idx) => (
+                    <Box key={`${img.name}-${idx}`} sx={{
+                      display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                      height: 24, pl: 0.25, pr: 0.75, borderRadius: '999px',
+                      border: '1px solid hsl(var(--border))',
+                      bgcolor: 'hsl(var(--background))',
+                      maxWidth: '100%',
+                    }}>
+                      <Box component="img" src={img.dataUrl} alt={img.name} sx={{ width: 18, height: 18, borderRadius: '999px', objectFit: 'cover', flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--foreground))', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {img.name}
+                      </Typography>
+                      <IconButton size="small" onClick={() => setAttachedImages((prev) => prev.filter((_, i) => i !== idx))} sx={{ p: 0.125, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' } }} aria-label="Remove attached image">
+                        <CloseIcon size={11} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+
               <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
                 ml: 'auto',
-                mr: '-7px',
+                mr: '-8px',
                 flexShrink: 0,
                 // Slide down into the bottom bar when expanding, and back up when collapsing.
                 animation: promptMultiline
