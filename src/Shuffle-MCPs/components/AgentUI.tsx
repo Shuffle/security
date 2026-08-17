@@ -5418,9 +5418,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
               {!hideAttach && (
               <IconButton
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={agentRequestLoading}
-                title={attachedImages.length > 0 ? `Add image (${attachedImages.length} attached)` : 'Attach image'}
+                onClick={() => {
+                  if (attachedImages.length >= 3) {
+                    setError('You can attach a maximum of 3 images.');
+                    return;
+                  }
+                  fileInputRef.current?.click();
+                }}
+                disabled={agentRequestLoading || attachedImages.length >= 3}
+                title={attachedImages.length >= 3 ? 'Maximum 3 images attached' : (attachedImages.length > 0 ? `Add image (${attachedImages.length}/3 attached)` : 'Attach image')}
                 sx={{
                   width: 32, height: 32,
                   color: attachedImages.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
@@ -5431,6 +5437,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 <AttachFileIcon size={18} />
               </IconButton>
               )}
+
               <Tooltip title={submitTooltip} placement="top" arrow>
                 <span>
                   {submitLabel ? (
