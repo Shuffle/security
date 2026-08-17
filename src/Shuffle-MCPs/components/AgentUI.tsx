@@ -2626,6 +2626,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (apps) setChosenApps(apps);
   }, [apps]);
 
+  // Required tools of the active skill are always selected — a stored override
+  // (or a manual removal attempt) can never drop them.
+  useEffect(() => {
+    const required = selectedPreset?.requiredApps;
+    if (!required || required.length === 0) return;
+    setChosenApps((prev) => {
+      const missing = required.filter((name) => !prev.some((a) => isRequiredPresetApp(selectedPreset, a.name || '') && normalizeAgentAppName(a.name || '') === normalizeAgentAppName(name)));
+      if (missing.length === 0) return prev;
+      return [...prev, ...missing.map((name) => ({ name }))];
+    });
+  }, [selectedPreset]);
+
   // Resolve icons for tools referenced in the timeline that aren't already
   // covered by chosenApps/executionApps. Lookup order:
   //   1) /api/v1/apps cache — by id, then by lowercase+underscore name
