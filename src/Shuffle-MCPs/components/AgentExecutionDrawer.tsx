@@ -74,6 +74,24 @@ const AgentExecutionDrawer = ({
   colorMode,
 }: AgentExecutionDrawerProps) => {
   const themeScope = useShuffleMcpTheme();
+  // Defer the (expensive) AgentUI mount until the drawer paper has painted,
+  // so the slide-in animation starts instantly instead of waiting for the
+  // full timeline render to commit.
+  const [bodyReady, setBodyReady] = useState(false);
+  useEffect(() => {
+    if (!open || !run?.execution_id) {
+      setBodyReady(false);
+      return;
+    }
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setBodyReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, [open, run?.execution_id]);
   const statusKey = (run?.status || '').toUpperCase();
   const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
   const duration = run ? formatDuration(run) : '';
