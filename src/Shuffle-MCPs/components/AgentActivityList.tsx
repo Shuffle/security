@@ -946,6 +946,12 @@ const AgentActivityList = ({
   const [stopLoading, setStopLoading] = useState(false);
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
   const [enrichedRuns, setEnrichedRuns] = useState<Record<string, Partial<AgentRun>>>({});
+  // Mirror of `enrichedRuns` + the set of execution ids already handled, so
+  // the enrichment effect never restarts work on re-render.
+  const enrichedRunsRef = useRef<Record<string, Partial<AgentRun>>>({});
+  const processedRunIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => { enrichedRunsRef.current = enrichedRuns; }, [enrichedRuns]);
+
   const [abortingIds, setAbortingIds] = useState<Set<string>>(new Set());
   const [abortedIds, setAbortedIds] = useState<Set<string>>(new Set());
   const [lastOpenedRunId, setLastOpenedRunId] = useState<string | null>(() => getLastOpenedAgentRun());
