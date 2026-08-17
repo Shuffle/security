@@ -73,8 +73,11 @@ const CATEGORY_OPTIONS: { category: string; singular: string; plural: string }[]
   { category: DATASTORE_CATEGORIES.VULNERABILITIES, singular: 'vulnerability', plural: 'vulnerabilities' },
   { category: DATASTORE_CATEGORIES.INFRASTRUCTURE, singular: 'sensor', plural: 'sensors' },
   { category: DATASTORE_CATEGORIES.ASSETS, singular: 'asset', plural: 'assets' },
+  { category: DATASTORE_CATEGORIES.PACKAGES, singular: 'package', plural: 'packages' },
+  { category: DATASTORE_CATEGORIES.SOFTWARE, singular: 'software', plural: 'software' },
   { category: DATASTORE_CATEGORIES.USERS, singular: 'user', plural: 'users' },
 ];
+
 
 interface CategoryEntry {
   automations: CategoryAutomation[] | null;

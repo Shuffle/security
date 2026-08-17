@@ -1143,6 +1143,8 @@ export const DATASTORE_CATEGORIES = {
   INCIDENTS: 'shuffle-security_incidents',
   VULNERABILITIES: 'shuffle-security_vulnerabilities',
   ASSETS: 'shuffle-security_assets',
+  PACKAGES: 'shuffle-security_packages',
+  SOFTWARE: 'shuffle-security_software',
   TEMPLATES: 'shuffle-security_templates',
   CONFIGURATION: 'shuffle-security_configuration',
   IOCS: 'shuffle-security_ioc-config',
@@ -1155,3 +1157,4 @@ export const DATASTORE_CATEGORIES = {
   LEGACY_ALERTS: 'shuffle-security_alerts',
   LEGACY_CASES: 'shuffle-security_cases',
 } as const;
+
