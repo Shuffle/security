@@ -226,10 +226,10 @@ const openInShuffle = () => {
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const copyExecutionLink = () => {
+const copyExecutionLink = () => {
     if (!exec?.workflow?.id || !exec?.execution_id) return;
     const auth = authorization || exec.execution_id;
-    const url = `${window.location.origin}/workflow/${exec.workflow.id}?execution_id=${encodeURIComponent(exec.execution_id)}&authorization=${encodeURIComponent(auth)}`;
+    const url = `${window.location.origin}/workflows/${exec.workflow.id}?execution_id=${encodeURIComponent(exec.execution_id)}&authorization=${encodeURIComponent(auth)}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
