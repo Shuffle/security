@@ -3481,8 +3481,30 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return '';
   }, [agentData, actionInput, agentActionResult, execution]);
 
+  // The agent output carries a `template` field whenever the run was started
+  // through a Skill (e.g. "computer-use", "workflow-edit"). Resolve it back to
+  // one of our presets so the rerun hits the same /api/v1/agent/{name} path.
+  const resolveRunTemplate = useCallback((): AgentPreset | null => {
+    const candidates: unknown[] = [
+      (agentData as any)?.template,
+      (agentData as any)?.input?.template,
+      (agentActionResult as any)?.template,
+    ];
+    const execArg = (execution as any)?.execution_argument;
+    if (execArg && typeof execArg === 'string') {
+      try { candidates.push(JSON.parse(execArg)?.template); } catch { /* not JSON */ }
+    }
+    const raw = candidates.find((c) => typeof c === 'string' && (c as string).trim());
+    if (!raw) return null;
+    const slug = String(raw).trim().toLowerCase();
+    return (
+      presets.find((p) => p.id === slug || PRESET_TEMPLATE_SLUGS[p.id] === slug) ?? null
+    );
+  }, [agentData, agentActionResult, execution, presets]);
+
   const rerunAgent = useCallback(() => {
     const input = resolveRunInput();
+    const template = resolveRunTemplate();
     // Optimistic feedback for the button — flip immediately, cleared when
     // the new execution loads (see effect below).
     setRerunAgentPending(true);
@@ -3492,6 +3514,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (executionApps.length > 0) {
       setChosenApps(executionApps);
     }
+    // Keep the Skill chip in sync with the run we are repeating.
+    setSelectedPreset(template);
     // Auto-submit immediately with the previous prompt + tools so the user
     // does not have to click play again. When the Start tab is visible we
     // still bounce back to it first so the prompt + chip row are visible
@@ -3505,11 +3529,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }, { replace: true });
     }
     if (input && typeof input === 'string' && input.trim().length >= 6) {
-      submitInput(input);
+      submitInput(input, template);
     }
     // Safety timeout in case submitInput never produces a new execution.
     setTimeout(() => setRerunAgentPending(false), 8000);
-  }, [resolveRunInput, executionApps, setSearchParams, disableStartTab, submitInput]);
+  }, [resolveRunInput, resolveRunTemplate, executionApps, setSearchParams, disableStartTab, submitInput]);
+
 
   // Clear the top-level rerun-pending flag as soon as we're loading or a
   // new execution has taken over.
