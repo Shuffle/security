@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Box, CircularProgress, Drawer, IconButton, Tooltip, Typography } from '@mui/material';
+import { Box, Drawer, IconButton, Tooltip, Typography } from '@mui/material';
 import {
   X as CloseIcon,
   ExternalLink as OpenInNewIcon
