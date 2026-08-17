@@ -430,8 +430,12 @@ export default function AppDetailDrawer({
   }, [appName, appInfo, resolvedImage, resolvedAlgoliaId]);
 
   const authState = authStates[appName || ''] || { systemId: appName || '', status: 'pending' as const, credentials: {} };
+  // Internal Shuffle apps (Shuffle Workflows Builder, Shuffle Incidents, ...)
+  // authenticate through the user's session — never show an auth area or a
+  // "Pending" chip for them. Same predicate as the Agent area.
+  const skipAuthentication = !appRequiresAuthentication(appInfo?.name || appName || '');
   const hasValidAuth = matchingEntries.some(e => e.validation?.valid === true);
-  const hasAnyAuth = matchingEntries.length > 0;
+  const hasAnyAuth = matchingEntries.length > 0 && !skipAuthentication;
   // If the app has any authentication entry, it must already exist in the
   // tenant — Shuffle does not allow auth on an un-activated app. Treat as
   // activated even if `/api/v1/apps` didn't surface an `activated:true` row
