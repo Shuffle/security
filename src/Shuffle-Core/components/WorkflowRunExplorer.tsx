@@ -220,10 +220,20 @@ const [exec, setExec] = useState<WorkflowExecution | null>(null);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [exec, load, pollIntervalMs]);
 
-  const openInShuffle = () => {
+const openInShuffle = () => {
     if (!exec) return;
     const url = shuffleUrlForExecution(exec);
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyExecutionLink = () => {
+    if (!exec?.workflow?.id || !exec?.execution_id) return;
+    const auth = authorization || exec.execution_id;
+    const url = `${window.location.origin}/workflow/${exec.workflow.id}?execution_id=${encodeURIComponent(exec.execution_id)}&authorization=${encodeURIComponent(auth)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => { /* ignore */ });
   };
 
   const abortExecution = async () => {
