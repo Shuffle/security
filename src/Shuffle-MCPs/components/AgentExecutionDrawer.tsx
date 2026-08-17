@@ -74,23 +74,17 @@ const AgentExecutionDrawer = ({
   colorMode,
 }: AgentExecutionDrawerProps) => {
   const themeScope = useShuffleMcpTheme();
-  // Defer the (expensive) AgentUI mount until the drawer paper has painted,
-  // so the slide-in animation starts instantly instead of waiting for the
-  // full timeline render to commit.
+  // Optimistic body: the run data is already in hand, so the timeline is
+  // rendered on the very next frame instead of waiting for the slide-in
+  // animation (or any network request) to settle.
   const [bodyReady, setBodyReady] = useState(false);
   useEffect(() => {
     if (!open || !run?.execution_id) {
       setBodyReady(false);
       return;
     }
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setBodyReady(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      if (raf2) cancelAnimationFrame(raf2);
-    };
+    const raf = requestAnimationFrame(() => setBodyReady(true));
+    return () => cancelAnimationFrame(raf);
   }, [open, run?.execution_id]);
   const statusKey = (run?.status || '').toUpperCase();
   const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
@@ -101,7 +95,8 @@ const AgentExecutionDrawer = ({
       anchor="right"
       open={open}
       onClose={onClose}
-      transitionDuration={{ enter: 140, exit: 120 }}
+      keepMounted
+      transitionDuration={{ enter: 120, exit: 100 }}
       slotProps={{
         paper: {
           className: [themeScope?.scopeClassName, className].filter(Boolean).join(' ') || undefined,
