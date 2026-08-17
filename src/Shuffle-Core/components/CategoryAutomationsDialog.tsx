@@ -569,7 +569,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         setAiAgentApps([[]]);
       }
     }
-  }, [open, initialAutomations]);
+  }, [open, activeCategory, activeEntry]);
 
   // Update selected workflows with names once workflows are loaded
   useEffect(() => {
