@@ -153,7 +153,12 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
   MuiButton: { defaultProps: { size: "small" as const } },
   MuiFormControl: { defaultProps: { size: "small" as const } },
   MuiSelect: { defaultProps: { size: "small" as const } },
-  MuiAutocomplete: { defaultProps: { size: "small" as const } },
+  MuiAutocomplete: {
+    defaultProps: {
+      size: "small" as const,
+      slotProps: { popper: { sx: { zIndex: 10020 } } },
+    },
+  },
   MuiInputBase: {
     defaultProps: { size: "small" as const },
     styleOverrides: {
@@ -271,12 +276,6 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
         tooltip: { className: scopeClassName, style: scopeStyle },
         popper: { sx: { zIndex: 10030 } },
       },
-    },
-  },
-  MuiAutocomplete: {
-    defaultProps: {
-      size: "small" as const,
-      slotProps: { popper: { sx: { zIndex: 10020 } } },
     },
   },
 });

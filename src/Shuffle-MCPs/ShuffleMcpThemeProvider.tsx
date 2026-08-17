@@ -94,7 +94,12 @@ const buildComponentOverrides = (scopeClassName: string) => ({
   MuiButton: { defaultProps: { size: "small" as const } },
   MuiFormControl: { defaultProps: { size: "small" as const } },
   MuiSelect: { defaultProps: { size: "small" as const } },
-  MuiAutocomplete: { defaultProps: { size: "small" as const } },
+  MuiAutocomplete: {
+    defaultProps: {
+      size: "small" as const,
+      slotProps: { popper: { sx: { zIndex: 10020 } } },
+    },
+  },
   MuiInputBase: {
     defaultProps: { size: "small" as const },
     styleOverrides: {
@@ -168,12 +173,6 @@ const buildComponentOverrides = (scopeClassName: string) => ({
         // Render above app drawers, dialogs, menus, and popovers.
         popper: { sx: { zIndex: 10030 } },
       },
-    },
-  },
-  MuiAutocomplete: {
-    defaultProps: {
-      size: "small" as const,
-      slotProps: { popper: { sx: { zIndex: 10020 } } },
     },
   },
   MuiDivider: {
