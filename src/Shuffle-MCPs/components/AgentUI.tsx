@@ -5117,6 +5117,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   // scrollbar sits at the far right and the action buttons
                   // wrap down to their own bottom row.
                   flex: promptMultiline ? '1 0 100%' : '1 1 auto',
+                  minWidth: 0,
+
                   '& .MuiInputBase-input': {
                     pt: '5px',
                     pb: 0,
