@@ -19,6 +19,9 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { broadcastAgentAborted } from '@/Shuffle-MCPs/agentRunSync';
+
 import {
   Plus as AddIcon,
   Paperclip as AttachFileIcon,
