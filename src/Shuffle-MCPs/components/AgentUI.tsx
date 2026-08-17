@@ -2350,6 +2350,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const rerunDecisionsSigRef = useRef<string>('');
   // Optimistic UI for the top-level "Rerun agent" button.
   const [rerunAgentPending, setRerunAgentPending] = useState(false);
+  const [abortLoading, setAbortLoading] = useState(false);
+
   const [execution, setExecution] = useState<ExecutionData | null>(null);
   const [agentData, setAgentData] = useState<{ decisions?: AgentDecision[]; original_input?: string; status?: string; started_at?: number; completed_at?: number; [k: string]: any }>({});
   const [agentActionResult, setAgentActionResult] = useState<any>(null);
