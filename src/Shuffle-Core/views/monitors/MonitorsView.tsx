@@ -660,6 +660,30 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
     }
   };
 
+  /**
+   * Newer remote control runners return the full output directly in a top-level
+   * `result` field. Returns null when there is no usable direct result, so the
+   * caller falls back to execution_id polling.
+   */
+  const parseDirectRunResult = (data: unknown): { success: boolean; output: string | null; error: string | null } | null => {
+    if (!data || typeof data !== 'object') return null;
+    const raw = (data as Record<string, unknown>).result;
+    if (raw === undefined || raw === null || raw === '') return null;
+    let inner: unknown = raw;
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (!trimmed) return null;
+      try { inner = JSON.parse(trimmed); } catch { return { success: true, output: trimmed, error: null }; }
+    }
+    if (!inner || typeof inner !== 'object') return { success: true, output: String(inner), error: null };
+    const o = inner as Record<string, unknown>;
+    const output =
+      typeof o.output === 'string' ? o.output :
+      typeof o.result === 'string' ? o.result :
+      JSON.stringify(inner, null, 2);
+    return { success: o.success !== false, output, error: typeof o.error === 'string' ? o.error : null };
+  };
+
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   // Get host-actionable permissions from defaults
@@ -719,6 +743,24 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
       let parsed: unknown = null;
       try { parsed = JSON.parse(text); } catch { /* not JSON */ }
 
+      // 1) Preferred: the runner returned the full result directly.
+      const direct = parseDirectRunResult(parsed);
+      if (direct) {
+        updateHostDebug(hostUuid, entryId, {
+          status: direct.success ? 'success' : 'error',
+          responseStatus: resp.status,
+          responseBody: text,
+          executionId: (parsed as any)?.execution_id as string | undefined,
+          authorization: (parsed as any)?.authorization as string | undefined,
+          finishedAt: Date.now(),
+          actionOutput: direct.output || undefined,
+          actionSuccess: direct.success,
+          error: direct.success ? undefined : (direct.error || direct.output || 'Action reported failure'),
+        });
+        return;
+      }
+
+      // 2) Fallback: execution stub → poll /api/v1/streams/results.
       if (
         parsed && typeof parsed === 'object' && parsed !== null &&
         typeof (parsed as Record<string, unknown>).execution_id === 'string' &&
