@@ -187,8 +187,29 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   entityLabel,
   orgId: orgIdProp,
 }) => {
-  const entitySingular = entityLabel?.singular || 'incident';
-  const entityPlural = entityLabel?.plural || 'incidents';
+  // Which category the dialog is currently editing. Starts at the category the
+  // host opened it with, but can be swapped through the "When" dropdown.
+  const [activeCategory, setActiveCategory] = useState<string>(category);
+  const [categoryEntries, setCategoryEntries] = useState<Record<string, CategoryEntry>>({});
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
+  const categoryOptions = useMemo(() => {
+    const opts = [...CATEGORY_OPTIONS];
+    if (!opts.some(o => o.category === category)) {
+      opts.unshift({
+        category,
+        singular: entityLabel?.singular || category,
+        plural: entityLabel?.plural || category,
+      });
+    }
+    return opts;
+  }, [category, entityLabel?.singular, entityLabel?.plural]);
+
+  const activeOption = categoryOptions.find(o => o.category === activeCategory) || categoryOptions[0];
+  const entitySingular =
+    (activeCategory === category ? entityLabel?.singular : undefined) || activeOption?.singular || 'incident';
+  const entityPlural =
+    (activeCategory === category ? entityLabel?.plural : undefined) || activeOption?.plural || 'incidents';
   const entitySingularCap = entitySingular.charAt(0).toUpperCase() + entitySingular.slice(1);
   const entityPluralCap = entityPlural.charAt(0).toUpperCase() + entityPlural.slice(1);
   const navigate = useNavigate();
