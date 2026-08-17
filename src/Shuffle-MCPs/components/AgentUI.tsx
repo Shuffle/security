@@ -5062,13 +5062,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
               <Box sx={{
                 display: 'flex',
-                flexWrap: 'wrap',
+                // One line: everything stays on a single row (chip overlay,
+                // text, buttons). Past one line the textarea takes the full
+                // width and the chip + buttons wrap onto their own bottom bar.
+                flexWrap: promptMultiline ? 'wrap' : 'nowrap',
                 alignItems: promptMultiline ? 'center' : 'flex-start',
-                justifyContent: promptMultiline ? 'flex-end' : undefined,
                 gap: 1,
                 width: '100%',
                 position: 'relative',
               }}>
+
 
               <InputBase
                 inputRef={inputRef}
