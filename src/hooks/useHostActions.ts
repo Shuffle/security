@@ -91,6 +91,39 @@ const parseActionResult = (data: unknown): { success: boolean; output: string | 
   }
 };
 
+/**
+ * Newer remote control runners return the full output directly in a top-level
+ * `result` field instead of an execution stub. Returns null when the response
+ * does not carry a usable direct result (→ fall back to execution polling).
+ */
+const parseDirectRunResult = (
+  data: unknown,
+): { success: boolean; output: string | null; error: string | null } | null => {
+  if (!data || typeof data !== 'object') return null;
+  const raw = (data as Record<string, unknown>).result;
+  if (raw === undefined || raw === null || raw === '') return null;
+
+  let inner: unknown = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    try { inner = JSON.parse(trimmed); } catch { return { success: true, output: trimmed, error: null }; }
+  }
+  if (!inner || typeof inner !== 'object') {
+    return { success: true, output: String(inner), error: null };
+  }
+  const o = inner as Record<string, unknown>;
+  const output =
+    typeof o.output === 'string' ? o.output :
+    typeof o.result === 'string' ? o.result :
+    JSON.stringify(inner, null, 2);
+  return {
+    success: o.success !== false,
+    output,
+    error: typeof o.error === 'string' ? o.error : null,
+  };
+};
+
 interface UseHostActionsOptions {
   /** Optional callback fired after each action completes — typically refetches the host list. */
   onActionComplete?: () => void;
