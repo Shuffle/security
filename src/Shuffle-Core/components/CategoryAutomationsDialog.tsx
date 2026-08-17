@@ -1181,7 +1181,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           size="small"
           startIcon={<RestoreIcon />}
           onClick={() => {
-            const isVulnerabilities = category === 'vulnerabilities';
+            const isVulnerabilities = activeCategory === 'vulnerabilities' || activeCategory.includes('vulnerabilit');
             setAutomations(automations.map(a => {
               if (a.type === 'enrich') return { ...a, enabled: true, trigger: 'on_edit' as const };
               if (a.type === 'security_rules') return { ...a, enabled: true, trigger: 'on_edit' as const };
