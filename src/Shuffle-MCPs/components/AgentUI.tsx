@@ -5313,7 +5313,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     chipRef={presetsChipRef}
                     presets={presets}
                     isSupport={isSupport}
-                    disabled={textTemplateSelected}
+                    isSupport={isSupport}
                     selectedPreset={selectedPreset}
                     onRemoveSelected={() => {
 
