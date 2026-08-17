@@ -1145,6 +1145,9 @@ export const WorkflowRunExplorerDrawer: React.FC<WorkflowRunExplorerDrawerProps>
         },
       }}
       sx={{
+        // This drawer is commonly launched from another drawer (app details,
+        // agent results, incidents). It must always sit above its opener.
+        zIndex: 10011,
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           width: `${drawerWidth} !important`,
