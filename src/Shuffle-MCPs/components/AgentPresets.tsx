@@ -27,7 +27,26 @@ export interface AgentPreset {
   enabled?: boolean;
   /** Optional tools/apps to pre-select when this preset is clicked. */
   defaultApps?: Array<{ name: string; id?: string; icon?: string }>;
+  /**
+   * Tools this skill cannot run without. They are always selected and cannot
+   * be removed from the Tools chip row while the skill is active.
+   */
+  requiredApps?: string[];
 }
+
+/** Normalized comparison for app/tool names ("Shuffle Apps" -> "shuffle_apps"). */
+const normalizeToolName = (name: string) =>
+  (name || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+
+/** True when `appName` is a required (non-removable) tool of `preset`. */
+export const isRequiredPresetApp = (
+  preset: AgentPreset | null | undefined,
+  appName: string,
+): boolean => {
+  if (!preset?.requiredApps || preset.requiredApps.length === 0) return false;
+  const slug = normalizeToolName(appName);
+  return preset.requiredApps.some((r) => normalizeToolName(r) === slug);
+};
 
 /** "shuffle_workflows" -> "Shuffle Workflows" */
 const prettyAppName = (name: string) =>
@@ -47,6 +66,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     icon: <Workflow size={16} />,
     enabled: true,
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
+    requiredApps: ['shuffle_workflows_builder', 'shuffle_apps'],
   },
   {
     id: 'incident-response',
@@ -65,6 +85,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     icon: <Monitor size={16} />,
     enabled: true,
     defaultApps: [{ name: 'shuffle_host_monitors' }],
+    requiredApps: ['shuffle_host_monitors'],
   },
   {
     id: 'support',

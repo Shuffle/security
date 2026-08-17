@@ -84,7 +84,7 @@ import {
 import { AppFallbackIcon } from './AppFallbackIcon';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 
-import AgentPresets, { AGENT_PRESETS, filterAgentPresets, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
+import AgentPresets, { AGENT_PRESETS, filterAgentPresets, isRequiredPresetApp, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
 
 import { useAgentPromptPrefix } from '@/Shuffle-MCPs/useAgentPromptPrefix';
 
@@ -2625,6 +2625,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     if (apps) setChosenApps(apps);
   }, [apps]);
+
+  // Required tools of the active skill are always selected — a stored override
+  // (or a manual removal attempt) can never drop them.
+  useEffect(() => {
+    const required = selectedPreset?.requiredApps;
+    if (!required || required.length === 0) return;
+    setChosenApps((prev) => {
+      const missing = required.filter((name) => !prev.some((a) => isRequiredPresetApp(selectedPreset, a.name || '') && normalizeAgentAppName(a.name || '') === normalizeAgentAppName(name)));
+      if (missing.length === 0) return prev;
+      return [...prev, ...missing.map((name) => ({ name }))];
+    });
+  }, [selectedPreset]);
 
   // Resolve icons for tools referenced in the timeline that aren't already
   // covered by chosenApps/executionApps. Lookup order:
@@ -5581,10 +5593,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 {chosenApps.map((app, i) => {
                   const slug = normalizeAgentAppName(app.name || '');
                                 const needsAuth = !authAppsLoading && appRequiresAuthentication(slug) && !isAppAuthenticated(app.name || '', app.id || null);
+                  const isRequired = isRequiredPresetApp(selectedPreset, app.name || '');
                   return (
                   <Tooltip
                     key={`${app.name}-${i}`}
-                    title={needsAuth ? `${(app.name || '').replace(/_/g, ' ')} is not authenticated yet — click to set it up` : `Open ${(app.name || '').replace(/_/g, ' ')}`}
+                    title={
+                      isRequired
+                        ? `${(app.name || '').replace(/_/g, ' ')} is required by the ${selectedPreset?.label} skill and cannot be removed`
+                        : needsAuth
+                          ? `${(app.name || '').replace(/_/g, ' ')} is not authenticated yet — click to set it up`
+                          : `Open ${(app.name || '').replace(/_/g, ' ')}`
+                    }
                     arrow
                   >
                   <Box
@@ -5614,14 +5633,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     {needsAuth && (
                       <WarningIcon size={14} color={'hsl(var(--severity-medium))'} style={{ marginRight: 2 }} />
                     )}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { e.stopPropagation(); setChosenApps((prev) => prev.filter((_, idx) => idx !== i)); }}
-                      disabled={agentRequestLoading}
-                      sx={{ p: 0.125, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' }, '&.Mui-disabled': { opacity: 0.4 } }}
-                    >
-                      <CloseIcon size={12} />
-                    </IconButton>
+                    {isRequired ? (
+                      <LockIcon
+                        size={11}
+                        style={{ marginLeft: 2, marginRight: 2, opacity: 0.55 }}
+                        color={'hsl(var(--muted-foreground))'}
+                      />
+                    ) : (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); setChosenApps((prev) => prev.filter((_, idx) => idx !== i)); }}
+                        disabled={agentRequestLoading}
+                        sx={{ p: 0.125, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' }, '&.Mui-disabled': { opacity: 0.4 } }}
+                      >
+                        <CloseIcon size={12} />
+                      </IconButton>
+                    )}
                   </Box>
                   </Tooltip>
                   );
