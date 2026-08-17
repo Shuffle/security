@@ -322,7 +322,7 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
     'build-workflows': 'workflow-edit',
     'handle-notifications': 'handle-notifications',
     'incident-response': 'incident-response',
-    'host-monitor-control': 'host-monitor-control',
+    'host-monitor-control': 'computer-use',
     support: 'support',
     vulnerability: 'vulnerability',
     detection: 'detection',
