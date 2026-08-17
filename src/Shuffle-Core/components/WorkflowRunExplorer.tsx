@@ -181,11 +181,12 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
   onClose,
   pollIntervalMs = 3000,
 }) => {
-  const [exec, setExec] = useState<WorkflowExecution | null>(null);
+const [exec, setExec] = useState<WorkflowExecution | null>(null);
   const [loading, setLoading] = useState(true);
   const [aborting, setAborting] = useState(false);
   const [debugResult, setDebugResult] = useState<any | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
 
@@ -219,10 +220,20 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [exec, load, pollIntervalMs]);
 
-  const openInShuffle = () => {
+const openInShuffle = () => {
     if (!exec) return;
     const url = shuffleUrlForExecution(exec);
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyExecutionLink = () => {
+    if (!exec?.workflow?.id || !exec?.execution_id) return;
+    const auth = authorization || exec.execution_id;
+    const url = `${window.location.origin}/workflow/${exec.workflow.id}?execution_id=${encodeURIComponent(exec.execution_id)}&authorization=${encodeURIComponent(auth)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => { /* ignore */ });
   };
 
   const abortExecution = async () => {
@@ -365,6 +376,19 @@ export const WorkflowRunExplorer: React.FC<WorkflowRunExplorerProps> = ({
             </IconButton>
           </span>
         </Tooltip>
+{exec && (
+          <Tooltip title={copied ? 'Copied!' : 'Copy execution link'} arrow>
+            <span>
+              <IconButton
+                size="small"
+                onClick={copyExecutionLink}
+                disabled={!exec.workflow?.id || !exec.execution_id}
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
         {exec && (
           <Tooltip title="Open in Shuffle" arrow>
             <span>
