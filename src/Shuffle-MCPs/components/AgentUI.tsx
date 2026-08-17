@@ -5305,12 +5305,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   {attachedImages.map((img, idx) => (
                     <Box key={`${img.name}-${idx}`} sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 0.75,
-                      height: 24, pl: 0.25, pr: 0.75, borderRadius: '999px',
+                      height: 28, pl: '6px', pr: '8px', borderRadius: '999px',
                       border: '1px solid hsl(var(--border))',
-                      bgcolor: 'hsl(var(--background))',
                       maxWidth: '100%',
                     }}>
-                      <Box component="img" src={img.dataUrl} alt={img.name} sx={{ width: 18, height: 18, borderRadius: '999px', objectFit: 'cover', flexShrink: 0 }} />
+                      <Box
+                        component="img"
+                        src={img.dataUrl}
+                        alt={img.name}
+                        onClick={() => setPreviewImage(img)}
+                        sx={{
+                          width: 18, height: 18, borderRadius: '999px', objectFit: 'cover', flexShrink: 0,
+                          cursor: 'pointer',
+                          transition: 'transform 150ms ease, opacity 150ms ease',
+                          '&:hover': { transform: 'scale(1.1)', opacity: 0.85 },
+                        }}
+                      />
                       <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--foreground))', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {img.name}
                       </Typography>
@@ -5321,6 +5331,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   ))}
                 </Box>
               )}
+
 
 
               <Box sx={{
