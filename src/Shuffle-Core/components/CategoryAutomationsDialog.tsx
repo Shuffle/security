@@ -30,7 +30,7 @@ import AiAgentPromptsEditor from '@/Shuffle-MCPs/components/AiAgentPromptsEditor
 import { useAuthenticatedApps } from '../useAuthenticatedApps';
 import { Tooltip } from '@mui/material';
 
-import { CategoryAutomation } from '@/Shuffle-MCPs/datastore';
+import { CategoryAutomation, DATASTORE_CATEGORIES, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, extractWorkflowAppNames } from '@/Shuffle-MCPs/ingestionDetection';
 
 // API format for automations
