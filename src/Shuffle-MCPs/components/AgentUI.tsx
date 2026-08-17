@@ -3909,8 +3909,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         finishAns = outputText;
       }
       if (finishNote && finishNote === finishAns) finishNote = '';
-
-
+    }
 
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
     // else preserves insertion order (the index `i` from the decisions array).
