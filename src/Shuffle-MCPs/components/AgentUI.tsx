@@ -2013,9 +2013,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // opening the drawer does not wait on unrelated network requests.
   const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId, persist: !disableStartTab });
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
-  // When a prompt-autocomplete text template is selected, the prompt itself is
-  // treated as the "skill" — so the Skills selector is disabled.
-  const [textTemplateSelected, setTextTemplateSelected] = useState(false);
   const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
 
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
