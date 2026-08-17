@@ -814,7 +814,35 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick, apiKey, apiBaseUr
         ) : null}
       </Box>
 
+      {canAbort && (
+        <Tooltip title={isAborting ? 'Aborting…' : 'Abort this execution'} arrow placement="top">
+          <span>
+            <IconButton
+              size="small"
+              disabled={isAborting}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAbort?.(run);
+              }}
+              sx={{
+                flexShrink: 0,
+                ml: 1.5,
+                color: 'hsl(var(--muted-foreground))',
+                '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted))' },
+              }}
+            >
+              {isAborting ? (
+                <CircularProgress size={16} sx={{ color: 'hsl(var(--destructive))' }} />
+              ) : (
+                <StopCircle size={18} />
+              )}
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
+
     </Box>
+
   );
 };
 
