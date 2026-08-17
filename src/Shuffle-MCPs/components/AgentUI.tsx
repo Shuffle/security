@@ -4044,7 +4044,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const end = items.reduce((acc, it) => Math.max(acc, it.end_time || acc), 0);
     const startSafe = start === Infinity ? 0 : start;
     const total = Math.max(1, end - startSafe);
-    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote, decisionStringWarnings };
+    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
 
   // Mark the run complete once it is terminal and a final answer has landed,
@@ -6088,7 +6088,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         isRunning={isRunning}
                         finishAnswer={finishAnswer}
                         finishNote={finishNote}
-                        decisionStringWarnings={decisionStringWarnings}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                         decisionCount={decisionCount}
@@ -6376,7 +6375,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         isRunning={false}
                         finishAnswer={finishAnswer}
                         finishNote={finishNote}
-                        decisionStringWarnings={decisionStringWarnings}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       >
