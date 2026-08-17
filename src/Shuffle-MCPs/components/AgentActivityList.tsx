@@ -1248,8 +1248,13 @@ const AgentActivityList = ({
 
   const mergedRuns = runs.map((r) => {
     const patch = r.execution_id ? enrichedRuns[r.execution_id] : undefined;
-    return patch ? { ...r, ...patch } : r;
+    const merged = patch ? { ...r, ...patch } : r;
+    // Locally aborted runs stay ABORTED even if a poll returns a stale status.
+    return r.execution_id && abortedIds.has(r.execution_id)
+      ? { ...merged, status: 'ABORTED' }
+      : merged;
   });
+
 
   const loadMore = useCallback(() => {
     if (cursor && !isLoading) fetchRuns(true, cursor);
