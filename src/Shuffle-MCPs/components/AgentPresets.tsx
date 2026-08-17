@@ -59,8 +59,8 @@ export const AGENT_PRESETS: AgentPreset[] = [
   },
   {
     id: 'host-monitor-control',
-    label: 'Host Monitor Control',
-    description: 'Controls a host computer with screenshots and mouse/keyboard input — useful for hands-on remediation or guided walkthroughs.',
+    label: 'Computer Use',
+    description: 'Controls a host computer primarily through the command line, with screenshots and mouse/keyboard input as secondary options — useful for hands-on remediation or guided walkthroughs.',
     defaultPrompt: 'Take control of this host and help me with: ',
     icon: <Monitor size={16} />,
     enabled: true,
