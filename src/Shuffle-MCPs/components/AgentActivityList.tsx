@@ -946,6 +946,12 @@ const AgentActivityList = ({
   const [stopLoading, setStopLoading] = useState(false);
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
   const [enrichedRuns, setEnrichedRuns] = useState<Record<string, Partial<AgentRun>>>({});
+  // Mirror of `enrichedRuns` + the set of execution ids already handled, so
+  // the enrichment effect never restarts work on re-render.
+  const enrichedRunsRef = useRef<Record<string, Partial<AgentRun>>>({});
+  const processedRunIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => { enrichedRunsRef.current = enrichedRuns; }, [enrichedRuns]);
+
   const [abortingIds, setAbortingIds] = useState<Set<string>>(new Set());
   const [abortedIds, setAbortedIds] = useState<Set<string>>(new Set());
   const [lastOpenedRunId, setLastOpenedRunId] = useState<string | null>(() => getLastOpenedAgentRun());
@@ -1126,15 +1132,21 @@ const AgentActivityList = ({
 
   // Enrich each visible run with full execution details (results, decisions,
   // execution_argument). The search endpoint sometimes already returns the
-  // full payload — in that case we skip the /api/v1/streams/results sideload
-  // and only fetch it as a fallback when the row is missing the fields we
-  // need to render real prompts, app icons, decision counts, and per-tool
-  // status.
+  // full payload — in that case we skip the sideload entirely and only fetch
+  // `/api/v1/executions/{executionId}?authorization=...` as a fallback when
+  // the row is missing the fields we need to render real prompts, app icons,
+  // decision counts, and per-tool status.
+  //
+  // CPU notes: patches are buffered and flushed in one batched state update
+  // (instead of one re-render per execution), the work is scheduled on idle
+  // time so typing in the prompt field stays responsive, and every execution
+  // id is only ever processed once (tracked in a ref) so re-renders of the
+  // run list do not restart the whole enrichment pass.
   useEffect(() => {
     if (!runs.length) return;
     let cancelled = false;
 
-    // Build the same patch shape we'd get from /api/v1/streams/results, but
+    // Build the same patch shape we'd get from the execution endpoint, but
     // sourced from whatever the /workflows/search row already contains. The
     // AI Agent's decisions / original_input / allowed_actions live inside
     // results[i].result as a JSON string, so a row can be "complete" even
@@ -1171,40 +1183,54 @@ const AgentActivityList = ({
       return patch;
     };
 
+    // Buffered flush — one state update per batch instead of per execution.
+    let pending: Record<string, Partial<AgentRun> & { allowed_actions?: string[] }> = {};
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      flushTimer = null;
+      if (cancelled) return;
+      const batch = pending;
+      pending = {};
+      if (Object.keys(batch).length === 0) return;
+      setEnrichedRuns((prev) => ({ ...prev, ...batch }));
+    };
+    const queuePatch = (id: string, patch: Partial<AgentRun> & { allowed_actions?: string[] }) => {
+      pending[id] = patch;
+      if (!flushTimer) flushTimer = setTimeout(flush, 250);
+    };
+
     // First pass: hydrate from native data without any network calls.
-    const nativePatches: Record<string, Partial<AgentRun> & { allowed_actions?: string[] }> = {};
     const needsFetch: string[] = [];
     for (const r of runs) {
       const id = r.execution_id;
-      if (!id || enrichedRuns[id]) continue;
+      if (!id || enrichedRunsRef.current[id] || processedRunIdsRef.current.has(id)) continue;
       const native = buildPatchFromRun(r);
       if (native) {
-        nativePatches[id] = native;
+        processedRunIdsRef.current.add(id);
+        queuePatch(id, native);
       } else {
         needsFetch.push(id);
       }
     }
-    if (Object.keys(nativePatches).length > 0) {
-      setEnrichedRuns((prev) => ({ ...prev, ...nativePatches }));
-    }
-    if (needsFetch.length === 0) return;
 
-    // Second pass: sideload via /streams/results only for the rows that did
-    // not already carry enough data.
-    const CONCURRENCY = 4;
+    // Sideload only for the rows that did not already carry enough data.
+    const CONCURRENCY = 2;
     let i = 0;
     const fetchOne = async (executionId: string) => {
       try {
-        const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : getAuthHeader()),
-            ...(orgId ? { 'Org-Id': orgId } : {}),
+        const resp = await fetch(
+          getApiUrl(
+            `/api/v1/executions/${encodeURIComponent(executionId)}?authorization=${encodeURIComponent(executionId)}`,
+          ),
+          {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : getAuthHeader()),
+              ...(orgId ? { 'Org-Id': orgId } : {}),
+            },
           },
-          body: JSON.stringify({ execution_id: executionId, authorization: executionId }),
-        });
+        );
         if (!resp.ok || cancelled) return;
         const json = await resp.json().catch(() => null);
         if (!json || cancelled) return;
@@ -1232,19 +1258,39 @@ const AgentActivityList = ({
         if (originalInput && !patch.execution_argument) {
           patch.execution_argument = JSON.stringify({ original_input: originalInput });
         }
-        setEnrichedRuns((prev) => ({ ...prev, [executionId]: patch }));
+        queuePatch(executionId, patch);
       } catch { /* non-critical */ }
     };
-    const workers = Array.from({ length: Math.min(CONCURRENCY, needsFetch.length) }, async () => {
-      while (!cancelled && i < needsFetch.length) {
-        const id = needsFetch[i++];
-        await fetchOne(id);
-      }
-    });
-    Promise.all(workers).catch(() => { /* ignore */ });
-    return () => { cancelled = true; };
+
+    // Yield to the browser between each fetch so the main thread stays free
+    // for typing/scrolling.
+    const idle = (fn: () => void) => {
+      const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, o?: any) => number);
+      if (ric) ric(fn, { timeout: 1000 });
+      else setTimeout(fn, 32);
+    };
+    const nextIdle = () => new Promise<void>((resolve) => idle(resolve));
+
+    if (needsFetch.length > 0) {
+      for (const id of needsFetch) processedRunIdsRef.current.add(id);
+      const workers = Array.from({ length: Math.min(CONCURRENCY, needsFetch.length) }, async () => {
+        while (!cancelled && i < needsFetch.length) {
+          const id = needsFetch[i++];
+          await nextIdle();
+          if (cancelled) return;
+          await fetchOne(id);
+        }
+      });
+      Promise.all(workers).catch(() => { /* ignore */ });
+    }
+
+    return () => {
+      cancelled = true;
+      if (flushTimer) clearTimeout(flushTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, apiKey, orgId]);
+
 
   const mergedRuns = runs.map((r) => {
     const patch = r.execution_id ? enrichedRuns[r.execution_id] : undefined;
