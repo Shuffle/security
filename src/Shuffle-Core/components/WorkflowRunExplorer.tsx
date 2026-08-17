@@ -376,6 +376,19 @@ const openInShuffle = () => {
             </IconButton>
           </span>
         </Tooltip>
+{exec && (
+          <Tooltip title={copied ? 'Copied!' : 'Copy execution link'} arrow>
+            <span>
+              <IconButton
+                size="small"
+                onClick={copyExecutionLink}
+                disabled={!exec.workflow?.id || !exec.execution_id}
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
         {exec && (
           <Tooltip title="Open in Shuffle" arrow>
             <span>
