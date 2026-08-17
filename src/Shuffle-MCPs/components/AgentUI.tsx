@@ -2038,6 +2038,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
   const [inputScrolled, setInputScrolled] = useState(false);
+  // Pixel scroll offset of the prompt textarea, so the floating Skill chip can
+  // scroll together with the text instead of hovering above it.
+  const [inputScrollTop, setInputScrollTop] = useState(0);
   const [promptSingleLine, setPromptSingleLine] = useState(true);
   // Height of the attachment chip row (0 when nothing is attached). The
   // floating Templates chip is absolutely positioned, so it must be pushed
@@ -2133,6 +2136,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const el = inputRef.current as unknown as HTMLTextAreaElement | null;
     if (!el) return;
     if (el.scrollTop <= 1 && inputScrolled) setInputScrolled(false);
+    setInputScrollTop(el.scrollTop || 0);
   }, [actionInput, inputScrolled]);
 
   // Track whether the prompt currently renders on a single line so the box can
@@ -5008,11 +5012,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 <Box sx={{
                   position: 'absolute', left: '17px', top: `${19 + (attachedImages.length > 0 ? attachmentsRowHeight + 4 : 0)}px`,
                   height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
-                  // While the textarea is scrolled, line 1 (the indented one) is
-                  // out of view and later lines would run under the chip.
-                  opacity: inputScrolled ? 0 : 1,
-                  pointerEvents: inputScrolled ? 'none' : 'auto',
-                  transition: 'opacity 0.12s ease',
+                  // The chip scrolls together with the textarea content so text
+                  // never runs underneath it while scrolling.
+                  transform: `translateY(${-inputScrollTop}px)`,
+                  opacity: inputScrollTop > 24 ? 0 : 1,
+                  pointerEvents: inputScrollTop > 4 ? 'none' : 'auto',
                 }}>
 
 
@@ -5069,7 +5073,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 onChange={(e) => setActionInput(e.target.value)}
                 placeholder={typedPlaceholder}
                 onKeyDown={onKeyDown}
-                onScroll={(e) => setInputScrolled((e.target as HTMLTextAreaElement).scrollTop > 1)}
+                onScroll={(e) => {
+                  const st = (e.target as HTMLTextAreaElement).scrollTop;
+                  setInputScrolled(st > 1);
+                  setInputScrollTop(st);
+                }}
 
                 onPaste={(e) => {
                   const items = e.clipboardData?.items;
