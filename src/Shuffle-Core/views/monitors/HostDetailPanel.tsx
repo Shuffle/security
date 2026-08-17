@@ -23,6 +23,8 @@ interface ProcessEntry {
 }
 import type { Vulnerability, VulnSeverity } from '@/hooks/useVulnerabilities';
 import { hostUrlSegment } from '@/utils/hostUrlSegment';
+import { machineIdFromHostname } from '@/components/monitors/HostNameDisplay';
+
 
 /**
  * Click handler that mimics <a> behavior:
