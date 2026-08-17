@@ -972,6 +972,19 @@ const STATUS_COLORS = {
   running: 'hsl(var(--primary))',
 };
 
+// The execution status and the agent status can disagree (e.g. agent says
+// RUNNING while the execution already says FINISHED). If *either* side reports
+// a terminal state, the run is over — prefer that terminal status everywhere.
+const TERMINAL_RUN_STATUSES = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
+
+const resolveRunStatus = (executionStatus?: unknown, agentStatus?: unknown): string => {
+  const exec = String(executionStatus || '').toUpperCase();
+  const agent = String(agentStatus || '').toUpperCase();
+  if (TERMINAL_RUN_STATUSES.includes(exec)) return exec;
+  if (TERMINAL_RUN_STATUSES.includes(agent)) return agent;
+  return exec || agent || '';
+};
+
 const buildToolName = (apps: AgentUIApp[]): string => {
   if (!apps.length) return 'API';
   return apps
