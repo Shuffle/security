@@ -3520,8 +3520,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const raw = candidates.find((c) => typeof c === 'string' && (c as string).trim());
     if (!raw) return null;
     const slug = String(raw).trim().toLowerCase();
+    const list = presets && presets.length > 0 ? presets : AGENT_PRESETS;
     return (
-      presets.find((p) => p.id === slug || PRESET_TEMPLATE_SLUGS[p.id] === slug) ?? null
+      list.find((p) => p.id === slug || PRESET_TEMPLATE_SLUGS[p.id] === slug) ?? null
     );
   }, [agentData, agentActionResult, execution, presets]);
 
