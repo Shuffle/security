@@ -640,7 +640,10 @@ const AppRunsQueueCard = memo(({ environment, isAirGapped, isCloudSynching, tota
 });
 
 const Billing = memo((props) => {
-	const { globalUrl, userdata, serverside, billingInfo, stripeKey,isLoaded, selectedOrganization, handleGetOrg, clickedFromOrgTab, removeCookie} = props;
+	const { globalUrl, userdata, serverside, billingInfo, stripeKey,isLoaded, selectedOrganization: selectedOrganizationProp, handleGetOrg, clickedFromOrgTab, removeCookie} = props;
+	// The host may render Billing before an organization is loaded. Fall back to
+	// an empty object so the many `selectedOrganization.X` reads below don't throw.
+	const selectedOrganization = selectedOrganizationProp || {};
 	//const alert = useAlert();
 	let navigate = useNavigate();
 	const theme = useTheme();
