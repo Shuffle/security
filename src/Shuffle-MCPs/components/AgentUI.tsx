@@ -84,6 +84,7 @@ import {
 import { AppFallbackIcon } from './AppFallbackIcon';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 
+import safeHandler from '@/Shuffle-MCPs/safeHandler';
 import AgentPresets, { AGENT_PRESETS, filterAgentPresets, isRequiredPresetApp, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
 
 import { useAgentPromptPrefix } from '@/Shuffle-MCPs/useAgentPromptPrefix';
@@ -5821,7 +5822,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       <IconButton
                         size="small"
                         disabled={abortLoading}
-                        onClick={abortAgent}
+                        onClick={safeHandler('Cancel run', abortAgent)}
                         sx={{
                           color: 'hsl(var(--muted-foreground))',
                           '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted))' },
@@ -5839,7 +5840,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   <IconButton
                     size="small"
                     disabled={agentRequestLoading || rerunAgentPending}
-                    onClick={rerunAgent}
+                    onClick={safeHandler('Rerun', rerunAgent)}
                     sx={{
                       color: rerunAgentPending ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                       '&:hover': { color: 'hsl(var(--primary))', bgcolor: 'hsl(var(--muted))' },
@@ -6266,7 +6267,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         questionAnswers={questionAnswers}
                         setQuestionAnswers={setQuestionAnswers}
                         onSubmitQuestions={submitQuestions}
-                        onRerunAgent={rerunAgent}
+                        onRerunAgent={safeHandler('Rerun', rerunAgent)}
                         onRerunDecision={rerunDecision}
                         agentRequestLoading={agentRequestLoading}
                         getFormUrl={getFormUrl}
@@ -6304,7 +6305,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       questionAnswers={questionAnswers}
                       setQuestionAnswers={setQuestionAnswers}
                       onSubmitQuestions={submitQuestions}
-                      onRerunAgent={rerunAgent}
+                      onRerunAgent={safeHandler('Rerun', rerunAgent)}
                       onRerunDecision={rerunDecision}
                       agentRequestLoading={agentRequestLoading}
                       getFormUrl={getFormUrl}
@@ -6349,7 +6350,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                               variant="text"
                               disableRipple
                               disabled={agentRequestLoading || rerunningDecisionId === stuckDecisionId}
-                              onClick={() => rerunDecision(stuckDecision)}
+                              onClick={safeHandler('Rerun step', () => rerunDecision(stuckDecision))}
                               startIcon={
                                 rerunningDecisionId === stuckDecisionId ? (
                                   <CircularProgress size={12} sx={{ color: 'hsl(var(--muted-foreground))' }} />
