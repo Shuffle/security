@@ -119,6 +119,21 @@ const PRESET_APPS_STORAGE_KEY = 'agent_preset_apps_overrides';
 /** Storage bucket used when no template is selected. */
 const NO_PRESET_KEY = '__none__';
 
+/**
+ * Maps a skill id to the `template` slug the backend reports on agent output
+ * (mirrors PRESET_PATHS in agentRun.ts). Used to restore the skill on rerun.
+ */
+const PRESET_TEMPLATE_SLUGS: Record<string, string> = {
+  'build-workflows': 'workflow-edit',
+  'handle-notifications': 'handle-notifications',
+  'incident-response': 'incident-response',
+  'host-monitor-control': 'computer-use',
+  support: 'support',
+  vulnerability: 'vulnerability',
+  detection: 'detection',
+};
+
+
 
 const readPresetAppsOverride = (presetId: string): Array<{ name: string; id?: string; icon?: string }> | null => {
   try {
