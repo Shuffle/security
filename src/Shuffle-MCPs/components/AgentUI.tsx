@@ -1942,7 +1942,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   hideHeroIcon = false,
   heroIcon,
   heroIconSize = 84,
-  maxWidth = 900,
+  maxWidth = 850,
   compact = false,
   hideAppPicker = false,
   hideAttach = false,
