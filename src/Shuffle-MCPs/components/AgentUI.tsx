@@ -2141,7 +2141,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // Track whether the prompt currently renders on a single line so the box can
   // stay fully pill-shaped until the text wraps.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = inputRef.current as unknown as HTMLTextAreaElement | null;
     if (!el) { setPromptSingleLine(true); return; }
     const measure = () => {
@@ -2170,7 +2170,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
             ctx.font = cs.font && cs.font.trim().length > 0
               ? cs.font
               : `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
-            textWraps = ctx.measureText(value).width > firstLineWidth - 2;
+            // Expand before the browser reaches the physical wrap point. This
+            // keeps the next line from ever being painted underneath the
+            // overlaid Skill chip while React switches to the bottom toolbar.
+            textWraps = ctx.measureText(value).width > (firstLineWidth * 0.82);
           }
         } catch { /* fall back to scrollHeight below */ }
       }
