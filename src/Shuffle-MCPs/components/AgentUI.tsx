@@ -2346,9 +2346,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
-    // A text template from the prompt list acts as its own skill; disable the
-    // Skills selector and clear any previously selected skill.
-    setTextTemplateSelected(true);
+    // A text template from the prompt list acts as its own skill, so clear
+    // any explicitly selected skill. The user is free to pick a skill again.
     setSelectedPreset(null);
     try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
     // Replace the current selection with exactly the apps this suggestion
