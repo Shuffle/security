@@ -5174,9 +5174,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 onKeyDown={onKeyDown}
                 onScroll={(e) => {
                   const st = (e.target as HTMLTextAreaElement).scrollTop;
-                  setInputScrolled(st > 1);
+                  // Move the chip in the same frame as the scroll event.
+                  applyChipScroll(st);
+                  setInputScrolled((prev) => (prev === st > 1 ? prev : st > 1));
                   setInputScrollTop(st);
                 }}
+
 
                 onPaste={(e) => {
                   const items = e.clipboardData?.items;
