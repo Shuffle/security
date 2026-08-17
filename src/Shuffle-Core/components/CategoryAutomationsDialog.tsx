@@ -761,19 +761,57 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           >
             When
           </Typography>
-          <Box
-            sx={{
-              py: 1.5,
-              px: 2,
-              bgcolor: 'hsl(var(--muted) / 0.4)',
-              borderRadius: 1,
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.95rem' }}>
-              {`A${/^[aeiou]/i.test(entitySingular) ? 'n' : ''} ${entitySingular} is edited`}
-            </Typography>
-          </Box>
+          <FormControl fullWidth size="small">
+            <Select
+              value={activeCategory}
+              onChange={(e) => {
+                const next = String(e.target.value);
+                if (next === activeCategory) return;
+                if (hasChanges && !window.confirm('You have unsaved changes. Switch area and discard them?')) return;
+                setActiveCategory(next);
+              }}
+              sx={{
+                bgcolor: 'hsl(var(--muted) / 0.4)',
+                fontSize: '0.95rem',
+                '& .MuiSelect-select': { py: 1.5, px: 2 },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: { bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' },
+                },
+              }}
+            >
+              {categoryOptions.map((opt) => {
+                const count = enabledCountFor(opt.category);
+                return (
+                  <MenuItem key={opt.category} value={opt.category}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          bgcolor: count > 0 ? '#4ade80' : 'hsl(var(--muted-foreground) / 0.5)',
+                        }}
+                      />
+                      <Typography sx={{ fontSize: '0.95rem', flex: 1 }}>
+                        {`A${/^[aeiou]/i.test(opt.singular) ? 'n' : ''} ${opt.singular} is edited`}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                        {loadingCategories && !categoryEntries[opt.category]
+                          ? 'Loading…'
+                          : count > 0
+                            ? `${count} enabled`
+                            : 'No automation'}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
         </Box>
 
         <Divider sx={{ mb: 3, borderColor: 'hsl(var(--border))' }} />
