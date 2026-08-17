@@ -597,7 +597,6 @@ const normToolKey = (s: string) => s.toLowerCase().replace(/[\s_\-]+/g, '_');
 const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick, apiKey, apiBaseUrl, orgId, abortingIds, onAbort }: RunRowProps) => {
   const navigate = useNavigate();
   const statusKey = getEffectiveStatus(run);
-  const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
   const iconColor = getRunIconColor(run);
   const duration = formatDuration(run);
   const tools = getRunTools(run);
@@ -607,6 +606,7 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick, apiKey, apiBaseUr
   const isAborting = !!run.execution_id && !!abortingIds?.has(run.execution_id);
   const wfId = run.workflow_id || (run as any)?.workflow?.id;
   const canAbort = isRunning && !!run.execution_id && !!wfId && !isAborting;
+
 
 
   return (
