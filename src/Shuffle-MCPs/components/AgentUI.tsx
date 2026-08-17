@@ -2036,7 +2036,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, []);
 
   const [promptSingleLine, setPromptSingleLine] = useState(true);
-  const promptMultiline = !promptSingleLine;
+  const promptMultilineBase = !promptSingleLine;
 
   // Height of the attachment chip row (0 when nothing is attached). The
   // floating Templates chip is absolutely positioned, so it must be pushed
