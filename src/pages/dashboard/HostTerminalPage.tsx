@@ -13,6 +13,7 @@ import { hostUrlSegment, parseHostUrlSegment } from '@/utils/hostUrlSegment';
 import { useHostActions } from '@/hooks/useHostActions';
 import { HostTerminalView } from '@/components/monitors/HostTerminalView';
 import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirmDialog';
+import { HostNameDisplay } from '@/components/monitors/HostNameDisplay';
 
 interface HostOption {
   uuid: string;
@@ -294,7 +295,9 @@ const HostTerminalPage = () => {
             <button className="flex items-center gap-2 min-w-0 text-left hover:bg-muted/50 rounded-md px-2 py-1 transition-colors">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-base font-semibold text-foreground truncate">{hostname}</h1>
+                  <h1 className="text-base font-semibold text-foreground truncate">
+                    <HostNameDisplay hostname={hostname} />
+                  </h1>
                   <div className={`w-2 h-2 rounded-full shrink-0 ${isRecent ? 'bg-[hsl(var(--severity-low))]' : 'bg-muted-foreground/40'}`} />
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -343,7 +346,9 @@ const HostTerminalPage = () => {
                         <div className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${recent ? 'bg-[hsl(var(--severity-low))]' : 'bg-muted-foreground/40'}`} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{h.hostname}</p>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          <HostNameDisplay hostname={h.hostname} />
+                        </p>
                         <p className="text-[0.65rem] text-muted-foreground truncate">
                           {h.groupName} · {h.os}
                           {c && <> · {c.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>}
