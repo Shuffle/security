@@ -5043,11 +5043,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: 0.5,
               // Keep the same radius in both states so growing to multiple
               // lines does not visually snap from a pill to a boxy card.
-              borderRadius: attachedImages.length > 0 ? 4 : '22px',
+              borderRadius: attachedImages.length > 0 ? 4 : '28px',
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               px: 2.25,
-              py: 1.75,
+              py: 1,
 
               position: 'relative',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
@@ -5137,9 +5137,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   minWidth: 0,
 
                   '& .MuiInputBase-input': {
-                    pt: '5px',
-                    pb: 0,
-                    lineHeight: 1.55,
+                    pt: '4px',
+                    pb: '4px',
+                    lineHeight: 1.5,
                     // Only line 1 is indented for the skill chip while the
                     // prompt is a single line. Once it wraps, the chip drops to
                     // its own bottom row so the indent is removed.
@@ -5183,7 +5183,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       to: { transform: 'translateY(0)', opacity: 1 },
                     },
                   } : {
-                    position: 'absolute', left: '-1px', top: '5px',
+                    position: 'absolute', left: '-1px', top: '4px',
                     height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                     // The chip scrolls together with the textarea content so text
                     // never runs underneath it while scrolling. The transform is
