@@ -5057,6 +5057,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
               px: 2.25,
               py: 1,
 
+              // A one-line prompt is a fixed-size control. Lock all three
+              // dimensions so TextareaAutosize cannot retain a stale
+              // multiline inline height after Skill/focus changes.
+              ...(promptSingleLine && attachedImages.length === 0 ? {
+                height: '55px',
+                minHeight: '55px',
+                maxHeight: '55px',
+                boxSizing: 'border-box',
+              } : {}),
+
               position: 'relative',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
               '&:focus-within': {
@@ -5095,6 +5105,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 gap: 1,
                 width: '100%',
                 position: 'relative',
+                ...(promptSingleLine ? {
+                  height: '36px',
+                  minHeight: '36px',
+                  maxHeight: '36px',
+                } : {}),
               }}>
 
 
@@ -5163,6 +5178,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   // wrap down to their own bottom row.
                   flex: promptMultiline ? '1 0 100%' : '1 1 auto',
                   minWidth: 0,
+                   ...(promptSingleLine ? {
+                     height: '36px',
+                     minHeight: '36px',
+                     maxHeight: '36px',
+                   } : {}),
 
                   '& .MuiInputBase-input': {
                     pt: '5px',
@@ -5173,6 +5193,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     // its own bottom row so the indent is removed.
                     textIndent: (!hidePresets && !promptMultiline) ? `${(presetsChipWidth || 96) + 6}px` : 0,
                     transition: 'text-indent 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+                     ...(promptSingleLine ? {
+                       height: '33px !important',
+                       minHeight: '33px !important',
+                       maxHeight: '33px !important',
+                       boxSizing: 'border-box',
+                       overflowY: 'hidden !important',
+                     } : {}),
                   },
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
                 }}
