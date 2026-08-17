@@ -657,13 +657,14 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       });
 
       const payload: any = {
-        category,
+        category: activeCategory,
         automations: apiAutomations,
       };
       // Preserve any settings fields this dialog doesn't manage itself
       // (e.g. `public`) — the backend overwrites the whole settings object,
       // so dropping them here would silently reset them.
-      payload.settings = { ...(initialSettings || {}), timeout: cleanupTimeout > 0 ? cleanupTimeout : 0 };
+      const baseSettings = (activeCategory === category ? initialSettings : activeEntry?.settings) || {};
+      payload.settings = { ...baseSettings, timeout: cleanupTimeout > 0 ? cleanupTimeout : 0 };
 
       const response = await fetch(getApiUrl('/api/v2/datastore/automate'), {
         method: 'POST',
@@ -680,7 +681,18 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       }
 
       const enabledAutomations = automations.filter(a => a.enabled);
-      onAutomationsChange(enabledAutomations);
+      // Keep the in-dialog cache in sync so the "When" dropdown reflects the
+      // new enabled state immediately.
+      setCategoryEntries(prev => ({
+        ...prev,
+        [activeCategory]: {
+          automations: apiAutomations as unknown as CategoryAutomation[],
+          settings: payload.settings,
+        },
+      }));
+      if (activeCategory === category) {
+        onAutomationsChange(enabledAutomations);
+      }
       toast.success('Automations saved');
       onSaved?.();
       onClose();
@@ -692,6 +704,12 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   };
 
   const enabledCount = automations.filter(a => a.enabled).length;
+
+  /** Enabled-automation count per category, from the pre-loaded configs. */
+  const enabledCountFor = (cat: string): number => {
+    if (cat === activeCategory) return enabledCount;
+    return (categoryEntries[cat]?.automations || []).filter(a => a.enabled).length;
+  };
 
   return (
     <Dialog
