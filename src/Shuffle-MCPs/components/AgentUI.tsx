@@ -5204,7 +5204,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
 
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                ml: 'auto',
+                flexShrink: 0,
+              }}>
               {(() => {
+
                 const allowWithoutExecution = showStarter;
                 const promptTooShort = showStarter && (actionInput || '').trim().length < 1;
                 const canSchedule = (hasExecution || allowWithoutExecution) && !scheduleDisabledReason && !promptTooShort && !disableSchedule;
