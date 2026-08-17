@@ -65,6 +65,21 @@ export interface CategoryAutomationsDialogProps {
   orgId?: string | null;
 }
 
+/** Datastore categories Shuffle Security supports automation for. All of these
+ *  are pre-loaded (top=1 lookup) when the dialog opens so the "When" dropdown
+ *  can show which ones already have automation enabled and swap between them. */
+const CATEGORY_OPTIONS: { category: string; singular: string; plural: string }[] = [
+  { category: DATASTORE_CATEGORIES.INCIDENTS, singular: 'incident', plural: 'incidents' },
+  { category: DATASTORE_CATEGORIES.INFRASTRUCTURE, singular: 'sensor', plural: 'sensors' },
+  { category: DATASTORE_CATEGORIES.ASSETS, singular: 'asset', plural: 'assets' },
+  { category: DATASTORE_CATEGORIES.USERS, singular: 'user', plural: 'users' },
+];
+
+interface CategoryEntry {
+  automations: CategoryAutomation[] | null;
+  settings?: { timeout?: number; public?: boolean };
+}
+
 const WEEKS_OPTIONS = [
   { label: 'Never', seconds: 0 },
   { label: '1 week', seconds: 604800 },
