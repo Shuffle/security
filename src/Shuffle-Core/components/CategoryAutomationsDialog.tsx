@@ -1,5 +1,5 @@
 import { Rocket as RocketLaunchIcon, RotateCcw as RestoreIcon, X as CloseIcon, Network as AccountTreeIcon, Webhook as WebhookIcon, Lock as EnhancedEncryptionIcon, Trash2 as DeleteSweepIcon, Shield as SecurityIcon, ChevronDown as ExpandMoreIcon, Download as DownloadIcon, Plus as AddIcon } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -30,7 +30,7 @@ import AiAgentPromptsEditor from '@/Shuffle-MCPs/components/AiAgentPromptsEditor
 import { useAuthenticatedApps } from '../useAuthenticatedApps';
 import { Tooltip } from '@mui/material';
 
-import { CategoryAutomation } from '@/Shuffle-MCPs/datastore';
+import { CategoryAutomation, DATASTORE_CATEGORIES, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, extractWorkflowAppNames } from '@/Shuffle-MCPs/ingestionDetection';
 
 // API format for automations
@@ -63,6 +63,21 @@ export interface CategoryAutomationsDialogProps {
    *  storage) when omitted — pass this explicitly on hosts that don't use
    *  that storage key (e.g. shaffuru). */
   orgId?: string | null;
+}
+
+/** Datastore categories Shuffle Security supports automation for. All of these
+ *  are pre-loaded (top=1 lookup) when the dialog opens so the "When" dropdown
+ *  can show which ones already have automation enabled and swap between them. */
+const CATEGORY_OPTIONS: { category: string; singular: string; plural: string }[] = [
+  { category: DATASTORE_CATEGORIES.INCIDENTS, singular: 'incident', plural: 'incidents' },
+  { category: DATASTORE_CATEGORIES.INFRASTRUCTURE, singular: 'sensor', plural: 'sensors' },
+  { category: DATASTORE_CATEGORIES.ASSETS, singular: 'asset', plural: 'assets' },
+  { category: DATASTORE_CATEGORIES.USERS, singular: 'user', plural: 'users' },
+];
+
+interface CategoryEntry {
+  automations: CategoryAutomation[] | null;
+  settings?: { timeout?: number; public?: boolean };
 }
 
 const WEEKS_OPTIONS = [
@@ -172,8 +187,29 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   entityLabel,
   orgId: orgIdProp,
 }) => {
-  const entitySingular = entityLabel?.singular || 'incident';
-  const entityPlural = entityLabel?.plural || 'incidents';
+  // Which category the dialog is currently editing. Starts at the category the
+  // host opened it with, but can be swapped through the "When" dropdown.
+  const [activeCategory, setActiveCategory] = useState<string>(category);
+  const [categoryEntries, setCategoryEntries] = useState<Record<string, CategoryEntry>>({});
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
+  const categoryOptions = useMemo(() => {
+    const opts = [...CATEGORY_OPTIONS];
+    if (!opts.some(o => o.category === category)) {
+      opts.unshift({
+        category,
+        singular: entityLabel?.singular || category,
+        plural: entityLabel?.plural || category,
+      });
+    }
+    return opts;
+  }, [category, entityLabel?.singular, entityLabel?.plural]);
+
+  const activeOption = categoryOptions.find(o => o.category === activeCategory) || categoryOptions[0];
+  const entitySingular =
+    (activeCategory === category ? entityLabel?.singular : undefined) || activeOption?.singular || 'incident';
+  const entityPlural =
+    (activeCategory === category ? entityLabel?.plural : undefined) || activeOption?.plural || 'incidents';
   const entitySingularCap = entitySingular.charAt(0).toUpperCase() + entitySingular.slice(1);
   const entityPluralCap = entityPlural.charAt(0).toUpperCase() + entityPlural.slice(1);
   const navigate = useNavigate();
@@ -396,11 +432,70 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     }
   }, [open]);
 
+  // Pre-load the automation config for every supported category with a
+  // top=1 lookup so the "When" dropdown can show enabled state and swap
+  // instantly between areas.
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    setActiveCategory(category);
+    setCategoryEntries({ [category]: { automations: initialAutomations || null, settings: initialSettings } });
+    let cancelled = false;
+    setLoadingCategories(true);
+    (async () => {
+      const results = await Promise.all(
+        categoryOptions
+          .filter(opt => opt.category !== category)
+          .map(async (opt) => {
+            try {
+              const res: any = await getDatastoreByCategory(opt.category, undefined, 1, orgIdProp || undefined);
+              const cfg = res?.categoryConfig;
+              return {
+                category: opt.category,
+                automations: (cfg?.automations as CategoryAutomation[]) || null,
+                settings: cfg?.settings,
+              };
+            } catch {
+              return { category: opt.category, automations: null, settings: undefined };
+            }
+          }),
+      );
+      if (cancelled) return;
+      setCategoryEntries(prev => {
+        const next = { ...prev };
+        results.forEach(r => { if (r && !next[r.category]) next[r.category] = { automations: r.automations, settings: r.settings }; });
+        return next;
+      });
+      setLoadingCategories(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, category]);
+
+  const activeEntry = categoryEntries[activeCategory];
+  const initializedRef = useRef<{ category: string; entry: CategoryEntry | undefined } | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      initializedRef.current = null;
+      return;
+    }
+    // Only (re)initialize the form when the active category changes or when
+    // its config was (re)loaded — never on unrelated re-renders, so in-flight
+    // edits are not wiped.
+    if (
+      initializedRef.current &&
+      initializedRef.current.category === activeCategory &&
+      initializedRef.current.entry === activeEntry
+    ) {
+      return;
+    }
+    initializedRef.current = { category: activeCategory, entry: activeEntry };
+    {
+      const sourceAutomations = activeEntry?.automations || null;
+      const sourceSettings = activeEntry?.settings;
       // Initialize with all automation types, preserving existing states
       // Match by name since API uses name as identifier
-      const existingByName = new Map((initialAutomations || []).map(a => [a.name, a]));
+      const existingByName = new Map((sourceAutomations || []).map(a => [a.name, a]));
       const allAutomations: CategoryAutomation[] = automationConfigs.map(config => {
         const existing = existingByName.get(config.name);
         if (existing) {
@@ -419,34 +514,27 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       });
       setAutomations(allAutomations);
       setHasChanges(false);
-      setCleanupTimeout(normalizeCleanupTimeout(initialSettings?.timeout));
+      setCleanupTimeout(normalizeCleanupTimeout(sourceSettings?.timeout));
 
       // Extract existing workflow IDs and webhook URL
       const workflowAutomation = existingByName.get('Run workflow');
-      if (workflowAutomation?.options) {
-        const workflowOption = workflowAutomation.options.find(o => o.key === 'workflow_id');
-        if (workflowOption?.value) {
-          const ids = workflowOption.value.split(',').filter(Boolean);
-          // Will be populated once workflows are loaded
-          setSelectedWorkflows(ids.map(id => ({ id: id.trim(), name: id.trim() })));
-        }
+      const workflowOption = workflowAutomation?.options?.find(o => o.key === 'workflow_id');
+      if (workflowOption?.value) {
+        const ids = workflowOption.value.split(',').filter(Boolean);
+        // Will be populated once workflows are loaded
+        setSelectedWorkflows(ids.map(id => ({ id: id.trim(), name: id.trim() })));
+      } else {
+        setSelectedWorkflows([]);
       }
 
       const webhookAutomation = existingByName.get('Send webhook');
-      if (webhookAutomation?.options) {
-        const urlOption = webhookAutomation.options.find(o => o.key === 'webhook_url');
-        if (urlOption?.value) {
-          setWebhookUrl(urlOption.value);
-        }
-      }
+      const urlOption = webhookAutomation?.options?.find(o => o.key === 'webhook_url');
+      setWebhookUrl(urlOption?.value || '');
 
       const rulesAutomation = existingByName.get('Security Rules');
-      if (rulesAutomation?.options) {
-        const rulesOption = rulesAutomation.options.find(o => o.key === 'rule');
-        if (rulesOption?.value) {
-          setSecurityRulesText(rulesOption.value);
-        }
-      }
+      const rulesOption = rulesAutomation?.options?.find(o => o.key === 'rule');
+      setSecurityRulesText(rulesOption?.value || '');
+
 
       const aiAutomation = existingByName.get('Run AI Agent');
       if (aiAutomation?.options && aiAutomation.options.length > 0) {
@@ -481,7 +569,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         setAiAgentApps([[]]);
       }
     }
-  }, [open, initialAutomations]);
+  }, [open, activeCategory, activeEntry]);
 
   // Update selected workflows with names once workflows are loaded
   useEffect(() => {
@@ -569,13 +657,14 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       });
 
       const payload: any = {
-        category,
+        category: activeCategory,
         automations: apiAutomations,
       };
       // Preserve any settings fields this dialog doesn't manage itself
       // (e.g. `public`) — the backend overwrites the whole settings object,
       // so dropping them here would silently reset them.
-      payload.settings = { ...(initialSettings || {}), timeout: cleanupTimeout > 0 ? cleanupTimeout : 0 };
+      const baseSettings = (activeCategory === category ? initialSettings : activeEntry?.settings) || {};
+      payload.settings = { ...baseSettings, timeout: cleanupTimeout > 0 ? cleanupTimeout : 0 };
 
       const response = await fetch(getApiUrl('/api/v2/datastore/automate'), {
         method: 'POST',
@@ -592,7 +681,18 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       }
 
       const enabledAutomations = automations.filter(a => a.enabled);
-      onAutomationsChange(enabledAutomations);
+      // Keep the in-dialog cache in sync so the "When" dropdown reflects the
+      // new enabled state immediately.
+      setCategoryEntries(prev => ({
+        ...prev,
+        [activeCategory]: {
+          automations: apiAutomations as unknown as CategoryAutomation[],
+          settings: payload.settings,
+        },
+      }));
+      if (activeCategory === category) {
+        onAutomationsChange(enabledAutomations);
+      }
       toast.success('Automations saved');
       onSaved?.();
       onClose();
@@ -604,6 +704,12 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   };
 
   const enabledCount = automations.filter(a => a.enabled).length;
+
+  /** Enabled-automation count per category, from the pre-loaded configs. */
+  const enabledCountFor = (cat: string): number => {
+    if (cat === activeCategory) return enabledCount;
+    return (categoryEntries[cat]?.automations || []).filter(a => a.enabled).length;
+  };
 
   return (
     <Dialog
@@ -655,19 +761,57 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           >
             When
           </Typography>
-          <Box
-            sx={{
-              py: 1.5,
-              px: 2,
-              bgcolor: 'hsl(var(--muted) / 0.4)',
-              borderRadius: 1,
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.95rem' }}>
-              {`A${/^[aeiou]/i.test(entitySingular) ? 'n' : ''} ${entitySingular} is edited`}
-            </Typography>
-          </Box>
+          <FormControl fullWidth size="small">
+            <Select
+              value={activeCategory}
+              onChange={(e) => {
+                const next = String(e.target.value);
+                if (next === activeCategory) return;
+                if (hasChanges && !window.confirm('You have unsaved changes. Switch area and discard them?')) return;
+                setActiveCategory(next);
+              }}
+              sx={{
+                bgcolor: 'hsl(var(--muted) / 0.4)',
+                fontSize: '0.95rem',
+                '& .MuiSelect-select': { py: 1.5, px: 2 },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: { bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' },
+                },
+              }}
+            >
+              {categoryOptions.map((opt) => {
+                const count = enabledCountFor(opt.category);
+                return (
+                  <MenuItem key={opt.category} value={opt.category}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          bgcolor: count > 0 ? '#4ade80' : 'hsl(var(--muted-foreground) / 0.5)',
+                        }}
+                      />
+                      <Typography sx={{ fontSize: '0.95rem', flex: 1 }}>
+                        {`A${/^[aeiou]/i.test(opt.singular) ? 'n' : ''} ${opt.singular} is edited`}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                        {loadingCategories && !categoryEntries[opt.category]
+                          ? 'Loading…'
+                          : count > 0
+                            ? `${count} enabled`
+                            : 'No automation'}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
         </Box>
 
         <Divider sx={{ mb: 3, borderColor: 'hsl(var(--border))' }} />
@@ -1037,7 +1181,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           size="small"
           startIcon={<RestoreIcon />}
           onClick={() => {
-            const isVulnerabilities = category === 'vulnerabilities';
+            const isVulnerabilities = activeCategory === 'vulnerabilities' || activeCategory.includes('vulnerabilit');
             setAutomations(automations.map(a => {
               if (a.type === 'enrich') return { ...a, enabled: true, trigger: 'on_edit' as const };
               if (a.type === 'security_rules') return { ...a, enabled: true, trigger: 'on_edit' as const };
