@@ -972,6 +972,19 @@ const STATUS_COLORS = {
   running: 'hsl(var(--primary))',
 };
 
+// The execution status and the agent status can disagree (e.g. agent says
+// RUNNING while the execution already says FINISHED). If *either* side reports
+// a terminal state, the run is over — prefer that terminal status everywhere.
+const TERMINAL_RUN_STATUSES = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
+
+const resolveRunStatus = (executionStatus?: unknown, agentStatus?: unknown): string => {
+  const exec = String(executionStatus || '').toUpperCase();
+  const agent = String(agentStatus || '').toUpperCase();
+  if (TERMINAL_RUN_STATUSES.includes(exec)) return exec;
+  if (TERMINAL_RUN_STATUSES.includes(agent)) return agent;
+  return exec || agent || '';
+};
+
 const buildToolName = (apps: AgentUIApp[]): string => {
   if (!apps.length) return 'API';
   return apps
@@ -3745,8 +3758,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // Ticking clock so the trailing live "Processing" row keeps counting while
   // the run is still executing.
-  const runStillExecuting = !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(
-    (execution?.status || agentData?.status || '').toUpperCase()
+  const runStillExecuting = !TERMINAL_RUN_STATUSES.includes(
+    resolveRunStatus(execution?.status, agentData?.status)
   );
   const [liveNowSec, setLiveNowSec] = useState(() => Date.now() / 1000);
   useEffect(() => {
@@ -3766,8 +3779,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // instead of being floored to 0.
       return n > 1e12 ? n / 1000 : n;
     };
-    const overallStatus = (execution?.status || agentData?.status || '').toUpperCase();
-    const runIsFinished = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(overallStatus);
+    const overallStatus = resolveRunStatus(execution?.status, agentData?.status);
+    const runIsFinished = TERMINAL_RUN_STATUSES.includes(overallStatus);
     const runEndSec = toSec(agentData?.completed_at || execution?.completed_at);
     // When the whole run has ended, cap any unfinished decisions at the run's
     // end time (or the latest known timestamp) so they stop counting up.
@@ -4216,7 +4229,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // The only hard block is an unfinished run; everything else is advisory.
   const { scheduleDisabledReasons, scheduleWarnings } = useMemo(() => {
     const decisions: any[] = (agentData?.decisions as any[]) || [];
-    const runStatus = String(execution?.status || agentData?.status || '').toUpperCase();
+    const runStatus = resolveRunStatus(execution?.status, agentData?.status);
     const isNotFinished = runStatus !== '' && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(runStatus);
     const NON_ACTION_CATS = new Set(['finish', 'finalise', 'ask', 'agent', 'processing']);
     const NON_ACTION_ACTIONS = new Set(['finish', 'finalise', 'ask']);
@@ -4416,7 +4429,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // parent re-render — the live duration ticker would otherwise reset hover
   // state every second and swallow clicks.
   const tabBarRef = useRef<HTMLDivElement | null>(null);
-  const runStatusUpper = (execution?.status || agentData?.status || '').toUpperCase();
+  const runStatusUpper = resolveRunStatus(execution?.status, agentData?.status);
   const runIsActive = hasExecution && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(runStatusUpper);
   const tabBar = (
     <Box
@@ -5814,7 +5827,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Box>
               <AgentAttachmentsButton attachments={llmImageAttachments} />
               {(() => {
-                const topStatus = String(execution?.status || agentData?.status || '').toUpperCase();
+                const topStatus = resolveRunStatus(execution?.status, agentData?.status);
                 const topRunning = !!(execution?.execution_id || agentRequestLoading) && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(topStatus);
                 return topRunning ? (
                   <Tooltip title={abortLoading ? 'Aborting…' : execution?.execution_id ? 'Abort this execution' : 'Cancel and return to Start'}>
@@ -6225,7 +6238,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
             {/* Detailed timeline view */}
             {viewMode === 'detailed' && (() => {
-              const detailedStatus = (execution?.status || agentData?.status || 'EXECUTING').toUpperCase();
+              const detailedStatus = resolveRunStatus(execution?.status, agentData?.status) || 'EXECUTING';
               const detailedIsRunning = optimisticRunning
                 || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(detailedStatus);
 
