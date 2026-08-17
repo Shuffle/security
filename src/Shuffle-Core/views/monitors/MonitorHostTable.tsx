@@ -29,6 +29,8 @@ import { DEMO_HOST_HOSTNAME } from '@/services/demoLiveEnvironment';
 import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
 import { hostUrlSegment } from '@/utils/hostUrlSegment';
 import { ActionOutputView } from './ActionOutputView';
+import { HostNameDisplay } from '@/components/monitors/HostNameDisplay';
+
 
 // ── Helpers (identical to the originals on VulnAssetsPage) ─────────────────
 const OsIcon = ({ os, size = 14, className = '' }: { os?: string; size?: number; className?: string }) => {
