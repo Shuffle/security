@@ -594,7 +594,7 @@ interface RunRowProps {
 
 const normToolKey = (s: string) => s.toLowerCase().replace(/[\s_\-]+/g, '_');
 
-const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) => {
+const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick, apiKey, apiBaseUrl, orgId, abortingIds, onAbort }: RunRowProps) => {
   const navigate = useNavigate();
   const statusKey = getEffectiveStatus(run);
   const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
@@ -603,6 +603,11 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
   const tools = getRunTools(run);
   const decisionCount = getDecisionCount(run);
   const attachmentCount = collectLlmImageAttachments(run).length;
+  const isRunning = statusKey === 'EXECUTING' || statusKey === 'RUNNING' || statusKey === 'WAITING';
+  const isAborting = !!run.execution_id && !!abortingIds?.has(run.execution_id);
+  const wfId = run.workflow_id || (run as any)?.workflow?.id;
+  const canAbort = isRunning && !!run.execution_id && !!wfId && !isAborting;
+
 
   return (
     <Box
