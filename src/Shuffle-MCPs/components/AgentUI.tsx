@@ -5199,7 +5199,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     // The left offset matches the single-line overlay exactly so
                     // the chip keeps the same left margin in both states.
                     position: 'static',
-                    ml: '-5px',
+                    ml: '-7px',
                     display: 'flex',
                     alignItems: 'center',
                     flexShrink: 0,
@@ -5213,7 +5213,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       to: { transform: 'translateY(0)', opacity: 1 },
                     },
                   } : {
-                    position: 'absolute', left: '-5px', top: '6px',
+                    position: 'absolute', left: '-7px', top: '6px',
 
                     height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                     // The chip scrolls together with the textarea content so text
