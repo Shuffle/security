@@ -6646,7 +6646,49 @@ const AgentUI: React.FC<AgentUIProps> = ({
           </Box>
         )}
 
+        {/* Image preview dialog */}
+        <Dialog
+          open={Boolean(previewImage)}
+          onClose={() => setPreviewImage(null)}
+          maxWidth="lg"
+          PaperProps={{
+            sx: {
+              bgcolor: 'hsl(var(--background))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 3,
+              p: 1,
+              maxWidth: 'min(90vw, 900px)',
+            },
+          }}
+        >
+          {previewImage && (
+            <Box sx={{ position: 'relative' }}>
+              <IconButton
+                onClick={() => setPreviewImage(null)}
+                sx={{
+                  position: 'absolute', top: 8, right: 8,
+                  bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',
+                  '&:hover': { bgcolor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))' },
+                }}
+                aria-label="Close preview"
+              >
+                <CloseIcon size={18} />
+              </IconButton>
+              <Box
+                component="img"
+                src={previewImage.dataUrl}
+                alt={previewImage.name}
+                sx={{ width: '100%', height: 'auto', maxHeight: '80vh', borderRadius: 2, display: 'block' }}
+              />
+              <Typography sx={{ mt: 1, fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
+                {previewImage.name}
+              </Typography>
+            </Box>
+          )}
+        </Dialog>
+
         <AppSearchDrawer
+
           open={appSearchOpen}
           initialQuery={appSearchQuery || undefined}
           onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); setCategoryTarget(null); }}
