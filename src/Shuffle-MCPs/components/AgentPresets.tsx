@@ -66,6 +66,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     icon: <Workflow size={16} />,
     enabled: true,
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
+    requiredApps: ['shuffle_workflows_builder', 'shuffle_apps'],
   },
   {
     id: 'incident-response',
@@ -84,6 +85,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     icon: <Monitor size={16} />,
     enabled: true,
     defaultApps: [{ name: 'shuffle_host_monitors' }],
+    requiredApps: ['shuffle_host_monitors'],
   },
   {
     id: 'support',
