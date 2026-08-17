@@ -5242,6 +5242,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 alignItems: 'center',
                 gap: 1,
                 ml: 'auto',
+                mr: -0.5,
                 flexShrink: 0,
               }}>
               {(() => {
