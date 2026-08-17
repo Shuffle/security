@@ -2062,8 +2062,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
   const [inputScrolled, setInputScrolled] = useState(false);
   // Pixel scroll offset of the prompt textarea, so the floating Skill chip can
-  // scroll together with the text instead of hovering above it.
+  // scroll together with the text instead of hovering above it. Applied
+  // imperatively (not via state) so the chip never lags behind the text.
   const [inputScrollTop, setInputScrollTop] = useState(0);
+  const chipOverlayRef = useRef<HTMLDivElement | null>(null);
+  const applyChipScroll = useCallback((st: number) => {
+    const el = chipOverlayRef.current;
+    if (!el) return;
+    el.style.transform = `translateY(${-st}px)`;
+    el.style.opacity = st > 24 ? '0' : '1';
+    el.style.pointerEvents = st > 4 ? 'none' : 'auto';
+  }, []);
+
   const [promptSingleLine, setPromptSingleLine] = useState(true);
   // Height of the attachment chip row (0 when nothing is attached). The
   // floating Templates chip is absolutely positioned, so it must be pushed
