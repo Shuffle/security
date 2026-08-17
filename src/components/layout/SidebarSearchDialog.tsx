@@ -175,14 +175,20 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
   // Filter workflows locally by query
   useEffect(() => {
     if (!query.trim()) {
-      setWorkflowResults([]);
+      // Never set a fresh [] when we are already empty — `allWorkflows` is a
+      // new array reference on every render, so an unconditional setState here
+      // re-triggers this effect forever ("Maximum update depth exceeded").
+      setWorkflowResults((prev) => (prev.length === 0 ? prev : []));
       return;
     }
     const q = query.toLowerCase();
     const filtered = allWorkflows.filter(
       (w) => w.name?.toLowerCase().includes(q) || w.description?.toLowerCase().includes(q)
-    );
-    setWorkflowResults(filtered.slice(0, 6));
+    ).slice(0, 6);
+    setWorkflowResults((prev) => {
+      if (prev.length === filtered.length && prev.every((p, i) => p === filtered[i])) return prev;
+      return filtered;
+    });
   }, [query, allWorkflows]);
 
   // Filter nav items by query, keeping them ordered by group
