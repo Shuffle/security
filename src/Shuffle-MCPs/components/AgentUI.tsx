@@ -5199,7 +5199,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     // The left offset matches the single-line overlay exactly so
                     // the chip keeps the same left margin in both states.
                     position: 'static',
-                    ml: '-5px',
+                    ml: '-7px',
                     display: 'flex',
                     alignItems: 'center',
                     flexShrink: 0,
