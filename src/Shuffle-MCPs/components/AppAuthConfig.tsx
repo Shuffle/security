@@ -1070,7 +1070,7 @@ export const AppAuthCard = ({
                   '& .MuiSvgIcon-root': { color: 'text.secondary' },
                 }}
                 MenuProps={{
-                  sx: { zIndex: 10000 },
+                  sx: { zIndex: 10020 },
                   slotProps: {
                     paper: {
                       sx: {
@@ -1512,7 +1512,7 @@ export const AppAuthCard = ({
                       '& .MuiSvgIcon-root': { color: 'hsl(var(--muted-foreground))' },
                     }}
                     MenuProps={{
-                      sx: { zIndex: 10000 },
+                      sx: { zIndex: 10020 },
                       slotProps: {
                         paper: {
                         sx: {
@@ -1635,6 +1635,7 @@ export const AppAuthCard = ({
                 <Dialog
                   open={!!deleteConfirmAuthId}
                   onClose={() => setDeleteConfirmAuthId(null)}
+                  sx={{ zIndex: 10010 }}
                   slotProps={{
                     paper: {
                       sx: {
@@ -2395,7 +2396,7 @@ export const AppAuthCard = ({
         onClose={() => setDocsOpen(false)}
         maxWidth="md"
         fullWidth
-        sx={{ zIndex: 9999 }}
+        sx={{ zIndex: 10010 }}
         slotProps={{
           paper: {
             sx: {

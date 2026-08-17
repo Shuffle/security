@@ -137,10 +137,12 @@ const buildComponentOverrides = (scopeClassName: string) => ({
   },
   MuiDialog: {
     defaultProps: { slotProps: { paper: { className: scopeClassName } } },
+    styleOverrides: { root: { zIndex: 10010 } },
   },
   MuiMenu: {
     defaultProps: { slotProps: { paper: { className: scopeClassName } } },
     styleOverrides: {
+      root: { zIndex: 10020 },
       paper: {
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
@@ -151,6 +153,7 @@ const buildComponentOverrides = (scopeClassName: string) => ({
   MuiPopover: {
     defaultProps: { slotProps: { paper: { className: scopeClassName } } },
     styleOverrides: {
+      root: { zIndex: 10020 },
       paper: {
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
@@ -162,9 +165,15 @@ const buildComponentOverrides = (scopeClassName: string) => ({
     defaultProps: {
       slotProps: {
         tooltip: { className: scopeClassName },
-        // Render above app Drawers/Popovers that use z-index 9999.
-        popper: { sx: { zIndex: 10000 } },
+        // Render above app drawers, dialogs, menus, and popovers.
+        popper: { sx: { zIndex: 10030 } },
       },
+    },
+  },
+  MuiAutocomplete: {
+    defaultProps: {
+      size: "small" as const,
+      slotProps: { popper: { sx: { zIndex: 10020 } } },
     },
   },
   MuiDivider: {

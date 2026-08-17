@@ -84,13 +84,25 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
       styleOverrides: { paper: { backgroundColor: drawerBg, borderRight: '1px solid hsl(var(--sidebar-border))' } },
     },
     MuiDialog: {
-      styleOverrides: { paper: { backgroundImage: cardBg, border: `1px solid ${border}` } },
+      styleOverrides: {
+        root: { zIndex: 10010 },
+        paper: { backgroundImage: cardBg, border: `1px solid ${border}` },
+      },
     },
     MuiMenu: {
-      styleOverrides: { paper: { backgroundImage: cardBg, border: `1px solid ${border}` } },
+      styleOverrides: {
+        root: { zIndex: 10020 },
+        paper: { backgroundImage: cardBg, border: `1px solid ${border}` },
+      },
     },
     MuiPopover: {
-      styleOverrides: { paper: { backgroundImage: cardBg, border: `1px solid ${border}` } },
+      styleOverrides: {
+        root: { zIndex: 10020 },
+        paper: { backgroundImage: cardBg, border: `1px solid ${border}` },
+      },
+    },
+    MuiAutocomplete: {
+      defaultProps: { slotProps: { popper: { sx: { zIndex: 10020 } } } },
     },
     MuiTableCell: {
       styleOverrides: {
@@ -107,7 +119,7 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
         // that owns the trigger. Bumping the popper z-index here fixes
         // every tooltip globally without per-call overrides.
         slotProps: {
-          popper: { sx: { zIndex: 10000 } },
+          popper: { sx: { zIndex: 10030 } },
         },
       },
       styleOverrides: {
