@@ -2479,6 +2479,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [viewMode]);
 
   const [attachedImages, setAttachedImages] = useState<{ dataUrl: string; name: string }[]>([]);
+  // Attachments always force the multiline layout so the attachment chips can
+  // live on the bottom bar next to the Skills chip.
+  const promptMultiline = promptMultilineBase || attachedImages.length > 0;
+  const promptSingleLineLocked = !promptMultiline;
   const [nowTick, setNowTick] = useState(() => Math.floor(Date.now() / 1000));
   // Local fallback start timestamp captured the moment we first see an
   // execution_id, so the "Agent is working… Xs" counter starts ticking
