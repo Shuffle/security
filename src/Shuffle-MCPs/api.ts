@@ -23,7 +23,7 @@ const PROD_BACKEND = 'https://shuffler.io';
 export const SHUFFLE_AUTOMATION_URL = 'https://shuffler.io/new-dashboard';
 
 // Known cloud domains that should always use shuffler.io as the default backend
-const CLOUD_DOMAINS = ['security.shuffler.io', 'shutdown.no'];
+const CLOUD_DOMAINS = ['security.shuffler.io', 'shuffle.security', 'www.shuffle.security', 'shutdown.no', 'www.shutdown.no'];
 
 // Safely read Vite-style env vars without depending on `vite/client` types
 // (the published library should not require Vite to be installed).
