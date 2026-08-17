@@ -25,11 +25,13 @@ import {
   type AgentPrivilege,
 } from './hostActionDefinitions';
 import { ActionOutputView } from './ActionOutputView';
+import { HostNameDisplay } from '@/components/monitors/HostNameDisplay';
 import {
   type ActionDebugEntry,
   type useHostActions,
   isOutputTruncated,
 } from '@/hooks/useHostActions';
+
 
 export type HostTerminalSize = 'compact' | 'comfortable';
 
