@@ -5784,20 +5784,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 const topStatus = String(execution?.status || agentData?.status || '').toUpperCase();
                 const topRunning = !!(execution?.execution_id || agentRequestLoading) && !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(topStatus);
                 return topRunning ? (
-                  <Tooltip title={execution?.execution_id ? 'Abort this execution' : 'Cancel and return to Start'}>
+                  <Tooltip title={abortLoading ? 'Aborting…' : execution?.execution_id ? 'Abort this execution' : 'Cancel and return to Start'}>
                     <span>
                       <IconButton
                         size="small"
+                        disabled={abortLoading}
                         onClick={abortAgent}
                         sx={{
                           color: 'hsl(var(--muted-foreground))',
                           '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted))' },
                         }}
                       >
-                        <StopCircleIcon size={18} />
+                        {abortLoading ? <CircularProgress size={16} sx={{ color: 'hsl(var(--destructive))' }} /> : <StopCircleIcon size={18} />}
                       </IconButton>
                     </span>
                   </Tooltip>
+
                 ) : null;
               })()}
               <Tooltip title={rerunAgentPending ? 'Rerun starting…' : 'Rerun with the same prompt and tools'}>
