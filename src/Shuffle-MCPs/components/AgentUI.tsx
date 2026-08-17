@@ -5096,16 +5096,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 maxRows={6}
                 fullWidth
                 value={actionInput}
-                onChange={(e) => setActionInput(e.target.value)}
+                onChange={(e) => {
+                  const nextValue = e.target.value;
+                  setActionInput(nextValue);
+                  if (nextValue.length === 0) {
+                    setPromptSingleLine(true);
+                    setInputScrolled(false);
+                    setInputScrollTop(0);
+                    applyChipScroll(0);
+                  }
+                }}
                 onBlur={(e) => {
                   const node = e.target as HTMLTextAreaElement;
                   const lh = parseFloat(window.getComputedStyle(node).lineHeight || '0') || 20;
                   if ((node.value || '').length === 0 || node.scrollHeight <= lh * 1.6) {
-                    // MUI TextareaAutosize can retain its previous inline height
-                    // after a multiline → single-line transition on blur.
                     setPromptSingleLine(true);
                     node.scrollTop = 0;
-                    node.style.height = '';
                     setInputScrolled(false);
                     setInputScrollTop(0);
                     applyChipScroll(0);
@@ -5152,9 +5158,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     pt: '5px',
                     pb: '6px',
                     lineHeight: 1.5,
-                    // Override a stale inline height left by TextareaAutosize
-                    // after the field loses focus in its single-line state.
-                    height: promptMultiline ? 'auto' : '33px !important',
                     // Only line 1 is indented for the skill chip while the
                     // prompt is a single line. Once it wraps, the chip drops to
                     // its own bottom row so the indent is removed.
