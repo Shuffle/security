@@ -217,9 +217,9 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
         bgcolor: selectedPreset ? 'hsl(var(--primary) / 0.08)' : 'transparent',
         flexShrink: 0,
         '&:hover': {
-          bgcolor: selectedPreset ? 'hsl(var(--primary) / 0.12)' : 'hsl(var(--muted))',
-          color: selectedPreset ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
-          borderColor: 'hsl(var(--primary))',
+          bgcolor: 'hsl(var(--muted))',
+          color: 'hsl(var(--foreground))',
+          borderColor: 'hsl(var(--border))',
         },
       }}
     >
