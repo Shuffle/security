@@ -5161,7 +5161,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   // wrap down to their own bottom row.
                   flex: promptMultiline ? '1 0 100%' : '1 1 auto',
                   minWidth: 0,
-                    ...(promptSingleLine ? {
+                    ...(promptSingleLineLocked ? {
                       height: '33px',
                       minHeight: '33px',
                       maxHeight: '33px',
@@ -5176,7 +5176,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     // its own bottom row so the indent is removed.
                     textIndent: (!hidePresets && !promptMultiline) ? `${(presetsChipWidth || 96) + 6}px` : 0,
                     transition: 'text-indent 180ms cubic-bezier(0.4, 0, 0.2, 1)',
-                     ...(promptSingleLine ? {
+                     ...(promptSingleLineLocked ? {
                        height: '33px !important',
                        minHeight: '33px !important',
                        maxHeight: '33px !important',
@@ -5290,7 +5290,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 alignItems: 'center',
                 gap: 1,
                 ml: 'auto',
-                mr: '-7px',
+                mr: '-8px',
                 flexShrink: 0,
                 // Slide down into the bottom bar when expanding, and back up when collapsing.
                 animation: promptMultiline
