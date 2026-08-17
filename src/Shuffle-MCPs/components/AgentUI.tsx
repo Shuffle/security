@@ -5026,7 +5026,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: 0.5,
-              borderRadius: attachedImages.length > 0 ? 4 : (promptSingleLine ? '999px' : '18px'),
+              // Keep the same radius in both states so growing to multiple
+              // lines does not visually snap from a pill to a boxy card.
+              borderRadius: attachedImages.length > 0 ? 4 : '22px',
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               px: 2.25,
