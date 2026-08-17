@@ -432,8 +432,6 @@ interface RunFinishedSummaryProps {
   finishAnswer: string;
   /** Secondary line (the finish decision's `reason`) shown under the answer. */
   finishNote?: string;
-  /** Raw decision strings that were not present in the rendered output — parser failures. */
-  decisionStringWarnings?: string[];
   raw: boolean;
   onToggleRaw: () => void;
   decisionCount?: number;
@@ -448,7 +446,6 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
   isRunning,
   finishAnswer,
   finishNote,
-  decisionStringWarnings,
   raw,
   onToggleRaw,
   decisionCount,
@@ -570,50 +567,6 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
         >
           {finishNote}
         </Typography>
-      )}
-
-      {decisionStringWarnings && decisionStringWarnings.length > 0 && !raw && (
-        <Box
-          sx={{
-            mt: 1.5,
-            p: 1.5,
-            borderRadius: 1,
-            border: '1px solid hsla(var(--severity-medium) / 0.3)',
-            bgcolor: 'hsla(var(--severity-medium) / 0.08)',
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              color: 'hsl(var(--severity-medium))',
-              mb: 1,
-            }}
-          >
-            Failed decision, Shuffle team notified. Please contact support@shuffler.io if this persists.
-          </Typography>
-          {decisionStringWarnings.map((text, i) => (
-            <Box
-              key={i}
-              component="pre"
-              sx={{
-                m: 0,
-                p: 1,
-                borderRadius: 0.5,
-                bgcolor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                fontSize: '0.72rem',
-                fontFamily: '"JetBrains Mono", ui-monospace, monospace',
-                color: 'hsl(var(--foreground))',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                mb: i < decisionStringWarnings.length - 1 ? 1 : 0,
-              }}
-            >
-              {text}
-            </Box>
-          ))}
-        </Box>
       )}
 
     </>
@@ -3817,7 +3770,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Build timeline ──
 
-  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote, decisionStringWarnings } = useMemo(() => {
+  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote } = useMemo(() => {
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
       const n = Number(t) || 0;
@@ -3958,36 +3911,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (finishNote && finishNote === finishAns) finishNote = '';
     }
 
-    // If a *failed* decision exposes a `decision_string`, the parser could not
-    // turn it into a structured decision. Surface it as a debug warning when the
-    // raw decision text is not already present in the rendered output. Valid,
-    // successful decisions may also carry a decision_string — never warn there.
-    const decisionStringWarnings: string[] = [];
-    const outputForCompare = (finishAns || '').trim();
-    const isFailedStatus = (s: any) => {
-      const v = String(s || '').toUpperCase();
-      return v === 'FAILED' || v === 'ABORTED' || v === 'ERROR';
-    };
-    const pushDecisionString = (ds: any, failed: boolean) => {
-      if (!failed) return;
-      if (ds == null || ds === '') return;
-      const dsText = typeof ds === 'string' ? ds.trim() : JSON.stringify(ds);
-      if (!dsText) return;
-      if (outputForCompare.includes(dsText)) return;
-      if (decisionStringWarnings.includes(dsText)) return;
-      decisionStringWarnings.push(dsText);
-    };
-    // Top-level (run object) decision_string, e.g. sibling of `decisions`.
-    const runFailed = isFailedStatus((agentData as any)?.status);
-    pushDecisionString((agentData as any)?.decision_string, runFailed);
-    for (const d of (agentData?.decisions || []) as any[]) {
-      const decFailed = isFailedStatus(d?.status) || isFailedStatus((d as any)?.run_details?.status);
-      pushDecisionString(d?.decision_string, decFailed);
-      pushDecisionString((d as any)?.run_details?.decision_string, decFailed);
-    }
-
-
-
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
     // else preserves insertion order (the index `i` from the decisions array).
     // Timestamps are intentionally NOT used — they're often missing or 0,
@@ -4091,7 +4014,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const end = items.reduce((acc, it) => Math.max(acc, it.end_time || acc), 0);
     const startSafe = start === Infinity ? 0 : start;
     const total = Math.max(1, end - startSafe);
-    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote, decisionStringWarnings };
+    return { timeline: items, originalStartTime: startSafe, totalDuration: total, finishDecisionId: finishId, finishAnswer: finishAns, finishNote };
   }, [agentData, execution?.status, execution?.started_at, execution?.completed_at, runStillExecuting, liveNowSec]);
 
   // Mark the run complete once it is terminal and a final answer has landed,
@@ -6135,7 +6058,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         isRunning={isRunning}
                         finishAnswer={finishAnswer}
                         finishNote={finishNote}
-                        decisionStringWarnings={decisionStringWarnings}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                         decisionCount={decisionCount}
@@ -6423,7 +6345,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         isRunning={false}
                         finishAnswer={finishAnswer}
                         finishNote={finishNote}
-                        decisionStringWarnings={decisionStringWarnings}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
                       >
