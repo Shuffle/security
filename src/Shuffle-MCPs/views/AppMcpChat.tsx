@@ -4,7 +4,9 @@ import {
   CheckCircle as CheckCircleOutlineIcon,
   AlertCircle as ErrorOutlineIcon,
   Play as PlayArrowRoundedIcon,
-  RotateCcw as RestartAltIcon
+  RotateCcw as RestartAltIcon,
+  Bug as BugIcon
+
 } from 'lucide-react';
 import {
   Box,
@@ -187,6 +189,8 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
   const [query, setQuery] = useState('');
   const [result, setResult] = useState('');
   const [isError, setIsError] = useState(false);
+  const [executionId, setExecutionId] = useState('');
+  const [executionAuth, setExecutionAuth] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const suggestions = useMemo(() => getSuggestions(appName, categories), [appName, categories]);
@@ -201,6 +205,9 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
     setRunState('running');
     setResult('');
     setIsError(false);
+    setExecutionId('');
+    setExecutionAuth('');
+
 
     try {
       const response = await fetch(
@@ -244,38 +251,40 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
         const data = JSON.parse(rawText);
         let content = '';
 
+        // Find the execution reference so the full debug output can be opened
+        // in the shared execution drawer instead of being dumped inline.
+        const findExecution = (node: unknown, depth = 0): void => {
+          if (!node || typeof node !== 'object' || depth > 5) return;
+          const obj = node as Record<string, unknown>;
+          const execId = obj.execution_id || obj.executionId;
+          if (typeof execId === 'string' && execId) {
+            setExecutionId(execId);
+            if (typeof obj.authorization === 'string') setExecutionAuth(obj.authorization);
+            return;
+          }
+          Object.values(obj).forEach((v) => findExecution(v, depth + 1));
+        };
+        findExecution(data);
+
         if (typeof data === 'string') {
           content = data;
         } else if (data?.result) {
-          // Extract message if result is an object with a message field
           if (typeof data.result === 'object' && data.result !== null) {
-            if (data.result.message) {
-              content = data.result.message;
-            }
-            // Append remaining fields as context if there's more than just message
-            const rest = { ...data.result };
-            delete rest.message;
-            if (Object.keys(rest).length > 0) {
-              const extra = JSON.stringify(rest, null, 2);
-              content = content
-                ? `${content}\n\n\`\`\`json\n${extra}\n\`\`\``
-                : `\`\`\`json\n${extra}\n\`\`\``;
-            }
+            // Only surface human readable output — debug data lives in the drawer
+            content = String(data.result.message || data.result.output || data.result.result || '');
           } else {
             content = String(data.result);
           }
-        } else if (data?.response) {
-          content = typeof data.response === 'string' ? data.response : JSON.stringify(data.response, null, 2);
-        } else if (data?.message) {
+        } else if (typeof data?.response === 'string') {
+          content = data.response;
+        } else if (typeof data?.message === 'string') {
           content = data.message;
-        } else {
-          content = `\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
         }
 
         if (content) {
           setResult(content);
         } else {
-          setResult('No output returned.');
+          setResult('The run completed without a text response. Open the debug view for the full output.');
         }
       }
     } catch (err) {
@@ -286,13 +295,26 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
     }
   };
 
+  const openDebug = () => {
+    if (!executionId) return;
+    window.dispatchEvent(
+      new CustomEvent('workflow-run:open', {
+        cancelable: true,
+        detail: { executionId, authorization: executionAuth || undefined },
+      }),
+    );
+  };
+
   const reset = () => {
     setRunState('idle');
     setQuery('');
     setResult('');
     setIsError(false);
     setInput('');
+    setExecutionId('');
+    setExecutionAuth('');
     setTimeout(() => inputRef.current?.focus(), 50);
+
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -538,26 +560,51 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
                     {isError ? 'Failed' : 'Completed'}
                   </Typography>
                 </Box>
-                <Chip
-                  icon={<RestartAltIcon size={14} />}
-                  label="Run again"
-                  size="small"
-                  onClick={reset}
-                  sx={{
-                    height: 26,
-                    fontSize: '0.7rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    backgroundColor: 'transparent',
-                    color: 'hsl(var(--muted-foreground))',
-                    border: '1px solid hsl(var(--border))',
-                    transition: 'all 0.15s ease',
-                    '&:hover': {
-                      backgroundColor: 'hsl(var(--muted))',
-                      color: 'hsl(var(--foreground))',
-                    },
-                  }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  {executionId && (
+                    <Chip
+                      icon={<BugIcon size={14} />}
+                      label="Debug"
+                      size="small"
+                      onClick={openDebug}
+                      sx={{
+                        height: 26,
+                        fontSize: '0.7rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        backgroundColor: 'transparent',
+                        color: 'hsl(var(--muted-foreground))',
+                        border: '1px solid hsl(var(--border))',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          backgroundColor: 'hsl(var(--muted))',
+                          color: 'hsl(var(--foreground))',
+                        },
+                      }}
+                    />
+                  )}
+                  <Chip
+                    icon={<RestartAltIcon size={14} />}
+                    label="Run again"
+                    size="small"
+                    onClick={reset}
+                    sx={{
+                      height: 26,
+                      fontSize: '0.7rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      color: 'hsl(var(--muted-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        backgroundColor: 'hsl(var(--muted))',
+                        color: 'hsl(var(--foreground))',
+                      },
+                    }}
+                  />
+                </Box>
+
               </Box>
 
               {/* Query echo */}
