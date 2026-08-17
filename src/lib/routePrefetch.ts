@@ -53,12 +53,20 @@ export const prefetchRoute = (path?: string | null) => {
 /**
  * Warm the most-used dashboard chunks.
  *
- * We assume every session ends up on /incidents and then on /incidents/:id,
- * so these two are fetched immediately (not on idle) — waiting for an idle
- * callback is exactly what made the first navigation stall before the
- * skeleton could paint.
+ * Scheduled on idle (with a short timeout fallback) so downloading and
+ * parsing those large chunks never competes with the page the user is
+ * actually looking at — eager prefetching made heavy pages such as /agents
+ * feel blocked while they mounted.
  */
 export const prefetchCommonRoutes = () => {
-  run('/incidents');
-  run('/incidents/:id');
+  const warm = () => {
+    run('/incidents');
+    run('/incidents/:id');
+  };
+  const ric = (window as any).requestIdleCallback as
+    | ((cb: () => void, opts?: { timeout: number }) => number)
+    | undefined;
+  if (typeof ric === 'function') ric(warm, { timeout: 3000 });
+  else window.setTimeout(warm, 1500);
 };
+
