@@ -1510,8 +1510,14 @@ const AgentActivityList = ({
               sx={rowSx}
               appIcons={appIcons}
               onAppClick={(app) => setAppDrawer(app)}
+              apiKey={apiKey}
+              apiBaseUrl={apiBaseUrl}
+              orgId={orgId}
+              abortingIds={abortingIds}
+              onAbort={handleAbort}
             />
           ))}
+
           {hasMore && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
               <Button
