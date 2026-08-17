@@ -5340,6 +5340,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </span>
               </Tooltip>
               </Box>
+              </Box>
+
             </Box>
             <Popper
               open={suggestionsOpen}
