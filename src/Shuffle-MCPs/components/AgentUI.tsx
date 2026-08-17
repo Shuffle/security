@@ -5183,14 +5183,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       to: { transform: 'translateY(0)', opacity: 1 },
                     },
                   } : {
-                    position: 'absolute', left: '-5px', top: '50%',
+                    position: 'absolute', left: '-5px', top: '6px',
                     height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                     // The chip scrolls together with the textarea content so text
                     // never runs underneath it while scrolling. The transform is
                     // updated imperatively on scroll so it stays in lockstep with
                     // the text instead of lagging a render behind.
                     willChange: 'transform',
-                    transform: `translateY(calc(-50% - ${inputScrollTop}px))`,
+                    transform: `translateY(${-inputScrollTop}px)`,
                     opacity: inputScrollTop > 24 ? 0 : 1,
                     pointerEvents: inputScrollTop > 4 ? 'none' : 'auto',
                   }}
