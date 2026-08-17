@@ -54,6 +54,7 @@ import {
   listAgentScheduleWorkflows,
   getAgentScheduleConfig,
   stopAgentSchedule,
+  abortAgentExecution,
   type AgentRun,
   type AgentDecision,
   type AgentScheduleWorkflow,
@@ -62,7 +63,9 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
+import { toast } from '@/Shuffle-MCPs/toast';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
+
 import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 import AppDetailDrawer from '@/Shuffle-MCPs/views/AppDetailDrawer';
