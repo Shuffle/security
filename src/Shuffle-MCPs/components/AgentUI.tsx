@@ -432,8 +432,6 @@ interface RunFinishedSummaryProps {
   finishAnswer: string;
   /** Secondary line (the finish decision's `reason`) shown under the answer. */
   finishNote?: string;
-  /** Raw decision strings that were not present in the rendered output — parser failures. */
-  decisionStringWarnings?: string[];
   raw: boolean;
   onToggleRaw: () => void;
   decisionCount?: number;
@@ -448,7 +446,6 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
   isRunning,
   finishAnswer,
   finishNote,
-  decisionStringWarnings,
   raw,
   onToggleRaw,
   decisionCount,
@@ -570,50 +567,6 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
         >
           {finishNote}
         </Typography>
-      )}
-
-      {decisionStringWarnings && decisionStringWarnings.length > 0 && !raw && (
-        <Box
-          sx={{
-            mt: 1.5,
-            p: 1.5,
-            borderRadius: 1,
-            border: '1px solid hsla(var(--severity-medium) / 0.3)',
-            bgcolor: 'hsla(var(--severity-medium) / 0.08)',
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              color: 'hsl(var(--severity-medium))',
-              mb: 1,
-            }}
-          >
-            Failed decision, Shuffle team notified. Please contact support@shuffler.io if this persists.
-          </Typography>
-          {decisionStringWarnings.map((text, i) => (
-            <Box
-              key={i}
-              component="pre"
-              sx={{
-                m: 0,
-                p: 1,
-                borderRadius: 0.5,
-                bgcolor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                fontSize: '0.72rem',
-                fontFamily: '"JetBrains Mono", ui-monospace, monospace',
-                color: 'hsl(var(--foreground))',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                mb: i < decisionStringWarnings.length - 1 ? 1 : 0,
-              }}
-            >
-              {text}
-            </Box>
-          ))}
-        </Box>
       )}
 
     </>
