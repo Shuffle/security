@@ -162,9 +162,9 @@ export interface AgentPresetsProps {
 }
 
 
-export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport, disabled }: AgentPresetsProps) => {
+export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl) && !disabled;
+  const open = Boolean(anchorEl);
   // Support status hydrates asynchronously (/getinfo), so re-read it when the
   // dropdown opens and when storage changes instead of only on first mount.
   const [supportTick, setSupportTick] = useState(0);
