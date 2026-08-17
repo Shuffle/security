@@ -5061,9 +5061,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
               // dimensions so TextareaAutosize cannot retain a stale
               // multiline inline height after Skill/focus changes.
               ...(promptSingleLine && attachedImages.length === 0 ? {
-                height: '55px',
-                minHeight: '55px',
-                maxHeight: '55px',
+                height: '52px',
+                minHeight: '52px',
+                maxHeight: '52px',
                 boxSizing: 'border-box',
               } : {}),
 
@@ -5106,9 +5106,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 width: '100%',
                 position: 'relative',
                 ...(promptSingleLine ? {
-                  height: '36px',
-                  minHeight: '36px',
-                  maxHeight: '36px',
+                  height: '33px',
+                  minHeight: '33px',
+                  maxHeight: '33px',
                 } : {}),
               }}>
 
@@ -5178,11 +5178,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   // wrap down to their own bottom row.
                   flex: promptMultiline ? '1 0 100%' : '1 1 auto',
                   minWidth: 0,
-                   ...(promptSingleLine ? {
-                     height: '36px',
-                     minHeight: '36px',
-                     maxHeight: '36px',
-                   } : {}),
+                    ...(promptSingleLine ? {
+                      height: '33px',
+                      minHeight: '33px',
+                      maxHeight: '33px',
+                    } : {}),
 
                   '& .MuiInputBase-input': {
                     pt: '5px',
