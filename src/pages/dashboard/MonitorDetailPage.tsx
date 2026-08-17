@@ -54,7 +54,8 @@ const MonitorDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
-  usePageMeta({ title: host ? `${host.hostname} — Monitor` : 'Monitor Detail', description: 'Host monitor detail view' });
+  usePageMeta({ title: host ? `${displayHostname(host.hostname)} — Monitor` : 'Monitor Detail', description: 'Host monitor detail view' });
+
 
   const fetchHost = useCallback(async () => {
     setLoading(true);
