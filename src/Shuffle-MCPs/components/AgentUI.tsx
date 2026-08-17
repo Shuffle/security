@@ -2143,8 +2143,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const el = inputRef.current as unknown as HTMLTextAreaElement | null;
     if (!el) { setPromptSingleLine(true); return; }
     const measure = () => {
-      const lh = parseFloat(window.getComputedStyle(el).lineHeight || '0') || 20;
-      const single = el.scrollHeight <= lh * 1.6;
+      const node = inputRef.current as unknown as HTMLTextAreaElement | null;
+      if (!node) return;
+      const lh = parseFloat(window.getComputedStyle(node).lineHeight || '0') || 20;
+      // An empty prompt is ALWAYS single line, regardless of any stale
+      // scrollHeight the browser may still report after the text was cleared.
+      const single = (node.value || '').length === 0 || node.scrollHeight <= lh * 1.6;
       setPromptSingleLine((prev) => {
         if (prev === single) return prev;
         // Switching between one and multiple lines can leave the caret painted
@@ -2153,18 +2157,29 @@ const AgentUI: React.FC<AgentUIProps> = ({
         // reflow in BOTH directions and puts the caret back where the glyphs
         // actually are.
         requestAnimationFrame(() => {
-          const cs = window.getComputedStyle(el);
+          const cs = window.getComputedStyle(node);
           const base = parseFloat(cs.textIndent || '0') || 0;
-          el.style.textIndent = `${base + 0.01}px`;
-          void el.offsetHeight;
-          el.style.textIndent = '';
+          node.style.textIndent = `${base + 0.01}px`;
+          void node.offsetHeight;
+          node.style.textIndent = '';
         });
         return single;
       });
 
     };
     const raf = requestAnimationFrame(measure);
-    return () => cancelAnimationFrame(raf);
+    // The textarea can also shrink without a value change (window resize,
+    // chip width change, drawer resize). Re-measure whenever its box changes
+    // so we never get stuck in the multiline layout.
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => measure());
+      ro.observe(el);
+    }
+    return () => {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+    };
   }, [actionInput]);
 
 
