@@ -3643,6 +3643,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
   }, [execution, resolveUrl, resolveHeaders, getExecution, setSearchParams]);
 
+  // Remember the run currently open so the activity list can highlight it
+  // once the user navigates back.
+  useEffect(() => {
+    if (execution?.execution_id) setLastOpenedAgentRun(execution.execution_id);
+  }, [execution?.execution_id]);
+
+
+
 
 
   // Build a popout URL to answer the agent's question in the standalone Form UI.
