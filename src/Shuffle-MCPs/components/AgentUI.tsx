@@ -5137,9 +5137,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   minWidth: 0,
 
                   '& .MuiInputBase-input': {
-                    pt: '5px',
+                    pt: '4px',
                     pb: 0,
-                    lineHeight: 1.55,
+                    lineHeight: 1.5,
                     // Only line 1 is indented for the skill chip while the
                     // prompt is a single line. Once it wraps, the chip drops to
                     // its own bottom row so the indent is removed.
