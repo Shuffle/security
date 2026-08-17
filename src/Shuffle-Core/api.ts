@@ -19,7 +19,7 @@ installFetchBreaker();
 const DEV_BACKEND = 'https://tunnel.schemaless.org';
 const PROD_BACKEND = 'https://shuffler.io';
 
-const CLOUD_DOMAINS = ['security.shuffler.io', 'shutdown.no'];
+const CLOUD_DOMAINS = ['security.shuffler.io', 'shuffle.security', 'www.shuffle.security', 'shutdown.no', 'www.shutdown.no'];
 
 const getEnvVar = (key: string): string | undefined => {
   // Indirect access via `new Function` keeps `import.meta` out of the emitted

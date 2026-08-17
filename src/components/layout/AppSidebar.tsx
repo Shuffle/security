@@ -435,7 +435,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             component="a"
             href={(() => {
               const hostname = window.location.hostname;
-              const isManagedHost = hostname.includes('lovable') || hostname.includes('shuffler.io') || hostname.includes('shutdown.no');
+              const isManagedHost = hostname.includes('lovable') || hostname.includes('shuffler.io') || hostname.includes('shutdown.no') || hostname.includes('shuffle.security');
               return isManagedHost
                 ? SHUFFLE_AUTOMATION_URL
                 : `${window.location.protocol}//${hostname}:3001`;
