@@ -2168,6 +2168,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
     };
     const raf = requestAnimationFrame(measure);
+    // Selecting/removing a Skill changes the first-line indent, which can wrap
+    // (or unwrap) the text without the value changing. MUI's TextareaAutosize
+    // only recomputes on value change or window resize, so nudge it explicitly
+    // and re-measure afterwards — otherwise the box keeps its stale height.
+    const nudge = requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+      requestAnimationFrame(measure);
+    });
     // A ResizeObserver here can feed back into MUI TextareaAutosize while the
     // textarea is shrinking and leave its old multiline height behind. Value
     // changes already re-run this effect; window resizes are the only external
@@ -2176,9 +2184,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
     window.addEventListener('resize', handleResize);
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(nudge);
       window.removeEventListener('resize', handleResize);
     };
-  }, [actionInput]);
+  }, [actionInput, presetsChipWidth, selectedPreset, hidePresets]);
+
 
 
 
