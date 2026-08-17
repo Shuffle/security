@@ -234,7 +234,12 @@ const AgentExecutionDrawer = ({
       {/* Body — embedded AgentUI seeded with the pre-loaded run */}
       <Box sx={[{ flex: 1, overflowY: 'auto', pt: 3 }, ...(Array.isArray(bodySx) ? bodySx : bodySx ? [bodySx] : [])]}>
         {topBanner}
-        {run ? (
+        {run && !bodyReady ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress size={20} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+          </Box>
+        ) : null}
+        {run && bodyReady ? (
           <AgentUI
             key={run.execution_id}
             initialExecution={{
