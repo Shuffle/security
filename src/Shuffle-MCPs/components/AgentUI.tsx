@@ -2013,9 +2013,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // opening the drawer does not wait on unrelated network requests.
   const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId, persist: !disableStartTab });
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
-  // When a prompt-autocomplete text template is selected, the prompt itself is
-  // treated as the "skill" — so the Skills selector is disabled.
-  const [textTemplateSelected, setTextTemplateSelected] = useState(false);
   const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
 
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
@@ -2339,9 +2336,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
     setSuggestionIndex(-1);
     setSuggestionsDismissed(false);
-    if (!actionInput.trim()) {
-      setTextTemplateSelected(false);
-    }
   }, [actionInput]);
 
   const suggestionsOpen = promptSuggestions.length > 0 && !suggestionsDismissed;
@@ -2352,9 +2346,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
-    // A text template from the prompt list acts as its own skill; disable the
-    // Skills selector and clear any previously selected skill.
-    setTextTemplateSelected(true);
+    // A text template from the prompt list acts as its own skill, so clear
+    // any explicitly selected skill. The user is free to pick a skill again.
     setSelectedPreset(null);
     try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
     // Replace the current selection with exactly the apps this suggestion
@@ -5313,7 +5306,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     chipRef={presetsChipRef}
                     presets={presets}
                     isSupport={isSupport}
-                    disabled={textTemplateSelected}
                     selectedPreset={selectedPreset}
                     onRemoveSelected={() => {
 
@@ -5322,7 +5314,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     }}
                     onSelectPreset={(preset) => {
                       try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
-                      setTextTemplateSelected(false);
                       // Seed the tool set from the template — unless the user has
                       // previously customised the tools for this template, in
                       // which case their own selection wins.
