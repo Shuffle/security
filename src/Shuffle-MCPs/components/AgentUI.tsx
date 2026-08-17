@@ -2257,6 +2257,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // the available room for the placeholder on line 1).
   }, [shouldTypewrite, presetsChipWidth, hidePresets]);
 
+  // Typewriter placeholder. The animation writes straight to the DOM node
+  // instead of going through React state: a setState every 22ms re-rendered
+  // this entire (very large) component ~45 times per second on mount, which
+  // is what made the page feel blocked while it loaded.
   const [typedPlaceholder, setTypedPlaceholder] = useState(
     shouldTypewrite ? '' : fullPlaceholder,
   );
@@ -2265,15 +2269,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setTypedPlaceholder(fullPlaceholder);
       return;
     }
+    const el = inputRef.current as unknown as HTMLTextAreaElement | null;
+    if (!el) {
+      setTypedPlaceholder(fullPlaceholder);
+      return;
+    }
     setTypedPlaceholder('');
+    el.placeholder = '';
     let i = 0;
     const id = window.setInterval(() => {
       i += 1;
-      setTypedPlaceholder(fullPlaceholder.slice(0, i));
-      if (i >= fullPlaceholder.length) window.clearInterval(id);
+      el.placeholder = fullPlaceholder.slice(0, i);
+      if (i >= fullPlaceholder.length) {
+        window.clearInterval(id);
+        // Sync React state once at the end so re-renders keep the full text.
+        setTypedPlaceholder(fullPlaceholder);
+      }
     }, 22);
     return () => window.clearInterval(id);
   }, [fullPlaceholder, shouldTypewrite]);
+
 
   const activePromptPrefix = savedPromptPrefix;
   // Send exactly what the user typed — no prefix, no auto-generated
@@ -2554,13 +2569,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Tick every second while anything run-related is in flight. Deps are
   // intentionally minimal so the interval is NOT torn down and recreated on
   // every poll response — that was making the "Xs" counter look frozen at 1s.
+  // Only ticks when a run actually exists: on the idle start page there is
+  // nothing to count, and a permanent 1s setState re-rendered this whole
+  // (very large) component every second, which made /agents feel laggy.
   useEffect(() => {
+    if (!execution?.execution_id && !agentRequestLoading) return;
     const status = (execution?.status || agentData?.status || '').toUpperCase();
     const TERMINAL = ['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'];
     if (TERMINAL.includes(status)) return;
     const id = setInterval(() => setNowTick(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(id);
-  }, [execution?.status, agentData?.status]);
+  }, [execution?.execution_id, execution?.status, agentData?.status, agentRequestLoading]);
+
 
 
   const readImageAsDataUrl = (file: File): Promise<{ dataUrl: string; name: string } | null> =>
@@ -3769,10 +3789,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [agentData?.decisions, rerunningDecisionId]);
 
   // Ticking clock so the trailing live "Processing" row keeps counting while
-  // the run is still executing.
-  const runStillExecuting = !TERMINAL_RUN_STATUSES.includes(
-    resolveRunStatus(execution?.status, agentData?.status)
-  );
+  // the run is still executing. Gated on an actual run existing — without a
+  // run there is nothing to count and the tick would re-render this whole
+  // component once per second on the idle start page.
+  const runStillExecuting = Boolean(execution?.execution_id || agentRequestLoading)
+    && !TERMINAL_RUN_STATUSES.includes(
+      resolveRunStatus(execution?.status, agentData?.status)
+    );
   const [liveNowSec, setLiveNowSec] = useState(() => Date.now() / 1000);
   useEffect(() => {
     if (!runStillExecuting) return;
@@ -3780,6 +3803,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const t = setInterval(() => setLiveNowSec(Date.now() / 1000), 1000);
     return () => clearInterval(t);
   }, [runStillExecuting]);
+
 
   // ── Build timeline ──
 
