@@ -5140,16 +5140,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   ref={chipOverlayRef}
                   data-static={promptMultiline ? '1' : '0'}
                   sx={promptMultiline ? {
-                    // Multiline: the skill chip lives in the bottom-left corner
-                    // of the input, on the same row as the action buttons.
+                    // Multiline: the skill chip drops down into its own bottom
+                    // bar, pinned to the bottom-left next to the action buttons.
                     position: 'static',
                     ml: '-1px',
-                    mr: 'auto',
                     display: 'flex',
                     alignItems: 'center',
+                    flexShrink: 0,
                     transform: 'none',
                     opacity: 1,
                     pointerEvents: 'auto',
+                    transition: 'transform 180ms ease, opacity 180ms ease',
+                    animation: 'agentSkillChipDrop 180ms ease',
+                    '@keyframes agentSkillChipDrop': {
+                      from: { transform: 'translateY(-8px)', opacity: 0.4 },
+                      to: { transform: 'translateY(0)', opacity: 1 },
+                    },
                   } : {
                     position: 'absolute', left: '-1px', top: '5px',
                     height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
@@ -5162,6 +5168,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     opacity: inputScrollTop > 24 ? 0 : 1,
                     pointerEvents: inputScrollTop > 4 ? 'none' : 'auto',
                   }}
+
                 >
                   <AgentPresets
                     variant="floating"
