@@ -3774,10 +3774,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [agentData?.decisions, rerunningDecisionId]);
 
   // Ticking clock so the trailing live "Processing" row keeps counting while
-  // the run is still executing.
-  const runStillExecuting = !TERMINAL_RUN_STATUSES.includes(
-    resolveRunStatus(execution?.status, agentData?.status)
-  );
+  // the run is still executing. Gated on an actual run existing — without a
+  // run there is nothing to count and the tick would re-render this whole
+  // component once per second on the idle start page.
+  const runStillExecuting = Boolean(execution?.execution_id || agentRequestLoading)
+    && !TERMINAL_RUN_STATUSES.includes(
+      resolveRunStatus(execution?.status, agentData?.status)
+    );
   const [liveNowSec, setLiveNowSec] = useState(() => Date.now() / 1000);
   useEffect(() => {
     if (!runStillExecuting) return;
@@ -3785,6 +3788,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const t = setInterval(() => setLiveNowSec(Date.now() / 1000), 1000);
     return () => clearInterval(t);
   }, [runStillExecuting]);
+
 
   // ── Build timeline ──
 
