@@ -667,9 +667,12 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
                               <div className="px-3 py-2 border-b border-border flex items-center gap-2 shrink-0">
                                 <Terminal size={12} className="text-muted-foreground" />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold text-foreground truncate">{host.hostname}</p>
+                                  <p className="text-xs font-semibold text-foreground truncate">
+                                    <HostNameDisplay hostname={host.hostname} />
+                                  </p>
                                   <p className="text-[0.6rem] text-muted-foreground">{responseActionsMode === 'full' ? 'Full control (RCE)' : 'Controlled'}</p>
                                 </div>
+
                                 <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => navigate(`/monitors/${encodeURIComponent(hostUrlSegment(host))}/terminal`, { state: { hostname: host.hostname, groupName: host.groupName, mode: responseActionsMode || 'controlled' } })}>
                                   <Maximize2 size={10} />
                                 </Button>
