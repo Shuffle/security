@@ -2336,9 +2336,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
     setSuggestionIndex(-1);
     setSuggestionsDismissed(false);
-    if (!actionInput.trim()) {
-      setTextTemplateSelected(false);
-    }
   }, [actionInput]);
 
   const suggestionsOpen = promptSuggestions.length > 0 && !suggestionsDismissed;
