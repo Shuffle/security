@@ -57,6 +57,7 @@ import {
   Chip,
   CircularProgress,
   ClickAwayListener,
+  Dialog,
   IconButton,
   InputBase,
   MenuItem,
@@ -68,6 +69,7 @@ import {
   TextField,
   Tooltip,
   Typography,
+
 } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import {
@@ -2479,10 +2481,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [viewMode]);
 
   const [attachedImages, setAttachedImages] = useState<{ dataUrl: string; name: string }[]>([]);
+  const [previewImage, setPreviewImage] = useState<{ dataUrl: string; name: string } | null>(null);
   // Attachments always force the multiline layout so the attachment chips can
   // live on the bottom bar next to the Skills chip.
   const promptMultiline = promptMultilineBase || attachedImages.length > 0;
   const promptSingleLineLocked = !promptMultiline;
+
   const [nowTick, setNowTick] = useState(() => Math.floor(Date.now() / 1000));
   // Local fallback start timestamp captured the moment we first see an
   // execution_id, so the "Agent is working… Xs" counter starts ticking
@@ -2593,13 +2597,24 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const arr = Array.from(files);
     const nonImages = arr.some((f) => !f.type.startsWith('image/'));
     if (nonImages) setError('Only image files can be attached.');
-    const results = await Promise.all(arr.map(readImageAsDataUrl));
+    // Cap at three images total.
+    const remainingSlots = Math.max(0, 3 - attachedImages.length);
+    const limited = arr.slice(0, remainingSlots);
+    if (remainingSlots === 0) {
+      setError('You can attach a maximum of 3 images.');
+      return;
+    }
+    if (limited.length < arr.length) {
+      setError('Only the first 3 images can be attached.');
+    }
+    const results = await Promise.all(limited.map(readImageAsDataUrl));
     const valid = results.filter((r): r is { dataUrl: string; name: string } => r !== null);
     if (valid.length > 0) {
-      setAttachedImages((prev) => [...prev, ...valid]);
+      setAttachedImages((prev) => [...prev, ...valid].slice(0, 3));
       setError(null);
     }
   };
+
 
   const appsById = useMemo(() => {
     const m: Record<string, AgentUIApp> = {};
@@ -5290,12 +5305,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   {attachedImages.map((img, idx) => (
                     <Box key={`${img.name}-${idx}`} sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 0.75,
-                      height: 24, pl: 0.25, pr: 0.75, borderRadius: '999px',
+                      height: 28, pl: '6px', pr: '8px', borderRadius: '999px',
                       border: '1px solid hsl(var(--border))',
-                      bgcolor: 'hsl(var(--background))',
                       maxWidth: '100%',
                     }}>
-                      <Box component="img" src={img.dataUrl} alt={img.name} sx={{ width: 18, height: 18, borderRadius: '999px', objectFit: 'cover', flexShrink: 0 }} />
+                      <Box
+                        component="img"
+                        src={img.dataUrl}
+                        alt={img.name}
+                        onClick={() => setPreviewImage(img)}
+                        sx={{
+                          width: 18, height: 18, borderRadius: '999px', objectFit: 'cover', flexShrink: 0,
+                          cursor: 'pointer',
+                          transition: 'transform 150ms ease, opacity 150ms ease',
+                          '&:hover': { transform: 'scale(1.1)', opacity: 0.85 },
+                        }}
+                      />
                       <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--foreground))', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {img.name}
                       </Typography>
@@ -5306,6 +5331,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   ))}
                 </Box>
               )}
+
 
 
               <Box sx={{
@@ -5392,9 +5418,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
               {!hideAttach && (
               <IconButton
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={agentRequestLoading}
-                title={attachedImages.length > 0 ? `Add image (${attachedImages.length} attached)` : 'Attach image'}
+                onClick={() => {
+                  if (attachedImages.length >= 3) {
+                    setError('You can attach a maximum of 3 images.');
+                    return;
+                  }
+                  fileInputRef.current?.click();
+                }}
+                disabled={agentRequestLoading || attachedImages.length >= 3}
+                title={attachedImages.length >= 3 ? 'Maximum 3 images attached' : (attachedImages.length > 0 ? `Add image (${attachedImages.length}/3 attached)` : 'Attach image')}
                 sx={{
                   width: 32, height: 32,
                   color: attachedImages.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
@@ -5405,6 +5437,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 <AttachFileIcon size={18} />
               </IconButton>
               )}
+
               <Tooltip title={submitTooltip} placement="top" arrow>
                 <span>
                   {submitLabel ? (
@@ -6620,7 +6653,49 @@ const AgentUI: React.FC<AgentUIProps> = ({
           </Box>
         )}
 
+        {/* Image preview dialog */}
+        <Dialog
+          open={Boolean(previewImage)}
+          onClose={() => setPreviewImage(null)}
+          maxWidth="lg"
+          PaperProps={{
+            sx: {
+              bgcolor: 'hsl(var(--background))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 3,
+              p: 1,
+              maxWidth: 'min(90vw, 900px)',
+            },
+          }}
+        >
+          {previewImage && (
+            <Box sx={{ position: 'relative' }}>
+              <IconButton
+                onClick={() => setPreviewImage(null)}
+                sx={{
+                  position: 'absolute', top: 8, right: 8,
+                  bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',
+                  '&:hover': { bgcolor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))' },
+                }}
+                aria-label="Close preview"
+              >
+                <CloseIcon size={18} />
+              </IconButton>
+              <Box
+                component="img"
+                src={previewImage.dataUrl}
+                alt={previewImage.name}
+                sx={{ width: '100%', height: 'auto', maxHeight: '80vh', borderRadius: 2, display: 'block' }}
+              />
+              <Typography sx={{ mt: 1, fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
+                {previewImage.name}
+              </Typography>
+            </Box>
+          )}
+        </Dialog>
+
         <AppSearchDrawer
+
           open={appSearchOpen}
           initialQuery={appSearchQuery || undefined}
           onClose={() => { setAppSearchOpen(false); setAppSearchQuery(''); setCategoryTarget(null); }}
