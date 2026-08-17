@@ -189,8 +189,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     <Button
       ref={chipRef}
       size="small"
-      disabled={disabled}
-      onClick={(e) => !disabled && setAnchorEl(e.currentTarget)}
+      onClick={(e) => setAnchorEl(e.currentTarget)}
       startIcon={selectedPreset ? (selectedPreset.icon ?? undefined) : <Plus size={variant === 'floating' ? 12 : 14} />}
       endIcon={
         selectedPreset ? (
