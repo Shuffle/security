@@ -968,7 +968,7 @@ const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
 /** Compact live countdown text (no chip/icon) for the duration column. */
 const DurationCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) => {
   const [nowMs, setNowMs] = useState(() => Date.now());
-  useLayoutEffect(() => {
+  useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
@@ -2141,7 +2141,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // Track whether the prompt currently renders on a single line so the box can
   // stay fully pill-shaped until the text wraps.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = inputRef.current as unknown as HTMLTextAreaElement | null;
     if (!el) { setPromptSingleLine(true); return; }
     const measure = () => {
