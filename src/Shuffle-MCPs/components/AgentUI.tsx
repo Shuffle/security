@@ -2257,6 +2257,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // the available room for the placeholder on line 1).
   }, [shouldTypewrite, presetsChipWidth, hidePresets]);
 
+  // Typewriter placeholder. The animation writes straight to the DOM node
+  // instead of going through React state: a setState every 22ms re-rendered
+  // this entire (very large) component ~45 times per second on mount, which
+  // is what made the page feel blocked while it loaded.
   const [typedPlaceholder, setTypedPlaceholder] = useState(
     shouldTypewrite ? '' : fullPlaceholder,
   );
@@ -2265,15 +2269,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setTypedPlaceholder(fullPlaceholder);
       return;
     }
+    const el = inputRef.current as unknown as HTMLTextAreaElement | null;
+    if (!el) {
+      setTypedPlaceholder(fullPlaceholder);
+      return;
+    }
     setTypedPlaceholder('');
+    el.placeholder = '';
     let i = 0;
     const id = window.setInterval(() => {
       i += 1;
-      setTypedPlaceholder(fullPlaceholder.slice(0, i));
-      if (i >= fullPlaceholder.length) window.clearInterval(id);
+      el.placeholder = fullPlaceholder.slice(0, i);
+      if (i >= fullPlaceholder.length) {
+        window.clearInterval(id);
+        // Sync React state once at the end so re-renders keep the full text.
+        setTypedPlaceholder(fullPlaceholder);
+      }
     }, 22);
     return () => window.clearInterval(id);
   }, [fullPlaceholder, shouldTypewrite]);
+
 
   const activePromptPrefix = savedPromptPrefix;
   // Send exactly what the user typed — no prefix, no auto-generated
