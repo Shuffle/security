@@ -2170,10 +2170,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
             ctx.font = cs.font && cs.font.trim().length > 0
               ? cs.font
               : `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
-            // Expand before the browser reaches the physical wrap point. This
-            // keeps the next line from ever being painted underneath the
-            // overlaid Skill chip while React switches to the bottom toolbar.
-            textWraps = ctx.measureText(value).width > (firstLineWidth * 0.82);
+            // Expand well before the browser reaches the physical wrap point.
+            // On top of the ratio guard we reserve ~5 characters of slack so
+            // the switch happens while there is still visible room on line 1.
+            const slack = ctx.measureText('00000').width;
+            textWraps = ctx.measureText(value).width > (firstLineWidth * 0.82 - slack);
           }
         } catch { /* fall back to scrollHeight below */ }
       }
@@ -5143,7 +5144,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 inputRef={inputRef}
                 autoFocus
                 multiline
-                minRows={1}
+                // Once expanded, immediately reserve the second line so the
+                // first line does not jump when the text actually wraps.
+                minRows={promptMultiline ? 2 : 1}
                 maxRows={6}
                 fullWidth
                 value={actionInput}
