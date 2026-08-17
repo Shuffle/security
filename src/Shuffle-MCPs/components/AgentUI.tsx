@@ -5168,22 +5168,25 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   sx={promptMultiline ? {
                     // Multiline: the skill chip drops down into its own bottom
                     // bar, pinned to the bottom-left next to the action buttons.
+                    // The left offset matches the single-line overlay exactly so
+                    // the chip keeps the same left margin in both states.
                     position: 'static',
-                    ml: '-1px',
+                    ml: '-5px',
                     display: 'flex',
                     alignItems: 'center',
                     flexShrink: 0,
                     transform: 'none',
                     opacity: 1,
                     pointerEvents: 'auto',
-                    transition: 'transform 180ms ease, opacity 180ms ease',
-                    animation: 'agentSkillChipDrop 180ms ease',
+                    // Glide down from the line-1 position instead of snapping.
+                    animation: 'agentSkillChipDrop 220ms cubic-bezier(0.4, 0, 0.2, 1)',
                     '@keyframes agentSkillChipDrop': {
-                      from: { transform: 'translateY(-8px)', opacity: 0.4 },
+                      from: { transform: 'translateY(-26px)', opacity: 0.6 },
                       to: { transform: 'translateY(0)', opacity: 1 },
                     },
                   } : {
                     position: 'absolute', left: '-5px', top: '6px',
+
                     height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
                     // The chip scrolls together with the textarea content so text
                     // never runs underneath it while scrolling. The transform is
