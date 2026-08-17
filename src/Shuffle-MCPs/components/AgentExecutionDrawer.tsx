@@ -97,6 +97,7 @@ const AgentExecutionDrawer = ({
       onClose={onClose}
       keepMounted
       transitionDuration={{ enter: 120, exit: 100 }}
+      sx={{ zIndex: 10011 }}
       slotProps={{
         paper: {
           className: [themeScope?.scopeClassName, className].filter(Boolean).join(' ') || undefined,
