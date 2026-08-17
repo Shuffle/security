@@ -8,7 +8,8 @@
  * the host app (the `/agent` page) and npm consumers of the lib.
  */
 
-import { Box, Drawer, IconButton, Tooltip, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Box, CircularProgress, Drawer, IconButton, Tooltip, Typography } from '@mui/material';
 import {
   X as CloseIcon,
   ExternalLink as OpenInNewIcon
