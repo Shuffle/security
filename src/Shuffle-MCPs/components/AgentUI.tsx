@@ -2039,7 +2039,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Templates only swap the chip's visible label; the actual prompt and tool
   // selection are handled by the backend. The user's saved default prefix is
   // still prepended when no preset is selected.
-  const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId });
+  // Embedded execution views (drawer / list) never show the Start tab, so the
+  // saved prefix is irrelevant there — skip its datastore fetch entirely so
+  // opening the drawer does not wait on unrelated network requests.
+  const { prompt: savedPromptPrefix } = useAgentPromptPrefix({ userId, persist: !disableStartTab });
   const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(null);
   const presetsChipNodeRef = useRef<HTMLButtonElement | null>(null);
   const [presetsChipWidth, setPresetsChipWidth] = useState(0);
