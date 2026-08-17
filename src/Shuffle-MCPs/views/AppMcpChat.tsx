@@ -558,26 +558,51 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
                     {isError ? 'Failed' : 'Completed'}
                   </Typography>
                 </Box>
-                <Chip
-                  icon={<RestartAltIcon size={14} />}
-                  label="Run again"
-                  size="small"
-                  onClick={reset}
-                  sx={{
-                    height: 26,
-                    fontSize: '0.7rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    backgroundColor: 'transparent',
-                    color: 'hsl(var(--muted-foreground))',
-                    border: '1px solid hsl(var(--border))',
-                    transition: 'all 0.15s ease',
-                    '&:hover': {
-                      backgroundColor: 'hsl(var(--muted))',
-                      color: 'hsl(var(--foreground))',
-                    },
-                  }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  {executionId && (
+                    <Chip
+                      icon={<BugIcon size={14} />}
+                      label="Debug"
+                      size="small"
+                      onClick={openDebug}
+                      sx={{
+                        height: 26,
+                        fontSize: '0.7rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        backgroundColor: 'transparent',
+                        color: 'hsl(var(--muted-foreground))',
+                        border: '1px solid hsl(var(--border))',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          backgroundColor: 'hsl(var(--muted))',
+                          color: 'hsl(var(--foreground))',
+                        },
+                      }}
+                    />
+                  )}
+                  <Chip
+                    icon={<RestartAltIcon size={14} />}
+                    label="Run again"
+                    size="small"
+                    onClick={reset}
+                    sx={{
+                      height: 26,
+                      fontSize: '0.7rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      color: 'hsl(var(--muted-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        backgroundColor: 'hsl(var(--muted))',
+                        color: 'hsl(var(--foreground))',
+                      },
+                    }}
+                  />
+                </Box>
+
               </Box>
 
               {/* Query echo */}
