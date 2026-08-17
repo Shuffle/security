@@ -977,7 +977,45 @@ const AgentActivityList = ({
     }
   }, [workflowFilter, apiKey, apiBaseUrl, orgId]);
 
+  const handleAbort = useCallback(
+    async (run: AgentRun) => {
+      const eid = run.execution_id;
+      const wfId = run.workflow_id || (run as any)?.workflow?.id;
+      if (!eid || !wfId) return;
+      setAbortingIds((prev) => new Set([...Array.from(prev), eid]));
+      try {
+        await abortAgentExecution({
+          workflowId: wfId,
+          executionId: eid,
+          authorization: run.authorization,
+          apiKey,
+          apiBaseUrl,
+          orgId,
+        });
+        toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
+        // Optimistically mark the run aborted so the icon disappears quickly.
+        setRuns((prev) =>
+          prev.map((r) => (r.execution_id === eid ? { ...r, status: 'ABORTED' } : r)),
+        );
+      } catch (e) {
+        toast({
+          title: 'Abort failed',
+          description: e instanceof Error ? e.message : 'Failed to abort execution',
+          variant: 'destructive',
+        });
+      } finally {
+        setAbortingIds((prev) => {
+          const next = new Set(Array.from(prev));
+          next.delete(eid);
+          return next;
+        });
+      }
+    },
+    [apiKey, apiBaseUrl, orgId],
+  );
+
   const updateSearchQuery = useCallback((q: string) => {
+
     setSearchQuery(q);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setDebouncedQuery(q), 350);
