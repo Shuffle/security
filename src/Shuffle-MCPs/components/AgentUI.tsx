@@ -5320,6 +5320,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     }}
                     onSelectPreset={(preset) => {
                       try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
+                      setTextTemplateSelected(false);
                       // Seed the tool set from the template — unless the user has
                       // previously customised the tools for this template, in
                       // which case their own selection wins.
@@ -5340,6 +5341,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       // The template is only tracked locally so its ID can be sent
                       // to the backend. Prompt seeding is handled server-side.
                       setSelectedPreset(preset);
+
                       setTimeout(() => {
                         const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
                         try { el?.focus(); } catch { /* ignore */ }
