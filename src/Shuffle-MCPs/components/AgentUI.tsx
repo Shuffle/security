@@ -5225,6 +5225,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     transform: `translateY(${-inputScrollTop}px)`,
                     opacity: inputScrollTop > 24 ? 0 : 1,
                     pointerEvents: inputScrollTop > 4 ? 'none' : 'auto',
+                    // Rise up from the bottom bar when returning to a single line.
+                    animation: 'agentSkillChipRise 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    '@keyframes agentSkillChipRise': {
+                      from: { transform: 'translateY(26px)', opacity: 0.6 },
+                      to: { transform: 'translateY(0)', opacity: 1 },
+                    },
                   }}
 
                 >
