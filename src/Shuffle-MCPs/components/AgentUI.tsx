@@ -2348,6 +2348,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setActionInput(s);
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
+    // A text template from the prompt list acts as its own skill; disable the
+    // Skills selector and clear any previously selected skill.
+    setTextTemplateSelected(true);
+    setSelectedPreset(null);
+    try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
     // Replace the current selection with exactly the apps this suggestion
     // needs. Category requirements are surfaced as dashed chips.
     try {
@@ -2362,6 +2367,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       try { inputRef.current?.focus(); } catch { /* ignore */ }
     });
   }, []);
+
 
   const BUILTIN_DEFAULT_APPS: AgentUIApp[] = [
     { name: 'http' },
