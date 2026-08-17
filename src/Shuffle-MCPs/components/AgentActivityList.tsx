@@ -59,7 +59,15 @@ import {
   type AgentDecision,
   type AgentScheduleWorkflow,
 } from '@/Shuffle-MCPs/agentActivity';
+import {
+  broadcastAgentAborted,
+  subscribeAgentAborted,
+  getLastOpenedAgentRun,
+  setLastOpenedAgentRun,
+  subscribeLastOpenedAgentRun,
+} from '@/Shuffle-MCPs/agentRunSync';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
@@ -939,6 +947,19 @@ const AgentActivityList = ({
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
   const [enrichedRuns, setEnrichedRuns] = useState<Record<string, Partial<AgentRun>>>({});
   const [abortingIds, setAbortingIds] = useState<Set<string>>(new Set());
+  const [abortedIds, setAbortedIds] = useState<Set<string>>(new Set());
+  const [lastOpenedRunId, setLastOpenedRunId] = useState<string | null>(() => getLastOpenedAgentRun());
+
+  // Keep this list in sync with aborts triggered elsewhere (e.g. the Agent drawer).
+  useEffect(() => {
+    const unsubAbort = subscribeAgentAborted((eid) => {
+      setAbortedIds((prev) => (prev.has(eid) ? prev : new Set([...Array.from(prev), eid])));
+      setRuns((prev) => prev.map((r) => (r.execution_id === eid ? { ...r, status: 'ABORTED' } : r)));
+    });
+    const unsubOpened = subscribeLastOpenedAgentRun((eid) => setLastOpenedRunId(eid));
+    return () => { unsubAbort(); unsubOpened(); };
+  }, []);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
 
@@ -982,7 +1003,12 @@ const AgentActivityList = ({
       const eid = run.execution_id;
       const wfId = run.workflow_id || (run as any)?.workflow?.id;
       if (!eid || !wfId) return;
+      const prevStatus = run.status;
+      // Optimistic: spinner + ABORTED status on the same frame as the click,
+      // and broadcast so any other mounted view stays in sync.
       setAbortingIds((prev) => new Set([...Array.from(prev), eid]));
+      setAbortedIds((prev) => new Set([...Array.from(prev), eid]));
+      broadcastAgentAborted(eid);
       try {
         await abortAgentExecution({
           workflowId: wfId,
@@ -993,11 +1019,19 @@ const AgentActivityList = ({
           orgId,
         });
         toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
-        // Optimistically mark the run aborted so the icon disappears quickly.
         setRuns((prev) =>
           prev.map((r) => (r.execution_id === eid ? { ...r, status: 'ABORTED' } : r)),
         );
       } catch (e) {
+        // Roll the optimistic state back so the run shows its real status again.
+        setAbortedIds((prev) => {
+          const next = new Set(Array.from(prev));
+          next.delete(eid);
+          return next;
+        });
+        setRuns((prev) =>
+          prev.map((r) => (r.execution_id === eid ? { ...r, status: prevStatus } : r)),
+        );
         toast({
           title: 'Abort failed',
           description: e instanceof Error ? e.message : 'Failed to abort execution',
@@ -1013,6 +1047,7 @@ const AgentActivityList = ({
     },
     [apiKey, apiBaseUrl, orgId],
   );
+
 
   const updateSearchQuery = useCallback((q: string) => {
 
@@ -1213,8 +1248,13 @@ const AgentActivityList = ({
 
   const mergedRuns = runs.map((r) => {
     const patch = r.execution_id ? enrichedRuns[r.execution_id] : undefined;
-    return patch ? { ...r, ...patch } : r;
+    const merged = patch ? { ...r, ...patch } : r;
+    // Locally aborted runs stay ABORTED even if a poll returns a stale status.
+    return r.execution_id && abortedIds.has(r.execution_id)
+      ? { ...merged, status: 'ABORTED' }
+      : merged;
   });
+
 
   const loadMore = useCallback(() => {
     if (cursor && !isLoading) fetchRuns(true, cursor);
@@ -1506,8 +1546,20 @@ const AgentActivityList = ({
             <AgentRunRow
               key={run.execution_id || idx}
               run={run}
-              onClick={() => onRunClick?.(run)}
-              sx={rowSx}
+              onClick={() => {
+                setLastOpenedAgentRun(run.execution_id);
+                setLastOpenedRunId(run.execution_id || null);
+                onRunClick?.(run);
+              }}
+              sx={[
+                ...(Array.isArray(rowSx) ? rowSx : rowSx ? [rowSx] : []),
+                ...(run.execution_id && run.execution_id === lastOpenedRunId
+                  ? [{
+                      borderColor: 'hsl(var(--primary) / 0.55)',
+                      bgcolor: 'hsl(var(--primary) / 0.06)',
+                    }]
+                  : []),
+              ]}
               appIcons={appIcons}
               onAppClick={(app) => setAppDrawer(app)}
               apiKey={apiKey}
@@ -1517,6 +1569,7 @@ const AgentActivityList = ({
               onAbort={handleAbort}
             />
           ))}
+
 
           {hasMore && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
