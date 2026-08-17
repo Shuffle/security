@@ -159,11 +159,14 @@ export interface AgentPresetsProps {
   chipRef?: React.Ref<HTMLButtonElement>;
   /** Authoritative support flag from the host's getinfo payload. */
   isSupport?: boolean;
+  /** When true, the trigger is non-interactive and the menu cannot open. */
+  disabled?: boolean;
 }
 
-export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport }: AgentPresetsProps) => {
+
+export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport, disabled }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const open = Boolean(anchorEl) && !disabled;
   // Support status hydrates asynchronously (/getinfo), so re-read it when the
   // dropdown opens and when storage changes instead of only on first mount.
   const [supportTick, setSupportTick] = useState(0);
@@ -188,7 +191,8 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     <Button
       ref={chipRef}
       size="small"
-      onClick={(e) => setAnchorEl(e.currentTarget)}
+      disabled={disabled}
+      onClick={(e) => !disabled && setAnchorEl(e.currentTarget)}
       startIcon={selectedPreset ? (selectedPreset.icon ?? undefined) : <Plus size={variant === 'floating' ? 12 : 14} />}
       endIcon={
         selectedPreset ? (
@@ -221,11 +225,18 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
           color: 'hsl(var(--foreground))',
           borderColor: 'hsl(var(--border))',
         },
+        '&.Mui-disabled': {
+          color: selectedPreset ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+          borderColor: 'hsl(var(--border))',
+          bgcolor: selectedPreset ? 'hsl(var(--primary) / 0.08)' : 'transparent',
+          opacity: 0.55,
+        },
       }}
     >
       {displayLabel}
     </Button>
   );
+
 
   const [query, setQuery] = useState('');
   const filtered = useMemo(() => {
