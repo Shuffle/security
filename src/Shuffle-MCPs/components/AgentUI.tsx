@@ -5043,11 +5043,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: 0.5,
               // Keep the same radius in both states so growing to multiple
               // lines does not visually snap from a pill to a boxy card.
-              borderRadius: attachedImages.length > 0 ? 4 : '22px',
+              borderRadius: attachedImages.length > 0 ? 4 : '28px',
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               px: 2.25,
-              py: 1.75,
+              py: 1,
 
               position: 'relative',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
