@@ -5171,7 +5171,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     // Only line 1 is indented for the skill chip while the
                     // prompt is a single line. Once it wraps, the chip drops to
                     // its own bottom row so the indent is removed.
-                    textIndent: (!hidePresets && !promptMultiline) ? `${(presetsChipWidth || 96) + 11}px` : 0,
+                    textIndent: (!hidePresets && !promptMultiline) ? `${(presetsChipWidth || 96) + 6}px` : 0,
                     transition: 'text-indent 180ms cubic-bezier(0.4, 0, 0.2, 1)',
                   },
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
