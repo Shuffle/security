@@ -213,13 +213,11 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
         py: 0.375,
         borderRadius: 999,
         color: selectedPreset ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-        border: '1px solid hsl(var(--border))',
         bgcolor: selectedPreset ? 'hsl(var(--primary) / 0.08)' : 'transparent',
         flexShrink: 0,
         '&:hover': {
           bgcolor: selectedPreset ? 'hsl(var(--primary) / 0.12)' : 'hsl(var(--muted))',
           color: selectedPreset ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
-          borderColor: 'hsl(var(--border))',
         },
       }}
     >
