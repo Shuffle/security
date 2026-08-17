@@ -35,6 +35,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { AppAuthCard, isNoAuthRequired, type AppAuthentication } from '@/Shuffle-MCPs/components/AppAuthConfig';
+import { appRequiresAuthentication } from '@/Shuffle-MCPs/noAuthApps';
 import AppMcpChat from '@/Shuffle-MCPs/views/AppMcpChat';
 import ApiCallViewer from '@/Shuffle-MCPs/components/ApiCallViewer';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
@@ -749,7 +750,8 @@ export default function AppDetailDrawer({
               </motion.div>
             )}
 
-            {/* Authentication section */}
+            {/* Authentication section — hidden for internal no-auth apps */}
+            {!skipAuthentication && (
             <Box id="app-auth-section">
               <AppAuthSection
                 displayName={displayName}
@@ -774,6 +776,7 @@ export default function AppDetailDrawer({
                 colorMode={colorMode}
               />
             </Box>
+            )}
 
             {/* MCP Chat + individual actions */}
             {isAuthenticated && (
