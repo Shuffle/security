@@ -3177,8 +3177,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
 
   // ── Submit input ──
-  const submitInput = useCallback(async (text: string) => {
+  const submitInput = useCallback(async (text: string, presetOverride?: AgentPreset | null) => {
     if (!text.trim()) return;
+    // `undefined` means "use current selection"; `null` explicitly clears it.
+    const effectivePreset = presetOverride !== undefined ? presetOverride : selectedPreset;
     setError(null);
     setAgentRequestLoading(true);
 
