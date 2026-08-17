@@ -633,6 +633,7 @@ import { resolveApps } from '@/Shuffle-MCPs/resolveApp';
 import { toast } from '@/Shuffle-MCPs/toast';
 import { detectLLMProvider, getProviderLogoUrl, SHUFFLE_AI_PRESET, resolveActiveLLMProvider } from '@/Shuffle-MCPs/llmProviderDetect';
 import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
+import { appRequiresAuthentication, isNoAuthApp, normalizeAppName } from '@/Shuffle-MCPs/noAuthApps';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
 import AgentAttachmentsButton from '@/Shuffle-MCPs/components/AgentAttachmentsButton';
