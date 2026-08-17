@@ -55,12 +55,19 @@ import {
   getAgentScheduleConfig,
   stopAgentSchedule,
   abortAgentExecution,
-
   type AgentRun,
   type AgentDecision,
   type AgentScheduleWorkflow,
 } from '@/Shuffle-MCPs/agentActivity';
+import {
+  broadcastAgentAborted,
+  subscribeAgentAborted,
+  getLastOpenedAgentRun,
+  setLastOpenedAgentRun,
+  subscribeLastOpenedAgentRun,
+} from '@/Shuffle-MCPs/agentRunSync';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
