@@ -5062,13 +5062,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
               <Box sx={{
                 display: 'flex',
-                flexWrap: 'wrap',
+                // One line: everything stays on a single row (chip overlay,
+                // text, buttons). Past one line the textarea takes the full
+                // width and the chip + buttons wrap onto their own bottom bar.
+                flexWrap: promptMultiline ? 'wrap' : 'nowrap',
                 alignItems: promptMultiline ? 'center' : 'flex-start',
-                justifyContent: promptMultiline ? 'flex-end' : undefined,
                 gap: 1,
                 width: '100%',
                 position: 'relative',
               }}>
+
 
               <InputBase
                 inputRef={inputRef}
@@ -5114,6 +5117,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   // scrollbar sits at the far right and the action buttons
                   // wrap down to their own bottom row.
                   flex: promptMultiline ? '1 0 100%' : '1 1 auto',
+                  minWidth: 0,
+
                   '& .MuiInputBase-input': {
                     pt: '5px',
                     pb: 0,
