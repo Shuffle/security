@@ -5127,64 +5127,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   ))}
                 </Box>
               )}
-              {!hidePresets && (
-                <Box ref={chipOverlayRef} sx={{
-                  position: 'absolute', left: '17px', top: `${19 + (attachedImages.length > 0 ? attachmentsRowHeight + 4 : 0)}px`,
-                  height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
-                  // The chip scrolls together with the textarea content so text
-                  // never runs underneath it while scrolling. The transform is
-                  // updated imperatively on scroll so it stays in lockstep with
-                  // the text instead of lagging a render behind.
-                  willChange: 'transform',
-                  transform: `translateY(${-inputScrollTop}px)`,
-                  opacity: inputScrollTop > 24 ? 0 : 1,
-                  pointerEvents: inputScrollTop > 4 ? 'none' : 'auto',
-                }}>
+              <Box sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: promptMultiline ? 'center' : 'flex-start',
+                justifyContent: promptMultiline ? 'flex-end' : undefined,
+                gap: 1,
+                width: '100%',
+                position: 'relative',
+              }}>
 
-
-
-
-                  <AgentPresets
-                    variant="floating"
-                    chipRef={presetsChipRef}
-                    presets={presets}
-                    isSupport={isSupport}
-                    selectedPreset={selectedPreset}
-                    onRemoveSelected={() => {
-                      try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
-                      setSelectedPreset(null);
-                    }}
-                    onSelectPreset={(preset) => {
-                      try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
-                      // Seed the tool set from the template — unless the user has
-                      // previously customised the tools for this template, in
-                      // which case their own selection wins.
-                      const override = readPresetAppsOverride(preset.id);
-                      if (override && override.length > 0) {
-                        setChosenApps(override);
-                      } else if (preset.defaultApps && preset.defaultApps.length > 0) {
-                        setChosenApps(preset.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
-                      } else {
-                        setChosenApps([]);
-                      }
-                      seededPresetIdRef.current = preset.id;
-
-                      if (onSelectPreset) {
-                        onSelectPreset(preset);
-                        return;
-                      }
-                      // The template is only tracked locally so its ID can be sent
-                      // to the backend. Prompt seeding is handled server-side.
-                      setSelectedPreset(preset);
-                      setTimeout(() => {
-                        const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
-                        try { el?.focus(); } catch { /* ignore */ }
-                      }, 0);
-                    }}
-                  />
-                </Box>
-              )}
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, width: '100%', position: 'relative' }}>
               <InputBase
                 inputRef={inputRef}
                 autoFocus
@@ -5225,6 +5177,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   fontSize: '0.9rem',
                   color: 'hsl(var(--foreground))',
                   py: 0,
+                  // Past one line the input takes the full width so the
+                  // scrollbar sits at the far right and the action buttons
+                  // wrap down to their own bottom row.
+                  flex: promptMultiline ? '1 0 100%' : '1 1 auto',
                   '& .MuiInputBase-input': {
                     pt: '5px',
                     pb: 0,
@@ -5233,6 +5189,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   },
                   '& textarea::placeholder': { color: 'hsl(var(--muted-foreground))', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
                 }}
+
               />
               <input
                 ref={fileInputRef}
@@ -5245,6 +5202,75 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   if (e.target) e.target.value = '';
                 }}
               />
+              {!hidePresets && (
+                <Box
+                  ref={chipOverlayRef}
+                  data-static={promptMultiline ? '1' : '0'}
+                  sx={promptMultiline ? {
+                    // Multiline: the skill chip lives in the bottom-left corner
+                    // of the input, on the same row as the action buttons.
+                    position: 'static',
+                    ml: '-1px',
+                    mr: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transform: 'none',
+                    opacity: 1,
+                    pointerEvents: 'auto',
+                  } : {
+                    position: 'absolute', left: '-1px', top: '5px',
+                    height: 'calc(0.9rem * 1.45)', display: 'flex', alignItems: 'center', zIndex: 1,
+                    // The chip scrolls together with the textarea content so text
+                    // never runs underneath it while scrolling. The transform is
+                    // updated imperatively on scroll so it stays in lockstep with
+                    // the text instead of lagging a render behind.
+                    willChange: 'transform',
+                    transform: `translateY(${-inputScrollTop}px)`,
+                    opacity: inputScrollTop > 24 ? 0 : 1,
+                    pointerEvents: inputScrollTop > 4 ? 'none' : 'auto',
+                  }}
+                >
+                  <AgentPresets
+                    variant="floating"
+                    chipRef={presetsChipRef}
+                    presets={presets}
+                    isSupport={isSupport}
+                    selectedPreset={selectedPreset}
+                    onRemoveSelected={() => {
+                      try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
+                      setSelectedPreset(null);
+                    }}
+                    onSelectPreset={(preset) => {
+                      try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
+                      // Seed the tool set from the template — unless the user has
+                      // previously customised the tools for this template, in
+                      // which case their own selection wins.
+                      const override = readPresetAppsOverride(preset.id);
+                      if (override && override.length > 0) {
+                        setChosenApps(override);
+                      } else if (preset.defaultApps && preset.defaultApps.length > 0) {
+                        setChosenApps(preset.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
+                      } else {
+                        setChosenApps([]);
+                      }
+                      seededPresetIdRef.current = preset.id;
+
+                      if (onSelectPreset) {
+                        onSelectPreset(preset);
+                        return;
+                      }
+                      // The template is only tracked locally so its ID can be sent
+                      // to the backend. Prompt seeding is handled server-side.
+                      setSelectedPreset(preset);
+                      setTimeout(() => {
+                        const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
+                        try { el?.focus(); } catch { /* ignore */ }
+                      }, 0);
+                    }}
+                  />
+                </Box>
+              )}
+
               {(() => {
                 const allowWithoutExecution = showStarter;
                 const promptTooShort = showStarter && (actionInput || '').trim().length < 1;
