@@ -514,34 +514,27 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       });
       setAutomations(allAutomations);
       setHasChanges(false);
-      setCleanupTimeout(normalizeCleanupTimeout(initialSettings?.timeout));
+      setCleanupTimeout(normalizeCleanupTimeout(sourceSettings?.timeout));
 
       // Extract existing workflow IDs and webhook URL
       const workflowAutomation = existingByName.get('Run workflow');
-      if (workflowAutomation?.options) {
-        const workflowOption = workflowAutomation.options.find(o => o.key === 'workflow_id');
-        if (workflowOption?.value) {
-          const ids = workflowOption.value.split(',').filter(Boolean);
-          // Will be populated once workflows are loaded
-          setSelectedWorkflows(ids.map(id => ({ id: id.trim(), name: id.trim() })));
-        }
+      const workflowOption = workflowAutomation?.options?.find(o => o.key === 'workflow_id');
+      if (workflowOption?.value) {
+        const ids = workflowOption.value.split(',').filter(Boolean);
+        // Will be populated once workflows are loaded
+        setSelectedWorkflows(ids.map(id => ({ id: id.trim(), name: id.trim() })));
+      } else {
+        setSelectedWorkflows([]);
       }
 
       const webhookAutomation = existingByName.get('Send webhook');
-      if (webhookAutomation?.options) {
-        const urlOption = webhookAutomation.options.find(o => o.key === 'webhook_url');
-        if (urlOption?.value) {
-          setWebhookUrl(urlOption.value);
-        }
-      }
+      const urlOption = webhookAutomation?.options?.find(o => o.key === 'webhook_url');
+      setWebhookUrl(urlOption?.value || '');
 
       const rulesAutomation = existingByName.get('Security Rules');
-      if (rulesAutomation?.options) {
-        const rulesOption = rulesAutomation.options.find(o => o.key === 'rule');
-        if (rulesOption?.value) {
-          setSecurityRulesText(rulesOption.value);
-        }
-      }
+      const rulesOption = rulesAutomation?.options?.find(o => o.key === 'rule');
+      setSecurityRulesText(rulesOption?.value || '');
+
 
       const aiAutomation = existingByName.get('Run AI Agent');
       if (aiAutomation?.options && aiAutomation.options.length > 0) {
