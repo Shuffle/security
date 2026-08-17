@@ -968,7 +968,7 @@ const isBuiltinDefaultApps = (apps: AgentUIApp[]): boolean => {
 /** Compact live countdown text (no chip/icon) for the duration column. */
 const DurationCountdown: React.FC<{ resumeAtMs: number }> = ({ resumeAtMs }) => {
   const [nowMs, setNowMs] = useState(() => Date.now());
-  useEffect(() => {
+  useLayoutEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
@@ -2170,7 +2170,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
             ctx.font = cs.font && cs.font.trim().length > 0
               ? cs.font
               : `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
-            textWraps = ctx.measureText(value).width > firstLineWidth - 2;
+            // Expand before the browser reaches the physical wrap point. This
+            // keeps the next line from ever being painted underneath the
+            // overlaid Skill chip while React switches to the bottom toolbar.
+            textWraps = ctx.measureText(value).width > (firstLineWidth * 0.82);
           }
         } catch { /* fall back to scrollHeight below */ }
       }
