@@ -372,6 +372,23 @@ export const MonitorHostTable = ({ hosts, onRefresh }: MonitorHostTableProps) =>
       }
       let parsed: unknown = null;
       try { parsed = JSON.parse(text); } catch { /* not JSON */ }
+      // 1) Preferred: the runner returned the full result directly.
+      const direct = parseDirectRunResult(parsed);
+      if (direct) {
+        updateHostDebug(hostUuid, entryId, {
+          status: direct.success ? 'success' : 'error',
+          responseStatus: resp.status,
+          responseBody: text,
+          executionId: (parsed as any)?.execution_id as string | undefined,
+          authorization: (parsed as any)?.authorization as string | undefined,
+          finishedAt: Date.now(),
+          actionOutput: direct.output || undefined,
+          actionSuccess: direct.success,
+          error: direct.success ? undefined : (direct.error || direct.output || 'Action reported failure'),
+        });
+        return;
+      }
+      // 2) Fallback: execution stub → poll /api/v1/streams/results.
       if (parsed && typeof parsed === 'object' && parsed !== null && typeof (parsed as Record<string, unknown>).execution_id === 'string' && (parsed as Record<string, unknown>).execution_id) {
         const execId = (parsed as Record<string, unknown>).execution_id as string;
         updateHostDebug(hostUuid, entryId, { status: 'polling', responseStatus: resp.status, responseBody: text, executionId: execId, authorization: ((parsed as any).authorization as string) || execId });
