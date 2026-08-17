@@ -187,6 +187,8 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
   const [query, setQuery] = useState('');
   const [result, setResult] = useState('');
   const [isError, setIsError] = useState(false);
+  const [executionId, setExecutionId] = useState('');
+  const [executionAuth, setExecutionAuth] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const suggestions = useMemo(() => getSuggestions(appName, categories), [appName, categories]);
@@ -201,6 +203,9 @@ const AppMcpChat = ({ appName, appIcon, appId, categories, globalUrl }: AppMcpCh
     setRunState('running');
     setResult('');
     setIsError(false);
+    setExecutionId('');
+    setExecutionAuth('');
+
 
     try {
       const response = await fetch(
