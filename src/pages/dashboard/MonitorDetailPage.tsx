@@ -8,7 +8,9 @@ import { useHostActions } from '@/hooks/useHostActions';
 import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { HostActionPopover } from '@/components/monitors/HostActionPopover';
 import { HostDetailPanel } from '@/components/monitors/HostDetailPanel';
+import { HostNameDisplay } from '@/components/monitors/HostNameDisplay';
 import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirmDialog';
+
 import { fetchHostSupplements, mergeHost } from '@/lib/mergeMonitorHosts';
 import { isDemoActive } from '@/services/demoMode';
 import { DEMO_HOST_HOSTNAME } from '@/services/demoLiveEnvironment';
