@@ -295,7 +295,9 @@ const HostTerminalPage = () => {
             <button className="flex items-center gap-2 min-w-0 text-left hover:bg-muted/50 rounded-md px-2 py-1 transition-colors">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-base font-semibold text-foreground truncate">{hostname}</h1>
+                  <h1 className="text-base font-semibold text-foreground truncate">
+                    <HostNameDisplay hostname={hostname} />
+                  </h1>
                   <div className={`w-2 h-2 rounded-full shrink-0 ${isRecent ? 'bg-[hsl(var(--severity-low))]' : 'bg-muted-foreground/40'}`} />
                 </div>
                 <p className="text-xs text-muted-foreground">
