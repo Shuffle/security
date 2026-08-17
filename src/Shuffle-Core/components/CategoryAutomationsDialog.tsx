@@ -70,6 +70,7 @@ export interface CategoryAutomationsDialogProps {
  *  can show which ones already have automation enabled and swap between them. */
 const CATEGORY_OPTIONS: { category: string; singular: string; plural: string }[] = [
   { category: DATASTORE_CATEGORIES.INCIDENTS, singular: 'incident', plural: 'incidents' },
+  { category: DATASTORE_CATEGORIES.VULNERABILITIES, singular: 'vulnerability', plural: 'vulnerabilities' },
   { category: DATASTORE_CATEGORIES.INFRASTRUCTURE, singular: 'sensor', plural: 'sensors' },
   { category: DATASTORE_CATEGORIES.ASSETS, singular: 'asset', plural: 'assets' },
   { category: DATASTORE_CATEGORIES.USERS, singular: 'user', plural: 'users' },
