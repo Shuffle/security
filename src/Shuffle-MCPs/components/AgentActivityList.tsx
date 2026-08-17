@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
   InputAdornment,
   MenuItem,
   Select,
@@ -27,6 +28,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+
 import type { SxProps, Theme } from '@mui/material';
 import {
   Activity,
@@ -52,6 +54,7 @@ import {
   listAgentScheduleWorkflows,
   getAgentScheduleConfig,
   stopAgentSchedule,
+  abortAgentExecution,
   type AgentRun,
   type AgentDecision,
   type AgentScheduleWorkflow,
@@ -60,7 +63,9 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
 import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
+import { toast } from '@/Shuffle-MCPs/toast';
 import { Pencil, StopCircle, AlertTriangle } from 'lucide-react';
+
 import { SegmentedControl } from '@/Shuffle-MCPs/components/SegmentedControl';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 import AppDetailDrawer from '@/Shuffle-MCPs/views/AppDetailDrawer';
@@ -579,19 +584,30 @@ interface RunRowProps {
   sx?: SxProps<Theme>;
   appIcons?: Record<string, string>;
   onAppClick?: (app: { id?: string; name: string }) => void;
+  apiKey?: string;
+  apiBaseUrl?: string;
+  orgId?: string;
+  abortingIds?: Set<string>;
+  onAbort?: (run: AgentRun) => void;
 }
+
 
 const normToolKey = (s: string) => s.toLowerCase().replace(/[\s_\-]+/g, '_');
 
-const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) => {
+const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick, apiKey, apiBaseUrl, orgId, abortingIds, onAbort }: RunRowProps) => {
   const navigate = useNavigate();
   const statusKey = getEffectiveStatus(run);
-  const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.WAITING;
   const iconColor = getRunIconColor(run);
   const duration = formatDuration(run);
   const tools = getRunTools(run);
   const decisionCount = getDecisionCount(run);
   const attachmentCount = collectLlmImageAttachments(run).length;
+  const isRunning = statusKey === 'EXECUTING' || statusKey === 'RUNNING' || statusKey === 'WAITING';
+  const isAborting = !!run.execution_id && !!abortingIds?.has(run.execution_id);
+  const wfId = run.workflow_id || (run as any)?.workflow?.id;
+  const canAbort = isRunning && !!run.execution_id && !!wfId && !isAborting;
+
+
 
   return (
     <Box
@@ -798,7 +814,35 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick }: RunRowProps) =>
         ) : null}
       </Box>
 
+      {canAbort && (
+        <Tooltip title={isAborting ? 'Aborting…' : 'Abort this execution'} arrow placement="top">
+          <span>
+            <IconButton
+              size="small"
+              disabled={isAborting}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAbort?.(run);
+              }}
+              sx={{
+                flexShrink: 0,
+                ml: 1.5,
+                color: 'hsl(var(--muted-foreground))',
+                '&:hover': { color: 'hsl(var(--destructive))', bgcolor: 'hsl(var(--muted))' },
+              }}
+            >
+              {isAborting ? (
+                <CircularProgress size={16} sx={{ color: 'hsl(var(--destructive))' }} />
+              ) : (
+                <StopCircle size={18} />
+              )}
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
+
     </Box>
+
   );
 };
 
@@ -894,7 +938,9 @@ const AgentActivityList = ({
   const [stopLoading, setStopLoading] = useState(false);
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
   const [enrichedRuns, setEnrichedRuns] = useState<Record<string, Partial<AgentRun>>>({});
+  const [abortingIds, setAbortingIds] = useState<Set<string>>(new Set());
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
 
   const selectedAgentWorkflow = agentWorkflows.find((w) => w.id === workflowFilter) || null;
 
@@ -931,7 +977,45 @@ const AgentActivityList = ({
     }
   }, [workflowFilter, apiKey, apiBaseUrl, orgId]);
 
+  const handleAbort = useCallback(
+    async (run: AgentRun) => {
+      const eid = run.execution_id;
+      const wfId = run.workflow_id || (run as any)?.workflow?.id;
+      if (!eid || !wfId) return;
+      setAbortingIds((prev) => new Set([...Array.from(prev), eid]));
+      try {
+        await abortAgentExecution({
+          workflowId: wfId,
+          executionId: eid,
+          authorization: run.authorization,
+          apiKey,
+          apiBaseUrl,
+          orgId,
+        });
+        toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
+        // Optimistically mark the run aborted so the icon disappears quickly.
+        setRuns((prev) =>
+          prev.map((r) => (r.execution_id === eid ? { ...r, status: 'ABORTED' } : r)),
+        );
+      } catch (e) {
+        toast({
+          title: 'Abort failed',
+          description: e instanceof Error ? e.message : 'Failed to abort execution',
+          variant: 'destructive',
+        });
+      } finally {
+        setAbortingIds((prev) => {
+          const next = new Set(Array.from(prev));
+          next.delete(eid);
+          return next;
+        });
+      }
+    },
+    [apiKey, apiBaseUrl, orgId],
+  );
+
   const updateSearchQuery = useCallback((q: string) => {
+
     setSearchQuery(q);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setDebouncedQuery(q), 350);
@@ -1426,8 +1510,14 @@ const AgentActivityList = ({
               sx={rowSx}
               appIcons={appIcons}
               onAppClick={(app) => setAppDrawer(app)}
+              apiKey={apiKey}
+              apiBaseUrl={apiBaseUrl}
+              orgId={orgId}
+              abortingIds={abortingIds}
+              onAbort={handleAbort}
             />
           ))}
+
           {hasMore && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
               <Button

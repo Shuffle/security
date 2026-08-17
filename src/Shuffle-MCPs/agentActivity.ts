@@ -459,6 +459,42 @@ export const stopAgentSchedule = async (
   if (!res.ok) throw new Error(`Failed to stop schedule: ${res.statusText}`);
 };
 
+export interface AbortAgentExecutionParams {
+  workflowId: string;
+  executionId: string;
+  authorization?: string;
+  apiKey?: string;
+  apiBaseUrl?: string;
+  orgId?: string;
+}
+
+/** Abort an in-flight agent execution. Mirrors the AgentUI abort logic so
+ *  other components can stop runs without reaching into UI hooks. */
+export const abortAgentExecution = async ({
+  workflowId,
+  executionId,
+  authorization,
+  apiKey,
+  apiBaseUrl,
+  orgId,
+}: AbortAgentExecutionParams): Promise<void> => {
+  const headers: Record<string, string> = { ...resolveHeaders(apiKey, orgId) };
+  if (authorization) headers.Authorization = `Bearer ${authorization}`;
+  const res = await fetch(
+    resolveUrl(`/api/v1/workflows/${workflowId}/executions/${executionId}/abort`, apiBaseUrl),
+    {
+      method: 'GET',
+      credentials: 'include',
+      headers,
+    },
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(txt || `Failed to abort execution: HTTP ${res.status}`);
+  }
+};
+
 // Re-export so consumers can read base config if needed.
 export { API_CONFIG };
+
 
