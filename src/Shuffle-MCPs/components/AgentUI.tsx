@@ -2069,12 +2069,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const applyChipScroll = useCallback((st: number) => {
     const el = chipOverlayRef.current;
     if (!el) return;
+    // In multiline mode the chip is a static bottom-left element — it must not
+    // be moved by the textarea's scroll offset.
+    if (el.dataset.static === '1') {
+      el.style.transform = '';
+      el.style.opacity = '';
+      el.style.pointerEvents = '';
+      return;
+    }
     el.style.transform = `translateY(${-st}px)`;
     el.style.opacity = st > 24 ? '0' : '1';
     el.style.pointerEvents = st > 4 ? 'none' : 'auto';
   }, []);
 
   const [promptSingleLine, setPromptSingleLine] = useState(true);
+  const promptMultiline = !promptSingleLine;
+
   // Height of the attachment chip row (0 when nothing is attached). The
   // floating Templates chip is absolutely positioned, so it must be pushed
   // down by this amount to avoid overlapping the attachments.
