@@ -230,8 +230,18 @@ const AgentExecutionDrawer = ({
       <Box sx={[{ flex: 1, overflowY: 'auto', pt: 3 }, ...(Array.isArray(bodySx) ? bodySx : bodySx ? [bodySx] : [])]}>
         {topBanner}
         {run && !bodyReady ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress size={20} sx={{ color: 'hsl(var(--muted-foreground))' }} />
+          <Box sx={{ px: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <Box
+                key={i}
+                sx={{
+                  height: i === 0 ? 48 : 32,
+                  borderRadius: 1.5,
+                  bgcolor: 'hsl(var(--muted) / 0.5)',
+                  opacity: 1 - i * 0.18,
+                }}
+              />
+            ))}
           </Box>
         ) : null}
         {run && bodyReady ? (
