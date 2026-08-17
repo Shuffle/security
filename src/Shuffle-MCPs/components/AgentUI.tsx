@@ -3770,7 +3770,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Build timeline ──
 
-  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote, decisionStringWarnings } = useMemo(() => {
+  const { timeline, originalStartTime, totalDuration, finishDecisionId, finishAnswer, finishNote } = useMemo(() => {
     // Backend may return Unix milliseconds (UnixMillis) or seconds. Normalize to seconds.
     const toSec = (t: any): number => {
       const n = Number(t) || 0;
