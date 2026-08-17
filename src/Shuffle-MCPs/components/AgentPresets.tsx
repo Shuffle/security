@@ -222,12 +222,6 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
           color: 'hsl(var(--foreground))',
           borderColor: 'hsl(var(--border))',
         },
-        '&.Mui-disabled': {
-          color: selectedPreset ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-          borderColor: 'hsl(var(--border))',
-          bgcolor: selectedPreset ? 'hsl(var(--primary) / 0.08)' : 'transparent',
-          opacity: 0.55,
-        },
       }}
     >
       {displayLabel}
