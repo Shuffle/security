@@ -2168,17 +2168,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
     };
     const raf = requestAnimationFrame(measure);
-    // The textarea can also shrink without a value change (window resize,
-    // chip width change, drawer resize). Re-measure whenever its box changes
-    // so we never get stuck in the multiline layout.
-    let ro: ResizeObserver | undefined;
-    if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(() => measure());
-      ro.observe(el);
-    }
+    // A ResizeObserver here can feed back into MUI TextareaAutosize while the
+    // textarea is shrinking and leave its old multiline height behind. Value
+    // changes already re-run this effect; window resizes are the only external
+    // layout change that needs an explicit measurement.
+    const handleResize = () => requestAnimationFrame(measure);
+    window.addEventListener('resize', handleResize);
     return () => {
       cancelAnimationFrame(raf);
-      ro?.disconnect();
+      window.removeEventListener('resize', handleResize);
     };
   }, [actionInput]);
 
@@ -5099,6 +5097,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 fullWidth
                 value={actionInput}
                 onChange={(e) => setActionInput(e.target.value)}
+                onBlur={(e) => {
+                  const node = e.target as HTMLTextAreaElement;
+                  const lh = parseFloat(window.getComputedStyle(node).lineHeight || '0') || 20;
+                  if ((node.value || '').length === 0 || node.scrollHeight <= lh * 1.6) {
+                    // MUI TextareaAutosize can retain its previous inline height
+                    // after a multiline → single-line transition on blur.
+                    setPromptSingleLine(true);
+                    node.scrollTop = 0;
+                    node.style.height = '';
+                    setInputScrolled(false);
+                    setInputScrollTop(0);
+                    applyChipScroll(0);
+                  }
+                }}
                 placeholder={typedPlaceholder}
                 onKeyDown={onKeyDown}
                 onScroll={(e) => {
@@ -5140,6 +5152,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     pt: '5px',
                     pb: '6px',
                     lineHeight: 1.5,
+                    // Override a stale inline height left by TextareaAutosize
+                    // after the field loses focus in its single-line state.
+                    height: promptMultiline ? 'auto' : '33px !important',
                     // Only line 1 is indented for the skill chip while the
                     // prompt is a single line. Once it wraps, the chip drops to
                     // its own bottom row so the indent is removed.
