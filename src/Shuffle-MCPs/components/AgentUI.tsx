@@ -3824,12 +3824,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (finishNote && finishNote === finishAns) finishNote = '';
     }
 
-    // If a decision exposes a `decision_string`, the parser failed to turn it
-    // into a structured decision. Surface it as a debug warning when the raw
-    // decision text is not already present in the rendered output.
+    // If a *failed* decision exposes a `decision_string`, the parser could not
+    // turn it into a structured decision. Surface it as a debug warning when the
+    // raw decision text is not already present in the rendered output. Valid,
+    // successful decisions may also carry a decision_string — never warn there.
     const decisionStringWarnings: string[] = [];
     const outputForCompare = (finishAns || '').trim();
-    const pushDecisionString = (ds: any) => {
+    const isFailedStatus = (s: any) => {
+      const v = String(s || '').toUpperCase();
+      return v === 'FAILED' || v === 'ABORTED' || v === 'ERROR';
+    };
+    const pushDecisionString = (ds: any, failed: boolean) => {
+      if (!failed) return;
       if (ds == null || ds === '') return;
       const dsText = typeof ds === 'string' ? ds.trim() : JSON.stringify(ds);
       if (!dsText) return;
@@ -3838,11 +3844,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
       decisionStringWarnings.push(dsText);
     };
     // Top-level (run object) decision_string, e.g. sibling of `decisions`.
-    pushDecisionString((agentData as any)?.decision_string);
+    const runFailed = isFailedStatus((agentData as any)?.status);
+    pushDecisionString((agentData as any)?.decision_string, runFailed);
     for (const d of (agentData?.decisions || []) as any[]) {
-      pushDecisionString(d?.decision_string);
-      pushDecisionString((d as any)?.run_details?.decision_string);
+      const decFailed = isFailedStatus(d?.status) || isFailedStatus((d as any)?.run_details?.status);
+      pushDecisionString(d?.decision_string, decFailed);
+      pushDecisionString((d as any)?.run_details?.decision_string, decFailed);
     }
+
 
 
     // Sort: Agent row pinned to top, Finalise pinned to bottom, everything
