@@ -939,6 +939,19 @@ const AgentActivityList = ({
   const [appIcons, setAppIcons] = useState<Record<string, string>>({});
   const [enrichedRuns, setEnrichedRuns] = useState<Record<string, Partial<AgentRun>>>({});
   const [abortingIds, setAbortingIds] = useState<Set<string>>(new Set());
+  const [abortedIds, setAbortedIds] = useState<Set<string>>(new Set());
+  const [lastOpenedRunId, setLastOpenedRunId] = useState<string | null>(() => getLastOpenedAgentRun());
+
+  // Keep this list in sync with aborts triggered elsewhere (e.g. the Agent drawer).
+  useEffect(() => {
+    const unsubAbort = subscribeAgentAborted((eid) => {
+      setAbortedIds((prev) => (prev.has(eid) ? prev : new Set([...Array.from(prev), eid])));
+      setRuns((prev) => prev.map((r) => (r.execution_id === eid ? { ...r, status: 'ABORTED' } : r)));
+    });
+    const unsubOpened = subscribeLastOpenedAgentRun((eid) => setLastOpenedRunId(eid));
+    return () => { unsubAbort(); unsubOpened(); };
+  }, []);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
 
