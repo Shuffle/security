@@ -159,7 +159,10 @@ export interface AgentPresetsProps {
   chipRef?: React.Ref<HTMLButtonElement>;
   /** Authoritative support flag from the host's getinfo payload. */
   isSupport?: boolean;
+  /** When true, the trigger is non-interactive and the menu cannot open. */
+  disabled?: boolean;
 }
+
 
 export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
