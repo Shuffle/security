@@ -3271,7 +3271,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       })()),
 
       // Pass the selected preset so the backend can apply its prompt/tools.
-      ...(selectedPreset ? { presetId: selectedPreset.id } : {}),
+      ...(effectivePreset ? { presetId: effectivePreset.id } : {}),
       ...(attachedImages.length > 0 ? { images: attachedImages.map((img) => {
         const m = /^data:([^;]+);base64,(.*)$/.exec(img.dataUrl);
         return m ? { mimeType: m[1], data: m[2], name: img.name } : { mimeType: 'image/png', data: img.dataUrl, name: img.name };
