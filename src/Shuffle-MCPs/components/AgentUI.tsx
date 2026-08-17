@@ -926,20 +926,7 @@ const validateJson = (raw: unknown): { valid: boolean; result: any } => {
  * to lowercase with underscores so "Shuffle Host Monitors",
  * "shuffle-host-monitors" and "shuffle_host_monitors" all match.
  */
-const AGENT_NO_AUTH_APPS = new Set<string>([
-  'shuffle_incidents',
-  'shuffle_host_monitors',
-  'shuffle_monitors',
-  'shuffle_sensors',
-  'shuffle_workflows',
-  'shuffle_datastore',
-  'shuffle_apps',
-  'shuffle_detection',
-  'shuffle_files',
-  'shuffles_app_management',
-]);
-
-const normalizeAgentAppName = (name: string) => name.toLowerCase().replace(/[\s-]+/g, '_');
+const normalizeAgentAppName = (name: string) => normalizeAppName(name);
 
 const extractAuthRequest = (decision: any): { appName: string; appId: string | null } | null => {
   if (!decision || typeof decision !== 'object') return null;
