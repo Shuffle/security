@@ -982,7 +982,12 @@ const AgentActivityList = ({
       const eid = run.execution_id;
       const wfId = run.workflow_id || (run as any)?.workflow?.id;
       if (!eid || !wfId) return;
+      const prevStatus = run.status;
+      // Optimistic: spinner + ABORTED status on the same frame as the click,
+      // and broadcast so any other mounted view stays in sync.
       setAbortingIds((prev) => new Set([...Array.from(prev), eid]));
+      setAbortedIds((prev) => new Set([...Array.from(prev), eid]));
+      broadcastAgentAborted(eid);
       try {
         await abortAgentExecution({
           workflowId: wfId,
@@ -993,11 +998,19 @@ const AgentActivityList = ({
           orgId,
         });
         toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
-        // Optimistically mark the run aborted so the icon disappears quickly.
         setRuns((prev) =>
           prev.map((r) => (r.execution_id === eid ? { ...r, status: 'ABORTED' } : r)),
         );
       } catch (e) {
+        // Roll the optimistic state back so the run shows its real status again.
+        setAbortedIds((prev) => {
+          const next = new Set(Array.from(prev));
+          next.delete(eid);
+          return next;
+        });
+        setRuns((prev) =>
+          prev.map((r) => (r.execution_id === eid ? { ...r, status: prevStatus } : r)),
+        );
         toast({
           title: 'Abort failed',
           description: e instanceof Error ? e.message : 'Failed to abort execution',
@@ -1013,6 +1026,7 @@ const AgentActivityList = ({
     },
     [apiKey, apiBaseUrl, orgId],
   );
+
 
   const updateSearchQuery = useCallback((q: string) => {
 
