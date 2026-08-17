@@ -8,7 +8,10 @@ import { useHostActions } from '@/hooks/useHostActions';
 import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { HostActionPopover } from '@/components/monitors/HostActionPopover';
 import { HostDetailPanel } from '@/components/monitors/HostDetailPanel';
+import { HostNameDisplay, displayHostname } from '@/components/monitors/HostNameDisplay';
 import { DisableRceConfirmDialog } from '@/components/monitors/DisableRceConfirmDialog';
+
+
 import { fetchHostSupplements, mergeHost } from '@/lib/mergeMonitorHosts';
 import { isDemoActive } from '@/services/demoMode';
 import { DEMO_HOST_HOSTNAME } from '@/services/demoLiveEnvironment';
@@ -51,7 +54,8 @@ const MonitorDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
-  usePageMeta({ title: host ? `${host.hostname} — Monitor` : 'Monitor Detail', description: 'Host monitor detail view' });
+  usePageMeta({ title: host ? `${displayHostname(host.hostname)} — Monitor` : 'Monitor Detail', description: 'Host monitor detail view' });
+
 
   const fetchHost = useCallback(async () => {
     setLoading(true);
@@ -274,7 +278,9 @@ const MonitorDetailPage = () => {
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <OsIcon os={host.os} size={20} className="text-muted-foreground shrink-0" />
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold text-foreground truncate">{host.hostname}</h1>
+            <h1 className="text-lg font-semibold text-foreground truncate">
+              <HostNameDisplay hostname={host.hostname} />
+            </h1>
             <p className="text-xs text-muted-foreground">
               Group: {groupName}
               {checkinDate && (
@@ -282,6 +288,7 @@ const MonitorDetailPage = () => {
               )}
             </p>
           </div>
+
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <HostActionPopover

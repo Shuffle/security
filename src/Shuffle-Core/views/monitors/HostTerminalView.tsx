@@ -25,11 +25,13 @@ import {
   type AgentPrivilege,
 } from './hostActionDefinitions';
 import { ActionOutputView } from './ActionOutputView';
+import { HostNameDisplay } from '@/components/monitors/HostNameDisplay';
 import {
   type ActionDebugEntry,
   type useHostActions,
   isOutputTruncated,
 } from '@/hooks/useHostActions';
+
 
 export type HostTerminalSize = 'compact' | 'comfortable';
 
@@ -341,13 +343,16 @@ export const HostTerminalView = ({
         <div className={`${S.headerPad} border-b border-border flex items-center gap-2 shrink-0`}>
           <Terminal size={S.headerIcon} className="text-muted-foreground" />
           <div className="flex-1 min-w-0">
-            <p className={`${S.rowText} font-semibold text-foreground truncate`}>{host.hostname}</p>
+            <p className={`${S.rowText} font-semibold text-foreground truncate`}>
+              <HostNameDisplay hostname={host.hostname} />
+            </p>
             {host.responseActions && (
               <p className={`${S.metaText} text-muted-foreground`}>
                 {String(host.responseActions).toLowerCase().includes('full') ? 'Full control (RCE)' : 'Controlled'}
               </p>
             )}
           </div>
+
           {runningEntries.length > 0 && (
             <Loader2 size={S.statusIcon} className="animate-spin text-primary shrink-0" />
           )}

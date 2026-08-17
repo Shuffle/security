@@ -23,6 +23,8 @@ interface ProcessEntry {
 }
 import type { Vulnerability, VulnSeverity } from '@/hooks/useVulnerabilities';
 import { hostUrlSegment } from '@/utils/hostUrlSegment';
+import { machineIdFromHostname } from '@/components/monitors/HostNameDisplay';
+
 
 /**
  * Click handler that mimics <a> behavior:
@@ -297,23 +299,34 @@ export const HostDetailPanel = ({ host, variant = 'inline', collapsibleSections 
             <Hash size={12} />
             <span className="text-[0.65rem] font-semibold uppercase tracking-wide">Serial Number</span>
           </div>
-          {host.serial ? (() => {
+        {host.serial ? (() => {
             const raw = host.serial.trim();
             const snMatch = raw.match(/Serial\s*Number\s*\(?\w*\)?\s*:\s*(\S+)/i);
             const display = snMatch ? snMatch[1] : raw.split('\n')[0].trim().substring(0, 24);
+            const hostname = String(resolvedHostname || '');
+            const machineId = machineIdFromHostname(hostname);
             return (
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <p className="text-xs font-mono text-foreground cursor-help">{display}</p>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" align="start" className="z-[9999] max-w-sm">
-                    <pre className="text-[0.65rem] font-mono whitespace-pre-wrap">{raw}</pre>
+                  <TooltipContent side="bottom" align="start" className="z-[10030] max-w-sm">
+                    <div className="space-y-1">
+                      <pre className="text-[0.65rem] font-mono whitespace-pre-wrap">{raw}</pre>
+                      {machineId && (
+                        <div className="border-t border-border/50 pt-1">
+                          <p className="text-[0.65rem] text-muted-foreground">Hostname Machine ID</p>
+                          <p className="text-[0.65rem] font-mono">{machineId}</p>
+                        </div>
+                      )}
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             );
           })() : <p className="text-xs font-mono text-foreground">—</p>}
+
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-muted-foreground">
