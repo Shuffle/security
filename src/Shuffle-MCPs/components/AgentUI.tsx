@@ -5156,8 +5156,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 }}
                 onBlur={(e) => {
                   const node = e.target as HTMLTextAreaElement;
-                  const lh = parseFloat(window.getComputedStyle(node).lineHeight || '0') || 20;
-                  if ((node.value || '').length === 0 || node.scrollHeight <= lh * 1.6) {
+                  // Only an empty prompt collapses back to the single-line
+                  // pill on blur. Any remaining text keeps whatever the wrap
+                  // measurement decided, so wrapped text can never be clipped
+                  // behind the Skills chip.
+                  if ((node.value || '').length === 0) {
                     setPromptSingleLine(true);
                     node.scrollTop = 0;
                     setInputScrolled(false);
@@ -5165,6 +5168,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     applyChipScroll(0);
                   }
                 }}
+
                 placeholder={typedPlaceholder}
                 onKeyDown={onKeyDown}
                 onScroll={(e) => {
