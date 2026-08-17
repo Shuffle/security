@@ -432,11 +432,70 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     }
   }, [open]);
 
+  // Pre-load the automation config for every supported category with a
+  // top=1 lookup so the "When" dropdown can show enabled state and swap
+  // instantly between areas.
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    setActiveCategory(category);
+    setCategoryEntries({ [category]: { automations: initialAutomations || null, settings: initialSettings } });
+    let cancelled = false;
+    setLoadingCategories(true);
+    (async () => {
+      const results = await Promise.all(
+        categoryOptions
+          .filter(opt => opt.category !== category)
+          .map(async (opt) => {
+            try {
+              const res: any = await getDatastoreByCategory(opt.category, undefined, 1, orgIdProp || undefined);
+              const cfg = res?.categoryConfig;
+              return {
+                category: opt.category,
+                automations: (cfg?.automations as CategoryAutomation[]) || null,
+                settings: cfg?.settings,
+              };
+            } catch {
+              return { category: opt.category, automations: null, settings: undefined };
+            }
+          }),
+      );
+      if (cancelled) return;
+      setCategoryEntries(prev => {
+        const next = { ...prev };
+        results.forEach(r => { if (r && !next[r.category]) next[r.category] = { automations: r.automations, settings: r.settings }; });
+        return next;
+      });
+      setLoadingCategories(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, category]);
+
+  const activeEntry = categoryEntries[activeCategory];
+  const initializedRef = useRef<{ category: string; entry: CategoryEntry | undefined } | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      initializedRef.current = null;
+      return;
+    }
+    // Only (re)initialize the form when the active category changes or when
+    // its config was (re)loaded — never on unrelated re-renders, so in-flight
+    // edits are not wiped.
+    if (
+      initializedRef.current &&
+      initializedRef.current.category === activeCategory &&
+      initializedRef.current.entry === activeEntry
+    ) {
+      return;
+    }
+    initializedRef.current = { category: activeCategory, entry: activeEntry };
+    {
+      const sourceAutomations = activeEntry?.automations || null;
+      const sourceSettings = activeEntry?.settings;
       // Initialize with all automation types, preserving existing states
       // Match by name since API uses name as identifier
-      const existingByName = new Map((initialAutomations || []).map(a => [a.name, a]));
+      const existingByName = new Map((sourceAutomations || []).map(a => [a.name, a]));
       const allAutomations: CategoryAutomation[] = automationConfigs.map(config => {
         const existing = existingByName.get(config.name);
         if (existing) {
