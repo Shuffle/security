@@ -3569,6 +3569,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // abort the workflow execution; the existing poll loop will then pick up
   // the ABORTED status on its next tick.
   const abortAgent = useCallback(async () => {
+    setAbortLoading(true);
     const execId = execution?.execution_id;
     const auth = execution?.authorization;
     const wfId = (execution as any)?.workflow?.id;
@@ -3601,6 +3602,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (!execId || !wfId) {
       resetToStart();
       toast({ title: 'Run aborted', description: 'The agent had not started yet — reset to Start.' });
+      setAbortLoading(false);
       return;
     }
 
@@ -3619,6 +3621,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '');
         toast({ title: 'Abort failed', description: txt || `HTTP ${resp.status}`, variant: 'destructive' });
+        setAbortLoading(false);
         return;
       }
       toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
@@ -3627,8 +3630,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setTimeout(() => getExecution(execId, auth!), 2500);
     } catch (err) {
       toast({ title: 'Network error', description: String(err), variant: 'destructive' });
+    } finally {
+      setAbortLoading(false);
     }
   }, [execution, resolveUrl, resolveHeaders, getExecution, setSearchParams]);
+
 
 
   // Build a popout URL to answer the agent's question in the standalone Form UI.
