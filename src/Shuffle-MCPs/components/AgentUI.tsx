@@ -5285,6 +5285,29 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Box>
               )}
 
+              {attachedImages.length > 0 && (
+                <Box ref={attachmentsRowRef} sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                  {attachedImages.map((img, idx) => (
+                    <Box key={`${img.name}-${idx}`} sx={{
+                      display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                      height: 24, pl: 0.25, pr: 0.75, borderRadius: '999px',
+                      border: '1px solid hsl(var(--border))',
+                      bgcolor: 'hsl(var(--background))',
+                      maxWidth: '100%',
+                    }}>
+                      <Box component="img" src={img.dataUrl} alt={img.name} sx={{ width: 18, height: 18, borderRadius: '999px', objectFit: 'cover', flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--foreground))', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {img.name}
+                      </Typography>
+                      <IconButton size="small" onClick={() => setAttachedImages((prev) => prev.filter((_, i) => i !== idx))} sx={{ p: 0.125, color: 'hsl(var(--muted-foreground))', '&:hover': { color: 'hsl(var(--destructive))' } }} aria-label="Remove attached image">
+                        <CloseIcon size={11} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+
               <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
