@@ -4265,6 +4265,81 @@ const AgentUI: React.FC<AgentUIProps> = ({
     window.setTimeout(scrollRowIntoView, 260);
   };
 
+  // ── Auto-follow the detailed timeline ───────────────────────────────────
+  // While a run is live we keep the newest decision in view — but only as
+  // long as the user has not scrolled themselves. Any manual scroll gesture
+  // stops the following; scrolling back to the bottom resumes it.
+  const timelineEndRef = useRef<HTMLDivElement | null>(null);
+  const followTimelineRef = useRef(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const getScrollParent = (node: HTMLElement | null): HTMLElement | null => {
+      let el = node?.parentElement || null;
+      while (el) {
+        const style = window.getComputedStyle(el);
+        if (/(auto|scroll|overlay)/.test(style.overflowY) && el.scrollHeight > el.clientHeight) return el;
+        el = el.parentElement;
+      }
+      return null;
+    };
+
+    const isAtBottom = () => {
+      const parent = getScrollParent(timelineEndRef.current);
+      if (parent) {
+        return parent.scrollHeight - parent.scrollTop - parent.clientHeight < 120;
+      }
+      const doc = document.documentElement;
+      return doc.scrollHeight - window.scrollY - window.innerHeight < 120;
+    };
+
+    // Only real user gestures flip the flag — programmatic scrollIntoView must
+    // never turn following off.
+    const onUserScroll = () => { followTimelineRef.current = isAtBottom(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+        window.setTimeout(onUserScroll, 60);
+      }
+    };
+
+    window.addEventListener('wheel', onUserScroll, { passive: true });
+    window.addEventListener('touchmove', onUserScroll, { passive: true });
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('wheel', onUserScroll);
+      window.removeEventListener('touchmove', onUserScroll);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  const timelineCount = timeline.length;
+  const runIsLive = optimisticRunning
+    || !['FINISHED', 'FAILURE', 'ABORTED', 'CANCELLED', 'CANCELED'].includes(
+      (resolveRunStatus(execution?.status, agentData?.status) || 'EXECUTING').toUpperCase(),
+    );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (viewMode !== 'detailed') return;
+    if (!runIsLive) return;
+    if (!followTimelineRef.current) return;
+    const el = timelineEndRef.current;
+    if (!el) return;
+    const scroll = () => {
+      if (!followTimelineRef.current) return;
+      timelineEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    };
+    const raf = requestAnimationFrame(scroll);
+    const t = window.setTimeout(scroll, 240);
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(t); };
+  }, [timelineCount, viewMode, runIsLive]);
+
+  // Reset following whenever a new run starts.
+  useEffect(() => { followTimelineRef.current = true; }, [execution?.execution_id]);
+
+
+
 
   const handlePrimarySubmit = useCallback(() => {
     const composed = composeSubmitInput(actionInput);
