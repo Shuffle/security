@@ -35,6 +35,7 @@ import { API_CONFIG, getApiUrl, getAuthHeader, getTrackedOrgId } from '@/Shuffle
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
+import { defaultCollapsed } from '@/lib/jsonView';
 
 /** Recursively parse JSON-looking strings into objects/arrays so JsonView can collapse them. */
 const deepParseJsonStrings = (obj: any, depth = 0): any => {
@@ -846,7 +847,7 @@ const SingulActionsPreview = ({
                   <JsonView
                     src={deepParseJsonStrings(parsedResult)}
                     dark
-                    collapsed={2}
+                    collapsed={defaultCollapsed}
                     collapseStringMode="word"
                     collapseStringsAfterLength={120}
                     enableClipboard

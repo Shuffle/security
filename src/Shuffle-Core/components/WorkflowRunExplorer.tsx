@@ -58,6 +58,7 @@ import JsonView from 'react18-json-view';
 import type { JsonViewProps } from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
+import { defaultCollapsed } from '@/lib/jsonView';
 
 
 export interface WorkflowExecution {
@@ -868,7 +869,7 @@ const copyExecutionLink = () => {
                     ) as object}
                     baseName={debugResult?.__isExecutionArgument ? '$exec' : (actionName || label)}
                     dark
-                    collapsed={1}
+                    collapsed={defaultCollapsed}
                     collapseStringMode="word"
                     collapseStringsAfterLength={120}
                     enableClipboard
@@ -951,7 +952,7 @@ const DebugParamValue: React.FC<{ value: unknown; baseName?: string; destructive
         src={parsed as object}
         baseName={baseName}
         dark
-        collapsed={1}
+        collapsed={defaultCollapsed}
         collapseStringMode="word"
         collapseStringsAfterLength={120}
         enableClipboard
@@ -1078,7 +1079,7 @@ const ResultRenderer: React.FC<{ value: unknown; baseName?: string }> = ({ value
   if (parsed && typeof parsed === 'object') {
     return (
       <Box sx={{ maxHeight: 320, overflow: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 1, p: 1, bgcolor: 'hsl(var(--muted) / 0.4)' }}>
-        <JsonViewWithReference src={parsed as object} baseName={baseName} dark collapsed={1} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
+        <JsonViewWithReference src={parsed as object} baseName={baseName} dark collapsed={defaultCollapsed} collapseStringMode="word" collapseStringsAfterLength={120} enableClipboard displaySize />
       </Box>
     );
   }

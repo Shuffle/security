@@ -113,6 +113,7 @@ const normalizeMarkdown = (raw: unknown): string => {
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
+import { defaultCollapsed } from '@/lib/jsonView';
 import { ActionOutputView } from '@/Shuffle-Core/views/monitors/ActionOutputView';
 
 
@@ -435,7 +436,7 @@ const FinishAnswerMarkdown: React.FC<{ text: string }> = ({ text }) => {
   if (wholeJson !== null) {
     return (
       <Box sx={{ '& .json-view': { backgroundColor: 'transparent !important', fontSize: '0.82rem' } }}>
-        <JsonView src={wholeJson} collapsed={2} enableClipboard displaySize theme="default" />
+        <JsonView src={wholeJson} collapsed={defaultCollapsed} enableClipboard displaySize theme="default" />
       </Box>
     );
   }
@@ -451,7 +452,7 @@ const FinishAnswerMarkdown: React.FC<{ text: string }> = ({ text }) => {
             if (parsed !== null) {
               return (
                 <Box sx={{ my: 1, p: 1.5, borderRadius: 1, bgcolor: 'hsl(var(--muted))', '& .json-view': { backgroundColor: 'transparent !important', fontSize: '0.82rem' } }}>
-                  <JsonView src={parsed} collapsed={2} enableClipboard displaySize theme="default" />
+                  <JsonView src={parsed} collapsed={defaultCollapsed} enableClipboard displaySize theme="default" />
                 </Box>
               );
             }
@@ -1990,7 +1991,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               <JsonView
                 src={deepParseJsonStrings(validate.result)}
                 dark
-                collapsed={2}
+                collapsed={defaultCollapsed}
                 collapseStringMode="word"
                 collapseStringsAfterLength={120}
                 enableClipboard
