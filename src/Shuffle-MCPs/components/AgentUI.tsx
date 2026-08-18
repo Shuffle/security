@@ -1467,30 +1467,6 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           )}
         </Box>
 
-        {!isProcessing && screenshotCount > 0 && (
-          <Tooltip
-            title={screenshotCount > 1 ? `${screenshotCount} screenshots in this decision` : 'Screenshot in this decision'}
-            arrow
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.25,
-                flexShrink: 0,
-                color: 'hsl(var(--muted-foreground))',
-              }}
-            >
-              <ImageIcon size={14} />
-              {screenshotCount > 1 && (
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, lineHeight: 1 }}>
-                  {screenshotCount}
-                </Typography>
-              )}
-            </Box>
-          </Tooltip>
-        )}
-
         <Tooltip
           title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : typeTooltip}
           arrow
@@ -1578,9 +1554,9 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
         </Box>
 
 
-        {/* Per-row actions: Approve/Deny, Rerun */}
+        {/* Per-row actions: Approve/Deny, Rerun, Screenshot indicator */}
         <Box
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1, width: 68, minWidth: 68, flexShrink: 0, justifyContent: 'flex-end' }}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1, minWidth: 68, flexShrink: 0, justifyContent: 'flex-end' }}
           onClick={(e) => {
             // Only swallow the click when it actually lands on a button —
             // otherwise the empty area inside this row-actions box would
@@ -1699,6 +1675,32 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
               </Tooltip>
             );
           })()}
+          {item.type === 'decision' && !isProcessing && screenshotCount > 0 && (
+            <Tooltip
+              title={screenshotCount > 1 ? `${screenshotCount} screenshots in this decision` : 'Screenshot in this decision'}
+              arrow
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.25,
+                  width: 28,
+                  height: 28,
+                  flexShrink: 0,
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+              >
+                <ImageIcon size={14} />
+                {screenshotCount > 1 && (
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, lineHeight: 1 }}>
+                    {screenshotCount}
+                  </Typography>
+                )}
+              </Box>
+            </Tooltip>
+          )}
 
         </Box>
       </Box>
@@ -1945,7 +1947,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       })()}
 
       {/* Screenshot returned by the action (e.g. shuffle_hostmonitors script:screenshot) */}
-      {open && !isProcessing && screenshotCount > 0 && (
+      {open && !isProcessing && item.type !== 'agent' && screenshotCount > 0 && (
         <Box sx={{ px: 4, pb: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {screenshotCount > 1 && (
             <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
