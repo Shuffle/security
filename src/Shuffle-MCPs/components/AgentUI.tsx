@@ -3366,7 +3366,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
 
   // ── Submit input ──
-  const submitInput = useCallback(async (text: string, presetOverride?: AgentPreset | null) => {
+  const submitInput = useCallback(async (
+    text: string,
+    presetOverride?: AgentPreset | null,
+    appsOverride?: AgentUIApp[],
+  ) => {
     if (!text.trim()) return;
     // `undefined` means "use current selection"; `null` explicitly clears it.
     const effectivePreset = presetOverride !== undefined ? presetOverride : selectedPreset;
@@ -3453,9 +3457,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // still on the untouched built-in fallback, use those instead of
       // sending `http,shuffle_tools`.
       ...((() => {
-        const effectiveApps = executionApps.length > 0 && isBuiltinDefaultApps(chosenApps)
-          ? executionApps
-          : chosenApps;
+        const effectiveApps = appsOverride ?? (
+          executionApps.length > 0 && isBuiltinDefaultApps(chosenApps)
+            ? executionApps
+            : chosenApps
+        );
         return effectiveApps.length > 0 ? { toolName: buildToolName(effectiveApps) } : {};
       })()),
 
@@ -3757,7 +3763,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // first, otherwise the starter can win the race and the run looks like
       // it never began.
       userPickedStartRef.current = false;
-      submitInput(input, template);
+      submitInput(input, template, executionApps.length > 0 ? executionApps : undefined);
     } else {
       // Nothing usable to resend — show the Start tab with the fields filled
       // so the user can adjust and run manually. In embedded mode (drawer)
