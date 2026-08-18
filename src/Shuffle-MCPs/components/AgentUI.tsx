@@ -3429,14 +3429,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // The user is starting a new run — drop any sticky "manual Start" pin so
     // future polls/effects can populate Simple/Detailed normally.
     userPickedStartRef.current = false;
-    if (readUrlParams && typeof window !== 'undefined') {
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('execution_id');
-        url.searchParams.delete('authorization');
-        url.searchParams.delete('agentView');
-        window.history.replaceState({}, '', url.toString());
-      } catch { /* noop */ }
+    if (readUrlParams) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('execution_id');
+        next.delete('authorization');
+        next.delete('agentView');
+        return next;
+      }, { replace: true });
     }
 
     const result = await runAgent({
@@ -3526,13 +3526,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
       activeExecutionIdRef.current = eid;
       setExecution({ execution_id: eid, authorization: auth, status: 'EXECUTING' });
       // Reflect the new execution in the URL so the run is shareable/refreshable.
-      if (readUrlParams && typeof window !== 'undefined') {
-        try {
-          const url = new URL(window.location.href);
-          url.searchParams.set('execution_id', eid);
-          url.searchParams.set('authorization', auth);
-          window.history.replaceState({}, '', url.toString());
-        } catch { /* noop */ }
+      if (readUrlParams) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('execution_id', eid);
+          next.set('authorization', auth);
+          return next;
+        }, { replace: true });
       }
       getExecution(eid, auth);
       onRun?.({ input: text, success: true, executionId: eid });
@@ -3555,7 +3555,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // `selectedPreset` MUST be a dependency: without it the callback keeps a
     // stale skill (e.g. "Build Workflows") and keeps posting to
     // /api/v1/agent/workflow-edit after the skill was unselected.
-  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, viewMode, selectedPreset]);
+  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, setSearchParams, viewMode, selectedPreset]);
 
   // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
   const autoSubmittedRef = useRef(false);
@@ -3752,15 +3752,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
     // Keep the Skill chip in sync with the run we are repeating.
     setSelectedPreset(template);
-    // Drop the detailed-view param so the new run is not pinned to the old
-    // execution's view state.
-    if (!disableStartTab) {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete('agentView');
-        return next;
-      }, { replace: true });
-    }
     if (canSubmit) {
       // submitInput() resets the view itself — do NOT bounce to the Start tab
       // first, otherwise the starter can win the race and the run looks like
@@ -3784,7 +3775,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
     // Safety timeout in case submitInput never produces a new execution.
     setTimeout(() => setRerunAgentPending(false), 8000);
-  }, [resolveRunInput, resolveRunTemplate, actionInput, executionApps, setSearchParams, disableStartTab, submitInput]);
+  }, [resolveRunInput, resolveRunTemplate, actionInput, executionApps, disableStartTab, submitInput]);
 
 
   // Clear the top-level rerun-pending flag as soon as we're loading or a
