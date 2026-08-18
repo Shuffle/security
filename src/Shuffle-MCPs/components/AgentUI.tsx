@@ -1674,7 +1674,32 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                 </span>
               </Tooltip>
             );
-          })()}
+          {item.type === 'decision' && !isProcessing && screenshotCount > 0 && (
+            <Tooltip
+              title={screenshotCount > 1 ? `${screenshotCount} screenshots in this decision` : 'Screenshot in this decision'}
+              arrow
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.25,
+                  width: 28,
+                  height: 28,
+                  flexShrink: 0,
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+              >
+                <ImageIcon size={14} />
+                {screenshotCount > 1 && (
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, lineHeight: 1 }}>
+                    {screenshotCount}
+                  </Typography>
+                )}
+              </Box>
+            </Tooltip>
+          )}
 
         </Box>
       </Box>
