@@ -3670,9 +3670,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // Last resort: deep-scan the loaded run for anything that looks like the
     // original prompt. Runs loaded straight from an execution_id often nest it
     // under input.text / params.input.text / question etc.
-    const PROMPT_KEYS = new Set(['original_input', 'input', 'text', 'prompt', 'question', 'query', 'user_input']);
+    const PROMPT_KEYS = new Set([
+      'original_input', 'input', 'text', 'prompt', 'question', 'query', 'user_input',
+      'user_prompt', 'goal', 'instruction', 'instructions', 'task', 'objective', 'message',
+    ]);
+    const seen = new WeakSet<object>();
     const deepFind = (node: any, depth = 0): string => {
-      if (!node || depth > 6) return '';
+      if (!node || depth > 8) return '';
+      if (typeof node !== 'object') return '';
+      if (seen.has(node)) return '';
+      seen.add(node);
       if (Array.isArray(node)) {
         for (const item of node) {
           const found = deepFind(item, depth + 1);
@@ -3680,9 +3687,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
         }
         return '';
       }
-      if (typeof node !== 'object') return '';
+      // Shuffle parameter shape: { name: "input", value: "..." }
+      if (typeof (node as any).name === 'string' && typeof (node as any).value === 'string'
+        && PROMPT_KEYS.has(String((node as any).name).toLowerCase())
+        && (node as any).value.trim().length >= 2) {
+        return (node as any).value;
+      }
+      // Chat message shape: { role: "user", content: "..." }
+      if ((node as any).role === 'user' && typeof (node as any).content === 'string'
+        && (node as any).content.trim().length >= 2) {
+        return (node as any).content;
+      }
       for (const [k, v] of Object.entries(node)) {
-        if (typeof v === 'string' && PROMPT_KEYS.has(k) && v.trim().length >= 6) return v;
+        if (typeof v === 'string' && PROMPT_KEYS.has(k.toLowerCase()) && v.trim().length >= 2) return v;
       }
       for (const v of Object.values(node)) {
         if (v && typeof v === 'object') {
@@ -3694,6 +3711,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     };
     return deepFind(agentData) || deepFind(agentActionResult) || deepFind(execution) || '';
   }, [agentData, actionInput, agentActionResult, execution]);
+
 
 
   // The agent output carries a `template` field whenever the run was started
