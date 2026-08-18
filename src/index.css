@@ -436,13 +436,8 @@
   height: 14px;
 }
 
-/* Type-specific accents — left border + matching progress bar.
-   Avoid heavy colored backgrounds; keep card surface readable. */
-.Toastify__toast--success { border-left: 3px solid hsl(var(--severity-low)) !important; }
-.Toastify__toast--error   { border-left: 3px solid hsl(var(--destructive)) !important; }
-.Toastify__toast--warning { border-left: 3px solid hsl(var(--severity-medium, 38 92% 50%)) !important; }
-.Toastify__toast--info,
-.Toastify__toast--default { border-left: 3px solid hsl(var(--primary)) !important; }
+/* Type-specific accents are intentionally removed; keep a neutral card surface. */
+/* Progress bars still match toast type for subtle feedback. */
 
 .Toastify__toast-icon {
   width: 18px !important;

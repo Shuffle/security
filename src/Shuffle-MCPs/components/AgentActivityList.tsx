@@ -1024,7 +1024,7 @@ const AgentActivityList = ({
           apiBaseUrl,
           orgId,
         });
-        toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
+        
         setRuns((prev) =>
           prev.map((r) => (r.execution_id === eid ? { ...r, status: 'ABORTED' } : r)),
         );
