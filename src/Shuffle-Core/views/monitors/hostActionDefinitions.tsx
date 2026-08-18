@@ -352,13 +352,45 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
           </div>
         )}
 
-        <pre className="text-[0.6rem] font-mono text-muted-foreground bg-muted/30 rounded p-1.5 max-h-20 overflow-auto whitespace-pre-wrap break-all">
-          {buildPayload()}
-        </pre>
+        {op === 'custom' && (
+          <div>
+            <label className="text-[0.65rem] font-mono text-muted-foreground">
+              actions JSON (runs in order)
+            </label>
+            <textarea
+              value={customJson}
+              onChange={e => setCustomJson(e.target.value)}
+              spellCheck={false}
+              rows={10}
+              className="w-full mt-0.5 text-[0.65rem] font-mono rounded-md border border-border bg-background p-2 resize-y"
+            />
+            {customError && (
+              <p className="text-[0.6rem] font-mono text-destructive mt-1">{customError}</p>
+            )}
+          </div>
+        )}
+
+        {op !== 'custom' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-7 text-xs"
+            onClick={appendToChain}
+          >
+            Add to chain
+          </Button>
+        )}
+
+        {op !== 'custom' && (
+          <pre className="text-[0.6rem] font-mono text-muted-foreground bg-muted/30 rounded p-1.5 max-h-20 overflow-auto whitespace-pre-wrap break-all">
+            {buildPayload()}
+          </pre>
+        )}
 
         <Button
           size="sm"
           className="w-full h-7 text-xs"
+          disabled={!!customError}
           onClick={() => onSend(buildPayload())}
         >
           Send
