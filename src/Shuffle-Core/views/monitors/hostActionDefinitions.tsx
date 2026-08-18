@@ -195,15 +195,29 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
     return Number(t) || 0;
   };
 
+  // Normalize a shortcut string like "cmd + t" → "CMD+T"
+  const normalizeShortcut = (raw: string) =>
+    String(raw || '')
+      .split('+')
+      .map(part => part.trim())
+      .filter(Boolean)
+      .map(part => part.toUpperCase())
+      .join('+');
+
   const buildPayload = () => {
     if (op === 'keyboard.press') {
+      // New behaviour: send the whole string in one action. Shortcuts are
+      // normalized ("cmd+t" → "CMD+T"), pure typing is sent verbatim.
+      const raw = String(keyCode || '');
+      const key = keyMode === 'shortcut' ? normalizeShortcut(raw) : raw;
+      return JSON.stringify({ actions: [{ op: 'keyboard.press', params: { key } }] });
+    }
+    if (op === 'keyboard.press.legacy') {
       // If the user typed a multi-char string that isn't a named key / VK code
       // (e.g. "notepad"), expand it to one keyboard.press action per character
       // so the agent types the whole string. Single chars / named keys / hex
       // codes still produce a single action.
       const raw = String(keyCode || '').trim();
-      const isNamed = /^[a-z]+$/i.test(raw) && raw.length > 1 &&
-        resolveKey(raw) !== 0 && resolveKey(raw) === resolveKey(raw.toLowerCase());
       const namedHit = (() => {
         // Only treat as a named key when resolveKey matches via the named map
         // or F-key pattern — not when it happens to be a single A-Z letter.
@@ -222,7 +236,7 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
         })).filter(a => a.params.key);
         return JSON.stringify({ actions });
       }
-      return JSON.stringify({ actions: [{ op, params: { key: resolveKey(raw) } }] });
+      return JSON.stringify({ actions: [{ op: 'keyboard.press', params: { key: resolveKey(raw) } }] });
     }
     let params: Record<string, unknown> = {};
     if (op === 'mouse.move') {
