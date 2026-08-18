@@ -1674,6 +1674,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
                 </span>
               </Tooltip>
             );
+          })()}
           {item.type === 'decision' && !isProcessing && screenshotCount > 0 && (
             <Tooltip
               title={screenshotCount > 1 ? `${screenshotCount} screenshots in this decision` : 'Screenshot in this decision'}
