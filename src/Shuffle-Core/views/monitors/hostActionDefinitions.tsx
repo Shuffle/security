@@ -270,37 +270,27 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
           </div>
         )}
 
-        {op === 'keyboard.press' && (
-          <>
-            <div>
-              <label className="text-[0.65rem] font-mono text-muted-foreground">mode</label>
-              <select
-                value={keyMode}
-                onChange={e => setKeyMode(e.target.value as 'text' | 'shortcut')}
-                className="w-full mt-0.5 h-7 text-xs rounded-md border border-border bg-background px-2"
-              >
-                <option value="text">text (type the string)</option>
-                <option value="shortcut">shortcut (e.g. CMD+T)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[0.65rem] font-mono text-muted-foreground">
-                {keyMode === 'shortcut' ? 'shortcut ("CMD+T", "CTRL+SHIFT+ESC")' : 'text to type ("hello world")'}
-              </label>
-              <Input
-                value={keyCode}
-                onChange={e => setKeyCode(e.target.value)}
-                placeholder={keyMode === 'shortcut' ? 'CMD+T' : 'text goes here'}
-                className="h-7 text-xs font-mono"
-              />
-            </div>
-          </>
+        {op === 'keyboard.type' && (
+          <div>
+            <label className="text-[0.65rem] font-mono text-muted-foreground">keys (text to type)</label>
+            <Input
+              value={typeText}
+              onChange={e => setTypeText(e.target.value)}
+              placeholder="Hello World!"
+              className="h-7 text-xs font-mono"
+            />
+          </div>
         )}
 
-        {op === 'keyboard.press.legacy' && (
+        {op === 'keyboard.hotkey' && (
           <div>
-            <label className="text-[0.65rem] font-mono text-muted-foreground">key or string ("notepad", "enter", "f1", a, 0x1B)</label>
-            <Input value={keyCode} onChange={e => setKeyCode(e.target.value)} placeholder="Enter" className="h-7 text-xs font-mono" />
+            <label className="text-[0.65rem] font-mono text-muted-foreground">keys (comma-separated, e.g. "Control, Shift, Escape")</label>
+            <Input
+              value={hotkeys}
+              onChange={e => setHotkeys(e.target.value)}
+              placeholder="Control, Tab"
+              className="h-7 text-xs font-mono"
+            />
           </div>
         )}
 
