@@ -8,7 +8,7 @@ export const getRegionFlag = (regionUrl?: string): { flag: string; code: string 
     return { flag: '🇺🇸', code: 'US' };
   }
   if (url.includes('frankfurt') || url.includes('de.') || url.includes('de-')) {
-    return { flag: '🇩🇪', code: 'DE' };
+    return { flag: '🇪🇺', code: 'EU' };
   }
   if (url.includes('eu-2') || url.includes('eu2')) {
     return { flag: '🇪🇺', code: 'EU-2' };
