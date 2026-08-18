@@ -3751,11 +3751,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
       submitInput(input, template);
     } else {
       // Nothing usable to resend — show the Start tab with the fields filled
-      // so the user can adjust and run manually.
-      if (!disableStartTab) setShowStarter(true);
+      // so the user can adjust and run manually. In embedded mode (drawer)
+      // the Start tab is disabled, so surface the reason instead of failing
+      // silently and leaving the button looking dead.
+      if (!disableStartTab) {
+        setShowStarter(true);
+      } else {
+        setViewMode('simple');
+        setError('Could not resolve the original prompt for this run. Type it below and start a new run.');
+      }
       setRerunAgentPending(false);
       return;
     }
+
     // Safety timeout in case submitInput never produces a new execution.
     setTimeout(() => setRerunAgentPending(false), 8000);
   }, [resolveRunInput, resolveRunTemplate, actionInput, executionApps, setSearchParams, disableStartTab, submitInput]);
