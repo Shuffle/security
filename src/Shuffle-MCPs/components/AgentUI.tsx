@@ -45,6 +45,7 @@ import {
   ThumbsUp as ThumbUpIcon,
   AlertTriangle as WarningIcon,
   Search as SearchIcon,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { fetchExecution as fetchExecutionSnapshot } from '@/Shuffle-Core/components/WorkflowRunExplorer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
