@@ -159,85 +159,25 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
   const [toY, setToY] = useState('500');
   const [button, setButton] = useState<'left' | 'right' | 'middle'>('left');
   const [delayMs, setDelayMs] = useState('100');
-  const [keyCode, setKeyCode] = useState('13');
-  const [keyMode, setKeyMode] = useState<'text' | 'shortcut'>('text');
+  const [typeText, setTypeText] = useState('Hello World!');
+  const [hotkeys, setHotkeys] = useState('Control, Tab');
   const [waitMs, setWaitMs] = useState('250');
 
-  // Translate human-typed keys into Windows virtual key codes.
-  // - Single 0-9 / A-Z character → 0x30..0x39 / 0x41..0x5A
-  // - Common named keys ("enter", "esc", "space", arrows, F1-F12) → VK code
-  // - "0x1B" / "27" / decimals pass through unchanged
-  const NAMED_VK: Record<string, number> = {
-    enter: 0x0D, return: 0x0D, esc: 0x1B, escape: 0x1B, tab: 0x09,
-    space: 0x20, spacebar: 0x20, backspace: 0x08, delete: 0x2E, del: 0x2E,
-    insert: 0x2D, home: 0x24, end: 0x23, pageup: 0x21, pagedown: 0x22,
-    left: 0x25, up: 0x26, right: 0x27, down: 0x28,
-    shift: 0x10, ctrl: 0x11, control: 0x11, alt: 0x12, win: 0x5B, meta: 0x5B,
-    capslock: 0x14,
-  };
-  const resolveKey = (raw: string): number => {
-    const s = String(raw || '');
-    if (!s) return 0;
-    // Preserve single-character whitespace (e.g. ' ' → VK_SPACE) before trimming
-    if (s.length === 1 && /\s/.test(s)) return 0x20;
-    const t = s.trim();
-    if (!t) return 0;
-    if (/^0x[0-9a-f]+$/i.test(t)) return parseInt(t, 16);
-    if (/^\d+$/.test(t)) return parseInt(t, 10);
-    if (t.length === 1) {
-      const c = t.toUpperCase().charCodeAt(0);
-      if (c >= 0x30 && c <= 0x39) return c; // 0-9
-      if (c >= 0x41 && c <= 0x5A) return c; // A-Z
-    }
-    const lower = t.toLowerCase();
-    if (NAMED_VK[lower] != null) return NAMED_VK[lower];
-    const fmatch = lower.match(/^f([1-9]|1[0-2])$/);
-    if (fmatch) return 0x70 + (parseInt(fmatch[1], 10) - 1);
-    return Number(t) || 0;
-  };
-
-  // Normalize a shortcut string like "cmd + t" → "CMD+T"
-  const normalizeShortcut = (raw: string) =>
+  // Normalize a hotkey string like "control+shift+escape" or "Control ,Tab"
+  // into the comma-separated form the agent expects: "Control, Shift, Escape"
+  const normalizeHotkeys = (raw: string) =>
     String(raw || '')
-      .split('+')
+      .split(/[,+]/)
       .map(part => part.trim())
       .filter(Boolean)
-      .map(part => part.toUpperCase())
-      .join('+');
+      .join(', ');
 
   const buildPayload = () => {
-    if (op === 'keyboard.press') {
-      // New behaviour: send the whole string in one action. Shortcuts are
-      // normalized ("cmd+t" → "CMD+T"), pure typing is sent verbatim.
-      const raw = String(keyCode || '');
-      const key = keyMode === 'shortcut' ? normalizeShortcut(raw) : raw;
-      return JSON.stringify({ actions: [{ op: 'keyboard.press', params: { key } }] });
+    if (op === 'keyboard.type') {
+      return JSON.stringify({ actions: [{ op: 'keyboard.type', params: { keys: String(typeText || '') } }] });
     }
-    if (op === 'keyboard.press.legacy') {
-      // If the user typed a multi-char string that isn't a named key / VK code
-      // (e.g. "notepad"), expand it to one keyboard.press action per character
-      // so the agent types the whole string. Single chars / named keys / hex
-      // codes still produce a single action.
-      const raw = String(keyCode || '').trim();
-      const namedHit = (() => {
-        // Only treat as a named key when resolveKey matches via the named map
-        // or F-key pattern — not when it happens to be a single A-Z letter.
-        if (raw.length <= 1) return true;
-        if (/^0x[0-9a-f]+$/i.test(raw) || /^\d+$/.test(raw)) return true;
-        const lower = raw.toLowerCase();
-        if (/^f([1-9]|1[0-2])$/.test(lower)) return true;
-        // Named map keys
-        const named = ['enter','return','esc','escape','tab','space','spacebar','backspace','delete','del','insert','home','end','pageup','pagedown','left','up','right','down','shift','ctrl','control','alt','win','meta','capslock'];
-        return named.includes(lower);
-      })();
-      if (!namedHit && raw.length > 1) {
-        const actions = Array.from(raw).map(ch => ({
-          op: 'keyboard.press',
-          params: { key: resolveKey(ch) },
-        })).filter(a => a.params.key);
-        return JSON.stringify({ actions });
-      }
-      return JSON.stringify({ actions: [{ op: 'keyboard.press', params: { key: resolveKey(raw) } }] });
+    if (op === 'keyboard.hotkey') {
+      return JSON.stringify({ actions: [{ op: 'keyboard.hotkey', params: { keys: normalizeHotkeys(hotkeys) } }] });
     }
     let params: Record<string, unknown> = {};
     if (op === 'mouse.move') {
