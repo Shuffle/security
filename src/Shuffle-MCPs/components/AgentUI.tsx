@@ -1921,9 +1921,16 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       })()}
 
       {/* Screenshot returned by the action (e.g. shuffle_hostmonitors script:screenshot) */}
-      {open && !isProcessing && screenshotPayload && (
-        <Box sx={{ px: 4, pb: 2 }}>
-          <ActionOutputView output={screenshotPayload} />
+      {open && !isProcessing && screenshotCount > 0 && (
+        <Box sx={{ px: 4, pb: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {screenshotCount > 1 && (
+            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
+              {screenshotCount} screenshots returned by this action
+            </Typography>
+          )}
+          {screenshotPayloads.map((payload, i) => (
+            <ActionOutputView key={i} output={payload} />
+          ))}
         </Box>
       )}
 
