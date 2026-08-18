@@ -3802,7 +3802,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         setAbortLoading(false);
         return;
       }
-      toast({ title: 'Aborting run', description: 'The execution will be set to ABORTED shortly.' });
+      
       // Nudge the poll loop to refresh sooner so the UI reflects the change.
       setTimeout(() => getExecution(execId, auth!), 500);
       setTimeout(() => getExecution(execId, auth!), 2500);
