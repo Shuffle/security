@@ -1467,30 +1467,6 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
           )}
         </Box>
 
-        {!isProcessing && screenshotCount > 0 && (
-          <Tooltip
-            title={screenshotCount > 1 ? `${screenshotCount} screenshots in this decision` : 'Screenshot in this decision'}
-            arrow
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.25,
-                flexShrink: 0,
-                color: 'hsl(var(--muted-foreground))',
-              }}
-            >
-              <ImageIcon size={14} />
-              {screenshotCount > 1 && (
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, lineHeight: 1 }}>
-                  {screenshotCount}
-                </Typography>
-              )}
-            </Box>
-          </Tooltip>
-        )}
-
         <Tooltip
           title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : typeTooltip}
           arrow
