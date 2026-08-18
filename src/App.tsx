@@ -1,4 +1,4 @@
-import { useEffect, useMemo, lazy, Suspense } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline, Box } from '@mui/material';
 import { Navigate } from 'react-router-dom';
 import { AppDetailProvider } from '@/Shuffle-MCPs/AppDetailContext';
@@ -123,6 +123,7 @@ import { useUsecaseAgentFilters } from '@/hooks/useUsecaseAgentFilters';
 import { useHostMonitorCount } from '@/hooks/useHostMonitorCount';
 import { useRealIncidentCount } from '@/hooks/useRealIncidentCount';
 import { useNavigate } from 'react-router-dom';
+import MonitorsView from '@/Shuffle-Core/views/monitors/MonitorsView';
 
 
 
