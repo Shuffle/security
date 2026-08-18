@@ -893,6 +893,8 @@ export interface AgentActivityListProps extends ShuffleHostProps {
   showStatusChips?: boolean;
   /** Page size. Default: 50. */
   limit?: number;
+  /** Optional page size sent as the `?top` query parameter. */
+  top?: number;
   /** Empty-state heading. */
   emptyTitle?: string;
   /** Empty-state subtitle. */
