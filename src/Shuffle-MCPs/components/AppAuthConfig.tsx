@@ -489,6 +489,11 @@ export const AppAuthCard = ({
         // in the list (e.g. the provider changed) — fall back to the default.
         setSelectedAuthId(getBestDefaultAuth(apiAuthEntries));
       }
+    } else if (selectedAuthId !== ADD_NEW_AUTH) {
+      // No auths available for this provider/app — show "Add new authentication"
+      // instead of leaving a stale selection that renders as an empty dropdown.
+      setSelectedAuthId(ADD_NEW_AUTH);
+      setUserHasSelected(false);
     }
 
     prevEntryCountRef.current = apiAuthEntries.length;
