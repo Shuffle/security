@@ -330,6 +330,33 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
         )}
 
         {op === 'keyboard.press' && (
+          <>
+            <div>
+              <label className="text-[0.65rem] font-mono text-muted-foreground">mode</label>
+              <select
+                value={keyMode}
+                onChange={e => setKeyMode(e.target.value as 'text' | 'shortcut')}
+                className="w-full mt-0.5 h-7 text-xs rounded-md border border-border bg-background px-2"
+              >
+                <option value="text">text (type the string)</option>
+                <option value="shortcut">shortcut (e.g. CMD+T)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[0.65rem] font-mono text-muted-foreground">
+                {keyMode === 'shortcut' ? 'shortcut ("CMD+T", "CTRL+SHIFT+ESC")' : 'text to type ("hello world")'}
+              </label>
+              <Input
+                value={keyCode}
+                onChange={e => setKeyCode(e.target.value)}
+                placeholder={keyMode === 'shortcut' ? 'CMD+T' : 'text goes here'}
+                className="h-7 text-xs font-mono"
+              />
+            </div>
+          </>
+        )}
+
+        {op === 'keyboard.press.legacy' && (
           <div>
             <label className="text-[0.65rem] font-mono text-muted-foreground">key or string ("notepad", "enter", "f1", a, 0x1B)</label>
             <Input value={keyCode} onChange={e => setKeyCode(e.target.value)} placeholder="Enter" className="h-7 text-xs font-mono" />
