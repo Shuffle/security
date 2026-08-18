@@ -3693,12 +3693,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [agentData, agentActionResult, execution, presets]);
 
   const rerunAgent = useCallback(() => {
-    const input = resolveRunInput();
+    const resolved = resolveRunInput();
+    const input = (typeof resolved === 'string' && resolved.trim() ? resolved : actionInput) || '';
     const template = resolveRunTemplate();
+    const canSubmit = input.trim().length >= 6;
     // Optimistic feedback for the button — flip immediately, cleared when
     // the new execution loads (see effect below).
     setRerunAgentPending(true);
-    if (input && typeof input === 'string') {
+    if (input) {
       setActionInput(input);
     }
     if (executionApps.length > 0) {
@@ -3706,24 +3708,31 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
     // Keep the Skill chip in sync with the run we are repeating.
     setSelectedPreset(template);
-    // Auto-submit immediately with the previous prompt + tools so the user
-    // does not have to click play again. When the Start tab is visible we
-    // still bounce back to it first so the prompt + chip row are visible
-    // while the new run kicks off.
+    // Drop the detailed-view param so the new run is not pinned to the old
+    // execution's view state.
     if (!disableStartTab) {
-      setShowStarter(true);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.delete('agentView');
         return next;
       }, { replace: true });
     }
-    if (input && typeof input === 'string' && input.trim().length >= 6) {
+    if (canSubmit) {
+      // submitInput() resets the view itself — do NOT bounce to the Start tab
+      // first, otherwise the starter can win the race and the run looks like
+      // it never began.
+      userPickedStartRef.current = false;
       submitInput(input, template);
+    } else {
+      // Nothing usable to resend — show the Start tab with the fields filled
+      // so the user can adjust and run manually.
+      if (!disableStartTab) setShowStarter(true);
+      setRerunAgentPending(false);
+      return;
     }
     // Safety timeout in case submitInput never produces a new execution.
     setTimeout(() => setRerunAgentPending(false), 8000);
-  }, [resolveRunInput, resolveRunTemplate, executionApps, setSearchParams, disableStartTab, submitInput]);
+  }, [resolveRunInput, resolveRunTemplate, actionInput, executionApps, setSearchParams, disableStartTab, submitInput]);
 
 
   // Clear the top-level rerun-pending flag as soon as we're loading or a
