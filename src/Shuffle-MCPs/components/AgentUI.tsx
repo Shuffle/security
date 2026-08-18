@@ -3667,8 +3667,34 @@ const AgentUI: React.FC<AgentUIProps> = ({
         if (execArg.length < 4000) return execArg;
       }
     }
-    return '';
+    // Last resort: deep-scan the loaded run for anything that looks like the
+    // original prompt. Runs loaded straight from an execution_id often nest it
+    // under input.text / params.input.text / question etc.
+    const PROMPT_KEYS = new Set(['original_input', 'input', 'text', 'prompt', 'question', 'query', 'user_input']);
+    const deepFind = (node: any, depth = 0): string => {
+      if (!node || depth > 6) return '';
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          const found = deepFind(item, depth + 1);
+          if (found) return found;
+        }
+        return '';
+      }
+      if (typeof node !== 'object') return '';
+      for (const [k, v] of Object.entries(node)) {
+        if (typeof v === 'string' && PROMPT_KEYS.has(k) && v.trim().length >= 6) return v;
+      }
+      for (const v of Object.values(node)) {
+        if (v && typeof v === 'object') {
+          const found = deepFind(v, depth + 1);
+          if (found) return found;
+        }
+      }
+      return '';
+    };
+    return deepFind(agentData) || deepFind(agentActionResult) || deepFind(execution) || '';
   }, [agentData, actionInput, agentActionResult, execution]);
+
 
   // The agent output carries a `template` field whenever the run was started
   // through a Skill (e.g. "computer-use", "workflow-edit"). Resolve it back to
