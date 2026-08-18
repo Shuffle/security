@@ -162,6 +162,21 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
   const [typeText, setTypeText] = useState('Hello World!');
   const [hotkeys, setHotkeys] = useState('Control, Tab');
   const [waitMs, setWaitMs] = useState('250');
+  const [customJson, setCustomJson] = useState(
+    JSON.stringify(
+      {
+        actions: [
+          { op: 'mouse.click', params: { x: 500, y: 1375, button: 'left', delay_ms: 100 } },
+          { op: 'system.wait', params: { ms: 300 } },
+          { op: 'keyboard.type', params: { keys: 'Hello from Shuffle' } },
+          { op: 'system.wait', params: { ms: 300 } },
+          { op: 'keyboard.hotkey', params: { keys: 'enter' } },
+        ],
+      },
+      null,
+      2,
+    ),
+  );
 
   // Normalize a hotkey string like "control+shift+escape" or "Control ,Tab"
   // into the comma-separated form the agent expects: "Control, Shift, Escape"
@@ -172,12 +187,12 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
       .filter(Boolean)
       .join(', ');
 
-  const buildPayload = () => {
+  const buildAction = (): { op: string; params: Record<string, unknown> } => {
     if (op === 'keyboard.type') {
-      return JSON.stringify({ actions: [{ op: 'keyboard.type', params: { keys: String(typeText || '') } }] });
+      return { op: 'keyboard.type', params: { keys: String(typeText || '') } };
     }
     if (op === 'keyboard.hotkey') {
-      return JSON.stringify({ actions: [{ op: 'keyboard.hotkey', params: { keys: normalizeHotkeys(hotkeys) } }] });
+      return { op: 'keyboard.hotkey', params: { keys: normalizeHotkeys(hotkeys) } };
     }
     let params: Record<string, unknown> = {};
     if (op === 'mouse.move') {
@@ -189,7 +204,42 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
     } else if (op === 'system.wait') {
       params = { ms: Number(waitMs) };
     }
-    return JSON.stringify({ actions: [{ op, params }] });
+    return { op, params };
+  };
+
+  const customError = (() => {
+    if (op !== 'custom') return '';
+    try {
+      const parsed = JSON.parse(customJson);
+      if (!parsed || !Array.isArray(parsed.actions)) return 'JSON must contain an "actions" array';
+      return '';
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Invalid JSON';
+    }
+  })();
+
+  const appendToChain = () => {
+    const action = buildAction();
+    let existing: unknown[] = [];
+    try {
+      const parsed = JSON.parse(customJson);
+      if (parsed && Array.isArray(parsed.actions)) existing = parsed.actions;
+    } catch {
+      existing = [];
+    }
+    setCustomJson(JSON.stringify({ actions: [...existing, action] }, null, 2));
+    setOp('custom');
+  };
+
+  const buildPayload = () => {
+    if (op === 'custom') {
+      try {
+        return JSON.stringify(JSON.parse(customJson));
+      } catch {
+        return customJson;
+      }
+    }
+    return JSON.stringify({ actions: [buildAction()] });
   };
 
   return (
