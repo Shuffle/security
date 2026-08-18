@@ -6159,7 +6159,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             )}
           </Box>
         ) : (
-          <Box>
+          <Box sx={{ pb: '200px' }}>
             {/* Status row */}
             <Box sx={{
               display: 'flex', alignItems: 'center', gap: 2,
