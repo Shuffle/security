@@ -160,6 +160,7 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
   const [button, setButton] = useState<'left' | 'right' | 'middle'>('left');
   const [delayMs, setDelayMs] = useState('100');
   const [keyCode, setKeyCode] = useState('13');
+  const [keyMode, setKeyMode] = useState<'text' | 'shortcut'>('text');
   const [waitMs, setWaitMs] = useState('250');
 
   // Translate human-typed keys into Windows virtual key codes.
