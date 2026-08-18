@@ -4239,12 +4239,32 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
 
 
-  const toggleOpen = (i: number) =>
+  const toggleOpen = (i: number) => {
+    let opening = false;
     setOpenIndexes((prev) => {
       const next = new Set(prev);
-      if (next.has(i)) next.delete(i); else next.add(i);
+      if (next.has(i)) next.delete(i); else { next.add(i); opening = true; }
       return next;
     });
+
+    // When expanding, make sure the newly revealed content is visible. The row
+    // body renders (and images/tables can grow) a frame or two after the state
+    // change, so nudge the bottom of the row into view a couple of times.
+    if (typeof window === 'undefined') return;
+    const scrollRowIntoView = () => {
+      if (!opening) return;
+      const el = document.querySelector(`[data-timeline-index="${i}"]`);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      // Only scroll if the expanded row overflows the viewport bottom.
+      if (rect.bottom > window.innerHeight - 8) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(scrollRowIntoView));
+    window.setTimeout(scrollRowIntoView, 260);
+  };
+
 
   const handlePrimarySubmit = useCallback(() => {
     const composed = composeSubmitInput(actionInput);
