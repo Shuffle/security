@@ -3229,6 +3229,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setError(null);
       setPollWarning(null);
     } catch (err) {
+      if (
+        activeExecutionIdRef.current !== executionId ||
+        executionPollGenerationRef.current !== pollGeneration
+      ) return;
       // Transient network blips ("Failed to fetch") happen while polling a
       // long-running execution. Only surface them when nothing loaded yet.
       if (!hasExecutionDataRef.current) setError(err instanceof Error ? err.message : 'Network error.');
