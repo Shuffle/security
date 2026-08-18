@@ -45,6 +45,7 @@ import {
   ThumbsUp as ThumbUpIcon,
   AlertTriangle as WarningIcon,
   Search as SearchIcon,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { fetchExecution as fetchExecutionSnapshot } from '@/Shuffle-Core/components/WorkflowRunExplorer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -259,6 +260,50 @@ export const extractScreenshotPayload = (raw: unknown, depth = 0): string | null
   }
   return null;
 };
+
+/**
+ * Same as `extractScreenshotPayload`, but collects EVERY renderable image in a
+ * decision payload (an action can return several screenshots in one go).
+ * De-duplicated, in first-seen order.
+ */
+export const extractScreenshotPayloads = (raw: unknown, depth = 0, out: string[] = []): string[] => {
+  if (depth > 12 || raw == null) return out;
+  if (typeof raw === 'string') {
+    if (looksLikeBase64Image(raw)) {
+      out.push(raw.trim());
+      return out;
+    }
+    const parsed = tryParseJsonObject(raw);
+    if (parsed) extractScreenshotPayloads(parsed, depth + 1, out);
+    if (!out.length && depth === 0) {
+      const scanned = scanTextForImage(raw);
+      if (scanned) out.push(scanned);
+    }
+    return out;
+  }
+  if (Array.isArray(raw)) {
+    for (const item of raw) extractScreenshotPayloads(item, depth + 1, out);
+    return out;
+  }
+  if (typeof raw !== 'object') return out;
+  const rec = raw as Record<string, unknown>;
+  const holdsImage = IMAGE_VALUE_KEYS.some((key) => looksLikeBase64Image(rec[key]));
+  if (holdsImage) {
+    out.push(JSON.stringify(rec));
+    return out;
+  }
+  for (const value of Object.values(rec)) extractScreenshotPayloads(value, depth + 1, out);
+  if (!out.length && depth === 0) {
+    try {
+      const scanned = scanTextForImage(JSON.stringify(rec));
+      if (scanned) out.push(scanned);
+    } catch { /* ignore */ }
+  }
+  if (depth === 0) return Array.from(new Set(out));
+  return out;
+};
+
+
 
 
 /** Try to parse a string as JSON object/array; returns null otherwise. */
@@ -1144,10 +1189,11 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
 }) => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const validate = validateJson(item.details);
-  const screenshotPayload = useMemo(
-    () => extractScreenshotPayload(validate.valid ? validate.result : item.details),
+  const screenshotPayloads = useMemo(
+    () => extractScreenshotPayloads(validate.valid ? validate.result : item.details),
     [validate.valid, validate.result, item.details],
   );
+  const screenshotCount = screenshotPayloads.length;
 
   const itemStart = item.start_time || 0;
   const itemEnd = item.end_time || itemStart;
@@ -1420,6 +1466,30 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
             <Box sx={{ width: 22 }} />
           )}
         </Box>
+
+        {!isProcessing && screenshotCount > 0 && (
+          <Tooltip
+            title={screenshotCount > 1 ? `${screenshotCount} screenshots in this decision` : 'Screenshot in this decision'}
+            arrow
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.25,
+                flexShrink: 0,
+                color: 'hsl(var(--muted-foreground))',
+              }}
+            >
+              <ImageIcon size={14} />
+              {screenshotCount > 1 && (
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, lineHeight: 1 }}>
+                  {screenshotCount}
+                </Typography>
+              )}
+            </Box>
+          </Tooltip>
+        )}
 
         <Tooltip
           title={isLikelyTimedOut ? 'No new activity for over a minute — this run has most likely timed out.' : typeTooltip}
@@ -1875,9 +1945,16 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       })()}
 
       {/* Screenshot returned by the action (e.g. shuffle_hostmonitors script:screenshot) */}
-      {open && !isProcessing && screenshotPayload && (
-        <Box sx={{ px: 4, pb: 2 }}>
-          <ActionOutputView output={screenshotPayload} />
+      {open && !isProcessing && screenshotCount > 0 && (
+        <Box sx={{ px: 4, pb: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {screenshotCount > 1 && (
+            <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
+              {screenshotCount} screenshots returned by this action
+            </Typography>
+          )}
+          {screenshotPayloads.map((payload, i) => (
+            <ActionOutputView key={i} output={payload} />
+          ))}
         </Box>
       )}
 
