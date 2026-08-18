@@ -261,6 +261,50 @@ export const extractScreenshotPayload = (raw: unknown, depth = 0): string | null
   return null;
 };
 
+/**
+ * Same as `extractScreenshotPayload`, but collects EVERY renderable image in a
+ * decision payload (an action can return several screenshots in one go).
+ * De-duplicated, in first-seen order.
+ */
+export const extractScreenshotPayloads = (raw: unknown, depth = 0, out: string[] = []): string[] => {
+  if (depth > 12 || raw == null) return out;
+  if (typeof raw === 'string') {
+    if (looksLikeBase64Image(raw)) {
+      out.push(raw.trim());
+      return out;
+    }
+    const parsed = tryParseJsonObject(raw);
+    if (parsed) extractScreenshotPayloads(parsed, depth + 1, out);
+    if (!out.length && depth === 0) {
+      const scanned = scanTextForImage(raw);
+      if (scanned) out.push(scanned);
+    }
+    return out;
+  }
+  if (Array.isArray(raw)) {
+    for (const item of raw) extractScreenshotPayloads(item, depth + 1, out);
+    return out;
+  }
+  if (typeof raw !== 'object') return out;
+  const rec = raw as Record<string, unknown>;
+  const holdsImage = IMAGE_VALUE_KEYS.some((key) => looksLikeBase64Image(rec[key]));
+  if (holdsImage) {
+    out.push(JSON.stringify(rec));
+    return out;
+  }
+  for (const value of Object.values(rec)) extractScreenshotPayloads(value, depth + 1, out);
+  if (!out.length && depth === 0) {
+    try {
+      const scanned = scanTextForImage(JSON.stringify(rec));
+      if (scanned) out.push(scanned);
+    } catch { /* ignore */ }
+  }
+  if (depth === 0) return Array.from(new Set(out));
+  return out;
+};
+
+
+
 
 /** Try to parse a string as JSON object/array; returns null otherwise. */
 
