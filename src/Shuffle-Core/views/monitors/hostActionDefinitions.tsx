@@ -133,7 +133,7 @@ interface HostActionChipsProps {
   arch?: string;
 }
 
-type RemoteOp = 'mouse.move' | 'mouse.click' | 'mouse.drag' | 'keyboard.type' | 'keyboard.hotkey' | 'system.wait';
+type RemoteOp = 'mouse.move' | 'mouse.click' | 'mouse.drag' | 'keyboard.type' | 'keyboard.hotkey' | 'system.wait' | 'custom';
 
 interface RemoteControlChipProps {
   size: 'compact' | 'comfortable';
@@ -162,6 +162,21 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
   const [typeText, setTypeText] = useState('Hello World!');
   const [hotkeys, setHotkeys] = useState('Control, Tab');
   const [waitMs, setWaitMs] = useState('250');
+  const [customJson, setCustomJson] = useState(
+    JSON.stringify(
+      {
+        actions: [
+          { op: 'mouse.click', params: { x: 500, y: 1375, button: 'left', delay_ms: 100 } },
+          { op: 'system.wait', params: { ms: 300 } },
+          { op: 'keyboard.type', params: { keys: 'Hello from Shuffle' } },
+          { op: 'system.wait', params: { ms: 300 } },
+          { op: 'keyboard.hotkey', params: { keys: 'enter' } },
+        ],
+      },
+      null,
+      2,
+    ),
+  );
 
   // Normalize a hotkey string like "control+shift+escape" or "Control ,Tab"
   // into the comma-separated form the agent expects: "Control, Shift, Escape"
@@ -172,12 +187,12 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
       .filter(Boolean)
       .join(', ');
 
-  const buildPayload = () => {
+  const buildAction = (): { op: string; params: Record<string, unknown> } => {
     if (op === 'keyboard.type') {
-      return JSON.stringify({ actions: [{ op: 'keyboard.type', params: { keys: String(typeText || '') } }] });
+      return { op: 'keyboard.type', params: { keys: String(typeText || '') } };
     }
     if (op === 'keyboard.hotkey') {
-      return JSON.stringify({ actions: [{ op: 'keyboard.hotkey', params: { keys: normalizeHotkeys(hotkeys) } }] });
+      return { op: 'keyboard.hotkey', params: { keys: normalizeHotkeys(hotkeys) } };
     }
     let params: Record<string, unknown> = {};
     if (op === 'mouse.move') {
@@ -189,7 +204,42 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
     } else if (op === 'system.wait') {
       params = { ms: Number(waitMs) };
     }
-    return JSON.stringify({ actions: [{ op, params }] });
+    return { op, params };
+  };
+
+  const customError = (() => {
+    if (op !== 'custom') return '';
+    try {
+      const parsed = JSON.parse(customJson);
+      if (!parsed || !Array.isArray(parsed.actions)) return 'JSON must contain an "actions" array';
+      return '';
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Invalid JSON';
+    }
+  })();
+
+  const appendToChain = () => {
+    const action = buildAction();
+    let existing: unknown[] = [];
+    try {
+      const parsed = JSON.parse(customJson);
+      if (parsed && Array.isArray(parsed.actions)) existing = parsed.actions;
+    } catch {
+      existing = [];
+    }
+    setCustomJson(JSON.stringify({ actions: [...existing, action] }, null, 2));
+    setOp('custom');
+  };
+
+  const buildPayload = () => {
+    if (op === 'custom') {
+      try {
+        return JSON.stringify(JSON.parse(customJson));
+      } catch {
+        return customJson;
+      }
+    }
+    return JSON.stringify({ actions: [buildAction()] });
   };
 
   return (
@@ -218,6 +268,7 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
             <option value="keyboard.type">keyboard.type</option>
             <option value="keyboard.hotkey">keyboard.hotkey</option>
             <option value="system.wait">system.wait</option>
+            <option value="custom">custom (chained actions)</option>
           </select>
         </div>
 
@@ -301,13 +352,45 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
           </div>
         )}
 
-        <pre className="text-[0.6rem] font-mono text-muted-foreground bg-muted/30 rounded p-1.5 max-h-20 overflow-auto whitespace-pre-wrap break-all">
-          {buildPayload()}
-        </pre>
+        {op === 'custom' && (
+          <div>
+            <label className="text-[0.65rem] font-mono text-muted-foreground">
+              actions JSON (runs in order)
+            </label>
+            <textarea
+              value={customJson}
+              onChange={e => setCustomJson(e.target.value)}
+              spellCheck={false}
+              rows={10}
+              className="w-full mt-0.5 text-[0.65rem] font-mono rounded-md border border-border bg-background p-2 resize-y"
+            />
+            {customError && (
+              <p className="text-[0.6rem] font-mono text-destructive mt-1">{customError}</p>
+            )}
+          </div>
+        )}
+
+        {op !== 'custom' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-7 text-xs"
+            onClick={appendToChain}
+          >
+            Add to chain
+          </Button>
+        )}
+
+        {op !== 'custom' && (
+          <pre className="text-[0.6rem] font-mono text-muted-foreground bg-muted/30 rounded p-1.5 max-h-20 overflow-auto whitespace-pre-wrap break-all">
+            {buildPayload()}
+          </pre>
+        )}
 
         <Button
           size="sm"
           className="w-full h-7 text-xs"
+          disabled={!!customError}
           onClick={() => onSend(buildPayload())}
         >
           Send
