@@ -336,6 +336,8 @@ const AgentsView = ({
               onRunClick={setSelectedRun}
               onEditWorkflow={handleEditWorkflow}
               usecaseFilters={usecaseFilters}
+              top={25}
+              limit={25}
             />
           </Box>
         )}

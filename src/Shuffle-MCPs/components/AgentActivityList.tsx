@@ -893,6 +893,8 @@ export interface AgentActivityListProps extends ShuffleHostProps {
   showStatusChips?: boolean;
   /** Page size. Default: 50. */
   limit?: number;
+  /** Optional page size sent as the `?top` query parameter. */
+  top?: number;
   /** Empty-state heading. */
   emptyTitle?: string;
   /** Empty-state subtitle. */
@@ -914,11 +916,12 @@ const AgentActivityList = ({
   apiBaseUrl,
   orgId,
   onRunClick,
-  
+
   onEditWorkflow,
   showSearchBar = true,
   showStatusChips = true,
   limit = 50,
+  top,
   emptyTitle = 'No agent activity found',
   emptySubtitle = 'The agent has not performed any actions yet',
   className,
@@ -1073,6 +1076,7 @@ const AgentActivityList = ({
       try {
         const result = await searchAgentActivity({
           limit,
+          top,
           status: statusFilter,
           cursor: cursorParam,
           apiKey,
@@ -1093,7 +1097,7 @@ const AgentActivityList = ({
         setIsLoading(false);
       }
     },
-    [statusFilter, limit, apiKey, apiBaseUrl, orgId, workflowFilter],
+    [statusFilter, limit, top, apiKey, apiBaseUrl, orgId, workflowFilter],
   );
 
   useEffect(() => {

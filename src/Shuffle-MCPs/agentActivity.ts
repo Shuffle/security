@@ -68,6 +68,8 @@ export interface AgentActivityResponse {
 export interface AgentActivityParams {
   cursor?: string;
   limit?: number;
+  /** Optional page size sent as the `?top` query parameter. */
+  top?: number;
   status?: string;
   startTime?: string;
   endTime?: string;
@@ -145,6 +147,7 @@ export const searchAgentActivity = async (
   const {
     cursor = '',
     limit = 50,
+    top,
     status = '',
     startTime = '',
     endTime = '',
@@ -165,7 +168,9 @@ export const searchAgentActivity = async (
     suborg_runs: suborgRuns,
   };
 
-  const response = await fetch(resolveUrl('/api/v1/workflows/search', apiBaseUrl), {
+  const query = typeof top === 'number' && top > 0 ? `?top=${top}` : '';
+
+  const response = await fetch(resolveUrl(`/api/v1/workflows/search${query}`, apiBaseUrl), {
     method: 'POST',
     credentials: 'include',
     headers: {
