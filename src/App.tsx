@@ -156,6 +156,7 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
   const navigate = useNavigate();
   const hostMonitorCount = useHostMonitorCount();
   const incidentCount = useRealIncidentCount();
+  const [addHostOpen, setAddHostOpen] = useState(false);
   const userdata = userInfo ? {
     id: userInfo.id,
     username: userInfo.username,
@@ -178,7 +179,7 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
             show: hostMonitorCount === 0,
             message: 'No host monitors are registered yet. Deploy one to let the agent act on hosts.',
             actionLabel: 'Add host monitor',
-            onAction: () => navigate('/monitors'),
+            onAction: () => setAddHostOpen(true),
           },
           'incident-response': {
             show: incidentCount === 0,
@@ -188,6 +189,12 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
           },
         }}
       />
+      {addHostOpen && (
+        <MonitorsView
+          mode="add-host-dialog"
+          onClose={() => setAddHostOpen(false)}
+        />
+      )}
     </>
   );
 };
