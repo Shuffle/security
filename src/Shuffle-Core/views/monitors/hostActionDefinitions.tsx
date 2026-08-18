@@ -133,7 +133,7 @@ interface HostActionChipsProps {
   arch?: string;
 }
 
-type RemoteOp = 'mouse.move' | 'mouse.click' | 'mouse.drag' | 'keyboard.press' | 'system.wait';
+type RemoteOp = 'mouse.move' | 'mouse.click' | 'mouse.drag' | 'keyboard.press' | 'keyboard.press.legacy' | 'system.wait';
 
 interface RemoteControlChipProps {
   size: 'compact' | 'comfortable';
@@ -160,6 +160,7 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
   const [button, setButton] = useState<'left' | 'right' | 'middle'>('left');
   const [delayMs, setDelayMs] = useState('100');
   const [keyCode, setKeyCode] = useState('13');
+  const [keyMode, setKeyMode] = useState<'text' | 'shortcut'>('text');
   const [waitMs, setWaitMs] = useState('250');
 
   // Translate human-typed keys into Windows virtual key codes.
@@ -195,15 +196,29 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
     return Number(t) || 0;
   };
 
+  // Normalize a shortcut string like "cmd + t" → "CMD+T"
+  const normalizeShortcut = (raw: string) =>
+    String(raw || '')
+      .split('+')
+      .map(part => part.trim())
+      .filter(Boolean)
+      .map(part => part.toUpperCase())
+      .join('+');
+
   const buildPayload = () => {
     if (op === 'keyboard.press') {
+      // New behaviour: send the whole string in one action. Shortcuts are
+      // normalized ("cmd+t" → "CMD+T"), pure typing is sent verbatim.
+      const raw = String(keyCode || '');
+      const key = keyMode === 'shortcut' ? normalizeShortcut(raw) : raw;
+      return JSON.stringify({ actions: [{ op: 'keyboard.press', params: { key } }] });
+    }
+    if (op === 'keyboard.press.legacy') {
       // If the user typed a multi-char string that isn't a named key / VK code
       // (e.g. "notepad"), expand it to one keyboard.press action per character
       // so the agent types the whole string. Single chars / named keys / hex
       // codes still produce a single action.
       const raw = String(keyCode || '').trim();
-      const isNamed = /^[a-z]+$/i.test(raw) && raw.length > 1 &&
-        resolveKey(raw) !== 0 && resolveKey(raw) === resolveKey(raw.toLowerCase());
       const namedHit = (() => {
         // Only treat as a named key when resolveKey matches via the named map
         // or F-key pattern — not when it happens to be a single A-Z letter.
@@ -222,7 +237,7 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
         })).filter(a => a.params.key);
         return JSON.stringify({ actions });
       }
-      return JSON.stringify({ actions: [{ op, params: { key: resolveKey(raw) } }] });
+      return JSON.stringify({ actions: [{ op: 'keyboard.press', params: { key: resolveKey(raw) } }] });
     }
     let params: Record<string, unknown> = {};
     if (op === 'mouse.move') {
@@ -261,6 +276,7 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
             <option value="mouse.click">mouse.click</option>
             <option value="mouse.drag">mouse.drag</option>
             <option value="keyboard.press">keyboard.press</option>
+            <option value="keyboard.press.legacy">keyboard.press (legacy)</option>
             <option value="system.wait">system.wait</option>
           </select>
         </div>
@@ -315,6 +331,33 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
         )}
 
         {op === 'keyboard.press' && (
+          <>
+            <div>
+              <label className="text-[0.65rem] font-mono text-muted-foreground">mode</label>
+              <select
+                value={keyMode}
+                onChange={e => setKeyMode(e.target.value as 'text' | 'shortcut')}
+                className="w-full mt-0.5 h-7 text-xs rounded-md border border-border bg-background px-2"
+              >
+                <option value="text">text (type the string)</option>
+                <option value="shortcut">shortcut (e.g. CMD+T)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[0.65rem] font-mono text-muted-foreground">
+                {keyMode === 'shortcut' ? 'shortcut ("CMD+T", "CTRL+SHIFT+ESC")' : 'text to type ("hello world")'}
+              </label>
+              <Input
+                value={keyCode}
+                onChange={e => setKeyCode(e.target.value)}
+                placeholder={keyMode === 'shortcut' ? 'CMD+T' : 'text goes here'}
+                className="h-7 text-xs font-mono"
+              />
+            </div>
+          </>
+        )}
+
+        {op === 'keyboard.press.legacy' && (
           <div>
             <label className="text-[0.65rem] font-mono text-muted-foreground">key or string ("notepad", "enter", "f1", a, 0x1B)</label>
             <Input value={keyCode} onChange={e => setKeyCode(e.target.value)} placeholder="Enter" className="h-7 text-xs font-mono" />
