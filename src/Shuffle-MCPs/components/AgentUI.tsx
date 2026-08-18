@@ -3740,7 +3740,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const resolved = resolveRunInput();
     const input = (typeof resolved === 'string' && resolved.trim() ? resolved : actionInput) || '';
     const template = resolveRunTemplate();
-    const canSubmit = input.trim().length >= 6;
+    const canSubmit = input.trim().length >= 2;
     // Optimistic feedback for the button — flip immediately, cleared when
     // the new execution loads (see effect below).
     setRerunAgentPending(true);
