@@ -6630,6 +6630,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               border: '1px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
               overflow: 'hidden',
+              pb: '200px',
             }}>
 
               {timeline.length === 0 || (timeline.length === 1 && agentRequestLoading) ? (
