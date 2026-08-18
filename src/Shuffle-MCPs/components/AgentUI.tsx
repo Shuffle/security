@@ -3667,8 +3667,34 @@ const AgentUI: React.FC<AgentUIProps> = ({
         if (execArg.length < 4000) return execArg;
       }
     }
-    return '';
+    // Last resort: deep-scan the loaded run for anything that looks like the
+    // original prompt. Runs loaded straight from an execution_id often nest it
+    // under input.text / params.input.text / question etc.
+    const PROMPT_KEYS = new Set(['original_input', 'input', 'text', 'prompt', 'question', 'query', 'user_input']);
+    const deepFind = (node: any, depth = 0): string => {
+      if (!node || depth > 6) return '';
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          const found = deepFind(item, depth + 1);
+          if (found) return found;
+        }
+        return '';
+      }
+      if (typeof node !== 'object') return '';
+      for (const [k, v] of Object.entries(node)) {
+        if (typeof v === 'string' && PROMPT_KEYS.has(k) && v.trim().length >= 6) return v;
+      }
+      for (const v of Object.values(node)) {
+        if (v && typeof v === 'object') {
+          const found = deepFind(v, depth + 1);
+          if (found) return found;
+        }
+      }
+      return '';
+    };
+    return deepFind(agentData) || deepFind(agentActionResult) || deepFind(execution) || '';
   }, [agentData, actionInput, agentActionResult, execution]);
+
 
   // The agent output carries a `template` field whenever the run was started
   // through a Skill (e.g. "computer-use", "workflow-edit"). Resolve it back to
@@ -3725,11 +3751,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
       submitInput(input, template);
     } else {
       // Nothing usable to resend — show the Start tab with the fields filled
-      // so the user can adjust and run manually.
-      if (!disableStartTab) setShowStarter(true);
+      // so the user can adjust and run manually. In embedded mode (drawer)
+      // the Start tab is disabled, so surface the reason instead of failing
+      // silently and leaving the button looking dead.
+      if (!disableStartTab) {
+        setShowStarter(true);
+      } else {
+        setViewMode('simple');
+        setError('Could not resolve the original prompt for this run. Type it below and start a new run.');
+      }
       setRerunAgentPending(false);
       return;
     }
+
     // Safety timeout in case submitInput never produces a new execution.
     setTimeout(() => setRerunAgentPending(false), 8000);
   }, [resolveRunInput, resolveRunTemplate, actionInput, executionApps, setSearchParams, disableStartTab, submitInput]);
