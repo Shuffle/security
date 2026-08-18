@@ -268,6 +268,7 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
             <option value="keyboard.type">keyboard.type</option>
             <option value="keyboard.hotkey">keyboard.hotkey</option>
             <option value="system.wait">system.wait</option>
+            <option value="custom">custom (chained actions)</option>
           </select>
         </div>
 
