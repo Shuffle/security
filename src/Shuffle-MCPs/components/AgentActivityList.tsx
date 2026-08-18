@@ -916,11 +916,12 @@ const AgentActivityList = ({
   apiBaseUrl,
   orgId,
   onRunClick,
-  
+
   onEditWorkflow,
   showSearchBar = true,
   showStatusChips = true,
   limit = 50,
+  top,
   emptyTitle = 'No agent activity found',
   emptySubtitle = 'The agent has not performed any actions yet',
   className,
