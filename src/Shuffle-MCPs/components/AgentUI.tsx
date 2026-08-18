@@ -1947,7 +1947,7 @@ const TimelineRow: React.FC<TimelineRowProps> = ({
       })()}
 
       {/* Screenshot returned by the action (e.g. shuffle_hostmonitors script:screenshot) */}
-      {open && !isProcessing && screenshotCount > 0 && (
+      {open && !isProcessing && item.type !== 'agent' && screenshotCount > 0 && (
         <Box sx={{ px: 4, pb: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {screenshotCount > 1 && (
             <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
