@@ -1,4 +1,4 @@
-import { useEffect, useMemo, lazy, Suspense } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline, Box } from '@mui/material';
 import { Navigate } from 'react-router-dom';
 import { AppDetailProvider } from '@/Shuffle-MCPs/AppDetailContext';
@@ -123,6 +123,7 @@ import { useUsecaseAgentFilters } from '@/hooks/useUsecaseAgentFilters';
 import { useHostMonitorCount } from '@/hooks/useHostMonitorCount';
 import { useRealIncidentCount } from '@/hooks/useRealIncidentCount';
 import { useNavigate } from 'react-router-dom';
+import MonitorsView from '@/Shuffle-Core/views/monitors/MonitorsView';
 
 
 
@@ -155,6 +156,7 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
   const navigate = useNavigate();
   const hostMonitorCount = useHostMonitorCount();
   const incidentCount = useRealIncidentCount();
+  const [addHostOpen, setAddHostOpen] = useState(false);
   const userdata = userInfo ? {
     id: userInfo.id,
     username: userInfo.username,
@@ -177,7 +179,7 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
             show: hostMonitorCount === 0,
             message: 'No host monitors are registered yet. Deploy one to let the agent act on hosts.',
             actionLabel: 'Add host monitor',
-            onAction: () => navigate('/monitors'),
+            onAction: () => setAddHostOpen(true),
           },
           'incident-response': {
             show: incidentCount === 0,
@@ -187,6 +189,12 @@ const AgentsRoute = ({ theme }: { theme: 'light' | 'dark' }) => {
           },
         }}
       />
+      {addHostOpen && (
+        <MonitorsView
+          mode="add-host-dialog"
+          onClose={() => setAddHostOpen(false)}
+        />
+      )}
     </>
   );
 };
