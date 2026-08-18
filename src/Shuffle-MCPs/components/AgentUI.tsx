@@ -4506,20 +4506,31 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // initialExecution is re-attached, until they explicitly start a new run
       // or click Simple/Detailed themselves.
       userPickedStartRef.current = true;
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete('agentView');
-        return next;
-      }, { replace: true });
+      if (readUrlParams) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('agentView');
+          next.delete('execution_id');
+          next.delete('authorization');
+          return next;
+        }, { replace: true });
+      }
     } else {
       setShowStarter(false);
       userPickedStartRef.current = false;
       setViewMode(t);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('agentView', t);
-        return next;
-      }, { replace: true });
+      if (readUrlParams) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('agentView', t);
+          // Keep the execution shareable when returning to a run view from Start.
+          if (execution?.execution_id && execution?.authorization) {
+            next.set('execution_id', execution.execution_id);
+            next.set('authorization', execution.authorization);
+          }
+          return next;
+        }, { replace: true });
+      }
     }
   };
 
