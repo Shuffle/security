@@ -3,12 +3,6 @@ import { Check } from 'lucide-react';
 import {
   Autocomplete,
   Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   TextField,
   Tooltip,
   Typography,
@@ -179,7 +173,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
   const [customUrl, setCustomUrl] = useState<string>('');
-  const [confirmShuffleAIOpen, setConfirmShuffleAIOpen] = useState(false);
   /** Local override for the LLM chat test so the shared app-auth test (which
    *  refetches the whole auth list mid-test and makes the card flicker) is
    *  never used for LLM providers. */
@@ -537,26 +530,25 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeProviderLabel, authLoading]);
 
-  const applyShuffleAI = async () => {
-    // Keep every saved LLM authentication, but deactivate all of them so
-    // Shuffle AI becomes the primary provider. Nothing is deleted.
-    await setActiveAuthEntry(null, openaiEntries as any[]);
+  const applyShuffleAI = () => {
+    // Optimistic: flip the UI to Shuffle AI immediately and deactivate the
+    // saved LLM authentications in the background. Nothing is deleted.
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
     rememberPreset(SHUFFLE_AI_PRESET);
     setCustomUrl('');
+    void setActiveAuthEntry(null, openaiEntries as any[]).catch((err) => {
+      console.error('[LocalLLMConfig] Failed to deactivate provider auths:', err);
+    });
   };
 
   const handlePresetChange = (label: string) => {
     setLlmTest(null);
     if (label === SHUFFLE_AI_PRESET) {
-      if (hasOpenAIEntries) {
-        setConfirmShuffleAIOpen(true);
-        return;
-      }
-      void applyShuffleAI();
+      applyShuffleAI();
       return;
     }
+
     setSelectedPreset(label);
     rememberPreset(label);
 
@@ -899,22 +891,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           colorMode={colorMode}
         />
       )}
-
-      <Dialog open={confirmShuffleAIOpen} onClose={() => setConfirmShuffleAIOpen(false)} slotProps={{ paper: { sx: { bgcolor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', border: '1px solid hsl(var(--border))' } } }}>
-        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Switch to Shuffle AI?</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
-            Switching to Shuffle AI will keep your saved provider authentications, but none of them will be used as the primary AI provider. You can switch back at any time. Do you want to continue?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmShuffleAIOpen(false)} sx={{ color: 'hsl(var(--muted-foreground))', textTransform: 'none', height: 36 }}>Cancel</Button>
-          <Button onClick={async () => { setConfirmShuffleAIOpen(false); await applyShuffleAI(); }} sx={{ bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', textTransform: 'none', height: 36, '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' } }}>
-            Use Shuffle AI
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
+
   );
 };
 
