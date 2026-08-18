@@ -68,6 +68,8 @@ export interface AgentActivityResponse {
 export interface AgentActivityParams {
   cursor?: string;
   limit?: number;
+  /** Optional page size sent as the `?top` query parameter. */
+  top?: number;
   status?: string;
   startTime?: string;
   endTime?: string;
