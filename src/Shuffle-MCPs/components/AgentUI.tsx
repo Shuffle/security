@@ -2614,6 +2614,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // stale poll responses from a previous run after the user has started a
   // new one (otherwise an in-flight fetch can repaint the old execution).
   const activeExecutionIdRef = useRef<string | null>(null);
+  // Separates poll generations even when a failed rerun restores the same
+  // execution ID. An older response must never become valid again merely
+  // because its ID was restored.
+  const executionPollGenerationRef = useRef(0);
   // AbortController for the in-flight POST /api/v1/agent request, plus a
   // generation counter so a slow request that resolves AFTER the user clicks
   // "Cancel and go to Start" cannot repaint the UI or swap tabs back.
@@ -3133,6 +3137,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Fetch execution result (poll-friendly) ──
   const getExecution = useCallback(async (executionId: string, authorization?: string) => {
+    const pollGeneration = executionPollGenerationRef.current;
     if (loadedExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
     if (!executionId) return;
     // Sideloaded runs (from the activity listing) often have no explicit
@@ -3152,7 +3157,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // execution we fetched. (Submitting a new run briefly clears the ref;
       // any in-flight poll from the previous run must be dropped, not written
       // back into state — otherwise the UI snaps to the old execution.)
-      if (activeExecutionIdRef.current !== executionId) return;
+      if (
+        activeExecutionIdRef.current !== executionId ||
+        executionPollGenerationRef.current !== pollGeneration
+      ) return;
       if (!resp.ok) {
         // Error responses still carry a JSON body with a `reason` — surface it
         // instead of a bare status code.
@@ -3175,7 +3183,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
         return;
       }
       const json = await resp.json();
-      if (activeExecutionIdRef.current !== executionId) return;
+      if (
+        activeExecutionIdRef.current !== executionId ||
+        executionPollGenerationRef.current !== pollGeneration
+      ) return;
       if (json?.success === false) {
         if (!hasExecutionDataRef.current) setError(json.reason || 'Failed to load agent data.');
         else setPollWarning(json.reason || 'Live updates are failing. Showing the last known state.');
@@ -3407,6 +3418,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // the previous run's poll keeps writing into state during the
     // in-flight request and the user sees the old "Detailed" tab flash
     // back in.
+    executionPollGenerationRef.current += 1;
     activeExecutionIdRef.current = null;
     setExecution(null);
     setAgentData({ original_input: text.trim() });
@@ -3512,6 +3524,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setLocalRunStart(prevLocalRunStart);
       setShowStarter(prevShowStarter);
       setViewMode(prevViewMode);
+      if (prevActiveExecutionId) {
+        getExecution(prevActiveExecutionId, prevExecution?.authorization);
+      }
       onRun?.({ input: text, success: false, error: result.error });
       return;
     }
