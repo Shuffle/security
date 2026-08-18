@@ -133,7 +133,7 @@ interface HostActionChipsProps {
   arch?: string;
 }
 
-type RemoteOp = 'mouse.move' | 'mouse.click' | 'mouse.drag' | 'keyboard.type' | 'keyboard.hotkey' | 'system.wait';
+type RemoteOp = 'mouse.move' | 'mouse.click' | 'mouse.drag' | 'keyboard.type' | 'keyboard.hotkey' | 'system.wait' | 'custom';
 
 interface RemoteControlChipProps {
   size: 'compact' | 'comfortable';
