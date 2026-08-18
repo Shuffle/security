@@ -1076,6 +1076,7 @@ const AgentActivityList = ({
       try {
         const result = await searchAgentActivity({
           limit,
+          top,
           status: statusFilter,
           cursor: cursorParam,
           apiKey,
@@ -1096,7 +1097,7 @@ const AgentActivityList = ({
         setIsLoading(false);
       }
     },
-    [statusFilter, limit, apiKey, apiBaseUrl, orgId, workflowFilter],
+    [statusFilter, limit, top, apiKey, apiBaseUrl, orgId, workflowFilter],
   );
 
   useEffect(() => {
