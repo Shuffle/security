@@ -215,8 +215,8 @@ const RemoteControlChip = ({ size, disabled, onSend }: RemoteControlChipProps) =
             <option value="mouse.move">mouse.move</option>
             <option value="mouse.click">mouse.click</option>
             <option value="mouse.drag">mouse.drag</option>
-            <option value="keyboard.press">keyboard.press</option>
-            <option value="keyboard.press.legacy">keyboard.press (legacy)</option>
+            <option value="keyboard.type">keyboard.type</option>
+            <option value="keyboard.hotkey">keyboard.hotkey</option>
             <option value="system.wait">system.wait</option>
           </select>
         </div>
