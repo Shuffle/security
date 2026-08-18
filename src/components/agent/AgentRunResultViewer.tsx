@@ -12,6 +12,7 @@ import remarkGfm from 'remark-gfm';
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
+import { defaultCollapsed } from '@/lib/jsonView';
 import { AgentRun } from '@/services/agentActivity';
 import { parseDatastoreReference, DatastoreReference } from '@/lib/agentParsers';
 export type { DatastoreReference };
@@ -406,7 +407,7 @@ const AgentRunResultViewer = ({ run }: AgentRunResultViewerProps) => {
               <JsonView
                 src={parsed}
                 dark
-                collapsed={2}
+                collapsed={defaultCollapsed}
                 collapseStringMode="word"
                 collapseStringsAfterLength={120}
                 enableClipboard
