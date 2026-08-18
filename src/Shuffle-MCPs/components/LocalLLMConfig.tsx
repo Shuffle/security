@@ -537,26 +537,25 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeProviderLabel, authLoading]);
 
-  const applyShuffleAI = async () => {
-    // Keep every saved LLM authentication, but deactivate all of them so
-    // Shuffle AI becomes the primary provider. Nothing is deleted.
-    await setActiveAuthEntry(null, openaiEntries as any[]);
+  const applyShuffleAI = () => {
+    // Optimistic: flip the UI to Shuffle AI immediately and deactivate the
+    // saved LLM authentications in the background. Nothing is deleted.
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
     rememberPreset(SHUFFLE_AI_PRESET);
     setCustomUrl('');
+    void setActiveAuthEntry(null, openaiEntries as any[]).catch((err) => {
+      console.error('[LocalLLMConfig] Failed to deactivate provider auths:', err);
+    });
   };
 
   const handlePresetChange = (label: string) => {
     setLlmTest(null);
     if (label === SHUFFLE_AI_PRESET) {
-      if (hasOpenAIEntries) {
-        setConfirmShuffleAIOpen(true);
-        return;
-      }
-      void applyShuffleAI();
+      applyShuffleAI();
       return;
     }
+
     setSelectedPreset(label);
     rememberPreset(label);
 
