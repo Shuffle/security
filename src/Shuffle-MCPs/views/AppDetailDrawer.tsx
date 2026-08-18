@@ -538,7 +538,7 @@ export default function AppDetailDrawer({
   }, [open, appName]);
 
 
-  const isLoadingAll = appLoading || (isAuthenticated && appAuthLoading);
+  const isLoadingAll = appLoading || (isAuthenticated && appAuthLoading) || !appInfo?.name;
 
   // Strict, environment-independent sizing — matches AppSearchDrawer. Uses
   // PaperProps (MUI v5 compatible) instead of slotProps.paper, which is
