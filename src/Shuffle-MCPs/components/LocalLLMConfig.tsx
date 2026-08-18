@@ -3,12 +3,6 @@ import { Check } from 'lucide-react';
 import {
   Autocomplete,
   Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   TextField,
   Tooltip,
   Typography,
@@ -179,7 +173,6 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
   const [customUrl, setCustomUrl] = useState<string>('');
-  const [confirmShuffleAIOpen, setConfirmShuffleAIOpen] = useState(false);
   /** Local override for the LLM chat test so the shared app-auth test (which
    *  refetches the whole auth list mid-test and makes the card flicker) is
    *  never used for LLM providers. */
