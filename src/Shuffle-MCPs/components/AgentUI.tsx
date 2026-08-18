@@ -2614,6 +2614,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // stale poll responses from a previous run after the user has started a
   // new one (otherwise an in-flight fetch can repaint the old execution).
   const activeExecutionIdRef = useRef<string | null>(null);
+  // Separates poll generations even when a failed rerun restores the same
+  // execution ID. An older response must never become valid again merely
+  // because its ID was restored.
+  const executionPollGenerationRef = useRef(0);
   // AbortController for the in-flight POST /api/v1/agent request, plus a
   // generation counter so a slow request that resolves AFTER the user clicks
   // "Cancel and go to Start" cannot repaint the UI or swap tabs back.
@@ -3133,6 +3137,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   // ── Fetch execution result (poll-friendly) ──
   const getExecution = useCallback(async (executionId: string, authorization?: string) => {
+    const pollGeneration = executionPollGenerationRef.current;
     if (loadedExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
     if (!executionId) return;
     // Sideloaded runs (from the activity listing) often have no explicit
@@ -3152,7 +3157,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // execution we fetched. (Submitting a new run briefly clears the ref;
       // any in-flight poll from the previous run must be dropped, not written
       // back into state — otherwise the UI snaps to the old execution.)
-      if (activeExecutionIdRef.current !== executionId) return;
+      if (
+        activeExecutionIdRef.current !== executionId ||
+        executionPollGenerationRef.current !== pollGeneration
+      ) return;
       if (!resp.ok) {
         // Error responses still carry a JSON body with a `reason` — surface it
         // instead of a bare status code.
@@ -3175,7 +3183,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
         return;
       }
       const json = await resp.json();
-      if (activeExecutionIdRef.current !== executionId) return;
+      if (
+        activeExecutionIdRef.current !== executionId ||
+        executionPollGenerationRef.current !== pollGeneration
+      ) return;
       if (json?.success === false) {
         if (!hasExecutionDataRef.current) setError(json.reason || 'Failed to load agent data.');
         else setPollWarning(json.reason || 'Live updates are failing. Showing the last known state.');
@@ -3218,6 +3229,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setError(null);
       setPollWarning(null);
     } catch (err) {
+      if (
+        activeExecutionIdRef.current !== executionId ||
+        executionPollGenerationRef.current !== pollGeneration
+      ) return;
       // Transient network blips ("Failed to fetch") happen while polling a
       // long-running execution. Only surface them when nothing loaded yet.
       if (!hasExecutionDataRef.current) setError(err instanceof Error ? err.message : 'Network error.');
@@ -3366,7 +3381,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
 
   // ── Submit input ──
-  const submitInput = useCallback(async (text: string, presetOverride?: AgentPreset | null) => {
+  const submitInput = useCallback(async (
+    text: string,
+    presetOverride?: AgentPreset | null,
+    appsOverride?: AgentUIApp[],
+  ) => {
     if (!text.trim()) return;
     // `undefined` means "use current selection"; `null` explicitly clears it.
     const effectivePreset = presetOverride !== undefined ? presetOverride : selectedPreset;
@@ -3403,6 +3422,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // the previous run's poll keeps writing into state during the
     // in-flight request and the user sees the old "Detailed" tab flash
     // back in.
+    executionPollGenerationRef.current += 1;
     activeExecutionIdRef.current = null;
     setExecution(null);
     setAgentData({ original_input: text.trim() });
@@ -3429,14 +3449,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // The user is starting a new run — drop any sticky "manual Start" pin so
     // future polls/effects can populate Simple/Detailed normally.
     userPickedStartRef.current = false;
-    if (readUrlParams && typeof window !== 'undefined') {
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('execution_id');
-        url.searchParams.delete('authorization');
-        url.searchParams.delete('agentView');
-        window.history.replaceState({}, '', url.toString());
-      } catch { /* noop */ }
+    if (readUrlParams) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('execution_id');
+        next.delete('authorization');
+        next.delete('agentView');
+        return next;
+      }, { replace: true });
     }
 
     const result = await runAgent({
@@ -3453,9 +3473,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // still on the untouched built-in fallback, use those instead of
       // sending `http,shuffle_tools`.
       ...((() => {
-        const effectiveApps = executionApps.length > 0 && isBuiltinDefaultApps(chosenApps)
-          ? executionApps
-          : chosenApps;
+        const effectiveApps = appsOverride ?? (
+          executionApps.length > 0 && isBuiltinDefaultApps(chosenApps)
+            ? executionApps
+            : chosenApps
+        );
         return effectiveApps.length > 0 ? { toolName: buildToolName(effectiveApps) } : {};
       })()),
 
@@ -3506,6 +3528,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setLocalRunStart(prevLocalRunStart);
       setShowStarter(prevShowStarter);
       setViewMode(prevViewMode);
+      if (prevActiveExecutionId) {
+        getExecution(prevActiveExecutionId, prevExecution?.authorization);
+      }
       onRun?.({ input: text, success: false, error: result.error });
       return;
     }
@@ -3526,13 +3551,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
       activeExecutionIdRef.current = eid;
       setExecution({ execution_id: eid, authorization: auth, status: 'EXECUTING' });
       // Reflect the new execution in the URL so the run is shareable/refreshable.
-      if (readUrlParams && typeof window !== 'undefined') {
-        try {
-          const url = new URL(window.location.href);
-          url.searchParams.set('execution_id', eid);
-          url.searchParams.set('authorization', auth);
-          window.history.replaceState({}, '', url.toString());
-        } catch { /* noop */ }
+      if (readUrlParams) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('execution_id', eid);
+          next.set('authorization', auth);
+          return next;
+        }, { replace: true });
       }
       getExecution(eid, auth);
       onRun?.({ input: text, success: true, executionId: eid });
@@ -3555,7 +3580,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // `selectedPreset` MUST be a dependency: without it the callback keeps a
     // stale skill (e.g. "Build Workflows") and keeps posting to
     // /api/v1/agent/workflow-edit after the skill was unselected.
-  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, viewMode, selectedPreset]);
+  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, setSearchParams, viewMode, selectedPreset]);
 
   // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
   const autoSubmittedRef = useRef(false);
@@ -3752,21 +3777,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
     // Keep the Skill chip in sync with the run we are repeating.
     setSelectedPreset(template);
-    // Drop the detailed-view param so the new run is not pinned to the old
-    // execution's view state.
-    if (!disableStartTab) {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete('agentView');
-        return next;
-      }, { replace: true });
-    }
     if (canSubmit) {
       // submitInput() resets the view itself — do NOT bounce to the Start tab
       // first, otherwise the starter can win the race and the run looks like
       // it never began.
       userPickedStartRef.current = false;
-      submitInput(input, template);
+      submitInput(input, template, executionApps.length > 0 ? executionApps : undefined);
     } else {
       // Nothing usable to resend — show the Start tab with the fields filled
       // so the user can adjust and run manually. In embedded mode (drawer)
@@ -3784,7 +3800,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
     // Safety timeout in case submitInput never produces a new execution.
     setTimeout(() => setRerunAgentPending(false), 8000);
-  }, [resolveRunInput, resolveRunTemplate, actionInput, executionApps, setSearchParams, disableStartTab, submitInput]);
+  }, [resolveRunInput, resolveRunTemplate, actionInput, executionApps, disableStartTab, submitInput]);
 
 
   // Clear the top-level rerun-pending flag as soon as we're loading or a
