@@ -6709,6 +6709,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     />
                   )}
 
+                  {/* Sentinel used to auto-follow the live timeline */}
+                  <Box ref={timelineEndRef} sx={{ height: 1, scrollMarginBottom: 24 }} />
+
+
+
                   {detailedRunFinished && (
                     <Box sx={{
                       borderTop: '1px solid hsl(var(--border))',
