@@ -898,22 +898,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           colorMode={colorMode}
         />
       )}
-
-      <Dialog open={confirmShuffleAIOpen} onClose={() => setConfirmShuffleAIOpen(false)} slotProps={{ paper: { sx: { bgcolor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', border: '1px solid hsl(var(--border))' } } }}>
-        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Switch to Shuffle AI?</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
-            Switching to Shuffle AI will keep your saved provider authentications, but none of them will be used as the primary AI provider. You can switch back at any time. Do you want to continue?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmShuffleAIOpen(false)} sx={{ color: 'hsl(var(--muted-foreground))', textTransform: 'none', height: 36 }}>Cancel</Button>
-          <Button onClick={async () => { setConfirmShuffleAIOpen(false); await applyShuffleAI(); }} sx={{ bgcolor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', textTransform: 'none', height: 36, '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' } }}>
-            Use Shuffle AI
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
+
   );
 };
 
