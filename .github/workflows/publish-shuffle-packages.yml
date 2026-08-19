@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: publish-shuffle-packages
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -22,12 +26,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - package_name: shuffle-core
-            package_scope: '@shuffleio/shuffle-core'
+          - package_scope: '@shuffleio/shuffle-core'
             working_directory: src/Shuffle-Core
             artifact_prefix: shuffle-core
-          - package_name: shuffle-mcps
-            package_scope: '@shuffleio/shuffle-mcps'
+          - package_scope: '@shuffleio/shuffle-mcps'
             working_directory: src/Shuffle-MCPs
             artifact_prefix: shuffle-mcps
     steps:
@@ -97,4 +99,8 @@ jobs:
 
       - name: Summary
         run: |
-          echo "Published ${{ matrix.package_scope }}@${{ steps.version.outputs.next_version }}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "Dry run: packed ${{ matrix.package_scope }}@${{ steps.version.outputs.next_version }}"
+          else
+            echo "Published ${{ matrix.package_scope }}@${{ steps.version.outputs.next_version }}"
+          fi
