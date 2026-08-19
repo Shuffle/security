@@ -78,4 +78,18 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+        run: |
+          set -euo pipefail
+
+          if npm publish --access public --provenance; then
+            exit 0
+          fi
+
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            exit 1
+          fi
+
+          echo "Token-based publish failed. Retrying with GitHub OIDC trusted publishing."
+          unset NODE_AUTH_TOKEN NPM_TOKEN
+          rm -f "${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}" "$HOME/.npmrc"
+          npm publish --access public --provenance
