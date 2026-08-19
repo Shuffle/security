@@ -6970,13 +6970,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
           open={Boolean(previewImage)}
           onClose={() => setPreviewImage(null)}
           maxWidth="lg"
-          PaperProps={{
-            sx: {
-              bgcolor: 'hsl(var(--background))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 3,
-              p: 1,
-              maxWidth: 'min(90vw, 900px)',
+          slotProps={{
+            paper: {
+              sx: {
+                bgcolor: 'hsl(var(--background))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 3,
+                p: 1,
+                maxWidth: 'min(90vw, 900px)',
+              },
             },
           }}
         >
