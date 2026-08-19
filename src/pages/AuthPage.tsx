@@ -347,6 +347,8 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                 </Box>
                 <Typography
                   variant="h5"
+                  component="h1"
+
                   sx={{
                     fontWeight: 600,
                     color: 'text.primary',

@@ -473,12 +473,14 @@ const IncidentsPage = () => {
   const { resolvedTheme } = useTheme();
 
 
-  usePageMeta({
-    title: 'Incidents',
-    description: 'Manage and triage security incidents, alerts, and cases in Shuffle Security.',
-    url: '/incidents',
-  });
   const { plural: entityPlural, singular: entitySingular, basePath: entityBasePath } = useEntityLabel();
+
+  usePageMeta({
+    title: entityPlural,
+    description: `Manage, triage and automate ${entityPlural.toLowerCase()} in Shuffle Security. Track status, severity, observables and response actions in one place.`,
+    url: entityBasePath,
+  });
+
   const t = useEntityText();
   const showAutomation = useShowAutomation();
   const { userInfo } = useAuth();

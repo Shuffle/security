@@ -200,6 +200,8 @@ export default function AppsPage() {
               </Typography>
               <Typography
                 variant="h5"
+                component="p"
+
                 sx={{
                   color: 'text.secondary',
                   maxWidth: 650,
