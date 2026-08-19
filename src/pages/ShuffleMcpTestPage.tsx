@@ -638,8 +638,8 @@ const ShuffleMcpTestPage = () => {
     const TITLE = 'Shuffle MCP — React component library demo';
     const DESCRIPTION =
       'Live demo of @shuffleio/shuffle-mcps: six drop-in React components for app search, authentication, and MCP integration powered by Shuffle.';
-    const URL = 'https://security.shuffler.io/shuffle-mcp-demo';
-    const IMAGE = 'https://security.shuffler.io/og-image.png';
+    const URL = 'https://shuffle.security/shuffle-mcp-demo';
+    const IMAGE = 'https://shuffle.security/og-image.png';
 
     const prevTitle = document.title;
     document.title = TITLE;

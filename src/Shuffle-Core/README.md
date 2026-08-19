@@ -4,7 +4,7 @@ React surfaces extracted from the Shuffle Security app — the Usecases
 explorer, workflow editor entry points, dashboards, billing/tenant admin,
 and shared form controls.
 
-**Live demo:** [security.shuffler.io/shuffle-core-demo](https://security.shuffler.io/shuffle-core-demo) — every exported component rendered with its source snippet.
+**Live demo:** [shuffle.security/shuffle-core-demo](https://shuffle.security/shuffle-core-demo) — every exported component rendered with its source snippet.
 
 ## Install
 
@@ -37,18 +37,18 @@ Every component below is rendered live (with source) on the demo page.
 
 | Component | Description | Demo |
 |---|---|---|
-| `Usecases` (default) | Full Usecases explorer — card grid plus per-usecase detail view | [#1](https://security.shuffler.io/shuffle-core-demo#1) |
-| `UsecaseAlluvialDiagram` | Source-tools → Shuffle → destination-tools alluvial visualization | [#2](https://security.shuffler.io/shuffle-core-demo#2) |
-| `OnboardingFlow` | Shared Sources → Authenticate → Automate onboarding flow | [#3](https://security.shuffler.io/shuffle-core-demo#3) |
-| `ProductChoiceStep` | Standalone "Which Shuffle are you using?" picker step | [#4](https://security.shuffler.io/shuffle-core-demo#4) |
-| `FormInput` | Public-facing form runner for a workflow's `form_control.input_questions` | [#5](https://security.shuffler.io/shuffle-core-demo#5) |
-| `RecentWorkflow` | Sidebar / dashboard card for a recently edited workflow | [#6](https://security.shuffler.io/shuffle-core-demo#6) |
-| `AutomationDashboard` | Greeting plus workflow / app activity charts and filters | [#7](https://security.shuffler.io/shuffle-core-demo#7) |
-| `DashboardOverview` | SOC overview: incidents, vuln severity, monitors, sensors | [#8](https://security.shuffler.io/shuffle-core-demo#8) |
+| `Usecases` (default) | Full Usecases explorer — card grid plus per-usecase detail view | [#1](https://shuffle.security/shuffle-core-demo#1) |
+| `UsecaseAlluvialDiagram` | Source-tools → Shuffle → destination-tools alluvial visualization | [#2](https://shuffle.security/shuffle-core-demo#2) |
+| `OnboardingFlow` | Shared Sources → Authenticate → Automate onboarding flow | [#3](https://shuffle.security/shuffle-core-demo#3) |
+| `ProductChoiceStep` | Standalone "Which Shuffle are you using?" picker step | [#4](https://shuffle.security/shuffle-core-demo#4) |
+| `FormInput` | Public-facing form runner for a workflow's `form_control.input_questions` | [#5](https://shuffle.security/shuffle-core-demo#5) |
+| `RecentWorkflow` | Sidebar / dashboard card for a recently edited workflow | [#6](https://shuffle.security/shuffle-core-demo#6) |
+| `AutomationDashboard` | Greeting plus workflow / app activity charts and filters | [#7](https://shuffle.security/shuffle-core-demo#7) |
+| `DashboardOverview` | SOC overview: incidents, vuln severity, monitors, sensors | [#8](https://shuffle.security/shuffle-core-demo#8) |
 | `CombinedDashboard` | `AutomationDashboard` + `DashboardOverview` composed together | — |
-| `EditWorkflow` | Create / edit workflow modal (name, tags, form questions, AI gen) | [#9](https://security.shuffler.io/shuffle-core-demo#9) |
-| `Billing` | License, subscription and app-run usage panel (cloud + on-prem) | [#10](https://security.shuffler.io/shuffle-core-demo#10) |
-| `TenantManagement` | Multi-tenant manager: current, parent, sub-tenants, all tenants | [#11](https://security.shuffler.io/shuffle-core-demo#11) |
+| `EditWorkflow` | Create / edit workflow modal (name, tags, form questions, AI gen) | [#9](https://shuffle.security/shuffle-core-demo#9) |
+| `Billing` | License, subscription and app-run usage panel (cloud + on-prem) | [#10](https://shuffle.security/shuffle-core-demo#10) |
+| `TenantManagement` | Multi-tenant manager: current, parent, sub-tenants, all tenants | [#11](https://shuffle.security/shuffle-core-demo#11) |
 
 ## Helpers and hooks
 

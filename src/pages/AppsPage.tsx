@@ -75,8 +75,8 @@ export default function AppsPage() {
       '@type': 'CollectionPage',
       name: '3,000+ Security Integrations',
       description: 'Browse and connect 3,000+ security integrations across SIEM, EDR, Email, Cloud, ITSM, and Threat Intelligence categories.',
-      url: 'https://security.shuffler.io/apps',
-      isPartOf: { '@type': 'WebSite', name: 'Shuffle Security', url: 'https://security.shuffler.io' },
+      url: 'https://shuffle.security/apps',
+      isPartOf: { '@type': 'WebSite', name: 'Shuffle Security', url: 'https://shuffle.security' },
     },
   });
 

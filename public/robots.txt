@@ -14,4 +14,4 @@ User-agent: *
 Allow: /
 
 # Shuffle Security - Open Source Alert & Case Management
-Sitemap: https://security.shuffler.io/sitemap.xml
+Sitemap: https://shuffle.security/sitemap.xml
