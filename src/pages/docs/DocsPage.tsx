@@ -45,6 +45,7 @@ const DocsPage = () => {
         }}
       >
         <IconButton
+          aria-label="Open documentation menu"
           onClick={() => setMobileOpen(true)}
           sx={{
             backgroundColor: 'background.paper',

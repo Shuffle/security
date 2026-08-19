@@ -23,6 +23,7 @@ import { Plus, Minus, Info, Cloud as CloudLucide, Server as ServerLucide, Check 
 import ReactGA from "react-ga4";
 import ReactMarkdown from "react-markdown";
 import { openSourcePlan, pricingPlansData, featuresData } from "../views/pricingData.js";
+import { usePageMeta } from "../usePageMeta";
 
 const PricingPage = ({
   theme,
@@ -33,6 +34,12 @@ const PricingPage = ({
   userdata,
   globalUrl,
 }) => {
+  usePageMeta({
+    title: "Pricing",
+    description:
+      "Shuffle Security pricing for cloud and self-hosted deployments. Compare plans, app run volumes and support options for security automation.",
+    url: "/pricing",
+  });
   const navigate = useNavigate();
   const isCloud =
     typeof window === "undefined" ||
