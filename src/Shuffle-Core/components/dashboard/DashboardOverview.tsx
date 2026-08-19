@@ -106,6 +106,8 @@ export const DashboardOverview = ({
       // Usecase so the user can configure ingestion from there.
       return (
         host === 'shuffle.security' ||
+        host === 'www.shuffle.security' ||
+        host === 'security.shuffler.io' ||
         host === 'shutdown.no' ||
         host === 'www.shutdown.no'
       );

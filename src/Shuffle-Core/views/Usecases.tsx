@@ -5573,7 +5573,7 @@ function UsecasesPageInner() {
           {(() => {
             // Always link to shuffle.security/infrastructure in a new window.
             // Outside of shuffle.security itself, restrict visibility to support users.
-            const onSecurityHost = typeof window !== 'undefined' && ['shuffle.security', 'shuffle.security', 'www.shuffle.security'].includes(window.location.hostname);
+            const onSecurityHost = typeof window !== 'undefined' && ['shuffle.security', 'www.shuffle.security', 'security.shuffler.io'].includes(window.location.hostname);
             if (!onSecurityHost && !isSupport) return null;
             const tooltip = onSecurityHost
               ? 'Open Infrastructure'
