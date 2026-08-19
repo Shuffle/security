@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # so called workflows can request id-token: write for npm provenance
 
 concurrency:
   group: publish-shuffle-packages
