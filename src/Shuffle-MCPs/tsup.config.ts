@@ -68,6 +68,7 @@ export default defineConfig({
       '@/Shuffle-MCPs': path.resolve(__dirname, '.'),
       '@/assets': path.resolve(__dirname, '../assets'),
       '@/Shuffle-Core': path.resolve(__dirname, '../Shuffle-Core'),
+      '@/lib': path.resolve(__dirname, '../lib'),
     };
   },
 });
