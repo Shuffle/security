@@ -1,0 +1,115 @@
+name: Publish Shuffle packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack only, do not publish'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.version.outputs.next_version }}
+      previous_version: ${{ steps.version.outputs.previous_version }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve next version
+        id: version
+        run: |
+          set -euo pipefail
+
+          CORE_VERSION=$(npm view @shuffleio/shuffle-core version 2>/dev/null || echo "0.0.0")
+          MCPS_VERSION=$(npm view @shuffleio/shuffle-mcps version 2>/dev/null || echo "0.0.0")
+
+          BASE_VERSION=$(printf '%s\n%s\n' "$CORE_VERSION" "$MCPS_VERSION" | sort -V | tail -n1)
+
+          if ! [[ "$BASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unable to parse previous version: $BASE_VERSION"
+            exit 1
+          fi
+
+          IFS='.' read -r major minor patch <<< "$BASE_VERSION"
+          NEXT_VERSION="$major.$minor.$((patch + 1))"
+
+          echo "previous_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+
+          echo "Latest shuffle-core version: $CORE_VERSION"
+          echo "Latest shuffle-mcps version: $MCPS_VERSION"
+          echo "Previous version: $BASE_VERSION"
+          echo "Next version: $NEXT_VERSION"
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: resolve-version
+    permissions:
+      contents: read
+      id-token: write # for npm provenance
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package_name: shuffle-core
+            package_scope: '@shuffleio/shuffle-core'
+            working_directory: src/Shuffle-Core
+            artifact_prefix: shuffle-core
+          - package_name: shuffle-mcps
+            package_scope: '@shuffleio/shuffle-mcps'
+            working_directory: src/Shuffle-MCPs
+            artifact_prefix: shuffle-mcps
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Materialize package.json
+        working-directory: ${{ matrix.working_directory }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const tpl = JSON.parse(fs.readFileSync('package.tpl.json', 'utf8'));
+            tpl.version = '${{ needs.resolve-version.outputs.next_version }}';
+            fs.writeFileSync('package.json', JSON.stringify(tpl, null, 2) + '\\n');
+          "
+          cat package.json
+
+      - name: Install library deps
+        working-directory: ${{ matrix.working_directory }}
+        run: npm install --no-package-lock
+
+      - name: Build library
+        working-directory: ${{ matrix.working_directory }}
+        run: npm run build
+
+      - name: Pack
+        working-directory: ${{ matrix.working_directory }}
+        run: npm pack
+
+      - name: Upload tarball artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-${{ needs.resolve-version.outputs.next_version }}.tgz
+          path: ${{ matrix.working_directory }}/*.tgz
+
+      - name: Publish to npm
+        if: ${{ inputs.dry_run != true }}
+        working-directory: ${{ matrix.working_directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+      - name: Summary
+        run: |
+          echo "Published ${{ matrix.package_scope }}@${{ needs.resolve-version.outputs.next_version }}"
