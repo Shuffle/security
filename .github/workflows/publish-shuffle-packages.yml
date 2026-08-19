@@ -13,46 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  resolve-version:
-    runs-on: ubuntu-latest
-    outputs:
-      next_version: ${{ steps.version.outputs.next_version }}
-      previous_version: ${{ steps.version.outputs.previous_version }}
-    steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Resolve next version
-        id: version
-        run: |
-          set -euo pipefail
-
-          CORE_VERSION=$(npm view @shuffleio/shuffle-core version 2>/dev/null || echo "0.0.0")
-          MCPS_VERSION=$(npm view @shuffleio/shuffle-mcps version 2>/dev/null || echo "0.0.0")
-
-          BASE_VERSION=$(printf '%s\n%s\n' "$CORE_VERSION" "$MCPS_VERSION" | sort -V | tail -n1)
-
-          if ! [[ "$BASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Unable to parse previous version: $BASE_VERSION"
-            exit 1
-          fi
-
-          IFS='.' read -r major minor patch <<< "$BASE_VERSION"
-          NEXT_VERSION="$major.$minor.$((patch + 1))"
-
-          echo "previous_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
-
-          echo "Latest shuffle-core version: $CORE_VERSION"
-          echo "Latest shuffle-mcps version: $MCPS_VERSION"
-          echo "Previous version: $BASE_VERSION"
-          echo "Next version: $NEXT_VERSION"
-
   publish:
     runs-on: ubuntu-latest
-    needs: resolve-version
     permissions:
       contents: read
       id-token: write # for npm provenance
@@ -76,13 +38,33 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Resolve next version
+        id: version
+        run: |
+          set -euo pipefail
+
+          CURRENT_VERSION=$(npm view ${{ matrix.package_scope }} version 2>/dev/null || echo "0.0.0")
+
+          if ! [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unable to parse previous version for ${{ matrix.package_scope }}: $CURRENT_VERSION"
+            exit 1
+          fi
+
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+          NEXT_VERSION="$major.$minor.$((patch + 1))"
+
+          echo "previous_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Previous version for ${{ matrix.package_scope }}: $CURRENT_VERSION"
+          echo "Next version for ${{ matrix.package_scope }}: $NEXT_VERSION"
+
       - name: Materialize package.json
         working-directory: ${{ matrix.working_directory }}
         run: |
           node -e "
             const fs = require('fs');
             const tpl = JSON.parse(fs.readFileSync('package.tpl.json', 'utf8'));
-            tpl.version = '${{ needs.resolve-version.outputs.next_version }}';
+            tpl.version = '${{ steps.version.outputs.next_version }}';
             fs.writeFileSync('package.json', JSON.stringify(tpl, null, 2) + '\\n');
           "
           cat package.json
@@ -102,7 +84,7 @@ jobs:
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_prefix }}-${{ needs.resolve-version.outputs.next_version }}.tgz
+          name: ${{ matrix.artifact_prefix }}-${{ steps.version.outputs.next_version }}.tgz
           path: ${{ matrix.working_directory }}/*.tgz
 
       - name: Publish to npm
@@ -115,4 +97,4 @@ jobs:
 
       - name: Summary
         run: |
-          echo "Published ${{ matrix.package_scope }}@${{ needs.resolve-version.outputs.next_version }}"
+          echo "Published ${{ matrix.package_scope }}@${{ steps.version.outputs.next_version }}"
