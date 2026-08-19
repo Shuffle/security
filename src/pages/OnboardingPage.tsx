@@ -22,7 +22,7 @@ const OnboardingPage = () => {
       userdata={userInfo}
       globalUrl={API_CONFIG.baseUrl}
       coreRedirectUrl="https://shuffler.io/welcome"
-      securityRedirectUrl="https://security.shuffler.io/onboarding"
+      securityRedirectUrl="https://shuffle.security/onboarding"
       // We are already inside Shuffle Security — kick off the demo drawer in
       // place instead of round-tripping through /dashboard?demo=true.
       onStartDemo={() => { startDemo().catch(() => { /* surfaced via toast */ }); }}

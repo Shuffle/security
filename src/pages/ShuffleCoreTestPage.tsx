@@ -62,7 +62,7 @@ const SNIPPET_PRODUCT_CHOICE = `import { ProductChoiceStep } from '@shuffleio/sh
 // Just the "Which Shuffle are you using?" picker step.
 <ProductChoiceStep
   onSelectCore={() => window.location.assign('https://shuffler.io/onboarding')}
-  onSelectSecurity={() => window.location.assign('https://security.shuffler.io/onboarding')}
+  onSelectSecurity={() => window.location.assign('https://shuffle.security/onboarding')}
 />`;
 
 const SNIPPET_FORM_INPUT = `import { FormInput } from '@shuffleio/shuffle-core';
@@ -486,8 +486,8 @@ const ShuffleCoreTestPage = () => {
     const TITLE = 'Shuffle Core — React component library demo';
     const DESCRIPTION =
       'Live demo of @shuffleio/shuffle-core: the Usecases explorer, alluvial flow diagram, onboarding flow, and workflow form components — drop-in React surfaces from the Shuffle Security app.';
-    const URL = 'https://security.shuffler.io/shuffle-core-demo';
-    const IMAGE = 'https://security.shuffler.io/og-image.png';
+    const URL = 'https://shuffle.security/shuffle-core-demo';
+    const IMAGE = 'https://shuffle.security/og-image.png';
 
     const prevTitle = document.title;
     document.title = TITLE;

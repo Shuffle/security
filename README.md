@@ -4,31 +4,31 @@
 
 # Shuffle Security
 
-[Shuffle Security (beta!)](https://security.shuffler.io) is the open source incident response and security operations frontend for [Shuffle Core](https://shuffler.io) — built for and by security professionals. It brings incidents, host monitoring, vulnerabilities and AI-driven response into a single workspace, designed to work well for SOC teams, MSSPs and service providers. Built to be rebuilt and rebranded.
+[Shuffle Security (beta!)](https://shuffle.security) is the open source incident response and security operations frontend for [Shuffle Core](https://shuffler.io) — built for and by security professionals. It brings incidents, host monitoring, vulnerabilities and AI-driven response into a single workspace, designed to work well for SOC teams, MSSPs and service providers. Built to be rebuilt and rebranded.
 
-[_Key Features_](https://security.shuffler.io/#features) — [_Community & Support_](https://discord.gg/B2CBzUm) — [_Documentation_](https://security.shuffler.io/docs) — [_Getting Started_](https://security.shuffler.io/docs/getting-started) — [_Set up a demo call_](https://shuffler.io/contact)
+[_Key Features_](https://shuffle.security/#features) — [_Community & Support_](https://discord.gg/B2CBzUm) — [_Documentation_](https://shuffle.security/docs) — [_Getting Started_](https://shuffle.security/docs/getting-started) — [_Set up a demo call_](https://shuffler.io/contact)
 
 </div>
 
 <table align="center">
   <tr>
     <td width="50%" align="center">
-      <a href="https://security.shuffler.io/incidents"><img alt="Incidents view" src="https://github.com/user-attachments/assets/6f8fef8e-83f2-4912-b14a-981ffca7980f" /></a><br/>
-      <sub><a href="https://security.shuffler.io/incidents"><b>Handle incidents from any source</b></a><br/>One unified view for alerts, cases and tickets across every tool.</sub>
+      <a href="https://shuffle.security/incidents"><img alt="Incidents view" src="https://github.com/user-attachments/assets/6f8fef8e-83f2-4912-b14a-981ffca7980f" /></a><br/>
+      <sub><a href="https://shuffle.security/incidents"><b>Handle incidents from any source</b></a><br/>One unified view for alerts, cases and tickets across every tool.</sub>
     </td>
     <td width="50%" align="center">
-      <a href="https://security.shuffler.io/automation"><img alt="Automation pipeline" src="https://github.com/user-attachments/assets/e79ae7af-0db8-4d89-be62-706c223b198a" /></a><br/>
-      <sub><a href="https://security.shuffler.io/monitors"><b>Set up host monitors</b></a><br/>For compliance, vulnerabilities and response across your fleet.</sub>
+      <a href="https://shuffle.security/automation"><img alt="Automation pipeline" src="https://github.com/user-attachments/assets/e79ae7af-0db8-4d89-be62-706c223b198a" /></a><br/>
+      <sub><a href="https://shuffle.security/monitors"><b>Set up host monitors</b></a><br/>For compliance, vulnerabilities and response across your fleet.</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <a href="https://security.shuffler.io/monitors"><img alt="Automation for Incidents" src="public/screenshots/automation-for-incidents.png" /></a><br/>
-      <sub><a href="https://security.shuffler.io/automation"><b>Be in control of the automation</b></a><br/>Visual ingest and forward pipelines you can shape end-to-end.</sub>
+      <a href="https://shuffle.security/monitors"><img alt="Automation for Incidents" src="public/screenshots/automation-for-incidents.png" /></a><br/>
+      <sub><a href="https://shuffle.security/automation"><b>Be in control of the automation</b></a><br/>Visual ingest and forward pipelines you can shape end-to-end.</sub>
     </td>
     <td width="50%" align="center">
-      <a href="https://security.shuffler.io/vulnerabilities"><img alt="Vulnerabilities" src="https://github.com/user-attachments/assets/511cedd8-0a40-4e52-93cc-5638048a45dd" /></a><br/>
-      <sub><a href="https://security.shuffler.io/vulnerabilities"><b>Track and manage vulnerabilities</b></a><br/>Stay on top of risk over time across every asset and user.</sub>
+      <a href="https://shuffle.security/vulnerabilities"><img alt="Vulnerabilities" src="https://github.com/user-attachments/assets/511cedd8-0a40-4e52-93cc-5638048a45dd" /></a><br/>
+      <sub><a href="https://shuffle.security/vulnerabilities"><b>Track and manage vulnerabilities</b></a><br/>Stay on top of risk over time across every asset and user.</sub>
     </td>
   </tr>
 </table>
@@ -39,7 +39,7 @@
 
 </div>
 
-* Cloud: Register at [https://security.shuffler.io/register](https://security.shuffler.io/register) and get cooking
+* Cloud: Register at [https://shuffle.security/register](https://shuffle.security/register) and get cooking
 * Self-hosted: see Install below 
 
 ## Install (self-hosted)

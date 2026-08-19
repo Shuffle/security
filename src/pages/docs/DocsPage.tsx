@@ -21,9 +21,9 @@ const DocsPage = () => {
       '@type': 'TechArticle',
       headline: docTitle,
       description: `Shuffle Security documentation — ${docTitle}.`,
-      url: `https://security.shuffler.io/docs/${slug}`,
+      url: `https://shuffle.security/docs/${slug}`,
       author: { '@type': 'Organization', name: 'Shuffle Security' },
-      publisher: { '@type': 'Organization', name: 'Shuffle Security', url: 'https://security.shuffler.io' },
+      publisher: { '@type': 'Organization', name: 'Shuffle Security', url: 'https://shuffle.security' },
     },
   });
 

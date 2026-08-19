@@ -5571,18 +5571,18 @@ function UsecasesPageInner() {
             </Box>
           )}
           {(() => {
-            // Always link to security.shuffler.io/infrastructure in a new window.
-            // Outside of security.shuffler.io itself, restrict visibility to support users.
-            const onSecurityHost = typeof window !== 'undefined' && ['security.shuffler.io', 'shuffle.security', 'www.shuffle.security'].includes(window.location.hostname);
+            // Always link to shuffle.security/infrastructure in a new window.
+            // Outside of shuffle.security itself, restrict visibility to support users.
+            const onSecurityHost = typeof window !== 'undefined' && ['shuffle.security', 'shuffle.security', 'www.shuffle.security'].includes(window.location.hostname);
             if (!onSecurityHost && !isSupport) return null;
             const tooltip = onSecurityHost
               ? 'Open Infrastructure'
-              : 'Support-only: opens security.shuffler.io/infrastructure in a new tab';
+              : 'Support-only: opens shuffle.security/infrastructure in a new tab';
             return (
               <Tooltip title={tooltip} placement="bottom" arrow>
                 <Box
                   component="a"
-                  href="https://security.shuffler.io/infrastructure"
+                  href="https://shuffle.security/infrastructure"
                   target="_blank"
                   rel="noopener noreferrer"
                   sx={{

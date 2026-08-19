@@ -528,7 +528,7 @@ const AdminPage = () => {
       )}
       {activeTab === 3 && userInfo?.support === true && (() => {
         const origin = typeof window === 'undefined' || window.location === undefined ? '' : window.location.origin;
-        const isLiveStripeOrigin = ['https://shuffler.io', 'https://security.shuffler.io', 'https://shuffle.security', 'https://www.shuffle.security'].includes(origin);
+        const isLiveStripeOrigin = ['https://shuffler.io', 'https://shuffle.security', 'https://shuffle.security', 'https://www.shuffle.security'].includes(origin);
         const stripeKey = isLiveStripeOrigin
           ? 'pk_live_51PXYYMEJjT17t98N20qEqItyt1fLQjrnn41lPeG2PjnSlZHTDNKHuisAbW00s4KAn86nGuqB9uSVU4ds8MutbnMU00DPXpZ8ZD'
           : 'pk_test_51PXYYMEJjT17t98NbDkojZ3DRvsFUQBs35LGMx3i436BXwEBVFKB9nCvHt0Q3M4MG3dz4mHheuWvfoYvpaL3GmsG00k1Rb2ksO';

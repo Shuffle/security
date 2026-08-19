@@ -903,7 +903,7 @@ export const AppAuthCard = ({
          * (https://shuffler.io/appauth) handles the redirect server-side regardless
          * of which host opened it, so there is no reason to gate this on hostname.
          * Previously this was gated on isDevEnvironment() || isCloudDomain(), which
-         * meant any consumer of the lib outside the hardcoded ['security.shuffler.io',
+         * meant any consumer of the lib outside the hardcoded ['shuffle.security',
          * 'shutdown.no'] / Lovable preview list never saw a Quick Connect button at all. */}
         {true && (
           <>

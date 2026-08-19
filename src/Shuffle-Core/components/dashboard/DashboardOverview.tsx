@@ -62,7 +62,7 @@ export interface OverviewProps extends ShuffleCoreHostProps {
   onRangeSelect?: (fromMs: number, toMs: number) => void;
   /** When provided, the "Set up X" empty-state CTAs open the matching
    *  usecase in-place via the host (typically by rendering <UsecaseDrawer>)
-   *  instead of redirecting to /usecases or to security.shuffler.io. */
+   *  instead of redirecting to /usecases or to shuffle.security. */
   onOpenUsecase?: (flowId: string) => void;
 }
 
@@ -105,7 +105,7 @@ export const DashboardOverview = ({
       // (including Lovable previews and shuffler.io) opens the matching
       // Usecase so the user can configure ingestion from there.
       return (
-        host === 'security.shuffler.io' ||
+        host === 'shuffle.security' ||
         host === 'shutdown.no' ||
         host === 'www.shutdown.no'
       );
@@ -116,7 +116,7 @@ export const DashboardOverview = ({
     // shuffler.io / Shuffle Core), Security Operations links should open
     // on the Shuffle Security app instead of trying to route locally.
     if (!isShuffleSecurityHost()) {
-      window.open(`https://security.shuffler.io${path.startsWith('/') ? '' : '/'}${path}`, '_blank', 'noopener,noreferrer');
+      window.open(`https://shuffle.security${path.startsWith('/') ? '' : '/'}${path}`, '_blank', 'noopener,noreferrer');
       return;
     }
     rrNavigate(path);

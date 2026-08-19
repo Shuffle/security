@@ -434,7 +434,7 @@ const AppDetailPage = () => {
             ? `${displayName} — ${appInfo.description}. Connect and automate with Shuffle Security.`
             : `Connect ${displayName} to Shuffle Security and automate workflows.`,
           image: resolvedImage || undefined,
-          url: `https://security.shuffler.io/apps/${appname}`,
+          url: `https://shuffle.security/apps/${appname}`,
           brand: { '@type': 'Brand', name: 'Shuffle Security' },
           category: 'Security Integration',
         }

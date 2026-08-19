@@ -121,7 +121,7 @@ const ALL_STEPS = [
 const OnboardingFlow = ({
   product = 'security',
   coreRedirectUrl = 'https://shuffler.io/welcome',
-  securityRedirectUrl = 'https://security.shuffler.io/onboarding',
+  securityRedirectUrl = 'https://shuffle.security/onboarding',
   apiBaseUrl,
   globalUrl,
   theme,
@@ -132,7 +132,7 @@ const OnboardingFlow = ({
   serverside,
   showProductChoice = true,
   onStartDemo,
-  demoRedirectUrl = 'https://security.shuffler.io/onboarding/product?demo=true',
+  demoRedirectUrl = 'https://shuffle.security/onboarding/product?demo=true',
 }: OnboardingFlowProps = {}) => {
   const resolvedGlobalUrl = globalUrl || apiBaseUrl;
   useSyncHostBaseUrl(resolvedGlobalUrl);

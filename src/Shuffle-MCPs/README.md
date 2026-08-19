@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://security.shuffler.io/mcp/agent-icon.png" alt="Shuffle MCPs" width="96" />
+<img src="https://shuffle.security/mcp/agent-icon.png" alt="Shuffle MCPs" width="96" />
 
 # Shuffle MCPs
 
@@ -26,11 +26,11 @@ Turn 3,000+ SaaS tools into MCP servers your agents can use. One search, one cli
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="https://security.shuffler.io/mcp/search-preview.png" alt="Search 3,000+ integrations" width="380" style="border-radius: 12px;" />
+      <img src="https://shuffle.security/mcp/search-preview.png" alt="Search 3,000+ integrations" width="380" style="border-radius: 12px;" />
       <br/><sub><b>3. Search any of 3,000+ tools</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="https://security.shuffler.io/mcp/app-detail-preview.png" alt="Authenticate and use as MCP" width="380" style="border-radius: 12px;" />
+      <img src="https://shuffle.security/mcp/app-detail-preview.png" alt="Authenticate and use as MCP" width="380" style="border-radius: 12px;" />
       <br/><sub><b>4. Authenticate — your agent uses it instantly</b></sub>
     </td>
   </tr>
@@ -38,7 +38,7 @@ Turn 3,000+ SaaS tools into MCP servers your agents can use. One search, one cli
 
 &nbsp;
 
-> **See it live:** [security.shuffler.io/shuffle-mcp-demo](https://security.shuffler.io/shuffle-mcp-demo) — a fully working demo of every component in this package (inline search, search drawer, app detail drawer, auth, Try MCP, and Try individual actions). No login required.
+> **See it live:** [shuffle.security/shuffle-mcp-demo](https://shuffle.security/shuffle-mcp-demo) — a fully working demo of every component in this package (inline search, search drawer, app detail drawer, auth, Try MCP, and Try individual actions). No login required.
 
 > **No SDK required.** Once a tool is authenticated in Shuffle, it is live as an MCP server immediately — call it from any agent over plain HTTP. This npm package is the optional UI layer for embedding the search-and-connect flow inside your own product.
 
@@ -99,13 +99,13 @@ The library exports six React components — use one or all of them. They share 
 
 | Component | What it does | Live demo |
 |---|---|---|
-| [`<ShuffleMCP />`](#1-shufflemcp--inline-search) | Inline search box that merges Algolia's 3,000+ public app catalog with the current user's private apps | [/shuffle-mcp-demo §1](https://security.shuffler.io/shuffle-mcp-demo) |
-| [`<AppSearchDrawer />`](#2-appsearchdrawer--full-search-drawer) | Right-side drawer wrapping `<ShuffleMCP />` plus a "Your apps" status row. This is the exact "Add Ingestion Source" drawer used in production | [/shuffle-mcp-demo §2](https://security.shuffler.io/shuffle-mcp-demo) |
-| [`<AppDetailDrawer />`](#3-appdetaildrawer--single-app-config) | Right-side drawer for a single app: list/edit/test authentications and try the MCP `tools/call` endpoint inline | [/shuffle-mcp-demo §3](https://security.shuffler.io/shuffle-mcp-demo) |
-| [`<AgentUI />`](#4-agentui--start--debug-agents) | Standalone "What do you want to do?" hero prompt + live decision-by-decision debugger for `/api/v1/agent` runs. Drop-in replacement for the legacy Shuffle Core agent page | [/agents](https://security.shuffler.io/agents) |
-| [`<AgentRunDrawer />`](#5-agentrundrawer--run-agent-side-panel) | Right-side drawer that hosts `<AgentUI />` in compact mode plus optional caller-provided **Permissions** and **Local LLM** tabs (slot-driven, no host context required) | [/shuffle-mcp-demo §1b](https://security.shuffler.io/shuffle-mcp-demo) |
-| [`<AgentActivityList />`](#6-agentactivitylist--past-executions) | Searchable, status-filterable list of past `/api/v1/agent` runs. Pair with `<AgentExecutionDrawer />` to inspect any row in the canonical Simple/Detailed view | [/shuffle-mcp-demo §8](https://security.shuffler.io/shuffle-mcp-demo) |
-| [`<AgentExecutionDrawer />`](#7-agentexecutiondrawer--inspect-one-run) | Right-side drawer that pre-loads a single `AgentRun` into `<AgentUI />` (no `authorization` token required) for read-only inspection | [/agents](https://security.shuffler.io/agents) |
+| [`<ShuffleMCP />`](#1-shufflemcp--inline-search) | Inline search box that merges Algolia's 3,000+ public app catalog with the current user's private apps | [/shuffle-mcp-demo §1](https://shuffle.security/shuffle-mcp-demo) |
+| [`<AppSearchDrawer />`](#2-appsearchdrawer--full-search-drawer) | Right-side drawer wrapping `<ShuffleMCP />` plus a "Your apps" status row. This is the exact "Add Ingestion Source" drawer used in production | [/shuffle-mcp-demo §2](https://shuffle.security/shuffle-mcp-demo) |
+| [`<AppDetailDrawer />`](#3-appdetaildrawer--single-app-config) | Right-side drawer for a single app: list/edit/test authentications and try the MCP `tools/call` endpoint inline | [/shuffle-mcp-demo §3](https://shuffle.security/shuffle-mcp-demo) |
+| [`<AgentUI />`](#4-agentui--start--debug-agents) | Standalone "What do you want to do?" hero prompt + live decision-by-decision debugger for `/api/v1/agent` runs. Drop-in replacement for the legacy Shuffle Core agent page | [/agents](https://shuffle.security/agents) |
+| [`<AgentRunDrawer />`](#5-agentrundrawer--run-agent-side-panel) | Right-side drawer that hosts `<AgentUI />` in compact mode plus optional caller-provided **Permissions** and **Local LLM** tabs (slot-driven, no host context required) | [/shuffle-mcp-demo §1b](https://shuffle.security/shuffle-mcp-demo) |
+| [`<AgentActivityList />`](#6-agentactivitylist--past-executions) | Searchable, status-filterable list of past `/api/v1/agent` runs. Pair with `<AgentExecutionDrawer />` to inspect any row in the canonical Simple/Detailed view | [/shuffle-mcp-demo §8](https://shuffle.security/shuffle-mcp-demo) |
+| [`<AgentExecutionDrawer />`](#7-agentexecutiondrawer--inspect-one-run) | Right-side drawer that pre-loads a single `AgentRun` into `<AgentUI />` (no `authorization` token required) for read-only inspection | [/agents](https://shuffle.security/agents) |
 
 ### 1. `<ShuffleMCP />` — inline search
 
@@ -252,7 +252,7 @@ Useful props:
 | `onRun` | `(info) => void` | Fires whenever a run finishes (success or failure) |
 | `className` / `sx` / `contentSx` | `string` / `SxProps` | Style overrides for the root container and inner content column |
 
-Reference page in production: [`src/pages/dashboard/AgentsPage.tsx`](../pages/dashboard/AgentsPage.tsx) (mounted at [`/agents`](https://security.shuffler.io/agents)).
+Reference page in production: [`src/pages/dashboard/AgentsPage.tsx`](../pages/dashboard/AgentsPage.tsx) (mounted at [`/agents`](https://shuffle.security/agents)).
 
 ### 5. `<AgentRunDrawer />` — Run Agent side panel
 

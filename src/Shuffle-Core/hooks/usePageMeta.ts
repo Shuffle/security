@@ -11,7 +11,7 @@ interface PageMeta {
 }
 
 const BASE_TITLE = 'Shuffle Security';
-const BASE_URL = 'https://security.shuffler.io';
+const BASE_URL = 'https://shuffle.security';
 const DEFAULT_IMAGE = `${BASE_URL}/og-image.png`;
 const MANAGED_JSONLD_ID = 'page-jsonld-managed';
 
