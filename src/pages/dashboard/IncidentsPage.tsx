@@ -3413,7 +3413,7 @@ const IncidentsPage = () => {
                         d.setHours(h || 0, m || 0, s || 0);
                         setDateFrom(d);
                       }}
-                      className="w-full mt-1 text-xs px-2 py-1 rounded-md border border-blue-500/30 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+                      className="w-full mt-1 text-xs px-2 py-1 rounded-md border border-blue-500/30 bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-blue-500/40"
                     />
                   </div>
                 </PopoverContent>
@@ -3457,7 +3457,7 @@ const IncidentsPage = () => {
                         d.setHours(h || 0, m || 0, s || 0);
                         setDateTo(d);
                       }}
-                      className="w-full mt-1 text-xs px-2 py-1 rounded-md border border-emerald-500/30 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                      className="w-full mt-1 text-xs px-2 py-1 rounded-md border border-emerald-500/30 bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40"
                     />
                   </div>
                 </PopoverContent>

@@ -35,7 +35,7 @@ export default function WorkflowsNotSupportedPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center p-6">
-      <div className="w-full max-w-xl rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+      <div className="w-full max-w-xl rounded-lg border border-border bg-card p-8 text-center shadow-xs">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
           <Workflow size={28} className="text-muted-foreground" />
         </div>

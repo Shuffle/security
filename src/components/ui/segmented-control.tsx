@@ -144,7 +144,7 @@ export function SegmentedControl<V extends string = string>({
               className={cn(
                 "relative inline-flex items-center rounded-full font-medium",
                 "transition-colors duration-300",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
                 s.item,
                 active
                   ? "text-foreground"
