@@ -10,7 +10,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { algoliasearch } from 'algoliasearch';
 import { Box, Typography, Avatar, Tooltip, IconButton, Chip, Popover, Button, Dialog, InputBase } from '@mui/material';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from '@/lib/router-compat';
 import {
   Plus,
   Webhook,

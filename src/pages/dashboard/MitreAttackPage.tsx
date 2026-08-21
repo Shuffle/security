@@ -1,6 +1,6 @@
 import { Search as SearchIcon, RefreshCw as SyncIcon, Network as AccountTreeIcon, ExternalLink as OpenInNewIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from '@/lib/router-compat';
 import {
   Box,
   Typography,

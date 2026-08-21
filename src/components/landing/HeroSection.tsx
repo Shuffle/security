@@ -1,7 +1,7 @@
 import { ArrowRight as ArrowForwardIcon, Cloud as CloudIcon, Shield as SecurityIcon, Database as StorageIcon, Mail as EmailIcon, Bug as BugReportIcon, Wrench as BuildIcon } from 'lucide-react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { trackCTA } from '@/lib/analytics';
 
 // Floating integration icons - styled boxes with names

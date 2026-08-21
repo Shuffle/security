@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "@/lib/router-compat";
 import { useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import AgentIcon from "@/Shuffle-MCPs/components/AgentIcon";

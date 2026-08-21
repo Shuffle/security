@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import {
   Avatar,
   AvatarGroup,
@@ -969,7 +969,7 @@ const AgentActivityList = ({
     return () => { unsubAbort(); unsubOpened(); };
   }, []);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 
   const selectedAgentWorkflow = agentWorkflows.find((w) => w.id === workflowFilter) || null;

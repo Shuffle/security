@@ -14,7 +14,7 @@
  */
 import { User as PersonIcon, Github as GitHubIcon } from 'lucide-react';
 import { Box, Typography, Avatar, Chip, Link as MuiLink, Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { useState } from 'react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';

@@ -2,7 +2,7 @@ import { ArrowRight as ArrowForwardIcon, ArrowLeft as ArrowBackIcon, CheckCircle
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Box, Container, Typography, Button, Stack } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from '@/lib/router-compat';
 import { TicketingSystemSearch } from './TicketingSystemSearch';
 import { WelcomeStep } from './WelcomeStep';
 import { UnifiedSourceSetup } from './UnifiedSourceSetup';

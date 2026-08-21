@@ -30,7 +30,7 @@ import { HostDetailPanel } from '@/components/monitors/HostDetailPanel';
 import { MonitorHostTable } from '@/components/monitors/MonitorHostTable';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from '@/lib/router-compat';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const DEFAULT_TAB = 'mobile';

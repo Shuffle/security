@@ -22,7 +22,7 @@ import {
 
 import { ReactJson, green, yellow, red, grey, CodeHandler, Img, OuterLink, validateJson, collapseField, GetIconInfo, useInterval, getTheme, Context } from "../components/stubs";
 import { isMobile } from "react-device-detect";
-import { useNavigate, Link, useParams } from "react-router-dom";
+import { useNavigate, Link, useParams } from "@/lib/router-compat";
 import EditWorkflow from "../components/EditWorkflow";
 import RecentWorkflow from "../components/RecentWorkflow";
 import { toast } from "react-toastify";

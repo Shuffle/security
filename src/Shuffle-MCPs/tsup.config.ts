@@ -10,7 +10,7 @@ import path from 'node:path';
  *
  * Notes:
  *  - Host-provided UI deps (MUI, framer-motion, sonner, lucide-react,
- *    react-router-dom, etc.) are declared `external` so they are NOT bundled.
+ *    @/lib/router-compat, etc.) are declared `external` so they are NOT bundled.
  *  - Markdown / JSON viewer utilities are bundled to avoid downstream webpack
  *    ESM resolution and source-map-loader issues in consuming apps.
  *  - The library source uses `@/Shuffle-MCPs/*` and `@/assets/*` path
@@ -49,7 +49,7 @@ export default defineConfig({
     'framer-motion',
     'sonner',
     'lucide-react',
-    'react-router-dom',
+    '@/lib/router-compat',
     'react-router',
   ],
   // Also pass noExternal=false equivalent via esbuild to ensure

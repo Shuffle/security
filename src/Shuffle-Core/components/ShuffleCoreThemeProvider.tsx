@@ -46,7 +46,7 @@ const readAncestorDark = (anchor: Element | null): boolean | null => {
   return null;
 };
 
-const useAutoDarkClass = (enabled: boolean, anchorRef: React.RefObject<HTMLElement>): boolean => {
+const useAutoDarkClass = (enabled: boolean, anchorRef: React.RefObject<HTMLElement | null>): boolean => {
   const [isDark, setIsDark] = React.useState<boolean>(() => (enabled ? readHtmlDarkClass() : false));
   React.useLayoutEffect(() => {
     if (!enabled || typeof document === "undefined") return;

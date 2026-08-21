@@ -99,7 +99,7 @@ const buildScanContext = (raw: any): IncidentEvaluationContext => {
     rawOCSF: raw?.rawOCSF,
   };
 };
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 
 type FieldChoice = {
   value: string;

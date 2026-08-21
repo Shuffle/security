@@ -33,7 +33,7 @@ import {
 	CircularProgress,
 } from "@mui/material";
 
-import { useNavigate, Link, json } from "react-router-dom";
+import { useNavigate, Link, json } from "@/lib/router-compat";
 import { Autocomplete } from "@mui/material";
 import { toast } from "../toast"
 

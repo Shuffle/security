@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { Loader2, Play, Terminal, Maximize2 } from 'lucide-react';
 import type { ActionDebugEntry } from '@/hooks/useHostActions';
 import { getActiveUser, inferAgentPrivilege } from './hostActionDefinitions';

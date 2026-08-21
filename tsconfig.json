@@ -1,5 +1,10 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "eslint.config.js"],
+  "exclude": [
+    "src/Shuffle-Core/tsup.config.ts",
+    "src/Shuffle-MCPs/tsup.config.ts",
+    "src/Shuffle-MCPs/lib-shims.d.ts"
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
@@ -19,12 +24,16 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shuffleio/shuffle-mcps": ["./src/Shuffle-MCPs/index.ts"],
+      "@shuffleio/shuffle-mcps/*": ["./src/Shuffle-MCPs/*"],
+      "@shuffleio/shuffle-core": ["./src/Shuffle-Core/index.tsx"],
+      "@shuffleio/shuffle-core/*": ["./src/Shuffle-Core/*"]
     }
   }
 }

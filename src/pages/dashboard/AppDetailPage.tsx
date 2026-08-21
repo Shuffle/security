@@ -2,7 +2,7 @@ import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { ArrowLeft as ArrowBackIcon, CheckCircle2 as CheckCircleIcon, AlertCircle as ErrorOutlineIcon, ExternalLink as OpenInNewIcon, RefreshCw as RefreshIcon, Activity as TimelineIcon, Lock as LockOutlinedIcon, ArrowRight as ArrowForwardIcon } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from '@/lib/toast';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from '@/lib/router-compat';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import {
   Box,

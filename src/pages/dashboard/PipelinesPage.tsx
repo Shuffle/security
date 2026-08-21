@@ -23,7 +23,7 @@ import {
 import { toast } from '@/lib/toast';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { askAI } from '@/services/ai';
 import WebhookStatusBanner from '@/components/detection/WebhookStatusBanner';
 import { usePageMeta } from '@/hooks/usePageMeta';

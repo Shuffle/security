@@ -13,7 +13,7 @@ import {
   Navigate as TSNavigate,
   Outlet as TSOutlet,
 } from "@tanstack/react-router";
-import { useMemo, useCallback, forwardRef, type ComponentProps, type ReactNode } from "react";
+import { useMemo, useCallback, forwardRef, type ComponentProps, type ReactNode, type CSSProperties } from "react";
 
 // ---------- shared URL parsing ----------
 
@@ -33,20 +33,30 @@ function parseTo(to: string): { pathname: string; search?: Record<string, string
 
 type NavigateOptions = { replace?: boolean; state?: unknown };
 
+/** react-router's partial-path object form: navigate({ pathname, search }) */
+export type To = string | { pathname?: string; search?: string; hash?: string };
+
 type NavigateFn = {
-  (to: string | number, options?: NavigateOptions): void;
+  (to: To | number, options?: NavigateOptions): void;
   (delta: number): void;
 };
+
+function toString(to: To): string {
+  if (typeof to === "string") return to;
+  const search = to.search ? (to.search.startsWith("?") ? to.search : `?${to.search}`) : "";
+  const hash = to.hash ? (to.hash.startsWith("#") ? to.hash : `#${to.hash}`) : "";
+  return `${to.pathname ?? "."}${search}${hash}`;
+}
 
 export function useNavigate(): NavigateFn {
   const tsNav = tsNavigate();
   const router = useRouter();
-  return useCallback((to: string | number, options?: NavigateOptions) => {
+  return useCallback((to: To | number, options?: NavigateOptions) => {
     if (typeof to === "number") {
       router.history.go(to);
       return;
     }
-    const { pathname, search, hash } = parseTo(to);
+    const { pathname, search, hash } = parseTo(toString(to));
     tsNav({
       to: pathname,
       search: search as never,
@@ -66,7 +76,9 @@ export function useLocation() {
       pathname: loc.pathname,
       search: loc.searchStr ? `?${loc.searchStr}` : "",
       hash: loc.hash ?? "",
-      state: (loc.state ?? null) as unknown,
+      // react-router types state loosely; call sites read arbitrary keys
+      // (e.g. location.state?.from), so keep it `any` here.
+      state: (loc.state ?? null) as any,
       key: loc.pathname + (loc.searchStr ?? ""),
     }),
     [loc.pathname, loc.searchStr, loc.hash, loc.state],
@@ -153,6 +165,39 @@ export function Navigate({ to, replace, state }: { to: string; replace?: boolean
 
 export const Outlet = TSOutlet;
 
-// ---------- NavLink (minimal) ----------
+// ---------- NavLink ----------
 
-export const NavLink = Link;
+type NavLinkRenderState = { isActive: boolean; isPending: boolean };
+
+export type NavLinkProps = Omit<LinkProps, "className" | "style" | "children"> & {
+  className?: string | ((state: NavLinkRenderState) => string | undefined);
+  style?: CSSProperties | ((state: NavLinkRenderState) => CSSProperties | undefined);
+  children?: ReactNode | ((state: NavLinkRenderState) => ReactNode);
+  end?: boolean;
+};
+
+export const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(function NavLink(
+  { to, className, style, children, end, ...rest },
+  ref,
+) {
+  const loc = tsLocation();
+  const { pathname } = parseTo(to);
+  const isActive =
+    pathname === "."
+      ? false
+      : end
+        ? loc.pathname === pathname || loc.pathname === `${pathname}/`
+        : loc.pathname === pathname || loc.pathname.startsWith(`${pathname}/`);
+  const state: NavLinkRenderState = { isActive, isPending: false };
+  return (
+    <Link
+      ref={ref}
+      to={to}
+      className={typeof className === "function" ? className(state) : className}
+      style={typeof style === "function" ? style(state) : style}
+      {...(rest as Record<string, unknown>)}
+    >
+      {typeof children === "function" ? children(state) : children}
+    </Link>
+  );
+});

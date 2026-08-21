@@ -48,7 +48,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { fetchExecution as fetchExecutionSnapshot } from '@/Shuffle-Core/components/WorkflowRunExplorer';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from '@/lib/router-compat';
 import {
   Avatar,
   AvatarGroup,

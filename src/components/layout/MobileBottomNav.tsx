@@ -1,4 +1,4 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link } from '@/lib/router-compat';
 import { Box, Typography } from '@mui/material';
 import { Activity, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, Settings as SettingsIcon } from 'lucide-react';
 import { useEntityPreference } from '@/hooks/useEntityLabel';

@@ -13,7 +13,7 @@ import {
   DialogContent,
 } from '@mui/material';
 import { ArrowRight, AlertTriangle, CheckCircle, Clock, HelpCircle, XCircle, Search, X as CloseIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import type { AgentRun } from '@/services/agentActivity';
 import { getAgentRunOutput, getIncidentTitleFromRun, getIncidentSeverityFromRun, parseDatastoreReference, isIncidentReference } from '@/lib/agentParsers';
 import { hasOutputWarning, getFailureInfo } from '@/components/agent/AgentRunResultViewer';

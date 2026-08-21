@@ -21,7 +21,7 @@
  *   should hide this card when there are no sub-orgs.
  */
 import { Plus as AddIcon, Trash as DeleteOutlineIcon, Copy as ContentCopyIcon, ChevronDown as ExpandMoreIcon, ChevronUp as ExpandLessIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import {
   RoutingActionFields,
   ROUTING_ACTION_TYPE_LABELS,

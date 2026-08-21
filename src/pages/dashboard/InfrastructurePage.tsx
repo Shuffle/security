@@ -29,7 +29,7 @@ import ReactFlow, {
   type EdgeProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { Box, Typography, Chip, Avatar, IconButton, Drawer, Tooltip, Button, Menu, MenuItem } from '@mui/material';
 import { ArrowRight, ChevronRight, Activity, Download, Zap, X, ExternalLink, X as CloseIcon } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';

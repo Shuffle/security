@@ -1,7 +1,7 @@
 // Lib-build-only ambient module shims. NOT included by the host app's
 // tsconfig (see tsconfig.app.json `exclude`). These let `tsup --dts` emit
 // declarations in environments where peer/external packages aren't installed.
-declare module 'react-router-dom';
+declare module '@/lib/router-compat';
 declare module 'react-router';
 declare module 'react-markdown';
 declare module 'remark-gfm';

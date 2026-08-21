@@ -11,7 +11,7 @@
 import { Box, Typography, IconButton, Tooltip, useTheme } from '@mui/material';
 import { Sparkles, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@/lib/router-compat';
 import { useDemo } from '@/context/DemoContext';
 
 export const DemoResumePill = () => {

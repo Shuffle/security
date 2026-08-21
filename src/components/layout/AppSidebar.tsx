@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from '@/lib/router-compat';
 import { prefetchRoute } from '@/lib/routePrefetch';
 import {
   Box,

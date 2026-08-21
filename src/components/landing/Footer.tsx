@@ -1,6 +1,6 @@
 import { Github as GitHubIcon, Linkedin as LinkedInIcon, Twitter as TwitterIcon } from 'lucide-react';
 import { Box, Container, Typography, Grid, Link as MuiLink, Stack, IconButton } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 const footerLinks = {
   Product: [
     { label: 'Features', href: '#features' },

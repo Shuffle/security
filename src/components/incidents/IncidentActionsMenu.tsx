@@ -1,6 +1,6 @@
 import { MoreVertical as MoreVertIcon, Link as LinkIcon, RefreshCw as RefreshIcon, Forward as ForwardIcon, GitMerge as CallMergeIcon, CheckCircle2 as CheckCircleIcon, Settings as SettingsIcon, X as CloseIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import {
   Box,
   Typography,

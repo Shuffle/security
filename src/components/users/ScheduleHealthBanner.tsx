@@ -18,7 +18,7 @@ import {
   Alert, AlertTitle, Box, Button, Collapse, IconButton, Stack, Typography,
   Select, MenuItem, FormControl, CircularProgress,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { toast } from '@/lib/toast';
 import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import {

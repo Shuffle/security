@@ -30,10 +30,10 @@ const getCustomAttrs = (input: unknown): Record<string, any> | null => {
 export const readTenantStamp = (input: unknown): TenantStamp | null => {
   const custom = getCustomAttrs(input);
   if (!custom) return null;
-  const tenants = Array.isArray(custom._tenants) ? custom._tenants.filter((t: unknown): t is string => typeof t === 'string' && t.length > 0) : null;
+  const tenants = Array.isArray(custom['_tenants']) ? custom['_tenants'].filter((t: unknown): t is string => typeof t === 'string' && t.length > 0) : null;
   if (!tenants) return null;
-  const removed = Array.isArray(custom._tenants_removed) ? custom._tenants_removed.filter((t: unknown): t is string => typeof t === 'string' && t.length > 0) : [];
-  const updatedAt = typeof custom._tenants_updated_at === 'number' ? custom._tenants_updated_at : 0;
+  const removed = Array.isArray(custom['_tenants_removed']) ? custom['_tenants_removed'].filter((t: unknown): t is string => typeof t === 'string' && t.length > 0) : [];
+  const updatedAt = typeof custom['_tenants_updated_at'] === 'number' ? custom['_tenants_updated_at'] : 0;
   return { tenants, removed, updatedAt };
 };
 

@@ -14,7 +14,7 @@ import {
   ListItemIcon,
 } from '@mui/material';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { useEntityText } from '@/hooks/useEntityLabel';
 
 interface AppHeaderProps {

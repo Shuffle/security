@@ -7,7 +7,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSyncHostBaseUrl } from '../useSyncHostBaseUrl';
-import { useNavigate, Link, useSearchParams, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useParams, useLocation } from '@/lib/router-compat';
 
 import {
   Box,

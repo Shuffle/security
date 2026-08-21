@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from '@/lib/router-compat';
 import { Button } from '@/components/ui/button';
 import { Laptop, ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';

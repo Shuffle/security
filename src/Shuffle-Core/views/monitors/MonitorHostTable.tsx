@@ -8,7 +8,7 @@
  * any future column / dot / action work happens in one place.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import {
   ChevronRight, HardDrive, Lock, Package, FileCode, Zap, Activity, Laptop,
   Play, Loader2, Maximize2, Terminal, CheckCircle2, ShieldX,

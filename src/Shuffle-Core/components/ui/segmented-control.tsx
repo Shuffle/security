@@ -75,7 +75,7 @@ const sizeClasses = {
 
 let uid = 0;
 function useUniqueId(prefix: string) {
-  const ref = React.useRef<string>();
+  const ref = React.useRef<string | undefined>(undefined);
   if (!ref.current) {
     uid += 1;
     ref.current = `${prefix}-${uid}`;
