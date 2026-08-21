@@ -17,9 +17,11 @@ export interface RouteMetaInput {
   url: string;
   image?: string;
   type?: string;
+  /** Product/app pages: keep them out of search results. */
+  noindex?: boolean;
 }
 
-export const routeMeta = ({ title, description, url, image, type = 'website' }: RouteMetaInput) => {
+export const routeMeta = ({ title, description, url, image, type = 'website', noindex }: RouteMetaInput) => {
   const fullTitle = title.includes(BASE_TITLE) ? title : `${title} | ${BASE_TITLE}`;
   const fullUrl = `${BASE_URL}${url}`;
   const img = image || DEFAULT_IMAGE;
@@ -42,7 +44,8 @@ export const routeMeta = ({ title, description, url, image, type = 'website' }: 
       { name: 'twitter:description', content: description },
       { name: 'twitter:image', content: img },
       { name: 'twitter:image:alt', content: title },
+      ...(noindex ? [{ name: 'robots', content: 'noindex, nofollow' }] : []),
     ],
-    links: [{ rel: 'canonical', href: fullUrl }],
+    links: noindex ? [] : [{ rel: 'canonical', href: fullUrl }],
   };
 };
