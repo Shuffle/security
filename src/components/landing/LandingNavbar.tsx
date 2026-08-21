@@ -1,5 +1,5 @@
 import { Menu as MenuIcon, Github as GitHubIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from '@/lib/router-compat';
 import {
   AppBar,
