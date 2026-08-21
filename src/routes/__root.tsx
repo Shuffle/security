@@ -103,11 +103,6 @@ if (typeof window !== "undefined") {
   });
 }
 
-const SITE_TITLE = "Shuffle Security - Automated Incident Management";
-const SITE_DESCRIPTION =
-  "Open-source cybersecurity incident management platform for the future AI-SOC. Controllable and transparent incident, vulnerability and response automation.";
-const OG_IMAGE =
-  "https://storage.googleapis.com/gpt-engineer-file-uploads/3RrYN55ZuvUHHi6Wjhu1Xw7Dthg1/social-images/social-1779276187489-Newletter_heading_2x.webp";
 
 // Pre-paint theme bootstrap: ThemeContext applies the class after hydration,
 // but SSR paints first — resolve shuffle-theme (default: system) before paint
@@ -120,8 +115,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1.0" },
-      { title: SITE_TITLE },
-      { name: "description", content: SITE_DESCRIPTION },
       {
         name: "keywords",
         content:
@@ -135,18 +128,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { property: "og:type", content: "website" },
-      { property: "og:title", content: SITE_TITLE },
-      { property: "og:description", content: SITE_DESCRIPTION },
-      { property: "og:image", content: OG_IMAGE },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "640" },
       { property: "og:site_name", content: "Shuffle Security" },
       { property: "og:locale", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@shuffleio" },
-      { name: "twitter:title", content: SITE_TITLE },
-      { name: "twitter:description", content: SITE_DESCRIPTION },
-      { name: "twitter:image", content: OG_IMAGE },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

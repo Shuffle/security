@@ -1042,7 +1042,7 @@ const PricingPage = ({
               </div>
               <img
                 src="/images/companies_logo/nio_white.svg"
-                alt="NIO"
+                alt="NIO company logo"
                 style={{ marginBottom: "-10px", width: "80px" }}
               />
             </Box>
@@ -2738,7 +2738,14 @@ const PricingPage = ({
                               },
                             }}
                           >
-                            <ToggleButton value={option}>
+                            <ToggleButton
+                              value={option}
+                              aria-label={
+                                option === "Cloud"
+                                  ? "Show Shuffle Cloud pricing"
+                                  : "Show self-hosted pricing"
+                              }
+                            >
                               {option === "Cloud" ? (
                                 <CloudIcon
                                   selected={selectedDeployment === option}
