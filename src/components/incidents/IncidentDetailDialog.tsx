@@ -99,7 +99,7 @@ export const IncidentDetailDialog = ({ open, incident, onClose, onResolve, onUpd
   // Reset form when incident changes
   useEffect(() => {
     if (incident) {
-      setEditedTitle(incident.title);
+      setEditedTitle(incident.title ?? '');
       const rawDesc = incident.rawOCSF?.desc || incident.rawOCSF?.message || '';
       setEditedMessage(htmlToPlainText(rawDesc));
       setEditedSeverity(incident.severity);

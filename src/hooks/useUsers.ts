@@ -50,7 +50,7 @@ const fetchUsersOnce = async (): Promise<User[]> => {
 
       const data = await response.json();
       usersCache = Array.isArray(data) ? data : data.users || [];
-      return usersCache;
+      return usersCache ?? [];
     } catch (err) {
       fetchPromise = null; // Reset on error to allow retry
       throw err;

@@ -547,7 +547,7 @@ export const IncidentCardView = ({
                 sx={{ flex: 1, minWidth: 0 }}
                 component={getIncidentUrl ? Link : 'div'}
                 to={getIncidentUrl ? getIncidentUrl(incident) : undefined}
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   if (selectedIds.size > 0) {
                     e.preventDefault();
                     handleCheckboxChange(incident.id, !selected, e);

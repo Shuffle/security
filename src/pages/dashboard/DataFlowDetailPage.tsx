@@ -523,9 +523,7 @@ export const UsecaseDetailContent = ({
               )}
             </Box>
             <Button
-              href={isExternal ? target : undefined}
-              target={isExternal ? '_blank' : undefined}
-              rel={isExternal ? 'noopener noreferrer' : undefined}
+              {...(isExternal ? { href: target, target: '_blank', rel: 'noopener noreferrer' } : {})}
               onClick={handleClick}
               endIcon={isExternal ? <ExternalLink size={14} /> : <ArrowRight size={14} />}
               sx={{

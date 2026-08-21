@@ -179,7 +179,7 @@ const NotificationsDrawer = ({
             list
               .filter((w: any) => w?.id)
               .map((w: any) => ({ id: String(w.id), name: String(w.name || w.id) }))
-              .sort((a, b) => a.name.localeCompare(b.name)),
+              .sort((a: { id: string; name: string }, b: { id: string; name: string }) => a.name.localeCompare(b.name)),
           );
         }
       } catch {

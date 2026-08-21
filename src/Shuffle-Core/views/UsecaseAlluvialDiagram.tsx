@@ -1555,7 +1555,7 @@ export default function UsecaseAlluvialDiagram({
             .filter(a => a.id !== 'webhook-ingestion' && a.name !== 'Webhook')
             .map(a => ({ name: a.name, icon: a.icon, hasValidAuth: a.hasValidAuth, isActiveOnly: a.isActiveOnly }));
         })()}
-        onAddToCanvas={isLoggedIn ? ({ name: addedAppName, icon: addedIcon, algoliaId }) => {
+        onAddToCanvas={isLoggedIn ? ({ name: addedAppName, icon: addedIcon, algoliaId }: { name: string; icon?: string; algoliaId?: string }) => {
           const side = searchOpen || 'right';
 
           // Ensure app exists in allApps so it renders on the canvas
@@ -1605,10 +1605,10 @@ export default function UsecaseAlluvialDiagram({
           }
           setSearchOpen(null);
         } : undefined}
-        onQuickSelect={!isLoggedIn ? (app) => {
+        onQuickSelect={!isLoggedIn ? (app: any) => {
           if (searchOpen) addGuestApp(searchOpen, app);
         } : undefined}
-        onSelectOverride={isLoggedIn ? (app) => {
+        onSelectOverride={isLoggedIn ? (app: any) => {
           // Check if this app is already authenticated
           const matchedApp = allApps.find(a => 
             normalizeAppName(a.name) === normalizeAppName(app.name) && a.hasValidAuth
@@ -1653,7 +1653,7 @@ export default function UsecaseAlluvialDiagram({
           setSearchOpen(null);
           return true; // Handled — don't open detail drawer
         } : undefined}
-        onDetailClose={isLoggedIn ? async (appName) => {
+        onDetailClose={isLoggedIn ? async (appName: string) => {
           // After authenticating, re-check if app is now valid and auto-add
           try {
             const res = await fetch(getApiUrl('/api/v1/apps/authentication'), {

@@ -491,7 +491,7 @@ const CategorySection = ({
               onSelectionChange={onAppsChange}
               customStyles={singulStyles}
               renderInputEndAdornment={renderNewAppChip}
-              renderEmptyState={(query) => (
+              renderEmptyState={(query: string) => (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.25, width: '100%' }}>
                   <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
                     No integrations match "{query}".

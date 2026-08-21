@@ -255,6 +255,7 @@ export const AddAppDialog = ({
       const t = setTimeout(reset, 250);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [open, reset]);
 
   const verifyAndCreate = useCallback(

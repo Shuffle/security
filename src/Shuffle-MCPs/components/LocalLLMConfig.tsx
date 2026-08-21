@@ -680,7 +680,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
           fullWidth
           disableClearable
           options={ENDPOINT_PRESETS.map((p) => p.label)}
-          value={effectivePreset || null}
+          value={effectivePreset || undefined}
           onChange={(_e, val) => val && handlePresetChange(val)}
           isOptionEqualToValue={(opt, val) => opt === val}
           renderOption={(props, option) => {
@@ -838,7 +838,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
                         fullWidth
                         disableClearable
                         options={[...presetModels, CUSTOM_MODEL]}
-                        value={liveSelectValue}
+                        value={liveSelectValue ?? undefined}
                         onChange={(_e, val) => {
                           if (!val) return;
                           if (val === CUSTOM_MODEL) {

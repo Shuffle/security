@@ -317,7 +317,7 @@ const LocalLLMConfig = ({ compact, hasOpenAIAuth, globalUrl }: LocalLLMConfigPro
           fullWidth
           disableClearable
           options={ENDPOINT_PRESETS.map((p) => p.label)}
-          value={effectivePreset || null}
+          value={effectivePreset || undefined}
           onChange={(_e, val) => val && handlePresetChange(val)}
           isOptionEqualToValue={(opt, val) => opt === val}
           renderOption={(props, option) => {

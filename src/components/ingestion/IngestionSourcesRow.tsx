@@ -478,13 +478,13 @@ export const IngestionSourcesRow = ({
         selectedApps={allApps
           .filter(a => (a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled))
           .map(a => ({ name: a.name, icon: a.image || '' }))}
-        onSelectionChange={(next) => {
+        onSelectionChange={(next: Array<{ name: string; id: string | null; icon: string; categories: string[] }>) => {
           const chosen = new Set(next.map(a => normalizeAppName(a.name)));
 
           // Any picked app we do not know yet becomes a pending (unauthenticated)
           // source — added right away and rendered yellow in the Ingest row.
           const newcomers = next.filter(
-            n => !allApps.some(a => normalizeAppName(a.name) === normalizeAppName(n.name))
+            (n: Array<{ name: string; id: string | null; icon: string; categories: string[] }>[number]) => !allApps.some((a: ValidatedIngestionApp) => normalizeAppName(a.name) === normalizeAppName(n.name))
           );
           if (newcomers.length) {
             setPendingApps(prev => [
@@ -501,7 +501,7 @@ export const IngestionSourcesRow = ({
           }
 
           const updates: Record<string, boolean> = {};
-          allApps.forEach((a) => {
+          allApps.forEach((a: ValidatedIngestionApp) => {
             const current = a.name in optimisticToggles ? optimisticToggles[a.name] : a.enabled;
             const desired = chosen.has(normalizeAppName(a.name));
             if (desired !== current) updates[a.name] = desired;
@@ -510,8 +510,8 @@ export const IngestionSourcesRow = ({
 
           // Defer the workflow generation until the drawer is closed.
           const activeNames = [
-            ...allApps.filter(a => chosen.has(normalizeAppName(a.name))).map(a => a.name),
-            ...newcomers.map(n => n.name),
+            ...allApps.filter((a: ValidatedIngestionApp) => chosen.has(normalizeAppName(a.name))).map((a: ValidatedIngestionApp) => a.name),
+            ...newcomers.map((n: Array<{ name: string; id: string | null; icon: string; categories: string[] }>[number]) => n.name),
           ];
           drawerSelectionRef.current = Array.from(new Set(activeNames));
         }}

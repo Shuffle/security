@@ -201,10 +201,10 @@ export const TicketingSystemSearch = ({
         multiSelect={true}
         preventDefault={true}
         selectedApps={selectedApps}
-        onSelectionChange={(apps) => {
+        onSelectionChange={(apps: any) => {
           onAppsChange(apps);
         }}
-        onSearchChange={(query) => {
+        onSearchChange={(query: string) => {
           onSearchQueryChange(query);
         }}
         customStyles={{

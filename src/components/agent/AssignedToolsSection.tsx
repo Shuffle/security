@@ -326,9 +326,9 @@ const AssignedToolsSection = ({
         multiSelect
         selectedApps={pickerSelectedApps}
         pinnedApps={pinnedSnapshot}
-        onSelectionChange={(apps) => {
+        onSelectionChange={(apps: Array<{ name: string; id: string | null; icon: string; categories: string[] }>) => {
           setAgentTools(
-            apps.map((a) => ({ name: a.name, id: a.id || a.name })),
+            apps.map((a: Array<{ name: string; id: string | null; icon: string; categories: string[] }>[number]) => ({ name: a.name, id: a.id || a.name })),
             agent,
             actionType,
           );

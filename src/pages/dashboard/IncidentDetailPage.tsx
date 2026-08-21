@@ -723,7 +723,7 @@ const IncidentDetailPage = () => {
 
   // Headers to include on every API call when viewing a cross-org incident
   const crossOrgHeaders = useMemo<Record<string, string>>(() => {
-    if (!crossOrgId) return {};
+    if (!crossOrgId) return {} as Record<string, string>;
     return { 'Org-Id': crossOrgId };
   }, [crossOrgId]);
 
@@ -3011,7 +3011,7 @@ const IncidentDetailPage = () => {
       if (parsed) {
         const stateStart = performance.now();
         setIncident(parsed);
-        setEditedTitle(parsed.title);
+        setEditedTitle(parsed.title ?? '');
         // Use desc (new OCSF) first, fall back to message (legacy), convert HTML to readable text
         const rawDesc = parsed.rawOCSF?.desc || parsed.rawOCSF?.message || '';
         
@@ -3120,7 +3120,7 @@ const IncidentDetailPage = () => {
         const tasksStr = JSON.stringify(normalizedTasks);
         const labelsStr = JSON.stringify(parsed.labels || []);
         initialValuesRef.current = {
-          title: parsed.title,
+          title: parsed.title ?? '',
           message: htmlToPlainText(processedDesc),
           severity: parsed.severity,
           assignee: normalizedAssignee,
@@ -3347,7 +3347,7 @@ const IncidentDetailPage = () => {
       if (reParsed) {
         console.log('[CrossOrg] Merged incident applied');
         setIncident(reParsed);
-        setEditedTitle(reParsed.title);
+        setEditedTitle(reParsed.title ?? '');
         const rawDesc = reParsed.rawOCSF?.desc || reParsed.rawOCSF?.message || '';
         const rawDecoded = decodeIfBase64(rawDesc);
         setRawDescriptionHtml(rawDecoded !== rawDesc ? rawDecoded : rawDesc);
@@ -3371,7 +3371,7 @@ const IncidentDetailPage = () => {
         setTasks(normalizedTasks);
         // Update initial snapshot so auto-save doesn't fire from merge
         initialValuesRef.current = {
-          title: reParsed.title,
+          title: reParsed.title ?? '',
           message: htmlToPlainText(rawDecoded !== rawDesc ? rawDecoded : decodeIfBase64(htmlToPlainText(rawDesc))),
           severity: reParsed.severity,
           assignee: isAIAssignee(rawAssignee) ? 'AI Agent' : rawAssignee,
@@ -3689,7 +3689,7 @@ const IncidentDetailPage = () => {
       `— ${overlaidFieldCount} field(s) overlaid from live`);
 
     setIncident(reParsed);
-    setEditedTitle(reParsed.title);
+    setEditedTitle(reParsed.title ?? '');
     const rawDesc = reParsed.rawOCSF?.desc || reParsed.rawOCSF?.message || '';
     const rawDecoded = decodeIfBase64(rawDesc);
     setRawDescriptionHtml(rawDecoded !== rawDesc ? rawDecoded : rawDesc);

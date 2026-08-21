@@ -6431,7 +6431,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   rowIndex = timeline.findIndex((it) => it.details === dec);
                   if (rowIndex < 0 && dec.run_details?.id) {
                     rowIndex = timeline.findIndex(
-                      (it) => (it.details as any)?.run_details?.id === dec.run_details.id
+                      (it) => (it.details as any)?.run_details?.id === dec.run_details?.id
                     );
                   }
                 }

@@ -173,7 +173,7 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, e
             style={{ color: `hsl(var(--severity-${tone}))`, flexShrink: 0 }}
           />
           <Typography
-            component={canFocusContinue ? 'span' : undefined}
+            component={canFocusContinue ? 'span' : 'span'}
             role={canFocusContinue ? 'button' : undefined}
             tabIndex={canFocusContinue ? 0 : undefined}
             onClick={canFocusContinue ? handleFocusContinue : undefined}

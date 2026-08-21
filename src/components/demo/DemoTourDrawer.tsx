@@ -173,6 +173,7 @@ export const DemoTourDrawer = () => {
         return triggerFlash();
       }
     }
+    return undefined;
   }, [attentionPulse, drawerOpen, minimized, triggerFlash]);
   // Always flash when the drawer transitions from closed to open so the
   // user immediately sees where the demo panel is.
@@ -185,6 +186,7 @@ export const DemoTourDrawer = () => {
     if (!isVisible) {
       wasOpenRef.current = false;
     }
+    return undefined;
   }, [drawerOpen, minimized, triggerFlash]);
 
   const total = TOUR_STEPS.length;
@@ -233,6 +235,7 @@ export const DemoTourDrawer = () => {
       const t = window.setTimeout(() => setJustUnlocked(false), 2600);
       return () => window.clearTimeout(t);
     }
+    return undefined;
     wasLockedRef.current = locked;
   }, [locked, step]);
   // Reset the celebration whenever the user advances to a new step.
