@@ -17,6 +17,7 @@ import { enableLiveDemoEnvironment } from '@/services/demoLiveEnvironment';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { applyEntityTerminology } from '@/lib/entityTerminology';
 import { getEntityTerminology } from '@/hooks/useEntityLabel';
+import { safeLocalStorage } from '@/lib/ssr-storage';
 
 const tDemo = (s: string) => {
   const { singular, plural } = getEntityTerminology();
@@ -312,11 +313,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [isCleaning, setIsCleaning] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [minimized, setMinimized] = useState<boolean>(() => {
-    try { return localStorage.getItem('shuffle_demo_minimized') === 'true'; } catch { return false; }
+    try { return safeLocalStorage.getItem('shuffle_demo_minimized') === 'true'; } catch { return false; }
   });
   const [dock, setDockState] = useState<DemoDock>(() => {
     try {
-      const v = localStorage.getItem('shuffle_demo_dock');
+      const v = safeLocalStorage.getItem('shuffle_demo_dock');
       // Default to bottom-right ("right") so the drawer hugs the corner
       // instead of stretching full-width across the bottom of the screen.
       return v === 'bottom' ? 'bottom' : 'right';
@@ -332,10 +333,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [attentionPulse, setAttentionPulse] = useState(0);
   const [hoveredGoalSelector, setHoveredGoalSelector] = useState<string | null>(null);
   const [wasStarted, setWasStarted] = useState<boolean>(() => {
-    try { return localStorage.getItem('shuffle_demo_started') === 'true'; } catch { return false; }
+    try { return safeLocalStorage.getItem('shuffle_demo_started') === 'true'; } catch { return false; }
   });
   const [resumeDismissed, setResumeDismissed] = useState<boolean>(() => {
-    try { return localStorage.getItem('shuffle_demo_resume_dismissed') === 'true'; } catch { return false; }
+    try { return safeLocalStorage.getItem('shuffle_demo_resume_dismissed') === 'true'; } catch { return false; }
   });
 
   // GA dedupe: each step view fires at most once per session, each completion
@@ -355,24 +356,24 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
 
   const minimizeTour = useCallback(() => {
     setMinimized(true);
-    try { localStorage.setItem('shuffle_demo_minimized', 'true'); } catch { /* ignore */ }
+    try { safeLocalStorage.setItem('shuffle_demo_minimized', 'true'); } catch { /* ignore */ }
     trackPredefinedEvent(GA_EVENTS.DEMO_MINIMIZE, TOUR_STEPS[step]?.id, step);
   }, [step]);
   const restoreTour = useCallback(() => {
     setMinimized(false);
     setDrawerOpen(true);
     setAttentionPulse(p => p + 1);
-    try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
+    try { safeLocalStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
     trackPredefinedEvent(GA_EVENTS.DEMO_RESTORE, TOUR_STEPS[step]?.id, step);
   }, [step]);
   const setDock = useCallback((d: DemoDock) => {
     setDockState(d);
-    try { localStorage.setItem('shuffle_demo_dock', d); } catch { /* ignore */ }
+    try { safeLocalStorage.setItem('shuffle_demo_dock', d); } catch { /* ignore */ }
   }, []);
   const toggleDock = useCallback(() => {
     setDockState(prev => {
       const next: DemoDock = prev === 'right' ? 'bottom' : 'right';
-      try { localStorage.setItem('shuffle_demo_dock', next); } catch { /* ignore */ }
+      try { safeLocalStorage.setItem('shuffle_demo_dock', next); } catch { /* ignore */ }
       return next;
     });
   }, []);
@@ -425,11 +426,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setIsSeeding(true);
     try {
       // Mark active immediately so the dashboard CTA flips state, even before any data lands.
-      localStorage.setItem('shuffle_demo_active', 'true');
+      safeLocalStorage.setItem('shuffle_demo_active', 'true');
       // Persistent "started but not finished" flag — drives the floating
       // resume pill if the user closes the drawer without finishing.
-      try { localStorage.setItem('shuffle_demo_started', 'true'); } catch { /* ignore */ }
-      try { localStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
+      try { safeLocalStorage.setItem('shuffle_demo_started', 'true'); } catch { /* ignore */ }
+      try { safeLocalStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
       setWasStarted(true);
       setResumeDismissed(false);
       setActive(true);
@@ -438,21 +439,21 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       // Always force the tour open in its full size when starting — never inherit
       // a stale "minimized" state from a previous session.
       setMinimized(false);
-      try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
+      try { safeLocalStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
       // Always start docked to the right — never inherit a stale "bottom"
       // dock from a previous session. Users can still toggle after.
       setDockState('right');
-      try { localStorage.setItem('shuffle_demo_dock', 'right'); } catch { /* ignore */ }
+      try { safeLocalStorage.setItem('shuffle_demo_dock', 'right'); } catch { /* ignore */ }
       // Reset the floating drawer's drag offset so a previously-dragged
       // (possibly off-screen) position never carries over into a new run.
       try {
-        localStorage.removeItem('shuffle:demo-drawer-offset');
+        safeLocalStorage.removeItem('shuffle:demo-drawer-offset');
         window.dispatchEvent(new CustomEvent('demo-offset-changed', { detail: { x: 0, y: 0 } }));
       } catch { /* ignore */ }
       // Auto-collapse the sidebar to give the tour drawer + main content
       // more room. The DashboardLayout listens for this event.
       try {
-        localStorage.setItem('shuffle-security-sidebar-collapsed', 'true');
+        safeLocalStorage.setItem('shuffle-security-sidebar-collapsed', 'true');
         window.dispatchEvent(new Event('shuffle:sidebar-collapse'));
       } catch { /* ignore */ }
       // Reset GA dedupes for a fresh funnel run
@@ -491,7 +492,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setDrawerOpen(true);
     setMinimized(false);
     setAttentionPulse(p => p + 1);
-    try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
+    try { safeLocalStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
     navigateForStep(step);
     runStepSeed(step);
   }, [navigateForStep, runStepSeed, step]);
@@ -511,12 +512,12 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     }
     setDrawerOpen(false);
     setActive(false);
-    try { localStorage.removeItem('shuffle_demo_active'); } catch { /* ignore */ }
+    try { safeLocalStorage.removeItem('shuffle_demo_active'); } catch { /* ignore */ }
     // If they reached the final step, treat the demo as finished and stop
     // showing the resume pill.
     if (isOnFinalStep) {
-      try { localStorage.removeItem('shuffle_demo_started'); } catch { /* ignore */ }
-      try { localStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
+      try { safeLocalStorage.removeItem('shuffle_demo_started'); } catch { /* ignore */ }
+      try { safeLocalStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
       setWasStarted(false);
       setResumeDismissed(false);
     }
@@ -527,16 +528,16 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setDrawerOpen(true);
     setMinimized(false);
     setResumeDismissed(false);
-    try { localStorage.setItem('shuffle_demo_active', 'true'); } catch { /* ignore */ }
-    try { localStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
-    try { localStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
+    try { safeLocalStorage.setItem('shuffle_demo_active', 'true'); } catch { /* ignore */ }
+    try { safeLocalStorage.setItem('shuffle_demo_minimized', 'false'); } catch { /* ignore */ }
+    try { safeLocalStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
     setAttentionPulse(p => p + 1);
     navigateForStep(step);
   }, [navigateForStep, step]);
 
   const dismissResumePrompt = useCallback(() => {
     setResumeDismissed(true);
-    try { localStorage.setItem('shuffle_demo_resume_dismissed', 'true'); } catch { /* ignore */ }
+    try { safeLocalStorage.setItem('shuffle_demo_resume_dismissed', 'true'); } catch { /* ignore */ }
   }, []);
 
   const isStepUnlocked = useCallback((s: TourStep | undefined): boolean => {
@@ -614,8 +615,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       setCompletedSteps({});
       setWasStarted(false);
       setResumeDismissed(false);
-      try { localStorage.removeItem('shuffle_demo_started'); } catch { /* ignore */ }
-      try { localStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
+      try { safeLocalStorage.removeItem('shuffle_demo_started'); } catch { /* ignore */ }
+      try { safeLocalStorage.removeItem('shuffle_demo_resume_dismissed'); } catch { /* ignore */ }
       viewedStepsRef.current = new Set();
       completedStepsGARef.current = new Set();
       refreshStats();
