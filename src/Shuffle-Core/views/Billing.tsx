@@ -1803,10 +1803,10 @@ const Billing = memo((props) => {
 					Consultation & Management
 				</Typography>
 				<div>
-					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata.support ? 5 : 10, }}>
+					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata?.support ? 5 : 10, }}>
 						You currently have a total of {inputHour} hours and {inputMinutes} minutes of professional services available by our experts.
 					</Typography>
-					<div style={{ display: "flex", minWidth: 340, justifyContent: 'center', marginTop: userdata.support ? 0 : 15 }}>
+					<div style={{ display: "flex", minWidth: 340, justifyContent: 'center', marginTop: userdata?.support ? 0 : 15 }}>
 						{editConsultation ?
 							<>
 								<TextField
@@ -1830,7 +1830,7 @@ const Billing = memo((props) => {
 								{`${formatedHours}h:${formatedMinutes}m`}
 							</Typography>}
 					</div>
-					{userdata.support === true ?
+					{userdata?.support === true ?
 						<div style={{ display: "flex", marginTop: 20, }}>
 							{editConsultation ? (
 								<Button
@@ -1854,7 +1854,7 @@ const Billing = memo((props) => {
 							{editConsultation && <Button variant="contained" color="primary" style={{ marginLeft: 5, textTransform: 'none' }} onClick={handleSave}>Save</Button>}
 						</div>
 						: null}
-					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata.support ? 5 : 25, }}>
+					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata?.support ? 5 : 25, }}>
 						Features
 					</Typography>
 					<ul>
@@ -1877,7 +1877,7 @@ const Billing = memo((props) => {
 						variant="contained"
 						color="primary"
 						style={{
-							marginTop: userdata.support ? 3 : 15,
+							marginTop: userdata?.support ? 3 : 15,
 							borderRadius: 4,
 							height: 40,
 							fontSize: 16,
@@ -1946,7 +1946,7 @@ const Billing = memo((props) => {
 								variant="outlined"
 								color="primary"
 								style={{
-									marginTop: userdata.support ? 10 : 15,
+									marginTop: userdata?.support ? 10 : 15,
 									borderRadius: 4,
 									height: 40,
 									fontSize: 16,
@@ -2547,7 +2547,7 @@ const Billing = memo((props) => {
 				</Typography>}
 			</>  }
 
-			{userdata.support === true ?
+			{userdata?.support === true ?
 				<Typography style={{ marginBottom: 10, marginTop: clickedFromOrgTab ? 16 : null, color: clickedFromOrgTab ? theme.palette.text.primary : null }}>
 					For sales: Create&nbsp;
 					<a href={"https://docs.google.com/document/d/1N-ZJNn8lWaqiXITrqYcnTt53oXGLNYFEzc5PU-tdAps/copy"} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: "#FF8444" }}>
@@ -3138,7 +3138,7 @@ const Billing = memo((props) => {
 					Save
 				</Button>
 
-				{userdata.support === true && (
+				{userdata?.support === true && (
 					<div style={{ 
 						marginTop: 50, 
 						padding: 20, 
@@ -3640,13 +3640,13 @@ const BillingStatsChildOrg = memo(({ userdata, globalUrl, selectedOrganization, 
 		}
 
 		// check whether limit is greater than than parent org limit
-		if (editing === "app_executions" && limit > selectedOrganization.sync_features.app_executions.limit && !userdata.support) {
+		if (editing === "app_executions" && limit > selectedOrganization.sync_features.app_executions.limit && !userdata?.support) {
 			toast.error("App execution limit cannot be greater than parent org limit")
 			return
 		}
 
 
-		if (editing === "workflow_executions" && limit > selectedOrganization.sync_features.workflow_executions.limit && !userdata.support) {
+		if (editing === "workflow_executions" && limit > selectedOrganization.sync_features.workflow_executions.limit && !userdata?.support) {
 			toast.error("Workflow execution limit cannot be greater than parent org limit")
 			return
 		}
