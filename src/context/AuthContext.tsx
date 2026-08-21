@@ -62,15 +62,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // every other API works. We revalidate in the background and only tear
   // down auth if getinfo actually says the session is gone.
   const cachedUserInfo: UserInfo | null = (() => {
+    if (typeof window === 'undefined') return null;
     try {
-      const raw = localStorage.getItem('shuffle_user_info');
+      const raw = window.localStorage.getItem('shuffle_user_info');
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' ? parsed as UserInfo : null;
     } catch { return null; }
   })();
   const cachedToken = (() => {
-    try { return localStorage.getItem('session_token'); } catch { return null; }
+    if (typeof window === 'undefined') return null;
+    try { return window.localStorage.getItem('session_token'); } catch { return null; }
   })();
   const hasCachedSession = !!(cachedUserInfo && (cachedToken || cachedUserInfo.active_org?.id));
 
