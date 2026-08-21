@@ -809,6 +809,7 @@ const PricingPage = ({
             }}
           >
             <Typography
+              component="h2"
               sx={{
                 color: "#ffffff",
                 mb: 2,
