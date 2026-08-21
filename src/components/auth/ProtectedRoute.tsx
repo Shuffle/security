@@ -84,11 +84,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const hasPublicAccess =
     searchParams.has('authorization') &&
     (searchParams.has('org') || searchParams.has('execution_id'));
-  if (hasPublicAccess) {
+  if (hasPublicAccess && hydrated) {
     return <>{children}</>;
   }
 
-  if (isLoading) {
+  if (isLoading || !hydrated) {
     return <AuthCheckingOverlay />;
   }
 
