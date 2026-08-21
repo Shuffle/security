@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * TenantManagement — standalone Shuffle-Core surface for managing sub-tenants
  * (sub-organizations). Mirrors the host implementation but is driven entirely

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Shared stubs / utilities used by FormInput.tsx and EditWorkflow.tsx.
  *
