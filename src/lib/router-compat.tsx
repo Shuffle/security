@@ -171,7 +171,7 @@ type NavLinkRenderState = { isActive: boolean; isPending: boolean };
 
 export type NavLinkProps = Omit<LinkProps, "className" | "style" | "children"> & {
   className?: string | ((state: NavLinkRenderState) => string | undefined);
-  style?: React.CSSProperties | ((state: NavLinkRenderState) => React.CSSProperties | undefined);
+  style?: CSSProperties | ((state: NavLinkRenderState) => CSSProperties | undefined);
   children?: ReactNode | ((state: NavLinkRenderState) => ReactNode);
   end?: boolean;
 };
