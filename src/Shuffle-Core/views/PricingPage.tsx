@@ -2738,7 +2738,14 @@ const PricingPage = ({
                               },
                             }}
                           >
-                            <ToggleButton value={option}>
+                            <ToggleButton
+                              value={option}
+                              aria-label={
+                                option === "Cloud"
+                                  ? "Show Shuffle Cloud pricing"
+                                  : "Show self-hosted pricing"
+                              }
+                            >
                               {option === "Cloud" ? (
                                 <CloudIcon
                                   selected={selectedDeployment === option}
