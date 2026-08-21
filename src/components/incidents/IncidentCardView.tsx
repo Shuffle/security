@@ -373,9 +373,12 @@ export const IncidentCardView = ({
             }
           >
             <Box
-              component={!showCheck && getIncidentUrl ? Link : 'div'}
-              to={!showCheck && getIncidentUrl ? getIncidentUrl(incident) : undefined}
-              state={!showCheck && getIncidentUrl ? { incidentListFallback: incident } : undefined}
+              {...({
+                component: !showCheck && getIncidentUrl ? Link : 'div',
+                to: !showCheck && getIncidentUrl ? getIncidentUrl(incident) : undefined,
+                state: !showCheck && getIncidentUrl ? { incidentListFallback: incident } : undefined,
+              } as any)}
+
               onClick={showCheck ? undefined : (onIncidentClick ? () => onIncidentClick(incident) : undefined)}
               sx={{
                 display: 'flex',
