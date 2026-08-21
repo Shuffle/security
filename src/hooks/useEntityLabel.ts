@@ -253,7 +253,7 @@ export async function setShowAutomation(show: boolean) {
 
 /** Hook to read automation visibility preference */
 export function useShowAutomation(): boolean {
-  const value = useSyncExternalStore(subscribe, getAutomationSnapshot);
+  const value = useSyncExternalStore(subscribe, getAutomationSnapshot, getAutomationSnapshot);
 
   useEffect(() => {
     if (!_fetchedFromServer) loadEntityPreference();
@@ -281,7 +281,7 @@ export async function setAutoMergeThread(enabled: boolean) {
 
 /** Hook to read auto-merge-thread preference (defaults to true) */
 export function useAutoMergeThread(): boolean {
-  const value = useSyncExternalStore(subscribe, getAutoMergeThreadSnapshot);
+  const value = useSyncExternalStore(subscribe, getAutoMergeThreadSnapshot, getAutoMergeThreadSnapshot);
 
   useEffect(() => {
     if (!_fetchedFromServer) loadEntityPreference();
@@ -297,7 +297,7 @@ export function useAutoMergeThread(): boolean {
  *  If currently on an alias route (/alerts, /tickets, /jobs), uses that route's labels instead. */
 export function useEntityLabel() {
   const { pathname } = useLocation();
-  const preference = useSyncExternalStore(subscribe, getSnapshot);
+  const preference = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   // Load from server on first mount
   useEffect(() => {
@@ -318,7 +318,7 @@ export function useEntityLabel() {
 
 /** Returns just the stored preference (for sidebar/nav, not route-dependent) */
 export function useEntityPreference() {
-  const preference = useSyncExternalStore(subscribe, getSnapshot);
+  const preference = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   useEffect(() => {
     if (!_fetchedFromServer) loadEntityPreference();
@@ -374,7 +374,7 @@ export async function setSidebarTabVisibility(tabs: Record<SidebarTabKey, boolea
 
 /** Hook to read sidebar tab visibility */
 export function useSidebarTabs(): Record<SidebarTabKey, boolean> {
-  const value = useSyncExternalStore(subscribe, getSidebarTabsSnapshot);
+  const value = useSyncExternalStore(subscribe, getSidebarTabsSnapshot, getSidebarTabsSnapshot);
 
   useEffect(() => {
     if (!_fetchedFromServer) loadEntityPreference();
@@ -416,7 +416,7 @@ export async function setTaskStatuses(statuses: TaskStatusOption[]) {
 /** Hook to read the org's configured task statuses. Defaults to the built-in
  *  three-lane setup (To Do / In Progress / Done). */
 export function useTaskStatuses(): TaskStatusOption[] {
-  const value = useSyncExternalStore(subscribe, getTaskStatusesSnapshot);
+  const value = useSyncExternalStore(subscribe, getTaskStatusesSnapshot, getTaskStatusesSnapshot);
 
   useEffect(() => {
     if (!_fetchedFromServer) loadEntityPreference();
