@@ -280,6 +280,7 @@ const RulesPage = () => {
       
       // Map detection_info to ShuffleFile-like structure for compatibility
       const mappedFiles: ShuffleFile[] = detections.map((d) => ({
+        ...d, // Include all original detection fields
         id: d.file_id || d.id || d.name,
         filename: d.title || d.name || 'Untitled',
         filesize: 0,
@@ -296,7 +297,6 @@ const RulesPage = () => {
         md5_sum: '',
         status: d.status || '',
         description: d.description || '',
-        ...d, // Include all original detection fields
       }));
 
       setFiles(mappedFiles);

@@ -1186,8 +1186,8 @@ const AllDataFlowsDrawer = ({
                 </Typography>
               </Box>
               {apiOnlyDrifts.map((drift) => {
-                const source = normalizeCategory(drift.apiUsecase!.type);
-                const target = normalizeCategory(drift.apiUsecase!.last);
+                const source = normalizeCategory(drift.apiUsecase!.type ?? '');
+                const target = normalizeCategory(drift.apiUsecase!.last ?? '');
                 const sourceCat = TOOL_CATEGORIES.find(c => c.id === source);
                 const targetCat = TOOL_CATEGORIES.find(c => c.id === target);
                 return (
@@ -1626,7 +1626,7 @@ const EdgeDetailDrawer = ({
                 {hasMatch && matchedApiUc && (
                   <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
                     API Route: <Box component="span" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>{matchedApiUc.type}</Box> → <Box component="span" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>{matchedApiUc.last}</Box>
-                    {' '}= <Box component="span" sx={{ color: 'hsl(142 71% 45%)', fontWeight: 700 }}>{normalizeCategory(matchedApiUc.type)}→{normalizeCategory(matchedApiUc.last)}</Box>
+                    {' '}= <Box component="span" sx={{ color: 'hsl(142 71% 45%)', fontWeight: 700 }}>{normalizeCategory(matchedApiUc.type ?? '')}→{normalizeCategory(matchedApiUc.last ?? '')}</Box>
                   </Typography>
                 )}
               </Box>

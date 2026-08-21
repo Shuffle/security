@@ -102,8 +102,8 @@ export const CategoryAutomations: React.FC<CategoryAutomationsProps> = ({
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
         <AnimatePresence>
           {enabledAutomations.map((automation, index) => {
-            const typeConfig = (automation.type ? automationTypeConfig[automation.type] : undefined) || automationTypeConfig.workflow;
-            const trigger = (automation.trigger ? triggerConfig[automation.trigger] : undefined) || triggerConfig.on_edit;
+            const typeConfig = (automation.type ? automationTypeConfig[automation.type as keyof typeof automationTypeConfig] : undefined) || automationTypeConfig.workflow;
+            const trigger = (automation.trigger ? triggerConfig[automation.trigger as keyof typeof triggerConfig] : undefined) || triggerConfig.on_edit;
             const TypeIcon = typeConfig.icon;
             const TriggerIcon = trigger.icon;
 

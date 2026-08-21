@@ -180,7 +180,7 @@ export async function setSlaConfig(config: SlaConfig) {
 }
 
 export function useSlaConfig(): SlaConfig {
-  const value = useSyncExternalStore(subscribe, getSnapshot);
+  const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   useEffect(() => { if (!_fetched) loadSlaConfig(); }, []);
   return value;
 }

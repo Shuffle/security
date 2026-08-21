@@ -1,0 +1,48 @@
+/**
+ * Server-rendered route metadata.
+ *
+ * `usePageMeta` mutates document.head after hydration, which crawlers and
+ * social-preview scrapers never see. Routes call `routeMeta()` from their
+ * `head()` option so the exact same title/description/OG tags are present in
+ * the server-rendered HTML.
+ */
+
+const BASE_TITLE = 'Shuffle Security';
+const BASE_URL = 'https://shuffle.security';
+const DEFAULT_IMAGE = `${BASE_URL}/og-image.png`;
+
+export interface RouteMetaInput {
+  title: string;
+  description: string;
+  url: string;
+  image?: string;
+  type?: string;
+}
+
+export const routeMeta = ({ title, description, url, image, type = 'website' }: RouteMetaInput) => {
+  const fullTitle = title.includes(BASE_TITLE) ? title : `${title} | ${BASE_TITLE}`;
+  const fullUrl = `${BASE_URL}${url}`;
+  const img = image || DEFAULT_IMAGE;
+
+  return {
+    meta: [
+      { title: fullTitle },
+      { name: 'description', content: description },
+      { property: 'og:title', content: fullTitle },
+      { property: 'og:description', content: description },
+      { property: 'og:image', content: img },
+      { property: 'og:image:alt', content: title },
+      { property: 'og:url', content: fullUrl },
+      { property: 'og:type', content: type },
+      { property: 'og:site_name', content: BASE_TITLE },
+      { property: 'og:locale', content: 'en_US' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:site', content: '@shuffleio' },
+      { name: 'twitter:title', content: fullTitle },
+      { name: 'twitter:description', content: description },
+      { name: 'twitter:image', content: img },
+      { name: 'twitter:image:alt', content: title },
+    ],
+    links: [{ rel: 'canonical', href: fullUrl }],
+  };
+};
