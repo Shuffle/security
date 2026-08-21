@@ -542,8 +542,8 @@ const PricingPage = ({
               <Button
                 variant="text"
                 disableRipple
-                component={Link}
-                to="mailto:support@shuffler.io"
+                component="a"
+                href="mailto:support@shuffler.io"
                 sx={{
                   color: "#ff8544",
                   textTransform: "none",
@@ -809,6 +809,7 @@ const PricingPage = ({
             }}
           >
             <Typography
+              component="h2"
               sx={{
                 color: "#ffffff",
                 mb: 2,

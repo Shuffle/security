@@ -200,11 +200,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@type": "WebSite",
           name: "Shuffle Security",
           url: "https://shuffle.security",
-          potentialAction: {
-            "@type": "SearchAction",
-            target: "https://shuffle.security/search?q={search_term_string}",
-            "query-input": "required name=search_term_string",
-          },
         }),
       },
       { src: "https://js.stripe.com/v3" },

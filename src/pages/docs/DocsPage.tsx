@@ -1,7 +1,7 @@
 import { Menu as MenuIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from '@/lib/router-compat';
-import { Box, Container, IconButton, Drawer } from '@mui/material';
+import { Box, Container, IconButton, Drawer, Typography } from '@mui/material';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { DocsSidebar } from '@/components/docs/DocsSidebar';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
@@ -103,6 +103,12 @@ const DocsPage = () => {
           }}
         >
           <Container maxWidth="lg" sx={{ py: 6, px: { xs: 2, sm: 3, md: 6 } }}>
+            <Typography
+              component="h1"
+              sx={{ fontSize: { xs: '30px', md: '36px' }, fontWeight: 600, mb: 3 }}
+            >
+              {docTitle}
+            </Typography>
             <MarkdownRenderer slug={slug} />
           </Container>
         </Box>
