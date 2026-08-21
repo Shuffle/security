@@ -69,6 +69,13 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  // The server always renders the checking overlay (no session there). Match
+  // that on the client's first paint so hydration cannot mismatch, then let
+  // the real auth state take over.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   // Allow public access when an authorization token is present alongside a
   // resource selector — `org` for shared incident links, `execution_id` for
