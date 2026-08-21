@@ -1,5 +1,5 @@
 import { Menu as MenuIcon, Github as GitHubIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from '@/lib/router-compat';
 import {
   AppBar,
@@ -40,7 +40,12 @@ export const LandingNavbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated: authFromContext } = useAuth();
+  // The auth cache lives in browser storage, so SSR always renders the signed-out
+  // CTA. Only trust the auth state after hydration to avoid a mismatch.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const isAuthenticated = hydrated && authFromContext;
   const location = useLocation();
   const isOnLoginPage = location.pathname === '/login';
   const isOnAuthPage = isOnLoginPage || location.pathname === '/register';
