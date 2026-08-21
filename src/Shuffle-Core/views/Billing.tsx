@@ -682,9 +682,9 @@ const Billing = memo((props) => {
 	const [billingEnvironments, setBillingEnvironments] = useState([])
 	useEffect(() => {
 		if (monthlyAppRunsParent > 0 || monthlyAllSuborgExecutions > 0) {
-			const percentage = ((monthlyAppRunsParent + monthlyAllSuborgExecutions) / userdata.app_execution_limit) * 100;
+			const percentage = ((monthlyAppRunsParent + monthlyAllSuborgExecutions) / userdata?.app_execution_limit) * 100;
 			setCurrentAppRunsInPercentage(Math.round(percentage));
-			setCurrentAppRunsInNumber(userdata.app_execution_limit - userdata.app_execution_usage - userdata.app_executions_suborgs);
+			setCurrentAppRunsInNumber(userdata?.app_execution_limit - userdata?.app_execution_usage - userdata?.app_executions_suborgs);
 		}
 
 		if (userdata?.id?.length > 0 && isLoggedIn === false){
@@ -948,7 +948,7 @@ const Billing = memo((props) => {
 			billingAddressCollection: "auto",
 			successUrl: successUrl,
 			cancelUrl: failUrl,
-			clientReferenceId: props.userdata.active_org.id,
+			clientReferenceId: props.userdata?.active_org?.id,
 		}
 		//submitType: "donate",
 
@@ -1280,7 +1280,7 @@ const Billing = memo((props) => {
 				</Dialog>
 				<Button style={{ backgroundColor: '#2F2F2F', color: "white", textTransform: "capitalize", borderRadius: 200, boxShadow: 'none', width: 144, height: 40 }}>Current Plan</Button>
 				<div style={{ display: "flex", width: 340 }}>
-					{top_text === "Base Cloud Access" && userdata.has_card_available === true ?
+					{top_text === "Base Cloud Access" && userdata?.has_card_available === true ?
 						<Chip
 							style={{
 								backgroundColor: "#f86a3e",
@@ -1306,7 +1306,7 @@ const Billing = memo((props) => {
 						{top_text}
 					</Typography>
 
-					{top_text === "Base Cloud Access" && userdata.has_card_available === false ?
+					{top_text === "Base Cloud Access" && userdata?.has_card_available === false ?
 						<img
 							src="/images/stripenew.png"
 							style={{
@@ -1445,7 +1445,7 @@ const Billing = memo((props) => {
 								""
 								:
 
-								userdata.has_card_available === true ?
+								userdata?.has_card_available === true ?
 									"While you have a card attached to your account, Shuffle will no longer prevent workflows from running. Billing will occur at the start of each month."
 									:
 									isCloud ?
@@ -1455,10 +1455,10 @@ const Billing = memo((props) => {
 							}
 						</Typography>
 						<div style={{ display: 'flex', flexDirection: 'row' }}>
-							<Typography variant="body2" style={{ marginTop: !userdata.has_card_available ? 5 : 0 }}>
+							<Typography variant="body2" style={{ marginTop: !userdata?.has_card_available ? 5 : 0 }}>
 								{BillingEmail?.length > 0 ? `Billing email: ${BillingEmail}` : null}
 							</Typography>
-							{userdata.has_card_available === true && (
+							{userdata?.has_card_available === true && (
 								<Button
 									variant="contained"
 									onClick={handleClickOpen}
@@ -1554,13 +1554,13 @@ const Billing = memo((props) => {
 							variant="outlined"
 							color="primary"
 							style={{
-								marginTop: !userdata.has_card_available ? 20 : 10,
+								marginTop: !userdata?.has_card_available ? 20 : 10,
 								borderRadius: 4,
 								height: 40,
 								fontSize: 16,
-								color: userdata.has_card_available ? "#ff8544" : "#1a1a1a",
-								backgroundColor: userdata.has_card_available ? null : "#ff8544",
-								// backgroundImage: userdata.has_card_available ? null : "linear-gradient(to right, #f86a3e, #f34079)",
+								color: userdata?.has_card_available ? "#ff8544" : "#1a1a1a",
+								backgroundColor: userdata?.has_card_available ? null : "#ff8544",
+								// backgroundImage: userdata?.has_card_available ? null : "linear-gradient(to right, #f86a3e, #f34079)",
 								textTransform: "none",
 
 							}}
@@ -1574,14 +1574,14 @@ const Billing = memo((props) => {
 								}
 							}}
 						>
-							{userdata.has_card_available === true ?
+							{userdata?.has_card_available === true ?
 								"Manage Card Details"
 								:
 								"Add Card Details"
 							}
 						</Button>
 
-						{userdata.has_card_available === true ?
+						{userdata?.has_card_available === true ?
 							<Button
 								fullWidth
 								disabled={false}
@@ -1803,10 +1803,10 @@ const Billing = memo((props) => {
 					Consultation & Management
 				</Typography>
 				<div>
-					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata.support ? 5 : 10, }}>
+					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata?.support ? 5 : 10, }}>
 						You currently have a total of {inputHour} hours and {inputMinutes} minutes of professional services available by our experts.
 					</Typography>
-					<div style={{ display: "flex", minWidth: 340, justifyContent: 'center', marginTop: userdata.support ? 0 : 15 }}>
+					<div style={{ display: "flex", minWidth: 340, justifyContent: 'center', marginTop: userdata?.support ? 0 : 15 }}>
 						{editConsultation ?
 							<>
 								<TextField
@@ -1830,7 +1830,7 @@ const Billing = memo((props) => {
 								{`${formatedHours}h:${formatedMinutes}m`}
 							</Typography>}
 					</div>
-					{userdata.support === true ?
+					{userdata?.support === true ?
 						<div style={{ display: "flex", marginTop: 20, }}>
 							{editConsultation ? (
 								<Button
@@ -1854,7 +1854,7 @@ const Billing = memo((props) => {
 							{editConsultation && <Button variant="contained" color="primary" style={{ marginLeft: 5, textTransform: 'none' }} onClick={handleSave}>Save</Button>}
 						</div>
 						: null}
-					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata.support ? 5 : 25, }}>
+					<Typography variant="body2" color="textSecondary" style={{ marginTop: userdata?.support ? 5 : 25, }}>
 						Features
 					</Typography>
 					<ul>
@@ -1877,7 +1877,7 @@ const Billing = memo((props) => {
 						variant="contained"
 						color="primary"
 						style={{
-							marginTop: userdata.support ? 3 : 15,
+							marginTop: userdata?.support ? 3 : 15,
 							borderRadius: 4,
 							height: 40,
 							fontSize: 16,
@@ -1927,7 +1927,7 @@ const Billing = memo((props) => {
 										})
 									}
 
-									const url = userdata.licensed === true
+									const url = userdata?.licensed === true
 										? "https://buy.stripe.com/aEU3fk17o0L092g5kt"
 										: "https://buy.stripe.com/aEU3fk17o0L092g5kt"
 									window.open(url, "_blank")
@@ -1946,7 +1946,7 @@ const Billing = memo((props) => {
 								variant="outlined"
 								color="primary"
 								style={{
-									marginTop: userdata.support ? 10 : 15,
+									marginTop: userdata?.support ? 10 : 15,
 									borderRadius: 4,
 									height: 40,
 									fontSize: 16,
@@ -2377,7 +2377,7 @@ const Billing = memo((props) => {
 
 	const updateAlertThreshold = (index, field, value) => {
 
-		const totalValue = userdata.app_execution_limit;
+		const totalValue = userdata?.app_execution_limit;
 		const newAlertThresholds = alertThresholds.map((threshold, i) => {
 			if (i === index) {
 				const newValue = parseFloat(value);
@@ -2547,7 +2547,7 @@ const Billing = memo((props) => {
 				</Typography>}
 			</>  }
 
-			{userdata.support === true ?
+			{userdata?.support === true ?
 				<Typography style={{ marginBottom: 10, marginTop: clickedFromOrgTab ? 16 : null, color: clickedFromOrgTab ? theme.palette.text.primary : null }}>
 					For sales: Create&nbsp;
 					<a href={"https://docs.google.com/document/d/1N-ZJNn8lWaqiXITrqYcnTt53oXGLNYFEzc5PU-tdAps/copy"} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: "#FF8444" }}>
@@ -2755,7 +2755,7 @@ const Billing = memo((props) => {
                   variant="contained"
                   color="primary"
                   onClick={() => {
-                    handleGetDeals(userdata.active_org.id);
+                    handleGetDeals(userdata?.active_org?.id);
                   }}
                 >
                   <CachedIcon />
@@ -2960,7 +2960,7 @@ const Billing = memo((props) => {
 					}}
 				/>
 				<Typography style={{marginTop: 10, fontSize: 16,}} color="textSecondary">
-					You have used <strong>{currentAppRunsInPercentage}%</strong> of total app execution limit or <strong>{Number(monthlyAppRunsParent ?? 0) + Number(monthlyAllSuborgExecutions ?? 0)}</strong> app runs out of <strong>{userdata.app_execution_limit}</strong> app runs this month.
+					You have used <strong>{currentAppRunsInPercentage}%</strong> of total app execution limit or <strong>{Number(monthlyAppRunsParent ?? 0) + Number(monthlyAllSuborgExecutions ?? 0)}</strong> app runs out of <strong>{userdata?.app_execution_limit}</strong> app runs this month.
 				</Typography>
 				
 				{userdata?.active_org?.creator_org?.length > 0 ? null :
@@ -3138,7 +3138,7 @@ const Billing = memo((props) => {
 					Save
 				</Button>
 
-				{userdata.support === true && (
+				{userdata?.support === true && (
 					<div style={{ 
 						marginTop: 50, 
 						padding: 20, 
@@ -3157,7 +3157,7 @@ const Billing = memo((props) => {
 							<strong>Note:</strong> Setting an app run hard limit below current usage will immediately stop all workflow executions for this tenant.
 						</Typography>
 						<Typography color="textSecondary" style={{ fontSize: 14, marginBottom: 20 }}>
-							Current app runs this month: <strong>{Number(monthlyAppRunsParent ?? 0) + Number(monthlyAllSuborgExecutions ?? 0)}</strong> / <strong>{userdata.app_execution_limit}</strong>
+							Current app runs this month: <strong>{Number(monthlyAppRunsParent ?? 0) + Number(monthlyAllSuborgExecutions ?? 0)}</strong> / <strong>{userdata?.app_execution_limit}</strong>
 						</Typography>
 						
 						<Button
@@ -3640,13 +3640,13 @@ const BillingStatsChildOrg = memo(({ userdata, globalUrl, selectedOrganization, 
 		}
 
 		// check whether limit is greater than than parent org limit
-		if (editing === "app_executions" && limit > selectedOrganization.sync_features.app_executions.limit && !userdata.support) {
+		if (editing === "app_executions" && limit > selectedOrganization.sync_features.app_executions.limit && !userdata?.support) {
 			toast.error("App execution limit cannot be greater than parent org limit")
 			return
 		}
 
 
-		if (editing === "workflow_executions" && limit > selectedOrganization.sync_features.workflow_executions.limit && !userdata.support) {
+		if (editing === "workflow_executions" && limit > selectedOrganization.sync_features.workflow_executions.limit && !userdata?.support) {
 			toast.error("Workflow execution limit cannot be greater than parent org limit")
 			return
 		}
