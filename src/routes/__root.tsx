@@ -103,11 +103,6 @@ if (typeof window !== "undefined") {
   });
 }
 
-const SITE_TITLE = "Shuffle Security - Automated Incident Management";
-const SITE_DESCRIPTION =
-  "Open-source cybersecurity incident management platform for the future AI-SOC. Controllable and transparent incident, vulnerability and response automation.";
-const OG_IMAGE =
-  "https://storage.googleapis.com/gpt-engineer-file-uploads/3RrYN55ZuvUHHi6Wjhu1Xw7Dthg1/social-images/social-1779276187489-Newletter_heading_2x.webp";
 
 // Pre-paint theme bootstrap: ThemeContext applies the class after hydration,
 // but SSR paints first — resolve shuffle-theme (default: system) before paint
