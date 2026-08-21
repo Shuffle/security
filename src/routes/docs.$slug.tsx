@@ -4,7 +4,7 @@ import { routeMeta } from '@/lib/routeMeta';
 
 export const Route = createFileRoute("/docs/$slug")({
   head: ({ params }) => {
-    const docTitle = params.slug
+    const docTitle = params.slug === 'index' ? 'Documentation' : params.slug
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
     return routeMeta({
