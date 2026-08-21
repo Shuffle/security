@@ -103,6 +103,12 @@ const DocsPage = () => {
           }}
         >
           <Container maxWidth="lg" sx={{ py: 6, px: { xs: 2, sm: 3, md: 6 } }}>
+            <Typography
+              component="h1"
+              sx={{ fontSize: { xs: '30px', md: '36px' }, fontWeight: 600, mb: 3 }}
+            >
+              {docTitle}
+            </Typography>
             <MarkdownRenderer slug={slug} />
           </Container>
         </Box>
