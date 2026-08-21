@@ -1936,12 +1936,12 @@ const IncidentsPage = () => {
           ((existingCustomAttrs.activity as ActivityItem[] | undefined) || []);
         
         const updated = {
+          ...rawOCSF,
           // Ensure required OCSF fields exist
           class_uid: 2005 as const,
           class_name: 'Incident Finding' as const,
           finding_uid: rawOCSF.finding_uid || incident.id,
           title: rawOCSF.title || incident.title,
-          ...rawOCSF,
           // Set resolved status
           status_id: 3,
           status: 'Resolved',
@@ -3583,7 +3583,7 @@ const IncidentsPage = () => {
         ] : undefined}
         highlightAppName={shouldHighlightOutlook ? 'Outlook_Office365' : undefined}
         realtimeHighlightAppNames={isAddOutlookStep && isHoveringEmailGoal ? ['Outlook_Office365', 'Gmail'] : undefined}
-        onSelectOverride={isAddOutlookStep ? (app) => {
+        onSelectOverride={isAddOutlookStep ? (app: any) => {
           // Pretend-authenticate flow: Outlook Office365 or Gmail advance the
           // tour. Anything else falls through to the normal detail drawer so
           // the user is not trapped if they explore.
