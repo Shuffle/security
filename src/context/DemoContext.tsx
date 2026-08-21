@@ -308,7 +308,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   // off if the user navigates away from the detail page.
   const isOnIncidentDetail = /^\/(?:incidents|cases|alerts|tickets|jobs)\/[^/]+/.test(location.pathname);
   const queryClient = useQueryClient();
-  const [active, setActive] = useState(() => isDemoActive());
+  // Keep the server and first client render deterministic. Demo state is a
+  // browser preference and must not be read while React is rendering on the
+  // server (or depend on a global storage shim being installed first).
+  const [active, setActive] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -338,6 +341,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [resumeDismissed, setResumeDismissed] = useState<boolean>(() => {
     try { return safeLocalStorage.getItem('shuffle_demo_resume_dismissed') === 'true'; } catch { return false; }
   });
+
+  useEffect(() => {
+    setActive(isDemoActive());
+  }, []);
 
   // GA dedupe: each step view fires at most once per session, each completion
   // fires at most once per step. Refs survive re-renders without retriggering.
