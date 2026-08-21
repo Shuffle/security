@@ -35,3 +35,24 @@ if (typeof window === "undefined") {
 }
 
 export {};
+
+/**
+ * Always-safe storage accessor. Use this instead of the bare `localStorage`
+ * global in modules that can be evaluated or rendered on the server, where the
+ * global may not exist at all (Workers runtime).
+ */
+const memoryFallback = createMemoryStorage();
+
+export const safeLocalStorage: Storage = new Proxy({} as Storage, {
+  get(_t, prop) {
+    let store: Storage = memoryFallback;
+    try {
+      if (typeof window !== "undefined" && window.localStorage) store = window.localStorage;
+      else if (g.localStorage) store = g.localStorage;
+    } catch {
+      store = memoryFallback;
+    }
+    const value = (store as unknown as Record<string, unknown>)[prop as string];
+    return typeof value === "function" ? value.bind(store) : value;
+  },
+});

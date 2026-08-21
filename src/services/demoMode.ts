@@ -11,6 +11,7 @@
 
 import { setDatastoreItems, setDatastoreItem, getDatastoreItem, deleteDatastoreItem, DATASTORE_CATEGORIES, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { safeLocalStorage } from '@/lib/ssr-storage';
 import { restoreOriginalIngestTicketsApps } from '@/services/demoLiveEnvironment';
 import { DEFAULT_THREAT_FEEDS, type ThreatFeed } from '@/hooks/useThreatFeeds';
 import {
@@ -50,16 +51,16 @@ interface SeededIndex {
 }
 
 const readIndex = (): SeededIndex => {
-  try { return JSON.parse(localStorage.getItem(DEMO_FLAG_KEY) || '{}'); } catch { return {}; }
+  try { return JSON.parse(safeLocalStorage.getItem(DEMO_FLAG_KEY) || '{}'); } catch { return {}; }
 };
-const writeIndex = (idx: SeededIndex) => localStorage.setItem(DEMO_FLAG_KEY, JSON.stringify(idx));
+const writeIndex = (idx: SeededIndex) => safeLocalStorage.setItem(DEMO_FLAG_KEY, JSON.stringify(idx));
 
 const readSeededSteps = (): string[] => {
-  try { return JSON.parse(localStorage.getItem(DEMO_SEEDED_STEPS_KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse(safeLocalStorage.getItem(DEMO_SEEDED_STEPS_KEY) || '[]'); } catch { return []; }
 };
-const writeSeededSteps = (steps: string[]) => localStorage.setItem(DEMO_SEEDED_STEPS_KEY, JSON.stringify(steps));
+const writeSeededSteps = (steps: string[]) => safeLocalStorage.setItem(DEMO_SEEDED_STEPS_KEY, JSON.stringify(steps));
 
-export const isDemoActive = (): boolean => localStorage.getItem(DEMO_ACTIVE_KEY) === 'true';
+export const isDemoActive = (): boolean => safeLocalStorage.getItem(DEMO_ACTIVE_KEY) === 'true';
 
 export const getDemoStats = () => {
   const idx = readIndex();
@@ -100,7 +101,7 @@ const recordSeed = (category: string, keys: string[]) => {
   for (const k of keys) existing.add(k);
   idx[category] = Array.from(existing);
   writeIndex(idx);
-  localStorage.setItem(DEMO_ACTIVE_KEY, 'true');
+  safeLocalStorage.setItem(DEMO_ACTIVE_KEY, 'true');
 };
 
 /** Public wrapper so demoLiveEnvironment can register pre-tour seeds (e.g.
@@ -250,15 +251,15 @@ export const sweepOrphanDemoIncidents = async (): Promise<number> => {
 
 const readIocOverrides = (): DemoIocOverrides | null => {
   try {
-    const raw = localStorage.getItem(DEMO_IOC_OVERRIDES_KEY);
+    const raw = safeLocalStorage.getItem(DEMO_IOC_OVERRIDES_KEY);
     return raw ? JSON.parse(raw) as DemoIocOverrides : null;
   } catch { return null; }
 };
 const writeIocOverrides = (overrides: DemoIocOverrides) => {
-  try { localStorage.setItem(DEMO_IOC_OVERRIDES_KEY, JSON.stringify(overrides)); } catch { /* ignore */ }
+  try { safeLocalStorage.setItem(DEMO_IOC_OVERRIDES_KEY, JSON.stringify(overrides)); } catch { /* ignore */ }
 };
 const clearIocOverrides = () => {
-  try { localStorage.removeItem(DEMO_IOC_OVERRIDES_KEY); } catch { /* ignore */ }
+  try { safeLocalStorage.removeItem(DEMO_IOC_OVERRIDES_KEY); } catch { /* ignore */ }
 };
 
 /**
@@ -567,7 +568,7 @@ export interface DemoIocAudit {
 }
 
 const writeAudit = (audit: DemoIocAudit) => {
-  try { localStorage.setItem(DEMO_IOC_AUDIT_KEY, JSON.stringify(audit)); } catch { /* ignore */ }
+  try { safeLocalStorage.setItem(DEMO_IOC_AUDIT_KEY, JSON.stringify(audit)); } catch { /* ignore */ }
   // Always log the structured audit so support users see it in the console
   // even if they never open the banner.
   console.info('[demo:ioc-audit]', audit);
@@ -1010,7 +1011,7 @@ export const seedForStep = async (stepId: string): Promise<number> => {
   // Mark as seeded BEFORE running so concurrent calls don't double-seed.
   if (!seeded.includes(stepId)) writeSeededSteps([...seeded, stepId]);
   // Always set active so cleanup CTA appears even before any data lands
-  localStorage.setItem(DEMO_ACTIVE_KEY, 'true');
+  safeLocalStorage.setItem(DEMO_ACTIVE_KEY, 'true');
 
   try {
     return await seeder();
@@ -1312,11 +1313,11 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
     console.warn('[demo] restore ingest tickets failed', err);
   }
 
-  localStorage.removeItem(DEMO_FLAG_KEY);
-  localStorage.removeItem(DEMO_ACTIVE_KEY);
-  localStorage.removeItem(DEMO_SEEDED_STEPS_KEY);
-  localStorage.removeItem('shuffle_demo_injected_apps');
-  localStorage.removeItem('shuffle_demo_email_source');
+  safeLocalStorage.removeItem(DEMO_FLAG_KEY);
+  safeLocalStorage.removeItem(DEMO_ACTIVE_KEY);
+  safeLocalStorage.removeItem(DEMO_SEEDED_STEPS_KEY);
+  safeLocalStorage.removeItem('shuffle_demo_injected_apps');
+  safeLocalStorage.removeItem('shuffle_demo_email_source');
   clearIocOverrides();
   try { sessionStorage.removeItem(DEMO_THREAT_FEEDS_RAN_KEY); } catch { /* ignore */ }
 
