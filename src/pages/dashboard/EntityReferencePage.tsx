@@ -758,7 +758,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
                                     <Tooltip key={key}>
                                       <TooltipTrigger asChild>
                                         <span
-                                          className="inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 text-[0.6rem] font-bold leading-none"
+                                          className="inline-flex items-center gap-0.5 rounded-xs px-1 py-0.5 text-[0.6rem] font-bold leading-none"
                                           style={{
                                             backgroundColor: `${color}26`,
                                             color,
@@ -841,7 +841,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
                 <select
                   value={vulnsSort}
                   onChange={(e) => setVulnsSort(e.target.value as 'affected' | 'severity' | 'date' | 'id')}
-                  className="h-7 rounded-md border border-border bg-background px-2 text-[0.65rem] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-7 rounded-md border border-border bg-background px-2 text-[0.65rem] text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
                   aria-label="Sort vulnerabilities"
                 >
                   <option value="affected">Sort: Affected</option>
@@ -890,7 +890,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
                         navigate(`/vulnerabilities/${encodeURIComponent(v.id)}`);
                       }
                     }}
-                    className="block rounded-md border bg-muted/20 px-3 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="block rounded-md border bg-muted/20 px-3 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-ring"
                     style={isAffected ? { borderColor: `${sevColor}66` } : { borderColor: 'hsl(var(--border))' }}
                   >
                     <div className="flex items-start justify-between gap-3">
