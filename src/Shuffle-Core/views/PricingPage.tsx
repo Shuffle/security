@@ -1042,7 +1042,7 @@ const PricingPage = ({
               </div>
               <img
                 src="/images/companies_logo/nio_white.svg"
-                alt="NIO"
+                alt="NIO company logo"
                 style={{ marginBottom: "-10px", width: "80px" }}
               />
             </Box>
