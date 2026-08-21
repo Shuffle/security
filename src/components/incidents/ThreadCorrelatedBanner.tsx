@@ -8,7 +8,7 @@
 import { Box, Typography, Chip, IconButton, Tooltip, CircularProgress, Button } from '@mui/material';
 import { MessagesSquare, ExternalLink, GitMerge, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import type { LinkedIncidentSummary } from '@/hooks/useRelatedIncidents';
 
 interface ThreadCorrelatedBannerProps {

@@ -9,7 +9,7 @@
  */
 import React from "react";
 import { Lock as LockIcon } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router-compat";
 import { Avatar, Box, Tooltip, Typography } from "@mui/material";
 
 export interface RecentWorkflowProps {

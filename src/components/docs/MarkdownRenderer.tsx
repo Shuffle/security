@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from '@/lib/router-compat';
 import { algoliasearch } from 'algoliasearch';
 
 

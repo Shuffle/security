@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { terminalStorageKey, readStoredSession, registerHostIdentity } from '@/utils/terminalStorageKey';
 import { Button } from '@/components/ui/button';

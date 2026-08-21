@@ -26,7 +26,7 @@ import {
   Skeleton,
 } from "@mui/material";
 
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "@/lib/router-compat";
 import { toast } from "../toast";
 import {
   ContentCopy as ContentCopyIcon,

@@ -1,6 +1,6 @@
 import { Save as SaveIcon } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from '@/lib/router-compat';
 import {
   Box,
   Typography,

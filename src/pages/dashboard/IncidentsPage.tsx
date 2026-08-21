@@ -1,7 +1,7 @@
 import { readTenantStamp, isTenantGhost, type TenantStamp } from '@/utils/tenantAuthority';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Search as SearchIcon, X as CloseIcon, Plus as AddIcon, RefreshCw as RefreshIcon, Play as PlayArrowIcon, Rocket as RocketLaunchIcon, EyeOff as VisibilityOffIcon, AlertTriangle as WarningAmberIcon, Download as DownloadIcon, Calendar as CalendarTodayIcon } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from '@/lib/router-compat';
 import { useEntityLabel, useShowAutomation, useEntityText } from '@/hooks/useEntityLabel';
 import { AppSearchDrawer } from '@/Shuffle-MCPs';
 import { useTheme } from '@/context/ThemeContext';

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from '@/lib/router-compat';
 import { ExternalLink, ArrowLeft, Workflow } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

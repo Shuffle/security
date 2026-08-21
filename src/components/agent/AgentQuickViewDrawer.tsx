@@ -15,7 +15,7 @@ import {
   Chip,
 } from '@mui/material';
 import { CheckCircle, Settings, ArrowRight, HelpCircle, XCircle, Zap, Send, Mail, X as CloseIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import {
   stripAgentTitlePrefix,
   parseAgentApprovalParams,

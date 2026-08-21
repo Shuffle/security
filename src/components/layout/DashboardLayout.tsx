@@ -1,5 +1,5 @@
 import { useState, useEffect, ReactNode, Suspense } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from '@/lib/router-compat';
 import { Box, Alert, Button } from '@mui/material';
 import { AppSidebar } from './AppSidebar';
 import { MobileBottomNav } from './MobileBottomNav';

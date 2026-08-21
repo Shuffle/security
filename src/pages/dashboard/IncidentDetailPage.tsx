@@ -2,7 +2,7 @@ import { readTenantStamp, isTenantGhost, type TenantStamp } from '@/utils/tenant
 import { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'react';
 import DOMPurify from 'dompurify';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { useParams, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams, useLocation } from '@/lib/router-compat';
 import { useEntityLabel, useTaskStatuses, useEntityText, useAutoMergeThread } from '@/hooks/useEntityLabel';
 import {
   Box,

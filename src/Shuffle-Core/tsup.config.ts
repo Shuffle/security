@@ -36,7 +36,7 @@ export default defineConfig({
     '@emotion/styled',
     '@emotion/cache',
     'lucide-react',
-    'react-router-dom',
+    '@/lib/router-compat',
     'react-router',
     'react-ga4',
     'react-device-detect',

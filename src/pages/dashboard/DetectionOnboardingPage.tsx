@@ -1,6 +1,6 @@
 import { CheckCircle2 as CheckCircleIcon, Circle as RadioButtonUncheckedIcon, Radio as SensorsIcon, Gavel as RuleIcon, Play as PlayArrowIcon, Database as StorageIcon, ChevronDown as ExpandMoreIcon, ChevronUp as ExpandLessIcon, ArrowRight as ArrowForwardIcon, Plus as AddIcon, Rocket as RocketLaunchIcon } from 'lucide-react';
 import { useState, useEffect, forwardRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import {
   Box,
   Typography,

@@ -6,7 +6,7 @@
 import { Box, Typography, Collapse } from '@mui/material';
 import { useState } from 'react';
 import { AlertTriangle, HelpCircle, ExternalLink, ChevronRight, ChevronDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import JsonView from 'react18-json-view';

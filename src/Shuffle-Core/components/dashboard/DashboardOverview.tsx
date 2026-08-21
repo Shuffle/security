@@ -27,7 +27,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { format, subDays, startOfDay } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { NEON, TooltipContent, KpiTile, Panel, EmptyState, buildBuckets, buildBucketsBetween, bucketIndexOf, useChartRangeDrag, ReferenceArea, type Granularity } from './_shared';
 import { ChartShimmer } from './ChartShimmer';
 import { useSyncHostBaseUrl } from '../../useSyncHostBaseUrl';

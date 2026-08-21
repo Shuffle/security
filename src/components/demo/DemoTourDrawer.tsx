@@ -26,7 +26,7 @@ import {
   PanelBottom,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@/lib/router-compat';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 import { applyEntityTerminology } from '@/lib/entityTerminology';

@@ -1,6 +1,6 @@
 import { Menu as MenuIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@/lib/router-compat';
 import { Box, Container, IconButton, Drawer } from '@mui/material';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { DocsSidebar } from '@/components/docs/DocsSidebar';

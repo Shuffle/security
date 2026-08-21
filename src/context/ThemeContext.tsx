@@ -70,6 +70,7 @@ const updateCSSVariables = (brandColor: string | null) => {
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
+    if (typeof window === 'undefined') return 'system';
     const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
     if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
     return 'system';

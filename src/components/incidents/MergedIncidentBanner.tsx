@@ -5,7 +5,7 @@
 
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { GitMerge, ArrowRight, Link2Off } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/lib/toast';

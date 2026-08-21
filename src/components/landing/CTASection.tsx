@@ -1,7 +1,7 @@
 import { ArrowRight as ArrowForwardIcon } from 'lucide-react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { trackCTA } from '@/lib/analytics';
 
 export const CTASection = () => {

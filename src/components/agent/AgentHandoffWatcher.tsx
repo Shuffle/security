@@ -25,7 +25,7 @@
  *    elsewhere in the app.
  */
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@/lib/router-compat';
 import { Sparkles } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { useAgentNotifications } from '@/hooks/useNotifications';

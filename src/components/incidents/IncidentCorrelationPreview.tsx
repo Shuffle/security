@@ -1,7 +1,7 @@
 import { ExternalLink as OpenInNewIcon, ExternalLink as LaunchIcon, Trash as DeleteOutlineIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Box, Typography, Chip, CircularProgress, Button, Divider, Alert } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { lookupIncidentCached } from './incidentPreviewCache';
 
 interface IncidentCorrelationPreviewProps {

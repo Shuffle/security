@@ -1,6 +1,6 @@
 import { Rocket as RocketLaunchIcon, Inbox as InboxIcon, ArrowRight as ArrowForwardIcon, Plus as AddIcon, Play as PlayArrowIcon } from 'lucide-react';
 import { Box, Typography, Button, IconButton, Tooltip, CircularProgress } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { motion } from 'framer-motion';
 import { ValidatedIngestionApp } from '@/Shuffle-MCPs/ingestionDetection';
 import { IngestionSourceButton } from './IngestionSourceButton';

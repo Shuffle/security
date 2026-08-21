@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@/lib/router-compat';
 
 export const ScrollToTop = () => {
   const { pathname, hash } = useLocation();

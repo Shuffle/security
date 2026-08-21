@@ -21,7 +21,7 @@ import {
   PolarAngleAxis, Cell,
 } from 'recharts';
 import { AlertCircle, RefreshCw, Zap, Workflow, Activity, ExternalLink } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { useWorkflows } from '../../hooks/useWorkflows';
 import { SegmentedControl } from '../ui/segmented-control';
 import { getApiUrl, getAuthHeader } from '../../api';

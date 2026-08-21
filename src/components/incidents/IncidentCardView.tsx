@@ -2,7 +2,7 @@ import { Box, Typography, Chip, Checkbox, Skeleton, Tooltip, CircularProgress, A
 import { getLinkedPointers } from '@/lib/incidentRelations';
 import { Tag, RefreshCw as RefreshIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import {
   Fingerprint,
   FileCode,

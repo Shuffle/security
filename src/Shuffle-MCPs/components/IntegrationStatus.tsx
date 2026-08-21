@@ -10,7 +10,7 @@ import {
   Avatar,
   CircularProgress,
 } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink } from '@/lib/router-compat';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { fetchAuthenticatedApps } from '@/Shuffle-MCPs/authenticatedApps';
 import { fetchAppsViaApiConfig as fetchApps } from '@/Shuffle-MCPs/appsCache';

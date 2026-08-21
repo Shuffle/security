@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from '@/lib/router-compat';
 import { Box, Typography, Chip, Button, Avatar, IconButton, Tooltip } from '@mui/material';
 import { ArrowRight, ArrowLeft, Bot, Link as LinkIcon, Plus, PlayCircle, BookOpen, Image as ImageIcon, Flame, Zap, ExternalLink } from 'lucide-react';
 import UsecaseAlluvialDiagram from '@/components/usecases/UsecaseAlluvialDiagram';
