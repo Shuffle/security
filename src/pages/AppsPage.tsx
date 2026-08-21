@@ -423,13 +423,13 @@ export default function AppsPage() {
                 preventDefault
                 hideAuthStatus
                 initialQuery={searchQuery}
-                onSearchChange={(query) => {
+                onSearchChange={(query: string) => {
                   setSearchQuery(query);
                   if (query.length > 2) {
                     trackPredefinedEvent(GA_EVENTS.SEARCH_USED, query);
                   }
                 }}
-                onAppSelected={({ app }) => {
+                onAppSelected={({ app }: { app: any }) => {
                   trackPredefinedEvent(GA_EVENTS.APP_VIEWED, app.name);
                   navigate(`/apps/${encodeURIComponent(app.name.toLowerCase().replace(/[\s]+/g, '_'))}`);
                 }}

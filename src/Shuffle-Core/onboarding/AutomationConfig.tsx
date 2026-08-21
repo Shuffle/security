@@ -832,7 +832,7 @@ export const AutomationConfig = ({
       image_url: app.image || '',
       description: '',
       categories: [],
-    } as AlgoliaSearchApp;
+    } as unknown as AlgoliaSearchApp;
     const curAuthState = authStates[app.id] || {
       systemId: app.id,
       status: 'pending' as const,

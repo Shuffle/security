@@ -28,6 +28,7 @@ import {
 import {
   OnboardingFlow as OnboardingFlowRaw,
   default as OnboardingFlowDefault,
+  type OnboardingFlowProps,
 } from './OnboardingFlow';
 import { ProductChoiceStep as ProductChoiceStepRaw } from './ProductChoiceStep';
 
@@ -75,7 +76,7 @@ const withTheme = <P extends object>(
   return Wrapped;
 };
 
-export const OnboardingFlow = withTheme(OnboardingFlowRaw, 'OnboardingFlow');
+export const OnboardingFlow = withTheme<OnboardingFlowProps>(OnboardingFlowRaw, 'OnboardingFlow');
 export const ProductChoiceStep = withTheme(ProductChoiceStepRaw, 'ProductChoiceStep');
 
 export default OnboardingFlow;

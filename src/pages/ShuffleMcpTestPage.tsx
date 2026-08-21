@@ -528,7 +528,7 @@ function AppNamePicker({ value, onChange }: { value: string; onChange: (v: strin
           showCategories={false}
           showDescription={false}
           preventDefault
-          onAppSelected={(detail) => {
+          onAppSelected={(detail: any) => {
             onChange(detail.app.name);
             setAnchorEl(null);
           }}

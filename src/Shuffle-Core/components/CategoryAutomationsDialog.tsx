@@ -562,7 +562,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             return inline.map((s: unknown) => String(s).trim()).filter(Boolean);
           }
           const key = i === 0 ? 'apps' : `apps-${i + 1}`;
-          const legacy = aiAutomation.options.find(o => o.key === key);
+          const legacy = aiAutomation.options?.find(o => o.key === key);
           return legacy?.value
             ? legacy.value.split(',').map(s => s.trim()).filter(Boolean)
             : [];

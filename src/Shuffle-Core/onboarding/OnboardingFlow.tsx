@@ -1131,7 +1131,7 @@ const OnboardingFlow = ({
                   {index < activeStep
                     ? <CheckCircleOutlineIcon size={14} />
                     : React.isValidElement(step.icon)
-                      ? React.cloneElement(step.icon as React.ReactElement, { size: 14 })
+                      ? React.cloneElement(step.icon as React.ReactElement<{ size?: number }>, { size: 14 })
                       : step.icon}
                   <span>{step.label}</span>
                 </span>

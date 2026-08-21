@@ -392,7 +392,7 @@ export const TaskEditor = ({
                       </FormControl>
                       
                       <TaskDateTimePicker
-                        value={task.dueDate}
+                        value={task.dueDate ?? ''}
                         onChange={(date) => handleUpdateTaskDueDate(task.id, date)}
                       />
                     </>
@@ -464,7 +464,7 @@ export const TaskEditor = ({
                           By: {task.createdBy}
                         </Typography>
                       )}
-                      {task.completedAt > 0 && (
+                      {task.completedAt !== undefined && task.completedAt > 0 && (
                         <Typography variant="caption" sx={{ color: '#22c55e' }}>
                           Completed: {new Date(task.completedAt).toLocaleString()}
                         </Typography>

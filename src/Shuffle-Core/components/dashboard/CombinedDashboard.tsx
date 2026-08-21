@@ -451,7 +451,7 @@ const CombinedDashboard = ({
         {tab === 'agents' ? (
           <AgentsDashboard
             {...host}
-            orgId={orgId}
+            orgId={orgId ?? undefined}
             days={parseInt(days, 10) || 30}
             gran={gran}
             customRange={customRange}

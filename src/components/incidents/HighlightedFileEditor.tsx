@@ -195,6 +195,7 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
           isFolded = true;
           return false;
         }
+        return undefined;
       });
       if (!isFolded) expanded.push(field.name);
     }
@@ -217,6 +218,7 @@ const HighlightedFileEditor = ({ value, onChange, validateJson = true, onValidat
           topLevelStart = node.from;
           return false;
         }
+        return undefined;
       },
     });
 

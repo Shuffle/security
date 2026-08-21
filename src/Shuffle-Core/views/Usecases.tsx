@@ -1163,7 +1163,7 @@ interface UsecasesPageConfig {
 
 const DEFAULT_CONFIG: UsecasesPageConfig = {
   baseUrl: DEFAULT_API_BASE_URL,
-  authHeader: () => {
+  authHeader: (): Record<string, string> => {
     const key = getStoredApiKey();
     return key ? { Authorization: `Bearer ${key}` } : {};
   },
@@ -4783,7 +4783,7 @@ function UsecaseDetailContent({
           return apps.length > 0 ? apps : undefined;
         })()}
         autoActivate
-        onSelectOverride={(app) => {
+        onSelectOverride={(app: any) => {
           // Two-step UX:
           //   (1) Optimistically wire the picked app into this usecase's
           //       workflow so it appears in the Tools strip right away, and
@@ -6367,7 +6367,7 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
 
     return {
       baseUrl,
-      authHeader: () => {
+      authHeader: (): Record<string, string> => {
         // Prefer the host's API key (if surfaced via userdata.api_key); else
         // fall back to the standalone localStorage key. Cookie auth still
         // works either way via `credentials: 'include'`.
@@ -6598,7 +6598,7 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
     const externalIsAuthenticated = hostManaged ? loaded && loggedIn : false;
     return {
       baseUrl,
-      authHeader: () => {
+      authHeader: (): Record<string, string> => {
         const key = externalApiKey || getStoredApiKey();
         return key ? { Authorization: `Bearer ${key}` } : {};
       },

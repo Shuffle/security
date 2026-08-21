@@ -968,7 +968,7 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
       if (!winRunAsAdmin) parts.push('admin=false');
       const headers = selectedGroup?.auth ? `-H "Auth: ${selectedGroup.auth}"` : '';
       const authHeader = selectedGroup?.auth ? ` -Headers @{'Auth'='${selectedGroup.auth}'}` : '';
-      return `powershell -ExecutionPolicy Bypass -Command "& {iex (irm '${downloadUrl}?${parts.join('&')}'${authHeader ? ` -Headers @{'Auth'='${selectedGroup.auth}'}` : ''})}"`.replace(/  +/g, ' ');
+      return `powershell -ExecutionPolicy Bypass -Command "& {iex (irm '${downloadUrl}?${parts.join('&')}'${authHeader ? ` -Headers @{'Auth'='${selectedGroup?.auth}'}` : ''})}"`.replace(/  +/g, ' ');
     }
 
     return `curl '${downloadUrl}?${parts.join('&')}' ${authHeader} | sh`.replace(/  +/g, ' ');
@@ -1142,6 +1142,7 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
       }, 600);
       return () => clearTimeout(timer);
     }
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -1153,6 +1154,7 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
     if (dialogOnly && !addHostOpen) {
       handleOpenAddHost();
     }
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialogOnly]);
   useEffect(() => {
@@ -1161,6 +1163,7 @@ const AuthenticatedMonitorsView = ({ mode = 'page', onClose }: MonitorsViewProps
       const t = setTimeout(() => onClose(), 0);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [dialogOnly, addHostOpen, onClose]);
 
 

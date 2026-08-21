@@ -530,7 +530,7 @@ export const AutomationDashboard = ({
               <Autocomplete
                 size="small"
                 options={statKeys}
-                value={selectedStat || null}
+                value={selectedStat ?? undefined}
                 onChange={(_, v) => { if (v) pickSelectedStat(v); }}
                 disableClearable
                 getOptionLabel={(k) => prettyStatLabel(k)}
