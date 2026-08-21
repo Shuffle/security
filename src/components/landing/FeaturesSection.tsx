@@ -204,7 +204,7 @@ const AIAgentVisual = () => (
             flexShrink: 0,
           }}
         >
-          <img src={shuffleIcon} alt="Shuffle" style={{ width: 24, height: 24, borderRadius: 4 }} />
+          <img src={shuffleIcon} alt="Shuffle Security logo" style={{ width: 24, height: 24, borderRadius: 4 }} />
         </Box>
         <Box
           sx={{
