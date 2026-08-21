@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RecentWorkflow — list item used by FormInput's sidebar to render a single
  * recent workflow (form). Self-contained: no external Shuffle Core deps.

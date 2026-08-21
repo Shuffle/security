@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, memo, useMemo, useContext } from "react";
 import ReactGA from 'react-ga4';
 import countries from "../components/Countries";

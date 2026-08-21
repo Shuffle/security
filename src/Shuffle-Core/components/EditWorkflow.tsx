@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable */
 /**
  * EditWorkflow — Drawer for creating / editing a Shuffle workflow (incl. form
