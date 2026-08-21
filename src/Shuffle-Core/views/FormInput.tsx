@@ -116,7 +116,7 @@ const FormInput = (defaultprops: any) => {
   const [inputQuestions, setInputQuestions] = React.useState([])
   const [agentic, setAgentic] = React.useState(false)
 
-  const searchParams = new URLSearchParams(window.location.search)
+  const searchParams = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
   const answer = searchParams.get("answer")
   const execution_id = searchParams.get("reference_execution")
   const authorization = searchParams.get("authorization")
@@ -204,12 +204,12 @@ const FormInput = (defaultprops: any) => {
     props.match.params = { ...params, key: (params as any).key ?? (params as any).id }
 
 	const defaultTitle = workflow.name !== undefined ? "Form for " + workflow.name : "Shuffle - Form to Run Workflows"
-	if (document != undefined && document.title != defaultTitle) {
+	if (typeof document !== "undefined" && document.title != defaultTitle) {
 		document.title = defaultTitle
 	}
 
-	const parsedsearch = serverside === true ? "" : window.location.search
-	if (serverside !== true) {
+	const parsedsearch = serverside === true || typeof window === "undefined" ? "" : window.location.search
+	if (serverside !== true && typeof window !== "undefined") {
 		const tmpMessage = new URLSearchParams(window.location.search).get("message")
 		if (tmpMessage !== undefined && tmpMessage !== null && message !== tmpMessage) {
 			setMessage(tmpMessage)
@@ -2388,7 +2388,7 @@ const FormInput = (defaultprops: any) => {
 		</div>
 
 	// Check width
-	const overlap = window !== undefined && window.innerWidth !== undefined && window.innerWidth < 1300 
+	const overlap = typeof window !== "undefined" && window.innerWidth !== undefined && window.innerWidth < 1300 
 
 	const formSidebar = !isLoaded || overlap || !(forms !== undefined && forms !== null && forms.length > 0) ? null :
 		<div style={{
