@@ -44,7 +44,8 @@ export const routeMeta = ({ title, description, url, image, type = 'website', no
       { name: 'twitter:description', content: description },
       { name: 'twitter:image', content: img },
       { name: 'twitter:image:alt', content: title },
+      ...(noindex ? [{ name: 'robots', content: 'noindex, nofollow' }] : []),
     ],
-    links: [{ rel: 'canonical', href: fullUrl }],
+    links: noindex ? [] : [{ rel: 'canonical', href: fullUrl }],
   };
 };
