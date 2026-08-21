@@ -969,7 +969,7 @@ const AgentActivityList = ({
     return () => { unsubAbort(); unsubOpened(); };
   }, []);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 
   const selectedAgentWorkflow = agentWorkflows.find((w) => w.id === workflowFilter) || null;

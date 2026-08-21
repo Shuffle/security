@@ -25,7 +25,7 @@ export const useAgentActivity = (autoFetch = true) => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Debounce search query (350ms delay)
   const updateSearchQuery = useCallback((query: string) => {
