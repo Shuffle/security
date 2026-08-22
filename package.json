@@ -1,7 +1,11 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css",
+    "**/ssr-storage.ts",
+    "**/error-capture.ts"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite dev",

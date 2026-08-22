@@ -75,8 +75,10 @@ const LicencePopup = (props) => {
 
 
   const [billingCycle, setBillingCycle] = useState("annual");
-  const [scaleValue, setScaleValue] = useState(
-    new URLSearchParams(window.location.search).get("app_runs") ||
+  const [scaleValue, setScaleValue] = useState(() =>
+    (typeof window === "undefined"
+      ? undefined
+      : new URLSearchParams(window.location.search).get("app_runs")) ||
       userdata?.app_execution_limit / 1000 + 50 ||
       10
   );
