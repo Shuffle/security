@@ -7,8 +7,7 @@ export const Route = createFileRoute("/_dash/incidents-simple/$id")({
   // /incidents-simple/<id> links never hit the SSR error page.
   beforeLoad: ({ params, location }) => {
     throw redirect({
-      to: `/incidents/${params.id}${location.searchStr ?? ""}`,
-      replace: true,
+      href: `/incidents/${params.id}${location.searchStr ?? ""}`,
     });
   },
   head: () =>
