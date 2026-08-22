@@ -8,6 +8,7 @@ export const Route = createFileRoute("/blog/")({
       title: "Blog",
       description: "Product updates and security automation writing from the Shuffle team.",
       url: "/blog",
+      breadcrumbs: [{ name: "Home", path: "/" }],
     }),
   component: ShufflerExternalRedirect,
 });

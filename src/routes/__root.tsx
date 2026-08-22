@@ -164,7 +164,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             name: "Shuffle Security",
             url: "https://shuffle.security",
           },
-          aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", ratingCount: "150" },
         }),
       },
       {
@@ -174,8 +173,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@type": "Organization",
           name: "Shuffle Security",
           url: "https://shuffle.security",
-          logo: "/favicon.ico",
-          sameAs: ["https://twitter.com/shuffleio", "https://github.com/shuffle"],
+          logo: "https://shuffle.security/favicon.ico",
+          sameAs: [
+            "https://twitter.com/shuffleio",
+            "https://github.com/shuffle",
+            "https://www.linkedin.com/company/shuffler",
+          ],
         }),
       },
       {
@@ -185,6 +188,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@type": "WebSite",
           name: "Shuffle Security",
           url: "https://shuffle.security",
+          publisher: { "@type": "Organization", name: "Shuffle Security", url: "https://shuffle.security" },
         }),
       },
       { src: "https://js.stripe.com/v3" },
