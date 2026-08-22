@@ -123,8 +123,11 @@ export const UsecasesPage = () => {
   );
 };
 
-/** Legacy /incidents-simple/:id → /incidents/:id redirect (preserves the id and query string). */
+/** Legacy /incidents-simple/:id → /incidents/:id redirect (preserves the id and query string).
+    The route file redirects on the server via beforeLoad; this component only
+    runs on the client, so guard against SSR where window is undefined. */
 export const RedirectIncidentsSimple = () => {
+  if (typeof window === 'undefined') return null;
   const { pathname, search } = window.location;
   const id = pathname.split('/').filter(Boolean)[1] || '';
   return <Navigate to={`/incidents/${id}${search}`} replace />;
