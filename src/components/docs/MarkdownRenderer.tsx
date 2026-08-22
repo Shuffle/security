@@ -166,8 +166,10 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
   }, [slug]);
 
   useEffect(() => {
+    // SSR content already covers the first render of this slug.
+    if (ssrSlugRef.current === slug) return;
     loadContent();
-  }, [loadContent]);
+  }, [loadContent, slug]);
 
   // When a doc 404s, suggest the top matching documentation pages from Algolia.
   useEffect(() => {
