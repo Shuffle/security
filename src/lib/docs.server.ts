@@ -208,6 +208,32 @@ const fetchVideoOEmbed = async (video: RawVideoRef): Promise<OEmbedResponse | nu
 
 const MAX_VIDEOS = 4;
 
+/**
+ * Last-edit date of the doc's source markdown on GitHub. The Shuffle Core
+ * docs API returns `edited` empty and `published_date: 0`, so the commit
+ * history is the only truthful upload date for VideoObject JSON-LD.
+ */
+const fetchDocEditedDate = async (meta: ServerDocMeta | null): Promise<string | undefined> => {
+  if (meta?.edited) {
+    const parsed = new Date(meta.edited);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+
+  const githubMatch = meta?.link?.match(/^https?:\/\/github\.com\/([^/]+\/[^/]+)\/blob\/([^/]+)\/(.+)$/);
+  if (!githubMatch) return undefined;
+  const [, repo, branch, path] = githubMatch;
+
+  const data = (await fetchJson(
+    `https://api.github.com/repos/${repo}/commits?path=${encodeURIComponent(path)}&sha=${encodeURIComponent(branch)}&per_page=1`,
+    3000,
+  )) as { commit?: { committer?: { date?: string } } }[] | null;
+
+  const date = Array.isArray(data) ? data[0]?.commit?.committer?.date : undefined;
+  if (!date) return undefined;
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+};
+
 const enrichVideos = async (refs: RawVideoRef[], docTitle: string | null): Promise<ServerDocVideo[]> => {
   const capped = refs.slice(0, MAX_VIDEOS);
   const oembeds = await Promise.all(capped.map((ref) => fetchVideoOEmbed(ref)));
