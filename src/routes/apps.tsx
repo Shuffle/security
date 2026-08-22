@@ -9,6 +9,7 @@ export const Route = createFileRoute("/apps")({
       description:
         'Browse and connect 3,000+ security integrations — SIEM, EDR, Email, Cloud, ITSM, Threat Intel and more. Use your existing tools with Shuffle Security.',
       url: '/apps',
+      breadcrumbs: [{ name: 'Home', path: '/' }],
     }),
   component: AppsPage,
 });

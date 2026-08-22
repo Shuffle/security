@@ -9,6 +9,7 @@ export const Route = createFileRoute("/docs/")({
       description:
         'Shuffle Security documentation — set up ingestion, incident automation, detections, vulnerability management and AI agents.',
       url: '/docs',
+      breadcrumbs: [{ name: 'Home', path: '/' }],
     }),
   component: DocsPage,
 });

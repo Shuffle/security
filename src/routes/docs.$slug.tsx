@@ -12,6 +12,10 @@ export const Route = createFileRoute("/docs/$slug")({
       description: `Shuffle Security documentation — ${docTitle}. Learn how to set up and use the platform.`,
       url: `/docs/${params.slug}`,
       type: 'article',
+      breadcrumbs: [
+        { name: 'Home', path: '/' },
+        { name: 'Documentation', path: '/docs' },
+      ],
     });
   },
   component: DocsPage,

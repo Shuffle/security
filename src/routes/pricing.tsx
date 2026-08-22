@@ -9,6 +9,7 @@ export const Route = createFileRoute("/pricing")({
       description:
         'Shuffle Security pricing — start free and scale incident management, vulnerability handling and response automation across cloud, on-prem or hybrid.',
       url: '/pricing',
+      breadcrumbs: [{ name: 'Home', path: '/' }],
     }),
   component: PricingPage,
 });
