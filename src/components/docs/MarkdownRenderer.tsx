@@ -574,8 +574,15 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
             // relative `./name.md` links. Route all of those through the SPA
             // and preserve their heading hash.
             if (href) {
-              const parsed = new URL(href, window.location.href);
-              const isSameOrigin = parsed.origin === window.location.origin;
+              // window.location is unavailable during SSR — use the canonical
+              // origin so same-origin/doc links still resolve server-side.
+              const baseUrl =
+                typeof window !== 'undefined' && window.location?.origin
+                  ? window.location.href
+                  : 'https://shuffle.security/docs';
+              const parsed = new URL(href, baseUrl);
+              const isSameOrigin =
+                parsed.origin === new URL(baseUrl).origin;
               const isRelativeDoc = !/^[a-z][a-z\d+.-]*:/i.test(href) && /(?:^|\/)\.?\.?\/?[^/#?]+\.md(?:$|[?#])/i.test(href);
               const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
               if ((isSameOrigin && isDocsPath) || isRelativeDoc) {
