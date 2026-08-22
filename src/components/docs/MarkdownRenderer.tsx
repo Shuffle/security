@@ -139,6 +139,8 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
 
 
   const loadContent = useCallback(async (resetCache = false) => {
+    // Any client-side load invalidates the SSR handoff for this mount.
+    ssrSlugRef.current = null;
     setLoading(true);
     setError(null);
     setMeta(null);
