@@ -299,13 +299,10 @@ export const fetchDocContentServer = async (slug: string): Promise<ServerDocCont
       const meta = data.meta ?? null;
       const title = extractDocTitle(markdown);
       const description = extractDocDescription(markdown);
-      const videos = await enrichVideos(extractDocVideos(markdown), title);
-
-      let uploadDate: string | undefined;
-      if (meta?.edited) {
-        const parsed = new Date(meta.edited);
-        if (!Number.isNaN(parsed.getTime())) uploadDate = parsed.toISOString();
-      }
+      const [videos, uploadDate] = await Promise.all([
+        enrichVideos(extractDocVideos(markdown), title),
+        fetchDocEditedDate(meta),
+      ]);
 
       return { markdown, meta, title, description, videos, uploadDate };
     }
