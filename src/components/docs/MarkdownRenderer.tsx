@@ -29,6 +29,9 @@ interface RemoteDocMeta {
 
 interface MarkdownRendererProps {
   slug?: string;
+  /** SSR-provided markdown/metadata; when present the initial client fetch is skipped. */
+  initialContent?: string | null;
+  initialMeta?: RemoteDocMeta | null;
 }
 
 interface DocSuggestion {
