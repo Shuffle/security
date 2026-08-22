@@ -105,10 +105,13 @@ const normalizeDocPath = (pathname: string) => {
   return `/docs/${docSlug(name)}`;
 };
 
-export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
-  const [content, setContent] = useState<string>('');
-  const [meta, setMeta] = useState<RemoteDocMeta | null>(null);
-  const [loading, setLoading] = useState(true);
+export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initialMeta = null }: MarkdownRendererProps) => {
+  const [content, setContent] = useState<string>(initialContent ?? '');
+  const [meta, setMeta] = useState<RemoteDocMeta | null>(initialMeta);
+  const [loading, setLoading] = useState(!initialContent);
+  // Slug the SSR content was rendered for — skip the client refetch until the
+  // user navigates to a different doc.
+  const ssrSlugRef = useRef<string | null>(initialContent ? slug : null);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<DocSuggestion[]>([]);
