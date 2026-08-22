@@ -25,7 +25,13 @@ export function resolveVideoUrl(raw?: string | null): ResolvedVideo | null {
 
   let url: URL;
   try {
-    url = new URL(value, window.location.origin);
+    // window.location is unavailable during SSR — fall back to the canonical
+    // origin so relative URLs still resolve in server-rendered HTML.
+    const base =
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : 'https://shuffle.security';
+    url = new URL(value, base);
   } catch {
     return null;
   }
