@@ -29,6 +29,9 @@ interface RemoteDocMeta {
 
 interface MarkdownRendererProps {
   slug?: string;
+  /** SSR-provided markdown/metadata; when present the initial client fetch is skipped. */
+  initialContent?: string | null;
+  initialMeta?: RemoteDocMeta | null;
 }
 
 interface DocSuggestion {
@@ -102,10 +105,13 @@ const normalizeDocPath = (pathname: string) => {
   return `/docs/${docSlug(name)}`;
 };
 
-export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
-  const [content, setContent] = useState<string>('');
-  const [meta, setMeta] = useState<RemoteDocMeta | null>(null);
-  const [loading, setLoading] = useState(true);
+export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initialMeta = null }: MarkdownRendererProps) => {
+  const [content, setContent] = useState<string>(initialContent ?? '');
+  const [meta, setMeta] = useState<RemoteDocMeta | null>(initialMeta);
+  const [loading, setLoading] = useState(!initialContent);
+  // Slug the SSR content was rendered for — skip the client refetch until the
+  // user navigates to a different doc.
+  const ssrSlugRef = useRef<string | null>(initialContent ? slug : null);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<DocSuggestion[]>([]);
@@ -133,6 +139,8 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
 
 
   const loadContent = useCallback(async (resetCache = false) => {
+    // Any client-side load invalidates the SSR handoff for this mount.
+    ssrSlugRef.current = null;
     setLoading(true);
     setError(null);
     setMeta(null);
@@ -160,8 +168,10 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
   }, [slug]);
 
   useEffect(() => {
+    // SSR content already covers the first render of this slug.
+    if (ssrSlugRef.current === slug) return;
     loadContent();
-  }, [loadContent]);
+  }, [loadContent, slug]);
 
   // When a doc 404s, suggest the top matching documentation pages from Algolia.
   useEffect(() => {
@@ -564,8 +574,15 @@ export const MarkdownRenderer = ({ slug = 'index' }: MarkdownRendererProps) => {
             // relative `./name.md` links. Route all of those through the SPA
             // and preserve their heading hash.
             if (href) {
-              const parsed = new URL(href, window.location.href);
-              const isSameOrigin = parsed.origin === window.location.origin;
+              // window.location is unavailable during SSR — use the canonical
+              // origin so same-origin/doc links still resolve server-side.
+              const baseUrl =
+                typeof window !== 'undefined' && window.location?.origin
+                  ? window.location.href
+                  : 'https://shuffle.security/docs';
+              const parsed = new URL(href, baseUrl);
+              const isSameOrigin =
+                parsed.origin === new URL(baseUrl).origin;
               const isRelativeDoc = !/^[a-z][a-z\d+.-]*:/i.test(href) && /(?:^|\/)\.?\.?\/?[^/#?]+\.md(?:$|[?#])/i.test(href);
               const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
               if ((isSameOrigin && isDocsPath) || isRelativeDoc) {

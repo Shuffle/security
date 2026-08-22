@@ -7,7 +7,19 @@ import { DocsSidebar } from '@/components/docs/DocsSidebar';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
-const DocsPage = () => {
+interface DocsPageProps {
+  /** SSR-provided markdown/metadata; when present the client fetch is skipped. */
+  initialContent?: string | null;
+  initialMeta?: {
+    name?: string;
+    contributors?: { name?: string; url?: string; image?: string }[];
+    read_time?: number;
+    edited?: string;
+    link?: string;
+  } | null;
+}
+
+const DocsPage = ({ initialContent = null, initialMeta = null }: DocsPageProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -109,7 +121,7 @@ const DocsPage = () => {
             >
               {docTitle}
             </Typography>
-            <MarkdownRenderer slug={slug} />
+            <MarkdownRenderer slug={slug} initialContent={initialContent} initialMeta={initialMeta} />
           </Container>
         </Box>
       </Box>
