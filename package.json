@@ -16,7 +16,8 @@
     "format": "prettier --write ."
   },
   "overrides": {
-    "rolldown": "1.2.1"
+    "rolldown": "1.2.1",
+    "next-themes": "$next-themes"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",
