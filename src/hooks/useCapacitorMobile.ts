@@ -19,7 +19,9 @@ export function useCapacitorMobile(options?: UseCapacitorMobileOptions) {
       return;
     }
 
-    const { SplashScreen, StatusBar, App } = Capacitor.Plugins;
+    const { SplashScreen, StatusBar, App } = ((Capacitor as unknown as {
+      Plugins?: Record<string, any>;
+    }).Plugins || {}) as Record<string, any>;
 
     // 1. Hide the native splash screen smoothly once the React app is mounted
     if (SplashScreen?.hide) {
