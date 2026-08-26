@@ -55,8 +55,15 @@ export const isDevEnvironment = (): boolean => {
     || hostname.endsWith('.lovable.dev');
 };
 
+export const isCapacitorNative = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as any).Capacitor;
+  return Boolean(cap?.isNativePlatform && cap.isNativePlatform());
+};
+
 /** Check if running on a known Shuffle Cloud domain */
 export const isCloudDomain = (): boolean => {
+  if (isCapacitorNative()) return true;
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   return CLOUD_DOMAINS.includes(hostname);
 };
@@ -81,6 +88,7 @@ const getDefaultBaseUrl = (): string => {
     return envUrl;
   }
   if (isDevEnvironment()) return DEV_BACKEND;
+  if (isCapacitorNative()) return PROD_BACKEND;
   // Cloud domains always default to shuffler.io; region_url from getinfo may override later
   if (isCloudDomain()) return PROD_BACKEND;
   // Self-hosted / on-prem: use current domain (nginx proxies /api/* to backend)
@@ -109,11 +117,20 @@ const readCachedRegion = (): { url: string | null; orgId: string | null } => {
 
 const cached = readCachedRegion();
 let _regionUrl: string | null = cached.url;
+const readCachedCustomHost = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('shuffle_custom_host_url');
+    return raw ? raw.trim().replace(/\/+$/, '') : null;
+  } catch {
+    return null;
+  }
+};
+
 let _trackedOrgId: string | null = cached.orgId;
-// Host-injected base URL (set via setHostBaseUrl from a host that passes
-// `globalUrl` through ShuffleHostProps). Highest priority — overrides region
-// URL and the auto-detected default. Use this for self-hosted backends.
-let _hostBaseUrl: string | null = null;
+// Host-injected base URL (set via setHostBaseUrl or from saved custom host).
+// Highest priority — overrides region URL and the auto-detected default.
+let _hostBaseUrl: string | null = readCachedCustomHost();
 
 const REGION_EVENT = 'shuffle:region-url';
 let _lastBroadcastUrl: string | null = cached.url;

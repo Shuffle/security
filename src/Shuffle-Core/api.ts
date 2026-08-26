@@ -48,7 +48,14 @@ export const isDevEnvironment = (): boolean => {
     || hostname.endsWith('.lovable.dev');
 };
 
+export const isCapacitorNative = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as any).Capacitor;
+  return Boolean(cap?.isNativePlatform && cap.isNativePlatform());
+};
+
 export const isCloudDomain = (): boolean => {
+  if (isCapacitorNative()) return true;
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   return CLOUD_DOMAINS.includes(hostname);
 };
@@ -57,6 +64,7 @@ const getDefaultBaseUrl = (): string => {
   const envUrl = getEnvVar('VITE_SHUFFLE_API_URL');
   if (envUrl) return envUrl;
   if (isDevEnvironment()) return DEV_BACKEND;
+  if (isCapacitorNative()) return PROD_BACKEND;
   if (isCloudDomain()) return PROD_BACKEND;
   if (typeof window !== 'undefined') return window.location.origin;
   return PROD_BACKEND;
@@ -76,10 +84,20 @@ const _cachedRegion = (() => {
   } catch { return { url: null, orgId: null }; }
 })();
 
+const _readCachedCustomHost = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('shuffle_custom_host_url');
+    return raw ? raw.trim().replace(/\/+$/, '') : null;
+  } catch {
+    return null;
+  }
+};
+
 let _regionUrl: string | null = _cachedRegion.url;
 let _trackedOrgId: string | null = _cachedRegion.orgId;
-// Host-injected base URL (highest priority — set via setHostBaseUrl).
-let _hostBaseUrl: string | null = null;
+// Host-injected base URL (highest priority — set via setHostBaseUrl or from saved custom host).
+let _hostBaseUrl: string | null = _readCachedCustomHost();
 
 const REGION_EVENT = 'shuffle:region-url';
 let _lastBroadcastUrl: string | null = _cachedRegion.url;

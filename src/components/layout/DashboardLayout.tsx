@@ -6,6 +6,7 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { AppDetailProvider, useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
 import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
 import AgentHandoffWatcher from '@/components/agent/AgentHandoffWatcher';
+import { GlobalPagerWatcher } from '@/components/notifications/GlobalPagerWatcher';
 import { PageSkeleton } from './PageSkeleton';
 import { prefetchCommonRoutes } from '@/lib/routePrefetch';
 
@@ -160,6 +161,8 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
             questions) as toasts on every page. Polls once per minute via the
             shared useAgentNotifications query. */}
         <AgentHandoffWatcher />
+        {/* Global on-call pager watcher & incoming call alert popups */}
+        <GlobalPagerWatcher />
         {/* GlobalAgentDrawer is mounted at App-level so it works on public
             routes (e.g. /usecases) too. */}
       </Box>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1a1a1a; color: #ffffff;">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#FF6600" />
+    <title>Shuffle Security</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.json" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+        background-color: #1a1a1a;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+        text-align: center;
+      }
+      .logo-container {
+        margin-bottom: 24px;
+      }
+      .logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(255, 102, 0, 0.2);
+      }
+      .title {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        margin-bottom: 8px;
+        color: #f9fafb;
+      }
+      .subtitle {
+        font-size: 14px;
+        color: #9ca3af;
+        margin-bottom: 32px;
+        max-width: 320px;
+        line-height: 1.5;
+      }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid rgba(255, 102, 0, 0.2);
+        border-top-color: #ff6600;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+        margin-bottom: 24px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        background-color: #ff6600;
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 14px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background-color 0.2s ease;
+      }
+      .btn:hover {
+        background-color: #e65c00;
+      }
+      .offline-message {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="logo-container">
+      <img src="/pwa-192x192.png" alt="Shuffle Security" class="logo" />
+    </div>
+    <div class="spinner" id="spinner"></div>
+    <h1 class="title">Shuffle Security</h1>
+    <p class="subtitle" id="status-text">Connecting to security operations...</p>
+
+    <div class="offline-message" id="offline-box">
+      <p class="subtitle">Unable to connect. Please check your internet connection and try again.</p>
+      <button class="btn" onclick="retryConnection()">Retry</button>
+    </div>
+
+    <script>
+      function retryConnection() {
+        document.getElementById('offline-box').style.display = 'none';
+        document.getElementById('spinner').style.display = 'block';
+        document.getElementById('status-text').textContent = 'Reconnecting...';
+        checkAndRedirect();
+      }
+
+      function checkAndRedirect() {
+        const targetUrl = 'https://shuffle.security' + window.location.pathname + window.location.search;
+        
+        // Quick probe to check connectivity
+        fetch('https://shuffler.io/api/v1/getinfo', { method: 'HEAD', mode: 'no-cors' })
+          .then(function() {
+            window.location.href = targetUrl;
+          })
+          .catch(function() {
+            setTimeout(function() {
+              document.getElementById('spinner').style.display = 'none';
+              document.getElementById('status-text').textContent = 'Offline';
+              document.getElementById('offline-box').style.display = 'block';
+            }, 3000);
+          });
+      }
+
+      // Automatically attempt connection on load
+      checkAndRedirect();
+    </script>
+  </body>
+</html>

@@ -1,40 +1,60 @@
 import { useLocation, Link } from '@/lib/router-compat';
 import { Box, Typography } from '@mui/material';
-import { Activity, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, Settings as SettingsIcon } from 'lucide-react';
+import {
+  ShieldAlert as ShieldAlertIcon,
+  Bot as BotIcon,
+  ShieldCheck as ShieldCheckIcon,
+} from 'lucide-react';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 
-const MobileBottomNavInner = () => {
+export const MobileBottomNav = () => {
   const { plural: entityPlural, basePath: entityBasePath } = useEntityPreference();
-
-  const navItems = [
-    { label: entityPlural, icon: <WarningAmberIcon size={22} />, path: entityBasePath },
-    { label: 'Automation', icon: <Activity size={20} />, path: '/usecases' },
-    { label: 'Detection', icon: <RadarIcon size={22} />, path: '/detection' },
-    { label: 'Settings', icon: <SettingsIcon size={22} />, path: '/settings' },
-  ];
-
   const location = useLocation();
 
+  const navItems = [
+    {
+      label: entityPlural || 'Incidents',
+      icon: <ShieldAlertIcon size={20} />,
+      path: entityBasePath || '/incidents',
+    },
+    {
+      label: 'AI Agent',
+      icon: <BotIcon size={20} />,
+      path: '/agent',
+    },
+    {
+      label: 'Admin',
+      icon: <ShieldCheckIcon size={20} />,
+      path: '/admin',
+    },
+  ];
+
   const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    if (location.pathname === path || location.pathname.startsWith(path + '/')) return true;
+    if (path === '/agent' && location.pathname.startsWith('/agents')) return true;
+    return false;
   };
 
   return (
     <Box
+      component="nav"
+      aria-label="Mobile Navigation"
       sx={{
         display: { xs: 'flex', sm: 'none' },
         position: 'fixed',
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 1200,
+        zIndex: 1300,
         bgcolor: 'hsl(var(--card))',
         borderTop: '1px solid hsl(var(--border))',
         justifyContent: 'space-around',
         alignItems: 'center',
+        px: 2,
         py: 0.75,
-        pb: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
-        backdropFilter: 'blur(12px)',
+        pb: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',
+        backdropFilter: 'blur(16px)',
+        boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.15)',
       }}
     >
       {navItems.map((item) => {
@@ -48,17 +68,30 @@ const MobileBottomNavInner = () => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 0.25,
+              justifyContent: 'center',
+              gap: 0.5,
               textDecoration: 'none',
-              color: active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-              minWidth: 56,
-              py: 0.5,
-              borderRadius: 1,
-              transition: 'color 0.15s',
+              color: active ? '#FF6600' : 'hsl(var(--muted-foreground))',
+              minWidth: 72,
+              py: 0.6,
+              px: 1.5,
+              borderRadius: 2,
+              bgcolor: active ? 'rgba(255, 102, 0, 0.1)' : 'transparent',
+              transition: 'all 0.15s ease-in-out',
+              '&:active': {
+                transform: 'scale(0.95)',
+              },
             }}
           >
             {item.icon}
-            <Typography sx={{ fontSize: '0.6rem', fontWeight: active ? 600 : 400 }}>
+            <Typography
+              sx={{
+                fontSize: '0.7rem',
+                fontWeight: active ? 700 : 500,
+                letterSpacing: '-0.2px',
+                lineHeight: 1,
+              }}
+            >
               {item.label}
             </Typography>
           </Box>
@@ -67,5 +100,3 @@ const MobileBottomNavInner = () => {
     </Box>
   );
 };
-
-export const MobileBottomNav = MobileBottomNavInner;

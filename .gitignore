@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.output
 *.local
 
 # Editor directories and files
@@ -23,9 +24,37 @@ dist-ssr
 *.sln
 *.sw?
 
+# Prewarm & lockfiles
 .prewarm
 tmp/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-*lock
+*.local
+.env.local
+.env.*.local
+.env.production
+
+# Secrets, Certificates & Keys
+*.keystore
+*.jks
+*.p12
+*.p8
+*.key
+*.pem
+*.mobileprovision
+
+# Mobile Build Artifacts & Caches
+android/.gradle
+android/build
+android/app/build
+android/captures
+android/.idea
+android/app/src/main/assets/public
+ios/App/build
+ios/App/Pods
+ios/App/App/public
+ios/App/App.xcworkspace/xcuserdata
+ios/App/App.xcodeproj/xcuserdata
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata
+.wrangler
+
+android/
+ios/

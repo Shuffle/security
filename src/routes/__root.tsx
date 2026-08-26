@@ -33,6 +33,7 @@ import GlobalAgentDrawer from "@/components/agent/GlobalAgentDrawer";
 import GlobalWorkflowRunDrawer from "@/components/agent/GlobalWorkflowRunDrawer";
 import GlobalNotificationsDrawer from "@/components/notifications/GlobalNotificationsDrawer";
 import NotFound from "@/pages/NotFound";
+import { useCapacitorMobile } from "@/hooks/useCapacitorMobile";
 
 // ported from main.tsx / App.tsx module scope
 setToastImpl((arg, opts) => {
@@ -218,6 +219,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function ThemedShell({ children }: { children: ReactNode }) {
   const { resolvedTheme, brandColor } = useTheme();
   const muiTheme = useMemo(() => createMuiTheme(resolvedTheme, brandColor), [resolvedTheme, brandColor]);
+  useCapacitorMobile({ theme: resolvedTheme });
 
   return (
     <MuiThemeProvider theme={muiTheme}>

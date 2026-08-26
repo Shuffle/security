@@ -312,10 +312,25 @@ const AdminPage = () => {
         </Box>
       )}
     <Box sx={{ p: { xs: 0, sm: 0 }, maxWidth: 1200, width: '100%', mx: 'auto' }}>
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: 'hsl(var(--foreground))' }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          mb: 0.5,
+          color: 'hsl(var(--foreground))',
+          fontSize: { xs: '1.4rem', sm: '2.125rem' },
+        }}
+      >
         Tenant Admin
       </Typography>
-      <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 3 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: 'hsl(var(--muted-foreground))',
+          mb: { xs: 2, sm: 3 },
+          fontSize: { xs: '0.825rem', sm: '0.875rem' },
+        }}
+      >
         Manage your tenant settings, users, and sub-tenants.
       </Typography>
 
@@ -336,7 +351,7 @@ const AdminPage = () => {
           },
         ];
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2.5, sm: 4 }, maxWidth: '100%', overflowX: 'auto', pb: 0.5 }}>
             <SegmentedControl<TabValue>
               options={options}
               value={currentValue}
@@ -424,7 +439,7 @@ const AdminPage = () => {
               </Paper>
 
               {/* Name, Status, Region row */}
-              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 3 }}>
                 <TextField
                   label="Name"
                   value={orgName}
@@ -440,7 +455,7 @@ const AdminPage = () => {
                   }}
                 />
 
-                <FormControl sx={{ minWidth: 160 }}>
+                <FormControl sx={{ minWidth: { xs: '100%', sm: 160 } }}>
                   <InputLabel sx={{ color: 'hsl(var(--muted-foreground))' }}>Region</InputLabel>
                   <Select
                     value={orgRegionUrl}
@@ -497,7 +512,8 @@ const AdminPage = () => {
                 sx={{
                   bgcolor: 'hsl(var(--primary))',
                   color: 'hsl(var(--primary-foreground))',
-                  height: 36,
+                  height: 40,
+                  width: { xs: '100%', sm: 'auto' },
                   '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
                 }}
               >

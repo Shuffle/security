@@ -10,10 +10,12 @@ import {
   Avatar,
   Divider,
 } from '@mui/material';
+import { LogOut, KeyRound } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { PagerNotificationSettings } from '@/components/settings/PagerNotificationSettings';
 
 // Settings types
 
@@ -28,10 +30,9 @@ interface Settings {
 }
 
 const SettingsPage = () => {
-
   usePageMeta({
     title: 'Settings',
-    description: 'User and account settings for Shuffle Security.',
+    description: 'User, account, and on-call pager notification settings.',
     url: '/settings',
   });
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -94,13 +95,30 @@ const SettingsPage = () => {
   };
 
   return (
-    <Box sx={{ p: 4, maxWidth: 900, width: '100%', mx: 'auto' }}>
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 3, color: 'hsl(var(--foreground))' }}>
+    <Box sx={{ p: { xs: 2, sm: 4 }, maxWidth: 1100, width: '100%', mx: 'auto' }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          mb: 0.5,
+          color: 'hsl(var(--foreground))',
+          fontSize: { xs: '1.4rem', sm: '2.125rem' },
+        }}
+      >
         Settings
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: 'hsl(var(--muted-foreground))',
+          mb: { xs: 2.5, sm: 4 },
+        }}
+      >
+        Manage your user profile, on-call pager calling preferences, and security credentials.
       </Typography>
 
       {error && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
           {error}
         </Alert>
       )}
@@ -110,79 +128,103 @@ const SettingsPage = () => {
           <CircularProgress sx={{ color: 'hsl(var(--primary))' }} />
         </Box>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 500 }}>
-          <Paper 
-            sx={{ 
-              p: 3,
-              bgcolor: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Avatar
-                sx={{ 
-                  width: 56, 
-                  height: 56, 
-                  bgcolor: 'hsl(var(--primary))',
-                  color: 'hsl(var(--primary-foreground))',
-                  fontSize: '1.25rem',
-                  fontWeight: 600,
-                }}
-              >
-                {getUserInitial()}
-              </Avatar>
-              <Box>
-                <Typography 
-                  variant="h6" 
-                  sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-                >
-                  {settings?.username || userInfo?.username || 'User'}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ color: 'hsl(var(--muted-foreground))' }}
-                >
-                  {settings?.active_org?.name || userInfo?.active_org?.name || 'No organization'}
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-
-          <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {API_CONFIG.apiKey && (
-              <Button
-                variant="outlined"
-                onClick={handleClearApiKey}
-                sx={{
-                  borderColor: 'hsl(var(--border))',
-                  color: 'hsl(var(--foreground))',
-                  '&:hover': {
-                    borderColor: 'hsl(var(--primary))',
-                    bgcolor: 'hsla(var(--primary), 0.1)',
-                  },
-                }}
-              >
-                Clear API Key
-              </Button>
-            )}
-            
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={handleLogout}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '340px 1fr' },
+            gap: 3,
+            alignItems: 'start',
+          }}
+        >
+          {/* Left Column: Account Profile & Actions */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Paper
               sx={{
-                borderColor: 'hsl(0, 84%, 60%)',
-                color: 'hsl(0, 84%, 60%)',
-                '&:hover': {
-                  borderColor: 'hsl(0, 84%, 50%)',
-                  bgcolor: 'hsla(0, 84%, 60%, 0.1)',
-                },
+                p: 3,
+                bgcolor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 3,
               }}
             >
-              Sign Out
-            </Button>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 3 }}>
+                <Avatar
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    bgcolor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    fontSize: '1.25rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {getUserInitial()}
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ color: 'hsl(var(--foreground))', fontWeight: 700 }}
+                  >
+                    {settings?.username || userInfo?.username || 'User'}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}
+                  >
+                    {settings?.active_org?.name || userInfo?.active_org?.name || 'No organization'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ borderColor: 'hsl(var(--border))', mb: 3 }} />
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {API_CONFIG.apiKey && (
+                  <Button
+                    variant="outlined"
+                    onClick={handleClearApiKey}
+                    startIcon={<KeyRound size={16} />}
+                    sx={{
+                      height: 40,
+                      fontSize: '0.825rem',
+                      textTransform: 'none',
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))',
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        bgcolor: 'hsl(var(--primary) / 0.1)',
+                      },
+                    }}
+                  >
+                    Clear API Key
+                  </Button>
+                )}
+
+                <Button
+                  variant="outlined"
+                  onClick={handleLogout}
+                  startIcon={<LogOut size={16} />}
+                  sx={{
+                    height: 40,
+                    fontSize: '0.825rem',
+                    textTransform: 'none',
+                    borderColor: 'rgba(239, 68, 68, 0.4)',
+                    color: '#EF4444',
+                    bgcolor: 'rgba(239, 68, 68, 0.05)',
+                    '&:hover': {
+                      borderColor: '#EF4444',
+                      bgcolor: 'rgba(239, 68, 68, 0.15)',
+                    },
+                  }}
+                >
+                  Sign Out
+                </Button>
+              </Box>
+            </Paper>
+          </Box>
+
+          {/* Right Column: On-Call Pager & Emergency Calling */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <PagerNotificationSettings />
           </Box>
         </Box>
       )}
@@ -191,3 +233,4 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
+
