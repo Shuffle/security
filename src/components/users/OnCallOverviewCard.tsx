@@ -450,7 +450,7 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mt: 0.25 }}>
-              Ring this device with full-screen urgent pager alerts on critical incidents.
+              Ring this device on critical incidents.
             </Typography>
           </Box>
           <Switch
@@ -460,42 +460,29 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
           />
         </Box>
 
-        {/* Action buttons: Test Siren & Simulation */}
-        <Box sx={{ display: 'flex', gap: 1.5, mt: 1, pt: 1, borderTop: '1px solid hsl(var(--border))', flexWrap: 'wrap' }}>
+        {/* Compact test actions */}
+        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, pt: 0.75, borderTop: '1px solid hsl(var(--border))', flexWrap: 'wrap' }}>
           <Button
             size="small"
-            variant="outlined"
+            variant="text"
             onClick={handleTestAudio}
             disabled={isPlayingTestSiren}
             startIcon={<Volume2 size={13} />}
-            sx={{
-              height: 30,
-              fontSize: '0.75rem',
-              textTransform: 'none',
-              borderColor: 'hsl(var(--border))',
-              color: 'hsl(var(--foreground))',
-              '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
-            }}
+            sx={{ height: 28, fontSize: '0.72rem', textTransform: 'none', color: 'hsl(var(--muted-foreground))', minWidth: 0, px: 1 }}
           >
-            {isPlayingTestSiren ? 'Playing Siren...' : 'Test Siren Audio'}
+            {isPlayingTestSiren ? 'Playing...' : 'Test siren'}
           </Button>
 
           <Button
             size="small"
-            variant="outlined"
+            variant="text"
             onClick={testPagerCall}
             startIcon={<Radio size={13} />}
-            sx={{
-              height: 30,
-              fontSize: '0.75rem',
-              textTransform: 'none',
-              borderColor: 'hsl(var(--border))',
-              color: 'hsl(var(--foreground))',
-              '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
-            }}
+            sx={{ height: 28, fontSize: '0.72rem', textTransform: 'none', color: 'hsl(var(--muted-foreground))', minWidth: 0, px: 1 }}
           >
-            Simulate Pager Call
+            Simulate call
           </Button>
+
         </Box>
       </Box>
 
