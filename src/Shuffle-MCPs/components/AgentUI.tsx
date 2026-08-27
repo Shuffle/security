@@ -5424,7 +5424,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           display: 'flex',
           justifyContent: 'center',
           pb: isPhone ? 1 : 4,
-          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'flex-end' } : {}),
+          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'center' } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
@@ -5437,7 +5437,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             display: 'flex',
             flexDirection: 'column',
             gap: isPhone ? 1.5 : 3,
-            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'flex-end' } : {}),
+            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'center' } : {}),
           },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
@@ -5456,7 +5456,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: isPhone ? 1.5 : (compact ? 2 : 3),
               py: isPhone ? 1 : (compact ? 2 : 4),
               width: '100%',
-              ...(isPhone ? { flex: 1, justifyContent: 'flex-end' } : {}),
+              ...(isPhone ? { flex: 1, justifyContent: 'center' } : {}),
             }}
           >
             {!hideHeroIcon && !compact && !isPhone && (
@@ -5491,20 +5491,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Typography>
             )}
 
-            {isPhone && <Box sx={{ flex: 1, minHeight: 0, alignSelf: 'stretch' }} />}
-
             <Box ref={promptAnchorRef} sx={{
               width: '100%',
               display: 'flex',
               flexDirection: 'column',
               gap: 0.5,
-              // Mobile: keep the composer pinned to the bottom of the screen so
-              // it is always within thumb reach, even when the page scrolls.
-              ...(isPhone && showStarter ? {
-                position: 'sticky',
-                bottom: 0,
-                zIndex: 3,
-              } : {}),
               // Keep the same radius in both states so growing to multiple
               // lines does not visually snap from a pill to a boxy card.
               borderRadius: '28px',
