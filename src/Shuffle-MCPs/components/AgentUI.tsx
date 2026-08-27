@@ -6041,7 +6041,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     sx={{
                       all: 'unset', cursor: 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                      pl: 2.5, pr: 1.5, py: 0.5,
+                      pl: isPhone ? 0.5 : 2.5,
+                      pr: isPhone ? 0.5 : 1.5,
+                      py: 0.5,
                       borderRadius: 999,
                       fontSize: '0.8rem', fontWeight: 500,
                       color: 'hsl(var(--muted-foreground))',
@@ -6061,7 +6063,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     ) : (
                       <SettingsIcon size={14} />
                     )}
-                    {detectedLLM?.label || 'Shuffle AI'}
+                    {!isPhone && (detectedLLM?.label || 'Shuffle AI')}
                   </Box>
                 </Tooltip>
                 )}
