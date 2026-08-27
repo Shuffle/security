@@ -53,7 +53,7 @@ function isExternalUrl(url: string): boolean {
 }
 
 export function useNavigate(): NavigateFn {
-  const tsNav = tsNavigate({ strict: false });
+  const tsNav = tsNavigate({ strict: false } as never);
   let router: any = null;
   try {
     router = useRouter();
@@ -92,7 +92,7 @@ export function useNavigate(): NavigateFn {
 // ---------- useLocation ----------
 
 export function useLocation() {
-  const loc = tsLocation({ strict: false });
+  const loc = tsLocation({ strict: false } as never);
   return useMemo(
     () => ({
       pathname: loc.pathname,
@@ -117,8 +117,8 @@ export function useParams<T extends Record<string, string | undefined> = Record<
 // ---------- useSearchParams (react-router-dom compat) ----------
 
 export function useSearchParams(): [URLSearchParams, (init: URLSearchParams | Record<string, string> | ((prev: URLSearchParams) => URLSearchParams), opts?: { replace?: boolean }) => void] {
-  const loc = tsLocation({ strict: false });
-  const nav = tsNavigate({ strict: false });
+  const loc = tsLocation({ strict: false } as never);
+  const nav = tsNavigate({ strict: false } as never);
   let router: any = null;
   try {
     router = useRouter();
@@ -222,7 +222,7 @@ export const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(function NavL
   { to, className, style, children, end, ...rest },
   ref,
 ) {
-  const loc = tsLocation({ strict: false });
+  const loc = tsLocation({ strict: false } as never);
   const { pathname } = parseTo(to);
   const isActive =
     pathname === "."
