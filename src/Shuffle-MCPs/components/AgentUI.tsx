@@ -2079,6 +2079,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return h;
   }, [apiKey, orgId]);
   const hasApiKey = !!apiKey || !!API_CONFIG.apiKey;
+  // Phone-sized viewports get a condensed starter block: no hero icon,
+  // smaller title, tighter vertical rhythm. Desktop is unchanged.
+  const isPhone = useMediaQuery('(max-width:600px)', { noSsr: true });
   const navigate = useNavigate();
   const [actionInput, setActionInput] = useState(defaultInput);
   // Editable per-user prompt prefix rendered as a chip at the start of the
