@@ -387,34 +387,31 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
           mb: 2,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <Avatar
-              sx={{
-                width: 28,
-                height: 28,
-                bgcolor: isMyOnCallEnabled ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                color: isMyOnCallEnabled ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              {currentUsername.charAt(0).toUpperCase()}
-            </Avatar>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.2 }}>
-                {currentUsername} (Personal Status)
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
+          <Avatar
+            sx={{
+              width: 28,
+              height: 28,
+              bgcolor: isMyOnCallEnabled ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+              color: isMyOnCallEnabled ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+            }}
+          >
+            {currentUsername.charAt(0).toUpperCase()}
+          </Avatar>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+            {currentUsername}
+            {isMyOnCallEnabled && myAssignedTiers.length > 0 && (
+              <Typography component="span" variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontWeight: 500, ml: 0.75 }}>
+                {myAssignedTiers.map((t) => ESCALATION_LABELS[t]).join(', ')}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                {isMyOnCallEnabled
-                  ? `Assigned to: ${myAssignedTiers.map((t) => ESCALATION_LABELS[t]).join(', ') || 'Rotation'}`
-                  : 'Currently paused — no incident escalations will route to you'}
-              </Typography>
-            </Box>
-          </Box>
+            )}
+          </Typography>
         </Box>
 
         <Divider sx={{ my: 1, borderColor: 'hsl(var(--border))' }} />
+
 
         {/* Toggle 1: My On-Call Rotation Duty */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75 }}>
