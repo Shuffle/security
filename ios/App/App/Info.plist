@@ -72,7 +72,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>io.shuffle.security</string>
+			<string>com.shuffle.security</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>shuffle</string>
