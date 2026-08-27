@@ -3,8 +3,16 @@ name: Deploy Android to Google Play
 on:
   workflow_dispatch:
     inputs:
+      build_type:
+        description: 'Build Type (debug for testing, release for store deployment)'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
       track:
-        description: 'Google Play Release Track'
+        description: 'Google Play Release Track (used when build_type is release)'
         required: true
         default: 'internal'
         type: choice
@@ -34,9 +42,9 @@ on:
           - inProgress
           - halted
       upload_to_play_store:
-        description: 'Upload to Google Play Console automatically'
+        description: 'Upload to Google Play Console automatically (only applies if build_type is release)'
         required: true
-        default: true
+        default: false
         type: boolean
 
 concurrency:
@@ -143,8 +151,8 @@ jobs:
           sed -i "s/versionName \"1.0.0\"/versionName \"$V_NAME\"/g" android/app/build.gradle
           echo "Updated android/app/build.gradle with versionCode=$V_CODE and versionName=$V_NAME"
 
-      # 10. Build Signed Android App Bundle (AAB) & APK
-      - name: Build Android App Bundle (AAB)
+      # 10. Build Android App Bundle (AAB) & APK
+      - name: Build Android App Bundle (AAB) & APK
         working-directory: android
         env:
           ANDROID_KEYSTORE_PATH: ${{ env.KEYSTORE_PATH || '' }}
@@ -153,7 +161,10 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          if [ -n "$ANDROID_KEYSTORE_PATH" ]; then
+          if [ "${{ github.event.inputs.build_type }}" = "debug" ]; then
+            echo "Building debug bundle and APK for safe testing..."
+            ./gradlew bundleDebug assembleDebug
+          elif [ -n "$ANDROID_KEYSTORE_PATH" ]; then
             echo "Building signed release bundle..."
             ./gradlew bundleRelease assembleRelease \
               -PANDROID_KEYSTORE_PATH="$ANDROID_KEYSTORE_PATH" \
@@ -170,19 +181,19 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: shuffle-security-android-v${{ steps.versioning.outputs.VERSION_NAME }}-b${{ steps.versioning.outputs.VERSION_CODE }}-aab
-          path: android/app/build/outputs/bundle/release/*.aab
+          path: android/app/build/outputs/bundle/**/*.aab
           retention-days: 30
 
       - name: Upload Android APK to GitHub Artifacts (For Direct Sideload Testing)
         uses: actions/upload-artifact@v4
         with:
           name: shuffle-security-android-v${{ steps.versioning.outputs.VERSION_NAME }}-b${{ steps.versioning.outputs.VERSION_CODE }}-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/**/*.apk
           retention-days: 30
 
       # 12. Upload to Google Play Console
       - name: Upload AAB to Google Play
-        if: ${{ github.event.inputs.upload_to_play_store == 'true' && env.HAVE_SERVICE_ACCOUNT == 'true' }}
+        if: ${{ github.event.inputs.build_type == 'release' && github.event.inputs.upload_to_play_store == 'true' && env.HAVE_SERVICE_ACCOUNT == 'true' }}
         uses: r0adkll/upload-google-play@v1
         env:
           HAVE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}

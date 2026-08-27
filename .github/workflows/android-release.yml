@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Build Type (release or debug)'
+        description: 'Build Type (debug or release)'
         required: true
-        default: 'release'
+        default: 'debug'
         type: choice
         options:
-          - release
           - debug
+          - release
 
 permissions:
   contents: write
