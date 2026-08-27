@@ -310,8 +310,9 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
               On-Call & Emergency Pager
             </Typography>
             <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-              Incident triage, multi-tier escalation, and mobile pager alerts
+              Escalation and pager alerts
             </Typography>
+
           </Box>
         </Box>
 
