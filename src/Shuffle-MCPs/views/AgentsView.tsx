@@ -304,31 +304,33 @@ const AgentsView = ({
             </Typography>
           </Box>
         )}
-        <AgentUI
-          key={prefill.key}
-          maxWidth={maxWidth}
-          apiBaseUrl={globalUrl}
-          onViewChange={setAgentView}
-          onSchedule={effectiveSchedule}
-          apiKey={apiKey}
-          orgId={orgId}
-          userId={userdata?.id}
-          isSupport={userdata?.support === true || userdata?.support === 'true'}
-          onChooseLLM={handleChooseLLM}
-          hideChooseLLM={hideChooseLLM}
-          defaultInput={prefill.input}
-          defaultApps={prefill.apps.length > 0 ? prefill.apps : undefined}
-          submitOverride={editing ? handleSaveEdit : undefined}
-          submitLabel={editing ? 'Save' : undefined}
-          submitTooltip={editing ? '⌘+Enter to save' : undefined}
-          disableSchedule={Boolean(editing)}
-          disableScheduleTooltip={editing ? 'Scheduling is disabled while editing an existing schedule' : undefined}
-          theme={resolvedTheme}
-          colorMode={colorMode}
-          onAppsChange={handleAppsChange}
-          presetCtas={presetCtas}
-        />
-        {agentView === 'start' && (
+        <Box sx={{ flex: isPhone ? 1 : undefined, display: isPhone ? 'flex' : undefined, flexDirection: isPhone ? 'column' : undefined, minHeight: isPhone ? '100%' : undefined }}>
+          <AgentUI
+            key={prefill.key}
+            maxWidth={maxWidth}
+            apiBaseUrl={globalUrl}
+            onViewChange={setAgentView}
+            onSchedule={effectiveSchedule}
+            apiKey={apiKey}
+            orgId={orgId}
+            userId={userdata?.id}
+            isSupport={userdata?.support === true || userdata?.support === 'true'}
+            onChooseLLM={handleChooseLLM}
+            hideChooseLLM={hideChooseLLM}
+            defaultInput={prefill.input}
+            defaultApps={prefill.apps.length > 0 ? prefill.apps : undefined}
+            submitOverride={editing ? handleSaveEdit : undefined}
+            submitLabel={editing ? 'Save' : undefined}
+            submitTooltip={editing ? '⌘+Enter to save' : undefined}
+            disableSchedule={Boolean(editing)}
+            disableScheduleTooltip={editing ? 'Scheduling is disabled while editing an existing schedule' : undefined}
+            theme={resolvedTheme}
+            colorMode={colorMode}
+            onAppsChange={handleAppsChange}
+            presetCtas={presetCtas}
+          />
+        </Box>
+        {!isPhone && agentView === 'start' && (
           <Box id="agent-activity" sx={{ pt: { xs: 4, md: '8vh' }, scrollMarginTop: 80 }}>
             <AgentActivityList
               apiBaseUrl={globalUrl}
