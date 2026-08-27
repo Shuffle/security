@@ -32,9 +32,10 @@ const Index = () => {
     return <Navigate to="/incidents" replace />;
   }
 
-  // 2. If running inside native mobile app (Capacitor) or on a mobile device,
-  // render the dedicated Mobile Onboarding & Auth Gateway
-  if (isClient && (isCapacitorNative() || isMobile)) {
+  // 2. Only inside the native mobile app (Capacitor) do we render the
+  // dedicated Mobile Onboarding & Auth Gateway. Mobile web browsers keep the
+  // marketing landing page.
+  if (isClient && isCapacitorNative()) {
     return <MobileAuthGateway />;
   }
 
