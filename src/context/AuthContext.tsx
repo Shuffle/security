@@ -196,7 +196,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     };
 
-    verifyAuth();
+    // Watchdog: never leave the app stuck on "Checking login details…" if the
+    // backend is unreachable or the request never settles.
+    const watchdog = window.setTimeout(() => setIsLoading(false), 16000);
+    verifyAuth().finally(() => window.clearTimeout(watchdog));
     // Only run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
