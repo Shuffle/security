@@ -70,7 +70,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-
+  useMediaQuery,
 } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import {
@@ -2079,6 +2079,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return h;
   }, [apiKey, orgId]);
   const hasApiKey = !!apiKey || !!API_CONFIG.apiKey;
+  // Phone-sized viewports get a condensed starter block: no hero icon,
+  // smaller title, tighter vertical rhythm. Desktop is unchanged.
+  const isPhone = useMediaQuery('(max-width:600px)', { noSsr: true });
   const navigate = useNavigate();
   const [actionInput, setActionInput] = useState(defaultInput);
   // Editable per-user prompt prefix rendered as a chip at the start of the
@@ -5312,13 +5315,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
     <Box
       className={className}
       sx={[
-        { width: '100%', display: 'flex', justifyContent: 'center', pb: 4 },
+        { width: '100%', display: 'flex', justifyContent: 'center', pb: isPhone ? 1 : 4 },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
       <Box
         sx={[
-          { width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: 3 },
+          { width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: isPhone ? 1.5 : 3 },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
       >
@@ -5328,9 +5331,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
           <Box
             component="form"
             onSubmit={(e) => { e.preventDefault(); handlePrimarySubmit(); }}
-            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compact ? 2 : 3, py: compact ? 2 : 4 }}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: isPhone ? 1.5 : (compact ? 2 : 3),
+              py: isPhone ? 1 : (compact ? 2 : 4),
+            }}
           >
-            {!hideHeroIcon && !compact && (
+            {!hideHeroIcon && !compact && !isPhone && (
               <Box sx={{
                 width: heroIconSize, height: heroIconSize, borderRadius: 3,
                 bgcolor: 'hsl(var(--card))',
@@ -5342,7 +5351,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Box>
             )}
             <Typography component="h1" sx={{
-              fontSize: compact ? { xs: '1.25rem', md: '1.5rem' } : { xs: '1.75rem', md: '2.25rem' },
+              fontSize: compact ? { xs: '1.1rem', md: '1.5rem' } : { xs: '1.35rem', md: '2.25rem' },
               fontWeight: 600,
               color: 'hsl(var(--foreground))',
               textAlign: 'center',
@@ -5352,10 +5361,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
             </Typography>
             {subtitle && (
               <Typography sx={{
-                fontSize: '0.95rem',
+                fontSize: { xs: '0.8rem', sm: '0.95rem' },
                 color: 'hsl(var(--muted-foreground))',
                 textAlign: 'center',
-                mt: -1,
+                mt: isPhone ? -0.5 : -1,
                 maxWidth: 600,
               }}>
                 {subtitle}

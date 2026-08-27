@@ -18,7 +18,7 @@ interface State {
 }
 
 export class GlobalErrorBoundary extends Component<Props, State> {
-  public state: State = {
+  public override state: State = {
     hasError: false,
     error: null,
     errorInfo: null,
@@ -30,7 +30,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
     recordCrash(error, {
       source: 'react_boundary',
@@ -60,7 +60,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     }
   };
 
-  public render() {
+  public override render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;

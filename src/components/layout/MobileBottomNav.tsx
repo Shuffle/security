@@ -1,10 +1,10 @@
 import { useLocation, Link } from '@/lib/router-compat';
 import { Box, Typography } from '@mui/material';
 import {
-  ShieldAlert as ShieldAlertIcon,
-  Bot as BotIcon,
-  ShieldCheck as ShieldCheckIcon,
+  AlertTriangle as WarningAmberIcon,
+  ShieldCheck as AdminPanelSettingsIcon,
 } from 'lucide-react';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 
 export const MobileBottomNav = () => {
@@ -14,17 +14,17 @@ export const MobileBottomNav = () => {
   const navItems = [
     {
       label: entityPlural || 'Incidents',
-      icon: <ShieldAlertIcon size={20} />,
+      icon: <WarningAmberIcon size={20} />,
       path: entityBasePath || '/incidents',
     },
     {
       label: 'AI Agent',
-      icon: <BotIcon size={20} />,
+      icon: <AgentIcon size={20} />,
       path: '/agent',
     },
     {
       label: 'Admin',
-      icon: <ShieldCheckIcon size={20} />,
+      icon: <AdminPanelSettingsIcon size={20} />,
       path: '/admin',
     },
   ];
