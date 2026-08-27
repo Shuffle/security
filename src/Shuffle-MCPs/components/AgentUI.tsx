@@ -5424,7 +5424,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           display: 'flex',
           justifyContent: 'center',
           pb: isPhone ? 1 : 4,
-          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'flex-end' } : {}),
+          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'center' } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
