@@ -5350,6 +5350,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               alignItems: 'center',
               gap: isPhone ? 1.5 : (compact ? 2 : 3),
               py: isPhone ? 1 : (compact ? 2 : 4),
+              width: '100%',
+              ...(isPhone ? { flex: 1, justifyContent: 'flex-end' } : {}),
             }}
           >
             {!hideHeroIcon && !compact && !isPhone && (
