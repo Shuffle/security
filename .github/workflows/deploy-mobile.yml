@@ -3,6 +3,14 @@ name: Deploy Mobile (Android & iOS)
 on:
   workflow_dispatch:
     inputs:
+      build_type:
+        description: 'Build Type (release for store deployment, debug for quick local testing)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
       target_platform:
         description: 'Select Platform to Build & Deploy'
         required: true
@@ -23,7 +31,7 @@ on:
         default: ''
         type: string
       android_track:
-        description: 'Google Play Track (if deploying Android)'
+        description: 'Google Play Track (default is safe internal testing)'
         required: true
         default: 'internal'
         type: choice
@@ -33,7 +41,7 @@ on:
           - beta
           - production
       upload_to_stores:
-        description: 'Upload builds directly to Google Play / App Store TestFlight'
+        description: 'Upload builds directly to Google Play (Internal) & Apple TestFlight'
         required: true
         default: true
         type: boolean
@@ -141,7 +149,10 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          if [ -n "$ANDROID_KEYSTORE_PATH" ]; then
+          if [ "${{ github.event.inputs.build_type }}" = "debug" ]; then
+            echo "Building debug bundle and APK..."
+            ./gradlew bundleDebug assembleDebug
+          elif [ -n "$ANDROID_KEYSTORE_PATH" ]; then
             ./gradlew bundleRelease assembleRelease \
               -PANDROID_KEYSTORE_PATH="$ANDROID_KEYSTORE_PATH" \
               -PANDROID_KEYSTORE_PASSWORD="$ANDROID_KEYSTORE_PASSWORD" \
@@ -155,18 +166,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: shuffle-android-v${{ steps.versioning.outputs.VERSION_NAME }}-b${{ steps.versioning.outputs.VERSION_CODE }}-aab
-          path: android/app/build/outputs/bundle/release/*.aab
+          path: android/app/build/outputs/bundle/**/*.aab
           retention-days: 30
 
       - name: Upload Android APK to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: shuffle-android-v${{ steps.versioning.outputs.VERSION_NAME }}-b${{ steps.versioning.outputs.VERSION_CODE }}-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/**/*.apk
           retention-days: 30
 
       - name: Upload AAB to Google Play
-        if: ${{ github.event.inputs.upload_to_stores == 'true' && env.HAVE_SERVICE_ACCOUNT == 'true' }}
+        if: ${{ github.event.inputs.build_type == 'release' && github.event.inputs.upload_to_stores == 'true' && env.HAVE_SERVICE_ACCOUNT == 'true' }}
         uses: r0adkll/upload-google-play@v1
         env:
           HAVE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
