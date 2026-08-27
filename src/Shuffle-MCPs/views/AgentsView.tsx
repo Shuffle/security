@@ -148,7 +148,6 @@ const AgentsView = ({
     key: 0,
   });
   const [editing, setEditing] = useState<{ workflowId: string; name: string } | null>(null);
-  const isPhone = useMediaQuery('(max-width:600px)', { noSsr: true });
 
   // Internal persistence of the chip row (24h TTL). Forwards to host onAppsChange.
   const handleAppsChange = useCallback((apps: AgentUIApp[]) => {
