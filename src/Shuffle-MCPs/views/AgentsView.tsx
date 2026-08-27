@@ -276,8 +276,9 @@ const AgentsView = ({
   );
 
   return (
-    <Box sx={{ minHeight: { xs: 'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))', md: '100%' }, width: '100%', px: { xs: 1.25, md: 4 }, pt: { xs: 1, md: '5vh' }, pb: { xs: 2, md: 6 }, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-      <Stack spacing={{ xs: 2.5, md: 6 }} sx={{ maxWidth, mx: 'auto', width: '100%', flex: { xs: 1, md: 'unset' }, minHeight: { xs: '100%' } }}>
+    <Box sx={{ minHeight: { xs: 'calc(100dvh - 76px - 24px - env(safe-area-inset-bottom, 0px))', md: '100%' }, width: '100%', px: { xs: 1.25, md: 4 }, pt: { xs: 1, md: '5vh' }, pb: { xs: 2, md: 6 }, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <Stack spacing={{ xs: 2.5, md: 6 }} sx={{ maxWidth, mx: 'auto', width: '100%', flex: { xs: 1, md: 'unset' }, minHeight: { xs: 0 } }}>
+
         {editing && (
           <Box
             sx={{
@@ -303,7 +304,7 @@ const AgentsView = ({
             </Typography>
           </Box>
         )}
-        <Box sx={{ flex: { xs: 1, md: 'unset' }, display: { xs: 'flex', md: 'block' }, flexDirection: { xs: 'column' }, minHeight: { xs: '100%' } }}>
+        <Box sx={{ flex: { xs: 1, md: 'unset' }, display: { xs: 'flex', md: 'block' }, flexDirection: { xs: 'column' }, justifyContent: { xs: 'center' }, minHeight: { xs: 0 } }}>
           <AgentUI
             key={prefill.key}
             maxWidth={maxWidth}
