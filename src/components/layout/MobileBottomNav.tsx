@@ -19,7 +19,7 @@ export const MobileBottomNav = () => {
     },
     {
       label: 'AI Agent',
-      icon: <BotIcon size={20} />,
+      icon: <AgentIcon size={20} />,
       path: '/agent',
     },
     {
