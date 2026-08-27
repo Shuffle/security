@@ -1,10 +1,10 @@
 import { useLocation, Link } from '@/lib/router-compat';
 import { Box, Typography } from '@mui/material';
 import {
-  ShieldAlert as ShieldAlertIcon,
-  Bot as BotIcon,
-  ShieldCheck as ShieldCheckIcon,
+  AlertTriangle as WarningAmberIcon,
+  ShieldCheck as AdminPanelSettingsIcon,
 } from 'lucide-react';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 
 export const MobileBottomNav = () => {
