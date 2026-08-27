@@ -5361,10 +5361,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
             </Typography>
             {subtitle && (
               <Typography sx={{
-                fontSize: '0.95rem',
+                fontSize: { xs: '0.8rem', sm: '0.95rem' },
                 color: 'hsl(var(--muted-foreground))',
                 textAlign: 'center',
-                mt: -1,
+                mt: isPhone ? -0.5 : -1,
                 maxWidth: 600,
               }}>
                 {subtitle}
