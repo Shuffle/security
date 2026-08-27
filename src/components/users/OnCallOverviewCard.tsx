@@ -310,8 +310,9 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
               On-Call & Emergency Pager
             </Typography>
             <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-              Incident triage, multi-tier escalation, and mobile pager alerts
+              Escalation and pager alerts
             </Typography>
+
           </Box>
         </Box>
 
@@ -386,34 +387,31 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
           mb: 2,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <Avatar
-              sx={{
-                width: 28,
-                height: 28,
-                bgcolor: isMyOnCallEnabled ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                color: isMyOnCallEnabled ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              {currentUsername.charAt(0).toUpperCase()}
-            </Avatar>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.2 }}>
-                {currentUsername} (Personal Status)
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
+          <Avatar
+            sx={{
+              width: 28,
+              height: 28,
+              bgcolor: isMyOnCallEnabled ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+              color: isMyOnCallEnabled ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+            }}
+          >
+            {currentUsername.charAt(0).toUpperCase()}
+          </Avatar>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+            {currentUsername}
+            {isMyOnCallEnabled && myAssignedTiers.length > 0 && (
+              <Typography component="span" variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontWeight: 500, ml: 0.75 }}>
+                {myAssignedTiers.map((t) => ESCALATION_LABELS[t]).join(', ')}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                {isMyOnCallEnabled
-                  ? `Assigned to: ${myAssignedTiers.map((t) => ESCALATION_LABELS[t]).join(', ') || 'Rotation'}`
-                  : 'Currently paused — no incident escalations will route to you'}
-              </Typography>
-            </Box>
-          </Box>
+            )}
+          </Typography>
         </Box>
 
         <Divider sx={{ my: 1, borderColor: 'hsl(var(--border))' }} />
+
 
         {/* Toggle 1: My On-Call Rotation Duty */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75 }}>
@@ -425,10 +423,9 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mt: 0.25 }}>
-              {isMyOnCallEnabled
-                ? 'Turn OFF to take yourself off the on-call schedule (vacation / off-duty).'
-                : 'Turn ON to receive incident assignments and escalation shifts.'}
+              {isMyOnCallEnabled ? 'Receiving assignments and shifts' : 'Paused — no escalations route to you'}
             </Typography>
+
           </Box>
           {savingSelfSchedule ? (
             <CircularProgress size={20} sx={{ color: 'hsl(var(--primary))' }} />
@@ -453,7 +450,7 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mt: 0.25 }}>
-              Ring this device with full-screen urgent pager alerts on critical incidents.
+              Ring this device on critical incidents.
             </Typography>
           </Box>
           <Switch
@@ -463,42 +460,29 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
           />
         </Box>
 
-        {/* Action buttons: Test Siren & Simulation */}
-        <Box sx={{ display: 'flex', gap: 1.5, mt: 1, pt: 1, borderTop: '1px solid hsl(var(--border))', flexWrap: 'wrap' }}>
+        {/* Compact test actions */}
+        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, pt: 0.75, borderTop: '1px solid hsl(var(--border))', flexWrap: 'wrap' }}>
           <Button
             size="small"
-            variant="outlined"
+            variant="text"
             onClick={handleTestAudio}
             disabled={isPlayingTestSiren}
             startIcon={<Volume2 size={13} />}
-            sx={{
-              height: 30,
-              fontSize: '0.75rem',
-              textTransform: 'none',
-              borderColor: 'hsl(var(--border))',
-              color: 'hsl(var(--foreground))',
-              '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
-            }}
+            sx={{ height: 28, fontSize: '0.72rem', textTransform: 'none', color: 'hsl(var(--muted-foreground))', minWidth: 0, px: 1 }}
           >
-            {isPlayingTestSiren ? 'Playing Siren...' : 'Test Siren Audio'}
+            {isPlayingTestSiren ? 'Playing...' : 'Test siren'}
           </Button>
 
           <Button
             size="small"
-            variant="outlined"
+            variant="text"
             onClick={testPagerCall}
             startIcon={<Radio size={13} />}
-            sx={{
-              height: 30,
-              fontSize: '0.75rem',
-              textTransform: 'none',
-              borderColor: 'hsl(var(--border))',
-              color: 'hsl(var(--foreground))',
-              '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
-            }}
+            sx={{ height: 28, fontSize: '0.72rem', textTransform: 'none', color: 'hsl(var(--muted-foreground))', minWidth: 0, px: 1 }}
           >
-            Simulate Pager Call
+            Simulate call
           </Button>
+
         </Box>
       </Box>
 
@@ -566,50 +550,41 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
         </Box>
       </Collapse>
 
-      {/* Live On-Call Roster Right Now */}
+      {/* Live On-Call Roster Right Now — only tiers with someone on duty */}
       <Box sx={{ mt: 0.5 }}>
         <Typography variant="caption" sx={{ fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 0.75, fontSize: '0.68rem' }}>
-          Active Responders On-Duty Right Now
+          On duty right now
         </Typography>
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-          {/* Tier 1 */}
-          <Chip
-            avatar={<Avatar sx={{ bgcolor: ESCALATION_COLORS.tier1, color: '#fff', fontSize: '0.65rem' }}>T1</Avatar>}
-            label={`Tier 1: ${activeRespondersNow.tier1.length > 0 ? activeRespondersNow.tier1.join(', ') : 'AI Agent (Backup)'}`}
-            size="small"
-            variant="outlined"
-            sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
-          />
-
-          {/* Tier 2 */}
-          <Chip
-            avatar={<Avatar sx={{ bgcolor: ESCALATION_COLORS.tier2, color: '#fff', fontSize: '0.65rem' }}>T2</Avatar>}
-            label={`Tier 2: ${activeRespondersNow.tier2.length > 0 ? activeRespondersNow.tier2.join(', ') : 'None'}`}
-            size="small"
-            variant="outlined"
-            sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
-          />
-
-          {/* Tier 3 */}
-          <Chip
-            avatar={<Avatar sx={{ bgcolor: ESCALATION_COLORS.tier3, color: '#fff', fontSize: '0.65rem' }}>T3</Avatar>}
-            label={`Tier 3: ${activeRespondersNow.tier3.length > 0 ? activeRespondersNow.tier3.join(', ') : 'None'}`}
-            size="small"
-            variant="outlined"
-            sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
-          />
-
-          {/* Manager */}
-          <Chip
-            avatar={<Avatar sx={{ bgcolor: ESCALATION_COLORS.manager, color: '#fff', fontSize: '0.65rem' }}>M</Avatar>}
-            label={`Manager: ${activeRespondersNow.manager.length > 0 ? activeRespondersNow.manager.join(', ') : 'None'}`}
-            size="small"
-            variant="outlined"
-            sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
-          />
+          {(['tier1', 'tier2', 'tier3', 'manager'] as EscalationLevel[])
+            .filter((tier) => activeRespondersNow[tier].length > 0)
+            .map((tier) => (
+              <Chip
+                key={tier}
+                avatar={(
+                  <Avatar sx={{ bgcolor: ESCALATION_COLORS[tier], color: '#fff', fontSize: '0.65rem' }}>
+                    {tier === 'manager' ? 'M' : tier.replace('tier', 'T')}
+                  </Avatar>
+                )}
+                label={`${ESCALATION_LABELS[tier]}: ${activeRespondersNow[tier].join(', ')}`}
+                size="small"
+                variant="outlined"
+                sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
+              />
+            ))}
+          {(['tier1', 'tier2', 'tier3', 'manager'] as EscalationLevel[]).every((tier) => activeRespondersNow[tier].length === 0) && (
+            <Chip
+              avatar={<Avatar sx={{ bgcolor: ESCALATION_COLORS.tier1, color: '#fff', fontSize: '0.65rem' }}>T1</Avatar>}
+              label="AI Agent (backup)"
+              size="small"
+              variant="outlined"
+              sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
+            />
+          )}
         </Box>
       </Box>
+
     </Paper>
   );
 };

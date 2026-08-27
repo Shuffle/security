@@ -46,6 +46,8 @@ import {
   AlertTriangle as WarningIcon,
   Search as SearchIcon,
   Image as ImageIcon,
+  Plus as PlusIcon,
+  
 } from 'lucide-react';
 import { fetchExecution as fetchExecutionSnapshot } from '@/Shuffle-Core/components/WorkflowRunExplorer';
 import { useNavigate, useSearchParams } from '@/lib/router-compat';
@@ -2504,6 +2506,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   );
   const [showStarter, setShowStarter] = useState(true);
   const [scheduleAnchor, setScheduleAnchor] = useState<HTMLElement | null>(null);
+  // Mobile-only "+" menu that groups Skills / Schedule / Attach into one control.
+  const [mobilePlusAnchor, setMobilePlusAnchor] = useState<HTMLElement | null>(null);
   const [scheduleCron, setScheduleCron] = useState('0 * * * *');
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleSteps, setScheduleSteps] = useState<Array<{ id: 'name' | 'workflow' | 'schedule'; state: 'pending' | 'active' | 'done' | 'error'; detail?: string }>>([
@@ -5308,8 +5312,108 @@ const AgentUI: React.FC<AgentUIProps> = ({
     </Box>
   ) : null;
 
+  // ── Mobile "+" menu: Skills / Schedule / Attach in one control ──
+  const mobilePlusCanSchedule = (hasExecution || showStarter)
+    && !scheduleDisabledReason
+    && !disableSchedule
+    && (actionInput || '').trim().length >= 1;
+
+  const mobilePlusButton = isPhone ? (
+    <IconButton
+      type="button"
+      aria-label="Skills, schedule and attachments"
+      onClick={(e) => setMobilePlusAnchor(e.currentTarget)}
+      sx={{
+        width: 32,
+        height: 32,
+        flexShrink: 0,
+        alignSelf: 'flex-start',
+        border: '1px solid hsl(var(--border))',
+        color: selectedPreset ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+        bgcolor: selectedPreset ? 'hsl(var(--muted))' : 'transparent',
+        '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
+      }}
+    >
+      {selectedPreset?.icon ?? <PlusIcon size={16} />}
+    </IconButton>
+  ) : null;
+
+  const mobilePlusMenu = isPhone ? (
+    <Popover
+      open={Boolean(mobilePlusAnchor)}
+      anchorEl={mobilePlusAnchor}
+      onClose={() => setMobilePlusAnchor(null)}
+      anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+      transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      slotProps={{
+        paper: {
+          sx: {
+            mt: -1,
+            minWidth: 220,
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 2,
+          },
+        },
+      }}
+    >
+      <MenuList dense disablePadding>
+        {!hidePresets && (
+          <MenuItem
+            onClick={() => {
+              setMobilePlusAnchor(null);
+              setTimeout(() => { try { presetsChipNodeRef.current?.click(); } catch { /* ignore */ } }, 0);
+            }}
+            sx={{ gap: 1.25, py: 1, fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}
+          >
+            <SettingsIcon size={16} />
+            {selectedPreset ? `Skill: ${selectedPreset.label}` : 'Choose a skill'}
+          </MenuItem>
+        )}
+        {!hidePresets && selectedPreset && (
+          <MenuItem
+            onClick={() => {
+              setMobilePlusAnchor(null);
+              try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
+              setSelectedPreset(null);
+            }}
+            sx={{ gap: 1.25, py: 1, fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}
+          >
+            <CloseIcon size={16} />
+            Remove skill
+          </MenuItem>
+        )}
+        <MenuItem
+          disabled={!mobilePlusCanSchedule || agentRequestLoading}
+          onClick={() => {
+            const el = mobilePlusAnchor;
+            setMobilePlusAnchor(null);
+            if (el) setScheduleAnchor(el);
+          }}
+          sx={{ gap: 1.25, py: 1, fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}
+        >
+          <ScheduleIcon size={16} />
+          Schedule this prompt
+        </MenuItem>
+        {!hideAttach && (
+          <MenuItem
+            disabled={agentRequestLoading || attachedImages.length >= 3}
+            onClick={() => {
+              setMobilePlusAnchor(null);
+              fileInputRef.current?.click();
+            }}
+            sx={{ gap: 1.25, py: 1, fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}
+          >
+            <AttachFileIcon size={16} />
+            {attachedImages.length > 0 ? `Attach image (${attachedImages.length}/3)` : 'Attach image'}
+          </MenuItem>
+        )}
+      </MenuList>
+    </Popover>
+  ) : null;
 
   // ── Render ──
+
 
   return (
     <Box
@@ -5320,7 +5424,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           display: 'flex',
           justifyContent: 'center',
           pb: isPhone ? 1 : 4,
-          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'flex-end' } : {}),
+          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'center' } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
@@ -5333,13 +5437,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
             display: 'flex',
             flexDirection: 'column',
             gap: isPhone ? 1.5 : 3,
-            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'flex-end' } : {}),
+            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'center' } : {}),
           },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
       >
         {showRunSwitcher && tabBar}
         {schedulePopover}
+        {mobilePlusMenu}
         {showStarter ? (
           <Box
             component="form"
@@ -5351,7 +5456,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: isPhone ? 1.5 : (compact ? 2 : 3),
               py: isPhone ? 1 : (compact ? 2 : 4),
               width: '100%',
-              ...(isPhone ? { flex: 1, justifyContent: 'flex-end' } : {}),
+              ...(isPhone ? { flex: 1, justifyContent: 'center' } : {}),
             }}
           >
             {!hideHeroIcon && !compact && !isPhone && (
@@ -5386,8 +5491,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Typography>
             )}
 
-            {isPhone && <Box sx={{ flex: 1, minHeight: 0, alignSelf: 'stretch' }} />}
-
             <Box ref={promptAnchorRef} sx={{
               width: '100%',
               display: 'flex',
@@ -5398,8 +5501,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
               borderRadius: '28px',
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
-              px: 2.25,
+              px: isPhone ? 1 : 2.25,
               py: 1,
+
 
               // A one-line prompt is a fixed-size control. Lock all three
               // dimensions so TextareaAutosize cannot retain a stale
@@ -5435,6 +5539,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 } : {}),
               }}>
 
+              {isPhone && !promptMultiline && mobilePlusButton}
 
               <InputBase
                 inputRef={inputRef}
@@ -5520,7 +5625,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     // Only line 1 is indented for the skill chip while the
                     // prompt is a single line. Once it wraps, the chip drops to
                     // its own bottom row so the indent is removed.
-                    textIndent: (!hidePresets && !promptMultiline) ? `${(presetsChipWidth || 96) + 6}px` : 0,
+                    textIndent: (!hidePresets && !promptMultiline && !isPhone) ? `${(presetsChipWidth || 96) + 6}px` : 0,
                     transition: 'text-indent 180ms cubic-bezier(0.4, 0, 0.2, 1)',
                      ...(promptSingleLineLocked ? {
                        height: '33px !important',
@@ -5549,7 +5654,19 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 <Box
                   ref={chipOverlayRef}
                   data-static={promptMultiline ? '1' : '0'}
-                  sx={promptMultiline ? {
+                  sx={isPhone ? {
+                    // Mobile: the skill chip lives inside the "+" menu. The
+                    // trigger stays mounted (invisible) so the menu can still
+                    // be opened programmatically and anchored correctly.
+                    position: 'absolute',
+                    left: 0,
+                    bottom: 0,
+                    width: 0,
+                    height: 0,
+                    overflow: 'hidden',
+                    opacity: 0,
+                    pointerEvents: 'none',
+                  } : promptMultiline ? {
                     // Multiline: the skill chip drops down into its own bottom
                     // bar, pinned to the bottom-left next to the action buttons.
                     // The left offset matches the single-line overlay exactly so
@@ -5666,6 +5783,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
 
 
+              {isPhone && promptMultiline && mobilePlusButton}
 
               <Box sx={{
                 display: 'flex',
@@ -5688,6 +5806,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 },
               }}>
               {(() => {
+                // On mobile the schedule control lives in the "+" menu.
+                if (isPhone) return null;
+
 
                 const allowWithoutExecution = showStarter;
                 const promptTooShort = showStarter && (actionInput || '').trim().length < 1;
@@ -5748,7 +5869,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Tooltip>
                 );
               })()}
-              {!hideAttach && (
+              {!hideAttach && !isPhone && (
               <IconButton
                 type="button"
                 onClick={() => {
