@@ -169,7 +169,8 @@ public class PushNotificationsPlugin: CAPPlugin, CAPBridgedPlugin {
     private var appDelegateRegistrationCalled: Bool = false
 
     private func rejectCall(_ call: CAPPluginCall, _ message: String, _ code: String? = nil, _ error: Error? = nil) {
-        call.errorHandler(CAPPluginCallError(message: message, code: code, error: error, data: nil))
+        let errData: PluginCallResultData? = nil
+        call.errorHandler(CAPPluginCallError(message: message, code: code, error: error, data: errData))
     }
 
     override public func load() {
@@ -191,9 +192,6 @@ public class PushNotificationsPlugin: CAPPlugin, CAPBridgedPlugin {
         NotificationCenter.default.removeObserver(self)
     }
 
-    /**
-     * Register for push notifications
-     */
     @objc func register(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             UIApplication.shared.registerForRemoteNotifications()
@@ -201,151 +199,100 @@ public class PushNotificationsPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
 
-    /**
-     * Unregister for remote notifications
-     */
     @objc func unregister(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             UIApplication.shared.unregisterForRemoteNotifications()
-            call.resolve()
         }
+        call.resolve()
     }
 
-    /**
-     * Request notification permission
-     */
-    @objc override public func requestPermissions(_ call: CAPPluginCall) {
-        self.notificationDelegateHandler.requestPermissions { granted, error in
-            guard error == nil else {
-                if let err = error {
-                    self.rejectCall(call, err.localizedDescription, nil, err)
-                    return
-                }
-
-                self.rejectCall(call, "unknown error in permissions request")
-                return
-            }
-
-            var result: PushNotificationsPermissions = .denied
-
-            if granted {
-                result = .granted
-            }
-
-            call.resolve(["receive": result.rawValue])
-        }
-    }
-
-    /**
-     * Check notification permission
-     */
     @objc override public func checkPermissions(_ call: CAPPluginCall) {
         self.notificationDelegateHandler.checkPermissions { status in
             var result: PushNotificationsPermissions = .prompt
-
             switch status {
             case .notDetermined:
                 result = .prompt
             case .denied:
                 result = .denied
-            case .ephemeral, .authorized, .provisional:
+            case .authorized, .ephemeral, .provisional:
                 result = .granted
             @unknown default:
                 result = .prompt
             }
-
             call.resolve(["receive": result.rawValue])
         }
     }
 
-    /**
-     * Get notifications in Notification Center
-     */
-    @objc func getDeliveredNotifications(_ call: CAPPluginCall) {
-        if !appDelegateRegistrationCalled {
-            self.rejectCall(call, "event capacitorDidRegisterForRemoteNotifications not called. Visit https://capacitorjs.com/docs/apis/push-notifications for more information")
-            return
+    @objc override public func requestPermissions(_ call: CAPPluginCall) {
+        self.notificationDelegateHandler.requestPermissions { granted, error in
+            guard error == nil else {
+                self.rejectCall(call, error!.localizedDescription)
+                return
+            }
+            var result: PushNotificationsPermissions = .denied
+            if granted {
+                result = .granted
+            }
+            call.resolve(["receive": result.rawValue])
         }
-        UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { (notifications) in
-            let ret = notifications.map({ (notification) -> [String: Any] in
-                return self.notificationDelegateHandler.makeNotificationRequestJSObject(notification.request)
-            })
-            call.resolve([
-                "notifications": ret
-            ])
-        })
     }
 
-    /**
-     * Remove specified notifications from Notification Center
-     */
-    @objc func removeDeliveredNotifications(_ call: CAPPluginCall) {
-        if !appDelegateRegistrationCalled {
-            self.rejectCall(call, "event capacitorDidRegisterForRemoteNotifications not called. Visit https://capacitorjs.com/docs/apis/push-notifications for more information")
-            return
+    @objc func getDeliveredNotifications(_ call: CAPPluginCall) {
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+            let ret = notifications.map { notification -> JSObject in
+                return self.notificationDelegateHandler.makeNotificationRequestJSObject(notification.request)
+            }
+            call.resolve(["notifications": ret])
         }
-        guard let notifications = (call.options["notifications"] as? [JSObject]) else {
+    }
+
+    @objc func removeDeliveredNotifications(_ call: CAPPluginCall) {
+        guard let notifications = call.options["notifications"] as? [JSObject] else {
             self.rejectCall(call, "Must supply notifications to remove")
             return
         }
 
-        let ids = notifications.map { $0["id"] as? String ?? "" }
+        let ids = notifications.compactMap { $0["id"] as? String }
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ids)
         call.resolve()
     }
 
-    /**
-     * Remove all notifications from Notification Center
-     */
     @objc func removeAllDeliveredNotifications(_ call: CAPPluginCall) {
-        if !appDelegateRegistrationCalled {
-            self.rejectCall(call, "event capacitorDidRegisterForRemoteNotifications not called. Visit https://capacitorjs.com/docs/apis/push-notifications for more information")
-            return
-        }
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
-        DispatchQueue.main.async(execute: {
-            UIApplication.shared.applicationIconBadgeNumber = 0
-        })
         call.resolve()
     }
 
     @objc func createChannel(_ call: CAPPluginCall) {
-        call.unimplemented("Not available on iOS")
+        call.resolve()
     }
 
     @objc func deleteChannel(_ call: CAPPluginCall) {
-        call.unimplemented("Not available on iOS")
+        call.resolve()
     }
 
     @objc func listChannels(_ call: CAPPluginCall) {
-        call.unimplemented("Not available on iOS")
+        call.resolve(["channels": []])
     }
 
     @objc public func didRegisterForRemoteNotificationsWithDeviceToken(notification: NSNotification) {
-        appDelegateRegistrationCalled = true
         if let deviceToken = notification.object as? Data {
             let deviceTokenString = deviceToken.reduce("", {$0 + String(format: "%02X", $1)})
-            notifyListeners("registration", data: [
-                "value": deviceTokenString
-            ])
+            notifyListeners("registration", data: ["value": deviceTokenString])
         } else if let stringToken = notification.object as? String {
-            notifyListeners("registration", data: [
-                "value": stringToken
-            ])
+            notifyListeners("registration", data: ["value": stringToken])
         } else {
+            let errData: PluginCallResultData? = nil
             notifyListeners("registrationError", data: [
-                "error": PushNotificationError.tokenParsingFailed.localizedDescription
+                "error": CAPPluginCallError(message: PushNotificationError.tokenParsingFailed.localizedDescription, code: nil, error: PushNotificationError.tokenParsingFailed, data: errData)
             ])
         }
     }
 
     @objc public func didFailToRegisterForRemoteNotificationsWithError(notification: NSNotification) {
-        appDelegateRegistrationCalled = true
-        guard let error = notification.object as? Error else {
-            return
-        }
+        guard let err = notification.object as? Error else { return }
+        let errData: PluginCallResultData? = nil
         notifyListeners("registrationError", data: [
-            "error": error.localizedDescription
+            "error": CAPPluginCallError(message: err.localizedDescription, code: nil, error: err, data: errData)
         ])
     }
 }
@@ -361,41 +308,6 @@ const localHandlerFile = 'node_modules/@capacitor/local-notifications/ios/Source
 const localHandlerFullPath = path.join(rootDir, localHandlerFile);
 if (fs.existsSync(localHandlerFullPath)) {
   let content = fs.readFileSync(localHandlerFullPath, 'utf8');
-  if (!content.includes('import Foundation')) {
-    content = 'import Foundation\n' + content;
-  }
-  content = content.replace(
-    /if let optionsString = self\.plugin\?\.getConfig\(\)\.getString\("presentationOptions"\)[\s\S]*?return presentationOptions\s*\}/,
-    `if let config = self.plugin?.getConfig() {
-            var presentationOptions = UNNotificationPresentationOptions.init()
-            let configJson = config.getConfigJSON()
-            var optionsArray: [String] = []
-            if let arr = configJson["presentationOptions"] as? [String] {
-                optionsArray = arr
-            } else if let str = configJson["presentationOptions"] as? String {
-                optionsArray = str.components(separatedBy: ",")
-            }
-
-            for rawOption in optionsArray {
-                let option = rawOption.trimmingCharacters(in: CharacterSet.whitespaces)
-                switch option {
-                case "badge":
-                    presentationOptions.insert(.badge)
-                case "sound":
-                    presentationOptions.insert(.sound)
-                case "alert", "banner", "list":
-                    presentationOptions.insert(.banner)
-                    presentationOptions.insert(.list)
-                default:
-                    break
-                }
-            }
-
-            if !presentationOptions.isEmpty {
-                return presentationOptions
-            }
-        }`
-  );
   content = content.replace(
     /if let userInfo = JSTypes\.coerceDictionaryToJSObject\(request\.content\.userInfo\) \{[\s\S]*?notificationData\["extra"\] = userInfo\s*\}/,
     `var userInfoObj = JSObject()
@@ -423,14 +335,198 @@ if (fs.existsSync(localPluginFullPath)) {
   content = content.replaceAll('call.getArray("notifications")', '(call.options["notifications"] as? [JSObject])');
   content = content.replaceAll('call.getArray("types", JSObject.self)', '(call.options["types"] as? [JSObject])');
   content = content.replaceAll('call.getArray("types")', '(call.options["types"] as? [JSObject])');
-  content = content.replace('call.reject(error.message, error.code, underlying)', 'call.errorHandler(CAPPluginCallError(message: error.message, code: error.code, error: underlying, data: nil))');
   fs.writeFileSync(localPluginFullPath, content, 'utf8');
   console.log(`[patch-capacitor] Patched: ${localPluginFile}`);
 }
 
 // =========================================================================
-// 5. @capacitor/status-bar: StatusBarPlugin.swift
+// 5. @capacitor/status-bar: StatusBar.swift & StatusBarPlugin.swift
 // =========================================================================
+const statusBarFile = 'node_modules/@capacitor/status-bar/ios/Sources/StatusBarPlugin/StatusBar.swift';
+const statusBarFullPath = path.join(rootDir, statusBarFile);
+if (fs.existsSync(statusBarFullPath)) {
+  const statusBarContent = `import Foundation
+import Capacitor
+import UIKit
+
+public class StatusBar {
+    private var bridge: CAPBridgeProtocol
+    private var isOverlayingWebview = true
+    private var backgroundColor = UIColor.black
+    private var backgroundView: UIView?
+    private var observers: [NSObjectProtocol] = []
+
+    init(bridge: CAPBridgeProtocol, config: StatusBarConfig) {
+        self.bridge = bridge
+        setupObservers(with: config)
+    }
+
+    deinit {
+        observers.forEach { NotificationCenter.default.removeObserver($0) }
+    }
+
+    private func setupObservers(with config: StatusBarConfig) {
+        observers.append(NotificationCenter.default.addObserver(forName: .capacitorViewDidAppear, object: .none, queue: .none) { [weak self] _ in
+            self?.handleViewDidAppear(config: config)
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: .capacitorStatusBarTapped, object: .none, queue: .none) { [weak self] _ in
+            self?.bridge.triggerJSEvent(eventName: "statusTap", target: "window")
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: .capacitorViewWillTransition, object: .none, queue: .none) { [weak self] _ in
+            self?.handleViewWillTransition()
+        })
+    }
+
+    private func handleViewDidAppear(config: StatusBarConfig) {
+        setStyle(config.style)
+        setBackgroundColor(config.backgroundColor)
+        setOverlaysWebView(config.overlaysWebView)
+    }
+
+    private func handleViewWillTransition() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.resizeStatusBarBackgroundView()
+            self?.resizeWebView()
+        }
+    }
+
+    func setStyle(_ style: UIStatusBarStyle) {
+        bridge.statusBarStyle = style
+    }
+
+    func setBackgroundColor(_ color: UIColor) {
+        backgroundColor = color
+        backgroundView?.backgroundColor = color
+    }
+
+    func setAnimation(_ animation: String) {
+        if animation == "SLIDE" {
+            bridge.statusBarAnimation = .slide
+        } else if animation == "NONE" {
+            bridge.statusBarAnimation = .none
+        } else {
+            bridge.statusBarAnimation = .fade
+        }
+    }
+
+    func hide(animation: String) {
+        setAnimation(animation)
+        if bridge.statusBarVisible {
+            bridge.statusBarVisible = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.resizeWebView()
+                self?.backgroundView?.removeFromSuperview()
+                self?.backgroundView?.isHidden = true
+            }
+        }
+    }
+
+    func show(animation: String) {
+        setAnimation(animation)
+        if !bridge.statusBarVisible {
+            bridge.statusBarVisible = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+                resizeWebView()
+                if !isOverlayingWebview {
+                    resizeStatusBarBackgroundView()
+                    bridge.webView?.superview?.addSubview(backgroundView!)
+                }
+                backgroundView?.isHidden = false
+            }
+        }
+    }
+
+    private func hexFromColor(_ color: UIColor) -> String {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return "#000000" }
+        return String(format: "#%02lX%02lX%02lX", Int(round(red * 255)), Int(round(green * 255)), Int(round(blue * 255)))
+    }
+
+    func getInfo() -> StatusBarInfo {
+        let style: String
+        switch bridge.statusBarStyle {
+        case .default:
+            style = "DEFAULT"
+        case .lightContent:
+            style = "DARK"
+        case .darkContent:
+            style = "LIGHT"
+        @unknown default:
+            style = "DEFAULT"
+        }
+
+        return StatusBarInfo(
+            overlays: isOverlayingWebview,
+            visible: bridge.statusBarVisible,
+            style: style,
+            color: hexFromColor(backgroundColor),
+            height: getStatusBarFrame().size.height
+        )
+    }
+
+    func setOverlaysWebView(_ overlay: Bool) {
+        if overlay == isOverlayingWebview { return }
+        isOverlayingWebview = overlay
+        if overlay {
+            backgroundView?.removeFromSuperview()
+        } else {
+            initializeBackgroundViewIfNeeded()
+            bridge.webView?.superview?.addSubview(backgroundView!)
+        }
+        resizeWebView()
+    }
+
+    private func resizeWebView() {
+        let bounds: CGRect? = bridge.viewController?.view.window?.windowScene?.keyWindow?.bounds
+
+        guard
+            let webView = bridge.webView,
+            let bounds = bounds
+        else { return }
+        bridge.viewController?.view.frame = bounds
+        webView.frame = bounds
+        let statusBarHeight = getStatusBarFrame().size.height
+        var webViewFrame = webView.frame
+
+        if isOverlayingWebview {
+            let safeAreaTop = webView.safeAreaInsets.top
+            if statusBarHeight >= safeAreaTop && safeAreaTop > 0 {
+                webViewFrame.origin.y = safeAreaTop == 40 ? 20 : statusBarHeight - safeAreaTop
+            } else {
+                webViewFrame.origin.y = 0
+            }
+        } else {
+            webViewFrame.origin.y = statusBarHeight
+        }
+        webViewFrame.size.height -= webViewFrame.origin.y
+        webView.frame = webViewFrame
+    }
+
+    private func resizeStatusBarBackgroundView() {
+        backgroundView?.frame = getStatusBarFrame()
+    }
+
+    private func getStatusBarFrame() -> CGRect {
+        return bridge.viewController?.view.window?.windowScene?.statusBarManager?.statusBarFrame ?? .zero
+    }
+
+    private func initializeBackgroundViewIfNeeded() {
+        if backgroundView == nil {
+            backgroundView = UIView(frame: getStatusBarFrame())
+            backgroundView!.backgroundColor = backgroundColor
+            backgroundView!.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
+            backgroundView!.isHidden = !bridge.statusBarVisible
+        }
+    }
+}
+`;
+  fs.writeFileSync(statusBarFullPath, statusBarContent, 'utf8');
+  console.log(`[patch-capacitor] Overwrote: ${statusBarFile}`);
+}
+
 const statusBarPluginFile = 'node_modules/@capacitor/status-bar/ios/Sources/StatusBarPlugin/StatusBarPlugin.swift';
 const statusBarPluginFullPath = path.join(rootDir, statusBarPluginFile);
 if (fs.existsSync(statusBarPluginFullPath)) {
@@ -454,6 +550,27 @@ public class StatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
     private let statusBarVisibilityChanged = "statusBarVisibilityChanged"
     private let statusBarOverlayChanged = "statusBarOverlayChanged"
 
+    private func colorFromHex(_ hex: String) -> UIColor? {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
+        let length = hexSanitized.count
+        if length == 6 {
+            let r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
+            let g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
+            let b = CGFloat(rgb & 0x0000FF) / 255.0
+            return UIColor(red: r, green: g, blue: b, alpha: 1.0)
+        } else if length == 8 {
+            let r = CGFloat((rgb & 0xFF000000) >> 24) / 255.0
+            let g = CGFloat((rgb & 0x00FF0000) >> 16) / 255.0
+            let b = CGFloat((rgb & 0x0000FF00) >> 8) / 255.0
+            let a = CGFloat(rgb & 0x000000FF) / 255.0
+            return UIColor(red: r, green: g, blue: b, alpha: a)
+        }
+        return nil
+    }
+
     override public func load() {
         guard let bridge = bridge else { return }
         statusBar = StatusBar(bridge: bridge, config: statusBarConfig())
@@ -465,7 +582,7 @@ public class StatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
         if let overlays = configJson["overlaysWebView"] as? Bool {
             config.overlaysWebView = overlays
         }
-        if let colorConfig = configJson["backgroundColor"] as? String, let color = UIColor.capacitor.color(fromHex: colorConfig) {
+        if let colorConfig = configJson["backgroundColor"] as? String, let color = colorFromHex(colorConfig) {
             config.backgroundColor = color
         }
         if let configStyle = configJson["style"] as? String {
@@ -497,7 +614,7 @@ public class StatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func setBackgroundColor(_ call: CAPPluginCall) {
         guard
             let hexString = call.options["color"] as? String,
-            let color = UIColor.capacitor.color(fromHex: hexString)
+            let color = colorFromHex(hexString)
         else { return }
         DispatchQueue.main.async { [weak self] in
             self?.statusBar?.setBackgroundColor(color)
@@ -593,7 +710,29 @@ public class SplashScreenPlugin: CAPPlugin, CAPBridgedPlugin {
     private var splashScreen: SplashScreen?
 
     private func rejectCall(_ call: CAPPluginCall, _ message: String) {
-        call.errorHandler(CAPPluginCallError(message: message, code: nil, error: nil, data: nil))
+        let errData: PluginCallResultData? = nil
+        call.errorHandler(CAPPluginCallError(message: message, code: nil, error: nil, data: errData))
+    }
+
+    private func colorFromHex(_ hex: String) -> UIColor? {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
+        let length = hexSanitized.count
+        if length == 6 {
+            let r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
+            let g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
+            let b = CGFloat(rgb & 0x0000FF) / 255.0
+            return UIColor(red: r, green: g, blue: b, alpha: 1.0)
+        } else if length == 8 {
+            let r = CGFloat((rgb & 0xFF000000) >> 24) / 255.0
+            let g = CGFloat((rgb & 0x00FF0000) >> 16) / 255.0
+            let b = CGFloat((rgb & 0x0000FF00) >> 8) / 255.0
+            let a = CGFloat(rgb & 0x000000FF) / 255.0
+            return UIColor(red: r, green: g, blue: b, alpha: a)
+        }
+        return nil
     }
 
     override public func load() {
@@ -603,61 +742,18 @@ public class SplashScreenPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    @objc public func show(_ call: CAPPluginCall) {
-        if let splash = splashScreen {
-            let settings = splashScreenSettings(from: call)
-            splash.show(settings: settings, completion: {
-                call.resolve()
-            })
-        } else {
-            rejectCall(call, "Unable to show Splash Screen")
-        }
-    }
-
-    @objc public func hide(_ call: CAPPluginCall) {
-        if let splash = splashScreen {
-            let settings = splashScreenSettings(from: call)
-            splash.hide(settings: settings)
-            call.resolve()
-        } else {
-            rejectCall(call, "Unable to hide Splash Screen")
-        }
-    }
-
-    private func splashScreenSettings(from call: CAPPluginCall) -> SplashScreenSettings {
-        var settings = SplashScreenSettings()
-        if let showDuration = call.options["showDuration"] as? Int {
-            settings.showDuration = showDuration
-        }
-        if let fadeInDuration = call.options["fadeInDuration"] as? Int {
-            settings.fadeInDuration = fadeInDuration
-        }
-        if let fadeOutDuration = call.options["fadeOutDuration"] as? Int {
-            settings.fadeOutDuration = fadeOutDuration
-        }
-        if let autoHide = call.options["autoHide"] as? Bool {
-            settings.autoHide = autoHide
-        }
-        return settings
-    }
-
     private func splashScreenConfig() -> SplashScreenConfig {
         var config = SplashScreenConfig()
         let configJson = getConfig().getConfigJSON()
 
-        if let backgroundColor = configJson["backgroundColor"] as? String {
-            config.backgroundColor = UIColor.capacitor.color(fromHex: backgroundColor)
+        if let backgroundColor = configJson["backgroundColor"] as? String, let color = colorFromHex(backgroundColor) {
+            config.backgroundColor = color
         }
-        if let spinnerStyle = configJson["iosSpinnerStyle"] as? String {
-            switch spinnerStyle.lowercased() {
-            case "small":
-                config.spinnerStyle = .medium
-            default:
-                config.spinnerStyle = .large
-            }
+        if let spinnerStyle = configJson["androidSpinnerStyle"] as? String {
+            config.spinnerStyle = spinnerStyle == "horizontal" ? .large : .medium
         }
-        if let spinnerColor = configJson["spinnerColor"] as? String {
-            config.spinnerColor = UIColor.capacitor.color(fromHex: spinnerColor)
+        if let spinnerColor = configJson["spinnerColor"] as? String, let color = colorFromHex(spinnerColor) {
+            config.spinnerColor = color
         }
         if let showSpinner = configJson["showSpinner"] as? Bool {
             config.showSpinner = showSpinner
@@ -670,10 +766,68 @@ public class SplashScreenPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         return config
     }
+
+    private func splashScreenSettings(from call: CAPPluginCall) -> SplashScreenSettings {
+        var settings = SplashScreenSettings()
+
+        if let autoHide = call.options["autoHide"] as? Bool {
+            settings.autoHide = autoHide
+        }
+        if let fadeInDuration = call.options["fadeInDuration"] as? Int {
+            settings.fadeInDuration = fadeInDuration
+        }
+        if let fadeOutDuration = call.options["fadeOutDuration"] as? Int {
+            settings.fadeOutDuration = fadeOutDuration
+        }
+        if let showDuration = call.options["showDuration"] as? Int {
+            settings.showDuration = showDuration
+        }
+        return settings
+    }
+
+    @objc func show(_ call: CAPPluginCall) {
+        if let splashScreen = splashScreen {
+            let settings = splashScreenSettings(from: call)
+            splashScreen.show(settings: settings, completion: {
+                call.resolve()
+            })
+        } else {
+            rejectCall(call, "Unable to show Splash Screen")
+        }
+    }
+
+    @objc func hide(_ call: CAPPluginCall) {
+        if let splashScreen = splashScreen {
+            let settings = splashScreenSettings(from: call)
+            splashScreen.hide(settings: settings)
+            call.resolve()
+        } else {
+            rejectCall(call, "Unable to hide Splash Screen")
+        }
+    }
 }
 `;
   fs.writeFileSync(splashPluginFullPath, splashPluginContent, 'utf8');
   console.log(`[patch-capacitor] Overwrote: ${splashPluginFile}`);
+}
+
+const splashConfigFile = 'node_modules/@capacitor/splash-screen/ios/Sources/SplashScreenPlugin/SplashScreenConfig.swift';
+const splashConfigFullPath = path.join(rootDir, splashConfigFile);
+if (fs.existsSync(splashConfigFullPath)) {
+  const splashConfigContent = `import UIKit
+
+public struct SplashScreenConfig {
+    var backgroundColor: UIColor?
+    var spinnerStyle: UIActivityIndicatorView.Style?
+    var spinnerColor: UIColor?
+    var showSpinner = false
+    var launchShowDuration = 500
+    var launchAutoHide = true
+    var launchFadeInDuration = 0
+}
+`;
+  fs.writeFileSync(splashConfigFullPath, splashConfigContent, 'utf8');
+  console.log(`[patch-capacitor] Overwrote: ${splashConfigFile}`);
 }
 
 // =========================================================================
@@ -702,7 +856,8 @@ public class AppPlugin: CAPPlugin, CAPBridgedPlugin {
     private var observers: [NSObjectProtocol] = []
 
     private func rejectCall(_ call: CAPPluginCall, _ message: String) {
-        call.errorHandler(CAPPluginCallError(message: message, code: nil, error: nil, data: nil))
+        let errData: PluginCallResultData? = nil
+        call.errorHandler(CAPPluginCallError(message: message, code: nil, error: nil, data: errData))
     }
 
     override public func load() {
@@ -720,11 +875,11 @@ public class AppPlugin: CAPPlugin, CAPBridgedPlugin {
         })
 
         observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: OperationQueue.main) { [weak self] (_) in
-            self?.notifyListeners("pause", data: nil)
+            self?.notifyListeners("pause", data: [:])
         })
 
         observers.append(NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: OperationQueue.main) { [weak self] (_) in
-            self?.notifyListeners("resume", data: nil)
+            self?.notifyListeners("resume", data: [:])
         })
     }
 
@@ -762,7 +917,8 @@ public class AppPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func exitApp(_ call: CAPPluginCall) {
-        call.errorHandler(CAPPluginCallError(message: "not implemented", code: "UNIMPLEMENTED", error: nil, data: nil))
+        let errData: PluginCallResultData? = nil
+        call.errorHandler(CAPPluginCallError(message: "not implemented", code: "UNIMPLEMENTED", error: nil, data: errData))
     }
 
     @objc func getInfo(_ call: CAPPluginCall) {
@@ -792,23 +948,24 @@ public class AppPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func getState(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             call.resolve([
-                "isActive": UIApplication.shared.applicationState == UIApplication.State.active
+                "isActive": UIApplication.shared.applicationState == .active
             ])
         }
     }
 
     @objc func minimizeApp(_ call: CAPPluginCall) {
-        call.errorHandler(CAPPluginCallError(message: "not implemented", code: "UNIMPLEMENTED", error: nil, data: nil))
-    }
-
-    @objc func getAppLanguage(_ call: CAPPluginCall) {
-        call.resolve([
-            "value": Bundle.main.preferredLocalizations.first ?? "en"
-        ])
+        let errData: PluginCallResultData? = nil
+        call.errorHandler(CAPPluginCallError(message: "not implemented", code: "UNIMPLEMENTED", error: nil, data: errData))
     }
 
     @objc func toggleBackButtonHandler(_ call: CAPPluginCall) {
-        call.errorHandler(CAPPluginCallError(message: "not implemented", code: "UNIMPLEMENTED", error: nil, data: nil))
+        let errData: PluginCallResultData? = nil
+        call.errorHandler(CAPPluginCallError(message: "not implemented", code: "UNIMPLEMENTED", error: nil, data: errData))
+    }
+
+    @objc func getAppLanguage(_ call: CAPPluginCall) {
+        let languageCode = Locale.preferredLanguages.first ?? "en"
+        call.resolve(["value": languageCode])
     }
 }
 `;
@@ -904,4 +1061,4 @@ public class HapticsPlugin: CAPPlugin, CAPBridgedPlugin {
   console.log(`[patch-capacitor] Overwrote: ${hapticsPluginFile}`);
 }
 
-console.log('[patch-capacitor] All plugin patches applied successfully.');
+console.log('[patch-capacitor] Plugin patching complete.');

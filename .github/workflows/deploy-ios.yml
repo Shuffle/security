@@ -249,7 +249,7 @@ jobs:
               EXIT_CODE=$?
               echo "::error::Xcode Compilation Failed! Displaying detailed compiler errors below:"
               echo "==================== COMPILER ERRORS ===================="
-              grep -E "(: error:|fatal error:|BUILD FAILED)" "$RUNNER_TEMP/xcode_compile.log" || true
+              grep -C 3 -E "(error:|fatal error:|BUILD FAILED)" "$RUNNER_TEMP/xcode_compile.log" || tail -n 100 "$RUNNER_TEMP/xcode_compile.log"
               echo "========================================================="
               exit $EXIT_CODE
             }
