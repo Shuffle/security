@@ -5424,7 +5424,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           display: 'flex',
           justifyContent: 'center',
           pb: isPhone ? 1 : 4,
-          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'center' } : {}),
+          ...(isPhone && showStarter ? { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
@@ -5790,7 +5790,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 alignItems: 'center',
                 gap: 1,
                 ml: 'auto',
-                mr: isPhone ? 0 : '-8px',
+                mr: '-8px',
                 flexShrink: 0,
                 // Slide down into the bottom bar when expanding, and back up when collapsing.
                 animation: promptMultiline
