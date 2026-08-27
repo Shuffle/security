@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { getApiUrl, API_CONFIG, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
+import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
 interface Organization {
   name: string;
