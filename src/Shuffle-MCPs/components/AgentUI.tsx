@@ -70,7 +70,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-
+  useMediaQuery,
 } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import {
@@ -2079,6 +2079,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return h;
   }, [apiKey, orgId]);
   const hasApiKey = !!apiKey || !!API_CONFIG.apiKey;
+  // Phone-sized viewports get a condensed starter block: no hero icon,
+  // smaller title, tighter vertical rhythm. Desktop is unchanged.
+  const isPhone = useMediaQuery('(max-width:600px)', { noSsr: true });
   const navigate = useNavigate();
   const [actionInput, setActionInput] = useState(defaultInput);
   // Editable per-user prompt prefix rendered as a chip at the start of the
@@ -5312,13 +5315,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
     <Box
       className={className}
       sx={[
-        { width: '100%', display: 'flex', justifyContent: 'center', pb: 4 },
+        {
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          pb: isPhone ? 1 : 4,
+          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'flex-end' } : {}),
+        },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
       <Box
         sx={[
-          { width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: 3 },
+          {
+            width: '100%',
+            maxWidth,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: isPhone ? 1.5 : 3,
+            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'flex-end' } : {}),
+          },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
       >
@@ -5328,9 +5344,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
           <Box
             component="form"
             onSubmit={(e) => { e.preventDefault(); handlePrimarySubmit(); }}
-            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: compact ? 2 : 3, py: compact ? 2 : 4 }}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: isPhone ? 1.5 : (compact ? 2 : 3),
+              py: isPhone ? 1 : (compact ? 2 : 4),
+              width: '100%',
+              ...(isPhone ? { flex: 1, justifyContent: 'flex-end' } : {}),
+            }}
           >
-            {!hideHeroIcon && !compact && (
+            {!hideHeroIcon && !compact && !isPhone && (
               <Box sx={{
                 width: heroIconSize, height: heroIconSize, borderRadius: 3,
                 bgcolor: 'hsl(var(--card))',
@@ -5342,7 +5366,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Box>
             )}
             <Typography component="h1" sx={{
-              fontSize: compact ? { xs: '1.25rem', md: '1.5rem' } : { xs: '1.75rem', md: '2.25rem' },
+              fontSize: compact ? { xs: '1.1rem', md: '1.5rem' } : { xs: '1.35rem', md: '2.25rem' },
               fontWeight: 600,
               color: 'hsl(var(--foreground))',
               textAlign: 'center',
@@ -5352,15 +5376,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
             </Typography>
             {subtitle && (
               <Typography sx={{
-                fontSize: '0.95rem',
+                fontSize: { xs: '0.8rem', sm: '0.95rem' },
                 color: 'hsl(var(--muted-foreground))',
                 textAlign: 'center',
-                mt: -1,
+                mt: isPhone ? -0.5 : -1,
                 maxWidth: 600,
               }}>
                 {subtitle}
               </Typography>
             )}
+
+            {isPhone && <Box sx={{ flex: 1, minHeight: 0, alignSelf: 'stretch' }} />}
 
             <Box ref={promptAnchorRef} sx={{
               width: '100%',
@@ -6015,7 +6041,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     sx={{
                       all: 'unset', cursor: 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                      pl: 2.5, pr: 1.5, py: 0.5,
+                      pl: isPhone ? 0.5 : 2.5,
+                      pr: isPhone ? 0.5 : 1.5,
+                      py: 0.5,
                       borderRadius: 999,
                       fontSize: '0.8rem', fontWeight: 500,
                       color: 'hsl(var(--muted-foreground))',
@@ -6035,7 +6063,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     ) : (
                       <SettingsIcon size={14} />
                     )}
-                    {detectedLLM?.label || 'Shuffle AI'}
+                    {!isPhone && (detectedLLM?.label || 'Shuffle AI')}
                   </Box>
                 </Tooltip>
                 )}
@@ -6094,7 +6122,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     onClick={!agentRequestLoading ? () => setAuthDrawerApp({ name: app.name, id: app.id || null }) : undefined}
                     sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                      pl: 0.5, pr: 0.75, py: 0.25,
+                      pl: 0.5,
+                      pr: isPhone ? 0.375 : 0.75,
+                      py: 0.25,
                       borderRadius: 999,
                       bgcolor: needsAuth ? 'hsl(var(--severity-medium) / 0.12)' : 'hsl(var(--muted) / 0.6)',
                       border: needsAuth ? '1px solid hsl(var(--severity-medium) / 0.55)' : '1px solid transparent',
@@ -6111,9 +6141,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       variant="rounded"
                       sx={{ width: 18, height: 18, bgcolor: 'transparent' }}
                     />
-                    <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
-                      {app.name.replace(/_/g, ' ')}
-                    </Typography>
+                    {!isPhone && (
+                      <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
+                        {app.name.replace(/_/g, ' ')}
+                      </Typography>
+                    )}
                     {needsAuth && (
                       <WarningIcon size={14} color={'hsl(var(--severity-medium))'} style={{ marginRight: 2 }} />
                     )}
