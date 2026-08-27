@@ -423,10 +423,9 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
               </Typography>
             </Box>
             <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mt: 0.25 }}>
-              {isMyOnCallEnabled
-                ? 'Turn OFF to take yourself off the on-call schedule (vacation / off-duty).'
-                : 'Turn ON to receive incident assignments and escalation shifts.'}
+              {isMyOnCallEnabled ? 'Receiving assignments and shifts' : 'Paused — no escalations route to you'}
             </Typography>
+
           </Box>
           {savingSelfSchedule ? (
             <CircularProgress size={20} sx={{ color: 'hsl(var(--primary))' }} />
