@@ -5351,7 +5351,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Box>
             )}
             <Typography component="h1" sx={{
-              fontSize: compact ? { xs: '1.25rem', md: '1.5rem' } : { xs: '1.75rem', md: '2.25rem' },
+              fontSize: compact ? { xs: '1.1rem', md: '1.5rem' } : { xs: '1.35rem', md: '2.25rem' },
               fontWeight: 600,
               color: 'hsl(var(--foreground))',
               textAlign: 'center',
