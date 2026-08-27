@@ -303,7 +303,7 @@ const AgentsView = ({
             </Typography>
           </Box>
         )}
-        <Box sx={{ flex: isPhone ? 1 : undefined, display: isPhone ? 'flex' : undefined, flexDirection: isPhone ? 'column' : undefined, minHeight: isPhone ? '100%' : undefined }}>
+        <Box sx={{ flex: { xs: 1, md: 'unset' }, display: { xs: 'flex', md: 'block' }, flexDirection: { xs: 'column' }, minHeight: { xs: '100%' } }}>
           <AgentUI
             key={prefill.key}
             maxWidth={maxWidth}
@@ -329,8 +329,8 @@ const AgentsView = ({
             presetCtas={presetCtas}
           />
         </Box>
-        {!isPhone && agentView === 'start' && (
-          <Box id="agent-activity" sx={{ pt: { xs: 4, md: '8vh' }, scrollMarginTop: 80 }}>
+        {agentView === 'start' && (
+          <Box id="agent-activity" sx={{ pt: { xs: 4, md: '8vh' }, display: { xs: 'none', md: 'block' }, scrollMarginTop: 80 }}>
             <AgentActivityList
               apiBaseUrl={globalUrl}
               apiKey={apiKey}
