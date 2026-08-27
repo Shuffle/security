@@ -5386,6 +5386,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </Typography>
             )}
 
+            {isPhone && <Box sx={{ flex: 1, minHeight: 0, alignSelf: 'stretch' }} />}
+
             <Box ref={promptAnchorRef} sx={{
               width: '100%',
               display: 'flex',
