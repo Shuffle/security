@@ -5503,6 +5503,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               bgcolor: 'hsl(var(--card))',
               px: isPhone ? 1 : 2.25,
               py: 1,
+              boxSizing: 'border-box',
 
 
               // A one-line prompt is a fixed-size control. Lock all three
@@ -5790,8 +5791,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 alignItems: 'center',
                 gap: 1,
                 ml: 'auto',
-                mr: '-8px',
+                mr: isPhone ? 0 : '-8px',
                 flexShrink: 0,
+                maxWidth: '100%',
                 // Slide down into the bottom bar when expanding, and back up when collapsing.
                 animation: promptMultiline
                   ? 'agentButtonsDrop 300ms cubic-bezier(0.4, 0, 0.2, 1)'
