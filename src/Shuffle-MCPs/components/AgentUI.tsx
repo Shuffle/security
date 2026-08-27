@@ -5321,7 +5321,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     >
       <Box
         sx={[
-          { width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: 3 },
+          { width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: isPhone ? 1.5 : 3 },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
       >
