@@ -1,5 +1,5 @@
 import { Eye as VisibilityIcon, EyeOff as VisibilityOffIcon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from '@/lib/router-compat';
 import {
   Box,
