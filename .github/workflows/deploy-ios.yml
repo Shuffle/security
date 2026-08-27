@@ -213,19 +213,60 @@ jobs:
           EOF
           fi
 
-      # 11. Build & Archive Xcode Workspace or Project
+      # 11. Resolve Swift Package Dependencies
+      - name: Resolve Swift Package Dependencies
+        working-directory: ios/App
+        run: |
+          echo "Resolving Xcode Swift Package Manager dependencies..."
+          if [ -d "App.xcworkspace" ]; then
+            xcodebuild -resolvePackageDependencies -workspace App.xcworkspace -scheme App
+          else
+            xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+          fi
+
+      # 12. Compile & Validate Swift Plugins & App (Dry Run Compilation Check)
+      - name: Compile & Validate App (Dry Run)
+        working-directory: ios/App
+        run: |
+          echo "========================================================"
+          echo "Compiling iOS App & Plugins to verify Swift compatibility..."
+          echo "========================================================"
+          if [ -d "App.xcworkspace" ]; then
+            BUILD_FLAG="-workspace App.xcworkspace"
+          else
+            BUILD_FLAG="-project App.xcodeproj"
+          fi
+
+          set -o pipefail
+          xcodebuild clean build \
+            $BUILD_FLAG \
+            -scheme App \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            2>&1 | tee "$RUNNER_TEMP/xcode_compile.log" || {
+              EXIT_CODE=$?
+              echo "::error::Xcode Compilation Failed! Displaying detailed compiler errors below:"
+              echo "==================== COMPILER ERRORS ===================="
+              grep -E "(: error:|fatal error:|BUILD FAILED)" "$RUNNER_TEMP/xcode_compile.log" || true
+              echo "========================================================="
+              exit $EXIT_CODE
+            }
+          echo "App and all Swift plugins compiled successfully!"
+
+      # 13. Build & Archive Xcode Application (Packaging & Code Signing)
       - name: Build Xcode Archive
         working-directory: ios/App
         run: |
           TARGET_BUNDLE_ID="${BUNDLE_ID:-com.shuffle.security}"
           if [ -d "App.xcworkspace" ]; then
-            echo "Building with workspace..."
             BUILD_FLAG="-workspace App.xcworkspace"
           else
-            echo "Building with project (SPM)..."
             BUILD_FLAG="-project App.xcodeproj"
           fi
 
+          set -o pipefail
           if [ -n "$PROFILE_UUID" ]; then
             echo "Archiving with Manual code signing using profile $PROFILE_NAME ($PROFILE_UUID) for $TARGET_BUNDLE_ID..."
             xcodebuild archive \
@@ -233,12 +274,20 @@ jobs:
               -scheme App \
               -configuration Release \
               -destination "generic/platform=iOS" \
-              -archivePath $RUNNER_TEMP/App.xcarchive \
+              -archivePath "$RUNNER_TEMP/App.xcarchive" \
               PRODUCT_BUNDLE_IDENTIFIER="$TARGET_BUNDLE_ID" \
               CODE_SIGN_STYLE="Manual" \
               CODE_SIGN_IDENTITY="Apple Distribution" \
               PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-              DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
+              DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+              2>&1 | tee "$RUNNER_TEMP/xcode_archive.log" || {
+                EXIT_CODE=$?
+                echo "::error::Xcode Archive Failed! Displaying archive error summary below:"
+                echo "===================== ARCHIVE ERRORS ====================="
+                grep -E "(: error:|fatal error:|BUILD FAILED|Code Signing Error)" "$RUNNER_TEMP/xcode_archive.log" || true
+                echo "=========================================================="
+                exit $EXIT_CODE
+              }
           else
             echo "Archiving with Automatic code signing..."
             xcodebuild archive \
@@ -246,20 +295,49 @@ jobs:
               -scheme App \
               -configuration Release \
               -destination "generic/platform=iOS" \
-              -archivePath $RUNNER_TEMP/App.xcarchive \
+              -archivePath "$RUNNER_TEMP/App.xcarchive" \
               DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-              CODE_SIGN_STYLE=Automatic
+              CODE_SIGN_STYLE=Automatic \
+              2>&1 | tee "$RUNNER_TEMP/xcode_archive.log" || {
+                EXIT_CODE=$?
+                echo "::error::Xcode Archive Failed! Displaying archive error summary below:"
+                echo "===================== ARCHIVE ERRORS ====================="
+                grep -E "(: error:|fatal error:|BUILD FAILED|Code Signing Error)" "$RUNNER_TEMP/xcode_archive.log" || true
+                echo "=========================================================="
+                exit $EXIT_CODE
+              }
           fi
 
-      # 12. Export Archive to IPA
+      # 14. Export Archive to IPA
       - name: Export IPA
         run: |
+          set -o pipefail
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -exportOptionsPlist ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/build-output
+            -exportPath "$RUNNER_TEMP/build-output" \
+            2>&1 | tee "$RUNNER_TEMP/xcode_export.log" || {
+              EXIT_CODE=$?
+              echo "::error::IPA Export Failed! Displaying export error summary below:"
+              echo "===================== EXPORT ERRORS ====================="
+              grep -E "(: error:|fatal error:|EXPORT FAILED)" "$RUNNER_TEMP/xcode_export.log" || true
+              echo "========================================================="
+              exit $EXIT_CODE
+            }
 
-      # 13. Upload IPA to GitHub Artifacts
+      # 15. Upload Xcode Diagnostic Logs (Always captured)
+      - name: Upload Xcode Build & Archive Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-diagnostic-logs-run-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/xcode_*.log
+            ${{ runner.temp }}/build-output/*.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # 16. Upload IPA to GitHub Artifacts
       - name: Upload iOS IPA to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -267,7 +345,7 @@ jobs:
           path: ${{ runner.temp }}/build-output/*.ipa
           retention-days: 30
 
-      # 14. Upload to App Store Connect / TestFlight
+      # 17. Upload to App Store Connect / TestFlight
       - name: Upload to App Store Connect
         if: ${{ github.event.inputs.upload_to_app_store == 'true' && env.HAVE_ASC_KEY == 'true' }}
         env:
@@ -295,7 +373,7 @@ jobs:
 
           echo "Successfully uploaded IPA to App Store Connect!"
 
-      # 15. Cleanup Keychain & Secrets
+      # 18. Cleanup Keychain & Secrets
       - name: Clean Up Keychain
         if: always()
         run: |
