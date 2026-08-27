@@ -14,7 +14,7 @@ export const MobileBottomNav = () => {
   const navItems = [
     {
       label: entityPlural || 'Incidents',
-      icon: <ShieldAlertIcon size={20} />,
+      icon: <WarningAmberIcon size={20} />,
       path: entityBasePath || '/incidents',
     },
     {
