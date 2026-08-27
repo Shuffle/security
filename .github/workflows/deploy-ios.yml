@@ -53,9 +53,15 @@ jobs:
           node-version: 22
 
       # 3. Select Active Xcode Version
-      - name: Select Xcode 15/16
+      - name: Select Xcode 16/15
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          LATEST_XCODE=$(find /Applications -maxdepth 1 -name "Xcode_16*.app" | sort -V | tail -n 1)
+          if [ -n "$LATEST_XCODE" ]; then
+            echo "Selecting $LATEST_XCODE"
+            sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
+          else
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
           xcodebuild -version
 
       # 4. Install Dependencies
@@ -124,14 +130,18 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > $RUNNER_TEMP/temp_profile.mobileprovision
           
-          # Extract UUID and Name from mobileprovision
+          # Extract UUID, Name, and Bundle ID from mobileprovision
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i "$RUNNER_TEMP/temp_profile.mobileprovision"))
           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" /dev/stdin <<< $(security cms -D -i "$RUNNER_TEMP/temp_profile.mobileprovision"))
-          
+          RAW_APP_ID=$(/usr/libexec/PlistBuddy -c "Print Entitlements:application-identifier" /dev/stdin <<< $(security cms -D -i "$RUNNER_TEMP/temp_profile.mobileprovision"))
+          BUNDLE_ID="${RAW_APP_ID#*.}"
+
           cp "$RUNNER_TEMP/temp_profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
           echo "PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
+          echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
           echo "Installed provisioning profile: $PROFILE_NAME ($PROFILE_UUID)"
+          echo "Resolved Bundle ID from profile: $BUNDLE_ID"
 
       # 9. Update Version and Build Numbers in iOS Project
       - name: Update iOS Project Version Numbers
@@ -147,6 +157,7 @@ jobs:
       # 10. Create ExportOptions.plist
       - name: Generate ExportOptions.plist
         run: |
+          TARGET_BUNDLE_ID="${BUNDLE_ID:-com.shuffle.security}"
           if [ -n "$PROFILE_NAME" ]; then
             cat <<EOF > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
@@ -165,7 +176,7 @@ jobs:
               <string>Apple Distribution</string>
               <key>provisioningProfiles</key>
               <dict>
-                  <key>io.shuffle.security</key>
+                  <key>${TARGET_BUNDLE_ID}</key>
                   <string>${PROFILE_NAME}</string>
               </dict>
               <key>stripSwiftSymbols</key>
@@ -204,6 +215,7 @@ jobs:
       - name: Build Xcode Archive
         working-directory: ios/App
         run: |
+          TARGET_BUNDLE_ID="${BUNDLE_ID:-com.shuffle.security}"
           if [ -d "App.xcworkspace" ]; then
             echo "Building with workspace..."
             BUILD_FLAG="-workspace App.xcworkspace"
@@ -213,13 +225,14 @@ jobs:
           fi
 
           if [ -n "$PROFILE_UUID" ]; then
-            echo "Archiving with Manual code signing using profile $PROFILE_NAME ($PROFILE_UUID)..."
+            echo "Archiving with Manual code signing using profile $PROFILE_NAME ($PROFILE_UUID) for $TARGET_BUNDLE_ID..."
             xcodebuild archive \
               $BUILD_FLAG \
               -scheme App \
               -configuration Release \
               -destination "generic/platform=iOS" \
               -archivePath $RUNNER_TEMP/App.xcarchive \
+              PRODUCT_BUNDLE_IDENTIFIER="$TARGET_BUNDLE_ID" \
               CODE_SIGN_STYLE="Manual" \
               CODE_SIGN_IDENTITY="Apple Distribution" \
               PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
