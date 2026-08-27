@@ -57,11 +57,10 @@ jobs:
           fetch-depth: 0
 
       # 2. Setup Node.js Environment
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
       # 3. Setup Java JDK (Temurin 17 for modern Android Gradle Plugin)
       - name: Setup Java JDK 17
@@ -73,7 +72,12 @@ jobs:
 
       # 4. Install Node Dependencies
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
 
       # 5. Determine Version Name and Version Code
       - name: Calculate Version Info
@@ -96,7 +100,12 @@ jobs:
         run: npm run build
 
       - name: Sync Capacitor Android
-        run: npx cap sync android
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Android platform folder not found. Adding Android platform with Capacitor..."
+            npx cap add android
+          fi
+          npx cap sync android
 
       # 7. Configure Android Keystore for Signing
       - name: Decode Android Release Keystore
