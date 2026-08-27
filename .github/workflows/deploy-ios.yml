@@ -161,14 +161,23 @@ jobs:
           </plist>
           EOF
 
-      # 11. Build & Archive Xcode Workspace
+      # 11. Build & Archive Xcode Workspace or Project
       - name: Build Xcode Archive
         working-directory: ios/App
         run: |
+          if [ -d "App.xcworkspace" ]; then
+            echo "Building with workspace..."
+            BUILD_FLAG="-workspace App.xcworkspace"
+          else
+            echo "Building with project (SPM)..."
+            BUILD_FLAG="-project App.xcodeproj"
+          fi
+
           xcodebuild archive \
-            -workspace App.xcworkspace \
+            $BUILD_FLAG \
             -scheme App \
             -configuration Release \
+            -destination "generic/platform=iOS" \
             -archivePath $RUNNER_TEMP/App.xcarchive \
             -allowProvisioningUpdates \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
