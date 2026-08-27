@@ -89,49 +89,47 @@ Paste this into GitHub Secret: `ANDROID_KEYSTORE_BASE64`.
 
 ---
 
-### Part B: iOS Setup
+### Part B: iOS Setup & Deployment (Manual Xcode)
 
-#### 1. Export Apple Distribution Certificate (`.p12`)
-1. In Xcode or Keychain Access on Mac, locate your **Apple Distribution** certificate and private key.
-2. Right-click the certificate and select **Export "Apple Distribution: ..."**.
-3. Choose format **Personal Information Exchange (.p12)** and set a secure password.
-4. Base64 encode the `.p12`:
-   ```bash
-   base64 -i DistributionCertificate.p12 | pbcopy
-   ```
-5. Add to GitHub Secrets:
-   - `APPLE_CERTIFICATE_BASE64`: (the clipboard content)
-   - `APPLE_CERTIFICATE_PASSWORD`: (the password you entered during export)
+iOS distribution is performed locally via Xcode to ensure direct, secure code signing with your Apple Developer account without managing complex cloud keychains.
 
-#### 2. Download App Store Provisioning Profile
-1. In [Apple Developer Portal](https://developer.apple.com/account/resources/profiles/list), create an **App Store** distribution provisioning profile for Bundle ID `io.shuffle.security`.
-2. Download `Shuffle_Security_AppStore.mobileprovision`.
-3. Base64 encode it:
-   ```bash
-   base64 -i Shuffle_Security_AppStore.mobileprovision | pbcopy
-   ```
-4. Add to GitHub Secret: `APPLE_PROVISIONING_PROFILE_BASE64`.
+#### Step-by-Step Instructions:
 
-#### 3. Generate App Store Connect API Key (For Automated Uploads)
-1. Go to [App Store Connect](https://appstoreconnect.apple.com/) $\rightarrow$ **Users and Access** $\rightarrow$ **Integrations** (or **Keys**).
-2. Click **+** to generate a new API Key with **App Manager** or **Admin** access.
-3. Note the **Issuer ID** (UUID at top of page) $\rightarrow$ `APP_STORE_CONNECT_ISSUER_ID`.
-4. Note the **Key ID** $\rightarrow$ `APP_STORE_CONNECT_KEY_ID`.
-5. Download the `.p8` private key file (e.g., `AuthKey_XXXXXX.p8`) and base64 encode it:
+1. **Pull Latest Main & Install Dependencies**:
    ```bash
-   base64 -i AuthKey_XXXXXX.p8 | pbcopy
+   git pull origin main
+   npm install
+   npm run build
    ```
-6. Add to GitHub Secret: `APP_STORE_CONNECT_PRIVATE_KEY_BASE64`.
+
+2. **Sync Capacitor iOS & Apply Patches**:
+   ```bash
+   npx cap sync ios
+   node scripts/patch-capacitor-plugins.js
+   ```
+
+3. **Open Project in Xcode**:
+   ```bash
+   npx cap open ios
+   ```
+
+4. **Archive & Distribute**:
+   * Under **Signing & Capabilities** for target `App`:
+     * Verify **Automatically manage signing** is checked.
+     * Select Team `ZU5C69PJS4` and Bundle Identifier `com.shuffle.security`.
+   * In the top toolbar destination dropdown, select your Mac (`Freds mac` / `My Mac`) or `Any iOS Device (arm64)`.
+   * Click **Product** -> **Archive**.
+   * In the **Organizer** window, click **Distribute App** -> **App Store Connect** -> **Upload**.
 
 ---
 
-## 🏃‍♂️ How to Run a Manual Deployment
+## 🏃‍♂️ How to Run Android Deployment via CI/CD
 
 1. Go to the **Actions** tab in GitHub.
-2. Under "Workflows" on the left, click **Deploy Android to Google Play**, **Deploy iOS to Apple App Store**, or **Deploy Mobile**.
+2. Under "Workflows" on the left, click **Deploy Android to Google Play**.
 3. Click the **Run workflow** dropdown on the right.
 4. Configure options:
-   - **Track / Flight**: `internal`, `alpha`, `beta`, or `production`
+   - **Track**: `internal`, `alpha`, `beta`, or `production`
    - **Version Name**: e.g., `1.0.0` (or leave blank to use `package.json` version)
    - **Build Number**: e.g., `15` (or leave blank to use the GitHub Run Number)
    - **Upload to store**: Check `true` (or uncheck `false` to just generate and download artifacts).
@@ -141,6 +139,6 @@ Paste this into GitHub Secret: `ANDROID_KEYSTORE_BASE64`.
 
 ## 📦 Accessing Built Artifacts
 
-Every workflow run automatically attaches the generated binary artifacts to the GitHub Actions summary page:
+Android workflow runs automatically attach the generated binary artifacts to the GitHub Actions summary page:
 - **Android**: `shuffle-security-android-v1.0.0-b1-aab` (`.aab` for Google Play) and `...-apk` (`.apk` for manual device testing).
-- **iOS**: `shuffle-security-ios-v1.0.0-b1-ipa` (`.ipa` for TestFlight / manual installation).
+
