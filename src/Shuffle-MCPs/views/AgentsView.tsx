@@ -304,7 +304,7 @@ const AgentsView = ({
             </Typography>
           </Box>
         )}
-        <Box sx={{ flex: { xs: 1, md: 'unset' }, display: { xs: 'flex', md: 'block' }, flexDirection: { xs: 'column' }, minHeight: { xs: '100%' } }}>
+        <Box sx={{ flex: { xs: 1, md: 'unset' }, display: { xs: 'flex', md: 'block' }, flexDirection: { xs: 'column' }, justifyContent: { xs: 'center' }, minHeight: { xs: 0 } }}>
           <AgentUI
             key={prefill.key}
             maxWidth={maxWidth}
