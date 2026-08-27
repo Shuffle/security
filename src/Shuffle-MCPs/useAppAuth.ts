@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, hasShuffleAuth } from '@/Shuffle-MCPs/api';
 import type { AppAuthState, AuthStatus, ApiAuthEntry } from '@/Shuffle-MCPs/components/AppAuthConfig';
 import { refreshAllIntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
 import {
@@ -69,6 +69,10 @@ export function useAppAuth() {
 
   // Load authenticated apps on mount
   const fetchAuthenticatedApps = useCallback(async () => {
+    if (!hasShuffleAuth()) {
+      setLoading(false);
+      return;
+    }
     if (!hasLoadedAuthRef.current) setLoading(true);
     try {
       const authData = await fetchSharedAuthenticatedApps();

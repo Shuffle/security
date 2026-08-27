@@ -48,6 +48,10 @@ function toString(to: To): string {
   return `${to.pathname ?? "."}${search}${hash}`;
 }
 
+function isExternalUrl(url: string): boolean {
+  return /^(https?:|\/\/|mailto:|tel:)/i.test(url);
+}
+
 export function useNavigate(): NavigateFn {
   const tsNav = tsNavigate({ strict: false });
   let router: any = null;
@@ -63,7 +67,18 @@ export function useNavigate(): NavigateFn {
       }
       return;
     }
-    const { pathname, search, hash } = parseTo(toString(to));
+    const target = toString(to);
+    if (isExternalUrl(target)) {
+      if (typeof window !== "undefined") {
+        if (options?.replace) {
+          window.location.replace(target);
+        } else {
+          window.location.href = target;
+        }
+      }
+      return;
+    }
+    const { pathname, search, hash } = parseTo(target);
     tsNav({
       to: pathname,
       search: search as never,
@@ -147,6 +162,13 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   { to, replace, state, children, ...rest },
   ref,
 ) {
+  if (isExternalUrl(to)) {
+    return (
+      <a ref={ref} href={to} {...(rest as Record<string, unknown>)}>
+        {children}
+      </a>
+    );
+  }
   const { pathname, search, hash } = parseTo(to);
   return (
     <TSLink
@@ -167,6 +189,16 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
 // ---------- Navigate ----------
 
 export function Navigate({ to, replace, state }: { to: string; replace?: boolean; state?: unknown }) {
+  if (isExternalUrl(to)) {
+    if (typeof window !== "undefined") {
+      if (replace) {
+        window.location.replace(to);
+      } else {
+        window.location.href = to;
+      }
+    }
+    return null;
+  }
   const { pathname, search, hash } = parseTo(to);
   return <TSNavigate to={pathname as never} search={search as never} hash={hash} state={state as never} replace={replace} />;
 }

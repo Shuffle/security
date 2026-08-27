@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { setDatastoreItem, getDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
+import { hasShuffleAuth } from '@/Shuffle-MCPs/api';
 
 export type RiskLevel = 'low' | 'medium' | 'high';
 
@@ -215,6 +216,10 @@ export const useAgentPermissions = () => {
 
   // Load permissions from datastore
   const loadPermissions = useCallback(async () => {
+    if (!hasShuffleAuth()) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {

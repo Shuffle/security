@@ -14,6 +14,7 @@ export function useCapacitorMobile(options?: UseCapacitorMobileOptions) {
   const router = useRouter();
   const theme = options?.theme || "dark";
 
+  // 1. One-time native initialization: Hide splash screen and set up global listeners
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
       return;
@@ -24,29 +25,18 @@ export function useCapacitorMobile(options?: UseCapacitorMobileOptions) {
 
     async function initMobile() {
       try {
-        const [{ SplashScreen }, { StatusBar, Style }, { App }] = await Promise.all([
+        const [{ SplashScreen }, { App }] = await Promise.all([
           import("@capacitor/splash-screen"),
-          import("@capacitor/status-bar"),
           import("@capacitor/app"),
         ]);
 
         if (!isMounted) return;
 
-        // 1. Hide the native splash screen smoothly once the React app is mounted
+        // Hide the native splash screen smoothly once the React app is mounted
         SplashScreen.hide().catch(() => {});
 
-        // 2. Configure Status Bar to match current theme
-        if (theme === "light") {
-          StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-          StatusBar.setBackgroundColor({ color: "#FFFFFF" }).catch(() => {});
-        } else {
-          StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-          StatusBar.setBackgroundColor({ color: "#1A1A1A" }).catch(() => {});
-        }
-
-        // 3. Handle Android Hardware Back Button
+        // Handle Android Hardware Back Button
         const backHandler = await App.addListener("backButton", ({ canGoBack }) => {
-          // Check if any open dialog/modal/drawer can be dismissed first
           const openDialog = document.querySelector('[role="dialog"][data-state="open"]');
           if (openDialog) {
             const closeBtn = openDialog.querySelector<HTMLElement>('button[aria-label="Close"], button.close');
@@ -56,17 +46,15 @@ export function useCapacitorMobile(options?: UseCapacitorMobileOptions) {
             }
           }
 
-          // If history can go back, navigate back
           if (canGoBack && window.history.length > 1) {
             window.history.back();
           } else {
-            // Exit app gracefully if at the root page
             App.exitApp().catch(() => {});
           }
         });
         cleanupHandles.push(() => backHandler.remove());
 
-        // 4. Handle Deep Linking / App Links
+        // Handle Deep Linking / App Links
         const appUrlHandler = await App.addListener("appUrlOpen", (event) => {
           try {
             const url = new URL(event.url);
@@ -92,5 +80,29 @@ export function useCapacitorMobile(options?: UseCapacitorMobileOptions) {
       isMounted = false;
       cleanupHandles.forEach((cleanup) => cleanup());
     };
-  }, [router, theme]);
+  }, [router]);
+
+  // 2. Dynamic status bar styling when theme changes
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    async function updateStatusBar() {
+      try {
+        const { StatusBar, Style } = await import("@capacitor/status-bar");
+        if (theme === "light") {
+          StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+          StatusBar.setBackgroundColor({ color: "#FFFFFF" }).catch(() => {});
+        } else {
+          StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+          StatusBar.setBackgroundColor({ color: "#1A1A1A" }).catch(() => {});
+        }
+      } catch {
+        // Status bar plugin not available
+      }
+    }
+
+    void updateStatusBar();
+  }, [theme]);
 }

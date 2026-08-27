@@ -19,7 +19,7 @@
  * lookups stay isolated from the active org's data.
  */
 
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, hasShuffleAuth } from '@/Shuffle-MCPs/api';
 
 export interface AuthenticatedAppRaw {
   id?: string;
@@ -71,6 +71,8 @@ const applyValidationStaleness = (data: AuthenticatedAppRaw[]): AuthenticatedApp
 };
 
 const doFetch = async (crossOrgId?: string | null): Promise<AuthenticatedAppRaw[]> => {
+  if (!hasShuffleAuth()) return [];
+
   // getAuthHeader() now scopes to the active org by default; pass crossOrgId
   // explicitly to override when reading from a different tenant.
   const headers: Record<string, string> = {

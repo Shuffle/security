@@ -135,7 +135,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       const data = await response.json().catch(() => ({} as any));
-      console.log('getinfo response:', response.status, data);
 
       if (response.ok && data.success === true) {
         applyAuthenticatedUserInfo(data);
@@ -145,7 +144,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // non-ok statuses (500, 502, gateway timeouts, ...) are transient and
       // must NOT wipe a working cached session.
       if (response.status === 401 || response.status === 403) {
-        console.warn('getinfo unauthenticated:', data.reason || response.status);
         return 'unauthenticated';
       }
       console.warn('getinfo transient failure:', response.status, data.reason);
@@ -162,9 +160,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // errors (slow getinfo, 5xx) leave the cached session in place.
   useEffect(() => {
     const verifyAuth = async () => {
-      console.log('AuthContext: verifyAuth running on mount', { hadCachedSession: hasCachedSession });
       const token = localStorage.getItem('session_token');
       if (token !== sessionToken) setSessionToken(token);
+
+      // On mobile (or web with no cached session), unauthenticated is the starting point.
+      // Skip the initial network request to avoid unnecessary 401s on initial boot.
+      if (!token && (!hasCachedSession || isCapacitorNative())) {
+        setIsAuthenticated(false);
+        setUserInfo(null);
+        setIsLoading(false);
+        return;
+      }
 
       const result = await fetchUserInfo(token);
       if (result === 'ok') {

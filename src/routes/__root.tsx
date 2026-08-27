@@ -15,7 +15,7 @@ import appCss from "../styles.css?url";
 
 import { createMuiTheme } from "@/theme/muiTheme";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { setToastImpl } from "@/Shuffle-MCPs/toast";
 import { toast as hostToast } from "@/lib/toast";
 import { trackReferralParams, initAnalytics } from "@/lib/analytics";
@@ -62,46 +62,20 @@ if (typeof window !== "undefined") {
   installLocalStorageQuotaGuard();
   installWorkflowFetchGate();
 
-  const cleanupServiceWorkers = async (): Promise<boolean> => {
-    if (!("serviceWorker" in navigator)) return false;
-
-    // Only treat this visit as "needed a reload" if an SW is actually
-    // controlling the document right now. Leftover cache entries or stale
-    // registrations are NOT a reason to refresh — we can clean them up
-    // silently in the background.
-    const hadActiveController = !!navigator.serviceWorker.controller;
-
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((r) => r.unregister().catch(() => false)));
-    } catch {
-      // ignore
-    }
+  // Clean up any legacy Service Workers silently in the background (web browsers only).
+  // Never reload the page, which causes infinite loops in WKWebView / private mode.
+  const isCapacitor = Boolean((window as any).Capacitor?.isNativePlatform?.() || (window as any)._capacitor);
+  if (!isCapacitor && "serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((r) => r.unregister().catch(() => {}));
+    }).catch(() => {});
 
     if ("caches" in window) {
-      try {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map((n) => caches.delete(n).catch(() => false)));
-      } catch {
-        // ignore
-      }
+      caches.keys().then((cacheNames) => {
+        cacheNames.forEach((n) => caches.delete(n).catch(() => {}));
+      }).catch(() => {});
     }
-
-    return hadActiveController;
-  };
-
-  // Run SW cleanup in the background. Only force a one-time reload if a SW
-  // was actively controlling this document (it would intercept module fetches).
-  void cleanupServiceWorkers().then((hadActiveController) => {
-    if (!hadActiveController) return;
-    try {
-      if (sessionStorage.getItem("__swCleaned") === "1") return;
-      sessionStorage.setItem("__swCleaned", "1");
-    } catch {
-      // sessionStorage may be unavailable; fall through and reload once.
-    }
-    window.location.reload();
-  });
+  }
 }
 
 
@@ -215,6 +189,23 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function AuthenticatedDrawers() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return null;
+
+  return (
+    <>
+      <GlobalAgentDrawer />
+      <GlobalWorkflowRunDrawer />
+      <GlobalNotificationsDrawer />
+      <DemoTourDrawer />
+      <DemoSpotlight />
+      <DemoCompletionWatcher />
+      <DemoResumePill />
+    </>
+  );
+}
+
 /** MUI theming shell — the old ThemedApp from App.tsx, minus BrowserRouter. */
 function ThemedShell({ children }: { children: ReactNode }) {
   const { resolvedTheme, brandColor } = useTheme();
@@ -238,14 +229,8 @@ function ThemedShell({ children }: { children: ReactNode }) {
       />
       <AuthProvider>
         <ScrollToTop />
-        <GlobalAgentDrawer />
-        <GlobalWorkflowRunDrawer />
-        <GlobalNotificationsDrawer />
         <DemoProvider>
-          <DemoTourDrawer />
-          <DemoSpotlight />
-          <DemoCompletionWatcher />
-          <DemoResumePill />
+          <AuthenticatedDrawers />
           <Suspense
             fallback={
               <Box
