@@ -187,27 +187,41 @@ export const MobileAuthGateway = () => {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        boxSizing: 'border-box',
         bgcolor: 'hsl(var(--background))',
         color: 'hsl(var(--foreground))',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: { xs: 'flex-start', sm: 'center' },
         alignItems: 'center',
-        px: 2.5,
-        py: 4,
-        pt: 'calc(1.5rem + env(safe-area-inset-top, 0px))',
-        pb: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
+        px: { xs: 2, sm: 2.5 },
+        py: { xs: 2, sm: 4 },
+        pt: {
+          xs: 'max(4.5rem, calc(2.5rem + env(safe-area-inset-top, 44px)))',
+          sm: 5,
+        },
+        pb: {
+          xs: 'max(2.5rem, calc(2rem + env(safe-area-inset-bottom, 24px)))',
+          sm: 4,
+        },
+        pl: 'max(1.25rem, calc(1rem + env(safe-area-inset-left, 0px)))',
+        pr: 'max(1.25rem, calc(1rem + env(safe-area-inset-right, 0px)))',
       }}
     >
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        style={{ width: '100%', maxWidth: 420 }}
+        style={{ width: '100%', maxWidth: 'min(420px, 100%)', boxSizing: 'border-box' }}
       >
         {/* Brand Header */}
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 3.5 }, mt: { xs: 1, sm: 0 } }}>
           <Box
             sx={{
               display: 'inline-flex',
@@ -231,7 +245,7 @@ export const MobileAuthGateway = () => {
               fontWeight: 800,
               letterSpacing: '-0.5px',
               color: 'hsl(var(--foreground))',
-              fontSize: '1.45rem',
+              fontSize: { xs: '1.4rem', sm: '1.5rem' },
             }}
           >
             Shuffle Security

@@ -12,6 +12,7 @@ import { prefetchCommonRoutes } from '@/lib/routePrefetch';
 
 import { useAuth } from '@/context/AuthContext';
 import { loadAgentToolsFromDatastore } from '@/lib/agentTools';
+import { IosWebViewNavHeader } from './IosWebViewNavHeader';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -98,7 +99,17 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
 
   return (
     <AppDetailProvider>
-      <Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'hsl(var(--background))', width: '100%' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          height: '100dvh',
+          backgroundColor: 'hsl(var(--background))',
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'hidden',
+          boxSizing: 'border-box',
+        }}
+      >
         <AppSidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -109,21 +120,27 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
             flexGrow: 1,
             display: 'flex',
             flexDirection: 'column',
-            height: '100vh',
+            height: '100dvh',
             minWidth: 0,
             width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
             transition: 'margin 0.2s ease',
             marginLeft: { 
               xs: 0, 
-              sm: `${(sidebarCollapsed ? collapsedWidth : drawerWidth) + 20}px` 
+              sm: `${(sidebarCollapsed ? collapsedWidth : drawerWidth) + 16}px`,
+              md: `${(sidebarCollapsed ? collapsedWidth : drawerWidth) + 20}px`,
             },
             overflowY: 'auto',
             overflowX: 'hidden',
-            // Add bottom padding on mobile for the bottom nav
-            pb: { xs: '80px', sm: 0 },
+            pl: 'env(safe-area-inset-left, 0px)',
+            pr: 'env(safe-area-inset-right, 0px)',
+            // Add bottom padding on mobile for the bottom nav and safe area
+            pb: { xs: 'calc(76px + env(safe-area-inset-bottom, 0px))', sm: 0 },
           }}
         >
-          <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, width: '100%', maxWidth: '100%' }}>
+          <IosWebViewNavHeader />
+          <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             {orgMismatchWarning && (
               <Alert
                 severity="warning"

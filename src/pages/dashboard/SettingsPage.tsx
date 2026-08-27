@@ -16,6 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { PagerNotificationSettings } from '@/components/settings/PagerNotificationSettings';
+import { DiagnosticsLogsCard } from '@/components/settings/DiagnosticsLogsCard';
 
 // Settings types
 
@@ -222,9 +223,10 @@ const SettingsPage = () => {
             </Paper>
           </Box>
 
-          {/* Right Column: On-Call Pager & Emergency Calling */}
+          {/* Right Column: On-Call Pager, Emergency Calling & Diagnostics */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <PagerNotificationSettings />
+            <DiagnosticsLogsCard />
           </Box>
         </Box>
       )}

@@ -295,7 +295,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         size="small" 
         sx={{ 
           position: 'fixed',
-          left: (collapsed ? collapsedWidth : drawerWidth) + 10 - 12,
+          left: `calc(${(collapsed ? collapsedWidth : drawerWidth) + 10 - 12}px + env(safe-area-inset-left, 0px))`,
           top: collapsed ? 'calc(2.5% + 100px)' : 'calc(2.5% + 104px)',
           color: 'hsl(var(--muted-foreground))',
           backgroundColor: 'hsl(var(--card))',
@@ -319,7 +319,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         onMouseLeave={handleMouseLeave}
         sx={{
           position: 'fixed',
-          left: 10,
+          left: 'calc(10px + env(safe-area-inset-left, 0px))',
           top: '2.5%',
           height: '95%',
           width: visuallyCollapsed ? collapsedWidth : drawerWidth,

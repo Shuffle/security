@@ -81,24 +81,47 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
       styleOverrides: { root: { backgroundColor: appBarBg, backdropFilter: 'blur(12px)' } },
     },
     MuiDrawer: {
-      styleOverrides: { paper: { backgroundColor: drawerBg, borderRight: '1px solid hsl(var(--sidebar-border))' } },
+      styleOverrides: {
+        paper: {
+          backgroundColor: drawerBg,
+          borderRight: '1px solid hsl(var(--sidebar-border))',
+          maxWidth: '100vw',
+          boxSizing: 'border-box',
+        },
+      },
     },
     MuiDialog: {
       styleOverrides: {
         root: { zIndex: 10010 },
-        paper: { backgroundImage: cardBg, border: `1px solid ${border}` },
+        paper: {
+          backgroundImage: cardBg,
+          border: `1px solid ${border}`,
+          maxWidth: 'calc(100vw - 32px)',
+          margin: 16,
+          boxSizing: 'border-box',
+        },
       },
     },
     MuiMenu: {
       styleOverrides: {
         root: { zIndex: 10020 },
-        paper: { backgroundImage: cardBg, border: `1px solid ${border}` },
+        paper: {
+          backgroundImage: cardBg,
+          border: `1px solid ${border}`,
+          maxWidth: 'calc(100vw - 24px)',
+          boxSizing: 'border-box',
+        },
       },
     },
     MuiPopover: {
       styleOverrides: {
         root: { zIndex: 10020 },
-        paper: { backgroundImage: cardBg, border: `1px solid ${border}` },
+        paper: {
+          backgroundImage: cardBg,
+          border: `1px solid ${border}`,
+          maxWidth: 'calc(100vw - 24px)',
+          boxSizing: 'border-box',
+        },
       },
     },
     MuiAutocomplete: {

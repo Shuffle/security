@@ -12,6 +12,7 @@ import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { OnCallScheduleManager, type OnCallUser } from '@/components/users/OnCallScheduleManager';
 import { ScheduleHealthBanner } from '@/components/users/ScheduleHealthBanner';
+import { OnCallOverviewCard } from '@/components/users/OnCallOverviewCard';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 interface User extends OnCallUser {
@@ -110,6 +111,7 @@ const UsersPage = ({ embedded }: { embedded?: boolean }) => {
             </Box>
           ) : (
             <>
+              <OnCallOverviewCard />
               <ScheduleHealthBanner hideManageCta />
               <OnCallScheduleManager users={users} loading={loading} />
             </>

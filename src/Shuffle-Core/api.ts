@@ -48,10 +48,26 @@ export const isDevEnvironment = (): boolean => {
     || hostname.endsWith('.lovable.dev');
 };
 
-export const isCapacitorNative = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const cap = (window as any).Capacitor;
-  return Boolean(cap?.isNativePlatform && cap.isNativePlatform());
+import {
+  getPlatform,
+  isCapacitorNative,
+  isIos,
+  isAndroid,
+  isWeb,
+  isIosWebView,
+  isAndroidWebView,
+  getDeviceDiagnostics,
+} from '@/lib/platform';
+
+export {
+  getPlatform,
+  isCapacitorNative,
+  isIos,
+  isAndroid,
+  isWeb,
+  isIosWebView,
+  isAndroidWebView,
+  getDeviceDiagnostics,
 };
 
 export const isCloudDomain = (): boolean => {
