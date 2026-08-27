@@ -62,12 +62,18 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const defaultDestination = hasLoggedInBefore ? '/dashboard' : '/onboarding';
   const from = location.state?.from?.pathname || returnUrl || defaultDestination;
 
-  // Redirect if already authenticated (e.g., via API key)
+  // Redirect if already authenticated (e.g., via API key).
+  // Guarded with a ref: without it, a redirect target that bounces back to
+  // /login re-triggers this effect on every render and blows the update depth.
+  const hasRedirectedRef = useRef(false);
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate(from, { replace: true });
-    }
-  }, [isAuthenticated, authLoading, navigate, from]);
+    if (authLoading || !isAuthenticated) return;
+    if (hasRedirectedRef.current) return;
+    const target = (from || '/dashboard').split('?')[0];
+    if (target === location.pathname) return;
+    hasRedirectedRef.current = true;
+    navigate(from, { replace: true });
+  }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
   // Clear form when switching modes
   useEffect(() => {
