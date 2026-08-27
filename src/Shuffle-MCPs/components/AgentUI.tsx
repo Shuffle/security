@@ -5315,7 +5315,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
     <Box
       className={className}
       sx={[
-        { width: '100%', display: 'flex', justifyContent: 'center', pb: isPhone ? 1 : 4 },
+        {
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          pb: isPhone ? 1 : 4,
+          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'flex-end' } : {}),
+        },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
