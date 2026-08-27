@@ -10,8 +10,6 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
-  Tabs,
-  Tab,
   useTheme,
   Divider,
   Chip,
@@ -21,20 +19,15 @@ import {
   EyeOff as VisibilityOffIcon,
   Server as ServerIcon,
   Cloud as CloudIcon,
-  Sparkles as SparklesIcon,
-  Key as KeyIcon,
   ArrowRight as ArrowRightIcon,
   CheckCircle2 as CheckCircleIcon,
   AlertCircle as AlertCircleIcon,
-  ShieldAlert as ShieldIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
-import { enableLiveDemoEnvironment } from '@/services/demoLiveEnvironment';
-import { seedForStep } from '@/services/demoMode';
 
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
@@ -42,7 +35,7 @@ const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
 export const MobileAuthGateway = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { login, authenticateWithApiKey } = useAuth();
+  const { login } = useAuth();
 
   // Server instance selection: 'cloud' | 'self-hosted'
   const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
@@ -59,19 +52,14 @@ export const MobileAuthGateway = () => {
   const [hostPingStatus, setHostPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [hostPingMessage, setHostPingMessage] = useState('');
 
-  // Auth mode: 0 = credentials (user/password), 1 = API key
-  const [authTab, setAuthTab] = useState(0);
-
   // Form states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
-  const [apiKey, setApiKey] = useState('');
 
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Handle server mode change
@@ -193,50 +181,6 @@ export const MobileAuthGateway = () => {
       setError(err.message || 'Network error. Please check your connection.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Handle API Key login
-  const handleApiKeySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!apiKey.trim()) {
-      setError('Please enter an API Key or Session Token');
-      return;
-    }
-
-    try {
-      if (serverMode === 'self-hosted' && customHostUrl.trim()) {
-        const normalized = customHostUrl.trim().replace(/\/+$/, '');
-        setHostBaseUrl(normalized);
-        setCoreHostBaseUrl(normalized);
-        localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
-      }
-
-      authenticateWithApiKey({
-        api_key: apiKey.trim(),
-        username: 'API User',
-      });
-      navigate('/incidents', { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Failed to authenticate with API key');
-    }
-  };
-
-  // Handle instant demo mode launch
-  const handleExploreDemo = async () => {
-    setDemoLoading(true);
-    setError('');
-    try {
-      await enableLiveDemoEnvironment();
-      await seedForStep('welcome');
-      navigate('/incidents', { replace: true });
-    } catch (err: any) {
-      // Fallback: navigate directly to incidents with demo state
-      navigate('/incidents', { replace: true });
-    } finally {
-      setDemoLoading(false);
     }
   };
 
@@ -451,44 +395,13 @@ export const MobileAuthGateway = () => {
             overflow: 'hidden',
           }}
         >
-          {/* Tabs: Credentials vs API Key */}
-          <Tabs
-            value={authTab}
-            onChange={(_, val) => {
-              setAuthTab(val);
-              setError('');
-            }}
-            variant="fullWidth"
-            sx={{
-              borderBottom: '1px solid hsl(var(--border))',
-              minHeight: 44,
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                minHeight: 44,
-                color: 'hsl(var(--muted-foreground))',
-                '&.Mui-selected': {
-                  color: 'hsl(var(--primary))',
-                },
-              },
-              '& .MuiTabs-indicator': {
-                bgcolor: 'hsl(var(--primary))',
-                height: 2.5,
-              },
-            }}
-          >
-            <Tab label="Sign In" />
-            <Tab label="API Key / Token" icon={<KeyIcon size={14} />} iconPosition="start" />
-          </Tabs>
-
-          <CardContent sx={{ p: 2.5 }}>
+          <CardContent sx={{ p: 3 }}>
             {error && (
               <Alert
                 severity="error"
                 onClose={() => setError('')}
                 sx={{
-                  mb: 2,
+                  mb: 2.5,
                   borderRadius: 2,
                   fontSize: '0.8rem',
                   py: 0.5,
@@ -502,146 +415,84 @@ export const MobileAuthGateway = () => {
               </Alert>
             )}
 
-            {authTab === 0 ? (
-              // Username & Password Form
-              <Box component="form" onSubmit={handleLoginSubmit}>
-                <Box sx={{ mb: 2 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: 'hsl(var(--foreground))',
-                      mb: 0.75,
-                    }}
-                  >
-                    Username or Email
-                  </Typography>
-                  <TextField
-                    placeholder="analyst@organization.com"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    fullWidth
-                    required
-                    size="small"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    autoComplete="username"
-                    InputProps={{
-                      sx: {
-                        bgcolor: 'hsl(var(--background))',
-                        borderRadius: 2,
-                        fontSize: '0.875rem',
-                        '& fieldset': { borderColor: 'hsl(var(--border))' },
-                      },
-                    }}
-                  />
-                </Box>
-
-                <Box sx={{ mb: mfaRequired ? 2 : 2.5 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: 'hsl(var(--foreground))',
-                      mb: 0.75,
-                    }}
-                  >
-                    Password
-                  </Typography>
-                  <TextField
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    fullWidth
-                    required
-                    size="small"
-                    autoComplete="current-password"
-                    InputProps={{
-                      sx: {
-                        bgcolor: 'hsl(var(--background))',
-                        borderRadius: 2,
-                        fontSize: '0.875rem',
-                        '& fieldset': { borderColor: 'hsl(var(--border))' },
-                      },
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            size="small"
-                            sx={{ color: 'hsl(var(--muted-foreground))' }}
-                          >
-                            {showPassword ? <VisibilityOffIcon size={18} /> : <VisibilityIcon size={18} />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-
-                {mfaRequired && (
-                  <Box sx={{ mb: 2.5 }}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: 'hsl(var(--foreground))',
-                        mb: 0.75,
-                      }}
-                    >
-                      MFA / Authenticator Code
-                    </Typography>
-                    <TextField
-                      placeholder="6-digit code"
-                      value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value)}
-                      fullWidth
-                      required
-                      size="small"
-                      autoFocus
-                      inputProps={{
-                        inputMode: 'numeric',
-                        pattern: '[0-9]*',
-                        maxLength: 6,
-                      }}
-                      InputProps={{
-                        sx: {
-                          bgcolor: 'hsl(var(--background))',
-                          borderRadius: 2,
-                          fontSize: '0.875rem',
-                          '& fieldset': { borderColor: 'hsl(var(--border))' },
-                        },
-                      }}
-                    />
-                  </Box>
-                )}
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  disabled={loading}
+            {/* Username & Password Form */}
+            <Box component="form" onSubmit={handleLoginSubmit}>
+              <Box sx={{ mb: 2 }}>
+                <Typography
                   sx={{
-                    py: 1.25,
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    textTransform: 'none',
-                    bgcolor: '#FF6600',
-                    color: '#FFFFFF',
-                    boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
-                    '&:hover': {
-                      bgcolor: '#e65c00',
-                    },
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'hsl(var(--foreground))',
+                    mb: 0.75,
                   }}
                 >
-                  {loading ? <CircularProgress size={22} sx={{ color: '#ffffff' }} /> : 'Sign In'}
-                </Button>
+                  Username or Email
+                </Typography>
+                <TextField
+                  placeholder="analyst@organization.com"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  fullWidth
+                  required
+                  size="small"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  autoComplete="username"
+                  InputProps={{
+                    sx: {
+                      bgcolor: 'hsl(var(--background))',
+                      borderRadius: 2,
+                      fontSize: '0.875rem',
+                      '& fieldset': { borderColor: 'hsl(var(--border))' },
+                    },
+                  }}
+                />
               </Box>
-            ) : (
-              // API Key / Token Form
-              <Box component="form" onSubmit={handleApiKeySubmit}>
+
+              <Box sx={{ mb: mfaRequired ? 2 : 2.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'hsl(var(--foreground))',
+                    mb: 0.75,
+                  }}
+                >
+                  Password
+                </Typography>
+                <TextField
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                  required
+                  size="small"
+                  autoComplete="current-password"
+                  InputProps={{
+                    sx: {
+                      bgcolor: 'hsl(var(--background))',
+                      borderRadius: 2,
+                      fontSize: '0.875rem',
+                      '& fieldset': { borderColor: 'hsl(var(--border))' },
+                    },
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          size="small"
+                          sx={{ color: 'hsl(var(--muted-foreground))' }}
+                        >
+                          {showPassword ? <VisibilityOffIcon size={18} /> : <VisibilityIcon size={18} />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+
+              {mfaRequired && (
                 <Box sx={{ mb: 2.5 }}>
                   <Typography
                     sx={{
@@ -651,101 +502,57 @@ export const MobileAuthGateway = () => {
                       mb: 0.75,
                     }}
                   >
-                    API Key or Session Token
+                    MFA / Authenticator Code
                   </Typography>
                   <TextField
-                    placeholder="Paste key or token..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="6-digit code"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
                     fullWidth
                     required
-                    multiline
-                    rows={3}
                     size="small"
-                    autoCapitalize="none"
-                    autoCorrect="off"
+                    autoFocus
+                    inputProps={{
+                      inputMode: 'numeric',
+                      pattern: '[0-9]*',
+                      maxLength: 6,
+                    }}
                     InputProps={{
                       sx: {
                         bgcolor: 'hsl(var(--background))',
                         borderRadius: 2,
-                        fontSize: '0.825rem',
-                        fontFamily: 'monospace',
+                        fontSize: '0.875rem',
                         '& fieldset': { borderColor: 'hsl(var(--border))' },
                       },
                     }}
                   />
-                  <Typography
-                    sx={{
-                      fontSize: '0.7rem',
-                      color: 'hsl(var(--muted-foreground))',
-                      mt: 0.75,
-                    }}
-                  >
-                    Obtain an API key from Shuffle Dashboard &gt; Account &gt; API Keys
-                  </Typography>
                 </Box>
+              )}
 
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  sx={{
-                    py: 1.25,
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    textTransform: 'none',
-                    bgcolor: '#FF6600',
-                    color: '#FFFFFF',
-                    boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
-                    '&:hover': {
-                      bgcolor: '#e65c00',
-                    },
-                  }}
-                >
-                  Connect with Token
-                </Button>
-              </Box>
-            )}
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={loading}
+                sx={{
+                  py: 1.25,
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  textTransform: 'none',
+                  bgcolor: '#FF6600',
+                  color: '#FFFFFF',
+                  boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
+                  '&:hover': {
+                    bgcolor: '#e65c00',
+                  },
+                }}
+              >
+                {loading ? <CircularProgress size={22} sx={{ color: '#ffffff' }} /> : 'Sign In'}
+              </Button>
+            </Box>
           </CardContent>
         </Card>
-
-        {/* Explore Sandbox / Demo Mode Button */}
-        <Box sx={{ mt: 2.5 }}>
-          <Button
-            onClick={handleExploreDemo}
-            fullWidth
-            disabled={demoLoading}
-            variant="outlined"
-            startIcon={demoLoading ? <CircularProgress size={18} /> : <SparklesIcon size={18} color="#FF6600" />}
-            endIcon={<ArrowRightIcon size={16} />}
-            sx={{
-              py: 1.25,
-              px: 2,
-              borderRadius: 3,
-              borderColor: 'rgba(255, 102, 0, 0.3)',
-              bgcolor: 'rgba(255, 102, 0, 0.05)',
-              color: 'hsl(var(--foreground))',
-              textTransform: 'none',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              '&:hover': {
-                bgcolor: 'rgba(255, 102, 0, 0.1)',
-                borderColor: 'rgba(255, 102, 0, 0.5)',
-              },
-            }}
-          >
-            <Box sx={{ textAlign: 'left', flex: 1, ml: 1 }}>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>
-                Explore Interactive Demo
-              </Typography>
-              <Typography sx={{ fontSize: '0.725rem', color: 'hsl(var(--muted-foreground))' }}>
-                Test alerts, cases & AI agent without logging in
-              </Typography>
-            </Box>
-          </Button>
-        </Box>
 
         {/* Footer / Registration link */}
         <Box sx={{ textAlign: 'center', mt: 3 }}>

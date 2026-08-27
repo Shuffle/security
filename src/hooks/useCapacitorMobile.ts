@@ -19,79 +19,78 @@ export function useCapacitorMobile(options?: UseCapacitorMobileOptions) {
       return;
     }
 
-    const { SplashScreen, StatusBar, App } = ((Capacitor as unknown as {
-      Plugins?: Record<string, any>;
-    }).Plugins || {}) as Record<string, any>;
+    let isMounted = true;
+    let cleanupHandles: Array<() => void> = [];
 
-    // 1. Hide the native splash screen smoothly once the React app is mounted
-    if (SplashScreen?.hide) {
-      SplashScreen.hide().catch(() => {});
-    }
+    async function initMobile() {
+      try {
+        const [{ SplashScreen }, { StatusBar, Style }, { App }] = await Promise.all([
+          import("@capacitor/splash-screen"),
+          import("@capacitor/status-bar"),
+          import("@capacitor/app"),
+        ]);
 
-    // 2. Configure Status Bar to match current theme
-    if (StatusBar) {
-      if (theme === "light") {
-        StatusBar.setStyle?.({ style: "LIGHT" }).catch(() => {});
-        StatusBar.setBackgroundColor?.({ color: "#FFFFFF" }).catch(() => {});
-      } else {
-        StatusBar.setStyle?.({ style: "DARK" }).catch(() => {});
-        StatusBar.setBackgroundColor?.({ color: "#1A1A1A" }).catch(() => {});
+        if (!isMounted) return;
+
+        // 1. Hide the native splash screen smoothly once the React app is mounted
+        SplashScreen.hide().catch(() => {});
+
+        // 2. Configure Status Bar to match current theme
+        if (theme === "light") {
+          StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+          StatusBar.setBackgroundColor({ color: "#FFFFFF" }).catch(() => {});
+        } else {
+          StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+          StatusBar.setBackgroundColor({ color: "#1A1A1A" }).catch(() => {});
+        }
+
+        // 3. Handle Android Hardware Back Button
+        const backHandler = await App.addListener("backButton", ({ canGoBack }) => {
+          // Check if any open dialog/modal/drawer can be dismissed first
+          const openDialog = document.querySelector('[role="dialog"][data-state="open"]');
+          if (openDialog) {
+            const closeBtn = openDialog.querySelector<HTMLElement>('button[aria-label="Close"], button.close');
+            if (closeBtn) {
+              closeBtn.click();
+              return;
+            }
+          }
+
+          // If history can go back, navigate back
+          if (canGoBack && window.history.length > 1) {
+            window.history.back();
+          } else {
+            // Exit app gracefully if at the root page
+            App.exitApp().catch(() => {});
+          }
+        });
+        cleanupHandles.push(() => backHandler.remove());
+
+        // 4. Handle Deep Linking / App Links
+        const appUrlHandler = await App.addListener("appUrlOpen", (event) => {
+          try {
+            const url = new URL(event.url);
+            const path = url.pathname + url.search + url.hash;
+            if (path) {
+              router.navigate({ to: path as any }).catch(() => {
+                window.location.href = path;
+              });
+            }
+          } catch {
+            // Ignore malformed URLs
+          }
+        });
+        cleanupHandles.push(() => appUrlHandler.remove());
+      } catch (err) {
+        console.warn("Capacitor mobile initialization error:", err);
       }
     }
 
-    // 3. Handle Android Hardware Back Button
-    let backButtonHandle: any = null;
-    if (App?.addListener) {
-      App.addListener("backButton", ({ canGoBack }: { canGoBack: boolean }) => {
-        // Check if any open dialog/modal/drawer can be dismissed first
-        const openDialog = document.querySelector('[role="dialog"][data-state="open"]');
-        if (openDialog) {
-          const closeBtn = openDialog.querySelector<HTMLElement>('button[aria-label="Close"], button.close');
-          if (closeBtn) {
-            closeBtn.click();
-            return;
-          }
-        }
-
-        // If history can go back, navigate back
-        if (canGoBack && window.history.length > 1) {
-          window.history.back();
-        } else {
-          // Exit app gracefully if at the root page
-          App.exitApp?.();
-        }
-      })
-        .then((handle: any) => {
-          backButtonHandle = handle;
-        })
-        .catch(() => {});
-    }
-
-    // 4. Handle Deep Linking / App Links (e.g. shuffle://... or https://shuffle.security/...)
-    let appUrlOpenHandle: any = null;
-    if (App?.addListener) {
-      App.addListener("appUrlOpen", (event: { url: string }) => {
-        try {
-          const url = new URL(event.url);
-          const path = url.pathname + url.search + url.hash;
-          if (path) {
-            router.navigate({ to: path as any }).catch(() => {
-              window.location.href = path;
-            });
-          }
-        } catch {
-          // Ignore malformed URLs
-        }
-      })
-        .then((handle: any) => {
-          appUrlOpenHandle = handle;
-        })
-        .catch(() => {});
-    }
+    void initMobile();
 
     return () => {
-      backButtonHandle?.remove?.();
-      appUrlOpenHandle?.remove?.();
+      isMounted = false;
+      cleanupHandles.forEach((cleanup) => cleanup());
     };
   }, [router, theme]);
 }

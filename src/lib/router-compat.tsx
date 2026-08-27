@@ -49,11 +49,18 @@ function toString(to: To): string {
 }
 
 export function useNavigate(): NavigateFn {
-  const tsNav = tsNavigate();
-  const router = useRouter();
+  const tsNav = tsNavigate({ strict: false });
+  let router: any = null;
+  try {
+    router = useRouter();
+  } catch {}
   return useCallback((to: To | number, options?: NavigateOptions) => {
     if (typeof to === "number") {
-      router.history.go(to);
+      if (router?.history) {
+        router.history.go(to);
+      } else if (typeof window !== "undefined") {
+        window.history.go(to);
+      }
       return;
     }
     const { pathname, search, hash } = parseTo(toString(to));
@@ -70,7 +77,7 @@ export function useNavigate(): NavigateFn {
 // ---------- useLocation ----------
 
 export function useLocation() {
-  const loc = tsLocation();
+  const loc = tsLocation({ strict: false });
   return useMemo(
     () => ({
       pathname: loc.pathname,
@@ -95,9 +102,12 @@ export function useParams<T extends Record<string, string | undefined> = Record<
 // ---------- useSearchParams (react-router-dom compat) ----------
 
 export function useSearchParams(): [URLSearchParams, (init: URLSearchParams | Record<string, string> | ((prev: URLSearchParams) => URLSearchParams), opts?: { replace?: boolean }) => void] {
-  const loc = tsLocation();
-  const nav = tsNavigate();
-  const router = useRouter();
+  const loc = tsLocation({ strict: false });
+  const nav = tsNavigate({ strict: false });
+  let router: any = null;
+  try {
+    router = useRouter();
+  } catch {}
   const params = useMemo(() => new URLSearchParams(loc.searchStr ?? ""), [loc.searchStr]);
   const setParams = useCallback(
     (
@@ -107,7 +117,7 @@ export function useSearchParams(): [URLSearchParams, (init: URLSearchParams | Re
       // Functional updaters read the router's live location, not the render
       // snapshot — react-router passes call-time params, and chained updates
       // within one tick must see each other's writes.
-      const live = router.state.location;
+      const live = router?.state?.location ?? loc;
       const current = new URLSearchParams(live.searchStr ?? "");
       const next =
         typeof init === "function"
@@ -119,7 +129,7 @@ export function useSearchParams(): [URLSearchParams, (init: URLSearchParams | Re
       next.forEach((v, k) => { searchObj[k] = v; });
       nav({ to: live.pathname, search: searchObj as never, replace: opts?.replace });
     },
-    [nav, router],
+    [nav, router, loc],
   );
   return [params, setParams];
 }
@@ -180,7 +190,7 @@ export const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(function NavL
   { to, className, style, children, end, ...rest },
   ref,
 ) {
-  const loc = tsLocation();
+  const loc = tsLocation({ strict: false });
   const { pathname } = parseTo(to);
   const isActive =
     pathname === "."

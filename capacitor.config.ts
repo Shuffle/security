@@ -7,8 +7,16 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
     iosScheme: "https",
+    url: process.env.CAPACITOR_SERVER_URL || "https://shuffle.security",
     cleartext: Boolean(process.env.CAPACITOR_SERVER_URL),
-    url: process.env.CAPACITOR_SERVER_URL ? process.env.CAPACITOR_SERVER_URL : undefined,
+    allowNavigation: [
+      "shuffle.security",
+      "*.shuffle.security",
+      "shuffler.io",
+      "*.shuffler.io",
+      "localhost",
+      "10.0.2.2",
+    ],
   },
   plugins: {
     SplashScreen: {
