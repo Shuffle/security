@@ -23,6 +23,7 @@
     "ios:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
     "ios:build": "npm run build && cap sync ios",
+    "ios:check": "npm run build && npx cap sync ios && node scripts/patch-capacitor-plugins.js && xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO clean build",
     "ios:dev": "CAPACITOR_SERVER_URL=http://localhost:8080 cap sync ios && cap open ios",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
