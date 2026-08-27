@@ -125,10 +125,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchUserInfo = useCallback(async (_token?: string | null): Promise<'ok' | 'unauthenticated' | 'error'> => {
+    // Hard timeout: if the backend is unavailable the request can otherwise
+    // hang forever and the "Checking login details…" overlay never resolves.
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(getApiUrl('/api/v1/getinfo'), {
         method: 'GET',
         credentials: 'include',
+        signal: controller.signal,
         headers: {
           ...getAuthHeader(),
           'Content-Type': 'application/json',
@@ -152,6 +157,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('Failed to fetch user info:', err);
       return 'error';
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   }, [applyAuthenticatedUserInfo]);
 
@@ -189,7 +196,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     };
 
-    verifyAuth();
+    // Watchdog: never leave the app stuck on "Checking login details…" if the
+    // backend is unreachable or the request never settles.
+    const watchdog = window.setTimeout(() => setIsLoading(false), 16000);
+    verifyAuth().finally(() => window.clearTimeout(watchdog));
     // Only run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
