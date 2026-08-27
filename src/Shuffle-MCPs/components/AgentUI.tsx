@@ -6120,7 +6120,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     onClick={!agentRequestLoading ? () => setAuthDrawerApp({ name: app.name, id: app.id || null }) : undefined}
                     sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                      pl: 0.5, pr: 0.75, py: 0.25,
+                      pl: 0.5,
+                      pr: isPhone ? 0.375 : 0.75,
+                      py: 0.25,
                       borderRadius: 999,
                       bgcolor: needsAuth ? 'hsl(var(--severity-medium) / 0.12)' : 'hsl(var(--muted) / 0.6)',
                       border: needsAuth ? '1px solid hsl(var(--severity-medium) / 0.55)' : '1px solid transparent',
@@ -6137,9 +6139,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       variant="rounded"
                       sx={{ width: 18, height: 18, bgcolor: 'transparent' }}
                     />
-                    <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
-                      {app.name.replace(/_/g, ' ')}
-                    </Typography>
+                    {!isPhone && (
+                      <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
+                        {app.name.replace(/_/g, ' ')}
+                      </Typography>
+                    )}
                     {needsAuth && (
                       <WarningIcon size={14} color={'hsl(var(--severity-medium))'} style={{ marginRight: 2 }} />
                     )}
