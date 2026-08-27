@@ -276,8 +276,8 @@ const AgentsView = ({
   );
 
   return (
-    <Box sx={{ minHeight: '100%', width: '100%', px: { xs: 2, md: 4 }, pt: { xs: 3, md: '5vh' }, pb: 6, boxSizing: 'border-box' }}>
-      <Stack spacing={6} sx={{ maxWidth, mx: 'auto', width: '100%' }}>
+    <Box sx={{ minHeight: '100%', width: '100%', px: { xs: 1.25, md: 4 }, pt: { xs: 1, md: '5vh' }, pb: { xs: 2, md: 6 }, boxSizing: 'border-box' }}>
+      <Stack spacing={{ xs: 2.5, md: 6 }} sx={{ maxWidth, mx: 'auto', width: '100%' }}>
         {editing && (
           <Box
             sx={{
