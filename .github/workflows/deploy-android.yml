@@ -79,8 +79,8 @@ jobs:
             npm install
           fi
 
-      # 5. Determine Version Name and Version Code
-      - name: Calculate Version Info
+      # 5. Determine Version Name, Version Code and Package Name
+      - name: Calculate Version and Package Info
         id: versioning
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version || '1.0.0'")
@@ -90,10 +90,17 @@ jobs:
           INPUT_CODE="${{ github.event.inputs.version_code }}"
           VERSION_CODE="${INPUT_CODE:-$GITHUB_RUN_NUMBER}"
 
+          if [ -f "android/app/build.gradle" ]; then
+            PKG_ID=$(grep -E '^\s*applicationId\s+' android/app/build.gradle | head -n 1 | sed 's/.*applicationId[[:space:]]*"\([^"]*\)".*/\1/')
+          fi
+          PACKAGE_NAME="${PKG_ID:-com.shuffle.security}"
+
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
           echo "Resolved Version Name: $VERSION_NAME"
           echo "Resolved Version Code: $VERSION_CODE"
+          echo "Resolved Package Name: $PACKAGE_NAME"
 
       # 6. Build Web Bundle & Sync to Android
       - name: Build Web Application
@@ -181,7 +188,7 @@ jobs:
           HAVE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: io.shuffle.security
+          packageName: ${{ steps.versioning.outputs.PACKAGE_NAME }}
           releaseFiles: android/app/build/outputs/bundle/release/*.aab
           track: ${{ github.event.inputs.track }}
           status: ${{ github.event.inputs.release_status }}
