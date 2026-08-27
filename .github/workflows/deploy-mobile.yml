@@ -234,7 +234,9 @@ jobs:
             echo "iOS platform folder not found. Adding iOS platform with Capacitor..."
             npx cap add ios
           fi
+          node scripts/patch-capacitor-plugins.js
           npx cap sync ios
+          node scripts/patch-capacitor-plugins.js
 
       - name: Install Apple Certificate
         if: env.APPLE_CERTIFICATE_BASE64 != ''

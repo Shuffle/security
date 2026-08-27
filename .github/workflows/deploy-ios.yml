@@ -99,7 +99,9 @@ jobs:
             echo "iOS platform folder not found. Adding iOS platform with Capacitor..."
             npx cap add ios
           fi
+          node scripts/patch-capacitor-plugins.js
           npx cap sync ios
+          node scripts/patch-capacitor-plugins.js
 
       # 7. Configure Temporary Keychain & Install Apple Certificate
       - name: Install Apple Certificate

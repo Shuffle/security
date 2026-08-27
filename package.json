@@ -28,7 +28,8 @@
     "android:open": "cap open android",
     "android:dev": "CAPACITOR_SERVER_URL=http://10.0.2.2:8080 cap sync android && cap open android",
     "android:bundle": "cd android && ./gradlew bundleRelease",
-    "android:apk": "cd android && ./gradlew assembleRelease"
+    "android:apk": "cd android && ./gradlew assembleRelease",
+    "postinstall": "node scripts/patch-capacitor-plugins.js"
   },
   "overrides": {
     "rolldown": "1.2.1",
