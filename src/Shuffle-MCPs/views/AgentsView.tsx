@@ -276,8 +276,8 @@ const AgentsView = ({
   );
 
   return (
-    <Box sx={{ minHeight: '100%', width: '100%', px: { xs: 1.25, md: 4 }, pt: { xs: 1, md: '5vh' }, pb: { xs: 2, md: 6 }, boxSizing: 'border-box' }}>
-      <Stack spacing={{ xs: 2.5, md: 6 }} sx={{ maxWidth, mx: 'auto', width: '100%' }}>
+    <Box sx={{ minHeight: '100%', width: '100%', px: { xs: 1.25, md: 4 }, pt: { xs: 1, md: '5vh' }, pb: { xs: 2, md: 6 }, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <Stack spacing={{ xs: 2.5, md: 6 }} sx={{ maxWidth, mx: 'auto', width: '100%', flex: { xs: 1, md: 'unset' }, minHeight: { xs: '100%' } }}>
         {editing && (
           <Box
             sx={{
@@ -303,32 +303,34 @@ const AgentsView = ({
             </Typography>
           </Box>
         )}
-        <AgentUI
-          key={prefill.key}
-          maxWidth={maxWidth}
-          apiBaseUrl={globalUrl}
-          onViewChange={setAgentView}
-          onSchedule={effectiveSchedule}
-          apiKey={apiKey}
-          orgId={orgId}
-          userId={userdata?.id}
-          isSupport={userdata?.support === true || userdata?.support === 'true'}
-          onChooseLLM={handleChooseLLM}
-          hideChooseLLM={hideChooseLLM}
-          defaultInput={prefill.input}
-          defaultApps={prefill.apps.length > 0 ? prefill.apps : undefined}
-          submitOverride={editing ? handleSaveEdit : undefined}
-          submitLabel={editing ? 'Save' : undefined}
-          submitTooltip={editing ? '⌘+Enter to save' : undefined}
-          disableSchedule={Boolean(editing)}
-          disableScheduleTooltip={editing ? 'Scheduling is disabled while editing an existing schedule' : undefined}
-          theme={resolvedTheme}
-          colorMode={colorMode}
-          onAppsChange={handleAppsChange}
-          presetCtas={presetCtas}
-        />
+        <Box sx={{ flex: { xs: 1, md: 'unset' }, display: { xs: 'flex', md: 'block' }, flexDirection: { xs: 'column' }, minHeight: { xs: '100%' } }}>
+          <AgentUI
+            key={prefill.key}
+            maxWidth={maxWidth}
+            apiBaseUrl={globalUrl}
+            onViewChange={setAgentView}
+            onSchedule={effectiveSchedule}
+            apiKey={apiKey}
+            orgId={orgId}
+            userId={userdata?.id}
+            isSupport={userdata?.support === true || userdata?.support === 'true'}
+            onChooseLLM={handleChooseLLM}
+            hideChooseLLM={hideChooseLLM}
+            defaultInput={prefill.input}
+            defaultApps={prefill.apps.length > 0 ? prefill.apps : undefined}
+            submitOverride={editing ? handleSaveEdit : undefined}
+            submitLabel={editing ? 'Save' : undefined}
+            submitTooltip={editing ? '⌘+Enter to save' : undefined}
+            disableSchedule={Boolean(editing)}
+            disableScheduleTooltip={editing ? 'Scheduling is disabled while editing an existing schedule' : undefined}
+            theme={resolvedTheme}
+            colorMode={colorMode}
+            onAppsChange={handleAppsChange}
+            presetCtas={presetCtas}
+          />
+        </Box>
         {agentView === 'start' && (
-          <Box id="agent-activity" sx={{ pt: { xs: 4, md: '8vh' }, scrollMarginTop: 80 }}>
+          <Box id="agent-activity" sx={{ pt: { xs: 4, md: '8vh' }, display: { xs: 'none', md: 'block' }, scrollMarginTop: 80 }}>
             <AgentActivityList
               apiBaseUrl={globalUrl}
               apiKey={apiKey}

@@ -5315,13 +5315,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
     <Box
       className={className}
       sx={[
-        { width: '100%', display: 'flex', justifyContent: 'center', pb: isPhone ? 1 : 4 },
+        {
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          pb: isPhone ? 1 : 4,
+          ...(isPhone && showStarter ? { flex: 1, minHeight: '100%', justifyContent: 'flex-end' } : {}),
+        },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
       <Box
         sx={[
-          { width: '100%', maxWidth, display: 'flex', flexDirection: 'column', gap: isPhone ? 1.5 : 3 },
+          {
+            width: '100%',
+            maxWidth,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: isPhone ? 1.5 : 3,
+            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'flex-end' } : {}),
+          },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
       >
@@ -5337,6 +5350,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
               alignItems: 'center',
               gap: isPhone ? 1.5 : (compact ? 2 : 3),
               py: isPhone ? 1 : (compact ? 2 : 4),
+              width: '100%',
+              ...(isPhone ? { flex: 1, justifyContent: 'flex-end' } : {}),
             }}
           >
             {!hideHeroIcon && !compact && !isPhone && (
@@ -5370,6 +5385,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 {subtitle}
               </Typography>
             )}
+
+            {isPhone && <Box sx={{ flex: 1, minHeight: 0, alignSelf: 'stretch' }} />}
 
             <Box ref={promptAnchorRef} sx={{
               width: '100%',
@@ -6103,7 +6120,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     onClick={!agentRequestLoading ? () => setAuthDrawerApp({ name: app.name, id: app.id || null }) : undefined}
                     sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                      pl: 0.5, pr: 0.75, py: 0.25,
+                      pl: 0.5,
+                      pr: isPhone ? 0.375 : 0.75,
+                      py: 0.25,
                       borderRadius: 999,
                       bgcolor: needsAuth ? 'hsl(var(--severity-medium) / 0.12)' : 'hsl(var(--muted) / 0.6)',
                       border: needsAuth ? '1px solid hsl(var(--severity-medium) / 0.55)' : '1px solid transparent',
@@ -6120,9 +6139,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       variant="rounded"
                       sx={{ width: 18, height: 18, bgcolor: 'transparent' }}
                     />
-                    <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
-                      {app.name.replace(/_/g, ' ')}
-                    </Typography>
+                    {!isPhone && (
+                      <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
+                        {app.name.replace(/_/g, ' ')}
+                      </Typography>
+                    )}
                     {needsAuth && (
                       <WarningIcon size={14} color={'hsl(var(--severity-medium))'} style={{ marginRight: 2 }} />
                     )}
