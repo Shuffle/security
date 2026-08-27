@@ -5501,7 +5501,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               borderRadius: '28px',
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
-              px: 2.25,
+              px: isPhone ? 1 : 2.25,
               py: 1,
 
 
