@@ -24,7 +24,7 @@ export const MobileBottomNav = () => {
     },
     {
       label: 'Admin',
-      icon: <ShieldCheckIcon size={20} />,
+      icon: <AdminPanelSettingsIcon size={20} />,
       path: '/admin',
     },
   ];
