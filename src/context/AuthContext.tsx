@@ -157,6 +157,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('Failed to fetch user info:', err);
       return 'error';
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   }, [applyAuthenticatedUserInfo]);
 
