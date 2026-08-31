@@ -234,7 +234,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         // Otherwise, if no incidents exist for this org, send to /dashboard.
         let destination = from;
         const hasExplicitReturn = Boolean(location.state?.from?.pathname || returnUrl);
-        if (!hasExplicitReturn && !wasFirstLogin) {
+        if (!isMobile && !hasExplicitReturn && !wasFirstLogin) {
           try {
             const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
               method: 'GET',
