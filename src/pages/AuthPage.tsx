@@ -20,6 +20,7 @@ import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
