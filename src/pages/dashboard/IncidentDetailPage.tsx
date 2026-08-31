@@ -8725,7 +8725,7 @@ const IncidentDetailPage = () => {
               '&:hover': { bgcolor: 'hsl(var(--muted))' },
             } as const;
             return (
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {total > 1 ? (
                   <Tooltip
                     title={
