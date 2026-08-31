@@ -3058,7 +3058,7 @@ const IncidentsPage = () => {
       {/* Floating Filter Bar - sticky */}
       <Card elevation={0} sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'hsl(var(--card))', backgroundImage: 'none', border: '1px solid hsl(var(--border))', boxShadow: 'none', backdropFilter: 'none' }}>
         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' }, overflow: { xs: 'visible', sm: 'hidden' } }}>
             {/* Select all checkbox - always visible */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {(() => {
@@ -3120,7 +3120,7 @@ const IncidentsPage = () => {
                 ),
                 sx: { height: 36 },
               }}
-              sx={{ width: { xs: 100, sm: 140 }, minWidth: 0, flexShrink: 1 }}
+              sx={{ width: { xs: 'auto', sm: 140 }, flex: { xs: '1 1 auto', sm: '0 0 auto' }, minWidth: 0, flexShrink: 1 }}
       />
 
       {false && <>
@@ -3304,7 +3304,7 @@ const IncidentsPage = () => {
             </Box>
 
             <Tooltip title={hasMore ? 'More incidents exist beyond the fetch cap — narrow filters or load more to see the exact total.' : 'Total incidents matching the current organization scope'} arrow placement="top">
-              <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap', cursor: 'help' }}>
+              <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' }, ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap', cursor: 'help' }}>
                 {(() => {
                   const localCount = sortedIncidents.length;
                   const activeTotal = activeIncidents.length;
