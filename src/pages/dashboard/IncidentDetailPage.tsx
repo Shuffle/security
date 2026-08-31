@@ -9028,10 +9028,10 @@ const IncidentDetailPage = () => {
                 </Select>
               </FormControl>
               
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'block' } }}>•</Typography>
               
               {/* Last edited */}
-              <Typography variant="caption" sx={{ color: 'text.disabled', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 0.5 }}>
                 <AccessTimeIcon size={12} />
                 {incident.editedTs ? formatTimestamp(incident.editedTs) : formatTimestamp(incident.createdTs)}
               </Typography>
