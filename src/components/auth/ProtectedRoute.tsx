@@ -93,8 +93,8 @@ const AuthCheckingOverlay = ({ isMobile, knownLoggedOut }: AuthCheckingOverlayPr
           component={Link}
           to="/login"
           variant="outlined"
-          fullWidth
           sx={{
+            flex: 1,
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 600,
@@ -108,8 +108,8 @@ const AuthCheckingOverlay = ({ isMobile, knownLoggedOut }: AuthCheckingOverlayPr
           component={Link}
           to="/register"
           variant="contained"
-          fullWidth
           sx={{
+            flex: 1,
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: 600,
