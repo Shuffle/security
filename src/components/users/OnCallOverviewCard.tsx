@@ -550,40 +550,6 @@ const OnCallOverviewCardInner = ({ compact = false, onScheduleUpdated }: OnCallO
         </Box>
       </Collapse>
 
-      {/* Live On-Call Roster Right Now — only tiers with someone on duty */}
-      <Box sx={{ mt: 0.5 }}>
-        <Typography variant="caption" sx={{ fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 0.75, fontSize: '0.68rem' }}>
-          On duty right now
-        </Typography>
-
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-          {(['tier1', 'tier2', 'tier3', 'manager'] as EscalationLevel[])
-            .filter((tier) => activeRespondersNow[tier].length > 0)
-            .map((tier) => (
-              <Chip
-                key={tier}
-                avatar={(
-                  <Avatar sx={{ bgcolor: ESCALATION_COLORS[tier], color: '#fff', fontSize: '0.65rem' }}>
-                    {tier === 'manager' ? 'M' : tier.replace('tier', 'T')}
-                  </Avatar>
-                )}
-                label={`${ESCALATION_LABELS[tier]}: ${activeRespondersNow[tier].join(', ')}`}
-                size="small"
-                variant="outlined"
-                sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
-              />
-            ))}
-          {(['tier1', 'tier2', 'tier3', 'manager'] as EscalationLevel[]).every((tier) => activeRespondersNow[tier].length === 0) && (
-            <Chip
-              avatar={<Avatar sx={{ bgcolor: ESCALATION_COLORS.tier1, color: '#fff', fontSize: '0.65rem' }}>T1</Avatar>}
-              label="AI Agent (backup)"
-              size="small"
-              variant="outlined"
-              sx={{ borderColor: 'hsl(var(--border))', fontSize: '0.72rem', height: 26 }}
-            />
-          )}
-        </Box>
-      </Box>
 
     </Paper>
   );
