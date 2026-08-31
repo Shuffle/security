@@ -1090,21 +1090,28 @@ const IncidentDetailPage = () => {
   type TimelineFilterKey = 'revisions' | 'agent' | 'workflows' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
   const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
   const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'tasks', 'observables', 'correlations'];
+  // Mobile starts with comments only — the full feed is far too dense on a
+  // phone. Stored under its own key so the desktop selection is untouched.
+  const MOBILE_DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['manual'];
   // Bumped when the default set changes so existing localStorage entries
   // re-default rather than persist the old "all on" baseline.
-  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v5';
+  const isMobileViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 599.95px)').matches;
+  const TIMELINE_FILTER_STORAGE_KEY = isMobileViewport
+    ? 'shuffle-incident-timeline-filters-mobile-v1'
+    : 'shuffle-incident-timeline-filters-v5';
   const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
-    if (typeof window === 'undefined') return new Set(DEFAULT_TIMELINE_FILTERS);
+    const defaults = isMobileViewport ? MOBILE_DEFAULT_TIMELINE_FILTERS : DEFAULT_TIMELINE_FILTERS;
+    if (typeof window === 'undefined') return new Set(defaults);
     try {
       const raw = localStorage.getItem(TIMELINE_FILTER_STORAGE_KEY);
-      if (!raw) return new Set(DEFAULT_TIMELINE_FILTERS);
+      if (!raw) return new Set(defaults);
       const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Set(DEFAULT_TIMELINE_FILTERS);
+      if (!Array.isArray(arr)) return new Set(defaults);
       const valid = arr.filter((k): k is TimelineFilterKey => ALL_TIMELINE_FILTERS.includes(k));
       // Empty set is allowed — user explicitly hid everything.
       return new Set(valid);
     } catch {
-      return new Set(DEFAULT_TIMELINE_FILTERS);
+      return new Set(defaults);
     }
   });
   useEffect(() => {
