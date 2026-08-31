@@ -20,6 +20,7 @@ import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -52,14 +53,18 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const { login, isAuthenticated, isLoading: authLoading, authenticateWithApiKey } = useAuth();
 
   const isLogin = mode === 'login';
-  
+  const isMobile = useIsMobile();
+
   // Get return URL from state (set by ProtectedRoute) or from URL param (persists on refresh).
   // Prefer `view` (current canonical param); fall back to legacy `returnUrl` for backwards compatibility.
   const searchParams = new URLSearchParams(location.search);
   const returnUrl = searchParams.get('view') || searchParams.get('returnUrl');
   // First login detection: if no explicit returnUrl and user has never logged in, go to onboarding
   const hasLoggedInBefore = localStorage.getItem('shuffle_has_logged_in') === 'true';
-  const defaultDestination = hasLoggedInBefore ? '/dashboard' : '/onboarding';
+  // On mobile, successful logins should always land on the incident list.
+  const defaultDestination = isLogin && isMobile
+    ? '/incidents'
+    : (hasLoggedInBefore ? '/dashboard' : '/onboarding');
   const from = location.state?.from?.pathname || returnUrl || defaultDestination;
 
   // Redirect if already authenticated (e.g., via API key).
@@ -229,7 +234,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         // Otherwise, if no incidents exist for this org, send to /dashboard.
         let destination = from;
         const hasExplicitReturn = Boolean(location.state?.from?.pathname || returnUrl);
-        if (!hasExplicitReturn && !wasFirstLogin) {
+        if (!isMobile && !hasExplicitReturn && !wasFirstLogin) {
           try {
             const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
               method: 'GET',
