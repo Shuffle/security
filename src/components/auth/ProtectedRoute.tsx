@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation, useSearchParams } from '@/lib/router-compat';
-import { Box, CircularProgress, Typography, useTheme } from '@mui/material';
+import { Navigate, useLocation, useSearchParams, Link } from '@/lib/router-compat';
+import { Box, CircularProgress, Typography, useTheme, Button, useMediaQuery } from '@mui/material';
 import { useAuth } from '@/context/AuthContext';
 
 interface ProtectedRouteProps {
@@ -13,7 +13,14 @@ interface ProtectedRouteProps {
  * mounted until `isLoading` resolves. Public/marketing routes never see
  * this because they do not pass through ProtectedRoute.
  */
-const AuthCheckingOverlay = () => {
+interface AuthCheckingOverlayProps {
+  isMobile: boolean;
+  knownLoggedOut: boolean;
+}
+
+const AUTH_PATHS = new Set(['/login', '/register']);
+
+const AuthCheckingOverlay = ({ isMobile, knownLoggedOut }: AuthCheckingOverlayProps) => {
   const theme = useTheme();
   const [tier, setTier] = useState(0); // 0=initial, 1=>4s, 2=>10s
 
@@ -61,6 +68,59 @@ const AuthCheckingOverlay = () => {
       <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', maxWidth: 360, lineHeight: 1.5 }}>
         {secondary}
       </Typography>
+
+      <Box
+        component="footer"
+        data-testid="mobile-login-bar"
+        className="mobile-login-bar"
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1400,
+          bgcolor: 'hsl(var(--card))',
+          borderTop: '1px solid hsl(var(--border))',
+          px: 2,
+          py: 1.5,
+          pb: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
+          gap: 1.5,
+          justifyContent: 'center',
+          boxSizing: 'border-box',
+        }}
+      >
+        <Button
+          component={Link}
+          to="/login"
+          variant="outlined"
+          fullWidth
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            color: 'hsl(var(--foreground))',
+            borderColor: 'hsl(var(--border))',
+          }}
+        >
+          Sign in
+        </Button>
+        <Button
+          component={Link}
+          to="/register"
+          variant="contained"
+          fullWidth
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            bgcolor: 'hsl(var(--primary))',
+            color: 'hsl(var(--primary-foreground))',
+            '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+          }}
+        >
+          Create account
+        </Button>
+      </Box>
     </Box>
   );
 };
@@ -69,12 +129,25 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const isMobile = useMediaQuery('(max-width:767px)');
+
   // The server always renders the checking overlay (no session there). Match
   // that on the client's first paint so hydration cannot mismatch, then let
   // the real auth state take over.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     setHydrated(true);
+  }, []);
+
+  // On mobile we can offer login/register while the getinfo request is still
+  // in flight, but only when we already know the user is logged out (no cached
+  // token or user info). Cached sessions are kept optimistic and keep spinning.
+  const [knownLoggedOut, setKnownLoggedOut] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('session_token');
+    const info = localStorage.getItem('shuffle_user_info');
+    setKnownLoggedOut(!token && !info);
   }, []);
 
   // Allow public access when an authorization token is present alongside a
@@ -89,10 +162,16 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (isLoading || !hydrated) {
-    return <AuthCheckingOverlay />;
+    return <AuthCheckingOverlay isMobile={isMobile} knownLoggedOut={knownLoggedOut} />;
   }
 
   if (!isAuthenticated) {
+    // During a TanStack Router transition this layout can remain mounted while
+    // the location is already changing to /login. Without this guard it would
+    // keep appending a new `view` query and create an infinite redirect loop.
+    if (AUTH_PATHS.has(location.pathname)) {
+      return null;
+    }
     const view = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?view=${view}`} state={{ from: location }} replace />;
   }
