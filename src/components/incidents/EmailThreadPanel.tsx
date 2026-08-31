@@ -1052,7 +1052,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
                       )}
                     </Box>
                   )}
-                  <Box sx={{ pl: 5.5 }}>
+                  <Box sx={{ pl: { xs: 0, sm: 5.5 } }}>
                     {/* Every message body — HTML or plain text — goes through
                         the same sandboxed frame so the thread renders
                         consistently instead of only the first message. */}

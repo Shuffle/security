@@ -5853,7 +5853,7 @@ const IncidentDetailPage = () => {
           </Button>
         </Box>
       ) : (
-      <Box sx={{ p: 2, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
+      <Box sx={{ p: { xs: 1, sm: 2 }, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
 
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Avatar sx={{ width: 28, height: 28, bgcolor: 'hsl(var(--primary) / 0.2)' }}>
@@ -6028,7 +6028,7 @@ const IncidentDetailPage = () => {
 
       {/* Unified Timeline Feed — when inline, render with a vertical rail behind the items */}
       <Box sx={{
-        p: 1.5,
+        p: { xs: 0, sm: 1.5 },
         display: 'flex',
         flexDirection: 'column',
         gap: 1.25,
@@ -7446,8 +7446,8 @@ const IncidentDetailPage = () => {
             {pill}
             <Box
               sx={{
-                ml: 3,
-                mr: 0.5,
+                ml: { xs: 0, sm: 3 },
+                mr: { xs: 0, sm: 0.5 },
                 px: 1.25,
                 py: 0.75,
                 borderRadius: 1.5,
