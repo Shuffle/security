@@ -9043,7 +9043,15 @@ const IncidentDetailPage = () => {
           {/* Right side actions — split into two rows so the title gets more
               breathing room. Top row: Refresh + actions menu. Bottom row:
               loaders + Ask agent. */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.75, flexShrink: 0 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'row', sm: 'column' },
+            alignItems: { xs: 'center', sm: 'flex-end' },
+            justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+            width: { xs: '100%', sm: 'auto' },
+            gap: 0.75,
+            flexShrink: 0,
+          }}>
             {/* Bottom row group (loaders + Ask agent) — `order: 2` pushes it
                 below the top row even though it appears first in the DOM. */}
             <Box sx={{ order: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
