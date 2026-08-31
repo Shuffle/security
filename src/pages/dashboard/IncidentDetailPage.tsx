@@ -8963,10 +8963,10 @@ const IncidentDetailPage = () => {
                 </Select>
               </FormControl>
               
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'block' } }}>•</Typography>
               
               {/* Assignee dropdown - styled like chips */}
-              <FormControl size="small" variant="standard">
+              <FormControl size="small" variant="standard" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
                 <Select
                   value={editedAssignee || ''}
                   onChange={(e) => setEditedAssignee(e.target.value)}
