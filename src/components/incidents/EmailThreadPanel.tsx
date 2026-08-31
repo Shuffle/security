@@ -864,25 +864,25 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
 
       {onReply && (
         <Tooltip title="Reply (disabled)">
-          <span>
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
             <IconButton size="small" disabled sx={{
               color: 'text.secondary',
             }}>
               <ReplyIcon size={18} />
             </IconButton>
-          </span>
+          </Box>
         </Tooltip>
       )}
       {onForward && (
         <Tooltip title="Forwarding is not yet available">
-          <span>
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
             <IconButton size="small" disabled sx={{
               color: 'text.secondary',
               '&:hover': { color: primaryColor },
             }}>
               <ForwardIcon size={18} />
             </IconButton>
-          </span>
+          </Box>
         </Tooltip>
       )}
       <Tooltip title={poppedOut ? 'Dock back inline' : 'Open in popout window'}>
@@ -893,6 +893,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
             if (!poppedOut) setThreadCollapsed(false);
           }}
           sx={{
+            display: { xs: 'none', sm: 'inline-flex' },
             color: poppedOut ? primaryColor : 'text.secondary',
             '&:hover': { color: primaryColor },
           }}
