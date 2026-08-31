@@ -6028,14 +6028,16 @@ const IncidentDetailPage = () => {
         overflow: 'auto',
         ...(variant === 'inline' && {
           position: 'relative',
-          pl: 4.5,
+          pl: { xs: 0, sm: 4.5 },
           py: 2,
           // Vertical rail — anchored at the bottom (oldest) and growing
           // upward toward the newest item, matching the timeline direction
           // (newest-first / top). A subtle fade at the top reinforces that
           // the latest events are the "growing edge" of the thread.
+          // Hidden on mobile: the rail and dots eat horizontal space.
           '&::before': {
             content: '""',
+            display: { xs: 'none', sm: 'block' },
             position: 'absolute',
             left: 19,
             top: 18,
@@ -6052,6 +6054,7 @@ const IncidentDetailPage = () => {
             position: 'relative',
             '&::before': {
               content: '""',
+              display: { xs: 'none', sm: 'block' },
               position: 'absolute',
               left: -22,
               top: 21,
