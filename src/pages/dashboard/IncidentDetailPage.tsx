@@ -7446,8 +7446,8 @@ const IncidentDetailPage = () => {
             {pill}
             <Box
               sx={{
-                ml: 3,
-                mr: 0.5,
+                ml: { xs: 0, sm: 3 },
+                mr: { xs: 0, sm: 0.5 },
                 px: 1.25,
                 py: 0.75,
                 borderRadius: 1.5,
