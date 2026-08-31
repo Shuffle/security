@@ -4752,16 +4752,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
     <Box
       ref={tabBarRef}
       sx={{
-        display: 'flex', alignItems: 'center', gap: 1,
-        width: 'fit-content',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+        width: isPhone ? '100%' : 'fit-content',
         alignSelf: 'center',
-        position: 'sticky',
-        top: 8,
-        zIndex: 5,
-        bgcolor: 'hsl(var(--card))',
-        borderRadius: 9999,
-        px: 0,
-        py: 0,
+        position: isPhone ? 'fixed' : 'sticky',
+        top: isPhone ? 0 : 8,
+        left: isPhone ? 0 : 'auto',
+        right: isPhone ? 0 : 'auto',
+        zIndex: isPhone ? 1300 : 5,
+        bgcolor: isPhone ? 'hsl(var(--background))' : 'hsl(var(--card))',
+        borderRadius: isPhone ? 0 : 9999,
+        borderBottom: isPhone ? '1px solid hsl(var(--border))' : 'none',
+        boxShadow: isPhone ? '0 4px 16px rgba(0,0,0,0.12)' : 'none',
+        px: isPhone ? 1 : 0,
+        py: isPhone ? 1 : 0,
       }}
     >
       <SegmentedControl
