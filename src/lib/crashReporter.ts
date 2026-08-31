@@ -270,6 +270,8 @@ export const initCrashReporting = (): void => {
   window.addEventListener('error', (event) => {
     // Ignore benign cross-origin script error noise
     if (event.message === 'Script error.' && !event.filename) return;
+    // Benign browser layout notice, not an application error
+    if (typeof event.message === 'string' && event.message.includes('ResizeObserver loop')) return;
 
     recordCrash(event.error || event.message, {
       source: 'window_error',
