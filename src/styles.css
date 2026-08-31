@@ -610,7 +610,7 @@
 }
 
 @media (max-width: 767px) {
-  body.show-mobile-login-bar .mobile-login-bar {
+  html.show-mobile-login-bar .mobile-login-bar {
     display: flex !important;
   }
 }
