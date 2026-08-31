@@ -3304,7 +3304,7 @@ const IncidentsPage = () => {
             </Box>
 
             <Tooltip title={hasMore ? 'More incidents exist beyond the fetch cap — narrow filters or load more to see the exact total.' : 'Total incidents matching the current organization scope'} arrow placement="top">
-              <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap', cursor: 'help' }}>
+              <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' }, ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap', cursor: 'help' }}>
                 {(() => {
                   const localCount = sortedIncidents.length;
                   const activeTotal = activeIncidents.length;
