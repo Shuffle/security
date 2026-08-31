@@ -8685,7 +8685,8 @@ const IncidentDetailPage = () => {
             }}
           >
             <ArrowBackIcon size={18} />
-            <Typography variant="body2">Back to {entityPlural}</Typography>
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>Back to {entityPlural}</Typography>
+            <Typography variant="body2" sx={{ display: { xs: 'block', sm: 'none' } }}>Back</Typography>
           </Box>
 
           {/* Tenant indicator — only shown in multi-tenant environments */}
@@ -8724,7 +8725,7 @@ const IncidentDetailPage = () => {
               '&:hover': { bgcolor: 'hsl(var(--muted))' },
             } as const;
             return (
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {total > 1 ? (
                   <Tooltip
                     title={
@@ -8769,13 +8770,13 @@ const IncidentDetailPage = () => {
           display: 'flex',
           alignItems: { xs: 'flex-start', sm: 'center' },
           flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-          p: 2,
+          gap: { xs: 1, sm: 2 },
+          p: { xs: 1.25, sm: 2 },
           borderRadius: 2,
           bgcolor: 'transparent',
           border: '1px solid hsl(var(--border))',
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.25, sm: 2 }, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
           {/* Icon */}
           <Box sx={{ position: 'relative', flexShrink: 0 }}>
             <Box
@@ -8962,10 +8963,10 @@ const IncidentDetailPage = () => {
                 </Select>
               </FormControl>
               
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'block' } }}>•</Typography>
               
               {/* Assignee dropdown - styled like chips */}
-              <FormControl size="small" variant="standard">
+              <FormControl size="small" variant="standard" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
                 <Select
                   value={editedAssignee || ''}
                   onChange={(e) => setEditedAssignee(e.target.value)}
@@ -9027,10 +9028,10 @@ const IncidentDetailPage = () => {
                 </Select>
               </FormControl>
               
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'block' } }}>•</Typography>
               
               {/* Last edited */}
-              <Typography variant="caption" sx={{ color: 'text.disabled', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 0.5 }}>
                 <AccessTimeIcon size={12} />
                 {incident.editedTs ? formatTimestamp(incident.editedTs) : formatTimestamp(incident.createdTs)}
               </Typography>
@@ -9042,7 +9043,15 @@ const IncidentDetailPage = () => {
           {/* Right side actions — split into two rows so the title gets more
               breathing room. Top row: Refresh + actions menu. Bottom row:
               loaders + Ask agent. */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.75, flexShrink: 0 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'row', sm: 'column' },
+            alignItems: { xs: 'center', sm: 'flex-end' },
+            justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+            width: { xs: '100%', sm: 'auto' },
+            gap: 0.75,
+            flexShrink: 0,
+          }}>
             {/* Bottom row group (loaders + Ask agent) — `order: 2` pushes it
                 below the top row even though it appears first in the DOM. */}
             <Box sx={{ order: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -9101,15 +9110,17 @@ const IncidentDetailPage = () => {
                   color: 'hsl(var(--foreground))',
                   fontWeight: 600,
                   fontSize: '0.75rem',
-                  px: 1.25,
+                  px: { xs: 0.75, sm: 1.25 },
+                  minWidth: { xs: 0, sm: 64 },
                   background: 'linear-gradient(135deg, rgba(255,133,68,0.08), rgba(236,81,124,0.08), rgba(156,90,242,0.08))',
+                  '& .MuiButton-startIcon': { mr: { xs: 0.25, sm: 1 }, ml: 0 },
                   '&:hover': {
                     borderColor: 'hsl(var(--primary))',
                     background: 'linear-gradient(135deg, rgba(255,133,68,0.16), rgba(236,81,124,0.16), rgba(156,90,242,0.16))',
                   },
                 }}
               >
-                Ask agent
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Ask agent</Box>
               </Button>
               </span>
             </Tooltip>
@@ -9773,6 +9784,10 @@ const IncidentDetailPage = () => {
             alignItems: 'center', 
             justifyContent: 'space-between',
             mb: 2,
+            overflowX: { xs: 'auto', md: 'visible' },
+            pb: { xs: 0.5, md: 0 },
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: { xs: 'none', md: 'auto' },
           }}>
             <SegmentedControl
               layoutId="incident-detail-tabs"
