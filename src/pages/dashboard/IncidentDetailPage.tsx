@@ -8770,13 +8770,13 @@ const IncidentDetailPage = () => {
           display: 'flex',
           alignItems: { xs: 'flex-start', sm: 'center' },
           flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-          p: 2,
+          gap: { xs: 1, sm: 2 },
+          p: { xs: 1.25, sm: 2 },
           borderRadius: 2,
           bgcolor: 'transparent',
           border: '1px solid hsl(var(--border))',
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.25, sm: 2 }, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
           {/* Icon */}
           <Box sx={{ position: 'relative', flexShrink: 0 }}>
             <Box
