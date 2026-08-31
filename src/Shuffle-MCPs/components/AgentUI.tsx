@@ -5446,7 +5446,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
       >
-        {showRunSwitcher && tabBar}
+        {(showRunSwitcher || isPhone) && tabBar}
+        {isPhone && (
+          <Box sx={{ height: 52, flexShrink: 0, flexGrow: 0 }} />
+        )}
         {schedulePopover}
         {mobilePlusMenu}
         {showStarter ? (
