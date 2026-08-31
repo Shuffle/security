@@ -9110,15 +9110,17 @@ const IncidentDetailPage = () => {
                   color: 'hsl(var(--foreground))',
                   fontWeight: 600,
                   fontSize: '0.75rem',
-                  px: 1.25,
+                  px: { xs: 0.75, sm: 1.25 },
+                  minWidth: { xs: 0, sm: 64 },
                   background: 'linear-gradient(135deg, rgba(255,133,68,0.08), rgba(236,81,124,0.08), rgba(156,90,242,0.08))',
+                  '& .MuiButton-startIcon': { mr: { xs: 0.25, sm: 1 }, ml: 0 },
                   '&:hover': {
                     borderColor: 'hsl(var(--primary))',
                     background: 'linear-gradient(135deg, rgba(255,133,68,0.16), rgba(236,81,124,0.16), rgba(156,90,242,0.16))',
                   },
                 }}
               >
-                Ask agent
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Ask agent</Box>
               </Button>
               </span>
             </Tooltip>
