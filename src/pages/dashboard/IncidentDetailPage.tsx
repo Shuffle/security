@@ -8685,7 +8685,8 @@ const IncidentDetailPage = () => {
             }}
           >
             <ArrowBackIcon size={18} />
-            <Typography variant="body2">Back to {entityPlural}</Typography>
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>Back to {entityPlural}</Typography>
+            <Typography variant="body2" sx={{ display: { xs: 'block', sm: 'none' } }}>Back</Typography>
           </Box>
 
           {/* Tenant indicator — only shown in multi-tenant environments */}
