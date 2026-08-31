@@ -9784,6 +9784,10 @@ const IncidentDetailPage = () => {
             alignItems: 'center', 
             justifyContent: 'space-between',
             mb: 2,
+            overflowX: { xs: 'auto', md: 'visible' },
+            pb: { xs: 0.5, md: 0 },
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: { xs: 'none', md: 'auto' },
           }}>
             <SegmentedControl
               layoutId="incident-detail-tabs"
