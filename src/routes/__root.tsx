@@ -90,7 +90,7 @@ const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem("shuffle-the
 
 // Show the mobile login CTA bar on the auth-checking overlay immediately,
 // before React hydrates, so it is visible even when the backend is slow.
-const MOBILE_LOGIN_BAR_BOOTSTRAP = `(function(){try{var token=localStorage.getItem("session_token");var info=localStorage.getItem("shuffle_user_info");if(!token&&!info&&window.matchMedia("(max-width: 767px)").matches){document.body.classList.add("show-mobile-login-bar");}}catch(e){}})();`;
+const MOBILE_LOGIN_BAR_BOOTSTRAP = `(function(){try{var token=localStorage.getItem("session_token");var info=localStorage.getItem("shuffle_user_info");if(!token&&!info&&window.matchMedia("(max-width: 767px)").matches){document.documentElement.classList.add("show-mobile-login-bar");}}catch(e){}})();`;
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
