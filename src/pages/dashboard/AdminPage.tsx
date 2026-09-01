@@ -20,6 +20,7 @@ import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload } from
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
+import OrgPreferencesPage from './OrgPreferencesPage';
 import { TenantManagement } from '@/Shuffle-Core';
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -62,6 +63,7 @@ const AdminPage = () => {
   const getTabFromPath = useCallback(() => {
     if (location.pathname === '/admin/users') return 1;
     if (location.pathname === '/admin/tenants') return 2;
+    if (location.pathname === '/admin/preferences') return 3;
     return 0;
   }, [location.pathname]);
 
@@ -170,6 +172,7 @@ const AdminPage = () => {
     if (newValue === 0) navigate('/admin');
     else if (newValue === 1) navigate('/admin/users');
     else if (newValue === 2) navigate('/admin/tenants');
+    else if (newValue === 3) navigate('/admin/preferences');
   };
 
   // Fetch org details
@@ -334,13 +337,14 @@ const AdminPage = () => {
       </Typography>
 
       {(() => {
-        type TabValue = 'overview' | 'users' | 'tenants';
-        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants'];
+        type TabValue = 'overview' | 'users' | 'tenants' | 'preferences';
+        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'preferences'];
         const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
         const options: SegmentedItem<TabValue>[] = [
           { value: 'overview', label: 'Overview' },
           { value: 'users', label: 'Users' },
           { value: 'tenants', label: 'Tenants' },
+          { value: 'preferences', label: 'Preferences' },
         ];
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2.5, sm: 4 }, maxWidth: '100%', overflowX: 'auto', pb: 0.5 }}>
@@ -520,6 +524,7 @@ const AdminPage = () => {
         </>
       )}
 
+      {activeTab === 3 && <OrgPreferencesPage embedded />}
       {activeTab === 1 && <UsersPage embedded />}
       {activeTab === 2 && (
         <TenantManagement

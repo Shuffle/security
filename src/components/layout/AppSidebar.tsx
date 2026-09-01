@@ -1175,8 +1175,8 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           </MenuItem>
           <MenuItem
             component={Link}
-            to="/preferences"
-            selected={location.pathname === '/preferences' || location.pathname.startsWith('/preferences/')}
+            to="/admin/preferences"
+            selected={location.pathname === '/admin/preferences'}
             onClick={() => setUserMenuAnchor(null)}
             sx={{
               py: 1.25,
