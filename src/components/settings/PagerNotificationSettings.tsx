@@ -67,6 +67,7 @@ interface SectionProps {
   title: string;
   description: string;
   enabled: boolean;
+  disabled?: boolean;
   onToggle: (value: boolean) => void;
   expanded: boolean;
   onExpandToggle: () => void;
@@ -77,6 +78,7 @@ const NotificationSection = ({
   title,
   description,
   enabled,
+  disabled,
   onToggle,
   expanded,
   onExpandToggle,
@@ -116,6 +118,7 @@ const NotificationSection = ({
       </Box>
       <Switch
         checked={enabled}
+        disabled={disabled}
         onClick={(e) => e.stopPropagation()}
         onChange={(e) => onToggle(e.target.checked)}
         color="primary"
@@ -284,7 +287,16 @@ export const PagerNotificationSettings = () => {
   const selectedDevice = deviceList.find((d) => d.id === selectedDeviceId) || null;
   const remotePreferences = resolveDevicePreferences(selectedDevice);
 
+  const deviceRegistered = Boolean(
+    selectedDevice && devices.some((d) => d.id === selectedDevice.id),
+  );
+  const pushAvailable = isLocalSelected
+    ? settings.permissionStatus === 'granted' && Boolean(settings.pushToken)
+    : Boolean(selectedDevice?.token);
+  const controlsAvailable = deviceRegistered && pushAvailable;
+
   const sectionEnabled = (type: NotificationType): boolean => {
+    if (!controlsAvailable) return false;
     if (isLocalSelected) {
       if (type === 'critical') return settings.pagerCallingEnabled;
       if (type === 'agent_request') return settings.agentRequestEnabled;
@@ -462,14 +474,14 @@ export const PagerNotificationSettings = () => {
         </Box>
 
         {deviceList.length > 0 && (
-          <FormControl size="small" sx={{ minWidth: 220 }}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
             <Select
               value={selectedDeviceId}
               onChange={(e) => setSelectedDeviceId(String(e.target.value))}
               disabled={savingDevice}
               sx={{
-                height: 36,
-                fontSize: '0.85rem',
+                height: 30,
+                fontSize: '0.78rem',
                 color: 'hsl(var(--foreground))',
                 '& fieldset': { borderColor: 'hsl(var(--border))' },
               }}
@@ -552,6 +564,7 @@ export const PagerNotificationSettings = () => {
           title="Critical Pager"
           description="Full-screen call for critical incidents and downtime."
           enabled={sectionEnabled('critical')}
+          disabled={!controlsAvailable}
           onToggle={(value) => setSectionEnabled('critical', value)}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
@@ -639,6 +652,7 @@ export const PagerNotificationSettings = () => {
           title="Agent Request"
           description="Alerts when an AI agent needs your review or approval."
           enabled={sectionEnabled('agent_request')}
+          disabled={!controlsAvailable}
           onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
@@ -684,6 +698,7 @@ export const PagerNotificationSettings = () => {
           title="General Notifications"
           description="Completed workflows, rotations, and reports."
           enabled={sectionEnabled('general')}
+          disabled={!controlsAvailable}
           onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
