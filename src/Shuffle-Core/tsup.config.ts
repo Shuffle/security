@@ -36,7 +36,11 @@ export default defineConfig({
     '@emotion/styled',
     '@emotion/cache',
     'lucide-react',
-    '@/lib/router-compat',
+    // '@/lib/router-compat' is rewritten to an external 'react-router-dom'
+    // import at build time (see routerCompatExternal plugin below), so the
+    // published bundle depends on a real peer instead of the unresolvable
+    // source-only alias path. Keep both router packages external.
+    'react-router-dom',
     'react-router',
     'react-ga4',
     'react-device-detect',
@@ -62,6 +66,21 @@ export default defineConfig({
     '.svg': 'dataurl',
   },
   injectStyle: false,
+  esbuildPlugins: [
+    // Redirect the host-specific router shim to react-router-dom and keep it
+    // external, so dist emits a plain `from "react-router-dom"` (no inlining,
+    // no reliance on react-router dedup). The host app that consumes this
+    // package provides react-router-dom (>=6) as a peer dependency.
+    {
+      name: 'router-compat-external',
+      setup(build) {
+        build.onResolve({ filter: /^@\/lib\/router-compat$/ }, () => ({
+          path: 'react-router-dom',
+          external: true,
+        }));
+      },
+    },
+  ],
   esbuildOptions(options) {
     options.alias = {
       ...(options.alias || {}),
