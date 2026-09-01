@@ -28,6 +28,22 @@ import {
   dispatchGeneralNotification,
   NotificationType,
 } from '@/services/pagerNotificationService';
+import {
+  NotificationDevice,
+  DevicePreferences,
+  fetchNotificationDevices,
+  saveNotificationDevice,
+  resolveDevicePreferences,
+  getLocalDeviceId,
+  getLocalDeviceName,
+  getLocalDevicePlatform,
+} from '@/services/notificationDevices';
+
+const PREFERENCE_KEY: Record<NotificationType, keyof DevicePreferences> = {
+  critical: 'critical_pager',
+  agent_request: 'agent_requests',
+  general: 'general_alerts',
+};
 
 const rowSx = {
   display: 'flex',
@@ -209,7 +225,24 @@ export const PagerNotificationSettings = () => {
   const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
   const [copiedPath, setCopiedPath] = useState(false);
   const [expanded, setExpanded] = useState<NotificationType | null>(null);
+  const [devices, setDevices] = useState<NotificationDevice[]>([]);
+  const [localDeviceId, setLocalDeviceId] = useState('');
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const [savingDevice, setSavingDevice] = useState(false);
 
+  useEffect(() => {
+    const id = getLocalDeviceId();
+    setLocalDeviceId(id);
+    setSelectedDeviceId((current) => current || id);
+
+    let cancelled = false;
+    fetchNotificationDevices().then((remote) => {
+      if (!cancelled) setDevices(remote);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setSettings(getPagerSettings());
@@ -233,6 +266,64 @@ export const PagerNotificationSettings = () => {
     setExpanded((current) => (current === type ? null : type));
   };
 
+  const deviceList: NotificationDevice[] = localDeviceId
+    ? [
+        devices.find((d) => d.id === localDeviceId) || {
+          id: localDeviceId,
+          device_name: getLocalDeviceName(),
+          platform: getLocalDevicePlatform(),
+          token: settings.pushToken || undefined,
+        },
+        ...devices.filter((d) => d.id !== localDeviceId),
+      ]
+    : devices;
+
+  const isLocalSelected = selectedDeviceId === localDeviceId;
+  const selectedDevice = deviceList.find((d) => d.id === selectedDeviceId) || null;
+  const remotePreferences = resolveDevicePreferences(selectedDevice);
+
+  const sectionEnabled = (type: NotificationType): boolean => {
+    if (isLocalSelected) {
+      if (type === 'critical') return settings.pagerCallingEnabled;
+      if (type === 'agent_request') return settings.agentRequestEnabled;
+      return settings.generalNotificationsEnabled;
+    }
+    return remotePreferences[PREFERENCE_KEY[type]];
+  };
+
+  const persistDevicePreferences = async (preferences: DevicePreferences) => {
+    if (!selectedDevice) return;
+    setSavingDevice(true);
+    const next: NotificationDevice = {
+      id: selectedDevice.id,
+      token: selectedDevice.token || settings.pushToken || '',
+      platform: selectedDevice.platform || getLocalDevicePlatform(),
+      device_name: selectedDevice.device_name || getLocalDeviceName(),
+      preferences,
+    };
+    setDevices((current) => {
+      const others = current.filter((d) => d.id !== next.id);
+      return [...others, next];
+    });
+    const ok = await saveNotificationDevice(next);
+    setSavingDevice(false);
+    if (!ok) {
+      setPermissionMsg('Failed to save the device notification preferences.');
+    }
+  };
+
+  const setSectionEnabled = (type: NotificationType, value: boolean) => {
+    if (isLocalSelected) {
+      if (type === 'critical') update({ pagerCallingEnabled: value });
+      else if (type === 'agent_request') update({ agentRequestEnabled: value });
+      else update({ generalNotificationsEnabled: value });
+    }
+    void persistDevicePreferences({
+      ...remotePreferences,
+      [PREFERENCE_KEY[type]]: value,
+    });
+  };
+
   const handleRequestPermissions = async () => {
     setPermissionMsg(null);
     const granted = await requestNotificationPermissions();
@@ -241,7 +332,19 @@ export const PagerNotificationSettings = () => {
         ? 'Notification permissions granted.'
         : 'Notification permission was denied. Please enable notifications in your device settings.',
     );
-    setSettings(getPagerSettings());
+    const next = getPagerSettings();
+    setSettings(next);
+
+    if (granted && localDeviceId) {
+      const existing = devices.find((d) => d.id === localDeviceId);
+      void saveNotificationDevice({
+        id: localDeviceId,
+        token: next.pushToken || existing?.token || '',
+        platform: getLocalDevicePlatform(),
+        device_name: existing?.device_name || getLocalDeviceName(),
+        preferences: resolveDevicePreferences(existing),
+      }).then(() => fetchNotificationDevices().then(setDevices));
+    }
   };
 
   const permissionHelp = getPermissionHelp();
@@ -346,13 +449,38 @@ export const PagerNotificationSettings = () => {
         gap: 3,
       }}
     >
-      <Box>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
-          Notifications
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-          Control how and when Shuffle reaches out to you.
-        </Typography>
+      <Box sx={{ ...rowSx, alignItems: 'flex-start' }}>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
+            Notifications
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            Control how and when Shuffle reaches out to you.
+          </Typography>
+        </Box>
+
+        {deviceList.length > 0 && (
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <Select
+              value={selectedDeviceId}
+              onChange={(e) => setSelectedDeviceId(String(e.target.value))}
+              disabled={savingDevice}
+              sx={{
+                height: 36,
+                fontSize: '0.85rem',
+                color: 'hsl(var(--foreground))',
+                '& fieldset': { borderColor: 'hsl(var(--border))' },
+              }}
+            >
+              {deviceList.map((device) => (
+                <MenuItem key={device.id} value={device.id}>
+                  {(device.device_name || device.id) +
+                    (device.id === localDeviceId ? ' (this device)' : '')}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
       </Box>
 
       {permissionMsg && (
@@ -421,8 +549,8 @@ export const PagerNotificationSettings = () => {
         <NotificationSection
           title="Critical Pager"
           description="Full-screen call for critical incidents and downtime."
-          enabled={settings.pagerCallingEnabled}
-          onToggle={(value) => update({ pagerCallingEnabled: value })}
+          enabled={sectionEnabled('critical')}
+          onToggle={(value) => setSectionEnabled('critical', value)}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
         >
@@ -508,8 +636,8 @@ export const PagerNotificationSettings = () => {
         <NotificationSection
           title="Agent Request"
           description="Alerts when an AI agent needs your review or approval."
-          enabled={settings.agentRequestEnabled}
-          onToggle={(value) => update({ agentRequestEnabled: value })}
+          enabled={sectionEnabled('agent_request')}
+          onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
         >
@@ -553,8 +681,8 @@ export const PagerNotificationSettings = () => {
         <NotificationSection
           title="General Notifications"
           description="Completed workflows, rotations, and reports."
-          enabled={settings.generalNotificationsEnabled}
-          onToggle={(value) => update({ generalNotificationsEnabled: value })}
+          enabled={sectionEnabled('general')}
+          onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
         >
