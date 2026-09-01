@@ -135,12 +135,81 @@ const SettingRow = ({
   </Box>
 );
 
+interface PermissionHelp {
+  device: string;
+  steps: string;
+  internalUrl?: string;
+  docsUrl?: string;
+}
+
+const getPermissionHelp = (): PermissionHelp => {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && typeof document !== 'undefined' && 'ontouchend' in document);
+  const isAndroid = /Android/.test(ua);
+  const isEdge = /Edg\//.test(ua);
+  const isFirefox = /Firefox\//.test(ua);
+  const isChromium = /Chrome\/|Chromium\//.test(ua) && !isEdge;
+  const isSafari = /Safari\//.test(ua) && !/Chrome\/|Chromium\//.test(ua);
+
+  if (isIOS) {
+    return {
+      device: 'iOS',
+      steps: 'Open Settings, then Notifications, select the browser or the Shuffle app and turn on Allow Notifications. In Safari also check Settings, Apps, Safari, Advanced, Website Data permissions.',
+      docsUrl: 'https://support.apple.com/en-us/HT201925',
+    };
+  }
+  if (isAndroid) {
+    return {
+      device: 'Android',
+      steps: 'Open Settings, then Notifications, select the browser or the Shuffle app and allow notifications. In Chrome you can also tap the lock icon in the address bar and set Notifications to Allow.',
+      docsUrl: 'https://support.google.com/chrome/answer/3220216?hl=en&co=GENIE.Platform%3DAndroid',
+    };
+  }
+  if (isEdge) {
+    return {
+      device: 'Microsoft Edge',
+      steps: 'Open the Edge notification settings page and set this site to Allow.',
+      internalUrl: 'edge://settings/content/notifications',
+      docsUrl: 'https://support.microsoft.com/en-us/microsoft-edge/manage-website-notifications-in-microsoft-edge-0c555609-5bf2-479d-a59d-fb30a0b80b2b',
+    };
+  }
+  if (isFirefox) {
+    return {
+      device: 'Firefox',
+      steps: 'Open the Firefox permissions settings and remove the block for this site.',
+      internalUrl: 'about:preferences#privacy',
+      docsUrl: 'https://support.mozilla.org/en-US/kb/push-notifications-firefox',
+    };
+  }
+  if (isSafari) {
+    return {
+      device: 'Safari on macOS',
+      steps: 'Open Safari, then Settings, Websites, Notifications, and set this site to Allow.',
+      docsUrl: 'https://support.apple.com/guide/safari/customize-website-notifications-sfri40734/mac',
+    };
+  }
+  if (isChromium) {
+    return {
+      device: 'Chrome',
+      steps: 'Open the Chrome notification settings page and set this site to Allow, or click the icon left of the address bar and allow notifications.',
+      internalUrl: 'chrome://settings/content/notifications',
+      docsUrl: 'https://support.google.com/chrome/answer/3220216?hl=en&co=GENIE.Platform%3DDesktop',
+    };
+  }
+  return {
+    device: 'this device',
+    steps: 'Open your browser or system notification settings and allow notifications for this site.',
+  };
+};
+
 export const PagerNotificationSettings = () => {
   const [settings, setSettings] = useState<PagerSettings>(getPagerSettings());
   const [isPlayingTestSiren, setIsPlayingTestSiren] = useState(false);
   const [sendingType, setSendingType] = useState<NotificationType | null>(null);
   const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
+  const [copiedPath, setCopiedPath] = useState(false);
   const [expanded, setExpanded] = useState<NotificationType | null>(null);
+
 
   useEffect(() => {
     setSettings(getPagerSettings());
