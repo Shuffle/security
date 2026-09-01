@@ -305,7 +305,12 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
   const [localDeviceId, setLocalDeviceId] = useState('');
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [savingDevice, setSavingDevice] = useState(false);
+  const [inIframe, setInIframe] = useState(false);
   const [confirmCritical, setConfirmCritical] = useState(false);
+
+  useEffect(() => {
+    setInIframe(typeof window !== 'undefined' && window.top !== window.self);
+  }, []);
 
   useEffect(() => {
     const id = getLocalDeviceId();
