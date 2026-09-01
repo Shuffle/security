@@ -177,10 +177,10 @@ const SettingsPage = () => {
       ) : (
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '340px 1fr' },
+            display: 'flex',
+            flexDirection: 'column',
             gap: 3,
-            alignItems: 'start',
+            alignItems: 'stretch',
           }}
         >
           {/* Left Column: Account Profile & Actions */}
