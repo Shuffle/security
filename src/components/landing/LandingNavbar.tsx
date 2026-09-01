@@ -19,22 +19,13 @@ import {
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { trackCTA, trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
+import { ShuffleLogo } from '@/components/common/ShuffleLogo';
 
 const navItems = [
   { label: 'Features', href: '/#features', internal: true },
   { label: 'Usecases', href: '/usecases', internal: true },
   { label: 'Docs', href: '/docs', internal: true },
 ];
-
-// Shuffle logo SVG component (orange for landing page)
-const ShuffleLogo = () => (
-  <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
-    <path
-      d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
-      fill="#FF6600"
-    />
-  </svg>
-);
 
 export const LandingNavbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);

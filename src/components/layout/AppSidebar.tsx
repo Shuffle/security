@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
+import { ShuffleLogo } from '@/components/common/ShuffleLogo';
 import { useLocation, Link, useNavigate } from '@/lib/router-compat';
 import { prefetchRoute } from '@/lib/routePrefetch';
 import {
@@ -357,12 +358,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             },
           }}
         >
-          <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
-            <path
-              d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
-              fill={primaryColor}
-            />
-          </svg>
+          <ShuffleLogo size={28} />
           {!visuallyCollapsed && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
@@ -424,9 +420,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
               }
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
-              <path d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z" fill={primaryColor} />
-            </svg>
+            <ShuffleLogo size={24} />
             <Typography sx={{ fontSize: '0.875rem', color: 'hsl(var(--foreground))', fontWeight: 600 }}>
               <span style={{ color: primaryColor }}>Shuffle</span> Security
             </Typography>

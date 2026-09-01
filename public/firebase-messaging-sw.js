@@ -4,12 +4,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-comp
 
 // Initialize Firebase in the service worker context
 firebase.initializeApp({
-  apiKey: "AIzaSyDummyKeyForWebPushInit000000",
-  authDomain: "shuffle-security.firebaseapp.com",
-  projectId: "shuffle-security",
-  storageBucket: "shuffle-security.appspot.com",
-  messagingSenderId: "1035252817088",
-  appId: "1:1035252817088:web:00000000000000"
+  apiKey: "AIzaSyA9-yyCNGJDeNkg30WocUv5M9Tw5y-qJFw",
+  authDomain: "shuffler.firebaseapp.com",
+  projectId: "shuffler",
+  storageBucket: "shuffler.firebasestorage.app",
+  messagingSenderId: "253565968129",
+  appId: "1:253565968129:web:c6cfc493e8fe28d960c500"
 });
 
 const messaging = firebase.messaging();

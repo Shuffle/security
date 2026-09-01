@@ -103,6 +103,8 @@ const _cachedRegion = (() => {
 const _readCachedCustomHost = (): string | null => {
   if (typeof window === 'undefined') return null;
   try {
+    const mode = localStorage.getItem('shuffle_selected_server_mode');
+    if (mode && mode !== 'self-hosted') return null;
     const raw = localStorage.getItem('shuffle_custom_host_url');
     return raw ? raw.trim().replace(/\/+$/, '') : null;
   } catch {

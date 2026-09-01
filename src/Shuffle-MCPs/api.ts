@@ -136,6 +136,8 @@ let _regionUrl: string | null = cached.url;
 const readCachedCustomHost = (): string | null => {
   if (typeof window === 'undefined') return null;
   try {
+    const mode = localStorage.getItem('shuffle_selected_server_mode');
+    if (mode && mode !== 'self-hosted') return null;
     const raw = localStorage.getItem('shuffle_custom_host_url');
     return raw ? raw.trim().replace(/\/+$/, '') : null;
   } catch {
@@ -374,14 +376,15 @@ export const shuffleFetch = (url: string, init?: RequestInit): Promise<Response>
 
 // Common endpoints
 export const API_ENDPOINTS = {
-  login: '/login',
-  logout: '/logout',
-  me: '/me',
-  getinfo: '/getinfo',
-  alerts: '/alerts',
-  cases: '/cases',
-  workflows: '/workflows',
-  apps: '/apps',
+  login: '/api/v1/login',
+  register: '/api/v1/users/register',
+  logout: '/api/v1/logout',
+  me: '/api/v1/me',
+  getinfo: '/api/v1/getinfo',
+  alerts: '/api/v1/alerts',
+  cases: '/api/v1/cases',
+  workflows: '/api/v1/workflows',
+  apps: '/api/v1/apps',
 };
 
 // Get authorization header - uses API key if available, otherwise session token.

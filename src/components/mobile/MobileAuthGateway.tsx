@@ -28,6 +28,7 @@ import { useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
+import { ShuffleLogo } from '@/components/common/ShuffleLogo';
 
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
@@ -62,6 +63,21 @@ export const MobileAuthGateway = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Ensure host URL is synchronized in API config whenever serverMode or customHostUrl changes
+  useEffect(() => {
+    if (serverMode === 'self-hosted' && customHostUrl.trim()) {
+      let normalized = customHostUrl.trim().replace(/\/+$/, '');
+      if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+        normalized = 'https://' + normalized;
+      }
+      setHostBaseUrl(normalized);
+      setCoreHostBaseUrl(normalized);
+    } else if (serverMode === 'cloud') {
+      setHostBaseUrl(null);
+      setCoreHostBaseUrl(null);
+    }
+  }, [serverMode, customHostUrl]);
+
   // Handle server mode change
   const handleServerModeChange = (mode: 'cloud' | 'self-hosted') => {
     setServerMode(mode);
@@ -74,7 +90,10 @@ export const MobileAuthGateway = () => {
         setCoreHostBaseUrl(null);
         localStorage.removeItem(CUSTOM_HOST_STORAGE_KEY);
       } else if (customHostUrl.trim()) {
-        const normalized = customHostUrl.trim().replace(/\/+$/, '');
+        let normalized = customHostUrl.trim().replace(/\/+$/, '');
+        if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+          normalized = 'https://' + normalized;
+        }
         setHostBaseUrl(normalized);
         setCoreHostBaseUrl(normalized);
         localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
@@ -132,29 +151,44 @@ export const MobileAuthGateway = () => {
     e.preventDefault();
     setError('');
 
-    if (serverMode === 'self-hosted' && !customHostUrl.trim()) {
-      setError('Please provide your self-hosted Shuffle server URL');
-      return;
+    if (serverMode === 'self-hosted') {
+      if (!customHostUrl.trim()) {
+        setError('Please provide your self-hosted Shuffle server URL');
+        return;
+      }
+
+      let normalized = customHostUrl.trim().replace(/\/+$/, '');
+      if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+        normalized = 'https://' + normalized;
+        setCustomHostUrl(normalized);
+      }
+
+      setHostBaseUrl(normalized);
+      setCoreHostBaseUrl(normalized);
+      localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'self-hosted');
+      localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
+    } else {
+      setHostBaseUrl(null);
+      setCoreHostBaseUrl(null);
+      localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'cloud');
+      localStorage.removeItem(CUSTOM_HOST_STORAGE_KEY);
     }
 
     setLoading(true);
 
     try {
-      if (serverMode === 'self-hosted' && customHostUrl.trim()) {
-        const normalized = customHostUrl.trim().replace(/\/+$/, '');
-        setHostBaseUrl(normalized);
-        setCoreHostBaseUrl(normalized);
-        localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
-      }
-
       const body: Record<string, string> = { username, password };
       if (mfaRequired && mfaCode) {
         body.mfa_code = mfaCode;
       }
 
-      const response = await fetch(getApiUrl(API_ENDPOINTS.login), {
+      const loginUrl = getApiUrl(API_ENDPOINTS.login);
+      const response = await fetch(loginUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify(body),
       });
@@ -167,6 +201,7 @@ export const MobileAuthGateway = () => {
           setError('Please enter your multi-factor authentication code.');
           return;
         }
+
         setError(data.reason || data.message || 'Invalid username or password');
         return;
       }
@@ -178,7 +213,12 @@ export const MobileAuthGateway = () => {
         setError(data.reason || 'Login failed. Please verify credentials.');
       }
     } catch (err: any) {
-      setError(err.message || 'Network error. Please check your connection.');
+      if (err.name === 'TypeError' || err.message?.includes('fetch')) {
+        const targetHost = serverMode === 'self-hosted' ? customHostUrl : 'Shuffle Cloud';
+        setError(`Unable to reach server (${targetHost}). Please verify the URL, network connection, or SSL certificate.`);
+      } else {
+        setError(err.message || 'Network error. Please check your connection.');
+      }
     } finally {
       setLoading(false);
     }
@@ -233,11 +273,7 @@ export const MobileAuthGateway = () => {
               boxShadow: '0 8px 24px rgba(255, 102, 0, 0.15)',
             }}
           >
-            <img
-              src="/pwa-192x192.png"
-              alt="Shuffle"
-              style={{ width: 48, height: 48, borderRadius: 10, display: 'block' }}
-            />
+            <ShuffleLogo size={48} />
           </Box>
           <Typography
             variant="h5"

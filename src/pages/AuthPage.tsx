@@ -21,6 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ShuffleLogo } from '@/components/common/ShuffleLogo';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -127,7 +128,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? API_ENDPOINTS.login : '/users/register';
+      const endpoint = isLogin ? API_ENDPOINTS.login : API_ENDPOINTS.register;
       const body: Record<string, string> = { username, password };
       
       if (mfaRequired && mfaCode) {
@@ -135,7 +136,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
       }
 
       let response: Response;
-      const apiUrl = getApiUrl(`/api/v1${endpoint}`);
+      const apiUrl = getApiUrl(endpoint);
       try {
         response = await fetch(apiUrl, {
           method: 'POST',
@@ -350,12 +351,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                     justifyContent: 'center',
                   }}
                 >
-                  <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                    <path
-                      d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
-                      fill={primaryColor}
-                    />
-                  </svg>
+                  <ShuffleLogo size={48} />
                 </Box>
                 <Typography
                   variant="h5"

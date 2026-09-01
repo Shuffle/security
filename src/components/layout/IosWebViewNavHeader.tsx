@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useLocation, useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { ShuffleLogo } from '@/components/common/ShuffleLogo';
 
 const getPageTitle = (pathname: string): { title: string; parentPath?: string; parentLabel?: string } => {
   const clean = pathname.replace(/\/$/, '') || '/';
@@ -136,12 +137,7 @@ export const MobileNavHeader: React.FC = () => {
                 color: 'inherit',
               }}
             >
-              <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
-                <path
-                  d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
-                  fill={primaryColor}
-                />
-              </svg>
+              <ShuffleLogo size={24} />
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                 <Typography
                   sx={{

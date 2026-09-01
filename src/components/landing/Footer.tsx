@@ -25,15 +25,7 @@ const footerLinks = {
   ],
 };
 
-// Shuffle logo SVG component
-const ShuffleLogo = () => (
-  <svg width="28" height="28" viewBox="0 0 56 56" fill="none">
-    <path
-      d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
-      fill="#FF6600"
-    />
-  </svg>
-);
+import { ShuffleLogo } from '@/components/common/ShuffleLogo';
 
 export const Footer = () => {
   return (
