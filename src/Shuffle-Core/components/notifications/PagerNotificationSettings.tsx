@@ -613,7 +613,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           incidentId: `test-${Date.now()}`,
           title: 'Remote Pager API Verification Test',
           source: 'Shuffle API (/api/v1/functions/pager)',
-          targetToken: settings.pushToken,
+          targetToken: testToken,
           severity: 'critical',
           tier: 1,
           autoEscalateSeconds: settings.autoEscalateTimeoutSeconds || 60,
@@ -624,7 +624,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           executionId: `exec-${Date.now()}`,
           workflowId: 'wf-isolate-host',
           action: 'approve_containment',
-          targetToken: settings.pushToken,
+          targetToken: testToken,
           body: 'Subagent detected suspicious brute-force activity. Confirmation needed to isolate host.',
         });
       } else {
@@ -632,7 +632,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           title: 'Weekly SOC Report Available',
           body: 'The automated weekly security posture report has been compiled.',
           referenceUrl: '/reports/weekly',
-          targetToken: settings.pushToken,
+          targetToken: testToken,
         });
       }
 
