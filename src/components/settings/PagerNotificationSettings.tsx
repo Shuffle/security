@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, useCallback, ReactNode } from 'react';
 import {
   Box,
   Typography,
@@ -8,17 +8,30 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Menu,
   Divider,
   Alert,
   Collapse,
   IconButton,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
 } from '@mui/material';
-import { ChevronDown, Smartphone, Monitor } from 'lucide-react';
+import { ChevronDown, Smartphone, Monitor, MoreVertical } from 'lucide-react';
+import { toast } from '@/lib/toast';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
+import {
+  OnCallScheduleManager,
+  computeDefaultPolicy,
+  type OnCallUser,
+  type AssignmentConfig,
+  type UserSchedule,
+} from '@/components/users/OnCallScheduleManager';
+
 import { useAuth } from '@/context/AuthContext';
 import {
   getPagerSettings,
