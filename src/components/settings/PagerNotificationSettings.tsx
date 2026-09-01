@@ -368,7 +368,52 @@ export const PagerNotificationSettings = () => {
           sx={{ fontSize: '0.85rem' }}
         >
           {permissionMsg}
+
+          {permissionMsg.toLowerCase().includes('denied') && (
+            <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography sx={{ fontSize: '0.82rem', color: 'inherit' }}>
+                {permissionHelp.device}: {permissionHelp.steps}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                {permissionHelp.internalUrl && (
+                  <>
+                    <Typography
+                      component="code"
+                      sx={{
+                        fontSize: '0.78rem',
+                        px: 1,
+                        py: 0.4,
+                        borderRadius: 1,
+                        border: '1px solid hsl(var(--border))',
+                        bgcolor: 'hsl(var(--muted) / 0.4)',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    >
+                      {permissionHelp.internalUrl}
+                    </Typography>
+                    <Button variant="outlined" size="small" onClick={handleCopySettingsPath} sx={outlinedButtonSx}>
+                      {copiedPath ? 'Copied' : 'Copy link'}
+                    </Button>
+                  </>
+                )}
+                {permissionHelp.docsUrl && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    component="a"
+                    href={permissionHelp.docsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={outlinedButtonSx}
+                  >
+                    How to enable
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          )}
         </Alert>
+
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
