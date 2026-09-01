@@ -16,6 +16,8 @@ interface DocsPageProps {
   basePath?: string;
   /** Section label used in the sidebar and fallback titles. */
   sectionTitle?: string;
+  /** Hide read time, contributors and "Edit on GitHub" metadata. Print stays. */
+  hideMeta?: boolean;
   initialMeta?: {
     name?: string;
     contributors?: { name?: string; url?: string; image?: string }[];
@@ -31,6 +33,7 @@ const DocsPage = ({
   folder,
   basePath = '/docs',
   sectionTitle = 'Documentation',
+  hideMeta,
 }: DocsPageProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -150,6 +153,7 @@ const DocsPage = ({
               basePath={basePath}
               initialContent={initialContent}
               initialMeta={initialMeta}
+              hideMeta={hideMeta ?? folder === 'legal'}
             />
           </Container>
         </Box>

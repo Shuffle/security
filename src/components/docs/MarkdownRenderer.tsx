@@ -36,6 +36,8 @@ interface MarkdownRendererProps {
   /** SSR-provided markdown/metadata; when present the initial client fetch is skipped. */
   initialContent?: string | null;
   initialMeta?: RemoteDocMeta | null;
+  /** Hide read time, contributors and "Edit on GitHub" metadata. Print stays. */
+  hideMeta?: boolean;
 }
 
 interface DocSuggestion {
@@ -118,7 +120,7 @@ const normalizeDocPath = (pathname: string, basePath = '/docs') => {
   return `${basePath}/${docSlug(name)}`;
 };
 
-export const MarkdownRenderer = ({ slug = 'index', folder, basePath = '/docs', initialContent = null, initialMeta = null }: MarkdownRendererProps) => {
+export const MarkdownRenderer = ({ slug = 'index', folder, basePath = '/docs', initialContent = null, initialMeta = null, hideMeta = false }: MarkdownRendererProps) => {
   const [content, setContent] = useState<string>(initialContent ?? '');
   const [meta, setMeta] = useState<RemoteDocMeta | null>(initialMeta);
   const [loading, setLoading] = useState(!initialContent);
@@ -507,14 +509,14 @@ export const MarkdownRenderer = ({ slug = 'index', folder, basePath = '/docs', i
             rowGap: 1,
           }}
         >
-          {meta?.read_time ? (
+          {!hideMeta && meta?.read_time ? (
             <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
               <ClockIcon size={14} />
               <Typography variant="caption">{meta.read_time} min read</Typography>
             </Stack>
           ) : null}
 
-          {meta?.contributors && meta.contributors.length > 0 && (
+          {!hideMeta && meta?.contributors && meta.contributors.length > 0 && (
             <AvatarGroup max={6} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.7rem', border: '1px solid', borderColor: 'divider' } }}>
               {meta.contributors.map((c, i) => {
                 const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
@@ -536,7 +538,7 @@ export const MarkdownRenderer = ({ slug = 'index', folder, basePath = '/docs', i
             </AvatarGroup>
           )}
 
-          {meta?.link && (
+          {!hideMeta && meta?.link && (
             <MuiLink
               href={meta.link}
               target="_blank"
