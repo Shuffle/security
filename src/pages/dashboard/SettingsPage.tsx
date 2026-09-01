@@ -41,6 +41,7 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { sessionToken, logout, userInfo } = useAuth();
+  const isSupport = useIsSupport();
   const navigate = useNavigate();
 
   useEffect(() => {
