@@ -799,11 +799,14 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             display: 'flex',
             alignItems: 'center',
             gap: 0.75,
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
+            minWidth: 0,
             width: { xs: '100%', sm: 'auto' },
             justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            '& > *': { minWidth: 0 },
           }}
         >
+
         {isLocalSelected && (!isGranted || !settings.pushToken) && (
           <Tooltip
             title={
