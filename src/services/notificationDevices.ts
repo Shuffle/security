@@ -17,9 +17,9 @@ export interface NotificationDevice {
 const DEVICE_ID_KEY = 'shuffle_notification_device_id';
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
-  critical_pager: true,
-  agent_requests: true,
-  general_alerts: true,
+  critical_pager: false,
+  agent_requests: false,
+  general_alerts: false,
 };
 
 /** Stable per-browser/device identifier, generated once and persisted. */

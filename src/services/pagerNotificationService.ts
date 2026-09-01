@@ -40,13 +40,13 @@ const INCOMING_CALL_EVENT = 'shuffle:incoming-pager-call';
 const CALL_DISMISSED_EVENT = 'shuffle:pager-call-dismissed';
 
 const DEFAULT_SETTINGS: PagerSettings = {
-  pagerCallingEnabled: true,
+  pagerCallingEnabled: false,
   sirenSoundEnabled: true,
   vibrationEnabled: true,
   autoEscalateTimeoutSeconds: 60,
-  agentRequestEnabled: true,
+  agentRequestEnabled: false,
   agentRequestSoundEnabled: true,
-  generalNotificationsEnabled: true,
+  generalNotificationsEnabled: false,
   generalSoundEnabled: false,
   pushToken: null,
   permissionStatus: 'unknown',
