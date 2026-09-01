@@ -22,6 +22,9 @@ import {
   DashboardOverview,
   Billing,
   TenantManagement,
+  NotificationsDrawer,
+  NotificationSettings,
+  OnCallScheduleManager,
   getApiUrl,
 } from '@shuffleio/shuffle-core';
 import { useAuth } from '@/context/AuthContext';
@@ -503,6 +506,7 @@ const ShuffleCoreTestPage = () => {
   const { isAuthenticated, isLoading, userInfo } = useAuth();
   const { setTheme } = useTheme();
   const forcedThemeRef = useRef(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   useEffect(() => {
     if (isLoading || forcedThemeRef.current) return;
     if (!isAuthenticated) {
