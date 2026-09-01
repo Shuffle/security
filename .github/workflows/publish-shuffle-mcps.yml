@@ -38,7 +38,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       # Resolve the version: workflow_dispatch input wins, else strip "shuffle-mcps-v" from the tag
@@ -64,10 +64,6 @@ jobs:
             fs.writeFileSync('package.json', JSON.stringify(tpl, null, 2) + '\n');
           "
           cat package.json
-
-      # OIDC trusted publishing requires npm CLI >=11.5.1; Node 20 bundles an older npm
-      - name: Update npm
-        run: npm install -g npm@latest
 
       - name: Install library deps
         working-directory: src/Shuffle-MCPs
