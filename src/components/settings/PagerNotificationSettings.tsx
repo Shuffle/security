@@ -28,6 +28,22 @@ import {
   dispatchGeneralNotification,
   NotificationType,
 } from '@/services/pagerNotificationService';
+import {
+  NotificationDevice,
+  DevicePreferences,
+  fetchNotificationDevices,
+  saveNotificationDevice,
+  resolveDevicePreferences,
+  getLocalDeviceId,
+  getLocalDeviceName,
+  getLocalDevicePlatform,
+} from '@/services/notificationDevices';
+
+const PREFERENCE_KEY: Record<NotificationType, keyof DevicePreferences> = {
+  critical: 'critical_pager',
+  agent_request: 'agent_requests',
+  general: 'general_alerts',
+};
 
 const rowSx = {
   display: 'flex',
