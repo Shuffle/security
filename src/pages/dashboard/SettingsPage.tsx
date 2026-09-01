@@ -10,7 +10,7 @@ import {
   Avatar,
   Divider,
 } from '@mui/material';
-import { LogOut, KeyRound } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { useIsSupport } from '@/hooks/useIsSupport';
@@ -81,12 +81,8 @@ const SettingsPage = () => {
   const handleLogout = async () => {
     trackPredefinedEvent(GA_EVENTS.LOGOUT);
     await logout();
-    navigate('/login', { replace: true });
-  };
-
-  const handleClearApiKey = () => {
     API_CONFIG.setApiKey(null);
-    window.location.reload();
+    navigate('/login', { replace: true });
   };
 
   const getUserInitial = () => {
