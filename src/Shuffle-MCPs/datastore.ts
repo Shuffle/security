@@ -117,6 +117,34 @@ const getOrgId = (): string | null => {
   return null;
 };
 
+/**
+ * Resolve the org id, waiting briefly for it to appear.
+ *
+ * Right after login the app renders (and pages start fetching) before
+ * /api/v1/getinfo has resolved, so the runtime org id and the
+ * `shuffle_user_info` localStorage entry are both still empty. Failing
+ * immediately with "No organization ID found" surfaced that race to the user.
+ * Poll for a short window instead — normal boots resolve in well under a
+ * second.
+ */
+const ORG_ID_WAIT_MS = 8000;
+const ORG_ID_POLL_MS = 100;
+
+const waitForOrgId = async (): Promise<string | null> => {
+  const immediate = getOrgId();
+  if (immediate) return immediate;
+  if (typeof window === 'undefined') return null;
+
+  const deadline = Date.now() + ORG_ID_WAIT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, ORG_ID_POLL_MS));
+    const orgId = getOrgId();
+    if (orgId) return orgId;
+  }
+  return null;
+};
+
+
 const normalizeDatastoreKey = (key: string): string => {
   if (!key?.includes('::')) return key;
   const parts = key.split('::').filter(Boolean);
