@@ -10,6 +10,12 @@ import { usePageMeta } from '@/hooks/usePageMeta';
 interface DocsPageProps {
   /** SSR-provided markdown/metadata; when present the client fetch is skipped. */
   initialContent?: string | null;
+  /** API folder to load from (e.g. "legal"). */
+  folder?: string;
+  /** URL prefix for this section (defaults to /docs). */
+  basePath?: string;
+  /** Section label used in the sidebar and fallback titles. */
+  sectionTitle?: string;
   initialMeta?: {
     name?: string;
     contributors?: { name?: string; url?: string; image?: string }[];
@@ -19,21 +25,27 @@ interface DocsPageProps {
   } | null;
 }
 
-const DocsPage = ({ initialContent = null, initialMeta = null }: DocsPageProps) => {
+const DocsPage = ({
+  initialContent = null,
+  initialMeta = null,
+  folder,
+  basePath = '/docs',
+  sectionTitle = 'Documentation',
+}: DocsPageProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const docTitle = slug === 'index' ? 'Documentation' : slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const docTitle = slug === 'index' ? sectionTitle : slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   usePageMeta({
     title: docTitle,
-    description: `Shuffle Security documentation — ${docTitle}. Learn how to set up and use the platform.`,
-    url: `/docs/${slug}`,
+    description: `Shuffle Security ${sectionTitle.toLowerCase()} — ${docTitle}.`,
+    url: `${basePath}/${slug}`,
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'TechArticle',
       headline: docTitle,
-      description: `Shuffle Security documentation — ${docTitle}.`,
-      url: `https://shuffle.security/docs/${slug}`,
+      description: `Shuffle Security ${sectionTitle.toLowerCase()} — ${docTitle}.`,
+      url: `https://shuffle.security${basePath}/${slug}`,
       author: { '@type': 'Organization', name: 'Shuffle Security' },
       publisher: { '@type': 'Organization', name: 'Shuffle Security', url: 'https://shuffle.security' },
     },
@@ -85,7 +97,13 @@ const DocsPage = ({ initialContent = null, initialMeta = null }: DocsPageProps) 
         }}
       >
         <Box sx={{ pt: 2 }}>
-          <DocsSidebar onNavigate={() => setMobileOpen(false)} />
+          <DocsSidebar
+            onNavigate={() => setMobileOpen(false)}
+            folder={folder}
+            basePath={basePath}
+            title={sectionTitle}
+            hideExternal={Boolean(folder)}
+          />
         </Box>
       </Drawer>
       
@@ -103,7 +121,12 @@ const DocsPage = ({ initialContent = null, initialMeta = null }: DocsPageProps) 
             zIndex: 1,
           }}
         >
-          <DocsSidebar />
+          <DocsSidebar
+            folder={folder}
+            basePath={basePath}
+            title={sectionTitle}
+            hideExternal={Boolean(folder)}
+          />
         </Box>
 
         {/* Main content */}
@@ -121,7 +144,13 @@ const DocsPage = ({ initialContent = null, initialMeta = null }: DocsPageProps) 
             >
               {docTitle}
             </Typography>
-            <MarkdownRenderer slug={slug} initialContent={initialContent} initialMeta={initialMeta} />
+            <MarkdownRenderer
+              slug={slug}
+              folder={folder}
+              basePath={basePath}
+              initialContent={initialContent}
+              initialMeta={initialMeta}
+            />
           </Container>
         </Box>
       </Box>
