@@ -70,7 +70,12 @@ if (typeof window !== "undefined") {
   const isCapacitor = Boolean((window as any).Capacitor?.isNativePlatform?.() || (window as any)._capacitor);
   if (!isCapacitor && "serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((r) => r.unregister().catch(() => {}));
+      registrations.forEach((r) => {
+        // Keep the Firebase messaging worker: it is what produces the web push token.
+        const script = r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "";
+        if (script.includes("firebase-messaging-sw.js")) return;
+        r.unregister().catch(() => {});
+      });
     }).catch(() => {});
 
     if ("caches" in window) {
