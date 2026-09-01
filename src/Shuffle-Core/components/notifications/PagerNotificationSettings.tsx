@@ -583,11 +583,26 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     setTimeout(() => setIsPlayingTestSiren(false), 2300);
   };
 
+  const testToken = selectedDevice?.token || settings.pushToken || '';
+
   const handleTestRemotePush = async (type: NotificationType) => {
-    if (!settings.pushToken) {
-      setPermissionMsg('No device push token available. Please grant push permissions first.');
+    if (!testToken) {
+      if (settings.permissionStatus !== 'granted') {
+        setPermissionMsg(
+          `Cannot send a test to ${selectedDevice?.device_name || 'this device'}: notification permission has not been granted yet. Use "Request permissions" below first.`,
+        );
+      } else if (typeof window !== 'undefined' && window.top !== window.self) {
+        setPermissionMsg(
+          'Notification permission is granted, but push registration does not work inside the preview iframe. Open the app in its own browser tab and reload to register a push token.',
+        );
+      } else {
+        setPermissionMsg(
+          `Notification permission is granted, but ${selectedDevice?.device_name || 'this device'} has no push token registered yet. Reload the page to register it, or select a device that has push enabled.`,
+        );
+      }
       return;
     }
+
 
     setSendingType(type);
     setPermissionMsg(null);
