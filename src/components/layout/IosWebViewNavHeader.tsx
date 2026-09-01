@@ -72,11 +72,12 @@ export const MobileNavHeader: React.FC = () => {
   // The extra status-bar / notch padding is only needed inside the native
   // Capacitor app. In a normal browser the header should sit flush on top.
   const [isNativeApp, setIsNativeApp] = useState(false);
+  const [isNativeIos, setIsNativeIos] = useState(false);
   useEffect(() => {
-    setIsNativeApp(isCapacitorNative());
+    const native = isCapacitorNative();
+    setIsNativeApp(native);
+    setIsNativeIos(native && getPlatform() === 'ios');
   }, []);
-
-
 
   const { title, parentPath, parentLabel } = useMemo(
     () => getPageTitle(location.pathname),
@@ -88,7 +89,10 @@ export const MobileNavHeader: React.FC = () => {
     location.pathname === '/agent' ||
     location.pathname === '/admin';
 
-  const showBackButton = !isRootPage;
+  // Browsers have their own back control, and Android has the system back
+  // button, so the in-app back arrow is only shown in the native iOS app.
+  const showBackButton = !isRootPage && isNativeIos;
+
 
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
