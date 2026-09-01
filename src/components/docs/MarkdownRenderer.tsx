@@ -120,7 +120,7 @@ const normalizeDocPath = (pathname: string, basePath = '/docs') => {
   return `${basePath}/${docSlug(name)}`;
 };
 
-export const MarkdownRenderer = ({ slug = 'index', folder, basePath = '/docs', initialContent = null, initialMeta = null }: MarkdownRendererProps) => {
+export const MarkdownRenderer = ({ slug = 'index', folder, basePath = '/docs', initialContent = null, initialMeta = null, hideMeta = false }: MarkdownRendererProps) => {
   const [content, setContent] = useState<string>(initialContent ?? '');
   const [meta, setMeta] = useState<RemoteDocMeta | null>(initialMeta);
   const [loading, setLoading] = useState(!initialContent);
