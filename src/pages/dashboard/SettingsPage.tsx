@@ -10,8 +10,10 @@ import {
   Avatar,
   Divider,
   TextField,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
-import { LogOut } from 'lucide-react';
+import { LogOut, Eye, EyeOff } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { useIsSupport } from '@/hooks/useIsSupport';
