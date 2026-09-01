@@ -1213,14 +1213,42 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         </NotificationSection>
       </Box>
 
-      {!isGranted && (
+      {isLocalSelected && (!isGranted || !settings.pushToken) && (
         <Box sx={{ pt: 1, borderTop: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <SettingRow
-            label="Device push"
-            hint="Not registered on this device."
+            label={isGranted ? 'Push token' : 'Device push'}
+            hint={
+              isGranted
+                ? inIframe
+                  ? 'Permission granted, but the preview iframe blocks token registration. Open this page in its own browser tab to register this device.'
+                  : 'Permission granted, but no push token is registered for this device yet.'
+                : 'Not registered on this device.'
+            }
             control={
-              <Button variant="outlined" size="small" onClick={handleRequestPermissions} sx={outlinedButtonSx}>
-                Request permissions
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={savingDevice}
+                onClick={
+                  isGranted
+                    ? inIframe
+                      ? () => window.open(window.location.href, '_blank')
+                      : handleRegisterLocalPush
+                    : handleRequestPermissions
+                }
+                sx={outlinedButtonSx}
+              >
+                {savingDevice ? (
+                  <CircularProgress size={12} sx={{ color: 'hsl(var(--primary))' }} />
+                ) : isGranted ? (
+                  inIframe ? (
+                    'Open in new tab'
+                  ) : (
+                    'Register this device'
+                  )
+                ) : (
+                  'Request permissions'
+                )}
               </Button>
             }
           />
