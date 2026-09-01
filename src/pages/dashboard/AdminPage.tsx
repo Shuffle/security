@@ -358,7 +358,7 @@ const AdminPage = () => {
 
       {activeTab === 0 && (
         <>
-          <Box sx={{ maxWidth: 700 }}>
+          <Box sx={{ maxWidth: 700, mb: 4 }}>
             <PagerNotificationSettings />
           </Box>
 
