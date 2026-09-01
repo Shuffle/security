@@ -518,30 +518,6 @@ export const PagerNotificationSettings = () => {
           }
         />
 
-        {!isNative && (
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField
-              size="small"
-              placeholder="Firebase VAPID public key"
-              value={vapidKey}
-              onChange={(e) => setVapidKey(e.target.value)}
-              sx={{
-                flex: 1,
-                minWidth: 260,
-                '& .MuiInputBase-input': { fontSize: '0.82rem', fontFamily: 'monospace' },
-              }}
-            />
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleRegisterWebPush}
-              disabled={isRegisteringWebPush || !vapidKey.trim()}
-              sx={outlinedButtonSx}
-            >
-              {isRegisteringWebPush ? 'Registering' : 'Register web push'}
-            </Button>
-          </Box>
-        )}
       </Box>
     </Paper>
   );
