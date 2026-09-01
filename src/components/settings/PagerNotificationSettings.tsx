@@ -687,7 +687,83 @@ export const PagerNotificationSettings = () => {
             </Select>
           </FormControl>
         )}
+
+        <IconButton
+          size="small"
+          onClick={(e) => setMenuAnchor(e.currentTarget)}
+          aria-label="On-call options"
+          sx={{ color: 'hsl(var(--muted-foreground))' }}
+        >
+          <MoreVertical size={16} />
+        </IconButton>
+
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={() => setMenuAnchor(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem
+            onClick={() => {
+              void handleToggleOnCall(!isOnCallEnabled);
+              setMenuAnchor(null);
+            }}
+            disabled={savingOnCall || !onCallConfig}
+            sx={{ fontSize: '0.82rem', gap: 1 }}
+          >
+            {savingOnCall && <CircularProgress size={12} sx={{ color: 'hsl(var(--primary))' }} />}
+            {isOnCallEnabled ? 'Disable on-call duty' : 'Enable on-call duty'}
+          </MenuItem>
+          <MenuItem onClick={() => void openTeamScheduling()} sx={{ fontSize: '0.82rem' }}>
+            Team scheduling
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              testPagerCall();
+              setMenuAnchor(null);
+            }}
+            sx={{ fontSize: '0.82rem' }}
+          >
+            Simulate call
+          </MenuItem>
+        </Menu>
+        </Box>
       </Box>
+
+      <Dialog
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'hsl(var(--background))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 3,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+          Team scheduling
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderColor: 'hsl(var(--border))' }}>
+          {loadingScheduleUsers ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress sx={{ color: 'hsl(var(--primary))' }} />
+            </Box>
+          ) : (
+            <OnCallScheduleManager users={scheduleUsers} loading={loadingScheduleUsers} compact />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setScheduleOpen(false)} sx={{ textTransform: 'none' }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
 
       {permissionMsg && (
         <Alert
