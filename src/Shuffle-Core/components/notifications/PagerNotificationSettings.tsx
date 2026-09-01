@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Tooltip,
 } from '@mui/material';
 import { ChevronDown, Smartphone, Monitor, MoreVertical, Bell, BellOff, CalendarClock, PhoneCall } from 'lucide-react';
 import { toast } from '@/Shuffle-Core/lib/toast';
@@ -383,9 +384,14 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
 
   const mySchedules = (onCallConfig?.userSchedules || []).filter(isMine);
   const isOnCallEnabled = mySchedules.some((s) => s.enabled);
+  const hasValidDevice = devices.some((d) => Boolean(d.token));
 
   const handleToggleOnCall = async (enabled: boolean) => {
     if (!onCallConfig) return;
+    if (enabled && !hasValidDevice) {
+      toast.error('You need at least one device with notifications enabled before going on-call.');
+      return;
+    }
     setSavingOnCall(true);
     try {
       let updatedSchedules: UserSchedule[];
@@ -763,12 +769,21 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
+          <Tooltip
+            title={
+              !isOnCallEnabled && !hasValidDevice
+                ? 'Connect at least one device with notifications enabled before going on-call.'
+                : ''
+            }
+            placement="left"
+          >
+            <span>
           <MenuItem
             onClick={() => {
               void handleToggleOnCall(!isOnCallEnabled);
               setMenuAnchor(null);
             }}
-            disabled={savingOnCall || !onCallConfig}
+            disabled={savingOnCall || !onCallConfig || (!isOnCallEnabled && !hasValidDevice)}
             sx={{ fontSize: '0.82rem', gap: 1 }}
           >
             {savingOnCall ? (
@@ -780,6 +795,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             )}
             {isOnCallEnabled ? 'Disable on-call duty' : 'Enable on-call duty'}
           </MenuItem>
+            </span>
+          </Tooltip>
           <MenuItem onClick={() => void openTeamScheduling()} sx={{ fontSize: '0.82rem', gap: 1 }}>
             <CalendarClock size={14} color="hsl(var(--muted-foreground))" />
             Team scheduling
