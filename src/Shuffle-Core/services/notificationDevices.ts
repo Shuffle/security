@@ -100,11 +100,16 @@ export const fetchNotificationDevices = async (): Promise<NotificationDevice[]> 
   }
 };
 
+export interface SaveDeviceResult {
+  success: boolean;
+  reason?: string;
+}
+
 /** Registers or updates a device on the current user. */
 export const saveNotificationDevice = async (
   userId: string,
   device: NotificationDevice,
-): Promise<boolean> => {
+): Promise<SaveDeviceResult> => {
   try {
     const response = await fetch(getApiUrl('/api/v1/updateuser'), {
       method: 'PUT',
@@ -115,9 +120,13 @@ export const saveNotificationDevice = async (
       },
       body: JSON.stringify({ user_id: userId, device }),
     });
-    return response.ok;
-  } catch {
-    return false;
+    if (response.ok) {
+      return { success: true };
+    }
+    const data = await response.json().catch(() => ({}));
+    return { success: false, reason: data?.reason || `HTTP ${response.status}` };
+  } catch (error) {
+    return { success: false, reason: error instanceof Error ? error.message : 'Network error' };
   }
 };
 
