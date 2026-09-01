@@ -771,7 +771,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
       <Box sx={{ ...rowSx, alignItems: 'flex-start' }}>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
-            Notifications
+            Paging & Notifications
           </Typography>
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
             Control how and when Shuffle reaches out to you.
