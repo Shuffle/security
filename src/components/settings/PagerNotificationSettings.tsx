@@ -778,6 +778,34 @@ export const PagerNotificationSettings = () => {
         />
 
       </Box>
+
+      <Dialog open={confirmCritical} onClose={() => setConfirmCritical(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 700 }}>Enable Critical Pager?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '0.88rem' }}>
+            Critical Pager is not a normal notification. On the mobile app it triggers a full-screen,
+            blaring alert that overrides silent mode for critical incidents. Are you sure you want to
+            enable it for this device?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button size="small" onClick={() => setConfirmCritical(false)} sx={outlinedButtonSx}>
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={() => {
+              setConfirmCritical(false);
+              setSectionEnabled('critical', true);
+            }}
+            sx={{ height: 36, textTransform: 'none' }}
+          >
+            Enable
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
+
   );
 };
