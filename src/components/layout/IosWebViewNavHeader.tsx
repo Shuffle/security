@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { ChevronLeft } from 'lucide-react';
 import { useLocation, useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ShuffleLogo } from '@/components/common/ShuffleLogo';
+import { isCapacitorNative } from '@/lib/platform';
+
 
 const getPageTitle = (pathname: string): { title: string; parentPath?: string; parentLabel?: string } => {
   const clean = pathname.replace(/\/$/, '') || '/';
