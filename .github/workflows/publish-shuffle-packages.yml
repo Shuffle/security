@@ -68,7 +68,7 @@ jobs:
 
   publish-core:
     needs: resolve-core-version
-    uses: ./.github/workflows/publish-shuffle-core.yaml
+    uses: ./.github/workflows/publish-shuffle-core.yml
     with:
       version: ${{ needs.resolve-core-version.outputs.next_version }}
       dry_run: ${{ inputs.dry_run }}
