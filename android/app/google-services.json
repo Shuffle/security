@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "253565968129",
+    "firebase_url": "https://shuffler-a1f8d.firebaseio.com",
+    "project_id": "shuffler",
+    "storage_bucket": "shuffler.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:253565968129:android:c6cfc493e8fe28d960c500",
+        "android_client_info": {
+          "package_name": "shuffle.security"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "253565968129-3v8endiun13mi2pr1vkldhbf51rkn6i3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9-yyCNGJDeNkg30WocUv5M9Tw5y-qJFw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "118168366790451557344",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
