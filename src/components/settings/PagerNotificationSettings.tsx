@@ -496,13 +496,24 @@ export const PagerNotificationSettings = () => {
                   (device?.id === localDeviceId ? ' (this device)' : '');
                 const isMobile = /^(ios|android)$/i.test(device?.platform || '');
                 return (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, width: '100%' }}>
                     {isMobile ? (
                       <Smartphone size={14} color="hsl(var(--muted-foreground))" />
                     ) : (
                       <Monitor size={14} color="hsl(var(--muted-foreground))" />
                     )}
-                    <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--foreground))', lineHeight: 1 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        color: 'hsl(var(--foreground))',
+                        lineHeight: 1,
+                        flex: '1 1 auto',
+                        minWidth: 0,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {label}
                     </Typography>
                   </Box>
@@ -513,8 +524,19 @@ export const PagerNotificationSettings = () => {
                 fontSize: '0.75rem',
                 color: 'hsl(var(--foreground))',
                 '& fieldset': { borderColor: 'hsl(var(--border))' },
-                '& .MuiSelect-select': { py: 0.5, px: 1.25, display: 'flex', alignItems: 'center' },
-                '& .MuiSvgIcon-root': { color: 'hsl(var(--muted-foreground))', width: 16, height: 16 },
+                '& .MuiSelect-select': {
+                  py: 0.5,
+                  pl: 1.25,
+                  pr: 3.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+                '& .MuiSvgIcon-root': {
+                  color: 'hsl(var(--muted-foreground))',
+                  width: 14,
+                  height: 14,
+                  right: 7,
+                },
               }}
             >
               {deviceList.map((device) => {
