@@ -41,6 +41,11 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMsg, setPwMsg] = useState('');
   const { sessionToken, logout, userInfo } = useAuth();
   const isSupport = useIsSupport();
   const navigate = useNavigate();
