@@ -119,7 +119,7 @@ const NotificationSection = ({
     }}
   >
     <Box sx={{ ...rowSx, p: 2, cursor: 'pointer' }} onClick={onExpandToggle}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
         <IconButton
           size="small"
           onClick={(e) => {
@@ -127,6 +127,7 @@ const NotificationSection = ({
             onExpandToggle();
           }}
           sx={{
+            flexShrink: 0,
             color: 'hsl(var(--muted-foreground))',
             transform: expanded ? 'rotate(180deg)' : 'none',
             transition: 'transform 150ms ease',
@@ -134,16 +135,19 @@ const NotificationSection = ({
         >
           <ChevronDown size={16} />
         </IconButton>
-        <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: '0.92rem', color: 'hsl(var(--foreground))' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 600, fontSize: '0.92rem', color: 'hsl(var(--foreground))', lineHeight: 1.3 }}>
             {title}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', lineHeight: 1.35 }}
+          >
             {description}
           </Typography>
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
         {enabled && onTest && (
           <Button
             variant="outlined"
@@ -168,6 +172,7 @@ const NotificationSection = ({
         />
       </Box>
     </Box>
+
 
     <Collapse in={expanded} unmountOnExit>
       <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
