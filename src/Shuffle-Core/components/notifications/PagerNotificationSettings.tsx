@@ -467,6 +467,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
 
   const sectionEnabled = (type: NotificationType): boolean => {
     if (!controlsAvailable) return false;
+    if (type === 'critical' && !criticalAvailable) return false;
     if (isLocalSelected) {
       if (type === 'critical') return settings.pagerCallingEnabled;
       if (type === 'agent_request') return settings.agentRequestEnabled;
