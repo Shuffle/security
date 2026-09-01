@@ -16,6 +16,8 @@ interface DocsPageProps {
   basePath?: string;
   /** Section label used in the sidebar and fallback titles. */
   sectionTitle?: string;
+  /** Hide read time, contributors and "Edit on GitHub" metadata. Print stays. */
+  hideMeta?: boolean;
   initialMeta?: {
     name?: string;
     contributors?: { name?: string; url?: string; image?: string }[];
