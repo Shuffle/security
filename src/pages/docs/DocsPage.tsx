@@ -153,6 +153,7 @@ const DocsPage = ({
               basePath={basePath}
               initialContent={initialContent}
               initialMeta={initialMeta}
+              hideMeta={hideMeta ?? folder === 'legal'}
             />
           </Container>
         </Box>
