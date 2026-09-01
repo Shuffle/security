@@ -27,6 +27,10 @@ export interface PagerSettings {
   sirenSoundEnabled: boolean;
   vibrationEnabled: boolean;
   autoEscalateTimeoutSeconds: number;
+  agentRequestEnabled: boolean;
+  agentRequestSoundEnabled: boolean;
+  generalNotificationsEnabled: boolean;
+  generalSoundEnabled: boolean;
   pushToken?: string | null;
   permissionStatus?: 'granted' | 'denied' | 'prompt' | 'unknown';
 }
@@ -40,9 +44,14 @@ const DEFAULT_SETTINGS: PagerSettings = {
   sirenSoundEnabled: true,
   vibrationEnabled: true,
   autoEscalateTimeoutSeconds: 60,
+  agentRequestEnabled: true,
+  agentRequestSoundEnabled: true,
+  generalNotificationsEnabled: true,
+  generalSoundEnabled: false,
   pushToken: null,
   permissionStatus: 'unknown',
 };
+
 
 // ── Settings Manager ─────────────────────────────────────────────────────────
 
