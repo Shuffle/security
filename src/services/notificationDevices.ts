@@ -101,7 +101,10 @@ export const fetchNotificationDevices = async (): Promise<NotificationDevice[]> 
 };
 
 /** Registers or updates a device on the current user. */
-export const saveNotificationDevice = async (device: NotificationDevice): Promise<boolean> => {
+export const saveNotificationDevice = async (
+  userId: string,
+  device: NotificationDevice,
+): Promise<boolean> => {
   try {
     const response = await fetch(getApiUrl('/api/v1/updateuser'), {
       method: 'PUT',
@@ -110,7 +113,7 @@ export const saveNotificationDevice = async (device: NotificationDevice): Promis
         'Content-Type': 'application/json',
         ...getAuthHeader(),
       },
-      body: JSON.stringify({ device }),
+      body: JSON.stringify({ user_id: userId, device }),
     });
     return response.ok;
   } catch {

@@ -14,6 +14,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { ChevronDown } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import {
   getPagerSettings,
   savePagerSettings,
