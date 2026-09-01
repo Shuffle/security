@@ -9,6 +9,7 @@ import {
   Alert,
   Avatar,
   Divider,
+  TextField,
 } from '@mui/material';
 import { LogOut } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
@@ -40,6 +41,11 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMsg, setPwMsg] = useState('');
   const { sessionToken, logout, userInfo } = useAuth();
   const isSupport = useIsSupport();
   const navigate = useNavigate();
@@ -83,6 +89,43 @@ const SettingsPage = () => {
     await logout();
     API_CONFIG.setApiKey(null);
     navigate('/login', { replace: true });
+  };
+
+  const passwordValid = newPw.length > 10 && confirmPw.length > 10 && newPw === confirmPw;
+
+  const handleChangePassword = async () => {
+    if (!passwordValid || !currentPw) return;
+    setPwMsg('');
+    setPwLoading(true);
+    try {
+      const username = settings?.username || userInfo?.username || '';
+      const response = await fetch(getApiUrl('/api/v1/passwordchange'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify({
+          currentpassword: currentPw,
+          newpassword: newPw,
+          newpassword2: confirmPw,
+          username,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.reason || data.message || 'Failed to change password');
+      }
+      setPwMsg('Password updated successfully.');
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    } catch (err) {
+      setPwMsg(err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   const getUserInitial = () => {
@@ -197,6 +240,104 @@ const SettingsPage = () => {
                   Sign Out
                 </Button>
               </Box>
+            </Paper>
+
+            <Paper
+              sx={{
+                p: 3,
+                bgcolor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 3,
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, mb: 0.5 }}
+              >
+                Change Password
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem', mb: 2 }}
+              >
+                Update the password for your Shuffle account.
+              </Typography>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+                <TextField
+                  label="Current password"
+                  type="password"
+                  size="small"
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  fullWidth
+                  sx={{
+                    '& .MuiInputBase-input': { fontSize: '0.85rem' },
+                    '& .MuiInputLabel-root': { fontSize: '0.85rem' },
+                  }}
+                />
+                <TextField
+                  label="New password"
+                  type="password"
+                  size="small"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  fullWidth
+                  helperText="More than 10 characters"
+                  sx={{
+                    '& .MuiInputBase-input': { fontSize: '0.85rem' },
+                    '& .MuiInputLabel-root': { fontSize: '0.85rem' },
+                  }}
+                />
+                <TextField
+                  label="Repeat new password"
+                  type="password"
+                  size="small"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  fullWidth
+                  error={confirmPw.length > 0 && newPw !== confirmPw}
+                  helperText={
+                    confirmPw.length > 0 && newPw !== confirmPw
+                      ? 'Passwords do not match'
+                      : ''
+                  }
+                  sx={{
+                    '& .MuiInputBase-input': { fontSize: '0.85rem' },
+                    '& .MuiInputLabel-root': { fontSize: '0.85rem' },
+                  }}
+                />
+              </Box>
+
+              {pwMsg && (
+                <Alert
+                  severity={
+                    pwMsg.toLowerCase().includes('success')
+                      ? 'success'
+                      : 'error'
+                  }
+                  sx={{ mb: 2, borderRadius: 2, fontSize: '0.85rem' }}
+                >
+                  {pwMsg}
+                </Alert>
+              )}
+
+              <Button
+                variant="contained"
+                onClick={handleChangePassword}
+                disabled={!passwordValid || !currentPw || pwLoading}
+                sx={{
+                  height: 36,
+                  textTransform: 'none',
+                  fontSize: '0.85rem',
+                  bgcolor: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                  '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+                  '&.Mui-disabled': { opacity: 0.5 },
+                }}
+              >
+                {pwLoading ? 'Updating...' : 'Update Password'}
+              </Button>
             </Paper>
           </Box>
 
