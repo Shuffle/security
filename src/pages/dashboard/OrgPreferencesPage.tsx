@@ -196,7 +196,7 @@ const OrgPreferencesPage = () => {
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
             border: '1px solid hsl(var(--border))',
             borderRadius: 2,
             display: 'flex',
@@ -221,7 +221,7 @@ const OrgPreferencesPage = () => {
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
             border: '1px solid hsl(var(--border))',
             borderRadius: 2,
             display: 'flex',
@@ -258,7 +258,7 @@ const OrgPreferencesPage = () => {
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
             border: '1px solid hsl(var(--border))',
             borderRadius: 2,
             display: 'flex',
@@ -296,7 +296,7 @@ const OrgPreferencesPage = () => {
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
             border: '1px solid hsl(var(--border))',
             borderRadius: 2,
             display: 'flex',
@@ -320,7 +320,7 @@ const OrgPreferencesPage = () => {
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
             border: '1px solid hsl(var(--border))',
             borderRadius: 2,
             display: 'flex',
@@ -350,7 +350,7 @@ const OrgPreferencesPage = () => {
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
             border: '1px solid hsl(var(--border))',
             borderRadius: 2,
             display: 'flex',
@@ -380,7 +380,7 @@ const OrgPreferencesPage = () => {
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
             border: '1px solid hsl(var(--border))',
             borderRadius: 2,
             display: 'flex',

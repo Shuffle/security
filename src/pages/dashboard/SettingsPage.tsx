@@ -188,7 +188,7 @@ const SettingsPage = () => {
             <Paper
               sx={{
                 p: 3,
-                bgcolor: 'hsl(var(--card))',
+                bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: 3,
               }}
@@ -256,7 +256,7 @@ const SettingsPage = () => {
             <Paper
               sx={{
                 p: 3,
-                bgcolor: 'hsl(var(--card))',
+                bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: 3,
               }}
