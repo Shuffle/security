@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { ChevronLeft } from 'lucide-react';
 import { useLocation, useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ShuffleLogo } from '@/components/common/ShuffleLogo';
+import { isCapacitorNative } from '@/lib/platform';
+
 
 const getPageTitle = (pathname: string): { title: string; parentPath?: string; parentLabel?: string } => {
   const clean = pathname.replace(/\/$/, '') || '/';
@@ -67,6 +69,15 @@ export const MobileNavHeader: React.FC = () => {
   const { brandColor } = useTheme();
   const primaryColor = brandColor || '#FF6600';
 
+  // The extra status-bar / notch padding is only needed inside the native
+  // Capacitor app. In a normal browser the header should sit flush on top.
+  const [isNativeApp, setIsNativeApp] = useState(false);
+  useEffect(() => {
+    setIsNativeApp(isCapacitorNative());
+  }, []);
+
+
+
   const { title, parentPath, parentLabel } = useMemo(
     () => getPageTitle(location.pathname),
     [location.pathname]
@@ -101,7 +112,8 @@ export const MobileNavHeader: React.FC = () => {
         maxWidth: '100vw',
         boxSizing: 'border-box',
         // Top padding ensures all header elements are pushed safely below Dynamic Island / notch / status bar
-        pt: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 52px)',
+        pt: isNativeApp ? 'max(calc(env(safe-area-inset-top, 0px) + 8px), 52px)' : 1,
+
         pb: 1,
         px: 'max(1rem, env(safe-area-inset-left, 0px))',
         pr: 'max(1rem, env(safe-area-inset-right, 0px))',
