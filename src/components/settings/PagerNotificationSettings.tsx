@@ -662,11 +662,14 @@ export const PagerNotificationSettings = () => {
                   display: 'flex',
                   alignItems: 'center',
                 },
-                '& .MuiSvgIcon-root': {
+                '& .MuiSelect-icon': {
                   color: 'hsl(var(--muted-foreground))',
                   width: 14,
                   height: 14,
+                  position: 'absolute',
                   right: 7,
+                  top: 'calc(50% - 7px)',
+                  pointerEvents: 'none',
                 },
               }}
             >
