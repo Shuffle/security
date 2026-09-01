@@ -12,6 +12,11 @@ import {
   Alert,
   Collapse,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -234,6 +239,7 @@ export const PagerNotificationSettings = () => {
   const [localDeviceId, setLocalDeviceId] = useState('');
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [savingDevice, setSavingDevice] = useState(false);
+  const [confirmCritical, setConfirmCritical] = useState(false);
 
   useEffect(() => {
     const id = getLocalDeviceId();
@@ -294,6 +300,9 @@ export const PagerNotificationSettings = () => {
     ? settings.permissionStatus === 'granted' && Boolean(settings.pushToken)
     : Boolean(selectedDevice?.token);
   const controlsAvailable = deviceRegistered && pushAvailable;
+  const selectedPlatform = (selectedDevice?.platform || '').toLowerCase();
+  const isMobileDevice = selectedPlatform === 'ios' || selectedPlatform === 'android';
+  const criticalAvailable = controlsAvailable && isMobileDevice;
 
   const sectionEnabled = (type: NotificationType): boolean => {
     if (!controlsAvailable) return false;
@@ -562,10 +571,20 @@ export const PagerNotificationSettings = () => {
         {/* Critical Pager */}
         <NotificationSection
           title="Critical Pager"
-          description="Full-screen call for critical incidents and downtime."
+          description={
+            isMobileDevice
+              ? 'Full-screen blaring alert for critical incidents and downtime.'
+              : 'Only available in the mobile app. Browsers cannot deliver critical alerts.'
+          }
           enabled={sectionEnabled('critical')}
-          disabled={!controlsAvailable}
-          onToggle={(value) => setSectionEnabled('critical', value)}
+          disabled={!criticalAvailable}
+          onToggle={(value) => {
+            if (value) {
+              setConfirmCritical(true);
+              return;
+            }
+            setSectionEnabled('critical', false);
+          }}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
         >
