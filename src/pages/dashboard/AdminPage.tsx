@@ -24,7 +24,7 @@ import { Billing, TenantManagement } from '@/Shuffle-Core';
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useTheme as useAppTheme } from '@/context/ThemeContext';
-import { OnCallOverviewCard } from '@/components/users/OnCallOverviewCard';
+import { PagerNotificationSettings } from '@/components/settings/PagerNotificationSettings';
 
 const REGION_OPTIONS = [
   { value: '', label: 'Default (UK)' },
@@ -367,7 +367,7 @@ const AdminPage = () => {
       {activeTab === 0 && (
         <>
           <Box sx={{ maxWidth: 700 }}>
-            <OnCallOverviewCard />
+            <PagerNotificationSettings />
           </Box>
 
           {error && (

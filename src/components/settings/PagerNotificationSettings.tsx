@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, useCallback, ReactNode } from 'react';
 import {
   Box,
   Typography,
@@ -8,17 +8,30 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Menu,
   Divider,
   Alert,
   Collapse,
   IconButton,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
 } from '@mui/material';
-import { ChevronDown, Smartphone, Monitor } from 'lucide-react';
+import { ChevronDown, Smartphone, Monitor, MoreVertical } from 'lucide-react';
+import { toast } from '@/lib/toast';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
+import {
+  OnCallScheduleManager,
+  computeDefaultPolicy,
+  type OnCallUser,
+  type AssignmentConfig,
+  type UserSchedule,
+} from '@/components/users/OnCallScheduleManager';
+
 import { useAuth } from '@/context/AuthContext';
 import {
   getPagerSettings,
@@ -278,6 +291,123 @@ export const PagerNotificationSettings = () => {
     setExpanded((current) => (current === type ? null : type));
   };
 
+  // ---- On-call duty & team scheduling (moved here from the old On-Call card) ----
+  const currentUserId = userInfo?.id;
+  const currentUsername = userInfo?.username || 'You';
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [onCallConfig, setOnCallConfig] = useState<AssignmentConfig | null>(null);
+  const [savingOnCall, setSavingOnCall] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleUsers, setScheduleUsers] = useState<OnCallUser[]>([]);
+  const [loadingScheduleUsers, setLoadingScheduleUsers] = useState(false);
+
+  const loadOnCallConfig = useCallback(async () => {
+    try {
+      const response = await getDatastoreItem('assignment_schedules', DATASTORE_CATEGORIES.CONFIGURATION);
+      if (response.success && response.item?.value) {
+        const data: AssignmentConfig =
+          typeof response.item.value === 'string'
+            ? JSON.parse(response.item.value)
+            : response.item.value;
+        setOnCallConfig(data);
+        return;
+      }
+    } catch {
+      /* fall through to empty config */
+    }
+    setOnCallConfig({
+      userSchedules: [],
+      updatedAt: new Date().toISOString(),
+      defaultPolicy: computeDefaultPolicy([]),
+    });
+  }, []);
+
+  useEffect(() => {
+    void loadOnCallConfig();
+  }, [loadOnCallConfig]);
+
+  const isMine = (s: UserSchedule) =>
+    s.userId === currentUserId ||
+    (currentUserId ? s.userId.startsWith(`${currentUserId}::`) : false) ||
+    s.userName === currentUsername ||
+    s.userEmail === currentUsername;
+
+  const mySchedules = (onCallConfig?.userSchedules || []).filter(isMine);
+  const isOnCallEnabled = mySchedules.some((s) => s.enabled);
+
+  const handleToggleOnCall = async (enabled: boolean) => {
+    if (!onCallConfig) return;
+    setSavingOnCall(true);
+    try {
+      let updatedSchedules: UserSchedule[];
+      if (mySchedules.length > 0) {
+        updatedSchedules = onCallConfig.userSchedules.map((s) => (isMine(s) ? { ...s, enabled } : s));
+      } else if (enabled && currentUserId) {
+        const newEntry: UserSchedule = {
+          userId: currentUserId,
+          userName: currentUsername,
+          userEmail: currentUsername,
+          escalationLevel: 'tier1',
+          schedules: [
+            {
+              id: Math.random().toString(36).substring(2, 12),
+              startDate: new Date().toISOString().split('T')[0],
+              endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              startTime: '00:00',
+              endTime: '23:59',
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+            },
+          ],
+          enabled: true,
+        };
+        updatedSchedules = [...onCallConfig.userSchedules, newEntry];
+      } else {
+        updatedSchedules = onCallConfig.userSchedules;
+      }
+
+      const updatedConfig: AssignmentConfig = {
+        ...onCallConfig,
+        userSchedules: updatedSchedules,
+        updatedAt: new Date().toISOString(),
+        defaultPolicy: computeDefaultPolicy(updatedSchedules),
+      };
+
+      const res = await setDatastoreItem(
+        'assignment_schedules',
+        updatedConfig,
+        DATASTORE_CATEGORIES.CONFIGURATION,
+      );
+      if (!res.success) throw new Error(res.error || 'Failed to update schedule');
+      setOnCallConfig(updatedConfig);
+      toast.success(enabled ? 'You are now on-call' : 'You are now off-call');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update schedule');
+    } finally {
+      setSavingOnCall(false);
+    }
+  };
+
+  const openTeamScheduling = async () => {
+    setMenuAnchor(null);
+    setScheduleOpen(true);
+    if (scheduleUsers.length > 0) return;
+    setLoadingScheduleUsers(true);
+    try {
+      const response = await fetch(getApiUrl('/api/v1/getusers'), {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      });
+      const data = await response.json();
+      setScheduleUsers(Array.isArray(data) ? data : data.users || []);
+    } catch {
+      setScheduleUsers([]);
+    } finally {
+      setLoadingScheduleUsers(false);
+    }
+  };
+
+
   const deviceList: NotificationDevice[] = localDeviceId
     ? [
         devices.find((d) => d.id === localDeviceId) || {
@@ -483,6 +613,7 @@ export const PagerNotificationSettings = () => {
           </Typography>
         </Box>
 
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         {deviceList.length > 0 && (
           <FormControl size="small" sx={{ minWidth: 110, maxWidth: 160 }}>
             <Select
@@ -556,7 +687,83 @@ export const PagerNotificationSettings = () => {
             </Select>
           </FormControl>
         )}
+
+        <IconButton
+          size="small"
+          onClick={(e) => setMenuAnchor(e.currentTarget)}
+          aria-label="On-call options"
+          sx={{ color: 'hsl(var(--muted-foreground))' }}
+        >
+          <MoreVertical size={16} />
+        </IconButton>
+
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={() => setMenuAnchor(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem
+            onClick={() => {
+              void handleToggleOnCall(!isOnCallEnabled);
+              setMenuAnchor(null);
+            }}
+            disabled={savingOnCall || !onCallConfig}
+            sx={{ fontSize: '0.82rem', gap: 1 }}
+          >
+            {savingOnCall && <CircularProgress size={12} sx={{ color: 'hsl(var(--primary))' }} />}
+            {isOnCallEnabled ? 'Disable on-call duty' : 'Enable on-call duty'}
+          </MenuItem>
+          <MenuItem onClick={() => void openTeamScheduling()} sx={{ fontSize: '0.82rem' }}>
+            Team scheduling
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              testPagerCall();
+              setMenuAnchor(null);
+            }}
+            sx={{ fontSize: '0.82rem' }}
+          >
+            Simulate call
+          </MenuItem>
+        </Menu>
+        </Box>
       </Box>
+
+      <Dialog
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'hsl(var(--background))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 3,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+          Team scheduling
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderColor: 'hsl(var(--border))' }}>
+          {loadingScheduleUsers ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress sx={{ color: 'hsl(var(--primary))' }} />
+            </Box>
+          ) : (
+            <OnCallScheduleManager users={scheduleUsers} loading={loadingScheduleUsers} compact />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setScheduleOpen(false)} sx={{ textTransform: 'none' }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
 
       {permissionMsg && (
         <Alert
