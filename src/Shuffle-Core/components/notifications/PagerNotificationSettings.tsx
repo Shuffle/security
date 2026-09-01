@@ -582,9 +582,16 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
 
     if (granted && localDeviceId && userInfo?.id) {
       const existing = devices.find((d) => d.id === localDeviceId);
+      const token = next.pushToken || existing?.token || (await ensureLocalPushToken());
+      if (!token) {
+        setPermissionMsg(
+          'Notification permission is granted, but no push token could be issued for this device. Open the app in its own browser tab (not the preview iframe) and reload to register it.',
+        );
+        return;
+      }
       void saveNotificationDevice(userInfo.id, {
         id: localDeviceId,
-        token: next.pushToken || existing?.token || '',
+        token,
         platform: getLocalDevicePlatform(),
         device_name: existing?.device_name || getLocalDeviceName(),
         preferences: resolveDevicePreferences(existing),
@@ -594,6 +601,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         }
         fetchNotificationDevices().then(setDevices);
       });
+
     }
   };
 
