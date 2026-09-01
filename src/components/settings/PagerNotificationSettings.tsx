@@ -266,6 +266,64 @@ export const PagerNotificationSettings = () => {
     setExpanded((current) => (current === type ? null : type));
   };
 
+  const deviceList: NotificationDevice[] = localDeviceId
+    ? [
+        devices.find((d) => d.id === localDeviceId) || {
+          id: localDeviceId,
+          device_name: getLocalDeviceName(),
+          platform: getLocalDevicePlatform(),
+          token: settings.pushToken || undefined,
+        },
+        ...devices.filter((d) => d.id !== localDeviceId),
+      ]
+    : devices;
+
+  const isLocalSelected = selectedDeviceId === localDeviceId;
+  const selectedDevice = deviceList.find((d) => d.id === selectedDeviceId) || null;
+  const remotePreferences = resolveDevicePreferences(selectedDevice);
+
+  const sectionEnabled = (type: NotificationType): boolean => {
+    if (isLocalSelected) {
+      if (type === 'critical') return settings.pagerCallingEnabled;
+      if (type === 'agent_request') return settings.agentRequestEnabled;
+      return settings.generalNotificationsEnabled;
+    }
+    return remotePreferences[PREFERENCE_KEY[type]];
+  };
+
+  const persistDevicePreferences = async (preferences: DevicePreferences) => {
+    if (!selectedDevice) return;
+    setSavingDevice(true);
+    const next: NotificationDevice = {
+      id: selectedDevice.id,
+      token: selectedDevice.token || settings.pushToken || '',
+      platform: selectedDevice.platform || getLocalDevicePlatform(),
+      device_name: selectedDevice.device_name || getLocalDeviceName(),
+      preferences,
+    };
+    setDevices((current) => {
+      const others = current.filter((d) => d.id !== next.id);
+      return [...others, next];
+    });
+    const ok = await saveNotificationDevice(next);
+    setSavingDevice(false);
+    if (!ok) {
+      setPermissionMsg('Failed to save the device notification preferences.');
+    }
+  };
+
+  const setSectionEnabled = (type: NotificationType, value: boolean) => {
+    if (isLocalSelected) {
+      if (type === 'critical') update({ pagerCallingEnabled: value });
+      else if (type === 'agent_request') update({ agentRequestEnabled: value });
+      else update({ generalNotificationsEnabled: value });
+    }
+    void persistDevicePreferences({
+      ...remotePreferences,
+      [PREFERENCE_KEY[type]]: value,
+    });
+  };
+
   const handleRequestPermissions = async () => {
     setPermissionMsg(null);
     const granted = await requestNotificationPermissions();
