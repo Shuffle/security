@@ -858,7 +858,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         )}
 
         {deviceList.length > 0 && (
-          <FormControl size="small" sx={{ minWidth: 110, maxWidth: 160 }}>
+          <FormControl size="small" sx={{ flex: '1 1 auto', minWidth: 0, maxWidth: 160 }}>
             <Select
               value={selectedDeviceId}
               onChange={(e) => setSelectedDeviceId(String(e.target.value))}
