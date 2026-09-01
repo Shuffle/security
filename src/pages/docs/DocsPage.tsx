@@ -33,6 +33,7 @@ const DocsPage = ({
   folder,
   basePath = '/docs',
   sectionTitle = 'Documentation',
+  hideMeta,
 }: DocsPageProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
