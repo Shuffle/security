@@ -946,7 +946,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           }}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
-          onTest={() => handleTestRemotePush('critical')}
+          onTest={testToken ? () => handleTestRemotePush('critical') : undefined}
           testing={sendingType === 'critical'}
         >
           <SettingRow
@@ -1036,7 +1036,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
-          onTest={() => handleTestRemotePush('agent_request')}
+          onTest={testToken ? () => handleTestRemotePush('agent_request') : undefined}
           testing={sendingType === 'agent_request'}
         >
           <SettingRow
@@ -1084,7 +1084,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
-          onTest={() => handleTestRemotePush('general')}
+          onTest={testToken ? () => handleTestRemotePush('general') : undefined}
           testing={sendingType === 'general'}
         >
           <SettingRow
