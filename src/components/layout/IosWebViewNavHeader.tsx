@@ -112,7 +112,8 @@ export const MobileNavHeader: React.FC = () => {
         maxWidth: '100vw',
         boxSizing: 'border-box',
         // Top padding ensures all header elements are pushed safely below Dynamic Island / notch / status bar
-        pt: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 52px)',
+        pt: isNativeApp ? 'max(calc(env(safe-area-inset-top, 0px) + 8px), 52px)' : 1,
+
         pb: 1,
         px: 'max(1rem, env(safe-area-inset-left, 0px))',
         pr: 'max(1rem, env(safe-area-inset-right, 0px))',
