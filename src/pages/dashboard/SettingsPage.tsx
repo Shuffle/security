@@ -228,7 +228,7 @@ const SettingsPage = () => {
           {/* Right Column: On-Call Pager, Emergency Calling & Diagnostics */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <PagerNotificationSettings />
-            <DiagnosticsLogsCard />
+            {isSupport && <DiagnosticsLogsCard />}
           </Box>
         </Box>
       )}
