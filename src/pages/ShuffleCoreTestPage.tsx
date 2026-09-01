@@ -145,6 +145,35 @@ const [workflow, setWorkflow] = useState({ name: '', description: '', tags: [] }
   />
 </>`;
 
+const SNIPPET_NOTIFICATIONS_DRAWER = `import { useState } from 'react';
+import { Button } from '@mui/material';
+import { NotificationsDrawer, NOTIFICATIONS_OPEN_EVENT } from '@shuffleio/shuffle-core';
+
+// Right-hand drawer listing workflow executions and agent requests.
+// Opens from any surface by dispatching the shared event:
+//   window.dispatchEvent(new CustomEvent(NOTIFICATIONS_OPEN_EVENT));
+const [open, setOpen] = useState(false);
+
+<>
+  <Button variant="outlined" onClick={() => setOpen(true)}>Notifications</Button>
+  <NotificationsDrawer open={open} onClose={() => setOpen(false)} />
+</>`;
+
+const SNIPPET_NOTIFICATION_SETTINGS = `import { NotificationSettings } from '@shuffleio/shuffle-core';
+
+// Device push registration + Critical Pager / Agent Request / General
+// notification sections, with on-call duty, team scheduling and
+// "Simulate call" in the top-right menu.
+// userInfo is optional — omitted, it loads the user from /api/v1/getinfo.
+<NotificationSettings userInfo={userInfo} />`;
+
+const SNIPPET_ONCALL_SCHEDULE = `import { OnCallScheduleManager } from '@shuffleio/shuffle-core';
+
+// Per-user availability windows, escalation tiers, weekly timeline and
+// schedule import. Backed by the 'assignment_schedules' config datastore item.
+<OnCallScheduleManager users={users} loading={loading} compact />`;
+
+
 // Lightweight syntax highlighter for the demo "Show source" snippets.
 const SYNTAX_COLORS = {
   comment: 'hsl(var(--muted-foreground))',
