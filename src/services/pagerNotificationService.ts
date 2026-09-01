@@ -27,6 +27,10 @@ export interface PagerSettings {
   sirenSoundEnabled: boolean;
   vibrationEnabled: boolean;
   autoEscalateTimeoutSeconds: number;
+  agentRequestEnabled: boolean;
+  agentRequestSoundEnabled: boolean;
+  generalNotificationsEnabled: boolean;
+  generalSoundEnabled: boolean;
   pushToken?: string | null;
   permissionStatus?: 'granted' | 'denied' | 'prompt' | 'unknown';
 }
@@ -40,9 +44,14 @@ const DEFAULT_SETTINGS: PagerSettings = {
   sirenSoundEnabled: true,
   vibrationEnabled: true,
   autoEscalateTimeoutSeconds: 60,
+  agentRequestEnabled: true,
+  agentRequestSoundEnabled: true,
+  generalNotificationsEnabled: true,
+  generalSoundEnabled: false,
   pushToken: null,
   permissionStatus: 'unknown',
 };
+
 
 // ── Settings Manager ─────────────────────────────────────────────────────────
 
@@ -506,7 +515,10 @@ export const triggerAgentRequestLocalAlert = (params: {
   workflowId?: string;
   action?: string;
 }) => {
-  playNotificationChime();
+  const settings = getPagerSettings();
+  if (!settings.agentRequestEnabled) return;
+  if (settings.agentRequestSoundEnabled) playNotificationChime();
+
 
   if (isCapacitorNative()) {
     LocalNotifications.schedule({
@@ -550,7 +562,10 @@ export const triggerGeneralLocalAlert = (params: {
   description?: string;
   referenceUrl?: string;
 }) => {
-  playNotificationChime();
+  const settings = getPagerSettings();
+  if (!settings.generalNotificationsEnabled) return;
+  if (settings.generalSoundEnabled) playNotificationChime();
+
 
   const bodyText = params.body || params.description || 'You have a new update from Shuffle Security.';
 
