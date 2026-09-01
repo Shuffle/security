@@ -138,14 +138,30 @@ const NotificationSection = ({
           </Typography>
         </Box>
       </Box>
-      <Switch
-        checked={enabled}
-        disabled={disabled}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => onToggle(e.target.checked)}
-        color="primary"
-        size="small"
-      />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {enabled && onTest && (
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={testing}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTest();
+            }}
+            sx={outlinedButtonSx}
+          >
+            {testing ? 'Sending' : 'Test'}
+          </Button>
+        )}
+        <Switch
+          checked={enabled}
+          disabled={disabled}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => onToggle(e.target.checked)}
+          color="primary"
+          size="small"
+        />
+      </Box>
     </Box>
 
     <Collapse in={expanded} unmountOnExit>
