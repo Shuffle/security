@@ -20,7 +20,7 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
-import { ChevronDown, Smartphone, Monitor, MoreVertical } from 'lucide-react';
+import { ChevronDown, Smartphone, Monitor, MoreVertical, Bell, BellOff, CalendarClock, PhoneCall } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
