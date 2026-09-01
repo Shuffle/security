@@ -10,7 +10,7 @@ import {
   Avatar,
   Divider,
 } from '@mui/material';
-import { LogOut, KeyRound } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { useIsSupport } from '@/hooks/useIsSupport';
@@ -81,12 +81,8 @@ const SettingsPage = () => {
   const handleLogout = async () => {
     trackPredefinedEvent(GA_EVENTS.LOGOUT);
     await logout();
-    navigate('/login', { replace: true });
-  };
-
-  const handleClearApiKey = () => {
     API_CONFIG.setApiKey(null);
-    window.location.reload();
+    navigate('/login', { replace: true });
   };
 
   const getUserInitial = () => {
@@ -181,27 +177,6 @@ const SettingsPage = () => {
               <Divider sx={{ borderColor: 'hsl(var(--border))', mb: 3 }} />
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {API_CONFIG.apiKey && (
-                  <Button
-                    variant="outlined"
-                    onClick={handleClearApiKey}
-                    startIcon={<KeyRound size={16} />}
-                    sx={{
-                      height: 40,
-                      fontSize: '0.825rem',
-                      textTransform: 'none',
-                      borderColor: 'hsl(var(--border))',
-                      color: 'hsl(var(--foreground))',
-                      '&:hover': {
-                        borderColor: 'hsl(var(--primary))',
-                        bgcolor: 'hsl(var(--primary) / 0.1)',
-                      },
-                    }}
-                  >
-                    Clear API Key
-                  </Button>
-                )}
-
                 <Button
                   variant="outlined"
                   onClick={handleLogout}
