@@ -613,6 +613,7 @@ export const PagerNotificationSettings = () => {
           </Typography>
         </Box>
 
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         {deviceList.length > 0 && (
           <FormControl size="small" sx={{ minWidth: 110, maxWidth: 160 }}>
             <Select
