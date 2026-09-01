@@ -111,7 +111,7 @@ const UsersPage = ({ embedded }: { embedded?: boolean }) => {
             </Box>
           ) : (
             <>
-              <Box sx={{ mb: 3 }}>
+              <Box sx={{ mb: 4 }}>
                 <PagerNotificationSettings />
               </Box>
               <ScheduleHealthBanner hideManageCta />
