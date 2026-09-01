@@ -89,6 +89,8 @@ interface SectionProps {
   onToggle: (value: boolean) => void;
   expanded: boolean;
   onExpandToggle: () => void;
+  onTest?: () => void;
+  testing?: boolean;
   children: ReactNode;
 }
 
@@ -100,6 +102,8 @@ const NotificationSection = ({
   onToggle,
   expanded,
   onExpandToggle,
+  onTest,
+  testing,
   children,
 }: SectionProps) => (
   <Box
@@ -134,14 +138,30 @@ const NotificationSection = ({
           </Typography>
         </Box>
       </Box>
-      <Switch
-        checked={enabled}
-        disabled={disabled}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => onToggle(e.target.checked)}
-        color="primary"
-        size="small"
-      />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {enabled && onTest && (
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={testing}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTest();
+            }}
+            sx={outlinedButtonSx}
+          >
+            {testing ? 'Sending' : 'Test'}
+          </Button>
+        )}
+        <Switch
+          checked={enabled}
+          disabled={disabled}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => onToggle(e.target.checked)}
+          color="primary"
+          size="small"
+        />
+      </Box>
     </Box>
 
     <Collapse in={expanded} unmountOnExit>
@@ -894,6 +914,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           }}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
+          onTest={() => handleTestRemotePush('critical')}
+          testing={sendingType === 'critical'}
         >
           <SettingRow
             label="Emergency siren"
@@ -982,6 +1004,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
+          onTest={() => handleTestRemotePush('agent_request')}
+          testing={sendingType === 'agent_request'}
         >
           <SettingRow
             label="Sound"
@@ -1028,6 +1052,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
+          onTest={() => handleTestRemotePush('general')}
+          testing={sendingType === 'general'}
         >
           <SettingRow
             label="Sound"
