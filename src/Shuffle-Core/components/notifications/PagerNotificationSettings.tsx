@@ -583,11 +583,26 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     setTimeout(() => setIsPlayingTestSiren(false), 2300);
   };
 
+  const testToken = selectedDevice?.token || settings.pushToken || '';
+
   const handleTestRemotePush = async (type: NotificationType) => {
-    if (!settings.pushToken) {
-      setPermissionMsg('No device push token available. Please grant push permissions first.');
+    if (!testToken) {
+      if (settings.permissionStatus !== 'granted') {
+        setPermissionMsg(
+          `Cannot send a test to ${selectedDevice?.device_name || 'this device'}: notification permission has not been granted yet. Use "Request permissions" below first.`,
+        );
+      } else if (typeof window !== 'undefined' && window.top !== window.self) {
+        setPermissionMsg(
+          'Notification permission is granted, but push registration does not work inside the preview iframe. Open the app in its own browser tab and reload to register a push token.',
+        );
+      } else {
+        setPermissionMsg(
+          `Notification permission is granted, but ${selectedDevice?.device_name || 'this device'} has no push token registered yet. Reload the page to register it, or select a device that has push enabled.`,
+        );
+      }
       return;
     }
+
 
     setSendingType(type);
     setPermissionMsg(null);
@@ -598,7 +613,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           incidentId: `test-${Date.now()}`,
           title: 'Remote Pager API Verification Test',
           source: 'Shuffle API (/api/v1/functions/pager)',
-          targetToken: settings.pushToken,
+          targetToken: testToken,
           severity: 'critical',
           tier: 1,
           autoEscalateSeconds: settings.autoEscalateTimeoutSeconds || 60,
@@ -609,7 +624,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           executionId: `exec-${Date.now()}`,
           workflowId: 'wf-isolate-host',
           action: 'approve_containment',
-          targetToken: settings.pushToken,
+          targetToken: testToken,
           body: 'Subagent detected suspicious brute-force activity. Confirmation needed to isolate host.',
         });
       } else {
@@ -617,7 +632,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           title: 'Weekly SOC Report Available',
           body: 'The automated weekly security posture report has been compiled.',
           referenceUrl: '/reports/weekly',
-          targetToken: settings.pushToken,
+          targetToken: testToken,
         });
       }
 
@@ -931,7 +946,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           }}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
-          onTest={() => handleTestRemotePush('critical')}
+          onTest={testToken ? () => handleTestRemotePush('critical') : undefined}
           testing={sendingType === 'critical'}
         >
           <SettingRow
@@ -1021,7 +1036,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
-          onTest={() => handleTestRemotePush('agent_request')}
+          onTest={testToken ? () => handleTestRemotePush('agent_request') : undefined}
           testing={sendingType === 'agent_request'}
         >
           <SettingRow
@@ -1069,7 +1084,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
-          onTest={() => handleTestRemotePush('general')}
+          onTest={testToken ? () => handleTestRemotePush('general') : undefined}
           testing={sendingType === 'general'}
         >
           <SettingRow
