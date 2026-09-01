@@ -817,6 +817,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             Team scheduling
           </MenuItem>
           <MenuItem
+            disabled={!testToken}
             onClick={() => {
               testPagerCall();
               setMenuAnchor(null);
@@ -1008,7 +1009,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             label="Test delivery"
             control={
               <>
-                <Button variant="outlined" size="small" onClick={testPagerCall} sx={outlinedButtonSx}>
+                <Button variant="outlined" size="small" onClick={testPagerCall} disabled={!testToken} sx={outlinedButtonSx}>
                   Simulate call
                 </Button>
                 {Boolean(settings.pushToken) && (
@@ -1056,7 +1057,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             label="Test delivery"
             control={
               <>
-                <Button variant="outlined" size="small" onClick={handleSimulateAgentRequest} sx={outlinedButtonSx}>
+                <Button variant="outlined" size="small" onClick={handleSimulateAgentRequest} disabled={!testToken} sx={outlinedButtonSx}>
                   Simulate
                 </Button>
                 {Boolean(settings.pushToken) && (
@@ -1104,7 +1105,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             label="Test delivery"
             control={
               <>
-                <Button variant="outlined" size="small" onClick={handleSimulateGeneral} sx={outlinedButtonSx}>
+                <Button variant="outlined" size="small" onClick={handleSimulateGeneral} disabled={!testToken} sx={outlinedButtonSx}>
                   Simulate
                 </Button>
                 {Boolean(settings.pushToken) && (
