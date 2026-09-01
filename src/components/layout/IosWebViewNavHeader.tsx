@@ -207,8 +207,8 @@ export const MobileNavHeader: React.FC = () => {
         ) : (
           // Subpage navigation header
           <>
-            <Box sx={{ width: '28%', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-              {showBackButton && (
+            {showBackButton && (
+              <Box sx={{ width: '28%', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                 <Button
                   onClick={handleBack}
                   startIcon={<ChevronLeft size={20} style={{ marginRight: -4 }} />}
@@ -226,10 +226,10 @@ export const MobileNavHeader: React.FC = () => {
                 >
                   {parentLabel || 'Back'}
                 </Button>
-              )}
-            </Box>
+              </Box>
+            )}
 
-            <Box sx={{ width: '44%', textAlign: 'center' }}>
+            <Box sx={{ minWidth: 0, flex: 1, textAlign: showBackButton ? 'center' : 'left' }}>
               <Typography
                 noWrap
                 sx={{
@@ -243,8 +243,9 @@ export const MobileNavHeader: React.FC = () => {
               </Typography>
             </Box>
 
-            <Box sx={{ width: '28%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <Box sx={{ flexShrink: 0, ml: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
               {userInfo?.active_org?.name && (
+
                 <Typography
                   noWrap
                   variant="caption"
