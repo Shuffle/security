@@ -768,8 +768,16 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         gap: 3,
       }}
     >
-      <Box sx={{ ...rowSx, alignItems: 'flex-start' }}>
-        <Box>
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 1.5,
+        }}
+      >
+        <Box sx={{ minWidth: 0, flex: '1 1 220px' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
             Paging & Notifications
           </Typography>
@@ -778,7 +786,66 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.75,
+            flexWrap: 'wrap',
+            width: { xs: '100%', sm: 'auto' },
+            justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+          }}
+        >
+        {isLocalSelected && (!isGranted || !settings.pushToken) && (
+          <Tooltip
+            title={
+              isGranted
+                ? inIframe
+                  ? 'Permission granted, but the preview iframe blocks token registration. Open this page in its own browser tab to register this device.'
+                  : 'Permission granted, but no push token is registered for this device yet.'
+                : 'Notifications are not registered on this device yet.'
+            }
+          >
+            <span>
+              <Button
+                variant="contained"
+                size="small"
+                disableElevation
+                disabled={savingDevice}
+                onClick={
+                  isGranted
+                    ? inIframe
+                      ? () => window.open(window.location.href, '_blank')
+                      : handleRegisterLocalPush
+                    : handleRequestPermissions
+                }
+                sx={{
+                  height: 28,
+                  px: 1.5,
+                  fontSize: '0.75rem',
+                  textTransform: 'none',
+                  whiteSpace: 'nowrap',
+                  bgcolor: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                  '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+                }}
+              >
+                {savingDevice ? (
+                  <CircularProgress size={12} sx={{ color: 'hsl(var(--primary-foreground))' }} />
+                ) : isGranted ? (
+                  inIframe ? (
+                    'Open in new tab'
+                  ) : (
+                    'Register this device'
+                  )
+                ) : (
+                  'Enable notifications'
+                )}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+
         {deviceList.length > 0 && (
           <FormControl size="small" sx={{ minWidth: 110, maxWidth: 160 }}>
             <Select
@@ -1213,47 +1280,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         </NotificationSection>
       </Box>
 
-      {isLocalSelected && (!isGranted || !settings.pushToken) && (
-        <Box sx={{ pt: 1, borderTop: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <SettingRow
-            label={isGranted ? 'Push token' : 'Device push'}
-            hint={
-              isGranted
-                ? inIframe
-                  ? 'Permission granted, but the preview iframe blocks token registration. Open this page in its own browser tab to register this device.'
-                  : 'Permission granted, but no push token is registered for this device yet.'
-                : 'Not registered on this device.'
-            }
-            control={
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={savingDevice}
-                onClick={
-                  isGranted
-                    ? inIframe
-                      ? () => window.open(window.location.href, '_blank')
-                      : handleRegisterLocalPush
-                    : handleRequestPermissions
-                }
-                sx={outlinedButtonSx}
-              >
-                {savingDevice ? (
-                  <CircularProgress size={12} sx={{ color: 'hsl(var(--primary))' }} />
-                ) : isGranted ? (
-                  inIframe ? (
-                    'Open in new tab'
-                  ) : (
-                    'Register this device'
-                  )
-                ) : (
-                  'Request permissions'
-                )}
-              </Button>
-            }
-          />
-        </Box>
-      )}
+
 
       <Dialog open={confirmCritical} onClose={() => setConfirmCritical(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontSize: '1rem', fontWeight: 700 }}>Enable Critical Pager?</DialogTitle>
