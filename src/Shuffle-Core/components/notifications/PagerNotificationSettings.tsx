@@ -527,7 +527,12 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         platform: getLocalDevicePlatform(),
         device_name: existing?.device_name || getLocalDeviceName(),
         preferences: resolveDevicePreferences(existing),
-      }).then(() => fetchNotificationDevices().then(setDevices));
+      }).then((result) => {
+        if (!result.success) {
+          setPermissionMsg(`Failed to save the device notification preferences: ${result.reason || 'unknown error'}`);
+        }
+        fetchNotificationDevices().then(setDevices);
+      });
     }
   };
 
