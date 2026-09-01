@@ -273,7 +273,7 @@ export const MobileAuthGateway = () => {
               boxShadow: '0 8px 24px rgba(255, 102, 0, 0.15)',
             }}
           >
-            <ShuffleLogo size={48} />
+            <ShuffleLogo size={48} color="#FF6600" />
           </Box>
           <Typography
             variant="h5"

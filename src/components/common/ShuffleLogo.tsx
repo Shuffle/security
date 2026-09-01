@@ -1,39 +1,41 @@
 import React from 'react';
-import shuffleLogo from '@/assets/shuffle-logo.png';
 
-interface ShuffleLogoProps {
-  size?: number;
+export interface ShuffleLogoProps {
+  size?: number | string;
+  color?: string;
   className?: string;
   style?: React.CSSProperties;
-  alt?: string;
 }
 
 /**
- * Standardized Shuffle logo component used across all web, desktop, and mobile views.
+ * Official Shuffle Security vector logo.
  */
 export const ShuffleLogo: React.FC<ShuffleLogoProps> = ({
   size = 32,
+  color = '#FF6600',
   className,
   style,
-  alt = 'Shuffle',
 }) => (
-  <img
-    src={shuffleLogo}
-    alt={alt}
+  <svg
     width={size}
     height={size}
+    viewBox="0 0 56 56"
+    fill="none"
     className={className}
     style={{
-      width: size,
-      height: size,
-      borderRadius: Math.max(4, Math.round(size * 0.18)),
       display: 'inline-block',
-      objectFit: 'contain',
       flexShrink: 0,
       verticalAlign: 'middle',
       ...style,
     }}
-  />
+  >
+    <path
+      d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
+      fill={color}
+    />
+  </svg>
 );
+
+export const ShuffleSecurityLogo = ShuffleLogo;
 
 export default ShuffleLogo;

@@ -358,7 +358,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             },
           }}
         >
-          <ShuffleLogo size={28} />
+          <ShuffleLogo size={32} color={primaryColor} />
           {!visuallyCollapsed && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
@@ -420,7 +420,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
               }
             }}
           >
-            <ShuffleLogo size={24} />
+            <ShuffleLogo size={24} color={primaryColor} />
             <Typography sx={{ fontSize: '0.875rem', color: 'hsl(var(--foreground))', fontWeight: 600 }}>
               <span style={{ color: primaryColor }}>Shuffle</span> Security
             </Typography>

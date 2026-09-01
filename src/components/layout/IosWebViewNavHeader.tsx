@@ -137,7 +137,7 @@ export const MobileNavHeader: React.FC = () => {
                 color: 'inherit',
               }}
             >
-              <ShuffleLogo size={24} />
+              <ShuffleLogo size={24} color={primaryColor} />
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                 <Typography
                   sx={{

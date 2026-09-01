@@ -351,7 +351,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                     justifyContent: 'center',
                   }}
                 >
-                  <ShuffleLogo size={48} />
+                  <ShuffleLogo size={56} color={primaryColor} />
                 </Box>
                 <Typography
                   variant="h5"
