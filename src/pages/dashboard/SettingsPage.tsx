@@ -91,6 +91,43 @@ const SettingsPage = () => {
     navigate('/login', { replace: true });
   };
 
+  const passwordValid = newPw.length > 10 && confirmPw.length > 10 && newPw === confirmPw;
+
+  const handleChangePassword = async () => {
+    if (!passwordValid || !currentPw) return;
+    setPwMsg('');
+    setPwLoading(true);
+    try {
+      const username = settings?.username || userInfo?.username || '';
+      const response = await fetch(getApiUrl('/api/v1/passwordchange'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify({
+          currentpassword: currentPw,
+          newpassword: newPw,
+          newpassword2: confirmPw,
+          username,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.reason || data.message || 'Failed to change password');
+      }
+      setPwMsg('Password updated successfully.');
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    } catch (err) {
+      setPwMsg(err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   const getUserInitial = () => {
     const name = settings?.username || userInfo?.username;
     if (name) {
