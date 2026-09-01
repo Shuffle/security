@@ -485,7 +485,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     ? Boolean(selectedDevice)
     : Boolean(selectedDevice && devices.some((d) => d.id === selectedDevice.id));
   const pushAvailable = isLocalSelected
-    ? settings.permissionStatus === 'granted'
+    ? settings.permissionStatus === 'granted' && Boolean(settings.pushToken)
     : Boolean(selectedDevice?.token);
   const controlsAvailable = deviceRegistered && pushAvailable;
 
