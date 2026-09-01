@@ -914,6 +914,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           }}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
+          onTest={() => handleTestRemotePush('critical')}
+          testing={sendingType === 'critical'}
         >
           <SettingRow
             label="Emergency siren"
@@ -1002,6 +1004,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
+          onTest={() => handleTestRemotePush('agent_request')}
+          testing={sendingType === 'agent_request'}
         >
           <SettingRow
             label="Sound"
@@ -1048,6 +1052,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
+          onTest={() => handleTestRemotePush('general')}
+          testing={sendingType === 'general'}
         >
           <SettingRow
             label="Sound"
