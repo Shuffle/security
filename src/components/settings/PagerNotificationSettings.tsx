@@ -18,7 +18,7 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Smartphone, Monitor } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
   getPagerSettings,
