@@ -36,6 +36,8 @@ interface MarkdownRendererProps {
   /** SSR-provided markdown/metadata; when present the initial client fetch is skipped. */
   initialContent?: string | null;
   initialMeta?: RemoteDocMeta | null;
+  /** Hide read time, contributors and "Edit on GitHub" metadata. Print stays. */
+  hideMeta?: boolean;
 }
 
 interface DocSuggestion {
