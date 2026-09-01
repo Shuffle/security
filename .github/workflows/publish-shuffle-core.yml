@@ -40,6 +40,7 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       # Resolve the version: workflow_dispatch input wins, else strip "shuffle-core-v" from the tag
       - name: Resolve version
