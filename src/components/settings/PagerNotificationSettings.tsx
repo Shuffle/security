@@ -803,6 +803,23 @@ export const PagerNotificationSettings = () => {
               <Typography sx={{ fontSize: '0.82rem', color: 'inherit' }}>
                 {permissionHelp.device}: {permissionHelp.steps}
               </Typography>
+              <Box
+                component="code"
+                sx={{
+                  alignSelf: 'flex-start',
+                  mt: 0.25,
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1,
+                  bgcolor: 'hsl(var(--primary) / 0.12)',
+                  color: 'hsl(var(--primary))',
+                  fontSize: '0.8rem',
+                  fontFamily: 'monospace',
+                  border: '1px solid hsl(var(--primary) / 0.25)',
+                }}
+              >
+                {permissionHelp.siteLabel}
+              </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 {permissionHelp.internalUrl && (
                   <Button variant="outlined" size="small" onClick={handleCopySettingsPath} sx={outlinedButtonSx}>
