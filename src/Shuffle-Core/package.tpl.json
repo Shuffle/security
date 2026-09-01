@@ -5,9 +5,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Shuffle/singul.js.git"
+    "url": "https://github.com/Shuffle/security.git"
   },
-  "homepage": "https://github.com/Shuffle/singul.js#readme",
+  "homepage": "https://github.com/Shuffle/security#readme",
   "keywords": [
     "react",
     "shuffle",
