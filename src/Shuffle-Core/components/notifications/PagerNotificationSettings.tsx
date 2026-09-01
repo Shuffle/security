@@ -89,6 +89,8 @@ interface SectionProps {
   onToggle: (value: boolean) => void;
   expanded: boolean;
   onExpandToggle: () => void;
+  onTest?: () => void;
+  testing?: boolean;
   children: ReactNode;
 }
 
@@ -100,6 +102,8 @@ const NotificationSection = ({
   onToggle,
   expanded,
   onExpandToggle,
+  onTest,
+  testing,
   children,
 }: SectionProps) => (
   <Box
