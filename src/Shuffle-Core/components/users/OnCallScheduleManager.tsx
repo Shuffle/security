@@ -12,7 +12,7 @@
  * re-implement (and inevitably drift from) the same UI.
  */
 
-import { Plus as AddIcon, Pencil as EditIcon, Trash2 as DeleteIcon, ChevronDown as ExpandMoreIcon, Clock as ScheduleIcon, CheckCircle2 as CheckCircleIcon, Upload as UploadIcon, CalendarDays as CalendarIcon, Clock as AccessTimeIcon, User as PersonIcon } from 'lucide-react';
+import { Plus as AddIcon, Pencil as EditIcon, Trash2 as DeleteIcon, ChevronDown as ExpandMoreIcon, Clock as ScheduleIcon, Upload as UploadIcon, CalendarDays as CalendarIcon, Clock as AccessTimeIcon, User as PersonIcon } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
@@ -32,6 +32,8 @@ import {
   Stack,
   Collapse,
   LinearProgress,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { toast } from '@/Shuffle-Core/lib/toast';
@@ -610,7 +612,7 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
   return (
     <Box>
       {/* Header + actions */}
-      <Box sx={{ mb: compact ? 2 : 5 }}>
+      <Box sx={{ mb: compact ? 2 : 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
           {!compact && (
             <Box>
@@ -620,8 +622,8 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
               >
                 Team Members
               </Typography>
-              <Typography variant="body1" sx={{ color: 'hsl(var(--muted-foreground))', mt: 1 }}>
-                Configure on-call schedules and auto-assignment for your team
+              <Typography variant="body1" sx={{ color: 'hsl(var(--muted-foreground))', mt: 1, maxWidth: 560 }}>
+                Mark a user On-Call to make them eligible for incident assignment, then expand their row to set weekly availability windows.
               </Typography>
             </Box>
           )}
@@ -635,7 +637,7 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                 height: 36,
                 borderColor: 'hsl(var(--border))',
                 color: 'hsl(var(--foreground))',
-                '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.1)' },
+                '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
               }}
             >
               Schedule View
@@ -649,7 +651,7 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                 height: 36,
                 borderColor: 'hsl(var(--border))',
                 color: 'hsl(var(--foreground))',
-                '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.1)' },
+                '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.08)' },
               }}
             >
               Import
@@ -663,45 +665,31 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-              gap: 2,
-              mt: 4,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: { xs: 2, sm: 3 },
+              mt: 3,
+              color: 'hsl(var(--muted-foreground))',
             }}
           >
-            {[
-              { label: 'Total Users', value: users.length, icon: PersonIcon, color: 'hsl(var(--primary))' },
-              { label: 'Active', value: activeUsers, icon: CheckCircleIcon, color: '#22c55e' },
-              { label: 'On-Call Enabled', value: configuredUsers, icon: ScheduleIcon, color: '#3b82f6' },
-            ].map((stat) => (
-              <Paper
-                key={stat.label}
-                sx={{
-                  p: 2.5,
-                  bgcolor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2,
-                }}
-              >
-                <Box sx={{
-                  width: 44, height: 44, borderRadius: 1.5, bgcolor: `${stat.color}15`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <stat.icon size={22} style={{ color: stat.color }} />
-                </Box>
-                <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>
-                    {stat.value}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    {stat.label}
-                  </Typography>
-                </Box>
-              </Paper>
-            ))}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'hsl(var(--muted-foreground))' }} />
+              <Typography variant="body2">
+                <Box component="span" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>{users.length}</Box> total
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'hsl(var(--foreground))' }} />
+              <Typography variant="body2">
+                <Box component="span" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>{activeUsers}</Box> active
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <ScheduleIcon size={18} />
+              <Typography variant="body2">
+                <Box component="span" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>{configuredUsers}</Box> on-call
+              </Typography>
+            </Box>
           </Box>
         )}
       </Box>
@@ -730,26 +718,24 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
             <Paper sx={{
               p: 3, mb: 3,
               bgcolor: 'hsl(var(--card))',
-              background: 'linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--accent) / 0.12) 100%)',
               border: '1px solid hsl(var(--border))', borderRadius: 2,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: 2,
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-                <AgentIcon size={48} style={{ borderRadius: 8 }} />
+                <AgentIcon size={44} style={{ borderRadius: 8 }} />
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                     AI Agent
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    24/7 fallback • Handles alerts when no human is available
+                    24/7 fallback when no human is on-call.
                   </Typography>
                 </Box>
               </Box>
-              <Chip label="Always Active" size="small" sx={{
-                bgcolor: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))',
-                fontWeight: 600, border: '1px solid hsl(var(--primary) / 0.25)', px: 1,
-              }} />
+              <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                Always active
+              </Typography>
             </Paper>
           </motion.div>
 
@@ -785,8 +771,9 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                       }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar sx={{
-                            bgcolor: 'hsl(var(--primary))', width: 44, height: 44,
-                            fontWeight: 600, fontSize: '1.1rem',
+                            bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))',
+                            width: 40, height: 40,
+                            fontWeight: 600, fontSize: '1rem',
                           }}>
                             {user.username?.charAt(0).toUpperCase() || '?'}
                           </Avatar>
@@ -798,10 +785,11 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                               <Chip
                                 label={user.role || 'user'}
                                 size="small"
+                                variant="outlined"
                                 sx={{
                                   height: 22, fontSize: '0.7rem', fontWeight: 600,
-                                  bgcolor: user.role === 'admin' ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--muted))',
-                                  color: user.role === 'admin' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                                  borderColor: 'hsl(var(--border))',
+                                  color: 'hsl(var(--muted-foreground))',
                                   textTransform: 'uppercase', letterSpacing: '0.05em',
                                 }}
                               />
@@ -813,9 +801,8 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box sx={{
-                            width: 8, height: 8, borderRadius: '50%',
-                            bgcolor: user.active !== false ? '#22c55e' : 'hsl(var(--muted-foreground))',
-                            boxShadow: user.active !== false ? '0 0 8px #22c55e60' : 'none',
+                            width: 7, height: 7, borderRadius: '50%',
+                            bgcolor: user.active !== false ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
                           }} />
                           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                             {user.active !== false ? 'Active' : 'Inactive'}
@@ -824,25 +811,20 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {schedule ? (
-                            <Box
+                            <Button
+                              size="small"
                               onClick={() => handleEditEscalation(user.id)}
                               sx={{
-                                display: 'flex', alignItems: 'center', gap: 1,
-                                px: 1.5, py: 0.75, borderRadius: 1.5,
-                                border: `1px solid ${ESCALATION_COLORS[schedule.escalationLevel]}40`,
-                                bgcolor: `${ESCALATION_COLORS[schedule.escalationLevel]}15`,
-                                cursor: 'pointer', transition: 'all 0.2s',
-                                '&:hover': { bgcolor: `${ESCALATION_COLORS[schedule.escalationLevel]}25` },
+                                color: 'hsl(var(--foreground))',
+                                textTransform: 'none',
+                                fontWeight: 500,
+                                minWidth: 0,
+                                px: 1,
+                                '&:hover': { bgcolor: 'hsl(var(--muted))' },
                               }}
                             >
-                              <Box sx={{
-                                width: 8, height: 8, borderRadius: '50%',
-                                bgcolor: ESCALATION_COLORS[schedule.escalationLevel],
-                              }} />
-                              <Typography variant="body2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 500 }}>
-                                {ESCALATION_LABELS[schedule.escalationLevel]}
-                              </Typography>
-                            </Box>
+                              {ESCALATION_LABELS[schedule.escalationLevel]}
+                            </Button>
                           ) : (
                             <Button
                               size="small"
@@ -854,25 +836,22 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                           )}
                         </Box>
 
-                        <Button
-                          size="small"
-                          variant={schedule?.enabled ? 'contained' : 'outlined'}
-                          startIcon={schedule?.enabled ? <CheckCircleIcon /> : <ScheduleIcon />}
-                          onClick={() => handleToggleEnabled(user.id)}
-                          disabled={isSaving}
-                          sx={{
-                            minWidth: 110,
-                            borderColor: schedule?.enabled ? 'transparent' : 'hsl(var(--border))',
-                            bgcolor: schedule?.enabled ? '#22c55e' : 'transparent',
-                            color: schedule?.enabled ? 'white' : 'hsl(var(--muted-foreground))',
-                            '&:hover': {
-                              bgcolor: schedule?.enabled ? '#16a34a' : 'hsl(var(--muted) / 0.5)',
-                              borderColor: schedule?.enabled ? 'transparent' : 'hsl(var(--border))',
-                            },
-                          }}
-                        >
-                          {schedule?.enabled ? 'On-Call' : 'Off'}
-                        </Button>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={!!schedule?.enabled}
+                              onChange={() => handleToggleEnabled(user.id)}
+                              disabled={isSaving}
+                              size="small"
+                            />
+                          }
+                          label={
+                            <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                              {schedule?.enabled ? 'On-Call' : 'Off'}
+                            </Typography>
+                          }
+                          sx={{ ml: 0, mr: 0, gap: 1 }}
+                        />
 
                         <IconButton
                           size="small"
@@ -891,7 +870,6 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{
                           p: 3, borderTop: '1px solid hsl(var(--border))',
-                          bgcolor: 'hsl(var(--muted) / 0.2)',
                         }}>
                           <Box sx={{
                             display: 'flex', justifyContent: 'space-between',
@@ -908,8 +886,8 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                               startIcon={<AddIcon />}
                               onClick={() => handleAddScheduleEntry(user.id)}
                               sx={{
-                                color: 'hsl(var(--primary))',
-                                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.1)' },
+                                color: 'hsl(var(--foreground))',
+                                '&:hover': { bgcolor: 'hsl(var(--muted))' },
                               }}
                             >
                               Add Window
@@ -962,11 +940,13 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                                       <Box sx={{ display: 'flex', gap: 0.5 }}>
                                         {DAYS_OF_WEEK.map((day, idx) => (
                                           <Box key={day} sx={{
-                                            width: 28, height: 24, borderRadius: 0.5,
+                                            width: 26, height: 24, borderRadius: 0.75,
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             fontSize: '0.7rem', fontWeight: 500,
-                                            bgcolor: entry.daysOfWeek.includes(idx) ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                                            color: entry.daysOfWeek.includes(idx) ? 'white' : 'hsl(var(--muted-foreground))',
+                                            border: '1px solid',
+                                            borderColor: entry.daysOfWeek.includes(idx) ? 'hsl(var(--foreground))' : 'hsl(var(--border))',
+                                            bgcolor: entry.daysOfWeek.includes(idx) ? 'hsl(var(--foreground))' : 'transparent',
+                                            color: entry.daysOfWeek.includes(idx) ? 'hsl(var(--background))' : 'hsl(var(--muted-foreground))',
                                           }}>
                                             {day.charAt(0)}
                                           </Box>
@@ -987,7 +967,7 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                                       onClick={() => handleDeleteScheduleEntry(user.id, entry.id)}
                                       sx={{
                                         color: 'hsl(var(--muted-foreground))',
-                                        '&:hover': { color: '#ef4444' },
+                                        '&:hover': { color: 'hsl(var(--destructive))' },
                                       }}
                                     >
                                       <DeleteIcon size={20} />
@@ -1012,26 +992,23 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
       <Dialog open={escalationDialogOpen} onClose={() => setEscalationDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Set Escalation Level</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             {(Object.entries(ESCALATION_LABELS) as [EscalationLevel, string][]).map(([key, label]) => (
               <Paper
                 key={key}
                 onClick={() => setSelectedLevel(key)}
                 sx={{
                   p: 2, cursor: 'pointer',
-                  border: selectedLevel === key
-                    ? `2px solid ${ESCALATION_COLORS[key]}`
-                    : '2px solid hsl(var(--border))',
+                  border: '1px solid hsl(var(--border))',
                   borderRadius: 2,
-                  bgcolor: selectedLevel === key ? `${ESCALATION_COLORS[key]}10` : 'transparent',
+                  bgcolor: selectedLevel === key ? 'hsl(var(--muted))' : 'transparent',
                   display: 'flex', alignItems: 'center', gap: 2,
                   transition: 'all 0.2s',
-                  '&:hover': { borderColor: ESCALATION_COLORS[key] },
+                  '&:hover': { bgcolor: 'hsl(var(--muted))' },
                 }}
               >
-                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: ESCALATION_COLORS[key] }} />
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>
+                  <Typography variant="subtitle2" sx={{ color: 'hsl(var(--foreground))', fontWeight: 500 }}>
                     {label}
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -1074,13 +1051,15 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                   <Chip
                     key={day}
                     label={day}
+                    variant="outlined"
                     onClick={() => toggleDay(index)}
                     sx={{
-                      bgcolor: entryDays.includes(index) ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                      color: entryDays.includes(index) ? 'white' : 'hsl(var(--muted-foreground))',
+                      borderColor: entryDays.includes(index) ? 'hsl(var(--foreground))' : 'hsl(var(--border))',
+                      bgcolor: entryDays.includes(index) ? 'hsl(var(--foreground))' : 'transparent',
+                      color: entryDays.includes(index) ? 'hsl(var(--background))' : 'hsl(var(--muted-foreground))',
                       fontWeight: 500,
                       '&:hover': {
-                        bgcolor: entryDays.includes(index) ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                        bgcolor: entryDays.includes(index) ? 'hsl(var(--foreground))' : 'hsl(var(--muted))',
                       },
                     }}
                   />

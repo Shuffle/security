@@ -501,6 +501,12 @@ const SAMPLE_WORKFLOW = {
   form_control: { input_markdown: '' },
 };
 
+const SAMPLE_USERS = [
+  { id: 'demo-user-1', username: 'Ada Chen', role: 'admin', active: true },
+  { id: 'demo-user-2', username: 'Ben Okafor', role: 'user', active: true },
+  { id: 'demo-user-3', username: 'Cara Smith', role: 'user', active: false },
+];
+
 const ShuffleCoreTestPage = () => {
   // Default to dark mode for unauthenticated visitors on this public demo page.
   const { isAuthenticated, isLoading, userInfo } = useAuth();
@@ -898,7 +904,7 @@ const ShuffleCoreTestPage = () => {
             ]}
           >
             <Box sx={{ border: '1px solid hsl(var(--border))', borderRadius: 1.5, p: 2, maxHeight: 720, overflowY: 'auto' }}>
-              <OnCallScheduleManager theme="system" {...({ users: [], loading: false, compact: true } as any)} />
+              <OnCallScheduleManager theme="system" {...({ users: SAMPLE_USERS, loading: false, compact: true } as any)} />
             </Box>
           </DemoSection>
 
