@@ -22,6 +22,14 @@ interface DocLink {
 
 interface DocsSidebarProps {
   onNavigate?: () => void;
+  /** API folder to list documents from (e.g. "legal"). */
+  folder?: string;
+  /** URL prefix for the document links (defaults to /docs). */
+  basePath?: string;
+  /** Section heading above the list. */
+  title?: string;
+  /** Hide the external resources block (not relevant outside documentation). */
+  hideExternal?: boolean;
 }
 
 const externalLinks: DocLink[] = [
@@ -51,7 +59,7 @@ interface RemoteDoc {
 const toLabel = (name: string) =>
   name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
+export const DocsSidebar = ({ onNavigate, folder, basePath = '/docs', title = 'Documentation', hideExternal = false }: DocsSidebarProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [remoteDocs, setRemoteDocs] = useState<RemoteDoc[]>([]);
@@ -71,7 +79,7 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const list = await fetchDocsList();
+      const list = await fetchDocsList(false, folder);
       const mapped: RemoteDoc[] = list
         .filter((d) => d?.name)
         .map((d) => ({
@@ -84,7 +92,7 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
       if (!cancelled) setRemoteDocs(mapped);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [folder]);
 
 
   const handleClick = () => {
@@ -143,7 +151,7 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
           letterSpacing: 1.5,
         }}
       >
-        Documentation
+        {title}
       </Typography>
       
       <List sx={{ px: 1, mt: 1 }}>
@@ -152,7 +160,7 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
             <ListItemButton
               onClick={() => {
                 handleClick();
-                navigate(`/docs/${doc.slug}`);
+                navigate(`${basePath}/${doc.slug}`);
               }}
               selected={slug === doc.slug}
               sx={{
@@ -187,7 +195,8 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
 
 
 
-      <Typography
+      {!hideExternal && (
+      <><Typography
         variant="overline"
         sx={{
           px: 3,
@@ -243,7 +252,8 @@ export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
             </ListItemButton>
           </ListItem>
         ))}
-      </List>
+      </List></>
+      )}
     </Box>
   );
 };

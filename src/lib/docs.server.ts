@@ -273,10 +273,14 @@ const enrichVideos = async (refs: RawVideoRef[], docTitle: string | null): Promi
  * Resolve a URL slug to markdown + metadata. Returns null when the doc does
  * not exist or the API is unreachable (callers then fall back to client fetch).
  */
-export const fetchDocContentServer = async (slug: string): Promise<ServerDocContent | null> => {
+export const fetchDocContentServer = async (
+  slug: string,
+  folder?: string,
+): Promise<ServerDocContent | null> => {
   const base = getBaseUrl();
+  const folderQuery = folder ? `?folder=${encodeURIComponent(folder)}` : '';
 
-  const listData = (await fetchJson(`${base}/api/v1/docs`)) as
+  const listData = (await fetchJson(`${base}/api/v1/docs${folderQuery}`)) as
     | { success?: boolean; list?: DocsListEntry[] }
     | null;
   const list = Array.isArray(listData?.list)
@@ -289,7 +293,7 @@ export const fetchDocContentServer = async (slug: string): Promise<ServerDocCont
   );
 
   for (const name of candidates) {
-    const data = (await fetchJson(`${base}/api/v1/docs/${encodeURIComponent(name)}`)) as
+    const data = (await fetchJson(`${base}/api/v1/docs/${encodeURIComponent(name)}${folderQuery}`)) as
       | { success?: boolean; reason?: string; meta?: ServerDocMeta }
       | null;
     if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
