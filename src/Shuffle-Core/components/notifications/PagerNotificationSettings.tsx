@@ -305,7 +305,12 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
   const [localDeviceId, setLocalDeviceId] = useState('');
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [savingDevice, setSavingDevice] = useState(false);
+  const [inIframe, setInIframe] = useState(false);
   const [confirmCritical, setConfirmCritical] = useState(false);
+
+  useEffect(() => {
+    setInIframe(typeof window !== 'undefined' && window.top !== window.self);
+  }, []);
 
   useEffect(() => {
     const id = getLocalDeviceId();
@@ -485,7 +490,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     ? Boolean(selectedDevice)
     : Boolean(selectedDevice && devices.some((d) => d.id === selectedDevice.id));
   const pushAvailable = isLocalSelected
-    ? settings.permissionStatus === 'granted'
+    ? settings.permissionStatus === 'granted' && Boolean(settings.pushToken)
     : Boolean(selectedDevice?.token);
   const controlsAvailable = deviceRegistered && pushAvailable;
 
@@ -602,6 +607,47 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         fetchNotificationDevices().then(setDevices);
       });
 
+    }
+  };
+
+  const handleRegisterLocalPush = async () => {
+    setPermissionMsg(null);
+    setSavingDevice(true);
+    try {
+      const token = await registerFirebaseWebPush();
+      if (token) {
+        const next = savePagerSettings({ pushToken: token });
+        setSettings(next);
+        setPermissionMsg('This device is now registered for push notifications.');
+        if (userInfo?.id && localDeviceId) {
+          const existing = devices.find((d) => d.id === localDeviceId);
+          const result = await saveNotificationDevice(userInfo.id, {
+            id: localDeviceId,
+            token,
+            platform: getLocalDevicePlatform(),
+            device_name: existing?.device_name || getLocalDeviceName(),
+            preferences: resolveDevicePreferences(existing),
+          });
+          if (!result.success) {
+            setPermissionMsg(`Failed to save the device notification preferences: ${result.reason || 'unknown error'}`);
+          }
+          fetchNotificationDevices().then(setDevices);
+        }
+        return;
+      }
+      if (typeof window !== 'undefined' && window.top !== window.self) {
+        setPermissionMsg(
+          'Push token registration is blocked inside the preview iframe. Open this page in its own browser tab and click Register this device.',
+        );
+      } else {
+        setPermissionMsg(
+          'Could not register a push token for this device. Make sure notification permissions are granted and that the browser supports push notifications.',
+        );
+      }
+    } catch (err) {
+      setPermissionMsg(`Registration error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setSavingDevice(false);
     }
   };
 
@@ -1167,14 +1213,42 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         </NotificationSection>
       </Box>
 
-      {!isGranted && (
+      {isLocalSelected && (!isGranted || !settings.pushToken) && (
         <Box sx={{ pt: 1, borderTop: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <SettingRow
-            label="Device push"
-            hint="Not registered on this device."
+            label={isGranted ? 'Push token' : 'Device push'}
+            hint={
+              isGranted
+                ? inIframe
+                  ? 'Permission granted, but the preview iframe blocks token registration. Open this page in its own browser tab to register this device.'
+                  : 'Permission granted, but no push token is registered for this device yet.'
+                : 'Not registered on this device.'
+            }
             control={
-              <Button variant="outlined" size="small" onClick={handleRequestPermissions} sx={outlinedButtonSx}>
-                Request permissions
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={savingDevice}
+                onClick={
+                  isGranted
+                    ? inIframe
+                      ? () => window.open(window.location.href, '_blank')
+                      : handleRegisterLocalPush
+                    : handleRequestPermissions
+                }
+                sx={outlinedButtonSx}
+              >
+                {savingDevice ? (
+                  <CircularProgress size={12} sx={{ color: 'hsl(var(--primary))' }} />
+                ) : isGranted ? (
+                  inIframe ? (
+                    'Open in new tab'
+                  ) : (
+                    'Register this device'
+                  )
+                ) : (
+                  'Request permissions'
+                )}
               </Button>
             }
           />
