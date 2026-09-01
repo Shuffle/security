@@ -65,6 +65,10 @@ jobs:
           "
           cat package.json
 
+      # OIDC trusted publishing requires npm CLI >=11.5.1; Node 20 bundles an older npm
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Install library deps
         working-directory: src/Shuffle-Core
         run: npm install --no-package-lock
@@ -86,7 +90,4 @@ jobs:
       - name: Publish to npm
         if: ${{ inputs.dry_run != true }}
         working-directory: src/Shuffle-Core
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public --provenance false
+        run: npm publish --access public
