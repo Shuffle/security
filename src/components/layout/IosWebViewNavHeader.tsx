@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, Button, IconButton } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import { ChevronLeft } from 'lucide-react';
-import { useLocation, useNavigate } from '@/lib/router-compat';
-import { isIosWebView } from '@/Shuffle-MCPs/api';
+import { useLocation, useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 const getPageTitle = (pathname: string): { title: string; parentPath?: string; parentLabel?: string } => {
   const clean = pathname.replace(/\/$/, '') || '/';
@@ -62,24 +62,24 @@ const getPageTitle = (pathname: string): { title: string; parentPath?: string; p
   return { title: 'Shuffle Security' };
 };
 
-export const IosWebViewNavHeader: React.FC = () => {
-  const isIos = isIosWebView();
+export const MobileNavHeader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { userInfo } = useAuth();
+  const { brandColor } = useTheme();
+  const primaryColor = brandColor || '#FF6600';
 
   const { title, parentPath, parentLabel } = useMemo(
     () => getPageTitle(location.pathname),
     [location.pathname]
   );
 
-  // If not iOS WebView, never render this header
-  if (!isIos) {
-    return null;
-  }
+  const isRootPage = location.pathname === '/' ||
+    location.pathname === '/incidents' ||
+    location.pathname === '/agent' ||
+    location.pathname === '/admin';
 
-  const isRootPage = location.pathname === '/incidents' || location.pathname === '/';
-  const showBackButton = !isRootPage || (typeof window !== 'undefined' && window.history.length > 1);
+  const showBackButton = !isRootPage;
 
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -93,82 +93,169 @@ export const IosWebViewNavHeader: React.FC = () => {
 
   return (
     <Box
+      component="header"
+      aria-label="Mobile Navigation Header"
       sx={{
         display: { xs: 'flex', sm: 'none' },
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
         width: '100%',
         maxWidth: '100vw',
         boxSizing: 'border-box',
-        height: 'calc(46px + env(safe-area-inset-top, 0px))',
-        pt: 'env(safe-area-inset-top, 0px)',
-        px: 'max(0.75rem, env(safe-area-inset-left, 0px))',
-        pr: 'max(0.75rem, env(safe-area-inset-right, 0px))',
-        bgcolor: 'hsl(var(--background) / 0.88)',
+        // Top padding ensures all header elements are pushed safely below Dynamic Island / notch / status bar
+        pt: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 52px)',
+        pb: 1,
+        px: 'max(1rem, env(safe-area-inset-left, 0px))',
+        pr: 'max(1rem, env(safe-area-inset-right, 0px))',
+        bgcolor: 'hsl(var(--background) / 0.94)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid hsl(var(--border) / 0.7)',
+        borderBottom: '1px solid hsl(var(--border) / 0.8)',
         position: 'sticky',
         top: 0,
         zIndex: 1100,
       }}
     >
-      {/* Left Slot: Back button */}
-      <Box sx={{ width: '30%', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-        {showBackButton && (
-          <Button
-            onClick={handleBack}
-            startIcon={<ChevronLeft size={22} style={{ marginRight: -4 }} />}
-            sx={{
-              color: 'hsl(var(--primary))',
-              fontSize: '0.925rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              p: 0,
-              minWidth: 0,
-              height: 38,
-              '&:hover': { bgcolor: 'transparent' },
-              '&:active': { opacity: 0.7 },
-            }}
-          >
-            {parentLabel || 'Back'}
-          </Button>
-        )}
-      </Box>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          minHeight: 44,
+        }}
+      >
+        {isRootPage ? (
+          // Root page brand header
+          <>
+            <Box
+              component={Link}
+              to="/incidents"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.25,
+                textDecoration: 'none',
+                color: 'inherit',
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
+                <path
+                  d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z"
+                  fill={primaryColor}
+                />
+              </svg>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                <Typography
+                  sx={{
+                    color: primaryColor,
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    letterSpacing: '-0.3px',
+                  }}
+                >
+                  Shuffle
+                </Typography>
+                <Typography
+                  sx={{
+                    color: 'hsl(var(--foreground))',
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    letterSpacing: '-0.3px',
+                  }}
+                >
+                  Security
+                </Typography>
+              </Box>
+            </Box>
 
-      {/* Center Slot: Title */}
-      <Box sx={{ width: '40%', textAlign: 'center' }}>
-        <Typography
-          noWrap
-          sx={{
-            fontWeight: 700,
-            fontSize: '0.925rem',
-            color: 'hsl(var(--foreground))',
-            letterSpacing: '-0.2px',
-          }}
-        >
-          {title}
-        </Typography>
-      </Box>
+            {userInfo?.active_org?.name && (
+              <Box
+                sx={{
+                  px: 1.2,
+                  py: 0.35,
+                  borderRadius: 1.5,
+                  bgcolor: 'hsl(var(--muted) / 0.6)',
+                  border: '1px solid hsl(var(--border))',
+                  maxWidth: 140,
+                }}
+              >
+                <Typography
+                  noWrap
+                  variant="caption"
+                  sx={{
+                    color: 'hsl(var(--muted-foreground))',
+                    fontSize: '0.72rem',
+                    fontWeight: 500,
+                    display: 'block',
+                  }}
+                >
+                  {userInfo.active_org.name}
+                </Typography>
+              </Box>
+            )}
+          </>
+        ) : (
+          // Subpage navigation header
+          <>
+            <Box sx={{ width: '28%', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+              {showBackButton && (
+                <Button
+                  onClick={handleBack}
+                  startIcon={<ChevronLeft size={20} style={{ marginRight: -4 }} />}
+                  sx={{
+                    color: primaryColor,
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    p: 0,
+                    minWidth: 0,
+                    height: 36,
+                    '&:hover': { bgcolor: 'transparent' },
+                    '&:active': { opacity: 0.7 },
+                  }}
+                >
+                  {parentLabel || 'Back'}
+                </Button>
+              )}
+            </Box>
 
-      {/* Right Slot: Org context or spacer for symmetric alignment */}
-      <Box sx={{ width: '30%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-        {userInfo?.active_org?.name && (
-          <Typography
-            noWrap
-            variant="caption"
-            sx={{
-              color: 'hsl(var(--muted-foreground))',
-              fontSize: '0.72rem',
-              fontWeight: 500,
-              maxWidth: 90,
-              textAlign: 'right',
-            }}
-          >
-            {userInfo.active_org.name}
-          </Typography>
+            <Box sx={{ width: '44%', textAlign: 'center' }}>
+              <Typography
+                noWrap
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.925rem',
+                  color: 'hsl(var(--foreground))',
+                  letterSpacing: '-0.2px',
+                }}
+              >
+                {title}
+              </Typography>
+            </Box>
+
+            <Box sx={{ width: '28%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+              {userInfo?.active_org?.name && (
+                <Typography
+                  noWrap
+                  variant="caption"
+                  sx={{
+                    color: 'hsl(var(--muted-foreground))',
+                    fontSize: '0.72rem',
+                    fontWeight: 500,
+                    maxWidth: 90,
+                    textAlign: 'right',
+                  }}
+                >
+                  {userInfo.active_org.name}
+                </Typography>
+              )}
+            </Box>
+          </>
         )}
       </Box>
     </Box>
   );
 };
+
+export const IosWebViewNavHeader = MobileNavHeader;

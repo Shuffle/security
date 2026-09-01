@@ -24,7 +24,7 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
       backgroundColor: "#1a1a1a",
       androidSplashResourceName: "splash",
-      androidScaleType: "CENTER_CROP",
+      androidScaleType: "CENTER_INSIDE",
       showSpinner: false,
     },
     StatusBar: {

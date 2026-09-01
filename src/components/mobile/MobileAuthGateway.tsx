@@ -203,7 +203,7 @@ export const MobileAuthGateway = () => {
         px: { xs: 2, sm: 2.5 },
         py: { xs: 2, sm: 4 },
         pt: {
-          xs: 'max(4.5rem, calc(2.5rem + env(safe-area-inset-top, 44px)))',
+          xs: 'max(5.5rem, calc(2.75rem + env(safe-area-inset-top, 52px)))',
           sm: 5,
         },
         pb: {
@@ -258,7 +258,7 @@ export const MobileAuthGateway = () => {
               mt: 0.5,
             }}
           >
-            Open Source Incident Response & SecOps
+            Open Source Incident Response
           </Typography>
         </Box>
 
