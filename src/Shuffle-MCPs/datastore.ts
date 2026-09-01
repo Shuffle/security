@@ -321,7 +321,7 @@ export const setDatastoreItem = async (
   category: string,
   overrideOrgId?: string
 ): Promise<DatastoreResponse> => {
-  const orgId = overrideOrgId || getOrgId();
+  const orgId = overrideOrgId || (await waitForOrgId());
   if (!orgId) {
     return { success: false, error: 'No organization ID found' };
   }
@@ -456,7 +456,7 @@ export const setDatastoreItems = async (
   items: { key: string; value: string | object }[],
   category: string
 ): Promise<DatastoreResponse> => {
-  const orgId = getOrgId();
+  const orgId = await waitForOrgId();
   if (!orgId) {
     return { success: false, error: 'No organization ID found' };
   }
@@ -530,7 +530,7 @@ export const getDatastoreItem = async (
   overrideOrgId?: string,
   options?: { priority?: boolean }
 ): Promise<DatastoreResponse & { item?: DatastoreItem }> => {
-  const orgId = overrideOrgId || getOrgId();
+  const orgId = overrideOrgId || (await waitForOrgId());
   if (!orgId) {
     return { success: false, error: 'No organization ID found' };
   }
@@ -883,7 +883,7 @@ export const getDatastoreByCategory = async (
   limit?: number,
   overrideOrgId?: string
 ): Promise<DatastoreResponse> => {
-  const orgId = overrideOrgId || getOrgId();
+  const orgId = overrideOrgId || (await waitForOrgId());
   if (!orgId) {
     return {
       success: false,
@@ -1092,7 +1092,7 @@ export const deleteDatastoreItem = async (
   category: string,
   overrideOrgId?: string
 ): Promise<DatastoreResponse> => {
-  const orgId = overrideOrgId || getOrgId();
+  const orgId = overrideOrgId || (await waitForOrgId());
   if (!orgId) {
     return { success: false, error: 'No organization ID found' };
   }
@@ -1139,7 +1139,7 @@ export const deleteDatastoreItems = async (
   keys: string[],
   category: string
 ): Promise<{ success: boolean; deleted: number; failed: string[]; error?: string }> => {
-  const orgId = getOrgId();
+  const orgId = await waitForOrgId();
   if (!orgId) {
     return { success: false, deleted: 0, failed: keys, error: 'No organization ID found' };
   }
