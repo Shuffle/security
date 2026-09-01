@@ -247,6 +247,12 @@ const SettingsPage = () => {
               </Box>
             </Paper>
 
+          </Box>
+
+          {/* Right Column: Notifications, Password & Diagnostics */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <PagerNotificationSettings />
+
             <Paper
               sx={{
                 p: 3,
@@ -395,11 +401,7 @@ const SettingsPage = () => {
                 {pwLoading ? 'Updating...' : 'Update Password'}
               </Button>
             </Paper>
-          </Box>
 
-          {/* Right Column: On-Call Pager, Emergency Calling & Diagnostics */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <PagerNotificationSettings />
             {isSupport && <DiagnosticsLogsCard />}
           </Box>
         </Box>
