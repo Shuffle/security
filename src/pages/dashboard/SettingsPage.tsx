@@ -13,6 +13,7 @@ import {
 import { LogOut, KeyRound } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
+import { useIsSupport } from '@/hooks/useIsSupport';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { PagerNotificationSettings } from '@/components/settings/PagerNotificationSettings';
