@@ -23,7 +23,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { NOTIFICATIONS_OPEN_EVENT } from '@/Shuffle-Core';
-import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as WarningAmberIcon, Users as PeopleIcon, Building2 as BusinessIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronUp as ExpandLess, ChevronDown as ExpandMore, Search as SearchIcon, Settings as SettingsIcon, FileText as DescriptionIcon, Fingerprint as FingerprintIcon, SlidersHorizontal as TuneIcon, Rss as RssFeedIcon, Radar as RadarIcon, LogOut as LogoutIcon, ShieldCheck as AdminPanelSettingsIcon, Rocket as RocketLaunchIcon, Bell as BellIcon } from 'lucide-react';
+import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as WarningAmberIcon, Users as PeopleIcon, Building2 as BusinessIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronUp as ExpandLess, ChevronDown as ExpandMore, Search as SearchIcon, Settings as SettingsIcon, FileText as DescriptionIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Radar as RadarIcon, LogOut as LogoutIcon, ShieldCheck as AdminPanelSettingsIcon, Rocket as RocketLaunchIcon, Bell as BellIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { SHUFFLE_AUTOMATION_URL } from '@/Shuffle-MCPs/api';
@@ -1175,25 +1175,6 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           </MenuItem>
           <MenuItem
             component={Link}
-            to="/admin/preferences"
-            selected={location.pathname === '/admin/preferences'}
-            onClick={() => setUserMenuAnchor(null)}
-            sx={{
-              py: 1.25,
-              px: 2,
-              gap: 1.5,
-              fontSize: '0.875rem',
-              color: 'hsl(var(--foreground))',
-              '&:hover': { backgroundColor: 'hsl(var(--muted))' },
-              '&.Mui-selected': { backgroundColor: 'hsl(var(--muted))' },
-              '&.Mui-selected:hover': { backgroundColor: 'hsl(var(--muted))' },
-            }}
-          >
-            <TuneIcon size={18} style={{ color: 'hsl(var(--muted-foreground))' }} />
-            Tenant Preferences
-          </MenuItem>
-          <MenuItem
-            component={Link}
             to="/settings"
             selected={location.pathname === '/settings' || location.pathname.startsWith('/settings/')}
             onClick={() => setUserMenuAnchor(null)}
@@ -1209,7 +1190,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             }}
           >
             <SettingsIcon size={18} style={{ color: 'hsl(var(--muted-foreground))' }} />
-            User Account
+            User Settings
           </MenuItem>
           <Divider sx={{ borderColor: 'hsl(var(--border))', my: 0.5 }} />
           {/* Theme Toggle - icon only with tooltips */}
