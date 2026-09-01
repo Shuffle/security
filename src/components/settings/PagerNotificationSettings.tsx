@@ -437,13 +437,38 @@ export const PagerNotificationSettings = () => {
         gap: 3,
       }}
     >
-      <Box>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
-          Notifications
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-          Control how and when Shuffle reaches out to you.
-        </Typography>
+      <Box sx={{ ...rowSx, alignItems: 'flex-start' }}>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
+            Notifications
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            Control how and when Shuffle reaches out to you.
+          </Typography>
+        </Box>
+
+        {deviceList.length > 0 && (
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <Select
+              value={selectedDeviceId}
+              onChange={(e) => setSelectedDeviceId(String(e.target.value))}
+              disabled={savingDevice}
+              sx={{
+                height: 36,
+                fontSize: '0.85rem',
+                color: 'hsl(var(--foreground))',
+                '& fieldset': { borderColor: 'hsl(var(--border))' },
+              }}
+            >
+              {deviceList.map((device) => (
+                <MenuItem key={device.id} value={device.id}>
+                  {(device.device_name || device.id) +
+                    (device.id === localDeviceId ? ' (this device)' : '')}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
       </Box>
 
       {permissionMsg && (
