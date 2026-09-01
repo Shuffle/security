@@ -167,8 +167,14 @@ export type {
 
 // Notification settings (device push, critical pager, agent requests, general
 // alerts) + on-call duty menu — usable anywhere in the platform.
-import { PagerNotificationSettings as PagerNotificationSettingsRaw } from './components/notifications/PagerNotificationSettings';
-export const NotificationSettings = withTheme(PagerNotificationSettingsRaw, 'NotificationSettings');
+import {
+  PagerNotificationSettings as PagerNotificationSettingsRaw,
+  type PagerNotificationSettingsProps,
+} from './components/notifications/PagerNotificationSettings';
+export const NotificationSettings = withTheme<PagerNotificationSettingsProps>(
+  PagerNotificationSettingsRaw,
+  'NotificationSettings',
+);
 export type { PagerNotificationSettingsProps as NotificationSettingsProps } from './components/notifications/PagerNotificationSettings';
 
 // On-call scheduling — the schedule manager rendered inside NotificationSettings.
