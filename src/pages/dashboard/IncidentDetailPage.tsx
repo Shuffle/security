@@ -1090,21 +1090,28 @@ const IncidentDetailPage = () => {
   type TimelineFilterKey = 'revisions' | 'agent' | 'workflows' | 'manual' | 'merges' | 'tasks' | 'observables' | 'correlations';
   const ALL_TIMELINE_FILTERS: TimelineFilterKey[] = ['revisions', 'agent', 'workflows', 'manual', 'merges', 'tasks', 'observables', 'correlations'];
   const DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['agent', 'workflows', 'manual', 'tasks', 'observables', 'correlations'];
+  // Mobile starts with comments only — the full feed is far too dense on a
+  // phone. Stored under its own key so the desktop selection is untouched.
+  const MOBILE_DEFAULT_TIMELINE_FILTERS: TimelineFilterKey[] = ['manual'];
   // Bumped when the default set changes so existing localStorage entries
   // re-default rather than persist the old "all on" baseline.
-  const TIMELINE_FILTER_STORAGE_KEY = 'shuffle-incident-timeline-filters-v5';
+  const isMobileViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 599.95px)').matches;
+  const TIMELINE_FILTER_STORAGE_KEY = isMobileViewport
+    ? 'shuffle-incident-timeline-filters-mobile-v1'
+    : 'shuffle-incident-timeline-filters-v5';
   const [activeTimelineFilters, setActiveTimelineFilters] = useState<Set<TimelineFilterKey>>(() => {
-    if (typeof window === 'undefined') return new Set(DEFAULT_TIMELINE_FILTERS);
+    const defaults = isMobileViewport ? MOBILE_DEFAULT_TIMELINE_FILTERS : DEFAULT_TIMELINE_FILTERS;
+    if (typeof window === 'undefined') return new Set(defaults);
     try {
       const raw = localStorage.getItem(TIMELINE_FILTER_STORAGE_KEY);
-      if (!raw) return new Set(DEFAULT_TIMELINE_FILTERS);
+      if (!raw) return new Set(defaults);
       const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Set(DEFAULT_TIMELINE_FILTERS);
+      if (!Array.isArray(arr)) return new Set(defaults);
       const valid = arr.filter((k): k is TimelineFilterKey => ALL_TIMELINE_FILTERS.includes(k));
       // Empty set is allowed — user explicitly hid everything.
       return new Set(valid);
     } catch {
-      return new Set(DEFAULT_TIMELINE_FILTERS);
+      return new Set(defaults);
     }
   });
   useEffect(() => {
@@ -5846,7 +5853,7 @@ const IncidentDetailPage = () => {
           </Button>
         </Box>
       ) : (
-      <Box sx={{ p: 2, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
+      <Box sx={{ p: { xs: 1, sm: 2 }, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
 
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Avatar sx={{ width: 28, height: 28, bgcolor: 'hsl(var(--primary) / 0.2)' }}>
@@ -6021,21 +6028,23 @@ const IncidentDetailPage = () => {
 
       {/* Unified Timeline Feed — when inline, render with a vertical rail behind the items */}
       <Box sx={{
-        p: 1.5,
+        p: { xs: 0, sm: 1.5 },
         display: 'flex',
         flexDirection: 'column',
         gap: 1.25,
         overflow: 'auto',
         ...(variant === 'inline' && {
           position: 'relative',
-          pl: 4.5,
+          pl: { xs: 0, sm: 4.5 },
           py: 2,
           // Vertical rail — anchored at the bottom (oldest) and growing
           // upward toward the newest item, matching the timeline direction
           // (newest-first / top). A subtle fade at the top reinforces that
           // the latest events are the "growing edge" of the thread.
+          // Hidden on mobile: the rail and dots eat horizontal space.
           '&::before': {
             content: '""',
+            display: { xs: 'none', sm: 'block' },
             position: 'absolute',
             left: 19,
             top: 18,
@@ -6052,6 +6061,7 @@ const IncidentDetailPage = () => {
             position: 'relative',
             '&::before': {
               content: '""',
+              display: { xs: 'none', sm: 'block' },
               position: 'absolute',
               left: -22,
               top: 21,
@@ -7436,8 +7446,8 @@ const IncidentDetailPage = () => {
             {pill}
             <Box
               sx={{
-                ml: 3,
-                mr: 0.5,
+                ml: { xs: 0, sm: 3 },
+                mr: { xs: 0, sm: 0.5 },
                 px: 1.25,
                 py: 0.75,
                 borderRadius: 1.5,
@@ -8685,7 +8695,8 @@ const IncidentDetailPage = () => {
             }}
           >
             <ArrowBackIcon size={18} />
-            <Typography variant="body2">Back to {entityPlural}</Typography>
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>Back to {entityPlural}</Typography>
+            <Typography variant="body2" sx={{ display: { xs: 'block', sm: 'none' } }}>Back</Typography>
           </Box>
 
           {/* Tenant indicator — only shown in multi-tenant environments */}
@@ -8724,7 +8735,7 @@ const IncidentDetailPage = () => {
               '&:hover': { bgcolor: 'hsl(var(--muted))' },
             } as const;
             return (
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {total > 1 ? (
                   <Tooltip
                     title={
@@ -8769,13 +8780,13 @@ const IncidentDetailPage = () => {
           display: 'flex',
           alignItems: { xs: 'flex-start', sm: 'center' },
           flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-          p: 2,
+          gap: { xs: 1, sm: 2 },
+          p: { xs: 1.25, sm: 2 },
           borderRadius: 2,
           bgcolor: 'transparent',
           border: '1px solid hsl(var(--border))',
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.25, sm: 2 }, width: { xs: '100%', sm: 'auto' }, flex: { sm: 1 }, minWidth: 0 }}>
           {/* Icon */}
           <Box sx={{ position: 'relative', flexShrink: 0 }}>
             <Box
@@ -8962,10 +8973,10 @@ const IncidentDetailPage = () => {
                 </Select>
               </FormControl>
               
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'block' } }}>•</Typography>
               
               {/* Assignee dropdown - styled like chips */}
-              <FormControl size="small" variant="standard">
+              <FormControl size="small" variant="standard" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
                 <Select
                   value={editedAssignee || ''}
                   onChange={(e) => setEditedAssignee(e.target.value)}
@@ -9027,10 +9038,10 @@ const IncidentDetailPage = () => {
                 </Select>
               </FormControl>
               
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'block' } }}>•</Typography>
               
               {/* Last edited */}
-              <Typography variant="caption" sx={{ color: 'text.disabled', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 0.5 }}>
                 <AccessTimeIcon size={12} />
                 {incident.editedTs ? formatTimestamp(incident.editedTs) : formatTimestamp(incident.createdTs)}
               </Typography>
@@ -9042,7 +9053,15 @@ const IncidentDetailPage = () => {
           {/* Right side actions — split into two rows so the title gets more
               breathing room. Top row: Refresh + actions menu. Bottom row:
               loaders + Ask agent. */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.75, flexShrink: 0 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'row', sm: 'column' },
+            alignItems: { xs: 'center', sm: 'flex-end' },
+            justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+            width: { xs: '100%', sm: 'auto' },
+            gap: 0.75,
+            flexShrink: 0,
+          }}>
             {/* Bottom row group (loaders + Ask agent) — `order: 2` pushes it
                 below the top row even though it appears first in the DOM. */}
             <Box sx={{ order: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -9101,15 +9120,17 @@ const IncidentDetailPage = () => {
                   color: 'hsl(var(--foreground))',
                   fontWeight: 600,
                   fontSize: '0.75rem',
-                  px: 1.25,
+                  px: { xs: 0.75, sm: 1.25 },
+                  minWidth: { xs: 0, sm: 64 },
                   background: 'linear-gradient(135deg, rgba(255,133,68,0.08), rgba(236,81,124,0.08), rgba(156,90,242,0.08))',
+                  '& .MuiButton-startIcon': { mr: { xs: 0.25, sm: 1 }, ml: 0 },
                   '&:hover': {
                     borderColor: 'hsl(var(--primary))',
                     background: 'linear-gradient(135deg, rgba(255,133,68,0.16), rgba(236,81,124,0.16), rgba(156,90,242,0.16))',
                   },
                 }}
               >
-                Ask agent
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Ask agent</Box>
               </Button>
               </span>
             </Tooltip>
@@ -9773,6 +9794,10 @@ const IncidentDetailPage = () => {
             alignItems: 'center', 
             justifyContent: 'space-between',
             mb: 2,
+            overflowX: { xs: 'auto', md: 'visible' },
+            pb: { xs: 0.5, md: 0 },
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: { xs: 'none', md: 'auto' },
           }}>
             <SegmentedControl
               layoutId="incident-detail-tabs"

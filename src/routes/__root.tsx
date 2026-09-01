@@ -88,13 +88,17 @@ if (typeof window !== "undefined") {
 // suppressHydrationWarning covers the expected <html> class mismatch.
 const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem("shuffle-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.classList.add(t);}catch(e){}})();`;
 
+// Show the mobile login CTA bar on the auth-checking overlay immediately,
+// before React hydrates, so it is visible even when the backend is slow.
+const MOBILE_LOGIN_BAR_BOOTSTRAP = `(function(){try{var token=localStorage.getItem("session_token");var info=localStorage.getItem("shuffle_user_info");if(!token&&!info&&window.matchMedia("(max-width: 767px)").matches){document.documentElement.classList.add("show-mobile-login-bar");}}catch(e){}})();`;
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover",
+        content: "width=device-width, initial-scale=1.0, viewport-fit=cover",
       },
       {
         name: "keywords",
@@ -128,6 +132,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       { children: THEME_BOOTSTRAP },
+      { children: MOBILE_LOGIN_BAR_BOOTSTRAP },
       {
         type: "application/ld+json",
         children: JSON.stringify({

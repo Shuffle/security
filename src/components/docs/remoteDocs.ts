@@ -11,44 +11,65 @@ export interface RemoteDocEntry {
 // Slugs are lowercase/dashed for URLs, but the API name is case sensitive ("AI", "API").
 export const docSlug = (name: string) => name.replace(/_+/g, '-').toLowerCase();
 
-let cachedList: RemoteDocEntry[] | null = null;
-let inflight: Promise<RemoteDocEntry[]> | null = null;
+/** Build the query string for the docs API (optional folder + cache reset). */
+const docsQuery = (folder?: string, resetCache = false) => {
+  const params = new URLSearchParams();
+  if (folder) params.set('folder', folder);
+  if (resetCache) params.set('resetCache', 'true');
+  const query = params.toString();
+  return query ? `?${query}` : '';
+};
 
-export const fetchDocsList = async (resetCache = false): Promise<RemoteDocEntry[]> => {
-  if (!resetCache && cachedList) return cachedList;
-  if (!resetCache && inflight) return inflight;
+const cachedList: Record<string, RemoteDocEntry[]> = {};
+const inflight: Record<string, Promise<RemoteDocEntry[]> | null> = {};
+
+export const fetchDocsList = async (
+  resetCache = false,
+  folder?: string,
+): Promise<RemoteDocEntry[]> => {
+  const key = folder || 'docs';
+  if (!resetCache && cachedList[key]) return cachedList[key];
+  if (!resetCache && inflight[key]) return inflight[key]!;
 
   const run = (async () => {
     try {
-      const res = await fetch(getApiUrl(`/api/v1/docs${resetCache ? '?resetCache=true' : ''}`));
-      if (!res.ok) return cachedList ?? [];
+      const res = await fetch(getApiUrl(`/api/v1/docs${docsQuery(folder, resetCache)}`));
+      if (!res.ok) return cachedList[key] ?? [];
       const data = await res.json();
-      if (!data?.success || !Array.isArray(data.list)) return cachedList ?? [];
-      cachedList = (data.list as RemoteDocEntry[]).filter((d) => d?.name);
-      return cachedList;
+      if (!data?.success || !Array.isArray(data.list)) return cachedList[key] ?? [];
+      cachedList[key] = (data.list as RemoteDocEntry[]).filter((d) => d?.name);
+      return cachedList[key];
     } catch {
-      return cachedList ?? [];
+      return cachedList[key] ?? [];
     } finally {
-      inflight = null;
+      inflight[key] = null;
     }
   })();
 
-  inflight = run;
+  inflight[key] = run;
   return run;
 };
 
 // Resolve a URL slug to the exact document name the API expects.
-export const resolveDocName = async (slug: string, resetCache = false): Promise<string | null> => {
-  const list = await fetchDocsList(resetCache);
+export const resolveDocName = async (
+  slug: string,
+  resetCache = false,
+  folder?: string,
+): Promise<string | null> => {
+  const list = await fetchDocsList(resetCache, folder);
   const match = list.find((d) => docSlug(d.name) === slug.toLowerCase());
   return match?.name ?? null;
 };
 
 // Fetch the raw markdown for an exact document name from /api/v1/docs/{name}.
-export const fetchDocMarkdown = async (name: string, resetCache = false): Promise<string | null> => {
+export const fetchDocMarkdown = async (
+  name: string,
+  resetCache = false,
+  folder?: string,
+): Promise<string | null> => {
   try {
     const res = await fetch(
-      getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${resetCache ? '?resetCache=true' : ''}`),
+      getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${docsQuery(folder, resetCache)}`),
     );
     if (!res.ok) return null;
     const data = await res.json();

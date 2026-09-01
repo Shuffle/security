@@ -1,5 +1,5 @@
 import { readTenantStamp, isTenantGhost, type TenantStamp } from '@/utils/tenantAuthority';
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Search as SearchIcon, X as CloseIcon, Plus as AddIcon, RefreshCw as RefreshIcon, Play as PlayArrowIcon, Rocket as RocketLaunchIcon, EyeOff as VisibilityOffIcon, AlertTriangle as WarningAmberIcon, Download as DownloadIcon, Calendar as CalendarTodayIcon } from 'lucide-react';
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Search as SearchIcon, X as CloseIcon, Plus as AddIcon, RefreshCw as RefreshIcon, Play as PlayArrowIcon, Rocket as RocketLaunchIcon, EyeOff as VisibilityOffIcon, AlertTriangle as WarningAmberIcon, Download as DownloadIcon, Calendar as CalendarTodayIcon, MoreVertical as MoreVerticalIcon, Users as UsersIcon } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
 import { useSearchParams, useNavigate } from '@/lib/router-compat';
 import { useEntityLabel, useShowAutomation, useEntityText } from '@/hooks/useEntityLabel';
@@ -22,6 +22,11 @@ import {
   Alert,
   Dialog,
   DialogContent,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  useMediaQuery,
   Skeleton,
 } from '@mui/material';
 import { motion } from 'framer-motion';
@@ -646,6 +651,9 @@ const IncidentsPage = () => {
   }, [currentOrgId, subOrgs, isChildOrg]);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [mobileMenuAnchor, setMobileMenuAnchor] = useState<HTMLElement | null>(null);
+  const [mobileTenantsOpen, setMobileTenantsOpen] = useState(false);
+  const isMobileView = useMediaQuery('(max-width:899px)');
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState(false);
   const [categoryAutomations, setCategoryAutomations] = useState<CategoryAutomation[]>([]);
   // Ref mirror so callbacks can read the latest value without being recreated
@@ -2321,6 +2329,154 @@ const IncidentsPage = () => {
     );
   }
 
+  // Tenant multi-select control — rendered inline on desktop and inside a
+  // dedicated dialog from the mobile overflow menu.
+  const tenantSelector = (
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  size="small"
+                  options={(() => {
+                    const currentOrgImage = userInfo?.active_org?.image;
+                    const realOrgs: { id: string; name: string; image?: string }[] = [
+                      { id: currentOrgId || '', name: currentOrgName, image: currentOrgImage },
+                      ...subOrgs.filter(org => org.id !== currentOrgId).map(o => ({ id: o.id, name: o.name, image: o.image })),
+                    ];
+                    // Don't add parent org — we only fetch downward (children)
+                    return [
+                      { id: '__all__', name: 'All tenants' },
+                      { id: '__none__', name: 'Current Tenant' },
+                      ...realOrgs,
+                    ];
+                  })()}
+                  getOptionLabel={(option) => option.name}
+                  value={
+                    (Array.isArray(filters.org) ? filters.org : filters.org ? [filters.org] : []).map(id => {
+                      if (id === currentOrgId) return { id: currentOrgId || '', name: currentOrgName };
+                      if (parentOrg && id === parentOrg.id) return { id: parentOrg.id, name: parentOrg.name };
+                      const found = subOrgs.find(o => o.id === id);
+                      return found || { id, name: id };
+                    })
+                  }
+                  onChange={(_, newValue) => {
+                    // Check if special options were selected
+                    const hasAll = newValue.some(v => v.id === '__all__');
+                    const hasNone = newValue.some(v => v.id === '__none__');
+                    if (hasNone) {
+                      setFilters(prev => ({ ...prev, org: [currentOrgId || ''] }));
+                      return;
+                    }
+                    if (hasAll) {
+                      // Select all real orgs
+                      const allIds = [
+                        currentOrgId || '',
+                        ...subOrgs.filter(o => o.id !== currentOrgId).map(o => o.id),
+                      ];
+                      setFilters(prev => ({ ...prev, org: allIds }));
+                      return;
+                    }
+                    setFilters(prev => ({
+                      ...prev,
+                      org: newValue.length > 0 ? newValue.map(v => v.id) : null,
+                    }));
+                  }}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter(o => {
+                      if (o.id === '__all__' || o.id === '__none__') return true;
+                      return o.name.toLowerCase().includes(params.inputValue.toLowerCase());
+                    });
+                    return filtered;
+                  }}
+                  renderOption={(props, option) => {
+                    if (option.id === '__all__' || option.id === '__none__') {
+                      return (
+                        <li {...props} key={option.id} style={{ borderBottom: option.id === '__none__' ? '1px solid hsla(var(--border))' : undefined }}>
+                          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
+                            {option.name}
+                          </Typography>
+                        </li>
+                      );
+                    }
+                    const count = option.id === currentOrgId
+                      ? datastoreItems.length
+                      : subOrgItems.get(option.id)?.items.length || 0;
+                    const isOrgLoading = subOrgLoading.has(option.id);
+                    const isOrgFailed = subOrgFailed.has(option.id);
+                    // Indent orgs that are children of another org in the list
+                    const orgData = subOrgs.find(o => o.id === option.id);
+                    const isSubOrg = orgData?.creator_org && orgData.creator_org !== option.id;
+                    return (
+                      <li {...props} key={option.id} style={{ paddingLeft: isSubOrg ? 48 : 16 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {option.image ? (
+                              <img src={option.image} alt="" style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain', flexShrink: 0 }} />
+                            ) : (
+                              <Box sx={{ width: 20, height: 20, borderRadius: '4px', bgcolor: 'hsl(var(--muted) / 0.5)', flexShrink: 0 }} />
+                            )}
+                            <Typography sx={{ fontSize: '0.82rem' }}>{option.name}</Typography>
+                            {isOrgFailed && (
+                              <Tooltip title="Failed to load incidents from this tenant" placement="right">
+                                <WarningAmberIcon size={14} style={{ color: 'hsl(var(--severity-medium))' }} />
+                              </Tooltip>
+                            )}
+                          </Box>
+                          {isOrgLoading ? (
+                            <CircularProgress size={12} sx={{ color: '#a78bfa', ml: 1 }} />
+                          ) : (
+                            <Typography sx={{ fontSize: '0.7rem', color: isOrgFailed ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))', ml: 1 }}>
+                              {isOrgFailed ? '!' : count}
+                            </Typography>
+                          )}
+                        </Box>
+                      </li>
+                    );
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder={(() => {
+                        const orgFilter = Array.isArray(filters.org) ? filters.org : filters.org ? [filters.org] : [];
+                        return orgFilter.length > 0 ? `${orgFilter.length} Tenant${orgFilter.length > 1 ? 's' : ''}` : 'Tenants';
+                      })()}
+                      sx={{ minWidth: 150, width: 150 }}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: null,
+                      }}
+                    />
+                  )}
+                  renderTags={() => null}
+                  sx={{
+                    minWidth: 150,
+                    width: 150,
+                    '& .MuiOutlinedInput-root': {
+                      minHeight: 36,
+                      py: '2px',
+                    },
+                  }}
+                  slotProps={{
+                    popper: {
+                      sx: {
+                        width: '280px !important',
+                      },
+                      placement: 'bottom-start',
+                    },
+                    paper: {
+                      sx: {
+                        bgcolor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        '& .MuiAutocomplete-option': {
+                          fontSize: '0.82rem',
+                          py: 0.75,
+                        },
+                      },
+                    },
+                  }}
+                />
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -2719,73 +2875,156 @@ const IncidentsPage = () => {
           </Box>
           )}
 
-          {showAutomation && (
-          <Tooltip title="Automation for Incidents">
-            <IconButton 
-              data-tour="incidents-automation-button"
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
+            {showAutomation && (
+            <Tooltip title="Automation for Incidents">
+              <IconButton 
+                data-tour="incidents-automation-button"
+                onClick={() => {
+                  trackPredefinedEvent(GA_EVENTS.INCIDENT_AUTOMATION_CHANGE, 'open_dialog');
+                  setAutomationsDialogOpen(true);
+  
+                  // Demo: the "Enable the AI Agent automation" sub-goal is
+                  // tracked by watching the live automation state, not by a
+                  // click — see the useEffect above.
+                }}
+                sx={{ 
+                  width: 36,
+                  height: 36,
+                  color: categoryAutomations?.some(a => a.enabled) ? '#4ade80' : 'text.secondary',
+                  border: '1px solid',
+                  borderColor: categoryAutomations?.some(a => a.enabled) ? 'success.main' : 'divider',
+                  borderRadius: 1,
+                  '&:hover': {
+                    borderColor: categoryAutomations?.some(a => a.enabled) ? 'success.main' : 'text.secondary',
+                  },
+                }}
+              >
+                <RocketLaunchIcon size={20} />
+              </IconButton>
+            </Tooltip>
+            )}
+            {/* Thread continuation runs silently in the background — no indicator. */}
+  
+            <Tooltip title="Refresh">
+              <IconButton 
+                onClick={() => { sessionStorage.removeItem('shuffle_auto_resync_done'); autoResyncQueueRef.current.clear(); fetchItems(); fetchSubOrgIncidents(); }} 
+                disabled={isLoading}
+                sx={{ 
+                  width: 36,
+                  height: 36,
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  '&:hover': {
+                    borderColor: 'text.secondary',
+                  },
+                }}
+              >
+                <RefreshIcon size={20} className={isRefreshing ? 'animate-spin' : ''} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={`Create ${entitySingular}`}>
+              <IconButton 
+                onClick={() => setCreateDialogOpen(true)}
+                sx={{ 
+                  width: 36,
+                  height: 36,
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  '&:hover': {
+                    borderColor: 'text.secondary',
+                  },
+                }}
+              >
+                <AddIcon size={20} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* Mobile-only overflow menu — collapses ingest, tenants and actions */}
+          <Tooltip title="Menu">
+            <IconButton
+              onClick={(e) => setMobileMenuAnchor(e.currentTarget)}
+              sx={{
+                display: { xs: 'inline-flex', md: 'none' },
+                width: 36,
+                height: 36,
+                color: 'text.secondary',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+              }}
+            >
+              <MoreVerticalIcon size={20} />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            anchorEl={mobileMenuAnchor}
+            open={Boolean(mobileMenuAnchor)}
+            onClose={() => setMobileMenuAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            slotProps={{ paper: { sx: { minWidth: 220, bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' } } }}
+          >
+            <MenuItem onClick={() => { setMobileMenuAnchor(null); setCreateDialogOpen(true); }}>
+              <ListItemIcon><AddIcon size={18} /></ListItemIcon>
+              <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>{`Create ${entitySingular}`}</ListItemText>
+            </MenuItem>
+            <MenuItem
               onClick={() => {
-                trackPredefinedEvent(GA_EVENTS.INCIDENT_AUTOMATION_CHANGE, 'open_dialog');
-                setAutomationsDialogOpen(true);
+                setMobileMenuAnchor(null);
+                sessionStorage.removeItem('shuffle_auto_resync_done');
+                autoResyncQueueRef.current.clear();
+                fetchItems();
+                fetchSubOrgIncidents();
+              }}
+            >
+              <ListItemIcon><RefreshIcon size={18} /></ListItemIcon>
+              <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Refresh</ListItemText>
+            </MenuItem>
+            {isParentOrg && (
+              <MenuItem onClick={() => { setMobileMenuAnchor(null); setMobileTenantsOpen(true); }}>
+                <ListItemIcon><UsersIcon size={18} /></ListItemIcon>
+                <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Tenants</ListItemText>
+              </MenuItem>
+            )}
+            {showAutomation && (
+              <MenuItem onClick={() => { setMobileMenuAnchor(null); setAppSearchOpen(true); }}>
+                <ListItemIcon><DownloadIcon size={18} /></ListItemIcon>
+                <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Ingestion sources</ListItemText>
+              </MenuItem>
+            )}
+            {showAutomation && ingestWorkflowId && (
+              <MenuItem onClick={() => { setMobileMenuAnchor(null); triggerSync(); }} disabled={isSyncing || isUpdatingApps}>
+                <ListItemIcon><PlayArrowIcon size={18} /></ListItemIcon>
+                <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Sync now</ListItemText>
+              </MenuItem>
+            )}
+            {showAutomation && (
+              <MenuItem onClick={() => { setMobileMenuAnchor(null); setAutomationsDialogOpen(true); }}>
+                <ListItemIcon><RocketLaunchIcon size={18} /></ListItemIcon>
+                <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Automation</ListItemText>
+              </MenuItem>
+            )}
+          </Menu>
 
-                // Demo: the "Enable the AI Agent automation" sub-goal is
-                // tracked by watching the live automation state, not by a
-                // click — see the useEffect above.
-              }}
-              sx={{ 
-                width: 36,
-                height: 36,
-                color: categoryAutomations?.some(a => a.enabled) ? '#4ade80' : 'text.secondary',
-                border: '1px solid',
-                borderColor: categoryAutomations?.some(a => a.enabled) ? 'success.main' : 'divider',
-                borderRadius: 1,
-                '&:hover': {
-                  borderColor: categoryAutomations?.some(a => a.enabled) ? 'success.main' : 'text.secondary',
-                },
-              }}
-            >
-              <RocketLaunchIcon size={20} />
-            </IconButton>
-          </Tooltip>
-          )}
-          {/* Thread continuation runs silently in the background — no indicator. */}
-
-          <Tooltip title="Refresh">
-            <IconButton 
-              onClick={() => { sessionStorage.removeItem('shuffle_auto_resync_done'); autoResyncQueueRef.current.clear(); fetchItems(); fetchSubOrgIncidents(); }} 
-              disabled={isLoading}
-              sx={{ 
-                width: 36,
-                height: 36,
-                color: 'text.secondary',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                '&:hover': {
-                  borderColor: 'text.secondary',
-                },
-              }}
-            >
-              <RefreshIcon size={20} className={isRefreshing ? 'animate-spin' : ''} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={`Create ${entitySingular}`}>
-            <IconButton 
-              onClick={() => setCreateDialogOpen(true)}
-              sx={{ 
-                width: 36,
-                height: 36,
-                color: 'text.secondary',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                '&:hover': {
-                  borderColor: 'text.secondary',
-                },
-              }}
-            >
-              <AddIcon size={20} />
-            </IconButton>
-          </Tooltip>
+          {/* Mobile tenant picker */}
+          <Dialog
+            open={mobileTenantsOpen}
+            onClose={() => setMobileTenantsOpen(false)}
+            fullWidth
+            maxWidth="xs"
+            slotProps={{ paper: { sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' } } }}
+          >
+            <DialogContent sx={{ p: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>Tenants</Typography>
+              {tenantSelector}
+            </DialogContent>
+          </Dialog>
         </Box>
       </Box>
 
@@ -2819,7 +3058,7 @@ const IncidentsPage = () => {
       {/* Floating Filter Bar - sticky */}
       <Card elevation={0} sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'hsl(var(--card))', backgroundImage: 'none', border: '1px solid hsl(var(--border))', boxShadow: 'none', backdropFilter: 'none' }}>
         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' }, overflow: { xs: 'visible', sm: 'hidden' } }}>
             {/* Select all checkbox - always visible */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {(() => {
@@ -2881,7 +3120,7 @@ const IncidentsPage = () => {
                 ),
                 sx: { height: 36 },
               }}
-              sx={{ width: { xs: 100, sm: 140 }, minWidth: 0, flexShrink: 1 }}
+              sx={{ width: { xs: 'auto', sm: 140 }, flex: { xs: '1 1 auto', sm: '0 0 auto' }, minWidth: 0, flexShrink: 1 }}
       />
 
       {false && <>
@@ -3065,7 +3304,7 @@ const IncidentsPage = () => {
             </Box>
 
             <Tooltip title={hasMore ? 'More incidents exist beyond the fetch cap — narrow filters or load more to see the exact total.' : 'Total incidents matching the current organization scope'} arrow placement="top">
-              <Typography variant="body2" sx={{ ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap', cursor: 'help' }}>
+              <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' }, ml: 'auto', color: 'text.secondary', whiteSpace: 'nowrap', cursor: 'help' }}>
                 {(() => {
                   const localCount = sortedIncidents.length;
                   const activeTotal = activeIncidents.length;
@@ -3083,151 +3322,7 @@ const IncidentsPage = () => {
             </Tooltip>
 
             {/* Organization multi-select dropdown */}
-            {isParentOrg && (
-              <Autocomplete
-                multiple
-                disableCloseOnSelect
-                size="small"
-                options={(() => {
-                  const currentOrgImage = userInfo?.active_org?.image;
-                  const realOrgs: { id: string; name: string; image?: string }[] = [
-                    { id: currentOrgId || '', name: currentOrgName, image: currentOrgImage },
-                    ...subOrgs.filter(org => org.id !== currentOrgId).map(o => ({ id: o.id, name: o.name, image: o.image })),
-                  ];
-                  // Don't add parent org — we only fetch downward (children)
-                  return [
-                    { id: '__all__', name: 'All tenants' },
-                    { id: '__none__', name: 'Current Tenant' },
-                    ...realOrgs,
-                  ];
-                })()}
-                getOptionLabel={(option) => option.name}
-                value={
-                  (Array.isArray(filters.org) ? filters.org : filters.org ? [filters.org] : []).map(id => {
-                    if (id === currentOrgId) return { id: currentOrgId || '', name: currentOrgName };
-                    if (parentOrg && id === parentOrg.id) return { id: parentOrg.id, name: parentOrg.name };
-                    const found = subOrgs.find(o => o.id === id);
-                    return found || { id, name: id };
-                  })
-                }
-                onChange={(_, newValue) => {
-                  // Check if special options were selected
-                  const hasAll = newValue.some(v => v.id === '__all__');
-                  const hasNone = newValue.some(v => v.id === '__none__');
-                  if (hasNone) {
-                    setFilters(prev => ({ ...prev, org: [currentOrgId || ''] }));
-                    return;
-                  }
-                  if (hasAll) {
-                    // Select all real orgs
-                    const allIds = [
-                      currentOrgId || '',
-                      ...subOrgs.filter(o => o.id !== currentOrgId).map(o => o.id),
-                    ];
-                    setFilters(prev => ({ ...prev, org: allIds }));
-                    return;
-                  }
-                  setFilters(prev => ({
-                    ...prev,
-                    org: newValue.length > 0 ? newValue.map(v => v.id) : null,
-                  }));
-                }}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                filterOptions={(options, params) => {
-                  const filtered = options.filter(o => {
-                    if (o.id === '__all__' || o.id === '__none__') return true;
-                    return o.name.toLowerCase().includes(params.inputValue.toLowerCase());
-                  });
-                  return filtered;
-                }}
-                renderOption={(props, option) => {
-                  if (option.id === '__all__' || option.id === '__none__') {
-                    return (
-                      <li {...props} key={option.id} style={{ borderBottom: option.id === '__none__' ? '1px solid hsla(var(--border))' : undefined }}>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
-                          {option.name}
-                        </Typography>
-                      </li>
-                    );
-                  }
-                  const count = option.id === currentOrgId
-                    ? datastoreItems.length
-                    : subOrgItems.get(option.id)?.items.length || 0;
-                  const isOrgLoading = subOrgLoading.has(option.id);
-                  const isOrgFailed = subOrgFailed.has(option.id);
-                  // Indent orgs that are children of another org in the list
-                  const orgData = subOrgs.find(o => o.id === option.id);
-                  const isSubOrg = orgData?.creator_org && orgData.creator_org !== option.id;
-                  return (
-                    <li {...props} key={option.id} style={{ paddingLeft: isSubOrg ? 48 : 16 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {option.image ? (
-                            <img src={option.image} alt="" style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain', flexShrink: 0 }} />
-                          ) : (
-                            <Box sx={{ width: 20, height: 20, borderRadius: '4px', bgcolor: 'hsl(var(--muted) / 0.5)', flexShrink: 0 }} />
-                          )}
-                          <Typography sx={{ fontSize: '0.82rem' }}>{option.name}</Typography>
-                          {isOrgFailed && (
-                            <Tooltip title="Failed to load incidents from this tenant" placement="right">
-                              <WarningAmberIcon size={14} style={{ color: 'hsl(var(--severity-medium))' }} />
-                            </Tooltip>
-                          )}
-                        </Box>
-                        {isOrgLoading ? (
-                          <CircularProgress size={12} sx={{ color: '#a78bfa', ml: 1 }} />
-                        ) : (
-                          <Typography sx={{ fontSize: '0.7rem', color: isOrgFailed ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))', ml: 1 }}>
-                            {isOrgFailed ? '!' : count}
-                          </Typography>
-                        )}
-                      </Box>
-                    </li>
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder={(() => {
-                      const orgFilter = Array.isArray(filters.org) ? filters.org : filters.org ? [filters.org] : [];
-                      return orgFilter.length > 0 ? `${orgFilter.length} Tenant${orgFilter.length > 1 ? 's' : ''}` : 'Tenants';
-                    })()}
-                    sx={{ minWidth: 150, width: 150 }}
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: null,
-                    }}
-                  />
-                )}
-                renderTags={() => null}
-                sx={{
-                  minWidth: 150,
-                  width: 150,
-                  '& .MuiOutlinedInput-root': {
-                    minHeight: 36,
-                    py: '2px',
-                  },
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      width: '280px !important',
-                    },
-                    placement: 'bottom-start',
-                  },
-                  paper: {
-                    sx: {
-                      bgcolor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      '& .MuiAutocomplete-option': {
-                        fontSize: '0.82rem',
-                        py: 0.75,
-                      },
-                    },
-                  },
-                }}
-              />
-            )}
+            {isParentOrg && !isMobileView && tenantSelector}
           </Box>
         </CardContent>
       </Card>
