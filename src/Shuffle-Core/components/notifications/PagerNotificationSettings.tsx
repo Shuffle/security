@@ -37,6 +37,8 @@ import {
 import {
   getPagerSettings,
   savePagerSettings,
+  registerFirebaseWebPush,
+
   PagerSettings,
   requestNotificationPermissions,
   playTestSiren,
