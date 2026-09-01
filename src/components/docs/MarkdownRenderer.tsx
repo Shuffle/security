@@ -29,6 +29,10 @@ interface RemoteDocMeta {
 
 interface MarkdownRendererProps {
   slug?: string;
+  /** API folder to load from (e.g. "legal"); defaults to the main docs folder. */
+  folder?: string;
+  /** URL prefix for internal links (defaults to /docs). */
+  basePath?: string;
   /** SSR-provided markdown/metadata; when present the initial client fetch is skipped. */
   initialContent?: string | null;
   initialMeta?: RemoteDocMeta | null;
@@ -61,19 +65,28 @@ const isMissingDocBody = (markdown: string) => {
   return /^(404\s*:?\s*not\s*found|not\s*found|400\s*:\s*.*|no\s*such\s*file.*)$/i.test(trimmed);
 };
 
+const docsQuery = (folder?: string, resetCache = false) => {
+  const params = new URLSearchParams();
+  if (folder) params.set('folder', folder);
+  if (resetCache) params.set('resetCache', 'true');
+  const query = params.toString();
+  return query ? `?${query}` : '';
+};
+
 const fetchRemoteDoc = async (
   slug: string,
   resetCache = false,
+  folder?: string,
 ): Promise<{ markdown: string; meta: RemoteDocMeta | null } | null> => {
   // Names are case sensitive ("AI", "API") — resolve the exact name from /api/v1/docs.
-  const exact = await resolveDocName(slug, resetCache);
+  const exact = await resolveDocName(slug, resetCache, folder);
   const candidates = Array.from(
     new Set([exact, slug, slug.replace(/-/g, '_')].filter(Boolean) as string[]),
   );
   for (const name of candidates) {
     try {
       const res = await fetch(
-        getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${resetCache ? '?resetCache=true' : ''}`),
+        getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${docsQuery(folder, resetCache)}`),
       );
       if (!res.ok) continue;
       const data = await res.json();
@@ -98,14 +111,14 @@ const anchorKey = (value: string) =>
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 
-const normalizeDocPath = (pathname: string) => {
+const normalizeDocPath = (pathname: string, basePath = '/docs') => {
   const match = pathname.match(/(?:^|\/)docs\/([^/]+)$/i);
   if (!match) return pathname;
   const name = match[1].replace(/\.md$/i, '');
-  return `/docs/${docSlug(name)}`;
+  return `${basePath}/${docSlug(name)}`;
 };
 
-export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initialMeta = null }: MarkdownRendererProps) => {
+export const MarkdownRenderer = ({ slug = 'index', folder, basePath = '/docs', initialContent = null, initialMeta = null }: MarkdownRendererProps) => {
   const [content, setContent] = useState<string>(initialContent ?? '');
   const [meta, setMeta] = useState<RemoteDocMeta | null>(initialMeta);
   const [loading, setLoading] = useState(!initialContent);
@@ -147,7 +160,7 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
 
     // Resolve the doc to load. `/docs` (index) falls back to the first remote doc.
     let target = slug;
-    const list = await fetchDocsList(resetCache);
+    const list = await fetchDocsList(resetCache, folder);
     if (!list.some((d) => docSlug(d.name) === slug.toLowerCase())) {
       const preferred =
         list.find((d) => docSlug(d.name) === 'index') ??
@@ -156,7 +169,7 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
       if (slug === 'index' && preferred) target = docSlug(preferred.name);
     }
 
-    const remote = await fetchRemoteDoc(target, resetCache);
+    const remote = await fetchRemoteDoc(target, resetCache, folder);
     if (remote) {
       setContent(remote.markdown);
       setMeta(remote.meta);
@@ -165,7 +178,7 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
     }
     setLoading(false);
 
-  }, [slug]);
+  }, [slug, folder]);
 
   useEffect(() => {
     // SSR content already covers the first render of this slug.
@@ -215,7 +228,7 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
         let final = items;
         if (final.length === 0) {
           // Fall back to the local docs list when Algolia has no match.
-          const list = await fetchDocsList();
+          const list = await fetchDocsList(false, folder);
           const query = slug.replace(/[-_]+/g, ' ').toLowerCase();
           const scored = list
             .map((d) => {
@@ -226,7 +239,7 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
             })
             .sort((a, b) => b.score - a.score)
             .slice(0, 3);
-          final = scored.map(({ d, label }) => ({ path: `/docs/${docSlug(d.name)}`, label }));
+          final = scored.map(({ d, label }) => ({ path: `${basePath}/${docSlug(d.name)}`, label }));
         }
         if (!cancelled) setSuggestions(final);
       } catch {
@@ -239,7 +252,7 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
     return () => {
       cancelled = true;
     };
-  }, [error, slug]);
+  }, [error, slug, folder, basePath]);
 
 
   // Give every heading a stable id, then scroll to the hash target once the
@@ -588,8 +601,8 @@ export const MarkdownRenderer = ({ slug = 'index', initialContent = null, initia
               if ((isSameOrigin && isDocsPath) || isRelativeDoc) {
                 const relativeName = parsed.pathname.split('/').filter(Boolean).pop()?.replace(/\.md$/i, '');
                 const path = isRelativeDoc && !isDocsPath && relativeName
-                  ? `/docs/${docSlug(relativeName)}`
-                  : normalizeDocPath(parsed.pathname);
+                  ? `${basePath}/${docSlug(relativeName)}`
+                  : normalizeDocPath(parsed.pathname, basePath);
                 return <Link to={`${path}${parsed.search}${parsed.hash}`}>{children}</Link>;
               }
               if (href.startsWith('/') && isSameOrigin) {
