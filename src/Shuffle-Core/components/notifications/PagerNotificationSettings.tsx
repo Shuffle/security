@@ -489,10 +489,10 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
       const others = current.filter((d) => d.id !== next.id);
       return [...others, next];
     });
-    const ok = await saveNotificationDevice(userInfo?.id || '', next);
+    const result = await saveNotificationDevice(userInfo?.id || '', next);
     setSavingDevice(false);
-    if (!ok) {
-      setPermissionMsg('Failed to save the device notification preferences.');
+    if (!result.success) {
+      setPermissionMsg(`Failed to save the device notification preferences: ${result.reason || 'unknown error'}`);
     }
   };
 
