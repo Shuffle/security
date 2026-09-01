@@ -225,7 +225,24 @@ export const PagerNotificationSettings = () => {
   const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
   const [copiedPath, setCopiedPath] = useState(false);
   const [expanded, setExpanded] = useState<NotificationType | null>(null);
+  const [devices, setDevices] = useState<NotificationDevice[]>([]);
+  const [localDeviceId, setLocalDeviceId] = useState('');
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const [savingDevice, setSavingDevice] = useState(false);
 
+  useEffect(() => {
+    const id = getLocalDeviceId();
+    setLocalDeviceId(id);
+    setSelectedDeviceId((current) => current || id);
+
+    let cancelled = false;
+    fetchNotificationDevices().then((remote) => {
+      if (!cancelled) setDevices(remote);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setSettings(getPagerSettings());
