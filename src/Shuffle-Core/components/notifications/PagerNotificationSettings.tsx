@@ -1060,25 +1060,19 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         </NotificationSection>
       </Box>
 
-      {/* Device delivery */}
-      <Box sx={{ pt: 1, borderTop: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <SettingRow
-          label="Device push"
-          hint={
-            isGranted
-              ? settings.pushToken
-                ? `Registered (${settings.pushToken.slice(0, 16)}...)`
-                : 'Permissions granted.'
-              : 'Not registered on this device.'
-          }
-          control={
-            <Button variant="outlined" size="small" onClick={handleRequestPermissions} sx={outlinedButtonSx}>
-              {isGranted ? 'Permissions active' : 'Request permissions'}
-            </Button>
-          }
-        />
-
-      </Box>
+      {!isGranted && (
+        <Box sx={{ pt: 1, borderTop: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <SettingRow
+            label="Device push"
+            hint="Not registered on this device."
+            control={
+              <Button variant="outlined" size="small" onClick={handleRequestPermissions} sx={outlinedButtonSx}>
+                Request permissions
+              </Button>
+            }
+          />
+        </Box>
+      )}
 
       <Dialog open={confirmCritical} onClose={() => setConfirmCritical(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontSize: '1rem', fontWeight: 700 }}>Enable Critical Pager?</DialogTitle>
