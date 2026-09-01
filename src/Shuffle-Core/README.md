@@ -49,6 +49,12 @@ Every component below is rendered live (with source) on the demo page.
 | `EditWorkflow` | Create / edit workflow modal (name, tags, form questions, AI gen) | [#9](https://shuffle.security/shuffle-core-demo#9) |
 | `Billing` | License, subscription and app-run usage panel (cloud + on-prem) | [#10](https://shuffle.security/shuffle-core-demo#10) |
 | `TenantManagement` | Multi-tenant manager: current, parent, sub-tenants, all tenants | [#11](https://shuffle.security/shuffle-core-demo#11) |
+| `NotificationsDrawer` | Right-hand drawer with workflow executions and agent requests. Open from anywhere by dispatching `NOTIFICATIONS_OPEN_EVENT` | [#12](https://shuffle.security/shuffle-core-demo#12) |
+| `NotificationSettings` | Device push registration plus Critical Pager / Agent Request / General notification sections, with on-call duty, team scheduling and simulate-call in the top-right menu | [#13](https://shuffle.security/shuffle-core-demo#13) |
+| `OnCallScheduleManager` | Per-user availability windows, escalation tiers, weekly timeline and schedule import (`assignment_schedules` datastore item) | [#14](https://shuffle.security/shuffle-core-demo#14) |
+| `AddAppDialog` / `AddAppButton` | Add-app modal and its trigger button | — |
+| `WorkflowRunExplorer` / `WorkflowRunExplorerDrawer` | Workflow execution explorer, inline or in a drawer | — |
+| `CategoryAutomationsDialog` | Category-scoped automations picker dialog | — |
 
 ## Helpers and hooks
 
@@ -61,6 +67,11 @@ Every component below is rendered live (with source) on the demo page.
 | `API_CONFIG`, `getApiUrl`, `getAuthHeader`, `shuffleFetch` | Shared API helpers |
 | `setRegionUrl`, `resetRegionUrl`, `setHostBaseUrl`, `getHostBaseUrl` | Region / base URL controls |
 | `installFetchBreaker`, `registerProtectedOrigin` | Opt-in fetch circuit breaker for cross-origin protection |
+| `getPagerSettings`, `savePagerSettings`, `requestNotificationPermissions`, `testPagerCall` | Local pager/notification settings and permissions |
+| `dispatchCriticalPage`, `dispatchAgentRequestNotification`, `dispatchGeneralNotification` | Send notifications through the backend |
+| `fetchNotificationDevices`, `saveNotificationDevice`, `resolveDevicePreferences`, `getLocalDeviceId`, `getLocalDeviceName`, `getLocalDevicePlatform` | Per-device push registration helpers |
+| `computeDefaultPolicy` | Default escalation policy used by `OnCallScheduleManager` |
+
 
 ## Theming
 

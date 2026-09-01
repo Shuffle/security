@@ -164,3 +164,47 @@ export type {
   NotificationsDrawerProps,
   ExecutionNotification,
 } from './components/NotificationsDrawer';
+
+// Notification settings (device push, critical pager, agent requests, general
+// alerts) + on-call duty menu — usable anywhere in the platform.
+import {
+  PagerNotificationSettings as PagerNotificationSettingsRaw,
+  type PagerNotificationSettingsProps,
+} from './components/notifications/PagerNotificationSettings';
+export const NotificationSettings = withTheme<PagerNotificationSettingsProps>(
+  PagerNotificationSettingsRaw,
+  'NotificationSettings',
+);
+export type { PagerNotificationSettingsProps as NotificationSettingsProps } from './components/notifications/PagerNotificationSettings';
+
+// On-call scheduling — the schedule manager rendered inside NotificationSettings.
+import { OnCallScheduleManager as OnCallScheduleManagerRaw } from './components/users/OnCallScheduleManager';
+export const OnCallScheduleManager = withTheme(OnCallScheduleManagerRaw as any, 'OnCallScheduleManager');
+export { computeDefaultPolicy } from './components/users/OnCallScheduleManager';
+export type {
+  OnCallUser,
+  AssignmentConfig,
+  UserSchedule,
+  EscalationLevel,
+} from './components/users/OnCallScheduleManager';
+
+// Notification services powering the surfaces above.
+export {
+  getPagerSettings,
+  savePagerSettings,
+  requestNotificationPermissions,
+  testPagerCall,
+  dispatchCriticalPage,
+  dispatchAgentRequestNotification,
+  dispatchGeneralNotification,
+} from './services/pagerNotificationService';
+export type { PagerSettings, PagerIncident, NotificationType } from './services/pagerNotificationService';
+export {
+  fetchNotificationDevices,
+  saveNotificationDevice,
+  resolveDevicePreferences,
+  getLocalDeviceId,
+  getLocalDeviceName,
+  getLocalDevicePlatform,
+} from './services/notificationDevices';
+export type { NotificationDevice, DevicePreferences } from './services/notificationDevices';
