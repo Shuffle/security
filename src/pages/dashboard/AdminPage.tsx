@@ -537,56 +537,6 @@ const AdminPage = () => {
         />
       )}
       {activeTab === 3 && userInfo?.support !== true && (
-        <Alert severity="info">Only support users can view billing.</Alert>
-      )}
-      {activeTab === 3 && userInfo?.support === true && (() => {
-        const origin = typeof window === 'undefined' || window.location === undefined ? '' : window.location.origin;
-        const isLiveStripeOrigin = ['https://shuffler.io', 'https://shuffle.security', 'https://www.shuffle.security', 'https://security.shuffler.io'].includes(origin);
-        const stripeKey = isLiveStripeOrigin
-          ? 'pk_live_51PXYYMEJjT17t98N20qEqItyt1fLQjrnn41lPeG2PjnSlZHTDNKHuisAbW00s4KAn86nGuqB9uSVU4ds8MutbnMU00DPXpZ8ZD'
-          : 'pk_test_51PXYYMEJjT17t98NbDkojZ3DRvsFUQBs35LGMx3i436BXwEBVFKB9nCvHt0Q3M4MG3dz4mHheuWvfoYvpaL3GmsG00k1Rb2ksO';
-        const isSupport = userInfo?.support === true;
-        const searchParams = new URLSearchParams(location.search);
-        const viewParam = searchParams.get('view');
-        const billingView: 'cloud' | 'onprem' = isSupport && viewParam === 'onprem' ? 'onprem' : 'cloud';
-        const setBillingView = (next: 'cloud' | 'onprem') => {
-          const sp = new URLSearchParams(location.search);
-          sp.set('view', next);
-          navigate(`${location.pathname}?${sp.toString()}`, { replace: true });
-        };
-        return (
-          <>
-            {isSupport && (
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <SegmentedControl<'cloud' | 'onprem'>
-                  options={[
-                    { value: 'cloud', label: 'Cloud' },
-                    { value: 'onprem', label: 'On-prem' },
-                  ]}
-                  value={billingView}
-                  onChange={(v) => setBillingView(v)}
-                  variant="filled"
-                  ariaLabel="Billing view"
-                />
-              </Box>
-            )}
-            <Billing
-              theme={shuffleTheme}
-              {...({
-                userdata: userInfo,
-                selectedOrganization: fullOrg || userInfo?.active_org,
-                globalUrl: getApiUrl(''),
-                serverside: false,
-                isLoaded: true,
-                billingInfo: {},
-                stripeKey,
-                isCloud: billingView === 'cloud',
-                handleGetOrg: refreshUserInfo,
-              } as any)}
-            />
-          </>
-        );
-      })()}
     </Box>
     </>
   );
