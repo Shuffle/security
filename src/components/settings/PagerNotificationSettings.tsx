@@ -220,6 +220,7 @@ const getPermissionHelp = (): PermissionHelp => {
 };
 
 export const PagerNotificationSettings = () => {
+  const { userInfo } = useAuth();
   const [settings, setSettings] = useState<PagerSettings>(getPagerSettings());
   const [isPlayingTestSiren, setIsPlayingTestSiren] = useState(false);
   const [sendingType, setSendingType] = useState<NotificationType | null>(null);
@@ -306,7 +307,7 @@ export const PagerNotificationSettings = () => {
       const others = current.filter((d) => d.id !== next.id);
       return [...others, next];
     });
-    const ok = await saveNotificationDevice(next);
+    const ok = await saveNotificationDevice(userInfo?.id || '', next);
     setSavingDevice(false);
     if (!ok) {
       setPermissionMsg('Failed to save the device notification preferences.');
@@ -336,9 +337,9 @@ export const PagerNotificationSettings = () => {
     const next = getPagerSettings();
     setSettings(next);
 
-    if (granted && localDeviceId) {
+    if (granted && localDeviceId && userInfo?.id) {
       const existing = devices.find((d) => d.id === localDeviceId);
-      void saveNotificationDevice({
+      void saveNotificationDevice(userInfo.id, {
         id: localDeviceId,
         token: next.pushToken || existing?.token || '',
         platform: getLocalDevicePlatform(),
