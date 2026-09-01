@@ -524,8 +524,19 @@ export const PagerNotificationSettings = () => {
                 fontSize: '0.75rem',
                 color: 'hsl(var(--foreground))',
                 '& fieldset': { borderColor: 'hsl(var(--border))' },
-                '& .MuiSelect-select': { py: 0.5, px: 1.25, display: 'flex', alignItems: 'center' },
-                '& .MuiSvgIcon-root': { color: 'hsl(var(--muted-foreground))', width: 16, height: 16 },
+                '& .MuiSelect-select': {
+                  py: 0.5,
+                  pl: 1.25,
+                  pr: 3.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+                '& .MuiSvgIcon-root': {
+                  color: 'hsl(var(--muted-foreground))',
+                  width: 14,
+                  height: 14,
+                  right: 7,
+                },
               }}
             >
               {deviceList.map((device) => {
