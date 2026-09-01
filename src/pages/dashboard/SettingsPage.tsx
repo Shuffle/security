@@ -10,8 +10,10 @@ import {
   Avatar,
   Divider,
   TextField,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
-import { LogOut } from 'lucide-react';
+import { LogOut, Eye, EyeOff } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { useIsSupport } from '@/hooks/useIsSupport';
@@ -46,6 +48,9 @@ const SettingsPage = () => {
   const [confirmPw, setConfirmPw] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMsg, setPwMsg] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const { sessionToken, logout, userInfo } = useAuth();
   const isSupport = useIsSupport();
   const navigate = useNavigate();
@@ -266,11 +271,28 @@ const SettingsPage = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
                 <TextField
                   label="Current password"
-                  type="password"
+                  type={showCurrentPw ? 'text' : 'password'}
                   size="small"
                   value={currentPw}
                   onChange={(e) => setCurrentPw(e.target.value)}
                   fullWidth
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            edge="end"
+                            size="small"
+                            aria-label={showCurrentPw ? 'Hide current password' : 'Show current password'}
+                            onClick={() => setShowCurrentPw((s) => !s)}
+                            sx={{ color: 'hsl(var(--muted-foreground))' }}
+                          >
+                            {showCurrentPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
                   sx={{
                     '& .MuiInputBase-input': { fontSize: '0.85rem' },
                     '& .MuiInputLabel-root': { fontSize: '0.85rem' },
@@ -278,12 +300,29 @@ const SettingsPage = () => {
                 />
                 <TextField
                   label="New password"
-                  type="password"
+                  type={showNewPw ? 'text' : 'password'}
                   size="small"
                   value={newPw}
                   onChange={(e) => setNewPw(e.target.value)}
                   fullWidth
                   helperText="More than 10 characters"
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            edge="end"
+                            size="small"
+                            aria-label={showNewPw ? 'Hide new password' : 'Show new password'}
+                            onClick={() => setShowNewPw((s) => !s)}
+                            sx={{ color: 'hsl(var(--muted-foreground))' }}
+                          >
+                            {showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
                   sx={{
                     '& .MuiInputBase-input': { fontSize: '0.85rem' },
                     '& .MuiInputLabel-root': { fontSize: '0.85rem' },
@@ -291,7 +330,7 @@ const SettingsPage = () => {
                 />
                 <TextField
                   label="Repeat new password"
-                  type="password"
+                  type={showConfirmPw ? 'text' : 'password'}
                   size="small"
                   value={confirmPw}
                   onChange={(e) => setConfirmPw(e.target.value)}
@@ -302,6 +341,23 @@ const SettingsPage = () => {
                       ? 'Passwords do not match'
                       : ''
                   }
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            edge="end"
+                            size="small"
+                            aria-label={showConfirmPw ? 'Hide repeated password' : 'Show repeated password'}
+                            onClick={() => setShowConfirmPw((s) => !s)}
+                            sx={{ color: 'hsl(var(--muted-foreground))' }}
+                          >
+                            {showConfirmPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
                   sx={{
                     '& .MuiInputBase-input': { fontSize: '0.85rem' },
                     '& .MuiInputLabel-root': { fontSize: '0.85rem' },
