@@ -69,6 +69,15 @@ export const MobileNavHeader: React.FC = () => {
   const { brandColor } = useTheme();
   const primaryColor = brandColor || '#FF6600';
 
+  // The extra status-bar / notch padding is only needed inside the native
+  // Capacitor app. In a normal browser the header should sit flush on top.
+  const [isNativeApp, setIsNativeApp] = useState(false);
+  useEffect(() => {
+    setIsNativeApp(isCapacitorNative());
+  }, []);
+
+
+
   const { title, parentPath, parentLabel } = useMemo(
     () => getPageTitle(location.pathname),
     [location.pathname]
