@@ -420,7 +420,7 @@ const IOCTypesPage = () => {
   }, [testValue, formData.regex]);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ maxWidth: 1400, width: '100%', margin: '0 auto' }}>
       {/* Threat Intel automation status — shown only when not already active. */}
       {!enrichmentStatus.active && <ThreatIntelAutomationBanner />}
       {/* Header — matches the standard page header used on Incidents / Vulnerabilities */}
