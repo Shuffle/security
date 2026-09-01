@@ -5,7 +5,7 @@ import { useLocation, useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ShuffleLogo } from '@/components/common/ShuffleLogo';
-import { isCapacitorNative } from '@/lib/platform';
+import { isCapacitorNative, getPlatform } from '@/lib/platform';
 
 
 const getPageTitle = (pathname: string): { title: string; parentPath?: string; parentLabel?: string } => {
