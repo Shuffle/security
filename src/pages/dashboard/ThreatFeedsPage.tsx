@@ -185,7 +185,7 @@ const ThreatFeedsPage = () => {
 
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ maxWidth: 1400, width: '100%', margin: '0 auto' }}>
       {/* Threat Intel automation CTA — placed at the top, only shown when not already active. */}
       {feeds.length > 0 && !automationEnabled && <ThreatIntelAutomationBanner />}
 
