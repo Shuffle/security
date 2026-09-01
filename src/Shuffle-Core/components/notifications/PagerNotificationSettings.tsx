@@ -605,6 +605,47 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     }
   };
 
+  const handleRegisterLocalPush = async () => {
+    setPermissionMsg(null);
+    setSavingDevice(true);
+    try {
+      const token = await registerFirebaseWebPush();
+      if (token) {
+        const next = savePagerSettings({ pushToken: token });
+        setSettings(next);
+        setPermissionMsg('This device is now registered for push notifications.');
+        if (userInfo?.id && localDeviceId) {
+          const existing = devices.find((d) => d.id === localDeviceId);
+          const result = await saveNotificationDevice(userInfo.id, {
+            id: localDeviceId,
+            token,
+            platform: getLocalDevicePlatform(),
+            device_name: existing?.device_name || getLocalDeviceName(),
+            preferences: resolveDevicePreferences(existing),
+          });
+          if (!result.success) {
+            setPermissionMsg(`Failed to save the device notification preferences: ${result.reason || 'unknown error'}`);
+          }
+          fetchNotificationDevices().then(setDevices);
+        }
+        return;
+      }
+      if (typeof window !== 'undefined' && window.top !== window.self) {
+        setPermissionMsg(
+          'Push token registration is blocked inside the preview iframe. Open this page in its own browser tab and click Register this device.',
+        );
+      } else {
+        setPermissionMsg(
+          'Could not register a push token for this device. Make sure notification permissions are granted and that the browser supports push notifications.',
+        );
+      }
+    } catch (err) {
+      setPermissionMsg(`Registration error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setSavingDevice(false);
+    }
+  };
+
   const permissionHelp = getPermissionHelp();
 
   const handleCopySettingsPath = async () => {
