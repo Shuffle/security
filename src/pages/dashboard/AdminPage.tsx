@@ -334,7 +334,6 @@ const AdminPage = () => {
       </Typography>
 
       {(() => {
-        const isSupport = userInfo?.support === true;
         type TabValue = 'overview' | 'users' | 'tenants';
         const valueByIndex: TabValue[] = ['overview', 'users', 'tenants'];
         const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
