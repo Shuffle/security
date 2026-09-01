@@ -850,6 +850,56 @@ const ShuffleCoreTestPage = () => {
             </Box>
           </DemoSection>
 
+          <DemoSection
+            title="12. Notifications drawer"
+            description={<><code>&lt;NotificationsDrawer /&gt;</code> — right-hand drawer listing workflow executions and agent requests, with unread counts and deep links. Any surface can open it by dispatching <code>NOTIFICATIONS_OPEN_EVENT</code> on <code>window</code>.</>}
+            code={SNIPPET_NOTIFICATIONS_DRAWER}
+            apis={[
+              { method: 'GET', path: '/api/v1/workflows/executions', description: 'Recent workflow runs shown in the drawer' },
+              { method: 'GET', path: '/api/v1/agent', description: 'Pending agent requests and decisions' },
+            ]}
+          >
+            <Box>
+              <Button variant="outlined" size="small" onClick={() => setNotificationsOpen(true)}>
+                Open notifications drawer
+              </Button>
+              <NotificationsDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+            </Box>
+          </DemoSection>
+
+          <DemoSection
+            title="13. Notification settings"
+            description={<><code>&lt;NotificationSettings /&gt;</code> — device push registration plus the Critical Pager, Agent Request and General Notifications sections. The top-right menu carries on-call duty enable/disable, team scheduling and "Simulate call". Pass <code>userInfo</code>, or omit it and the component loads the user itself.</>}
+            code={SNIPPET_NOTIFICATION_SETTINGS}
+            apis={[
+              { method: 'GET', path: '/api/v1/getinfo', description: 'Current user and registered notification devices' },
+              { method: 'PUT', path: '/api/v1/updateuser', description: 'Registers a device and its per-type preferences' },
+              { method: 'POST', path: '/api/v1/notifications', description: 'Dispatches critical / agent / general notifications' },
+              { method: 'GET', path: '/api/v1/getusers', description: 'Users listed in the team scheduling dialog' },
+            ]}
+          >
+            <Box sx={{ border: '1px solid hsl(var(--border))', borderRadius: 1.5, p: 2, maxWidth: 700 }}>
+              <NotificationSettings theme="system" userInfo={userInfo} />
+            </Box>
+          </DemoSection>
+
+          <DemoSection
+            title="14. On-call schedule manager"
+            description={<><code>&lt;OnCallScheduleManager /&gt;</code> — per-user availability windows, escalation tiers, weekly timeline and schedule import. Backed by the <code>assignment_schedules</code> configuration datastore item, and embedded inside <code>&lt;NotificationSettings /&gt;</code>.</>}
+            code={SNIPPET_ONCALL_SCHEDULE}
+            apis={[
+              { method: 'GET', path: '/api/v1/getusers', description: 'Users available for scheduling' },
+              { method: 'GET', path: '/api/v2/datastore', description: 'Reads the assignment_schedules config item' },
+              { method: 'POST', path: '/api/v2/datastore', description: 'Persists the updated schedules' },
+            ]}
+          >
+            <Box sx={{ border: '1px solid hsl(var(--border))', borderRadius: 1.5, p: 2, maxHeight: 720, overflowY: 'auto' }}>
+              <OnCallScheduleManager theme="system" {...({ users: [], loading: false, compact: true } as any)} />
+            </Box>
+          </DemoSection>
+
+
+
         </Stack>
       </Container>
     </>
