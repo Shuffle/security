@@ -332,7 +332,19 @@ export const PagerNotificationSettings = () => {
         ? 'Notification permissions granted.'
         : 'Notification permission was denied. Please enable notifications in your device settings.',
     );
-    setSettings(getPagerSettings());
+    const next = getPagerSettings();
+    setSettings(next);
+
+    if (granted && localDeviceId) {
+      const existing = devices.find((d) => d.id === localDeviceId);
+      void saveNotificationDevice({
+        id: localDeviceId,
+        token: next.pushToken || existing?.token || '',
+        platform: getLocalDevicePlatform(),
+        device_name: existing?.device_name || getLocalDeviceName(),
+        preferences: resolveDevicePreferences(existing),
+      }).then(() => fetchNotificationDevices().then(setDevices));
+    }
   };
 
   const permissionHelp = getPermissionHelp();
@@ -537,8 +549,8 @@ export const PagerNotificationSettings = () => {
         <NotificationSection
           title="Critical Pager"
           description="Full-screen call for critical incidents and downtime."
-          enabled={settings.pagerCallingEnabled}
-          onToggle={(value) => update({ pagerCallingEnabled: value })}
+          enabled={sectionEnabled('critical')}
+          onToggle={(value) => setSectionEnabled('critical', value)}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
         >
@@ -624,8 +636,8 @@ export const PagerNotificationSettings = () => {
         <NotificationSection
           title="Agent Request"
           description="Alerts when an AI agent needs your review or approval."
-          enabled={settings.agentRequestEnabled}
-          onToggle={(value) => update({ agentRequestEnabled: value })}
+          enabled={sectionEnabled('agent_request')}
+          onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
         >
@@ -669,8 +681,8 @@ export const PagerNotificationSettings = () => {
         <NotificationSection
           title="General Notifications"
           description="Completed workflows, rotations, and reports."
-          enabled={settings.generalNotificationsEnabled}
-          onToggle={(value) => update({ generalNotificationsEnabled: value })}
+          enabled={sectionEnabled('general')}
+          onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
         >
