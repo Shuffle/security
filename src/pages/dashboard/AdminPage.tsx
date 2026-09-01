@@ -314,27 +314,29 @@ const AdminPage = () => {
         </Box>
       )}
     <Box sx={{ p: { xs: 0, sm: 0 }, maxWidth: 1200, width: '100%', mx: 'auto' }}>
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 700,
-          mb: 0.5,
-          color: 'hsl(var(--foreground))',
-          fontSize: { xs: '1.4rem', sm: '2.125rem' },
-        }}
-      >
-        Tenant Admin
-      </Typography>
-      <Typography
-        variant="body2"
-        sx={{
-          color: 'hsl(var(--muted-foreground))',
-          mb: { xs: 2, sm: 3 },
-          fontSize: { xs: '0.825rem', sm: '0.875rem' },
-        }}
-      >
-        Manage your tenant settings, users, and sub-tenants.
-      </Typography>
+      <Box sx={{ pt: { xs: 2, sm: 4 }, px: { xs: 2, sm: 4 } }}>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 600,
+            mb: 0.5,
+            color: 'hsl(var(--foreground))',
+            fontSize: '1.5rem',
+          }}
+        >
+          Tenant Admin
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'hsl(var(--muted-foreground))',
+            mb: { xs: 2, sm: 3 },
+            fontSize: { xs: '0.825rem', sm: '0.875rem' },
+          }}
+        >
+          Manage your tenant settings, users, and sub-tenants.
+        </Typography>
+      </Box>
 
       {(() => {
         type TabValue = 'overview' | 'users' | 'tenants' | 'preferences';
