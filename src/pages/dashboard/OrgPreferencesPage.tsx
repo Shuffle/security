@@ -171,25 +171,30 @@ const SidebarTabsSelector = () => {
   );
 };
 
-const OrgPreferencesPage = () => {
+const OrgPreferencesPage = ({ embedded = false }: { embedded?: boolean }) => {
 
   usePageMeta({
     title: 'Tenant preferences',
     description: 'Configure terminology, sidebar visibility, SLA targets, and other tenant-wide preferences.',
-    url: '/preferences',
+    url: '/admin/preferences',
   });
   const showAutomation = useShowAutomation();
   const autoMergeThread = useAutoMergeThread();
 
 
   return (
-    <Box sx={{ p: 4, maxWidth: 900, width: '100%', mx: 'auto' }}>
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: 'hsl(var(--foreground))' }}>
-        Tenant Preferences
-      </Typography>
-      <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 3 }}>
-        Configure tenant-wide settings that apply to all users
-      </Typography>
+    <Box sx={embedded ? { width: '100%' } : { p: 4, maxWidth: 900, width: '100%', mx: 'auto' }}>
+      {!embedded && (
+        <>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: 'hsl(var(--foreground))' }}>
+            Tenant Preferences
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 3 }}>
+            Configure tenant-wide settings that apply to all users
+          </Typography>
+        </>
+      )}
+
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Terminology */}
