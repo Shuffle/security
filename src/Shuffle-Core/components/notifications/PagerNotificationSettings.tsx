@@ -68,12 +68,14 @@ const PREFERENCE_KEY: Record<NotificationType, keyof DevicePreferences> = {
 };
 
 const rowSx = {
-  display: 'flex',
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
   justifyContent: 'space-between',
   alignItems: 'center',
-  flexWrap: 'wrap' as const,
-  gap: 2,
+  columnGap: 1.5,
+  rowGap: 1,
 };
+
 
 const outlinedButtonSx = {
   height: 36,
@@ -117,7 +119,7 @@ const NotificationSection = ({
     }}
   >
     <Box sx={{ ...rowSx, p: 2, cursor: 'pointer' }} onClick={onExpandToggle}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
         <IconButton
           size="small"
           onClick={(e) => {
@@ -125,6 +127,7 @@ const NotificationSection = ({
             onExpandToggle();
           }}
           sx={{
+            flexShrink: 0,
             color: 'hsl(var(--muted-foreground))',
             transform: expanded ? 'rotate(180deg)' : 'none',
             transition: 'transform 150ms ease',
@@ -132,16 +135,19 @@ const NotificationSection = ({
         >
           <ChevronDown size={16} />
         </IconButton>
-        <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: '0.92rem', color: 'hsl(var(--foreground))' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 600, fontSize: '0.92rem', color: 'hsl(var(--foreground))', lineHeight: 1.3 }}>
             {title}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', lineHeight: 1.35 }}
+          >
             {description}
           </Typography>
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
         {enabled && onTest && (
           <Button
             variant="outlined"
@@ -167,6 +173,7 @@ const NotificationSection = ({
       </Box>
     </Box>
 
+
     <Collapse in={expanded} unmountOnExit>
       <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>{children}</Box>
@@ -184,15 +191,16 @@ const SettingRow = ({
   control: ReactNode;
 }) => (
   <Box sx={rowSx}>
-    <Box>
-      <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{label}</Typography>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', lineHeight: 1.35 }}>{label}</Typography>
       {hint && (
-        <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+        <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', lineHeight: 1.35 }}>
           {hint}
         </Typography>
       )}
     </Box>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>{control}</Box>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>{control}</Box>
+
   </Box>
 );
 
@@ -791,11 +799,14 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             display: 'flex',
             alignItems: 'center',
             gap: 0.75,
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
+            minWidth: 0,
             width: { xs: '100%', sm: 'auto' },
             justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            '& > *': { minWidth: 0 },
           }}
         >
+
         {isLocalSelected && (!isGranted || !settings.pushToken) && (
           <Tooltip
             title={
@@ -847,7 +858,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         )}
 
         {deviceList.length > 0 && (
-          <FormControl size="small" sx={{ minWidth: 110, maxWidth: 160 }}>
+          <FormControl size="small" sx={{ flex: '1 1 auto', minWidth: 0, maxWidth: 160 }}>
             <Select
               value={selectedDeviceId}
               onChange={(e) => setSelectedDeviceId(String(e.target.value))}
