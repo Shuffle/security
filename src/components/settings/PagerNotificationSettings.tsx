@@ -715,10 +715,17 @@ export const PagerNotificationSettings = () => {
             disabled={savingOnCall || !onCallConfig}
             sx={{ fontSize: '0.82rem', gap: 1 }}
           >
-            {savingOnCall && <CircularProgress size={12} sx={{ color: 'hsl(var(--primary))' }} />}
+            {savingOnCall ? (
+              <CircularProgress size={12} sx={{ color: 'hsl(var(--primary))' }} />
+            ) : isOnCallEnabled ? (
+              <BellOff size={14} color="hsl(var(--muted-foreground))" />
+            ) : (
+              <Bell size={14} color="hsl(var(--muted-foreground))" />
+            )}
             {isOnCallEnabled ? 'Disable on-call duty' : 'Enable on-call duty'}
           </MenuItem>
-          <MenuItem onClick={() => void openTeamScheduling()} sx={{ fontSize: '0.82rem' }}>
+          <MenuItem onClick={() => void openTeamScheduling()} sx={{ fontSize: '0.82rem', gap: 1 }}>
+            <CalendarClock size={14} color="hsl(var(--muted-foreground))" />
             Team scheduling
           </MenuItem>
           <MenuItem
@@ -726,8 +733,9 @@ export const PagerNotificationSettings = () => {
               testPagerCall();
               setMenuAnchor(null);
             }}
-            sx={{ fontSize: '0.82rem' }}
+            sx={{ fontSize: '0.82rem', gap: 1 }}
           >
+            <PhoneCall size={14} color="hsl(var(--muted-foreground))" />
             Simulate call
           </MenuItem>
         </Menu>
