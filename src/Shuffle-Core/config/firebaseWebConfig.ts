@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
-import { isCapacitorNative } from '@/Shuffle-MCPs/api';
+import { isCapacitorNative } from '@/Shuffle-Core/api';
 
 export interface FirebaseWebCredentials {
   apiKey?: string;

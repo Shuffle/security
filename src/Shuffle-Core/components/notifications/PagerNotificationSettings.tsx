@@ -21,16 +21,16 @@ import {
   DialogActions,
 } from '@mui/material';
 import { ChevronDown, Smartphone, Monitor, MoreVertical, Bell, BellOff, CalendarClock, PhoneCall } from 'lucide-react';
-import { toast } from '@/lib/toast';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
+import { toast } from '@/Shuffle-Core/lib/toast';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-Core/api';
+import { getDatastoreItem, setDatastoreItem, DATASTORE_CATEGORIES } from '@shuffleio/shuffle-mcps';
 import {
   OnCallScheduleManager,
   computeDefaultPolicy,
   type OnCallUser,
   type AssignmentConfig,
   type UserSchedule,
-} from '@/components/users/OnCallScheduleManager';
+} from '@/Shuffle-Core/components/users/OnCallScheduleManager';
 
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -46,7 +46,7 @@ import {
   dispatchAgentRequestNotification,
   dispatchGeneralNotification,
   NotificationType,
-} from '@/services/pagerNotificationService';
+} from '@/Shuffle-Core/services/pagerNotificationService';
 import {
   NotificationDevice,
   DevicePreferences,
@@ -56,7 +56,7 @@ import {
   getLocalDeviceId,
   getLocalDeviceName,
   getLocalDevicePlatform,
-} from '@/services/notificationDevices';
+} from '@/Shuffle-Core/services/notificationDevices';
 
 const PREFERENCE_KEY: Record<NotificationType, keyof DevicePreferences> = {
   critical: 'critical_pager',

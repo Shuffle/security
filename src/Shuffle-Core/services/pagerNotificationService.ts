@@ -1,13 +1,13 @@
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Haptics } from '@capacitor/haptics';
-import { isCapacitorNative, getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
+import { isCapacitorNative, getApiUrl, shuffleFetch } from '@/Shuffle-Core/api';
 import {
   registerFirebaseWebPush,
   subscribeToWebForegroundMessages,
   getStoredVapidKey,
   saveStoredVapidKey,
-} from '@/config/firebaseWebConfig';
+} from '@/Shuffle-Core/config/firebaseWebConfig';
 
 export { getStoredVapidKey, saveStoredVapidKey, registerFirebaseWebPush };
 
