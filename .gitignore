@@ -40,6 +40,11 @@ tmp/
 *.key
 *.pem
 *.mobileprovision
+*service-account*.json
+*firebase-adminsdk*.json
+ios/App/App/GoogleService-Info.plist
+GoogleService-Info.plist
+
 
 # Mobile Build Artifacts & Caches
 android/.gradle

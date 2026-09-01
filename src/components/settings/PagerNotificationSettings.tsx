@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -12,6 +12,7 @@ import {
   Chip,
   Divider,
   Alert,
+  TextField,
 } from '@mui/material';
 import {
   Bell,
@@ -26,6 +27,7 @@ import {
   Info,
   Send,
   Zap,
+  Key,
 } from 'lucide-react';
 import {
   getPagerSettings,
@@ -40,6 +42,9 @@ import {
   dispatchAgentRequestNotification,
   dispatchGeneralNotification,
   NotificationType,
+  getStoredVapidKey,
+  saveStoredVapidKey,
+  registerFirebaseWebPush,
 } from '@/services/pagerNotificationService';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
@@ -48,6 +53,8 @@ export const PagerNotificationSettings = () => {
   const [isPlayingTestSiren, setIsPlayingTestSiren] = useState(false);
   const [sendingType, setSendingType] = useState<NotificationType | null>(null);
   const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
+  const [vapidKey, setVapidKey] = useState<string>(getStoredVapidKey());
+  const [isRegisteringWebPush, setIsRegisteringWebPush] = useState(false);
 
   useEffect(() => {
     setSettings(getPagerSettings());
@@ -172,6 +179,31 @@ export const PagerNotificationSettings = () => {
     setPermissionMsg('Simulated General FYI notification (audio chime + banner).');
   };
 
+  const handleRegisterWebPush = async () => {
+    if (!vapidKey.trim()) {
+      setPermissionMsg('Please paste a valid Firebase VAPID Web Push Public Key.');
+      return;
+    }
+
+    setIsRegisteringWebPush(true);
+    setPermissionMsg(null);
+    try {
+      saveStoredVapidKey(vapidKey);
+      const token = await registerFirebaseWebPush(vapidKey);
+      if (token) {
+        savePagerSettings({ pushToken: token, permissionStatus: 'granted' });
+        setSettings(getPagerSettings());
+        setPermissionMsg('Web Push FCM token successfully registered for this browser.');
+      } else {
+        setPermissionMsg('Failed to register Web Push. Ensure browser notifications are allowed and VAPID key matches Firebase.');
+      }
+    } catch (err) {
+      setPermissionMsg(`Web Push registration error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsRegisteringWebPush(false);
+    }
+  };
+
   const isNative = isCapacitorNative();
   const isGranted = settings.permissionStatus === 'granted';
 
@@ -206,93 +238,82 @@ export const PagerNotificationSettings = () => {
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
-              On-Call Pager & Emergency Calling
+              On-Call Paging & Notification Center
             </Typography>
             <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-              Configure how Shuffle alerts and rings your device during critical incident escalations.
+              Configure siren calling, push notifications, and AI agent alerts across mobile and desktop.
             </Typography>
           </Box>
         </Box>
 
-        <Chip
-          icon={settings.pagerCallingEnabled ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-          label={settings.pagerCallingEnabled ? 'Pager Active' : 'Pager Disabled'}
-          size="small"
-          sx={{
-            fontWeight: 600,
-            bgcolor: settings.pagerCallingEnabled ? 'rgba(22, 163, 74, 0.15)' : 'hsl(var(--muted))',
-            color: settings.pagerCallingEnabled ? '#16A34A' : 'hsl(var(--muted-foreground))',
-            border: `1px solid ${settings.pagerCallingEnabled ? 'rgba(22, 163, 74, 0.3)' : 'hsl(var(--border))'}`,
-          }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Chip
+            icon={isGranted ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+            label={isGranted ? 'Push Registered' : 'Push Inactive'}
+            color={isGranted ? 'success' : 'default'}
+            size="small"
+            variant={isGranted ? 'filled' : 'outlined'}
+            sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+          />
+        </Box>
       </Box>
 
       {permissionMsg && (
         <Alert
-          severity={isGranted ? 'success' : 'warning'}
+          severity={permissionMsg.toLowerCase().includes('error') || permissionMsg.toLowerCase().includes('fail') || permissionMsg.toLowerCase().includes('denied') ? 'error' : 'info'}
           onClose={() => setPermissionMsg(null)}
-          sx={{ borderRadius: 2 }}
+          sx={{ fontSize: '0.85rem' }}
         >
           {permissionMsg}
         </Alert>
       )}
 
-      {/* Main Switch: Enable Pager Calling */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          p: 2,
-          borderRadius: 2,
-          bgcolor: 'hsl(var(--background))',
-          border: '1px solid hsl(var(--border))',
-        }}
-      >
-        <Box sx={{ pr: 2 }}>
-          <Typography sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', mb: 0.25 }}>
-            Enable Incoming Pager Calls
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.825rem' }}>
-            When enabled, critical incidents trigger high-urgency ringing and a full-screen response interface.
-          </Typography>
+      {/* Main Settings Toggles */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        {/* Calling Enable */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', fontSize: '0.95rem' }}>
+              Emergency Pager Calling
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              Receive high-priority incoming call alerts when critical security downtime incidents trigger.
+            </Typography>
+          </Box>
+          <Switch
+            checked={settings.pagerCallingEnabled}
+            onChange={(e) => handleToggleCalling(e.target.checked)}
+            color="primary"
+          />
         </Box>
-        <Switch
-          checked={settings.pagerCallingEnabled}
-          onChange={(e) => handleToggleCalling(e.target.checked)}
-          color="primary"
-        />
-      </Box>
 
-      {/* Granular Preferences */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, opacity: settings.pagerCallingEnabled ? 1 : 0.45, pointerEvents: settings.pagerCallingEnabled ? 'auto' : 'none' }}>
-        {/* Loud Audio Siren */}
+        <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
+
+        {/* Siren Sound */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Volume2 size={18} color="hsl(var(--muted-foreground))" />
             <Box>
               <Typography sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', fontSize: '0.9rem' }}>
-                Emergency Siren & Ringtone
+                Audible Emergency Siren
               </Typography>
               <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                Loud dual-oscillator siren tone that loops until acknowledged.
+                Plays escalating high/low siren audio through the synthesizer while ringing.
               </Typography>
             </Box>
           </Box>
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Button
-              size="small"
               variant="outlined"
+              size="small"
               onClick={handleTestAudio}
               disabled={isPlayingTestSiren}
-              startIcon={<Volume2 size={14} />}
               sx={{
-                height: 32,
-                fontSize: '0.75rem',
                 textTransform: 'none',
+                fontSize: '0.75rem',
                 borderColor: 'hsl(var(--border))',
                 color: 'hsl(var(--foreground))',
-                '&:hover': { borderColor: 'hsl(var(--primary))' },
               }}
             >
               {isPlayingTestSiren ? 'Playing...' : 'Test Siren'}
@@ -366,6 +387,61 @@ export const PagerNotificationSettings = () => {
         </Box>
       </Box>
 
+      {/* Web Push Configuration (VAPID Key) */}
+      {!isNative && (
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            bgcolor: 'hsl(var(--muted) / 0.3)',
+            border: '1px solid hsl(var(--border))',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Key size={16} color="hsl(var(--primary))" />
+            <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'hsl(var(--foreground))' }}>
+              Browser Web Push (VAPID Key)
+            </Typography>
+          </Box>
+          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            To receive pushes in desktop Chrome, Safari, or Firefox when tabs are closed, paste your Firebase Web Push Public Key (VAPID) below:
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+            <TextField
+              size="small"
+              placeholder="Paste Firebase VAPID Public Key (e.g. BEl62iUYg...)"
+              value={vapidKey}
+              onChange={(e) => setVapidKey(e.target.value)}
+              sx={{
+                flex: 1,
+                minWidth: 260,
+                '& .MuiInputBase-input': { fontSize: '0.82rem', fontFamily: 'monospace' },
+              }}
+            />
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleRegisterWebPush}
+              disabled={isRegisteringWebPush || !vapidKey.trim()}
+              sx={{
+                height: 40,
+                textTransform: 'none',
+                fontSize: '0.82rem',
+                bgcolor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                fontWeight: 600,
+              }}
+            >
+              {isRegisteringWebPush ? 'Registering...' : 'Register Web Push'}
+            </Button>
+          </Box>
+        </Box>
+      )}
+
       {/* Push Permissions Status & Action */}
       <Box
         sx={{
@@ -396,7 +472,7 @@ export const PagerNotificationSettings = () => {
 
         {Boolean(settings.pushToken) && (
           <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontFamily: 'monospace' }}>
-            Token: {settings.pushToken?.slice(0, 16)}...
+            Token: {settings.pushToken?.slice(0, 20)}...
           </Typography>
         )}
       </Box>

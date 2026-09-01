@@ -2,6 +2,14 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Haptics } from '@capacitor/haptics';
 import { isCapacitorNative, getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
+import {
+  registerFirebaseWebPush,
+  subscribeToWebForegroundMessages,
+  getStoredVapidKey,
+  saveStoredVapidKey,
+} from '@/config/firebaseWebConfig';
+
+export { getStoredVapidKey, saveStoredVapidKey, registerFirebaseWebPush };
 
 export interface PagerIncident {
   id: string;
@@ -259,8 +267,17 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
     if (typeof Notification !== 'undefined') {
       try {
         const res = await Notification.requestPermission();
-        savePagerSettings({ permissionStatus: res === 'granted' ? 'granted' : 'denied' });
-        return res === 'granted';
+        const granted = res === 'granted';
+        savePagerSettings({ permissionStatus: granted ? 'granted' : 'denied' });
+
+        if (granted) {
+          // Attempt Firebase Web Push registration with VAPID key
+          const webToken = await registerFirebaseWebPush();
+          if (webToken) {
+            savePagerSettings({ pushToken: webToken, permissionStatus: 'granted' });
+          }
+        }
+        return granted;
       } catch {
         return false;
       }
@@ -286,7 +303,39 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
 };
 
 export const setupPushNotificationListeners = () => {
-  if (!isCapacitorNative()) return;
+  if (!isCapacitorNative()) {
+    // Web browser foreground listener
+    subscribeToWebForegroundMessages((payload) => {
+      const data = payload.data || {};
+      if (data.type === 'pager_alert' || data.incidentId) {
+        triggerIncomingPagerCall({
+          id: data.incidentId || String(Date.now()),
+          title: payload.title || data.title || 'Critical Security Incident',
+          severity: data.severity || 'critical',
+          source: data.source || 'Shuffle SOC',
+          orgName: data.orgName,
+          tier: data.tier,
+          description: payload.body || data.description,
+        });
+      } else if (data.type === 'agent_request') {
+        triggerAgentRequestLocalAlert({
+          title: payload.title || data.title || 'AI Agent Input Required',
+          body: payload.body || data.body,
+          executionId: data.executionId,
+          workflowId: data.workflowId,
+          action: data.action,
+        });
+      } else if (data.type === 'general_notification') {
+        triggerGeneralLocalAlert({
+          title: payload.title || data.title || 'Shuffle Security Update',
+          body: payload.body || data.body,
+          description: data.description,
+          referenceUrl: data.referenceUrl,
+        });
+      }
+    });
+    return;
+  }
 
   try {
     PushNotifications.addListener('registration', (token) => {
@@ -308,6 +357,21 @@ export const setupPushNotificationListeners = () => {
           orgName: data.orgName,
           tier: data.tier,
           description: notification.body || data.description,
+        });
+      } else if (data.type === 'agent_request') {
+        triggerAgentRequestLocalAlert({
+          title: notification.title || data.title || 'AI Agent Input Required',
+          body: notification.body || data.body,
+          executionId: data.executionId,
+          workflowId: data.workflowId,
+          action: data.action,
+        });
+      } else if (data.type === 'general_notification') {
+        triggerGeneralLocalAlert({
+          title: notification.title || data.title || 'Shuffle Security Update',
+          body: notification.body || data.body,
+          description: data.description,
+          referenceUrl: data.referenceUrl,
         });
       }
     });
