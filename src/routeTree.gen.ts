@@ -36,6 +36,7 @@ import { Route as BlogNameRouteImport } from './routes/blog.$name'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as LegalIndexRouteImport } from './routes/legal.index'
+import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
 import { Route as CondAppsAppnameRouteImport } from './routes/_cond.apps.$appname'
 import { Route as CondFormsIndexRouteImport } from './routes/_cond.forms.index'
 import { Route as CondFormsIdRouteImport } from './routes/_cond.forms.$id'
@@ -223,6 +224,11 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
 const LegalIndexRoute = LegalIndexRouteImport.update({
   id: '/legal/',
   path: '/legal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalSlugRoute = LegalSlugRouteImport.update({
+  id: '/legal/$slug',
+  path: '/legal/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CondAppsAppnameRoute = CondAppsAppnameRouteImport.update({
@@ -543,6 +549,7 @@ export interface FileRoutesByFullPath {
   '/articles/$name': typeof ArticlesNameRoute
   '/blog/$name': typeof BlogNameRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/articles/': typeof ArticlesIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -625,6 +632,7 @@ export interface FileRoutesByTo {
   '/articles/$name': typeof ArticlesNameRoute
   '/blog/$name': typeof BlogNameRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/articles': typeof ArticlesIndexRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -711,6 +719,7 @@ export interface FileRoutesById {
   '/articles/$name': typeof ArticlesNameRoute
   '/blog/$name': typeof BlogNameRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/articles/': typeof ArticlesIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -795,6 +804,7 @@ export interface FileRouteTypes {
     | '/articles/$name'
     | '/blog/$name'
     | '/docs/$slug'
+    | '/legal/$slug'
     | '/articles/'
     | '/blog/'
     | '/docs/'
@@ -877,6 +887,7 @@ export interface FileRouteTypes {
     | '/articles/$name'
     | '/blog/$name'
     | '/docs/$slug'
+    | '/legal/$slug'
     | '/articles'
     | '/blog'
     | '/docs'
@@ -962,6 +973,7 @@ export interface FileRouteTypes {
     | '/articles/$name'
     | '/blog/$name'
     | '/docs/$slug'
+    | '/legal/$slug'
     | '/articles/'
     | '/blog/'
     | '/docs/'
@@ -1040,6 +1052,7 @@ export interface RootRouteChildren {
   ArticlesNameRoute: typeof ArticlesNameRoute
   BlogNameRoute: typeof BlogNameRoute
   DocsSlugRoute: typeof DocsSlugRoute
+  LegalSlugRoute: typeof LegalSlugRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
@@ -1235,6 +1248,13 @@ declare module '@tanstack/react-router' {
       path: '/legal'
       fullPath: '/legal/'
       preLoaderRoute: typeof LegalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/$slug': {
+      id: '/legal/$slug'
+      path: '/legal/$slug'
+      fullPath: '/legal/$slug'
+      preLoaderRoute: typeof LegalSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_cond/apps/$appname': {
@@ -1802,6 +1822,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArticlesNameRoute: ArticlesNameRoute,
   BlogNameRoute: BlogNameRoute,
   DocsSlugRoute: DocsSlugRoute,
+  LegalSlugRoute: LegalSlugRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
