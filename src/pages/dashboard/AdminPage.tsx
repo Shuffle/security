@@ -20,7 +20,7 @@ import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload } from
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
-import { Billing, TenantManagement } from '@/Shuffle-Core';
+import { TenantManagement } from '@/Shuffle-Core';
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useTheme as useAppTheme } from '@/context/ThemeContext';
