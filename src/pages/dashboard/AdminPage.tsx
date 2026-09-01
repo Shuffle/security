@@ -536,7 +536,7 @@ const AdminPage = () => {
           } as any)}
         />
       )}
-      {activeTab === 3 && userInfo?.support !== true && (
+      
     </Box>
     </>
   );
