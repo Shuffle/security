@@ -335,19 +335,13 @@ const AdminPage = () => {
 
       {(() => {
         const isSupport = userInfo?.support === true;
-        type TabValue = 'overview' | 'users' | 'tenants' | 'billing';
-        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'billing'];
+        type TabValue = 'overview' | 'users' | 'tenants';
+        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants'];
         const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
         const options: SegmentedItem<TabValue>[] = [
           { value: 'overview', label: 'Overview' },
           { value: 'users', label: 'Users' },
           { value: 'tenants', label: 'Tenants' },
-          {
-            value: 'billing',
-            label: 'Billing',
-            disabled: !isSupport,
-            title: isSupport ? undefined : 'Only support users can view billing',
-          },
         ];
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2.5, sm: 4 }, maxWidth: '100%', overflowX: 'auto', pb: 0.5 }}>
