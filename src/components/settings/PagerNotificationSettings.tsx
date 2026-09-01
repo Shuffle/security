@@ -10,7 +10,6 @@ import {
   MenuItem,
   Divider,
   Alert,
-  TextField,
   Collapse,
   IconButton,
 } from '@mui/material';
@@ -28,11 +27,7 @@ import {
   dispatchAgentRequestNotification,
   dispatchGeneralNotification,
   NotificationType,
-  getStoredVapidKey,
-  saveStoredVapidKey,
-  registerFirebaseWebPush,
 } from '@/services/pagerNotificationService';
-import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
 const rowSx = {
   display: 'flex',
@@ -145,8 +140,6 @@ export const PagerNotificationSettings = () => {
   const [isPlayingTestSiren, setIsPlayingTestSiren] = useState(false);
   const [sendingType, setSendingType] = useState<NotificationType | null>(null);
   const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
-  const [vapidKey, setVapidKey] = useState<string>(getStoredVapidKey());
-  const [isRegisteringWebPush, setIsRegisteringWebPush] = useState(false);
   const [expanded, setExpanded] = useState<NotificationType | null>(null);
 
   useEffect(() => {
@@ -256,32 +249,6 @@ export const PagerNotificationSettings = () => {
     });
   };
 
-  const handleRegisterWebPush = async () => {
-    if (!vapidKey.trim()) {
-      setPermissionMsg('Please paste a valid Firebase VAPID Web Push public key.');
-      return;
-    }
-
-    setIsRegisteringWebPush(true);
-    setPermissionMsg(null);
-    try {
-      saveStoredVapidKey(vapidKey);
-      const token = await registerFirebaseWebPush(vapidKey);
-      if (token) {
-        savePagerSettings({ pushToken: token, permissionStatus: 'granted' });
-        setSettings(getPagerSettings());
-        setPermissionMsg('Web push token registered for this browser.');
-      } else {
-        setPermissionMsg('Failed to register web push. Ensure notifications are allowed and the VAPID key matches Firebase.');
-      }
-    } catch (err) {
-      setPermissionMsg(`Web push registration error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsRegisteringWebPush(false);
-    }
-  };
-
-  const isNative = isCapacitorNative();
   const isGranted = settings.permissionStatus === 'granted';
 
   return (
