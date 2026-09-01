@@ -80,7 +80,7 @@ export const DiagnosticsLogsCard: React.FC = () => {
       sx={{
         p: { xs: 2, sm: 2.5 },
         borderRadius: 3,
-        bgcolor: 'hsl(var(--card))',
+        bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
         border: '1px solid hsl(var(--border))',
         boxSizing: 'border-box',
         mb: 3,

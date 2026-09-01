@@ -760,7 +760,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     <Paper
       sx={{
         p: { xs: 2.5, sm: 3.5 },
-        bgcolor: 'hsl(var(--card))',
+        bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
         border: '1px solid hsl(var(--border))',
         borderRadius: 3,
         display: 'flex',
