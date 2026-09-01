@@ -249,8 +249,29 @@ const getPermissionHelp = (): PermissionHelp => {
   };
 };
 
-export const PagerNotificationSettings = () => {
-  const { userInfo } = useAuth();
+export interface PagerNotificationSettingsProps {
+  /** Current user. Optional — when omitted the component loads it from /api/v1/getinfo. */
+  userInfo?: { id?: string; username?: string } | null;
+}
+
+export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotificationSettingsProps = {}) => {
+  const [loadedUser, setLoadedUser] = useState<{ id?: string; username?: string } | null>(null);
+  const userInfo = userInfoProp ?? loadedUser;
+
+  useEffect(() => {
+    if (userInfoProp) return;
+    let cancelled = false;
+    fetch(getApiUrl('/api/v1/getinfo'), { credentials: 'include', headers: { ...getAuthHeader() } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setLoadedUser({ id: data.id, username: data.username });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [userInfoProp]);
+
   const [settings, setSettings] = useState<PagerSettings>(getPagerSettings());
   const [isPlayingTestSiren, setIsPlayingTestSiren] = useState(false);
   const [sendingType, setSendingType] = useState<NotificationType | null>(null);
