@@ -528,25 +528,9 @@ export const PagerNotificationSettings = () => {
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 {permissionHelp.internalUrl && (
-                  <>
-                    <Typography
-                      component="code"
-                      sx={{
-                        fontSize: '0.78rem',
-                        px: 1,
-                        py: 0.4,
-                        borderRadius: 1,
-                        border: '1px solid hsl(var(--border))',
-                        bgcolor: 'hsl(var(--muted) / 0.4)',
-                        color: 'hsl(var(--foreground))',
-                      }}
-                    >
-                      {permissionHelp.internalUrl}
-                    </Typography>
-                    <Button variant="outlined" size="small" onClick={handleCopySettingsPath} sx={outlinedButtonSx}>
-                      {copiedPath ? 'Copied' : 'Copy link'}
-                    </Button>
-                  </>
+                  <Button variant="outlined" size="small" onClick={handleCopySettingsPath} sx={outlinedButtonSx}>
+                    {copiedPath ? 'Copied' : 'Copy settings URL'}
+                  </Button>
                 )}
                 {permissionHelp.docsUrl && (
                   <Button
