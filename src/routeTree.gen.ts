@@ -21,7 +21,6 @@ import { Route as ShuffleCoreRouteImport } from './routes/shuffle-core'
 import { Route as ShuffleCoreDemoRouteImport } from './routes/shuffle-core-demo'
 import { Route as ShuffleMcpDemoRouteImport } from './routes/shuffle-mcp-demo'
 import { Route as ShuffleMcpsRouteImport } from './routes/shuffle-mcps'
-import { Route as TestOncallRouteImport } from './routes/test-oncall'
 import { Route as DashAgentRouteImport } from './routes/_dash.agent'
 import { Route as DashDashboardRouteImport } from './routes/_dash.dashboard'
 import { Route as DashDashboardViewRouteImport } from './routes/_dash.dashboard-view'
@@ -149,11 +148,6 @@ const ShuffleMcpDemoRoute = ShuffleMcpDemoRouteImport.update({
 const ShuffleMcpsRoute = ShuffleMcpsRouteImport.update({
   id: '/shuffle-mcps',
   path: '/shuffle-mcps',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TestOncallRoute = TestOncallRouteImport.update({
-  id: '/test-oncall',
-  path: '/test-oncall',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashAgentRoute = DashAgentRouteImport.update({
@@ -538,7 +532,6 @@ export interface FileRoutesByFullPath {
   '/shuffle-core-demo': typeof ShuffleCoreDemoRoute
   '/shuffle-mcp-demo': typeof ShuffleMcpDemoRoute
   '/shuffle-mcps': typeof ShuffleMcpsRoute
-  '/test-oncall': typeof TestOncallRoute
   '/agent': typeof DashAgentRoute
   '/dashboard': typeof DashDashboardRoute
   '/dashboard-view': typeof DashDashboardViewRoute
@@ -621,7 +614,6 @@ export interface FileRoutesByTo {
   '/shuffle-core-demo': typeof ShuffleCoreDemoRoute
   '/shuffle-mcp-demo': typeof ShuffleMcpDemoRoute
   '/shuffle-mcps': typeof ShuffleMcpsRoute
-  '/test-oncall': typeof TestOncallRoute
   '/agent': typeof DashAgentRoute
   '/dashboard': typeof DashDashboardRoute
   '/dashboard-view': typeof DashDashboardViewRoute
@@ -708,7 +700,6 @@ export interface FileRoutesById {
   '/shuffle-core-demo': typeof ShuffleCoreDemoRoute
   '/shuffle-mcp-demo': typeof ShuffleMcpDemoRoute
   '/shuffle-mcps': typeof ShuffleMcpsRoute
-  '/test-oncall': typeof TestOncallRoute
   '/_dash/agent': typeof DashAgentRoute
   '/_dash/dashboard': typeof DashDashboardRoute
   '/_dash/dashboard-view': typeof DashDashboardViewRoute
@@ -793,7 +784,6 @@ export interface FileRouteTypes {
     | '/shuffle-core-demo'
     | '/shuffle-mcp-demo'
     | '/shuffle-mcps'
-    | '/test-oncall'
     | '/agent'
     | '/dashboard'
     | '/dashboard-view'
@@ -876,7 +866,6 @@ export interface FileRouteTypes {
     | '/shuffle-core-demo'
     | '/shuffle-mcp-demo'
     | '/shuffle-mcps'
-    | '/test-oncall'
     | '/agent'
     | '/dashboard'
     | '/dashboard-view'
@@ -962,7 +951,6 @@ export interface FileRouteTypes {
     | '/shuffle-core-demo'
     | '/shuffle-mcp-demo'
     | '/shuffle-mcps'
-    | '/test-oncall'
     | '/_dash/agent'
     | '/_dash/dashboard'
     | '/_dash/dashboard-view'
@@ -1049,7 +1037,6 @@ export interface RootRouteChildren {
   ShuffleCoreDemoRoute: typeof ShuffleCoreDemoRoute
   ShuffleMcpDemoRoute: typeof ShuffleMcpDemoRoute
   ShuffleMcpsRoute: typeof ShuffleMcpsRoute
-  TestOncallRoute: typeof TestOncallRoute
   ArticlesNameRoute: typeof ArticlesNameRoute
   BlogNameRoute: typeof BlogNameRoute
   DocsSlugRoute: typeof DocsSlugRoute
@@ -1144,13 +1131,6 @@ declare module '@tanstack/react-router' {
       path: '/shuffle-mcps'
       fullPath: '/shuffle-mcps'
       preLoaderRoute: typeof ShuffleMcpsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/test-oncall': {
-      id: '/test-oncall'
-      path: '/test-oncall'
-      fullPath: '/test-oncall'
-      preLoaderRoute: typeof TestOncallRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dash/agent': {
@@ -1818,7 +1798,6 @@ const rootRouteChildren: RootRouteChildren = {
   ShuffleCoreDemoRoute: ShuffleCoreDemoRoute,
   ShuffleMcpDemoRoute: ShuffleMcpDemoRoute,
   ShuffleMcpsRoute: ShuffleMcpsRoute,
-  TestOncallRoute: TestOncallRoute,
   ArticlesNameRoute: ArticlesNameRoute,
   BlogNameRoute: BlogNameRoute,
   DocsSlugRoute: DocsSlugRoute,
