@@ -22,6 +22,10 @@ import {
   Radio,
   CheckCircle,
   AlertCircle,
+  Bot,
+  Info,
+  Send,
+  Zap,
 } from 'lucide-react';
 import {
   getPagerSettings,
@@ -30,12 +34,19 @@ import {
   requestNotificationPermissions,
   playTestSiren,
   testPagerCall,
+  triggerAgentRequestLocalAlert,
+  triggerGeneralLocalAlert,
+  dispatchCriticalPage,
+  dispatchAgentRequestNotification,
+  dispatchGeneralNotification,
+  NotificationType,
 } from '@/services/pagerNotificationService';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
 export const PagerNotificationSettings = () => {
   const [settings, setSettings] = useState<PagerSettings>(getPagerSettings());
   const [isPlayingTestSiren, setIsPlayingTestSiren] = useState(false);
+  const [sendingType, setSendingType] = useState<NotificationType | null>(null);
   const [permissionMsg, setPermissionMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -87,8 +98,78 @@ export const PagerNotificationSettings = () => {
     setIsPlayingTestSiren(true);
     playTestSiren(2200);
     setTimeout(() => {
-      setIsPlayingTestSiren(false), 2300;
+      setIsPlayingTestSiren(false);
+    }, 2300);
+  };
+
+  const handleTestRemotePush = async (type: NotificationType) => {
+    if (!settings.pushToken) {
+      setPermissionMsg('No device push token available. Please grant push permissions first.');
+      return;
+    }
+
+    setSendingType(type);
+    setPermissionMsg(null);
+    try {
+      let res;
+      if (type === 'critical') {
+        res = await dispatchCriticalPage({
+          incidentId: `test-${Date.now()}`,
+          title: 'Remote Pager API Verification Test',
+          source: 'Shuffle API (/api/v1/functions/pager)',
+          targetToken: settings.pushToken,
+          severity: 'critical',
+          tier: 1,
+          autoEscalateSeconds: settings.autoEscalateTimeoutSeconds || 60,
+        });
+      } else if (type === 'agent_request') {
+        res = await dispatchAgentRequestNotification({
+          title: 'AI Agent - Input Required: Confirm IP Block',
+          executionId: `exec-${Date.now()}`,
+          workflowId: 'wf-isolate-host',
+          action: 'approve_containment',
+          targetToken: settings.pushToken,
+          body: 'Subagent detected suspicious brute-force activity. Confirmation needed to isolate host.',
+        });
+      } else {
+        res = await dispatchGeneralNotification({
+          title: 'Weekly SOC Report Available',
+          body: 'The automated weekly security posture report has been compiled.',
+          referenceUrl: '/reports/weekly',
+          targetToken: settings.pushToken,
+        });
+      }
+
+      if (res.success) {
+        setPermissionMsg(`Remote ${type} notification dispatched successfully to ${res.dispatched_to || 1} device(s) via API.`);
+      } else {
+        setPermissionMsg(`Dispatch error: ${res.error || 'Failed to dispatch via API'}`);
+      }
+    } catch (err) {
+      setPermissionMsg(`Dispatch error: ${err instanceof Error ? err.message : 'Network error'}`);
+    } finally {
+      setSendingType(null);
+    }
+  };
+
+  const handleSimulateAgentRequest = () => {
+    triggerAgentRequestLocalAlert({
+      title: 'AI Agent - Input Required: Confirm IP Block',
+      body: 'Subagent detected suspicious brute-force activity. Confirmation needed to isolate host.',
+      executionId: `exec-${Date.now()}`,
+      workflowId: 'wf-isolate-host',
+      action: 'approve_containment',
     });
+    setPermissionMsg('Simulated AI Agent request notification (audio chime + banner).');
+  };
+
+  const handleSimulateGeneral = () => {
+    triggerGeneralLocalAlert({
+      title: 'Workflow Completed: Daily SOC Backup',
+      description: 'The automated nightly backup snapshot completed with 0 errors.',
+      referenceUrl: '/workflows/backup',
+    });
+    setPermissionMsg('Simulated General FYI notification (audio chime + banner).');
   };
 
   const isNative = isCapacitorNative();
@@ -285,7 +366,7 @@ export const PagerNotificationSettings = () => {
         </Box>
       </Box>
 
-      {/* Push Permissions & Simulation Actions */}
+      {/* Push Permissions Status & Action */}
       <Box
         sx={{
           display: 'flex',
@@ -313,22 +394,215 @@ export const PagerNotificationSettings = () => {
           {isGranted ? 'Push Permissions Active' : 'Request Push Permissions'}
         </Button>
 
-        <Button
-          variant="contained"
-          onClick={testPagerCall}
-          startIcon={<Radio size={16} />}
-          sx={{
-            height: 40,
-            fontSize: '0.85rem',
-            textTransform: 'none',
-            bgcolor: 'hsl(var(--primary))',
-            color: 'hsl(var(--primary-foreground))',
-            fontWeight: 600,
-            '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
-          }}
-        >
-          Simulate Test Pager Call
-        </Button>
+        {Boolean(settings.pushToken) && (
+          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontFamily: 'monospace' }}>
+            Token: {settings.pushToken?.slice(0, 16)}...
+          </Typography>
+        )}
+      </Box>
+
+      {/* ── Notification Test Suite (Critical, Agent Request, General) ── */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1, borderTop: '1px solid hsl(var(--border))' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Zap size={18} color="hsl(var(--primary))" />
+          <Typography sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '0.95rem' }}>
+            Interactive Notification Testing Suite
+          </Typography>
+        </Box>
+        <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', mt: -1 }}>
+          Test both local in-browser / desktop alerts and remote real-device push delivery via POST /api/v1/functions/pager.
+        </Typography>
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+          {/* Card 1: Critical Pager */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'hsl(var(--card))',
+              borderColor: 'hsl(var(--destructive) / 0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: 'hsl(var(--destructive))' }}>
+                  1. Critical Pager
+                </Typography>
+                <Chip label="Emergency Siren" size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />
+              </Box>
+              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
+                Outage / downtime alert. Triggers emergency audio siren, continuous vibration, and full-screen call response.
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={testPagerCall}
+                startIcon={<Radio size={14} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  bgcolor: 'hsl(var(--destructive))',
+                  color: '#fff',
+                  '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.85)' },
+                }}
+              >
+                Simulate Call Modal
+              </Button>
+              {Boolean(settings.pushToken) && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleTestRemotePush('critical')}
+                  disabled={sendingType === 'critical'}
+                  startIcon={<Send size={14} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.78rem',
+                    borderColor: 'hsl(var(--destructive) / 0.6)',
+                    color: 'hsl(var(--destructive))',
+                    '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.08)' },
+                  }}
+                >
+                  {sendingType === 'critical' ? 'Dispatching...' : 'Remote Push API'}
+                </Button>
+              )}
+            </Box>
+          </Paper>
+
+          {/* Card 2: Agent Request */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'hsl(var(--card))',
+              borderColor: 'hsl(var(--primary) / 0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: 'hsl(var(--primary))' }}>
+                  2. Agent Request
+                </Typography>
+                <Chip label="User Input" size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem' }} />
+              </Box>
+              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
+                Low-severity notification for when an AI agent requests user review, verification, or approval.
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleSimulateAgentRequest}
+                startIcon={<Bot size={14} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  bgcolor: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                  '&:hover': { bgcolor: 'hsl(var(--primary) / 0.85)' },
+                }}
+              >
+                Simulate Agent Banner
+              </Button>
+              {Boolean(settings.pushToken) && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleTestRemotePush('agent_request')}
+                  disabled={sendingType === 'agent_request'}
+                  startIcon={<Send size={14} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.78rem',
+                    borderColor: 'hsl(var(--primary) / 0.6)',
+                    color: 'hsl(var(--primary))',
+                    '&:hover': { bgcolor: 'hsl(var(--primary) / 0.08)' },
+                  }}
+                >
+                  {sendingType === 'agent_request' ? 'Dispatching...' : 'Remote Push API'}
+                </Button>
+              )}
+            </Box>
+          </Paper>
+
+          {/* Card 3: General Notification */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'hsl(var(--card))',
+              borderColor: 'hsl(var(--border))',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: 'hsl(var(--foreground))' }}>
+                  3. General FYI
+                </Typography>
+                <Chip label="Info Banner" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+              </Box>
+              <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
+                Standard informational notification for completed workflows, schedule rotations, and reports.
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleSimulateGeneral}
+                startIcon={<Info size={14} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  borderColor: 'hsl(var(--border))',
+                  color: 'hsl(var(--foreground))',
+                  '&:hover': { bgcolor: 'hsl(var(--foreground) / 0.05)' },
+                }}
+              >
+                Simulate FYI Banner
+              </Button>
+              {Boolean(settings.pushToken) && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleTestRemotePush('general')}
+                  disabled={sendingType === 'general'}
+                  startIcon={<Send size={14} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.78rem',
+                    borderColor: 'hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                    '&:hover': { bgcolor: 'hsl(var(--foreground) / 0.05)' },
+                  }}
+                >
+                  {sendingType === 'general' ? 'Dispatching...' : 'Remote Push API'}
+                </Button>
+              )}
+            </Box>
+          </Paper>
+        </Box>
       </Box>
     </Paper>
   );

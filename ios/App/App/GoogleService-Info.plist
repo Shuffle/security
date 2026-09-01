@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyDfZZeGAPgajk5dfVhUWWM9_5tdkzHc9HE</string>
+	<key>GCM_SENDER_ID</key>
+	<string>253565968129</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.shuffle.security</string>
+	<key>PROJECT_ID</key>
+	<string>shuffler</string>
+	<key>STORAGE_BUCKET</key>
+	<string>shuffler.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:253565968129:ios:f4cedf0c18b48bfa60c500</string>
+	<key>DATABASE_URL</key>
+	<string>https://shuffler-a1f8d.firebaseio.com</string>
+</dict>
+</plist>

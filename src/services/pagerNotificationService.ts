@@ -1,7 +1,7 @@
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Haptics } from '@capacitor/haptics';
-import { isCapacitorNative } from '@/Shuffle-MCPs/api';
+import { isCapacitorNative, getApiUrl, shuffleFetch } from '@/Shuffle-MCPs/api';
 
 export interface PagerIncident {
   id: string;
@@ -344,7 +344,7 @@ export const triggerIncomingPagerCall = (incident: PagerIncident) => {
     );
   }
 
-  // 3. Local notification on device
+  // 3. Local notification on device (Native Mobile or Desktop Browser)
   if (isCapacitorNative()) {
     LocalNotifications.schedule({
       notifications: [
@@ -358,6 +358,21 @@ export const triggerIncomingPagerCall = (incident: PagerIncident) => {
         },
       ],
     }).catch(() => {});
+  } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      const notif = new Notification(`CRITICAL ALERT: ${incident.title}`, {
+        body: `Incoming emergency call from ${incident.source || 'Shuffle Security'}. Tap to acknowledge.`,
+        icon: '/favicon.ico',
+        requireInteraction: true,
+        tag: incident.id,
+      });
+      notif.onclick = () => {
+        if (typeof window !== 'undefined') window.focus();
+        notif.close();
+      };
+    } catch {
+      // Ignore desktop notification error
+    }
   }
 
   // 4. Auto-escalate timer
@@ -399,6 +414,118 @@ const handleAutoEscalate = (incident: PagerIncident) => {
   }
 };
 
+export const playNotificationChime = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.36);
+  } catch {
+    // Ignore audio error
+  }
+};
+
+export const triggerAgentRequestLocalAlert = (params: {
+  title: string;
+  body?: string;
+  executionId?: string;
+  workflowId?: string;
+  action?: string;
+}) => {
+  playNotificationChime();
+
+  if (isCapacitorNative()) {
+    LocalNotifications.schedule({
+      notifications: [
+        {
+          title: params.title,
+          body: params.body || 'AI Agent requires your review or input to proceed.',
+          id: Math.floor(Math.random() * 100000),
+          channelId: 'agent_notifications',
+          extra: { executionId: params.executionId, workflowId: params.workflowId },
+        },
+      ],
+    }).catch(() => {});
+  } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      const notif = new Notification(params.title, {
+        body: params.body || 'AI Agent requires your review or input to proceed.',
+        icon: '/favicon.ico',
+      });
+      notif.onclick = () => {
+        if (typeof window !== 'undefined') window.focus();
+        notif.close();
+      };
+    } catch {
+      // Ignore
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('shuffle:agent-request-received', {
+        detail: params,
+      }),
+    );
+  }
+};
+
+export const triggerGeneralLocalAlert = (params: {
+  title: string;
+  body?: string;
+  description?: string;
+  referenceUrl?: string;
+}) => {
+  playNotificationChime();
+
+  const bodyText = params.body || params.description || 'You have a new update from Shuffle Security.';
+
+  if (isCapacitorNative()) {
+    LocalNotifications.schedule({
+      notifications: [
+        {
+          title: params.title,
+          body: bodyText,
+          id: Math.floor(Math.random() * 100000),
+          channelId: 'general_notifications',
+          extra: { referenceUrl: params.referenceUrl },
+        },
+      ],
+    }).catch(() => {});
+  } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      const notif = new Notification(params.title, {
+        body: bodyText,
+        icon: '/favicon.ico',
+      });
+      notif.onclick = () => {
+        if (typeof window !== 'undefined') window.focus();
+        notif.close();
+      };
+    } catch {
+      // Ignore
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('shuffle:general-notification-received', {
+        detail: params,
+      }),
+    );
+  }
+};
+
 export const testPagerCall = () => {
   triggerIncomingPagerCall({
     id: `test-incident-${Date.now()}`,
@@ -420,3 +547,135 @@ export const playTestSiren = (durationMs = 2000) => {
 };
 
 export const getActiveCallIncident = (): PagerIncident | null => activeCallIncident;
+
+// ── Remote Pager & Notification API Dispatcher ──────────────────────────────
+
+export type NotificationType = 'critical' | 'agent_request' | 'general';
+
+export interface PagerNotificationPayload {
+  type?: NotificationType;
+  title: string;
+  body?: string;
+  description?: string;
+  source?: string;
+  target_tokens?: string[];
+  target_token?: string;
+  incident_id?: string;
+  severity?: 'critical' | 'high' | 'medium' | 'low' | string;
+  tier?: number;
+  auto_escalate_seconds?: number;
+  execution_id?: string;
+  workflow_id?: string;
+  action?: string;
+  reference_url?: string;
+}
+
+export interface PagerNotificationResponse {
+  success: boolean;
+  type?: string;
+  dispatched_to?: number;
+  total_targets?: number;
+  incident_id?: string;
+  error?: string;
+}
+
+/**
+ * Dispatches an emergency critical page, agent request, or general notification
+ * via the backend Shuffle API endpoint: POST /api/v1/functions/pager
+ */
+export const dispatchPagerNotification = async (
+  payload: PagerNotificationPayload,
+): Promise<PagerNotificationResponse> => {
+  try {
+    const res = await shuffleFetch(getApiUrl('/api/v1/functions/pager'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data: PagerNotificationResponse = await res.json();
+    return data;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error during pager dispatch';
+    return {
+      success: false,
+      error: message,
+    };
+  }
+};
+
+/**
+ * Convenience helper to dispatch a critical on-call incident page
+ */
+export const dispatchCriticalPage = async (params: {
+  incidentId: string;
+  title: string;
+  targetTokens?: string[];
+  targetToken?: string;
+  severity?: string;
+  source?: string;
+  tier?: number;
+  autoEscalateSeconds?: number;
+  body?: string;
+}): Promise<PagerNotificationResponse> => {
+  return dispatchPagerNotification({
+    type: 'critical',
+    incident_id: params.incidentId,
+    title: params.title,
+    body: params.body,
+    source: params.source || 'Shuffle SOC',
+    severity: params.severity || 'critical',
+    tier: params.tier || 1,
+    auto_escalate_seconds: params.autoEscalateSeconds || 60,
+    target_tokens: params.targetTokens,
+    target_token: params.targetToken,
+  });
+};
+
+/**
+ * Convenience helper to dispatch an AI agent question or approval request
+ */
+export const dispatchAgentRequestNotification = async (params: {
+  title: string;
+  executionId?: string;
+  workflowId?: string;
+  action?: string;
+  body?: string;
+  targetTokens?: string[];
+  targetToken?: string;
+}): Promise<PagerNotificationResponse> => {
+  return dispatchPagerNotification({
+    type: 'agent_request',
+    title: params.title,
+    body: params.body || 'AI Agent requires your review or input to proceed.',
+    execution_id: params.executionId,
+    workflow_id: params.workflowId,
+    action: params.action,
+    target_tokens: params.targetTokens,
+    target_token: params.targetToken,
+  });
+};
+
+/**
+ * Convenience helper to dispatch an informational FYI notification
+ */
+export const dispatchGeneralNotification = async (params: {
+  title: string;
+  body?: string;
+  description?: string;
+  referenceUrl?: string;
+  targetTokens?: string[];
+  targetToken?: string;
+}): Promise<PagerNotificationResponse> => {
+  return dispatchPagerNotification({
+    type: 'general',
+    title: params.title,
+    body: params.body,
+    description: params.description,
+    reference_url: params.referenceUrl,
+    target_tokens: params.targetTokens,
+    target_token: params.targetToken,
+  });
+};
