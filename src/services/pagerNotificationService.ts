@@ -562,7 +562,10 @@ export const triggerGeneralLocalAlert = (params: {
   description?: string;
   referenceUrl?: string;
 }) => {
-  playNotificationChime();
+  const settings = getPagerSettings();
+  if (!settings.generalNotificationsEnabled) return;
+  if (settings.generalSoundEnabled) playNotificationChime();
+
 
   const bodyText = params.body || params.description || 'You have a new update from Shuffle Security.';
 
