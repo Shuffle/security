@@ -191,15 +191,16 @@ const SettingRow = ({
   control: ReactNode;
 }) => (
   <Box sx={rowSx}>
-    <Box>
-      <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{label}</Typography>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', lineHeight: 1.35 }}>{label}</Typography>
       {hint && (
-        <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+        <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', lineHeight: 1.35 }}>
           {hint}
         </Typography>
       )}
     </Box>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>{control}</Box>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>{control}</Box>
+
   </Box>
 );
 
