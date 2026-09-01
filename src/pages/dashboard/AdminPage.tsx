@@ -374,7 +374,7 @@ const AdminPage = () => {
               <CircularProgress sx={{ color: 'hsl(var(--primary))' }} />
             </Box>
           ) : (
-            <Box sx={{ maxWidth: 700 }}>
+            <Box sx={{ width: '100%' }}>
               {/* Image section */}
               <Paper
                 sx={{
