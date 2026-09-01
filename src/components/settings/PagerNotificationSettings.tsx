@@ -432,13 +432,14 @@ export const PagerNotificationSettings = () => {
   const selectedDevice = deviceList.find((d) => d.id === selectedDeviceId) || null;
   const remotePreferences = resolveDevicePreferences(selectedDevice);
 
-  const deviceRegistered = Boolean(
-    selectedDevice && devices.some((d) => d.id === selectedDevice.id),
-  );
+  const deviceRegistered = isLocalSelected
+    ? Boolean(selectedDevice)
+    : Boolean(selectedDevice && devices.some((d) => d.id === selectedDevice.id));
   const pushAvailable = isLocalSelected
-    ? settings.permissionStatus === 'granted' && Boolean(settings.pushToken)
+    ? settings.permissionStatus === 'granted'
     : Boolean(selectedDevice?.token);
   const controlsAvailable = deviceRegistered && pushAvailable;
+
   const selectedPlatform = (selectedDevice?.platform || '').toLowerCase();
   const isMobileDevice = selectedPlatform === 'ios' || selectedPlatform === 'android';
   const criticalAvailable = controlsAvailable && isMobileDevice;
