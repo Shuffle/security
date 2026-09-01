@@ -13,6 +13,7 @@ import {
 import { LogOut, KeyRound } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
+import { useIsSupport } from '@/hooks/useIsSupport';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { PagerNotificationSettings } from '@/components/settings/PagerNotificationSettings';
@@ -40,6 +41,7 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { sessionToken, logout, userInfo } = useAuth();
+  const isSupport = useIsSupport();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -226,7 +228,7 @@ const SettingsPage = () => {
           {/* Right Column: On-Call Pager, Emergency Calling & Diagnostics */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <PagerNotificationSettings />
-            <DiagnosticsLogsCard />
+            {isSupport && <DiagnosticsLogsCard />}
           </Box>
         </Box>
       )}
