@@ -175,6 +175,20 @@ export const PagerNotificationSettings = () => {
     setSettings(getPagerSettings());
   };
 
+  const permissionHelp = getPermissionHelp();
+
+  const handleCopySettingsPath = async () => {
+    if (!permissionHelp.internalUrl) return;
+    try {
+      await navigator.clipboard.writeText(permissionHelp.internalUrl);
+      setCopiedPath(true);
+      setTimeout(() => setCopiedPath(false), 2000);
+    } catch {
+      setCopiedPath(false);
+    }
+  };
+
+
   const handleTestAudio = () => {
     setIsPlayingTestSiren(true);
     playTestSiren(2200);
