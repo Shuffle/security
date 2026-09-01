@@ -32,7 +32,7 @@ import {
   type UserSchedule,
 } from '@/Shuffle-Core/components/users/OnCallScheduleManager';
 
-import { useAuth } from '@/context/AuthContext';
+
 import {
   getPagerSettings,
   savePagerSettings,
