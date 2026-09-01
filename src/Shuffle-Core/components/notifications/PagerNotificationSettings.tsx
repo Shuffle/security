@@ -37,6 +37,8 @@ import {
 import {
   getPagerSettings,
   savePagerSettings,
+  registerFirebaseWebPush,
+
   PagerSettings,
   requestNotificationPermissions,
   playTestSiren,
@@ -502,12 +504,43 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     return remotePreferences[PREFERENCE_KEY[type]];
   };
 
+  /** Makes sure we have an FCM token for the local device before saving it. */
+  const ensureLocalPushToken = useCallback(async (): Promise<string> => {
+    const current = getPagerSettings();
+    if (current.pushToken) return current.pushToken;
+    if (current.permissionStatus !== 'granted') return '';
+    try {
+      const token = await registerFirebaseWebPush();
+      if (token) {
+        const next = savePagerSettings({ pushToken: token });
+        setSettings(next);
+        return token;
+      }
+    } catch {
+      // Fall through to empty token handling below
+    }
+    return '';
+  }, []);
+
   const persistDevicePreferences = async (preferences: DevicePreferences) => {
     if (!selectedDevice) return;
     setSavingDevice(true);
+    let token = selectedDevice.token || settings.pushToken || '';
+    if (!token && isLocalSelected) {
+      token = await ensureLocalPushToken();
+    }
+    if (!token) {
+      setSavingDevice(false);
+      setPermissionMsg(
+        isLocalSelected
+          ? 'This device has no push token yet, so the preferences cannot be saved. Notification permission must be granted and the page opened in its own browser tab (not the preview iframe) for a token to be issued.'
+          : `${selectedDevice.device_name || 'This device'} has no push token registered, so its preferences cannot be saved.`,
+      );
+      return;
+    }
     const next: NotificationDevice = {
       id: selectedDevice.id,
-      token: selectedDevice.token || settings.pushToken || '',
+      token,
       platform: selectedDevice.platform || getLocalDevicePlatform(),
       device_name: selectedDevice.device_name || getLocalDeviceName(),
       preferences,
@@ -522,6 +555,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
       setPermissionMsg(`Failed to save the device notification preferences: ${result.reason || 'unknown error'}`);
     }
   };
+
 
   const setSectionEnabled = (type: NotificationType, value: boolean) => {
     if (isLocalSelected) {
@@ -548,9 +582,16 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
 
     if (granted && localDeviceId && userInfo?.id) {
       const existing = devices.find((d) => d.id === localDeviceId);
+      const token = next.pushToken || existing?.token || (await ensureLocalPushToken());
+      if (!token) {
+        setPermissionMsg(
+          'Notification permission is granted, but no push token could be issued for this device. Open the app in its own browser tab (not the preview iframe) and reload to register it.',
+        );
+        return;
+      }
       void saveNotificationDevice(userInfo.id, {
         id: localDeviceId,
-        token: next.pushToken || existing?.token || '',
+        token,
         platform: getLocalDevicePlatform(),
         device_name: existing?.device_name || getLocalDeviceName(),
         preferences: resolveDevicePreferences(existing),
@@ -560,6 +601,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         }
         fetchNotificationDevices().then(setDevices);
       });
+
     }
   };
 
