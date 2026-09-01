@@ -484,24 +484,53 @@ export const PagerNotificationSettings = () => {
         </Box>
 
         {deviceList.length > 0 && (
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" sx={{ minWidth: 110, maxWidth: 160 }}>
             <Select
               value={selectedDeviceId}
               onChange={(e) => setSelectedDeviceId(String(e.target.value))}
               disabled={savingDevice}
+              IconComponent={ChevronDown}
+              renderValue={(value) => {
+                const device = deviceList.find((d) => d.id === value);
+                const label = (device?.device_name || device?.id || String(value)) +
+                  (device?.id === localDeviceId ? ' (this device)' : '');
+                const isMobile = /^(ios|android)$/i.test(device?.platform || '');
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    {isMobile ? (
+                      <Smartphone size={14} color="hsl(var(--muted-foreground))" />
+                    ) : (
+                      <Monitor size={14} color="hsl(var(--muted-foreground))" />
+                    )}
+                    <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--foreground))', lineHeight: 1 }}>
+                      {label}
+                    </Typography>
+                  </Box>
+                );
+              }}
               sx={{
-                height: 30,
-                fontSize: '0.78rem',
+                height: 28,
+                fontSize: '0.75rem',
                 color: 'hsl(var(--foreground))',
                 '& fieldset': { borderColor: 'hsl(var(--border))' },
+                '& .MuiSelect-select': { py: 0.5, px: 1.25, display: 'flex', alignItems: 'center' },
+                '& .MuiSvgIcon-root': { color: 'hsl(var(--muted-foreground))', width: 16, height: 16 },
               }}
             >
-              {deviceList.map((device) => (
-                <MenuItem key={device.id} value={device.id}>
-                  {(device.device_name || device.id) +
-                    (device.id === localDeviceId ? ' (this device)' : '')}
-                </MenuItem>
-              ))}
+              {deviceList.map((device) => {
+                const isMobile = /^(ios|android)$/i.test(device.platform || '');
+                return (
+                  <MenuItem key={device.id} value={device.id} sx={{ fontSize: '0.75rem', py: 0.75, gap: 0.75 }}>
+                    {isMobile ? (
+                      <Smartphone size={14} color="hsl(var(--muted-foreground))" />
+                    ) : (
+                      <Monitor size={14} color="hsl(var(--muted-foreground))" />
+                    )}
+                    {(device.device_name || device.id) +
+                      (device.id === localDeviceId ? ' (this device)' : '')}
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
         )}
