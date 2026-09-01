@@ -68,12 +68,14 @@ const PREFERENCE_KEY: Record<NotificationType, keyof DevicePreferences> = {
 };
 
 const rowSx = {
-  display: 'flex',
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
   justifyContent: 'space-between',
   alignItems: 'center',
-  flexWrap: 'wrap' as const,
-  gap: 2,
+  columnGap: 1.5,
+  rowGap: 1,
 };
+
 
 const outlinedButtonSx = {
   height: 36,
