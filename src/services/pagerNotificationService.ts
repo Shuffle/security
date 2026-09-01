@@ -515,7 +515,10 @@ export const triggerAgentRequestLocalAlert = (params: {
   workflowId?: string;
   action?: string;
 }) => {
-  playNotificationChime();
+  const settings = getPagerSettings();
+  if (!settings.agentRequestEnabled) return;
+  if (settings.agentRequestSoundEnabled) playNotificationChime();
+
 
   if (isCapacitorNative()) {
     LocalNotifications.schedule({
