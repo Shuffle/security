@@ -44,7 +44,6 @@ import { Route as CondUsecasesIndexRouteImport } from './routes/_cond.usecases.i
 import { Route as CondVulnerabilitiesIndexRouteImport } from './routes/_cond.vulnerabilities.index'
 import { Route as CondVulnerabilitiesSplatRouteImport } from './routes/_cond.vulnerabilities.$'
 import { Route as DashAdminIndexRouteImport } from './routes/_dash.admin.index'
-import { Route as DashAdminBillingRouteImport } from './routes/_dash.admin.billing'
 import { Route as DashAdminTenantsRouteImport } from './routes/_dash.admin.tenants'
 import { Route as DashAdminUsersRouteImport } from './routes/_dash.admin.users'
 import { Route as DashAgentsIndexRouteImport } from './routes/_dash.agents.index'
@@ -266,11 +265,6 @@ const CondVulnerabilitiesSplatRoute =
 const DashAdminIndexRoute = DashAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
-  getParentRoute: () => DashRoute,
-} as any)
-const DashAdminBillingRoute = DashAdminBillingRouteImport.update({
-  id: '/admin/billing',
-  path: '/admin/billing',
   getParentRoute: () => DashRoute,
 } as any)
 const DashAdminTenantsRoute = DashAdminTenantsRouteImport.update({
@@ -557,7 +551,6 @@ export interface FileRoutesByFullPath {
   '/apps/$appname': typeof CondAppsAppnameRoute
   '/forms/$id': typeof CondFormsIdRoute
   '/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
-  '/admin/billing': typeof DashAdminBillingRoute
   '/admin/tenants': typeof DashAdminTenantsRoute
   '/admin/users': typeof DashAdminUsersRoute
   '/agents/$executionId': typeof DashAgentsExecutionIdRoute
@@ -640,7 +633,6 @@ export interface FileRoutesByTo {
   '/apps/$appname': typeof CondAppsAppnameRoute
   '/forms/$id': typeof CondFormsIdRoute
   '/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
-  '/admin/billing': typeof DashAdminBillingRoute
   '/admin/tenants': typeof DashAdminTenantsRoute
   '/admin/users': typeof DashAdminUsersRoute
   '/agents/$executionId': typeof DashAgentsExecutionIdRoute
@@ -727,7 +719,6 @@ export interface FileRoutesById {
   '/_cond/apps/$appname': typeof CondAppsAppnameRoute
   '/_cond/forms/$id': typeof CondFormsIdRoute
   '/_cond/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
-  '/_dash/admin/billing': typeof DashAdminBillingRoute
   '/_dash/admin/tenants': typeof DashAdminTenantsRoute
   '/_dash/admin/users': typeof DashAdminUsersRoute
   '/_dash/agents/$executionId': typeof DashAgentsExecutionIdRoute
@@ -812,7 +803,6 @@ export interface FileRouteTypes {
     | '/apps/$appname'
     | '/forms/$id'
     | '/vulnerabilities/$'
-    | '/admin/billing'
     | '/admin/tenants'
     | '/admin/users'
     | '/agents/$executionId'
@@ -895,7 +885,6 @@ export interface FileRouteTypes {
     | '/apps/$appname'
     | '/forms/$id'
     | '/vulnerabilities/$'
-    | '/admin/billing'
     | '/admin/tenants'
     | '/admin/users'
     | '/agents/$executionId'
@@ -981,7 +970,6 @@ export interface FileRouteTypes {
     | '/_cond/apps/$appname'
     | '/_cond/forms/$id'
     | '/_cond/vulnerabilities/$'
-    | '/_dash/admin/billing'
     | '/_dash/admin/tenants'
     | '/_dash/admin/users'
     | '/_dash/agents/$executionId'
@@ -1304,13 +1292,6 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof DashAdminIndexRouteImport
-      parentRoute: typeof DashRoute
-    }
-    '/_dash/admin/billing': {
-      id: '/_dash/admin/billing'
-      path: '/admin/billing'
-      fullPath: '/admin/billing'
-      preLoaderRoute: typeof DashAdminBillingRouteImport
       parentRoute: typeof DashRoute
     }
     '/_dash/admin/tenants': {
@@ -1685,7 +1666,6 @@ interface DashRouteChildren {
   DashSettingsRoute: typeof DashSettingsRoute
   DashTemplatesRoute: typeof DashTemplatesRoute
   DashUsersRoute: typeof DashUsersRoute
-  DashAdminBillingRoute: typeof DashAdminBillingRoute
   DashAdminTenantsRoute: typeof DashAdminTenantsRoute
   DashAdminUsersRoute: typeof DashAdminUsersRoute
   DashAgentsExecutionIdRoute: typeof DashAgentsExecutionIdRoute
@@ -1738,7 +1718,6 @@ const DashRouteChildren: DashRouteChildren = {
   DashSettingsRoute: DashSettingsRoute,
   DashTemplatesRoute: DashTemplatesRoute,
   DashUsersRoute: DashUsersRoute,
-  DashAdminBillingRoute: DashAdminBillingRoute,
   DashAdminTenantsRoute: DashAdminTenantsRoute,
   DashAdminUsersRoute: DashAdminUsersRoute,
   DashAgentsExecutionIdRoute: DashAgentsExecutionIdRoute,

@@ -32,9 +32,6 @@ const getPageTitle = (pathname: string): { title: string; parentPath?: string; p
   if (clean === '/admin/tenants') {
     return { title: 'Tenant Management', parentPath: '/admin', parentLabel: 'Admin' };
   }
-  if (clean === '/admin/billing') {
-    return { title: 'Billing & Plans', parentPath: '/admin', parentLabel: 'Admin' };
-  }
   if (clean === '/settings') {
     return { title: 'Settings', parentPath: '/incidents', parentLabel: 'Incidents' };
   }

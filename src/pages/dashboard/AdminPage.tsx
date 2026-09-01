@@ -20,7 +20,7 @@ import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload } from
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
-import { Billing, TenantManagement } from '@/Shuffle-Core';
+import { TenantManagement } from '@/Shuffle-Core';
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useTheme as useAppTheme } from '@/context/ThemeContext';
@@ -62,7 +62,6 @@ const AdminPage = () => {
   const getTabFromPath = useCallback(() => {
     if (location.pathname === '/admin/users') return 1;
     if (location.pathname === '/admin/tenants') return 2;
-    if (location.pathname === '/admin/billing') return 3;
     return 0;
   }, [location.pathname]);
 
@@ -171,7 +170,6 @@ const AdminPage = () => {
     if (newValue === 0) navigate('/admin');
     else if (newValue === 1) navigate('/admin/users');
     else if (newValue === 2) navigate('/admin/tenants');
-    else if (newValue === 3) navigate('/admin/billing');
   };
 
   // Fetch org details
@@ -336,20 +334,13 @@ const AdminPage = () => {
       </Typography>
 
       {(() => {
-        const isSupport = userInfo?.support === true;
-        type TabValue = 'overview' | 'users' | 'tenants' | 'billing';
-        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'billing'];
+        type TabValue = 'overview' | 'users' | 'tenants';
+        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants'];
         const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
         const options: SegmentedItem<TabValue>[] = [
           { value: 'overview', label: 'Overview' },
           { value: 'users', label: 'Users' },
           { value: 'tenants', label: 'Tenants' },
-          {
-            value: 'billing',
-            label: 'Billing',
-            disabled: !isSupport,
-            title: isSupport ? undefined : 'Only support users can view billing',
-          },
         ];
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2.5, sm: 4 }, maxWidth: '100%', overflowX: 'auto', pb: 0.5 }}>
@@ -366,7 +357,7 @@ const AdminPage = () => {
 
       {activeTab === 0 && (
         <>
-          <Box sx={{ maxWidth: 700 }}>
+          <Box sx={{ maxWidth: 700, mb: 4 }}>
             <PagerNotificationSettings />
           </Box>
 
@@ -544,57 +535,7 @@ const AdminPage = () => {
           } as any)}
         />
       )}
-      {activeTab === 3 && userInfo?.support !== true && (
-        <Alert severity="info">Only support users can view billing.</Alert>
-      )}
-      {activeTab === 3 && userInfo?.support === true && (() => {
-        const origin = typeof window === 'undefined' || window.location === undefined ? '' : window.location.origin;
-        const isLiveStripeOrigin = ['https://shuffler.io', 'https://shuffle.security', 'https://www.shuffle.security', 'https://security.shuffler.io'].includes(origin);
-        const stripeKey = isLiveStripeOrigin
-          ? 'pk_live_51PXYYMEJjT17t98N20qEqItyt1fLQjrnn41lPeG2PjnSlZHTDNKHuisAbW00s4KAn86nGuqB9uSVU4ds8MutbnMU00DPXpZ8ZD'
-          : 'pk_test_51PXYYMEJjT17t98NbDkojZ3DRvsFUQBs35LGMx3i436BXwEBVFKB9nCvHt0Q3M4MG3dz4mHheuWvfoYvpaL3GmsG00k1Rb2ksO';
-        const isSupport = userInfo?.support === true;
-        const searchParams = new URLSearchParams(location.search);
-        const viewParam = searchParams.get('view');
-        const billingView: 'cloud' | 'onprem' = isSupport && viewParam === 'onprem' ? 'onprem' : 'cloud';
-        const setBillingView = (next: 'cloud' | 'onprem') => {
-          const sp = new URLSearchParams(location.search);
-          sp.set('view', next);
-          navigate(`${location.pathname}?${sp.toString()}`, { replace: true });
-        };
-        return (
-          <>
-            {isSupport && (
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <SegmentedControl<'cloud' | 'onprem'>
-                  options={[
-                    { value: 'cloud', label: 'Cloud' },
-                    { value: 'onprem', label: 'On-prem' },
-                  ]}
-                  value={billingView}
-                  onChange={(v) => setBillingView(v)}
-                  variant="filled"
-                  ariaLabel="Billing view"
-                />
-              </Box>
-            )}
-            <Billing
-              theme={shuffleTheme}
-              {...({
-                userdata: userInfo,
-                selectedOrganization: fullOrg || userInfo?.active_org,
-                globalUrl: getApiUrl(''),
-                serverside: false,
-                isLoaded: true,
-                billingInfo: {},
-                stripeKey,
-                isCloud: billingView === 'cloud',
-                handleGetOrg: refreshUserInfo,
-              } as any)}
-            />
-          </>
-        );
-      })()}
+      
     </Box>
     </>
   );
