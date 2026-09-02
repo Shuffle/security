@@ -761,7 +761,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
       }
 
       if (res.success) {
-        setPermissionMsg(`Remote notification dispatched to ${res.dispatched_to || 1} device(s).`);
+        setPermissionMsg(`Push notification sent to ${testTargetName}.`);
       } else {
         setPermissionMsg(`Dispatch error: ${res.error || 'Failed to dispatch via API'}`);
       }
@@ -1152,15 +1152,25 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           expandDisabled={!isGranted}
           onTest={testToken ? () => handleTestRemotePush('critical') : undefined}
           testing={sendingType === 'critical'}
+          testDisabled={!criticalAvailable}
+          testTooltip={
+            criticalAvailable
+              ? `Send a real critical pager push to ${testTargetName} right now, exactly as a live escalation would arrive.`
+              : `Critical Pager is not available on ${testTargetName}, so it cannot be tested. It requires the mobile app.`
+          }
         >
           <SettingRow
             label="Emergency siren"
             hint="Plays escalating siren audio while ringing."
             control={
               <>
-                <Button variant="outlined" size="small" onClick={handleTestAudio} disabled={isPlayingTestSiren} sx={outlinedButtonSx}>
-                  {isPlayingTestSiren ? 'Playing' : 'Test'}
-                </Button>
+                <Tooltip title="Play the siren audio in this browser tab only. No notification is sent." placement="left" arrow>
+                  <span>
+                    <Button variant="outlined" size="small" onClick={handleTestAudio} disabled={isPlayingTestSiren} sx={outlinedButtonSx}>
+                      {isPlayingTestSiren ? 'Playing' : 'Test'}
+                    </Button>
+                  </span>
+                </Tooltip>
                 <Switch
                   checked={settings.sirenSoundEnabled}
                   onChange={(e) => update({ sirenSoundEnabled: e.target.checked })}
@@ -1212,19 +1222,27 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             label="Test delivery"
             control={
               <>
-                <Button variant="outlined" size="small" onClick={testPagerCall} disabled={!testToken} sx={outlinedButtonSx}>
-                  Simulate call
-                </Button>
-                {Boolean(settings.pushToken) && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleTestRemotePush('critical')}
-                    disabled={sendingType === 'critical'}
-                    sx={outlinedButtonSx}
-                  >
-                    {sendingType === 'critical' ? 'Sending' : 'Send push'}
-                  </Button>
+                <Tooltip title="Preview the incoming pager call screen locally in this tab. Nothing is sent to any device." placement="left" arrow>
+                  <span>
+                    <Button variant="outlined" size="small" onClick={testPagerCall} disabled={!criticalAvailable} sx={outlinedButtonSx}>
+                      Simulate call
+                    </Button>
+                  </span>
+                </Tooltip>
+                {Boolean(testToken) && (
+                  <Tooltip title={`Send a real critical pager push through the Shuffle API to ${testTargetName}.`} placement="left" arrow>
+                    <span>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleTestRemotePush('critical')}
+                        disabled={sendingType === 'critical' || !criticalAvailable}
+                        sx={outlinedButtonSx}
+                      >
+                        {sendingType === 'critical' ? 'Sending' : 'Send push'}
+                      </Button>
+                    </span>
+                  </Tooltip>
                 )}
               </>
             }
@@ -1243,6 +1261,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           expandDisabled={!isGranted}
           onTest={testToken ? () => handleTestRemotePush('agent_request') : undefined}
           testing={sendingType === 'agent_request'}
+          testTooltip={`Send a real agent-request push to ${testTargetName} right now, exactly as an agent approval would arrive.`}
         >
           <SettingRow
             label="Sound"
@@ -1261,19 +1280,27 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             label="Test delivery"
             control={
               <>
-                <Button variant="outlined" size="small" onClick={handleSimulateAgentRequest} disabled={!testToken} sx={outlinedButtonSx}>
-                  Simulate
-                </Button>
-                {Boolean(settings.pushToken) && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleTestRemotePush('agent_request')}
-                    disabled={sendingType === 'agent_request'}
-                    sx={outlinedButtonSx}
-                  >
-                    {sendingType === 'agent_request' ? 'Sending' : 'Send push'}
-                  </Button>
+                <Tooltip title="Show an agent-request alert locally in this tab. Nothing is sent to any device." placement="left" arrow>
+                  <span>
+                    <Button variant="outlined" size="small" onClick={handleSimulateAgentRequest} disabled={!testToken} sx={outlinedButtonSx}>
+                      Simulate
+                    </Button>
+                  </span>
+                </Tooltip>
+                {Boolean(testToken) && (
+                  <Tooltip title={`Send a real agent-request push through the Shuffle API to ${testTargetName}.`} placement="left" arrow>
+                    <span>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleTestRemotePush('agent_request')}
+                        disabled={sendingType === 'agent_request'}
+                        sx={outlinedButtonSx}
+                      >
+                        {sendingType === 'agent_request' ? 'Sending' : 'Send push'}
+                      </Button>
+                    </span>
+                  </Tooltip>
                 )}
               </>
             }
@@ -1292,6 +1319,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           expandDisabled={!isGranted}
           onTest={testToken ? () => handleTestRemotePush('general') : undefined}
           testing={sendingType === 'general'}
+          testTooltip={`Send a real general push to ${testTargetName} right now, exactly as a routine update would arrive.`}
         >
           <SettingRow
             label="Sound"
@@ -1310,19 +1338,27 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
             label="Test delivery"
             control={
               <>
-                <Button variant="outlined" size="small" onClick={handleSimulateGeneral} disabled={!testToken} sx={outlinedButtonSx}>
-                  Simulate
-                </Button>
-                {Boolean(settings.pushToken) && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleTestRemotePush('general')}
-                    disabled={sendingType === 'general'}
-                    sx={outlinedButtonSx}
-                  >
-                    {sendingType === 'general' ? 'Sending' : 'Send push'}
-                  </Button>
+                <Tooltip title="Show a general notification locally in this tab. Nothing is sent to any device." placement="left" arrow>
+                  <span>
+                    <Button variant="outlined" size="small" onClick={handleSimulateGeneral} disabled={!testToken} sx={outlinedButtonSx}>
+                      Simulate
+                    </Button>
+                  </span>
+                </Tooltip>
+                {Boolean(testToken) && (
+                  <Tooltip title={`Send a real general push through the Shuffle API to ${testTargetName}.`} placement="left" arrow>
+                    <span>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleTestRemotePush('general')}
+                        disabled={sendingType === 'general'}
+                        sx={outlinedButtonSx}
+                      >
+                        {sendingType === 'general' ? 'Sending' : 'Send push'}
+                      </Button>
+                    </span>
+                  </Tooltip>
                 )}
               </>
             }
