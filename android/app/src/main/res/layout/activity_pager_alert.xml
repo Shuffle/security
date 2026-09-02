@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0F1117"
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:fitsSystemWindows="true">
+
+    <!-- Top Badge / Header -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#2E1114"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="24dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CRITICAL PAGER ALERT"
+            android:textColor="#EF4444"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:letterSpacing="0.08" />
+    </LinearLayout>
+
+    <!-- Incident Icon / Branding Container -->
+    <TextView
+        android:id="@+id/tv_app_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Shuffle Security"
+        android:textColor="#FF6600"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Incident Title -->
+    <TextView
+        android:id="@+id/tv_incident_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="High Severity Security Alert"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Incident Details / Message Body -->
+    <TextView
+        android:id="@+id/tv_incident_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="An urgent incident requires your attention immediately."
+        android:textColor="#9CA3AF"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Source / Timestamp Info -->
+    <TextView
+        android:id="@+id/tv_incident_meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Triggered just now"
+        android:textColor="#6B7280"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:layout_marginBottom="36dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp">
+
+        <!-- Acknowledge & Open App Button -->
+        <Button
+            android:id="@+id/btn_acknowledge"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Acknowledge &amp; Open"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="#FF6600"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Silence Siren Only Button -->
+        <Button
+            android:id="@+id/btn_silence"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Silence Alarm"
+            android:textColor="#9CA3AF"
+            android:textSize="14sp"
+            android:backgroundTint="#1F2430" />
+    </LinearLayout>
+
+</LinearLayout>

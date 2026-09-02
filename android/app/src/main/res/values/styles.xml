@@ -25,4 +25,12 @@
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 
+    <style name="PagerAlertTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#0F1117</item>
+        <item name="android:statusBarColor">#0A0A0A</item>
+        <item name="android:navigationBarColor">#0A0A0A</item>
+        <item name="android:showWhenLocked">true</item>
+        <item name="android:turnScreenOn">true</item>
+    </style>
+
 </resources>

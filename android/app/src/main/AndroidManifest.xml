@@ -51,7 +51,24 @@
                 <data android:scheme="https" android:host="shuffle.security" />
             </intent-filter>
 
-        </activity>
+        <!-- Full-screen Emergency Pager Activity shown over the lockscreen -->
+        <activity
+            android:name="io.shuffle.security.PagerAlertActivity"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/PagerAlertTheme"
+            android:launchMode="singleTask"
+            android:exported="false" />
+
+        <!-- Custom Firebase Messaging Service for Waking Screen and Full-Screen Pager Alerts -->
+        <service
+            android:name="io.shuffle.security.ShuffleFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter android:priority="100">
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"
