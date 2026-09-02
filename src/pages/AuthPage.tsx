@@ -237,7 +237,9 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         trackPredefinedEvent(GA_EVENTS.LOGIN_SUCCESS);
         const wasFirstLogin = !hasLoggedInBefore;
         localStorage.setItem('shuffle_has_logged_in', 'true');
-        const accepted = await login(sessionToken, verifiedUserInfo);
+        // This verification was cookie-only, so do not retain the returned
+        // token as a second credential.
+        const accepted = await login('', verifiedUserInfo);
         if (!accepted) {
           throw new Error('Login succeeded but session verification failed. Please try again.');
         }

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { getApiUrl, getAuthHeader, getSessionAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
@@ -124,12 +124,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
+      const token = _token?.trim() || '';
       const response = await fetch(getApiUrl('/api/v1/getinfo'), {
         method: 'GET',
-        credentials: 'include',
+        credentials: token ? 'omit' : 'include',
         signal: controller.signal,
         headers: {
-          ...getSessionAuthHeader(),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json',
         },
       });
@@ -206,11 +207,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (document.visibilityState !== 'visible') return;
 
       try {
+        const token = getSessionToken();
         const response = await fetch(getApiUrl('/api/v1/getinfo'), {
           method: 'GET',
-          credentials: 'include',
+          credentials: token ? 'omit' : 'include',
           headers: {
-            ...getSessionAuthHeader(),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
         });
