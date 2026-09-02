@@ -706,7 +706,13 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     : settings.pushToken || '';
   const testTargetName = selectedDevice?.device_name || 'this device';
 
+  const requestCriticalTest = (mode: 'push' | 'simulate') => {
+    if (!criticalAvailable) return;
+    setPendingCriticalTest(mode);
+  };
+
   const handleTestRemotePush = async (type: NotificationType) => {
+
     if (type === 'critical' && !criticalAvailable) {
       setPermissionMsg(
         `Critical Pager is not available on ${testTargetName}. It requires the mobile app, so it cannot be tested here.`,
