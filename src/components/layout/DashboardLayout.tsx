@@ -13,6 +13,7 @@ import { prefetchCommonRoutes } from '@/lib/routePrefetch';
 import { useAuth } from '@/context/AuthContext';
 import { loadAgentToolsFromDatastore } from '@/lib/agentTools';
 import { IosWebViewNavHeader } from './IosWebViewNavHeader';
+import { MobilePageTitleHider } from './MobilePageTitleHider';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -140,6 +141,7 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
           }}
         >
           <IosWebViewNavHeader />
+          <MobilePageTitleHider />
           <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             {orgMismatchWarning && (
               <Alert

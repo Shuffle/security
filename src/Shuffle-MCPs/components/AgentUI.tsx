@@ -4755,11 +4755,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
         width: isPhone ? '100%' : 'fit-content',
         alignSelf: 'center',
-        position: isPhone ? 'fixed' : 'sticky',
+        position: 'sticky',
         top: isPhone ? 0 : 8,
-        left: isPhone ? 0 : 'auto',
-        right: isPhone ? 0 : 'auto',
-        zIndex: isPhone ? 1300 : 5,
+        left: 'auto',
+        right: 'auto',
+        zIndex: isPhone ? 20 : 5,
         bgcolor: isPhone ? 'hsl(var(--background))' : 'hsl(var(--card))',
         borderRadius: isPhone ? 0 : 9999,
         borderBottom: isPhone ? '1px solid hsl(var(--border))' : 'none',
@@ -5447,9 +5447,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
         ]}
       >
         {(showRunSwitcher || isPhone) && tabBar}
-        {isPhone && (
-          <Box sx={{ height: 52, flexShrink: 0, flexGrow: 0 }} />
-        )}
         {schedulePopover}
         {mobilePlusMenu}
         {showStarter ? (
