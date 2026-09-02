@@ -292,6 +292,10 @@ export const MobileAuthGateway = () => {
           });
           const verifyData = await verifyRes.json().catch(() => ({} as any));
           verified = verifyRes.ok && verifyData?.success === true;
+          if (verified) {
+            const accepted = await login(sessionToken || '', verifyData);
+            verified = accepted;
+          }
         } catch {
           verified = false;
         }
@@ -302,7 +306,6 @@ export const MobileAuthGateway = () => {
         }
 
         localStorage.setItem('shuffle_has_logged_in', 'true');
-        await login(sessionToken || '');
         navigate(from, { replace: true });
       } else {
         setError(data.reason || data.message || 'Login failed. Please verify credentials.');

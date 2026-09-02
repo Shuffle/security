@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getSessionAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
@@ -43,11 +43,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   sessionToken: string | null;
   userInfo: UserInfo | null;
-  login: (token: string) => Promise<void>;
+  login: (token: string, verifiedUserInfo?: any) => Promise<boolean>;
   logout: () => Promise<void>;
   isLoading: boolean;
   refreshUserInfo: () => Promise<void>;
-  authenticateWithApiKey: (data: any) => void;
   setActiveOrg: (orgId: string) => Promise<void>;
   orgMismatchWarning: boolean;
   dismissOrgMismatch: () => void;
@@ -75,20 +74,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window === 'undefined') return null;
     try { return window.localStorage.getItem('session_token'); } catch { return null; }
   })();
-  const hasCachedSession = !!(cachedUserInfo && (cachedToken || cachedUserInfo.active_org?.id));
-
   const [sessionToken, setSessionToken] = useState<string | null>(cachedToken);
-  const [isAuthenticated, setIsAuthenticated] = useState(hasCachedSession);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(hasCachedSession ? cachedUserInfo : null);
-  // Only block UI on the initial getinfo when we have nothing cached. If we
-  // already have a cached session, render optimistically and revalidate in
-  // the background.
-  const [isLoading, setIsLoading] = useState(!hasCachedSession);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [orgMismatchWarning, setOrgMismatchWarning] = useState(false);
 
   // Seed the runtime org id from cache synchronously so datastore calls
   // fired on the very first render don't get "no org" and 401.
-  if (hasCachedSession && cachedUserInfo?.active_org?.id) {
+  if (cachedUserInfo?.active_org?.id) {
     try { setRuntimeOrgId(cachedUserInfo.active_org.id); } catch { /* ignore */ }
   }
 
@@ -135,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         credentials: 'include',
         signal: controller.signal,
         headers: {
-          ...getAuthHeader(),
+          ...getSessionAuthHeader(),
           'Content-Type': 'application/json',
         },
       });
@@ -173,7 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // On mobile (or web with no cached session), unauthenticated is the starting point.
       // Skip the initial network request to avoid unnecessary 401s on initial boot.
-      if (!token && (!hasCachedSession || isCapacitorNative())) {
+      if (!token && isCapacitorNative()) {
         setIsAuthenticated(false);
         setUserInfo(null);
         setIsLoading(false);
@@ -216,7 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           method: 'GET',
           credentials: 'include',
           headers: {
-            ...getAuthHeader(),
+            ...getSessionAuthHeader(),
             'Content-Type': 'application/json',
           },
         });
@@ -238,26 +232,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isAuthenticated, userInfo?.active_org?.id]);
 
-  const login = useCallback(async (token: string) => {
-    // Exactly one auth credential may exist at a time. Wipe any previous
-    // session token and every legacy API key before storing the new one, so
-    // two different users' tokens can never coexist.
-    persistSessionToken(token);
-    setSessionToken(token);
-    setIsAuthenticated(true);
-    await fetchUserInfo(token);
-  }, [fetchUserInfo]);
+  const login = useCallback(async (token: string, verifiedUserInfo?: any): Promise<boolean> => {
+    localStorage.removeItem('shuffle_user_info');
+    setRuntimeOrgId(null);
+    resetRegionUrl();
+
+    // Production web authentication is cookie-only. Native apps and Lovable
+    // testing may persist exactly one session token as the fallback.
+    const tokenToStore = (isCapacitorNative() || isDevEnvironment()) ? token : '';
+    persistSessionToken(tokenToStore);
+    setSessionToken(tokenToStore || null);
+    setIsAuthenticated(false);
+    setUserInfo(null);
+
+    if (verifiedUserInfo?.success === true) {
+      applyAuthenticatedUserInfo(verifiedUserInfo);
+      setIsAuthenticated(true);
+      return true;
+    }
+
+    const result = await fetchUserInfo(tokenToStore);
+    if (result === 'ok') {
+      setIsAuthenticated(true);
+      return true;
+    }
+
+    clearAuthTokens();
+    localStorage.removeItem('shuffle_user_info');
+    setRuntimeOrgId(null);
+    setSessionToken(null);
+    setIsAuthenticated(false);
+    setUserInfo(null);
+    return false;
+  }, [applyAuthenticatedUserInfo, fetchUserInfo]);
 
   const refreshUserInfo = useCallback(async () => {
     const token = localStorage.getItem('session_token');
     await fetchUserInfo(token);
   }, [fetchUserInfo]);
-
-  const authenticateWithApiKey = useCallback((data: any) => {
-    applyAuthenticatedUserInfo(data);
-    setIsAuthenticated(true);
-    setIsLoading(false);
-  }, [applyAuthenticatedUserInfo]);
 
   const setActiveOrg = useCallback(async (orgId: string) => {
     try {
@@ -364,7 +376,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         isLoading,
         refreshUserInfo,
-        authenticateWithApiKey,
         setActiveOrg,
         orgMismatchWarning,
         dismissOrgMismatch,
