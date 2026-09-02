@@ -1180,7 +1180,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
           expandDisabled={!isGranted}
-          onTest={testToken ? () => handleTestRemotePush('critical') : undefined}
+          onTest={testToken ? () => requestCriticalTest('push') : undefined}
           testing={sendingType === 'critical'}
           testDisabled={!criticalAvailable}
           testTooltip={
