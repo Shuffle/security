@@ -290,7 +290,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return true;
     }
 
-    const result = await fetchUserInfo(tokenToStore);
+    const result = await verifyUserInfo(tokenToStore, 2);
     if (result === 'ok') {
       setIsAuthenticated(true);
       return true;
