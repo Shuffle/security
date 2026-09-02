@@ -6,7 +6,7 @@ import { algoliasearch } from 'algoliasearch';
 
 import { Box, CircularProgress, Avatar, AvatarGroup, Tooltip, Stack, Typography, Link as MuiLink, Button } from '@mui/material';
 import { Clock as ClockIcon, Github as GithubIcon, RefreshCw as RefreshCwIcon } from 'lucide-react';
-import { getApiUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { resolveDocName, fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
@@ -89,6 +89,10 @@ const fetchRemoteDoc = async (
     try {
       const res = await fetch(
         getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${docsQuery(folder, resetCache)}`),
+        {
+          credentials: 'include',
+          headers: { ...getAuthHeader() },
+        },
       );
       if (!res.ok) continue;
       const data = await res.json();

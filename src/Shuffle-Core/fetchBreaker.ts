@@ -89,11 +89,11 @@ const keyFor = (input: RequestInfo | URL, init?: RequestInit): string | null => 
 
 /**
  * Legacy areas of the dashboard still call window.fetch directly instead of
- * shuffleFetch/getAuthHeader. Keep API-key authentication invariant at the
- * transport boundary so every request to a registered Shuffle /api/* origin
- * carries the developer key after login.
+ * shuffleFetch/getAuthHeader. Keep API-key and session_token authentication
+ * invariant at the transport boundary so every request to a registered Shuffle
+ * /api/* origin carries the Authorization and Org-Id headers.
  */
-const withStoredApiKey = (input: RequestInfo | URL, init?: RequestInit): RequestInit | undefined => {
+const withStoredAuth = (input: RequestInfo | URL, init?: RequestInit): RequestInit | undefined => {
   if (typeof window === 'undefined') return init;
 
   let urlStr: string;
@@ -108,11 +108,15 @@ const withStoredApiKey = (input: RequestInfo | URL, init?: RequestInit): Request
       || url.origin === window.location.origin
       || url.hostname === 'shuffler.io'
       || url.hostname.endsWith('.shuffler.io')
-      || url.hostname === 'tunnel.schemaless.org';
+      || url.hostname === 'tunnel.schemaless.org'
+      || url.hostname === 'shuffle.security'
+      || url.hostname.endsWith('.shuffle.security');
     if (!url.pathname.startsWith('/api/') || !isKnownShuffleOrigin) return init;
+    if (url.pathname === '/api/v1/login' || url.pathname === '/api/v1/users/register') return init;
 
     const apiKey = window.localStorage.getItem('shuffle_api_key');
-    if (!apiKey) return init;
+    const sessionToken = window.localStorage.getItem('session_token');
+    const token = apiKey || (sessionToken && sessionToken.trim().length > 0 ? sessionToken : null);
 
     const requestHeaders = typeof Request !== 'undefined' && input instanceof Request
       ? input.headers
@@ -121,9 +125,26 @@ const withStoredApiKey = (input: RequestInfo | URL, init?: RequestInit): Request
     if (init?.headers) {
       new Headers(init.headers).forEach((value, name) => headers.set(name, value));
     }
-    if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${apiKey}`);
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
 
-    return { ...init, headers };
+    if (!headers.has('Org-Id')) {
+      try {
+        const raw = window.localStorage.getItem('shuffle_user_info');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const orgId = parsed?.active_org?.id;
+          if (orgId) headers.set('Org-Id', orgId);
+        }
+      } catch { /* ignore */ }
+    }
+
+    return {
+      ...init,
+      credentials: init?.credentials || 'include',
+      headers,
+    };
   } catch {
     return init;
   }
@@ -181,7 +202,7 @@ export const installFetchBreaker = () => {
   const original = window.fetch.bind(window);
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const authenticatedInit = withStoredApiKey(input, init);
+    const authenticatedInit = withStoredAuth(input, init);
     const key = keyFor(input, authenticatedInit);
     if (!key) return original(input, authenticatedInit);
 

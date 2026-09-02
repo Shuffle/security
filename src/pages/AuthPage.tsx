@@ -57,9 +57,14 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const isMobile = useIsMobile();
 
   // Get return URL from state (set by ProtectedRoute) or from URL param (persists on refresh).
-  // Prefer `view` (current canonical param); fall back to legacy `returnUrl` for backwards compatibility.
+  // Prefer `redirect` / `view` / `returnUrl` query parameters for post-login destination
   const searchParams = new URLSearchParams(location.search);
-  const returnUrl = searchParams.get('view') || searchParams.get('returnUrl');
+  const returnUrl =
+    searchParams.get('redirect') ||
+    searchParams.get('redirect_to') ||
+    searchParams.get('return_to') ||
+    searchParams.get('view') ||
+    searchParams.get('returnUrl');
   // First login detection: if no explicit returnUrl and user has never logged in, go to onboarding
   const hasLoggedInBefore = localStorage.getItem('shuffle_has_logged_in') === 'true';
   // On mobile, successful logins should always land on the incident list.

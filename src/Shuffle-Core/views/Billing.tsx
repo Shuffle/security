@@ -67,9 +67,8 @@ import {
 import { typecost, typecost_single, } from "./HandlePaymentNew";
 // BillingStats component is not yet available in this project — render a
 // lightweight placeholder so the rest of the Billing surface still works.
-const BillingStats = (_props: any) => null;
-import LicencePopup from "../components/LicencePopup";
-import { handlePayasyougo } from "./HandlePaymentNew"
+import { handlePayasyougo } from "./HandlePaymentNew";
+import { getAuthHeader } from "../api";
 
 
 import { Delete as DeleteIcon } from '@mui/icons-material';
@@ -797,6 +796,7 @@ const Billing = memo((props) => {
 			headers: {
 				"Content-Type": "application/json",
 				Accept: "application/json",
+				...getAuthHeader(),
 			},
 			credentials: "include",
 		})
@@ -819,7 +819,7 @@ const Billing = memo((props) => {
 			return (
 				userdata?.api_key ||
 				userdata?.apikey ||
-				(typeof window !== 'undefined' ? window.localStorage.getItem('shuffle_api_key') : null)
+				(typeof window !== 'undefined' ? window.localStorage.getItem('shuffle_api_key') || window.localStorage.getItem('session_token') : null)
 			);
 		} catch {
 			return null;
@@ -838,6 +838,7 @@ const Billing = memo((props) => {
 		  headers: {
 			"Content-Type": "application/json",
 			Accept: "application/json",
+			...getAuthHeader(orgid),
 			...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
 		  },
 		  credentials: "include",

@@ -24,6 +24,7 @@ import {
   Minus as RemoveIcon
 } from 'lucide-react';
 import { getTheme, Context, UsecaseSearch, WorkflowGrid, WorkflowTemplatePopup, WorkflowValidationTimeline, useStyles } from "./stubs";
+import { getAuthHeader } from "../api";
 import { isMobile } from "react-device-detect";
 import { MuiChipsInput } from "mui-chips-input";
 import { toast } from "react-toastify";
@@ -269,6 +270,7 @@ const EditWorkflow = (props) => {
 			headers: {
 				"Content-Type": "application/json",
 				Accept: "application/json",
+				...getAuthHeader(),
 			},
 			credentials: "include",
 		})
@@ -620,6 +622,7 @@ const EditWorkflow = (props) => {
 												headers: {
 													"Content-Type": "application/json",
 													Accept: "application/json",
+													...getAuthHeader(),
 												},
 												body: JSON.stringify(workflowData),
 												credentials: "include",
@@ -664,6 +667,7 @@ const EditWorkflow = (props) => {
 												headers: {
 													"Content-Type": "application/json",
 													Accept: "application/json",
+													...getAuthHeader(),
 												},
 												body: JSON.stringify(data),
 												credentials: "include",

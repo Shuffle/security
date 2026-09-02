@@ -13,9 +13,10 @@ import {
   IconButton,
   InputAdornment,
 } from '@mui/material';
-import { LogOut, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Eye, EyeOff, Sun, Moon, Monitor } from 'lucide-react';
 import { getApiUrl, getAuthHeader, API_CONFIG } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -52,6 +53,7 @@ const SettingsPage = () => {
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const { sessionToken, logout, userInfo } = useAuth();
+  const { theme: currentTheme, setTheme } = useTheme();
   const isSupport = useIsSupport();
   const navigate = useNavigate();
 
@@ -249,8 +251,64 @@ const SettingsPage = () => {
 
           </Box>
 
-          {/* Right Column: Notifications, Password & Diagnostics */}
+          {/* Right Column: Appearance, Notifications, Password & Diagnostics */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Paper
+              sx={{
+                p: 3,
+                bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 3,
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, mb: 0.5 }}
+              >
+                Appearance
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem', mb: 2 }}
+              >
+                Choose your preferred interface theme.
+              </Typography>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
+                {([
+                  { value: 'dark' as const, label: 'Dark', icon: <Moon size={16} /> },
+                  { value: 'light' as const, label: 'Light', icon: <Sun size={16} /> },
+                  { value: 'system' as const, label: 'System', icon: <Monitor size={16} /> },
+                ]).map(({ value, label, icon }) => {
+                  const isSelected = currentTheme === value;
+                  return (
+                    <Button
+                      key={value}
+                      onClick={() => setTheme(value)}
+                      variant={isSelected ? 'contained' : 'outlined'}
+                      startIcon={icon}
+                      sx={{
+                        py: 1,
+                        textTransform: 'none',
+                        fontSize: '0.85rem',
+                        fontWeight: isSelected ? 600 : 400,
+                        borderRadius: 2,
+                        borderColor: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                        bgcolor: isSelected ? 'hsl(var(--primary))' : 'transparent',
+                        color: isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+                        '&:hover': {
+                          bgcolor: isSelected ? 'hsl(var(--primary) / 0.9)' : 'hsl(var(--muted))',
+                          borderColor: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                        },
+                      }}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
+              </Box>
+            </Paper>
+
             <PagerNotificationSettings />
 
             <Paper

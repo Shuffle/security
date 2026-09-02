@@ -457,7 +457,7 @@ export const resolveAgentContinuationTargets = async (
     const resp = await fetch(getApiUrl('/api/v1/streams/results'), {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify({ execution_id: executionId, authorization }),
     });
     if (!resp.ok) return empty;

@@ -40,7 +40,9 @@ const cacheKey = (o: FetchAppsOptions): string =>
   `${o.baseUrl}|${o.path || '/api/v1/apps'}|${o.apiKey || ''}|${o.orgId || ''}`;
 
 const doFetch = async (o: FetchAppsOptions): Promise<any[]> => {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    ...getAuthHeader(o.orgId || undefined),
+  };
   if (o.apiKey) headers['Authorization'] = `Bearer ${o.apiKey}`;
   if (o.orgId) headers['Org-Id'] = o.orgId;
 

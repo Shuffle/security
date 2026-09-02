@@ -254,7 +254,10 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
   let sessionToken: string | null = null;
   if (typeof localStorage !== 'undefined') {
     try {
-      sessionToken = localStorage.getItem('session_token');
+      const stored = localStorage.getItem('session_token');
+      if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
+        sessionToken = stored.trim();
+      }
     } catch {
       sessionToken = null;
     }
@@ -265,7 +268,19 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const orgId = overrideOrgId ?? _trackedOrgId;
+  // Scope to the active org. Explicit override beats the tracked org, falling
+  // back to the persisted active_org from shuffle_user_info if untracked.
+  let orgId = overrideOrgId ?? _trackedOrgId;
+  if (!orgId && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('shuffle_user_info');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        orgId = parsed?.active_org?.id || parsed?.org_id || null;
+      }
+    } catch { /* ignore */ }
+  }
+
   if (orgId) {
     headers['Org-Id'] = orgId;
   }

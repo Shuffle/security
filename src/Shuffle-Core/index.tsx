@@ -208,3 +208,23 @@ export {
   getLocalDevicePlatform,
 } from './services/notificationDevices';
 export type { NotificationDevice, DevicePreferences } from './services/notificationDevices';
+
+// OAuth 2.1 authorization consent surface for MCPs and integrations
+import {
+  OAuthAuthorizeView as OAuthAuthorizeViewRaw,
+  type OAuthAuthorizeViewProps,
+  type OAuthScopeDetail,
+  type OrganizationLike,
+  type UserInfoLike,
+} from './components/oauth/OAuthAuthorizeView';
+export const OAuthAuthorizeView = withTheme<OAuthAuthorizeViewProps>(
+  OAuthAuthorizeViewRaw,
+  'OAuthAuthorizeView',
+);
+export type {
+  OAuthAuthorizeViewProps,
+  OAuthScopeDetail,
+  OrganizationLike,
+  UserInfoLike,
+};
+

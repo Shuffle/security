@@ -47,6 +47,7 @@ import {
   getDatastoreByCategory,
   resolveApp,
 } from '@shuffleio/shuffle-mcps';
+import { getAuthHeader } from '../api';
 import { useUsecaseOutcomes } from '../hooks/useUsecaseOutcomes';
 import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
 import { resolveOutcomeKind } from '../lib/outcomes';
@@ -1164,8 +1165,7 @@ interface UsecasesPageConfig {
 const DEFAULT_CONFIG: UsecasesPageConfig = {
   baseUrl: DEFAULT_API_BASE_URL,
   authHeader: (): Record<string, string> => {
-    const key = getStoredApiKey();
-    return key ? { Authorization: `Bearer ${key}` } : {};
+    return getAuthHeader();
   },
   hasExternalAuth: false,
   externalUserInfo: null,
@@ -2655,7 +2655,7 @@ function AiIncidentHandlingPromptsBlock() {
         if (!orgId) { if (!cancelled) setLoading(false); return; }
         const res = await fetch(
           getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=shuffle-security_incidents&top=1`),
-          { credentials: 'include' },
+          { credentials: 'include', headers: { ...getAuthHeader(orgId) } },
         );
         if (!res.ok) { if (!cancelled) setLoading(false); return; }
         const data = await res.json();
@@ -6368,11 +6368,8 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
     return {
       baseUrl,
       authHeader: (): Record<string, string> => {
-        // Prefer the host's API key (if surfaced via userdata.api_key); else
-        // fall back to the standalone localStorage key. Cookie auth still
-        // works either way via `credentials: 'include'`.
-        const key = externalApiKey || getStoredApiKey();
-        return key ? { Authorization: `Bearer ${key}` } : {};
+        if (externalApiKey) return { Authorization: `Bearer ${externalApiKey}` };
+        return getAuthHeader();
       },
       hasExternalAuth: hostManaged,
       externalUserInfo,
@@ -6599,8 +6596,8 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
     return {
       baseUrl,
       authHeader: (): Record<string, string> => {
-        const key = externalApiKey || getStoredApiKey();
-        return key ? { Authorization: `Bearer ${key}` } : {};
+        if (externalApiKey) return { Authorization: `Bearer ${externalApiKey}` };
+        return getAuthHeader();
       },
       hasExternalAuth: hostManaged,
       externalUserInfo,

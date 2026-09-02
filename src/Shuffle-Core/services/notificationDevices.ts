@@ -1,4 +1,12 @@
-import { getApiUrl, getAuthHeader } from '@/Shuffle-Core/api';
+import {
+  getApiUrl,
+  getAuthHeader,
+  isCapacitorNative,
+  isAndroid,
+  isIos,
+  isAndroidWebView,
+  isIosWebView,
+} from '@/Shuffle-Core/api';
 
 export interface DevicePreferences {
   critical_pager: boolean;
@@ -40,14 +48,38 @@ export const getLocalDeviceId = (): string => {
 };
 
 export const getLocalDevicePlatform = (): string => {
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
-  if (/Android/.test(ua)) return 'android';
+  if (typeof window === 'undefined') return 'browser';
+  if (isIos()) return 'ios';
+  if (isAndroid()) return 'android';
   return 'browser';
 };
 
 export const getLocalDeviceName = (): string => {
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isNative = isCapacitorNative();
+  const isAndroidApp = isNative ? isAndroid() : isAndroidWebView();
+  const isIosApp = isNative ? isIos() : isIosWebView();
+
+  // Extract Android phone model if present in User-Agent
+  let androidModel = '';
+  const androidMatch = ua.match(/Android\s+[\d.]+;\s*([^;)]+?)(?:\s+Build|\)|\s+wv)/i);
+  if (androidMatch && androidMatch[1]) {
+    const raw = androidMatch[1].trim();
+    if (raw && raw !== 'K' && !/^mobile$/i.test(raw)) {
+      androidModel = raw;
+    }
+  }
+
+  if (isAndroidApp) {
+    return androidModel ? `Android App (${androidModel})` : 'Android App';
+  }
+
+  if (isIosApp) {
+    if (/iPad/.test(ua)) return 'iOS App (iPad)';
+    if (/iPhone/.test(ua)) return 'iOS App (iPhone)';
+    return 'iOS App';
+  }
+
   const browser = /Edg\//.test(ua)
     ? 'Edge'
     : /Firefox\//.test(ua)
@@ -58,17 +90,20 @@ export const getLocalDeviceName = (): string => {
           ? 'Safari'
           : 'Browser';
 
+  if (/Android/.test(ua)) {
+    return androidModel ? `${browser} on Android (${androidModel})` : `${browser} on Android`;
+  }
+
+  if (/iPad/.test(ua)) return `${browser} on iPad`;
+  if (/iPhone|iPod/.test(ua)) return `${browser} on iPhone`;
+
   const os = /Windows/.test(ua)
     ? 'Windows'
     : /Macintosh|Mac OS X/.test(ua)
       ? 'macOS'
-      : /iPad|iPhone|iPod/.test(ua)
-        ? 'iOS'
-        : /Android/.test(ua)
-          ? 'Android'
-          : /Linux/.test(ua)
-            ? 'Linux'
-            : 'Unknown';
+      : /Linux/.test(ua)
+        ? 'Linux'
+        : 'Unknown';
 
   return `${browser} on ${os}`;
 };

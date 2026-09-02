@@ -387,11 +387,6 @@ export const API_ENDPOINTS = {
   apps: '/api/v1/apps',
 };
 
-// Get authorization header - uses API key if available, otherwise session token.
-// Always scopes the request to the currently-active org via Org-Id when known,
-// so a user in a sub-org reads/writes against that sub-org rather than their
-// default home org. Pass `overrideOrgId` to force a different org (e.g. when
-// reading data from another tenant in a multi-tenant view).
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 
@@ -399,7 +394,10 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
   let sessionToken: string | null = null;
   if (typeof localStorage !== 'undefined') {
     try {
-      sessionToken = localStorage.getItem('session_token');
+      const stored = localStorage.getItem('session_token');
+      if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
+        sessionToken = stored.trim();
+      }
     } catch {
       sessionToken = null;
     }
@@ -410,8 +408,19 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Scope to the active org. Explicit override beats the tracked org.
-  const orgId = overrideOrgId ?? _trackedOrgId;
+  // Scope to the active org. Explicit override beats the tracked org, falling
+  // back to the persisted active_org from shuffle_user_info if untracked.
+  let orgId = overrideOrgId ?? _trackedOrgId;
+  if (!orgId && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('shuffle_user_info');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        orgId = parsed?.active_org?.id || parsed?.org_id || null;
+      }
+    } catch { /* ignore */ }
+  }
+
   if (orgId) {
     headers['Org-Id'] = orgId;
   }
@@ -430,7 +439,11 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
 export const hasShuffleAuth = (): boolean => {
   try {
     if (API_CONFIG.apiKey) return true;
-    return !!(localStorage.getItem('session_token') || localStorage.getItem('shuffle_user_info'));
+    const token = localStorage.getItem('session_token');
+    if (token && token.trim().length > 0 && token !== 'null' && token !== 'undefined') return true;
+    const info = localStorage.getItem('shuffle_user_info');
+    if (info && info.trim().length > 0 && info !== 'null' && info !== 'undefined') return true;
+    return false;
   } catch {
     return false;
   }

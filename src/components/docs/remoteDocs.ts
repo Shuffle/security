@@ -1,4 +1,4 @@
-import { getApiUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 
 export interface RemoteDocEntry {
   name: string;
@@ -33,7 +33,10 @@ export const fetchDocsList = async (
 
   const run = (async () => {
     try {
-      const res = await fetch(getApiUrl(`/api/v1/docs${docsQuery(folder, resetCache)}`));
+      const res = await fetch(getApiUrl(`/api/v1/docs${docsQuery(folder, resetCache)}`), {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      });
       if (!res.ok) return cachedList[key] ?? [];
       const data = await res.json();
       if (!data?.success || !Array.isArray(data.list)) return cachedList[key] ?? [];
@@ -70,6 +73,10 @@ export const fetchDocMarkdown = async (
   try {
     const res = await fetch(
       getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${docsQuery(folder, resetCache)}`),
+      {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      },
     );
     if (!res.ok) return null;
     const data = await res.json();

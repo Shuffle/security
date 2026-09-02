@@ -8,17 +8,10 @@
  * config and sums each category's `total_amount`.
  */
 
-const getStoredApiKey = (): string | null => {
-  try {
-    return typeof window !== 'undefined'
-      ? window.localStorage.getItem('shuffle_api_key')
-      : null;
-  } catch { return null; }
-};
+import { getAuthHeader } from '../api';
 
 export const defaultIocAuthHeader = (): Record<string, string> => {
-  const key = getStoredApiKey();
-  return key ? { Authorization: `Bearer ${key}` } : {};
+  return getAuthHeader();
 };
 
 export const getActiveOrgId = (): string | null => {

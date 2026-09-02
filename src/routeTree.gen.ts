@@ -38,6 +38,7 @@ import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as LegalIndexRouteImport } from './routes/legal.index'
 import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
+import { Route as Oauth2AuthorizeRouteImport } from './routes/oauth2.authorize'
 import { Route as CondAppsAppnameRouteImport } from './routes/_cond.apps.$appname'
 import { Route as CondFormsIndexRouteImport } from './routes/_cond.forms.index'
 import { Route as CondFormsIdRouteImport } from './routes/_cond.forms.$id'
@@ -235,6 +236,11 @@ const LegalIndexRoute = LegalIndexRouteImport.update({
 const LegalSlugRoute = LegalSlugRouteImport.update({
   id: '/legal/$slug',
   path: '/legal/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Oauth2AuthorizeRoute = Oauth2AuthorizeRouteImport.update({
+  id: '/oauth2/authorize',
+  path: '/oauth2/authorize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CondAppsAppnameRoute = CondAppsAppnameRouteImport.update({
@@ -557,6 +563,7 @@ export interface FileRoutesByFullPath {
   '/blog/$name': typeof BlogNameRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
+  '/oauth2/authorize': typeof Oauth2AuthorizeRoute
   '/articles/': typeof ArticlesIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -641,6 +648,7 @@ export interface FileRoutesByTo {
   '/blog/$name': typeof BlogNameRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
+  '/oauth2/authorize': typeof Oauth2AuthorizeRoute
   '/articles': typeof ArticlesIndexRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -729,6 +737,7 @@ export interface FileRoutesById {
   '/blog/$name': typeof BlogNameRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
+  '/oauth2/authorize': typeof Oauth2AuthorizeRoute
   '/articles/': typeof ArticlesIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -815,6 +824,7 @@ export interface FileRouteTypes {
     | '/blog/$name'
     | '/docs/$slug'
     | '/legal/$slug'
+    | '/oauth2/authorize'
     | '/articles/'
     | '/blog/'
     | '/docs/'
@@ -899,6 +909,7 @@ export interface FileRouteTypes {
     | '/blog/$name'
     | '/docs/$slug'
     | '/legal/$slug'
+    | '/oauth2/authorize'
     | '/articles'
     | '/blog'
     | '/docs'
@@ -986,6 +997,7 @@ export interface FileRouteTypes {
     | '/blog/$name'
     | '/docs/$slug'
     | '/legal/$slug'
+    | '/oauth2/authorize'
     | '/articles/'
     | '/blog/'
     | '/docs/'
@@ -1066,6 +1078,7 @@ export interface RootRouteChildren {
   BlogNameRoute: typeof BlogNameRoute
   DocsSlugRoute: typeof DocsSlugRoute
   LegalSlugRoute: typeof LegalSlugRoute
+  Oauth2AuthorizeRoute: typeof Oauth2AuthorizeRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
@@ -1275,6 +1288,13 @@ declare module '@tanstack/react-router' {
       path: '/legal/$slug'
       fullPath: '/legal/$slug'
       preLoaderRoute: typeof LegalSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth2/authorize': {
+      id: '/oauth2/authorize'
+      path: '/oauth2/authorize'
+      fullPath: '/oauth2/authorize'
+      preLoaderRoute: typeof Oauth2AuthorizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_cond/apps/$appname': {
@@ -1844,6 +1864,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogNameRoute: BlogNameRoute,
   DocsSlugRoute: DocsSlugRoute,
   LegalSlugRoute: LegalSlugRoute,
+  Oauth2AuthorizeRoute: Oauth2AuthorizeRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
