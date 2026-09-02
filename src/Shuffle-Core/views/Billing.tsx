@@ -819,7 +819,7 @@ const Billing = memo((props) => {
 			return (
 				userdata?.api_key ||
 				userdata?.apikey ||
-				(typeof window !== 'undefined' ? window.localStorage.getItem('shuffle_api_key') || window.localStorage.getItem('session_token') : null)
+				(typeof window !== 'undefined' ? window.localStorage.getItem('session_token') : null)
 			);
 		} catch {
 			return null;

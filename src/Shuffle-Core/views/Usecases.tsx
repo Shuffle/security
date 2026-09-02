@@ -1068,7 +1068,7 @@ const resolveApiBaseUrl = () => {
 const DEFAULT_API_BASE_URL: string = resolveApiBaseUrl();
 
 const getStoredApiKey = (): string | null => {
-  try { return typeof window !== 'undefined' ? window.localStorage.getItem('shuffle_api_key') : null; }
+  try { return typeof window !== 'undefined' ? window.localStorage.getItem('session_token') : null; }
   catch { return null; }
 };
 

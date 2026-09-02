@@ -303,6 +303,47 @@ export const getHostBaseUrl = (): string | null => _hostBaseUrl;
 /** Get the currently tracked org ID */
 export const getTrackedOrgId = (): string | null => _trackedOrgId;
 
+/**
+ * Single source of truth for browser auth.
+ *
+ * Order of precedence:
+ *  1. Session cookie (sent automatically via `credentials: 'include'`).
+ *  2. A single session token in localStorage (mobile apps / Lovable testing).
+ *
+ * Never more than one token at a time. Legacy `shuffle_api_key` storage is
+ * purged on every read/write.
+ */
+export const LEGACY_API_KEY_STORAGE_KEY = 'shuffle_api_key';
+
+export const clearAuthTokens = () => {
+  try {
+    localStorage.removeItem('session_token');
+    localStorage.removeItem(LEGACY_API_KEY_STORAGE_KEY);
+  } catch { /* ignore */ }
+};
+
+export const getSessionToken = (): string | null => {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    if (localStorage.getItem(LEGACY_API_KEY_STORAGE_KEY) !== null) {
+      localStorage.removeItem(LEGACY_API_KEY_STORAGE_KEY);
+    }
+    const stored = localStorage.getItem('session_token');
+    if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
+      return stored.trim();
+    }
+    return null;
+  } catch { return null; }
+};
+
+export const setSessionToken = (token: string | null) => {
+  // Always wipe everything first so we can never end up with two tokens.
+  clearAuthTokens();
+  if (token && token.trim().length > 0) {
+    try { localStorage.setItem('session_token', token.trim()); } catch { /* ignore */ }
+  }
+};
+
 export const API_CONFIG = {
   // Shuffle backend URL — host override beats region URL beats default.
   get baseUrl(): string {
@@ -318,18 +359,17 @@ export const API_CONFIG = {
   // API version
   version: 'v1',
   
-  // Get API key from localStorage (for local development)
+  /**
+   * DEPRECATED alias for the single session token. There is no separate
+   * API-key auth any more: exactly one session token may exist at a time.
+   */
   get apiKey(): string | null {
-    return localStorage.getItem('shuffle_api_key');
+    return getSessionToken();
   },
-  
-  // Set API key in localStorage
+
+  /** DEPRECATED: writes/clears the single session token. */
   setApiKey(key: string | null) {
-    if (key) {
-      localStorage.setItem('shuffle_api_key', key);
-    } else {
-      localStorage.removeItem('shuffle_api_key');
-    }
+    setSessionToken(key);
   },
 };
 
@@ -400,20 +440,9 @@ export const API_ENDPOINTS = {
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 
-  const apiKey = API_CONFIG.apiKey;
-  let sessionToken: string | null = null;
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('session_token');
-      if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
-        sessionToken = stored.trim();
-      }
-    } catch {
-      sessionToken = null;
-    }
-  }
-
-  const token = apiKey || sessionToken;
+  // Session cookie is sent automatically; the single session token is the
+  // only header-based auth we ever attach.
+  const token = getSessionToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -448,9 +477,7 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
  */
 export const hasShuffleAuth = (): boolean => {
   try {
-    if (API_CONFIG.apiKey) return true;
-    const token = localStorage.getItem('session_token');
-    if (token && token.trim().length > 0 && token !== 'null' && token !== 'undefined') return true;
+    if (getSessionToken()) return true;
     const info = localStorage.getItem('shuffle_user_info');
     if (info && info.trim().length > 0 && info !== 'null' && info !== 'undefined') return true;
     return false;
