@@ -531,7 +531,11 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
 
   const persistThreadOpen = useCallback((open: boolean) => {
     setThreadCollapsed(!open);
-    try { localStorage.setItem(EMAIL_THREAD_OPEN_KEY, open ? '1' : '0'); } catch { /* ignore */ }
+    // Only mobile persists this choice — on desktop the email thread must
+    // always start visible on the next incident.
+    if (typeof window !== 'undefined' && window.innerWidth < 600) {
+      try { localStorage.setItem(EMAIL_THREAD_OPEN_KEY, open ? '1' : '0'); } catch { /* ignore */ }
+    }
   }, []);
 
   // Mobile defaults: raw view is the only option and is on by default; the
@@ -540,34 +544,40 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
+      const mobileViewport = window.innerWidth < 600;
       const rawStored = localStorage.getItem(EMAIL_THREAD_RAW_KEY);
-      if (rawStored === '1') {
+      if (mobileViewport) {
+        setRawModeState(true);
+      } else if (rawStored === '1') {
         setRawModeState(true);
       } else if (rawStored === '0') {
         setRawModeState(false);
-      } else if (window.innerWidth < 600) {
-        setRawModeState(true);
+      }
+
+      if (!mobileViewport) {
+        // Desktop always starts expanded.
+        setThreadCollapsed(false);
+        return;
       }
 
       const openStored = localStorage.getItem(EMAIL_THREAD_OPEN_KEY);
       if (openStored === '1') {
         setThreadCollapsed(false);
-      } else if (openStored === '0') {
-        setThreadCollapsed(true);
-      } else if (window.innerWidth < 600) {
+      } else {
         setThreadCollapsed(true);
         localStorage.setItem(EMAIL_THREAD_OPEN_KEY, '0');
       }
     } catch { /* ignore */ }
   }, []);
 
-  // Keep raw mode forced on whenever the viewport is mobile.
+  // Keep raw mode forced on whenever the viewport is mobile (state only — the
+  // stored desktop preference is left untouched).
   useEffect(() => {
     if (isMobile && !rawMode) {
       setRawModeState(true);
-      try { localStorage.setItem(EMAIL_THREAD_RAW_KEY, '1'); } catch { /* ignore */ }
     }
   }, [isMobile, rawMode]);
+
 
   // Popout mode — like Gmail's "open in new window" button. When enabled the
   // entire panel is rendered into a draggable floating card via a React
