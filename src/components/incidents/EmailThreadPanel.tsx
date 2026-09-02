@@ -1302,7 +1302,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       }}
     >
       <Box
-        onClick={() => setThreadCollapsed(c => !c)}
+        onClick={() => persistThreadOpen(threadCollapsed)}
         sx={{
           display: 'flex',
           alignItems: 'center',
