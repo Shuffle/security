@@ -166,14 +166,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem('session_token');
       if (token !== sessionToken) setSessionToken(token);
 
-      // On mobile (or web with no cached session), unauthenticated is the starting point.
-      // Skip the initial network request to avoid unnecessary 401s on initial boot.
-      if (!token && isCapacitorNative()) {
+      // Without a session token we can only be logged in through the session
+      // cookie, which is same-origin only. On native apps, and whenever the
+      // frontend points at a custom/self-hosted backend, no cookie can exist —
+      // so skip the boot getinfo entirely and wait for a successful login.
+      if (!token && (isCapacitorNative() || getHostBaseUrl())) {
         setIsAuthenticated(false);
         setUserInfo(null);
         setIsLoading(false);
         return;
       }
+
 
       const result = await fetchUserInfo(token);
       if (result === 'ok') {
