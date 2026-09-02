@@ -38,14 +38,19 @@ export const MobileAuthGateway = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const mfaInputRef = useRef<HTMLInputElement>(null);
 
-  // Return URL resolution
-  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  // Return URL resolution (router-driven so it stays correct after navigation)
+  const searchParams = new URLSearchParams(location.search || '');
   const returnUrl =
     searchParams.get('redirect') ||
     searchParams.get('redirect_to') ||
     searchParams.get('return_to') ||
     searchParams.get('view') ||
     searchParams.get('returnUrl');
+
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const isMobile =
     isCapacitorNative() ||
@@ -57,7 +62,7 @@ export const MobileAuthGateway = () => {
     : hasLoggedInBefore
     ? '/dashboard'
     : '/onboarding';
-  const from = location.state?.from?.pathname || returnUrl || defaultDestination;
+  const from = location.state?.from?.pathname || (returnUrl ? decodeURIComponent(returnUrl) : null) || defaultDestination;
 
   // Redirect if already authenticated
   const hasRedirectedRef = useRef(false);
@@ -71,15 +76,21 @@ export const MobileAuthGateway = () => {
   }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
   // Server instance selection: 'cloud' | 'self-hosted'
-  const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
-    if (typeof window === 'undefined') return 'cloud';
-    return (localStorage.getItem(SERVER_MODE_STORAGE_KEY) as 'cloud' | 'self-hosted') || 'cloud';
-  });
+  // SSR-safe defaults; real values hydrate in an effect below.
+  const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>('cloud');
+  const [customHostUrl, setCustomHostUrl] = useState('');
 
-  const [customHostUrl, setCustomHostUrl] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return localStorage.getItem(CUSTOM_HOST_STORAGE_KEY) || '';
-  });
+  useEffect(() => {
+    try {
+      const storedMode = localStorage.getItem(SERVER_MODE_STORAGE_KEY) as 'cloud' | 'self-hosted' | null;
+      if (storedMode === 'self-hosted' || storedMode === 'cloud') setServerMode(storedMode);
+      const storedHost = localStorage.getItem(CUSTOM_HOST_STORAGE_KEY);
+      if (storedHost) setCustomHostUrl(storedHost);
+    } catch {
+      // ignore
+    }
+  }, []);
+
 
   const [isPingingHost, setIsPingingHost] = useState(false);
   const [hostPingStatus, setHostPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
