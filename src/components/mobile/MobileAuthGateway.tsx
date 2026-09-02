@@ -152,12 +152,11 @@ export const MobileAuthGateway = () => {
 
   // Auto-focus MFA input whenever MFA becomes required
   useEffect(() => {
-    if (mfaRequired) {
-      const timer = setTimeout(() => {
-        mfaInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
+    if (!mfaRequired) return undefined;
+    const timer = setTimeout(() => {
+      mfaInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
   }, [mfaRequired]);
 
   // Handle credential login and MFA verification
