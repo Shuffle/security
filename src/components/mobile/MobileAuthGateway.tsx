@@ -24,7 +24,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
-import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, isCapacitorNative, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
+import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
 import { isCapacitorNative } from '@/lib/platform';
