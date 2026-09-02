@@ -271,31 +271,7 @@ export const MobileNavHeader: React.FC = () => {
               </Box>
             </Box>
 
-            {userInfo?.active_org?.name && (
-              <Box
-                sx={{
-                  px: 1.2,
-                  py: 0.35,
-                  borderRadius: 1.5,
-                  bgcolor: 'hsl(var(--muted) / 0.6)',
-                  border: '1px solid hsl(var(--border))',
-                  maxWidth: 140,
-                }}
-              >
-                <Typography
-                  noWrap
-                  variant="caption"
-                  sx={{
-                    color: 'hsl(var(--muted-foreground))',
-                    fontSize: '0.72rem',
-                    fontWeight: 500,
-                    display: 'block',
-                  }}
-                >
-                  {userInfo.active_org.name}
-                </Typography>
-              </Box>
-            )}
+            <TenantSelector maxWidth={150} />
           </>
         ) : (
           // Subpage navigation header
