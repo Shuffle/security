@@ -858,7 +858,15 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
                     'Register this device'
                   )
                 ) : (
-                  'Enable notifications'
+                  <>
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                      Enable notifications
+                    </Box>
+                    <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                      Enable
+                    </Box>
+                  </>
+
                 )}
               </Button>
             </span>
