@@ -618,6 +618,21 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                 </Link>
               </Typography>
 
+              {isLogin && (
+                <Box sx={{ textAlign: 'center', mt: 1.5 }}>
+                  <Link
+                    to="/mobile-login"
+                    style={{
+                      color: 'hsl(var(--muted-foreground))',
+                      fontSize: '0.775rem',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Mobile App Login Gateway
+                  </Link>
+                </Box>
+              )}
+
               {/* Developer API Key Section - only in Lovable preview */}
               {isLogin && isDevEnvironment() && (
                 <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>

@@ -15,6 +15,7 @@ import { Route as DashRouteImport } from './routes/_dash'
 import { Route as OnboardingRouteImport } from './routes/_onboarding'
 import { Route as AppsRouteImport } from './routes/apps'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MobileLoginRouteImport } from './routes/mobile-login'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ShuffleCoreRouteImport } from './routes/shuffle-core'
@@ -119,6 +120,11 @@ const AppsRoute = AppsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MobileLoginRoute = MobileLoginRouteImport.update({
+  id: '/mobile-login',
+  path: '/mobile-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -532,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
   '/login': typeof LoginRoute
+  '/mobile-login': typeof MobileLoginRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/shuffle-core': typeof ShuffleCoreRoute
@@ -615,6 +622,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
   '/login': typeof LoginRoute
+  '/mobile-login': typeof MobileLoginRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/shuffle-core': typeof ShuffleCoreRoute
@@ -702,6 +710,7 @@ export interface FileRoutesById {
   '/_onboarding': typeof OnboardingRouteWithChildren
   '/apps': typeof AppsRoute
   '/login': typeof LoginRoute
+  '/mobile-login': typeof MobileLoginRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/shuffle-core': typeof ShuffleCoreRoute
@@ -787,6 +796,7 @@ export interface FileRouteTypes {
     | '/'
     | '/apps'
     | '/login'
+    | '/mobile-login'
     | '/pricing'
     | '/register'
     | '/shuffle-core'
@@ -870,6 +880,7 @@ export interface FileRouteTypes {
     | '/'
     | '/apps'
     | '/login'
+    | '/mobile-login'
     | '/pricing'
     | '/register'
     | '/shuffle-core'
@@ -956,6 +967,7 @@ export interface FileRouteTypes {
     | '/_onboarding'
     | '/apps'
     | '/login'
+    | '/mobile-login'
     | '/pricing'
     | '/register'
     | '/shuffle-core'
@@ -1043,6 +1055,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRouteWithChildren
   AppsRoute: typeof AppsRoute
   LoginRoute: typeof LoginRoute
+  MobileLoginRoute: typeof MobileLoginRoute
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
   ShuffleCoreRoute: typeof ShuffleCoreRoute
@@ -1101,6 +1114,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mobile-login': {
+      id: '/mobile-login'
+      path: '/mobile-login'
+      fullPath: '/mobile-login'
+      preLoaderRoute: typeof MobileLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -1813,6 +1833,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRouteWithChildren,
   AppsRoute: AppsRoute,
   LoginRoute: LoginRoute,
+  MobileLoginRoute: MobileLoginRoute,
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
   ShuffleCoreRoute: ShuffleCoreRoute,

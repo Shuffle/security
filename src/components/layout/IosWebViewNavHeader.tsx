@@ -181,6 +181,7 @@ export const MobileNavHeader: React.FC = () => {
   const isRootPage = location.pathname === '/' ||
     location.pathname === '/incidents' ||
     location.pathname === '/agent' ||
+    location.pathname === '/agents' ||
     location.pathname === '/admin';
 
   // Browsers have their own back control, and Android has the system back

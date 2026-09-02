@@ -30,6 +30,7 @@ import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
+import { isCapacitorNative } from '@/lib/platform';
 
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
@@ -234,8 +235,8 @@ export const MobileAuthGateway = () => {
         data.session_token ||
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
 
-      if (data.success !== false && sessionToken) {
-        await login(sessionToken);
+      if (data.success !== false) {
+        await login(sessionToken || '');
         navigate('/incidents', { replace: true });
       } else {
         setError(data.reason || data.message || 'Login failed. Please verify credentials.');
@@ -786,9 +787,9 @@ export const MobileAuthGateway = () => {
           </CardContent>
         </Card>
 
-        {/* Footer / Registration link */}
+        {/* Footer / Registration & Web Switcher links */}
         {!mfaRequired && (
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
+          <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
               Don't have an account?{' '}
               <Link
@@ -802,6 +803,20 @@ export const MobileAuthGateway = () => {
                 Sign up on Cloud
               </Link>
             </Typography>
+            {!isCapacitorNative() && (
+              <Box sx={{ mt: 0.5 }}>
+                <Link
+                  to="/login"
+                  style={{
+                    color: 'hsl(var(--muted-foreground))',
+                    fontSize: '0.75rem',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Switch to Standard Web Login
+                </Link>
+              </Box>
+            )}
           </Box>
         )}
       </motion.div>
