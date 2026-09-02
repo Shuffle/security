@@ -2495,7 +2495,7 @@ const IncidentsPage = () => {
             const loaded = totalOrgs - subOrgLoading.size;
             const showOrgProgress = totalOrgs > 0 && subOrgLoading.size > 0;
             return (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
                 <Box
                   aria-label="Loading incidents"
                   sx={{
@@ -2524,7 +2524,7 @@ const IncidentsPage = () => {
             <Typography variant="caption" color="error">{error}</Typography>
           )}
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {/* Ingestion + Forward pipeline container */}
           {(showAutomation || demoActive) && (
           <Box
@@ -2951,7 +2951,7 @@ const IncidentsPage = () => {
             <IconButton
               onClick={(e) => setMobileMenuAnchor(e.currentTarget)}
               sx={{
-                display: { xs: 'inline-flex', md: 'none' },
+                display: 'none',
                 width: 36,
                 height: 36,
                 color: 'text.secondary',
@@ -3059,7 +3059,7 @@ const IncidentsPage = () => {
       {/* Floating Filter Bar - sticky */}
       <Card elevation={0} sx={{ mb: 3, position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'hsl(var(--card))', backgroundImage: 'none', border: '1px solid hsl(var(--border))', boxShadow: 'none', backdropFilter: 'none' }}>
         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' }, overflow: { xs: 'visible', sm: 'hidden' } }}>
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
             {/* Select all checkbox - always visible */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {(() => {
@@ -3122,7 +3122,25 @@ const IncidentsPage = () => {
                 sx: { height: 36 },
               }}
               sx={{ width: { xs: 'auto', sm: 140 }, flex: { xs: '1 1 auto', sm: '0 0 auto' }, minWidth: 0, flexShrink: 1 }}
-      />
+            />
+
+            <Tooltip title="Menu">
+              <IconButton
+                onClick={(e) => setMobileMenuAnchor(e.currentTarget)}
+                sx={{
+                  display: { xs: 'inline-flex', md: 'none' },
+                  width: 36,
+                  height: 36,
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  flexShrink: 0,
+                }}
+              >
+                <MoreVerticalIcon size={20} />
+              </IconButton>
+            </Tooltip>
 
       {false && <>
       <AppSearchDrawer
