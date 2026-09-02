@@ -374,3 +374,6 @@ export const useAuth = () => {
   }
   return context;
 };
+
+/** Non-throwing variant for components that may render outside the provider (e.g. during HMR). */
+export const useOptionalAuth = () => useContext(AuthContext);
