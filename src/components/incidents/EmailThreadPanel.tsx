@@ -662,7 +662,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     const stepId = TOUR_STEPS[demoStep]?.id;
     if (stepId === 'incident-detail' && !autoCollapsedRef.current) {
       autoCollapsedRef.current = true;
-      setThreadCollapsed(true);
+      persistThreadOpen(false);
     }
   }, [demoDrawerOpen, demoStep]);
 
