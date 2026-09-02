@@ -7,8 +7,8 @@ export const OAuthAuthorizeView: React.FC<Partial<OAuthAuthorizeViewProps>> = (p
 
   return (
     <CoreOAuthAuthorizeView
-      userInfo={props.userInfo || userInfo}
-      activeOrg={props.activeOrg || userInfo?.active_org}
+      userInfo={props.userInfo || (userInfo as OAuthAuthorizeViewProps['userInfo'])}
+      activeOrg={props.activeOrg || (userInfo?.active_org as OAuthAuthorizeViewProps['activeOrg'])}
       onOrgChange={props.onOrgChange || setActiveOrg}
       isSupport={props.isSupport ?? userInfo?.support}
       {...props}
