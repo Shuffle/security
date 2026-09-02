@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -22,13 +22,14 @@ import {
   ArrowRight as ArrowRightIcon,
   CheckCircle2 as CheckCircleIcon,
   AlertCircle as AlertCircleIcon,
+  ShieldCheck as ShieldCheckIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
-import { ShuffleLogo } from '@/components/common/ShuffleLogo';
+import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
 
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
@@ -37,6 +38,7 @@ export const MobileAuthGateway = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const mfaInputRef = useRef<HTMLInputElement>(null);
 
   // Server instance selection: 'cloud' | 'self-hosted'
   const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
@@ -82,6 +84,8 @@ export const MobileAuthGateway = () => {
   const handleServerModeChange = (mode: 'cloud' | 'self-hosted') => {
     setServerMode(mode);
     setError('');
+    setMfaRequired(false);
+    setMfaCode('');
     setHostPingStatus('idle');
     try {
       localStorage.setItem(SERVER_MODE_STORAGE_KEY, mode);
@@ -146,10 +150,20 @@ export const MobileAuthGateway = () => {
     }
   };
 
-  // Handle credential login
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Auto-focus MFA input whenever MFA becomes required
+  useEffect(() => {
+    if (mfaRequired) {
+      const timer = setTimeout(() => {
+        mfaInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mfaRequired]);
+
+  // Handle credential login and MFA verification
+  const performLogin = async (codeToUse?: string) => {
     setError('');
+    const code = codeToUse !== undefined ? codeToUse : mfaCode;
 
     if (serverMode === 'self-hosted') {
       if (!customHostUrl.trim()) {
@@ -178,8 +192,8 @@ export const MobileAuthGateway = () => {
 
     try {
       const body: Record<string, string> = { username, password };
-      if (mfaRequired && mfaCode) {
-        body.mfa_code = mfaCode;
+      if ((mfaRequired || code) && code) {
+        body.mfa_code = code;
       }
 
       const loginUrl = getApiUrl(API_ENDPOINTS.login);
@@ -195,22 +209,37 @@ export const MobileAuthGateway = () => {
 
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        if (data.mfa_required || response.status === 402) {
-          setMfaRequired(true);
-          setError('Please enter your multi-factor authentication code.');
-          return;
-        }
+      // Check for MFA redirect/requirement from Shuffle backend
+      const isMfaRedirect =
+        data.reason === 'MFA_REDIRECT' ||
+        data.message === 'MFA_REDIRECT' ||
+        data.mfa_required === true ||
+        response.status === 402 ||
+        data.reason === 'MFA_REQUIRED' ||
+        (typeof data.reason === 'string' && data.reason.toUpperCase().includes('MFA'));
 
-        setError(data.reason || data.message || 'Invalid username or password');
+      if (isMfaRedirect) {
+        setMfaRequired(true);
+        setError('');
+        setMfaCode('');
         return;
       }
 
-      if (data.success && data.session_token) {
-        await login(data.session_token);
+      if (!response.ok) {
+        setError(data.reason || data.message || (mfaRequired ? 'Invalid MFA code' : 'Invalid username or password'));
+        return;
+      }
+
+      // Extract session token from direct field or cookies array
+      const sessionToken =
+        data.session_token ||
+        data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
+
+      if (data.success !== false && sessionToken) {
+        await login(sessionToken);
         navigate('/incidents', { replace: true });
       } else {
-        setError(data.reason || 'Login failed. Please verify credentials.');
+        setError(data.reason || data.message || 'Login failed. Please verify credentials.');
       }
     } catch (err: any) {
       if (err.name === 'TypeError' || err.message?.includes('fetch')) {
@@ -221,6 +250,30 @@ export const MobileAuthGateway = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMfaChange = (val: string) => {
+    const cleaned = val.replace(/\D/g, '').slice(0, 6);
+    setMfaCode(cleaned);
+
+    if (cleaned.length === 6 && !loading) {
+      performLogin(cleaned);
+    }
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (mfaRequired) {
+      if (mfaCode.length < 6) {
+        setError('Please enter all 6 digits of your MFA code');
+        return;
+      }
+
+      performLogin(mfaCode);
+    } else {
+      performLogin();
     }
   };
 
@@ -265,15 +318,13 @@ export const MobileAuthGateway = () => {
           <Box
             sx={{
               display: 'inline-flex',
-              p: 1.25,
+              p: 0.5,
               borderRadius: 3,
-              bgcolor: 'rgba(255, 102, 0, 0.12)',
-              border: '1px solid rgba(255, 102, 0, 0.25)',
               mb: 1.5,
-              boxShadow: '0 8px 24px rgba(255, 102, 0, 0.15)',
+              boxShadow: '0 8px 24px rgba(255, 102, 0, 0.2)',
             }}
           >
-            <ShuffleLogo size={48} color="#FF6600" />
+            <ShuffleCompanyLogo size={56} />
           </Box>
           <Typography
             variant="h5"
@@ -298,64 +349,66 @@ export const MobileAuthGateway = () => {
           </Typography>
         </Box>
 
-        {/* Server Instance Switcher */}
-        <Box
-          sx={{
-            display: 'flex',
-            bgcolor: 'hsl(var(--muted))',
-            borderRadius: 2.5,
-            p: 0.5,
-            mb: 2.5,
-            border: '1px solid hsl(var(--border))',
-          }}
-        >
-          <Button
-            onClick={() => handleServerModeChange('cloud')}
-            size="small"
-            fullWidth
-            startIcon={<CloudIcon size={16} />}
+        {/* Server Instance Switcher - Only shown during initial credential step */}
+        {!mfaRequired && (
+          <Box
             sx={{
-              py: 0.9,
-              borderRadius: 2,
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'none',
-              bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'transparent',
-              color: serverMode === 'cloud' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-              boxShadow: serverMode === 'cloud' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
-              '&:hover': {
-                bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'rgba(255,255,255,0.05)',
-              },
+              display: 'flex',
+              bgcolor: 'hsl(var(--muted))',
+              borderRadius: 2.5,
+              p: 0.5,
+              mb: 2.5,
+              border: '1px solid hsl(var(--border))',
             }}
           >
-            Shuffle Cloud
-          </Button>
-          <Button
-            onClick={() => handleServerModeChange('self-hosted')}
-            size="small"
-            fullWidth
-            startIcon={<ServerIcon size={16} />}
-            sx={{
-              py: 0.9,
-              borderRadius: 2,
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'none',
-              bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'transparent',
-              color: serverMode === 'self-hosted' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-              boxShadow: serverMode === 'self-hosted' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
-              '&:hover': {
-                bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'rgba(255,255,255,0.05)',
-              },
-            }}
-          >
-            Self-Hosted
-          </Button>
-        </Box>
+            <Button
+              onClick={() => handleServerModeChange('cloud')}
+              size="small"
+              fullWidth
+              startIcon={<CloudIcon size={16} />}
+              sx={{
+                py: 0.9,
+                borderRadius: 2,
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                textTransform: 'none',
+                bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'transparent',
+                color: serverMode === 'cloud' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                boxShadow: serverMode === 'cloud' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                '&:hover': {
+                  bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'rgba(255,255,255,0.05)',
+                },
+              }}
+            >
+              Shuffle Cloud
+            </Button>
+            <Button
+              onClick={() => handleServerModeChange('self-hosted')}
+              size="small"
+              fullWidth
+              startIcon={<ServerIcon size={16} />}
+              sx={{
+                py: 0.9,
+                borderRadius: 2,
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                textTransform: 'none',
+                bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'transparent',
+                color: serverMode === 'self-hosted' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                boxShadow: serverMode === 'self-hosted' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                '&:hover': {
+                  bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'rgba(255,255,255,0.05)',
+                },
+              }}
+            >
+              Self-Hosted
+            </Button>
+          </Box>
+        )}
 
         {/* Self-Hosted Server URL Configuration */}
         <AnimatePresence>
-          {serverMode === 'self-hosted' && (
+          {!mfaRequired && serverMode === 'self-hosted' && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -465,161 +518,293 @@ export const MobileAuthGateway = () => {
               </Alert>
             )}
 
-            {/* Username & Password Form */}
+            {/* Form */}
             <Box component="form" onSubmit={handleLoginSubmit}>
-              <Box sx={{ mb: 2 }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    color: 'hsl(var(--foreground))',
-                    mb: 0.75,
-                  }}
-                >
-                  Username or Email
-                </Typography>
-                <TextField
-                  placeholder="analyst@organization.com"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  fullWidth
-                  required
-                  size="small"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  autoComplete="username"
-                  InputProps={{
-                    sx: {
-                      bgcolor: 'hsl(var(--background))',
-                      borderRadius: 2,
-                      fontSize: '0.875rem',
-                      '& fieldset': { borderColor: 'hsl(var(--border))' },
-                    },
-                  }}
-                />
-              </Box>
-
-              <Box sx={{ mb: mfaRequired ? 2 : 2.5 }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    color: 'hsl(var(--foreground))',
-                    mb: 0.75,
-                  }}
-                >
-                  Password
-                </Typography>
-                <TextField
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  fullWidth
-                  required
-                  size="small"
-                  autoComplete="current-password"
-                  InputProps={{
-                    sx: {
-                      bgcolor: 'hsl(var(--background))',
-                      borderRadius: 2,
-                      fontSize: '0.875rem',
-                      '& fieldset': { borderColor: 'hsl(var(--border))' },
-                    },
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                          size="small"
-                          sx={{ color: 'hsl(var(--muted-foreground))' }}
-                        >
-                          {showPassword ? <VisibilityOffIcon size={18} /> : <VisibilityIcon size={18} />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-
-              {mfaRequired && (
-                <Box sx={{ mb: 2.5 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: 'hsl(var(--foreground))',
-                      mb: 0.75,
-                    }}
+              <AnimatePresence mode="wait">
+                {!mfaRequired ? (
+                  <motion.div
+                    key="credentials-step"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    MFA / Authenticator Code
-                  </Typography>
-                  <TextField
-                    placeholder="6-digit code"
-                    value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value)}
-                    fullWidth
-                    required
-                    size="small"
-                    autoFocus
-                    inputProps={{
-                      inputMode: 'numeric',
-                      pattern: '[0-9]*',
-                      maxLength: 6,
-                    }}
-                    InputProps={{
-                      sx: {
-                        bgcolor: 'hsl(var(--background))',
-                        borderRadius: 2,
-                        fontSize: '0.875rem',
-                        '& fieldset': { borderColor: 'hsl(var(--border))' },
-                      },
-                    }}
-                  />
-                </Box>
-              )}
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        sx={{
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          color: 'hsl(var(--foreground))',
+                          mb: 0.75,
+                        }}
+                      >
+                        Username or Email
+                      </Typography>
+                      <TextField
+                        placeholder="analyst@organization.com"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        fullWidth
+                        required
+                        size="small"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        autoComplete="username"
+                        InputProps={{
+                          sx: {
+                            bgcolor: 'hsl(var(--background))',
+                            borderRadius: 2,
+                            fontSize: '0.875rem',
+                            '& fieldset': { borderColor: 'hsl(var(--border))' },
+                          },
+                        }}
+                      />
+                    </Box>
 
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                disabled={loading}
-                sx={{
-                  py: 1.25,
-                  borderRadius: 2,
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  textTransform: 'none',
-                  bgcolor: '#FF6600',
-                  color: '#FFFFFF',
-                  boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
-                  '&:hover': {
-                    bgcolor: '#e65c00',
-                  },
-                }}
-              >
-                {loading ? <CircularProgress size={22} sx={{ color: '#ffffff' }} /> : 'Sign In'}
-              </Button>
+                    <Box sx={{ mb: 2.5 }}>
+                      <Typography
+                        sx={{
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          color: 'hsl(var(--foreground))',
+                          mb: 0.75,
+                        }}
+                      >
+                        Password
+                      </Typography>
+                      <TextField
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Enter password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        fullWidth
+                        required
+                        size="small"
+                        autoComplete="current-password"
+                        InputProps={{
+                          sx: {
+                            bgcolor: 'hsl(var(--background))',
+                            borderRadius: 2,
+                            fontSize: '0.875rem',
+                            '& fieldset': { borderColor: 'hsl(var(--border))' },
+                          },
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => setShowPassword(!showPassword)}
+                                edge="end"
+                                size="small"
+                                sx={{ color: 'hsl(var(--muted-foreground))' }}
+                              >
+                                {showPassword ? <VisibilityOffIcon size={18} /> : <VisibilityIcon size={18} />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Box>
+
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      disabled={loading}
+                      sx={{
+                        py: 1.25,
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        textTransform: 'none',
+                        bgcolor: '#FF6600',
+                        color: '#FFFFFF',
+                        boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
+                        '&:hover': {
+                          bgcolor: '#e65c00',
+                        },
+                      }}
+                    >
+                      {loading ? <CircularProgress size={22} sx={{ color: '#ffffff' }} /> : 'Sign In'}
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="mfa-step"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Box sx={{ textAlign: 'center', mb: 2.5 }}>
+                      <Box
+                        sx={{
+                          display: 'inline-flex',
+                          p: 1,
+                          borderRadius: 2.5,
+                          bgcolor: 'rgba(255, 102, 0, 0.1)',
+                          border: '1px solid rgba(255, 102, 0, 0.2)',
+                          color: '#FF6600',
+                          mb: 1.25,
+                        }}
+                      >
+                        <ShieldCheckIcon size={24} />
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '1.15rem',
+                          color: 'hsl(var(--foreground))',
+                          mb: 0.5,
+                        }}
+                      >
+                        Two-Factor Authentication
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: '0.8rem',
+                          color: 'hsl(var(--muted-foreground))',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Enter the 6-digit code for <strong>{username}</strong> from your authenticator app.
+                      </Typography>
+                    </Box>
+
+                    {/* 6 Segmented PIN Boxes */}
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: { xs: 0.85, sm: 1.25 },
+                        my: 2.5,
+                        cursor: 'text',
+                      }}
+                      onClick={() => mfaInputRef.current?.focus()}
+                    >
+                      <input
+                        ref={mfaInputRef}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={mfaCode}
+                        onChange={(e) => handleMfaChange(e.target.value)}
+                        disabled={loading}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          opacity: 0,
+                          zIndex: 10,
+                          cursor: 'text',
+                        }}
+                      />
+                      {[0, 1, 2, 3, 4, 5].map((index) => {
+                        const digit = mfaCode[index] || '';
+                        const isCurrent = mfaCode.length === index;
+
+                        return (
+                          <Box
+                            key={index}
+                            sx={{
+                              width: { xs: 40, sm: 46 },
+                              height: { xs: 48, sm: 54 },
+                              borderRadius: 2,
+                              border: '2px solid',
+                              borderColor: isCurrent
+                                ? '#FF6600'
+                                : digit
+                                ? 'hsl(var(--foreground))'
+                                : 'hsl(var(--border))',
+                              bgcolor: isCurrent
+                                ? 'rgba(255, 102, 0, 0.08)'
+                                : 'hsl(var(--background))',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '1.35rem',
+                              fontWeight: 700,
+                              color: 'hsl(var(--foreground))',
+                              boxShadow: isCurrent ? '0 0 0 2px rgba(255, 102, 0, 0.25)' : 'none',
+                              transition: 'all 0.15s ease-in-out',
+                            }}
+                          >
+                            {digit}
+                          </Box>
+                        );
+                      })}
+                    </Box>
+
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      disabled={loading || mfaCode.length < 6}
+                      sx={{
+                        py: 1.25,
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        textTransform: 'none',
+                        bgcolor: '#FF6600',
+                        color: '#FFFFFF',
+                        boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
+                        '&:hover': {
+                          bgcolor: '#e65c00',
+                        },
+                      }}
+                    >
+                      {loading ? <CircularProgress size={22} sx={{ color: '#ffffff' }} /> : 'Verify Code'}
+                    </Button>
+
+                    <Button
+                      variant="text"
+                      fullWidth
+                      onClick={() => {
+                        setMfaRequired(false);
+                        setMfaCode('');
+                        setError('');
+                      }}
+                      disabled={loading}
+                      sx={{
+                        mt: 1.5,
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: 'hsl(var(--muted-foreground))',
+                        '&:hover': { color: 'hsl(var(--foreground))' },
+                      }}
+                    >
+                      Back to Sign In
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </Box>
           </CardContent>
         </Card>
 
         {/* Footer / Registration link */}
-        <Box sx={{ textAlign: 'center', mt: 3 }}>
-          <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              style={{
-                color: '#FF6600',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              Sign up on Cloud
-            </Link>
-          </Typography>
-        </Box>
+        {!mfaRequired && (
+          <Box sx={{ textAlign: 'center', mt: 3 }}>
+            <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
+              Don't have an account?{' '}
+              <Link
+                to="/register"
+                style={{
+                  color: '#FF6600',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Sign up on Cloud
+              </Link>
+            </Typography>
+          </Box>
+        )}
       </motion.div>
     </Box>
   );

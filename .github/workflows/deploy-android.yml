@@ -201,6 +201,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ steps.versioning.outputs.PACKAGE_NAME }}
           releaseFiles: android/app/build/outputs/bundle/release/*.aab
+          mappingFile: android/app/build/outputs/mapping/release/mapping.txt
           track: ${{ github.event.inputs.track }}
           status: ${{ github.event.inputs.release_status }}
           inAppUpdatePriority: 2
