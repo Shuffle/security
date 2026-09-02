@@ -15,7 +15,7 @@ import appCss from "../styles.css?url";
 
 import { createMuiTheme } from "@/theme/muiTheme";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { AuthProvider, useOptionalAuth } from "@/context/AuthContext";
 import { setToastImpl } from "@/Shuffle-MCPs/toast";
 import { toast as hostToast } from "@/lib/toast";
 import { trackReferralParams, initAnalytics } from "@/lib/analytics";
@@ -206,8 +206,8 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function AuthenticatedDrawers() {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return null;
+  const auth = useOptionalAuth();
+  if (!auth?.isAuthenticated) return null;
 
   return (
     <>
