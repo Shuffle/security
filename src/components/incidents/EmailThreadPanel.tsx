@@ -856,6 +856,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
               bgcolor: 'transparent',
               borderColor: 'hsl(var(--border))',
               color: 'text.secondary',
+              display: { xs: 'none', sm: 'inline-flex' },
             }}
           />
         </Tooltip>
