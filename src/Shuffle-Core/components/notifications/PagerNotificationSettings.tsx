@@ -168,18 +168,22 @@ const NotificationSection = ({
           size="small"
         />
         {enabled && onTest && (
-          <Button
-            variant="outlined"
-            size="small"
-            disabled={testing}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTest();
-            }}
-            sx={outlinedButtonSx}
-          >
-            {testing ? 'Sending' : 'Test'}
-          </Button>
+          <Tooltip title={testTooltip || ''} placement="left" arrow>
+            <span onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={testing || testDisabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTest();
+                }}
+                sx={outlinedButtonSx}
+              >
+                {testing ? 'Sending' : 'Test'}
+              </Button>
+            </span>
+          </Tooltip>
         )}
       </Box>
     </Box>
