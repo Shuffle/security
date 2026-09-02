@@ -1273,7 +1273,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       iconColor={primaryColor}
       open={!threadCollapsed}
       onOpenChange={(o) => {
-        setThreadCollapsed(!o);
+        persistThreadOpen(o);
         if (o) {
           try { window.dispatchEvent(new CustomEvent('demo:email-thread-opened')); } catch { /* ignore */ }
         }
