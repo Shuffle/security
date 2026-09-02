@@ -8686,7 +8686,7 @@ const IncidentDetailPage = () => {
             component={Link}
             to={entityBasePath}
             sx={{
-              display: 'inline-flex',
+              display: { xs: 'none', sm: 'inline-flex' },
               alignItems: 'center',
               gap: 0.5,
               color: '#22b8cf',
@@ -9046,6 +9046,27 @@ const IncidentDetailPage = () => {
                 {incident.editedTs ? formatTimestamp(incident.editedTs) : formatTimestamp(incident.createdTs)}
               </Typography>
 
+              {/* Mobile-only actions menu — kept on the same line as status/severity */}
+              {!isPublicView && (
+                <Tooltip title="Actions">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => setActionsMenuAnchor(e.currentTarget)}
+                    sx={{
+                      display: { xs: 'inline-flex', sm: 'none' },
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 1,
+                      width: 28,
+                      height: 28,
+                      flexShrink: 0,
+                      ml: 'auto',
+                    }}
+                  >
+                    <MoreVertIcon size={18} />
+                  </IconButton>
+                </Tooltip>
+              )}
+
             </Box>
             </Box>
           </Box>
@@ -9054,7 +9075,7 @@ const IncidentDetailPage = () => {
               breathing room. Top row: Refresh + actions menu. Bottom row:
               loaders + Ask agent. */}
           <Box sx={{
-            display: 'flex',
+            display: { xs: 'none', sm: 'flex' },
             flexDirection: { xs: 'row', sm: 'column' },
             alignItems: { xs: 'center', sm: 'flex-end' },
             justifyContent: { xs: 'flex-end', sm: 'flex-start' },
@@ -9499,6 +9520,7 @@ const IncidentDetailPage = () => {
                 size="small"
                 onClick={(e) => setActionsMenuAnchor(e.currentTarget)}
                 sx={{ 
+                  display: { xs: 'none', sm: 'inline-flex' },
                   border: '1px solid hsl(var(--border))',
                   borderRadius: 1,
                   width: 32,
@@ -9527,6 +9549,34 @@ const IncidentDetailPage = () => {
                 <LinkIcon size={16} style={{ marginRight: '8px' }} />
                 Share
               </MenuItem>
+              {/* Refresh */}
+              <MenuItem
+                onClick={async () => {
+                  setActionsMenuAnchor(null);
+                  setIsRefreshing(true);
+                  await Promise.all([
+                    loadIncident(false),
+                    refetchAgentRuns(),
+                  ]);
+                  setIsRefreshing(false);
+                }}
+                disabled={loading || isRefreshing}
+              >
+                <RefreshIcon size={16} style={{ marginRight: '8px' }} className={isRefreshing ? 'animate-spin' : ''} />
+                Refresh
+              </MenuItem>
+              {/* Ask the AI agent */}
+              <MenuItem
+                onClick={() => {
+                  setAskAgentAnchor(actionsMenuAnchor);
+                  setActionsMenuAnchor(null);
+                }}
+                disabled={!!primaryPointer}
+              >
+                <AgentIcon size={16} style={{ marginRight: '8px' }} />
+                Ask the AI agent
+              </MenuItem>
+              <Divider />
               {/* Generate Report */}
               <MenuItem
                 onClick={() => {
