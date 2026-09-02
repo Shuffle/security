@@ -20,6 +20,7 @@ import {
   Divider,
   Stack,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import EmailHtmlFrame from './EmailHtmlFrame';
 import { resolveEmailThread, type ResolvedEmailThread } from '@/lib/emailThreadAdapters';
