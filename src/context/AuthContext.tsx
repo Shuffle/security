@@ -200,7 +200,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
 
-      const result = await fetchUserInfo(token);
+      // First attempt resolves the overlay quickly; only a repeated, explicit
+      // auth failure is allowed to clear the stored session.
+      let result = await fetchUserInfo(token);
+      if (result === 'ok') {
+        setIsAuthenticated(true);
+      } else {
+        setIsLoading(false);
+        result = await verifyUserInfo(token, 2);
+      }
+
       if (result === 'ok') {
         setIsAuthenticated(true);
       } else if (result === 'unauthenticated') {
