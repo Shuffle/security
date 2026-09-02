@@ -108,6 +108,7 @@ export const MobileAuthGateway = () => {
 
   // Ensure host URL is synchronized in API config whenever serverMode or customHostUrl changes
   useEffect(() => {
+    if (!hydrated) return;
     if (serverMode === 'self-hosted' && customHostUrl.trim()) {
       let normalized = customHostUrl.trim().replace(/\/+$/, '');
       if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
@@ -119,7 +120,7 @@ export const MobileAuthGateway = () => {
       setHostBaseUrl(null);
       setCoreHostBaseUrl(null);
     }
-  }, [serverMode, customHostUrl]);
+  }, [hydrated, serverMode, customHostUrl]);
 
   // Handle server mode change
   const handleServerModeChange = (mode: 'cloud' | 'self-hosted') => {
