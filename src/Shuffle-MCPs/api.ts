@@ -467,6 +467,12 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
   return headers;
 };
 
+/** Session validation headers intentionally omit any cached organization. */
+export const getSessionAuthHeader = (): Record<string, string> => {
+  const token = getSessionToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 
 /**
  * True when the browser has some form of Shuffle auth available: either the

@@ -281,17 +281,39 @@ export const MobileAuthGateway = () => {
         // otherwise we land in a "fake" authenticated UI when the cookie/token
         // was not actually accepted by the backend.
         let verified = false;
+        let verifiedWithToken = false;
+        let verifyData: any = null;
         try {
-          const verifyRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+          // Cookie has strict priority. Only if it fails do native/preview
+          // clients retry with the returned session token and no cookies.
+          let verifyRes = await fetch(getApiUrl('/api/v1/getinfo'), {
             method: 'GET',
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
             },
           });
-          const verifyData = await verifyRes.json().catch(() => ({} as any));
+          verifyData = await verifyRes.json().catch(() => ({} as any));
           verified = verifyRes.ok && verifyData?.success === true;
+
+          if (!verified && sessionToken) {
+            verifyRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+              method: 'GET',
+              credentials: 'omit',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${sessionToken}`,
+              },
+            });
+            verifyData = await verifyRes.json().catch(() => ({} as any));
+            verified = verifyRes.ok && verifyData?.success === true;
+            verifiedWithToken = verified;
+          }
+
+          if (verified) {
+            const accepted = await login(verifiedWithToken ? sessionToken || '' : '', verifyData);
+            verified = accepted;
+          }
         } catch {
           verified = false;
         }
@@ -302,7 +324,6 @@ export const MobileAuthGateway = () => {
         }
 
         localStorage.setItem('shuffle_has_logged_in', 'true');
-        await login(sessionToken || '');
         navigate(from, { replace: true });
       } else {
         setError(data.reason || data.message || 'Login failed. Please verify credentials.');
