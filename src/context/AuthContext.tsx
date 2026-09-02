@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
@@ -166,14 +166,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem('session_token');
       if (token !== sessionToken) setSessionToken(token);
 
-      // On mobile (or web with no cached session), unauthenticated is the starting point.
-      // Skip the initial network request to avoid unnecessary 401s on initial boot.
-      if (!token && isCapacitorNative()) {
+      // Without a session token we can only be logged in through the session
+      // cookie, which is same-origin only. On native apps, and whenever the
+      // frontend points at a custom/self-hosted backend, no cookie can exist —
+      // so skip the boot getinfo entirely and wait for a successful login.
+      if (!token && (isCapacitorNative() || getHostBaseUrl())) {
         setIsAuthenticated(false);
         setUserInfo(null);
         setIsLoading(false);
         return;
       }
+
 
       const result = await fetchUserInfo(token);
       if (result === 'ok') {
@@ -239,9 +242,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRuntimeOrgId(null);
     resetRegionUrl();
 
-    // Production web authentication is cookie-only. Native apps and Lovable
-    // testing may persist exactly one session token as the fallback.
-    const tokenToStore = (isCapacitorNative() || isDevEnvironment()) ? token : '';
+    // Same-origin production web authentication is cookie-only. Native apps,
+    // Lovable testing, and any custom/self-hosted backend (where the cookie is
+    // cross-origin and therefore unusable) must carry the session token as the
+    // bearer instead.
+    const tokenToStore = (isCapacitorNative() || isDevEnvironment() || !!getHostBaseUrl()) ? token : '';
+
     persistSessionToken(tokenToStore);
     setSessionToken(tokenToStore || null);
     setIsAuthenticated(false);

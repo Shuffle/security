@@ -15,7 +15,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
+import { getApiUrl, API_ENDPOINTS, getHostBaseUrl, isDevEnvironment, isCapacitorNative, shuffleFetch } from '@/Shuffle-MCPs/api';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
@@ -188,22 +188,27 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
 
       if (sessionToken) {
-        // Verify the token works before showing success
+        // A custom/self-hosted backend (or a native app / preview) cannot rely
+        // on the session cookie, so the session token returned by the login
+        // request is used as the bearer instead.
+        const preferBearer = isCapacitorNative() || isDevEnvironment() || !!getHostBaseUrl();
+        // Verify the session works before showing success
         let verifiedUserInfo: any = null;
         try {
           const verifyResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
             method: 'GET',
-            credentials: 'include',
+            credentials: preferBearer ? 'omit' : 'include',
             headers: {
               'Content-Type': 'application/json',
+              ...(preferBearer ? { Authorization: `Bearer ${sessionToken}` } : {}),
             },
           });
           
           if (!verifyResponse.ok) {
-            // Login API returned a token but the session cookie wasn't set
+            // Login API returned a token but the session was not accepted
             const backendOrigin = new URL(getApiUrl('')).origin;
             const isCrossOrigin = backendOrigin !== window.location.origin;
-            if (isCrossOrigin) {
+            if (isCrossOrigin && !preferBearer) {
               throw new Error(
                 `Login succeeded but the session cookie was not set. ` +
                 `This usually means the backend at ${backendOrigin} is not configured to set cookies for ${window.location.origin}. ` +
@@ -237,12 +242,13 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         trackPredefinedEvent(GA_EVENTS.LOGIN_SUCCESS);
         const wasFirstLogin = !hasLoggedInBefore;
         localStorage.setItem('shuffle_has_logged_in', 'true');
-        // This verification was cookie-only, so do not retain the returned
-        // token as a second credential.
-        const accepted = await login('', verifiedUserInfo);
+        // Keep exactly one credential: the bearer token only when the cookie
+        // cannot be used, otherwise nothing (cookie-only).
+        const accepted = await login(preferBearer ? sessionToken : '', verifiedUserInfo);
         if (!accepted) {
           throw new Error('Login succeeded but session verification failed. Please try again.');
         }
+
 
         // Determine post-login destination: honor explicit returnUrl if set.
         // Otherwise, if no incidents exist for this org, send to /dashboard.
@@ -250,18 +256,14 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         const hasExplicitReturn = Boolean(location.state?.from?.pathname || returnUrl);
         if (!isMobile && !hasExplicitReturn && !wasFirstLogin) {
           try {
-            const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
-              method: 'GET',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-            });
-            const infoData = await infoRes.json();
-            const orgId = infoData?.active_org?.id;
+            // Reuse the verified session info — no extra getinfo request.
+            const orgId = verifiedUserInfo?.active_org?.id;
             if (orgId) {
-              const incRes = await fetch(
+              const incRes = await shuffleFetch(
                 getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=shuffle-security_incidents&top=1`),
-                { method: 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json' } },
+                { method: 'GET', headers: { 'Content-Type': 'application/json' } },
               );
+
               if (incRes.ok) {
                 const incData = await incRes.json();
                 const items = incData?.keys || incData?.list || incData?.items || [];
