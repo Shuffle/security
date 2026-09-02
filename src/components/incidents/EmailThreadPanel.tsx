@@ -20,6 +20,7 @@ import {
   Divider,
   Stack,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import EmailHtmlFrame from './EmailHtmlFrame';
 import { resolveEmailThread, type ResolvedEmailThread } from '@/lib/emailThreadAdapters';
@@ -490,6 +491,7 @@ const RecipientRow = ({
 const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, onForward }: EmailThreadPanelProps) => {
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -520,10 +522,52 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   };
 
 
-  // Email incidents ALWAYS start with the thread visible — the email is the
-  // primary narrative, so it must be shown no matter what was stored before.
-  // The user can still collapse it manually for the current session.
+  // Email incidents ALWAYS start with the thread visible on desktop — the email
+  // is the primary narrative. On mobile the Email Thread is collapsed by default
+  // and the Timeline is expanded. We persist the user's toggle so the per-open
+  // guarantee in the parent can coordinate with it.
+  const EMAIL_THREAD_OPEN_KEY = 'shuffle-incident-email-thread-open';
   const [threadCollapsed, setThreadCollapsed] = useState<boolean>(false);
+
+  const persistThreadOpen = useCallback((open: boolean) => {
+    setThreadCollapsed(!open);
+    try { localStorage.setItem(EMAIL_THREAD_OPEN_KEY, open ? '1' : '0'); } catch { /* ignore */ }
+  }, []);
+
+  // Mobile defaults: raw view is the only option and is on by default; the
+  // thread itself is collapsed by default so the Timeline stays prominent.
+  // These effects run once after hydration to avoid server/client mismatches.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const rawStored = localStorage.getItem(EMAIL_THREAD_RAW_KEY);
+      if (rawStored === '1') {
+        setRawModeState(true);
+      } else if (rawStored === '0') {
+        setRawModeState(false);
+      } else if (window.innerWidth < 600) {
+        setRawModeState(true);
+      }
+
+      const openStored = localStorage.getItem(EMAIL_THREAD_OPEN_KEY);
+      if (openStored === '1') {
+        setThreadCollapsed(false);
+      } else if (openStored === '0') {
+        setThreadCollapsed(true);
+      } else if (window.innerWidth < 600) {
+        setThreadCollapsed(true);
+        localStorage.setItem(EMAIL_THREAD_OPEN_KEY, '0');
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Keep raw mode forced on whenever the viewport is mobile.
+  useEffect(() => {
+    if (isMobile && !rawMode) {
+      setRawModeState(true);
+      try { localStorage.setItem(EMAIL_THREAD_RAW_KEY, '1'); } catch { /* ignore */ }
+    }
+  }, [isMobile, rawMode]);
 
   // Popout mode — like Gmail's "open in new window" button. When enabled the
   // entire panel is rendered into a draggable floating card via a React
@@ -618,7 +662,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
     const stepId = TOUR_STEPS[demoStep]?.id;
     if (stepId === 'incident-detail' && !autoCollapsedRef.current) {
       autoCollapsedRef.current = true;
-      setThreadCollapsed(true);
+      persistThreadOpen(false);
     }
   }, [demoDrawerOpen, demoStep]);
 
@@ -812,6 +856,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
               bgcolor: 'transparent',
               borderColor: 'hsl(var(--border))',
               color: 'text.secondary',
+              display: { xs: 'none', sm: 'inline-flex' },
             }}
           />
         </Tooltip>
@@ -849,18 +894,20 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   // IncidentSection's `actions` slot.
   const headerActions = (
     <>
-      <Tooltip title={rawMode ? 'Show threaded view' : 'Show raw email'}>
-        <IconButton
-          size="small"
-          onClick={() => setRawMode(r => !r)}
-          sx={{
-            color: rawMode ? primaryColor : 'text.secondary',
-            '&:hover': { color: primaryColor },
-          }}
-        >
-          <CodeIcon size={17} />
-        </IconButton>
-      </Tooltip>
+      <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
+        <Tooltip title={rawMode ? 'Show threaded view' : 'Show raw email'}>
+          <IconButton
+            size="small"
+            onClick={() => setRawMode(r => !r)}
+            sx={{
+              color: rawMode ? primaryColor : 'text.secondary',
+              '&:hover': { color: primaryColor },
+            }}
+          >
+            <CodeIcon size={17} />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {onReply && (
         <Tooltip title="Reply (disabled)">
@@ -890,7 +937,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
           size="small"
           onClick={() => {
             setPoppedOut(p => !p);
-            if (!poppedOut) setThreadCollapsed(false);
+            if (!poppedOut) persistThreadOpen(true);
           }}
           sx={{
             display: { xs: 'none', sm: 'inline-flex' },
@@ -909,9 +956,10 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   // window so behaviour stays identical in both surfaces.
   const panelBody = (
     <>
-      {/* Subject line */}
+      {/* Subject line — hidden on mobile; the raw view shows a labelled
+          From/Subject block above the email body instead. */}
       {threadSubject && (
-        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid hsl(var(--border))' }}>
+        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid hsl(var(--border))', display: { xs: 'none', sm: 'block' } }}>
           <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
             {threadSubject}
           </Typography>
@@ -922,6 +970,16 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
         {rawMode ? (
           <Box sx={{ px: 2, py: 1.5 }}>
+            <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexDirection: 'column', gap: 0.25, mb: 1.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                From: {messages[0].from}
+              </Typography>
+              {threadSubject && (
+                <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Subject: {threadSubject}
+                </Typography>
+              )}
+            </Box>
             <EmailHtmlFrame html={rawHtml || plainTextToEmailHtml(rawText)} />
           </Box>
 
@@ -1215,7 +1273,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       iconColor={primaryColor}
       open={!threadCollapsed}
       onOpenChange={(o) => {
-        setThreadCollapsed(!o);
+        persistThreadOpen(o);
         if (o) {
           try { window.dispatchEvent(new CustomEvent('demo:email-thread-opened')); } catch { /* ignore */ }
         }
@@ -1244,7 +1302,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       }}
     >
       <Box
-        onClick={() => setThreadCollapsed(c => !c)}
+        onClick={() => persistThreadOpen(threadCollapsed)}
         sx={{
           display: 'flex',
           alignItems: 'center',
