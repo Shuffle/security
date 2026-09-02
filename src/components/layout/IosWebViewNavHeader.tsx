@@ -313,22 +313,7 @@ export const MobileNavHeader: React.FC = () => {
             </Box>
 
             <Box sx={{ flexShrink: 0, ml: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-              {userInfo?.active_org?.name && (
-
-                <Typography
-                  noWrap
-                  variant="caption"
-                  sx={{
-                    color: 'hsl(var(--muted-foreground))',
-                    fontSize: '0.72rem',
-                    fontWeight: 500,
-                    maxWidth: 90,
-                    textAlign: 'right',
-                  }}
-                >
-                  {userInfo.active_org.name}
-                </Typography>
-              )}
+              <TenantSelector maxWidth={110} />
             </Box>
           </>
         )}
