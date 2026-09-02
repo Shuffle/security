@@ -97,6 +97,8 @@ interface SectionProps {
   expandDisabled?: boolean;
   onTest?: () => void;
   testing?: boolean;
+  testTooltip?: string;
+  testDisabled?: boolean;
   children: ReactNode;
 }
 
