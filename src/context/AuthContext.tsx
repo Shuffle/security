@@ -242,9 +242,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRuntimeOrgId(null);
     resetRegionUrl();
 
-    // Production web authentication is cookie-only. Native apps and Lovable
-    // testing may persist exactly one session token as the fallback.
-    const tokenToStore = (isCapacitorNative() || isDevEnvironment()) ? token : '';
+    // Same-origin production web authentication is cookie-only. Native apps,
+    // Lovable testing, and any custom/self-hosted backend (where the cookie is
+    // cross-origin and therefore unusable) must carry the session token as the
+    // bearer instead.
+    const tokenToStore = (isCapacitorNative() || isDevEnvironment() || !!getHostBaseUrl()) ? token : '';
+
     persistSessionToken(tokenToStore);
     setSessionToken(tokenToStore || null);
     setIsAuthenticated(false);
