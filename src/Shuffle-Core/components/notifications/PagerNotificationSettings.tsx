@@ -332,6 +332,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
   const [savingDevice, setSavingDevice] = useState(false);
   const [inIframe, setInIframe] = useState(false);
   const [confirmCritical, setConfirmCritical] = useState(false);
+  const [pendingCriticalTest, setPendingCriticalTest] = useState<'push' | 'simulate' | null>(null);
+
 
   useEffect(() => {
     setInIframe(typeof window !== 'undefined' && window.top !== window.self);
@@ -704,7 +706,13 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     : settings.pushToken || '';
   const testTargetName = selectedDevice?.device_name || 'this device';
 
+  const requestCriticalTest = (mode: 'push' | 'simulate') => {
+    if (!criticalAvailable) return;
+    setPendingCriticalTest(mode);
+  };
+
   const handleTestRemotePush = async (type: NotificationType) => {
+
     if (type === 'critical' && !criticalAvailable) {
       setPermissionMsg(
         `Critical Pager is not available on ${testTargetName}. It requires the mobile app, so it cannot be tested here.`,
@@ -1172,7 +1180,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
           expandDisabled={!isGranted}
-          onTest={testToken ? () => handleTestRemotePush('critical') : undefined}
+          onTest={testToken ? () => requestCriticalTest('push') : undefined}
           testing={sendingType === 'critical'}
           testDisabled={!criticalAvailable}
           testTooltip={
@@ -1246,7 +1254,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
               <>
                 <Tooltip title="Preview the incoming pager call screen locally in this tab. Nothing is sent to any device." placement="left" arrow>
                   <span>
-                    <Button variant="outlined" size="small" onClick={testPagerCall} disabled={!criticalAvailable} sx={outlinedButtonSx}>
+                    <Button variant="outlined" size="small" onClick={() => requestCriticalTest('simulate')} disabled={!criticalAvailable} sx={outlinedButtonSx}>
                       Simulate call
                     </Button>
                   </span>
@@ -1257,7 +1265,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
                       <Button
                         variant="outlined"
                         size="small"
-                        onClick={() => handleTestRemotePush('critical')}
+                        onClick={() => requestCriticalTest('push')}
                         disabled={sendingType === 'critical' || !criticalAvailable}
                         sx={outlinedButtonSx}
                       >
@@ -1416,7 +1424,44 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={Boolean(pendingCriticalTest)} onClose={() => setPendingCriticalTest(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 700 }}>Test Critical Pager?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '0.88rem' }}>
+            You are about to trigger a full-screen, blaring critical pager alert on{' '}
+            <strong>{testTargetName}</strong>.
+            {pendingCriticalTest === 'push'
+              ? ' A real push will be sent through the Shuffle API, exactly like a live escalation.'
+              : ' This preview will open locally in this browser tab.'}{' '}
+            Make sure you are ready before continuing.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button size="small" onClick={() => setPendingCriticalTest(null)} sx={outlinedButtonSx}>
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color={pendingCriticalTest === 'push' ? 'error' : 'primary'}
+            onClick={() => {
+              const mode = pendingCriticalTest;
+              setPendingCriticalTest(null);
+              if (mode === 'push') {
+                void handleTestRemotePush('critical');
+              } else if (mode === 'simulate') {
+                testPagerCall();
+              }
+            }}
+            sx={{ height: 36, textTransform: 'none' }}
+          >
+            {pendingCriticalTest === 'push' ? 'Send push' : 'Simulate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
+
 
   );
 };
