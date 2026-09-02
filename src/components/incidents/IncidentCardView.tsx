@@ -803,7 +803,7 @@ export const IncidentCardView = ({
                          )}
                        </>
                      );
-                    })()}
+                    })())}
                 </Box>
               </Box>
 
