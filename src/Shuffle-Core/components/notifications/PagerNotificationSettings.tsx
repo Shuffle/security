@@ -1129,6 +1129,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           }}
           expanded={expanded === 'critical'}
           onExpandToggle={() => toggleExpanded('critical')}
+          expandDisabled={!isGranted}
           onTest={testToken ? () => handleTestRemotePush('critical') : undefined}
           testing={sendingType === 'critical'}
         >
@@ -1219,6 +1220,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('agent_request', value)}
           expanded={expanded === 'agent_request'}
           onExpandToggle={() => toggleExpanded('agent_request')}
+          expandDisabled={!isGranted}
           onTest={testToken ? () => handleTestRemotePush('agent_request') : undefined}
           testing={sendingType === 'agent_request'}
         >
@@ -1267,6 +1269,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           onToggle={(value) => setSectionEnabled('general', value)}
           expanded={expanded === 'general'}
           onExpandToggle={() => toggleExpanded('general')}
+          expandDisabled={!isGranted}
           onTest={testToken ? () => handleTestRemotePush('general') : undefined}
           testing={sendingType === 'general'}
         >
