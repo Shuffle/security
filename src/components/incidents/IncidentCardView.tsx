@@ -220,7 +220,7 @@ const normalizeToMs = (timestamp: number | string | undefined): number => {
   return ts / 1e6;
 };
 
-const formatRelativeTime = (timestamp: number): string => {
+const formatRelativeTime = (timestamp: number, compact = false): string => {
   const ms = normalizeToMs(timestamp);
   if (!ms) return 'unknown';
   const now = Date.now();
@@ -228,6 +228,13 @@ const formatRelativeTime = (timestamp: number): string => {
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
+
+  if (compact) {
+    if (minutes < 1) return 'now';
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    return `${days}d`;
+  }
 
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
@@ -631,7 +638,7 @@ export const IncidentCardView = ({
                         variant="caption"
                         sx={{ color: 'hsl(var(--muted-foreground))', cursor: 'default' }}
                       >
-                        {formatRelativeTime(incident.originCreatedTs)}
+                        {formatRelativeTime(incident.originCreatedTs, isMobile)}
                       </Typography>
                     </Tooltip>
                   )}
@@ -652,7 +659,7 @@ export const IncidentCardView = ({
                               fontWeight: isStale ? 600 : 400,
                             }}
                           >
-                            edited {formatRelativeTime(incident.editedTs)}
+                            edited {formatRelativeTime(incident.editedTs, isMobile)}
                           </Typography>
                         </Tooltip>
                       </>
