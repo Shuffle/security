@@ -284,20 +284,12 @@ export const MobileAuthGateway = () => {
         let verifiedWithToken = false;
         let verifyData: any = null;
         try {
-          // Cookie has strict priority. Only if it fails do native/preview
-          // clients retry with the returned session token and no cookies.
-          let verifyRes = await fetch(getApiUrl('/api/v1/getinfo'), {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-          verifyData = await verifyRes.json().catch(() => ({} as any));
-          verified = verifyRes.ok && verifyData?.success === true;
+          // A custom/self-hosted backend (or a native app) cannot rely on the
+          // session cookie — the returned session token is the bearer there.
+          const preferBearer = isCapacitorNative() || isDevEnvironment() || !!getHostBaseUrl();
 
-          if (!verified && sessionToken) {
-            verifyRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+          const verifyWithToken = async () => {
+            const res = await fetch(getApiUrl('/api/v1/getinfo'), {
               method: 'GET',
               credentials: 'omit',
               headers: {
@@ -305,10 +297,32 @@ export const MobileAuthGateway = () => {
                 Authorization: `Bearer ${sessionToken}`,
               },
             });
-            verifyData = await verifyRes.json().catch(() => ({} as any));
-            verified = verifyRes.ok && verifyData?.success === true;
+            verifyData = await res.json().catch(() => ({} as any));
+            return res.ok && verifyData?.success === true;
+          };
+
+          const verifyWithCookie = async () => {
+            const res = await fetch(getApiUrl('/api/v1/getinfo'), {
+              method: 'GET',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            verifyData = await res.json().catch(() => ({} as any));
+            return res.ok && verifyData?.success === true;
+          };
+
+          if (preferBearer && sessionToken) {
+            verified = await verifyWithToken();
             verifiedWithToken = verified;
+            if (!verified) verified = await verifyWithCookie();
+          } else {
+            verified = await verifyWithCookie();
+            if (!verified && sessionToken) {
+              verified = await verifyWithToken();
+              verifiedWithToken = verified;
+            }
           }
+
 
           if (verified) {
             const accepted = await login(verifiedWithToken ? sessionToken || '' : '', verifyData);
