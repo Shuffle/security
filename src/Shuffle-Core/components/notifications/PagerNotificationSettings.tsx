@@ -695,9 +695,21 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     setTimeout(() => setIsPlayingTestSiren(false), 2300);
   };
 
-  const testToken = selectedDevice?.token || settings.pushToken || '';
+  // Always target the token of the device selected above, so a test lands on
+  // that device only. The local browser token is used solely when this device
+  // is the selected one (or nothing is selected yet).
+  const testToken = selectedDevice
+    ? selectedDevice.token || (isLocalSelected ? settings.pushToken || '' : '')
+    : settings.pushToken || '';
+  const testTargetName = selectedDevice?.device_name || 'this device';
 
   const handleTestRemotePush = async (type: NotificationType) => {
+    if (type === 'critical' && !criticalAvailable) {
+      setPermissionMsg(
+        `Critical Pager is not available on ${testTargetName}. It requires the mobile app, so it cannot be tested here.`,
+      );
+      return;
+    }
     if (!testToken) {
       if (settings.permissionStatus !== 'granted') {
         setPermissionMsg(
