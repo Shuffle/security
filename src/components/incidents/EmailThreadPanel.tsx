@@ -491,6 +491,7 @@ const RecipientRow = ({
 const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, onForward }: EmailThreadPanelProps) => {
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -521,10 +522,52 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   };
 
 
-  // Email incidents ALWAYS start with the thread visible — the email is the
-  // primary narrative, so it must be shown no matter what was stored before.
-  // The user can still collapse it manually for the current session.
+  // Email incidents ALWAYS start with the thread visible on desktop — the email
+  // is the primary narrative. On mobile the Email Thread is collapsed by default
+  // and the Timeline is expanded. We persist the user's toggle so the per-open
+  // guarantee in the parent can coordinate with it.
+  const EMAIL_THREAD_OPEN_KEY = 'shuffle-incident-email-thread-open';
   const [threadCollapsed, setThreadCollapsed] = useState<boolean>(false);
+
+  const persistThreadOpen = useCallback((open: boolean) => {
+    setThreadCollapsed(!open);
+    try { localStorage.setItem(EMAIL_THREAD_OPEN_KEY, open ? '1' : '0'); } catch { /* ignore */ }
+  }, []);
+
+  // Mobile defaults: raw view is the only option and is on by default; the
+  // thread itself is collapsed by default so the Timeline stays prominent.
+  // These effects run once after hydration to avoid server/client mismatches.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const rawStored = localStorage.getItem(EMAIL_THREAD_RAW_KEY);
+      if (rawStored === '1') {
+        setRawModeState(true);
+      } else if (rawStored === '0') {
+        setRawModeState(false);
+      } else if (window.innerWidth < 600) {
+        setRawModeState(true);
+      }
+
+      const openStored = localStorage.getItem(EMAIL_THREAD_OPEN_KEY);
+      if (openStored === '1') {
+        setThreadCollapsed(false);
+      } else if (openStored === '0') {
+        setThreadCollapsed(true);
+      } else if (window.innerWidth < 600) {
+        setThreadCollapsed(true);
+        localStorage.setItem(EMAIL_THREAD_OPEN_KEY, '0');
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Keep raw mode forced on whenever the viewport is mobile.
+  useEffect(() => {
+    if (isMobile && !rawMode) {
+      setRawModeState(true);
+      try { localStorage.setItem(EMAIL_THREAD_RAW_KEY, '1'); } catch { /* ignore */ }
+    }
+  }, [isMobile, rawMode]);
 
   // Popout mode — like Gmail's "open in new window" button. When enabled the
   // entire panel is rendered into a draggable floating card via a React
