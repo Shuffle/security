@@ -638,7 +638,7 @@ export const IncidentCardView = ({
                         variant="caption"
                         sx={{ color: 'hsl(var(--muted-foreground))', cursor: 'default' }}
                       >
-                        {formatRelativeTime(incident.originCreatedTs)}
+                        {formatRelativeTime(incident.originCreatedTs, isMobile)}
                       </Typography>
                     </Tooltip>
                   )}
@@ -659,7 +659,7 @@ export const IncidentCardView = ({
                               fontWeight: isStale ? 600 : 400,
                             }}
                           >
-                            edited {formatRelativeTime(incident.editedTs)}
+                            edited {formatRelativeTime(incident.editedTs, isMobile)}
                           </Typography>
                         </Tooltip>
                       </>
