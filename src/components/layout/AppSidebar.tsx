@@ -258,6 +258,11 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
     return 'U';
   };
 
+  // Prefer the user's synced profile picture (GitHub/Gravatar) over the
+  // generic initial avatar.
+  const currentUserAvatar = resolveUserAvatar(userInfo?.username || '', users).src;
+
+
   const handleOrgChange = async (org: { id: string; name: string } | null) => {
     if (org) {
       setChangingOrg(true);
