@@ -937,7 +937,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
           size="small"
           onClick={() => {
             setPoppedOut(p => !p);
-            if (!poppedOut) setThreadCollapsed(false);
+            if (!poppedOut) persistThreadOpen(true);
           }}
           sx={{
             display: { xs: 'none', sm: 'inline-flex' },
