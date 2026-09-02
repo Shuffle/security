@@ -308,26 +308,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchUserInfo]);
 
   const logout = useCallback(async () => {
-    // Clear local state FIRST to prevent race conditions
-    const currentToken = sessionToken;
-    localStorage.removeItem('session_token');
-    localStorage.removeItem('shuffle_user_info');
+    // Capture token before clearing storage so we can tell the backend to revoke it
+    const currentToken = sessionToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('session_token') : null);
+    const apiKey = API_CONFIG.apiKey;
+    const tokenToInvalidate = apiKey || currentToken;
+
+    // Thoroughly clean up local auth & cached state
+    try {
+      localStorage.removeItem('session_token');
+      localStorage.removeItem('shuffle_user_info');
+      localStorage.removeItem('shuffle_region_url');
+    } catch { /* ignore */ }
+
     setRuntimeOrgId(null);
     API_CONFIG.setApiKey(null);
     resetRegionUrl();
     setSessionToken(null);
     setIsAuthenticated(false);
     setUserInfo(null);
-    
-    // Then call the Shuffle logout API
+
+    // Call the Shuffle logout API with the token so the backend revokes the session
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (tokenToInvalidate) {
+        headers['Authorization'] = `Bearer ${tokenToInvalidate}`;
+      }
+
       await fetch(getApiUrl('/api/v1/logout'), {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          ...getAuthHeader(),
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
     } catch (err) {
       console.error('Logout API call failed:', err);

@@ -395,11 +395,19 @@ export const API_ENDPOINTS = {
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 
-  // Only send Authorization header for API key auth.
-  // Session-based (cookie) auth is handled by credentials: 'include' — never both.
   const apiKey = API_CONFIG.apiKey;
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
+  let sessionToken: string | null = null;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      sessionToken = localStorage.getItem('session_token');
+    } catch {
+      sessionToken = null;
+    }
+  }
+
+  const token = apiKey || sessionToken;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   // Scope to the active org. Explicit override beats the tracked org.

@@ -249,10 +249,27 @@ export const getApiUrl = (endpoint: string): string => `${API_CONFIG.baseUrl}${e
 
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
+
   const apiKey = API_CONFIG.apiKey;
-  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  let sessionToken: string | null = null;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      sessionToken = localStorage.getItem('session_token');
+    } catch {
+      sessionToken = null;
+    }
+  }
+
+  const token = apiKey || sessionToken;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const orgId = overrideOrgId ?? _trackedOrgId;
-  if (orgId) headers['Org-Id'] = orgId;
+  if (orgId) {
+    headers['Org-Id'] = orgId;
+  }
+
   return headers;
 };
 
