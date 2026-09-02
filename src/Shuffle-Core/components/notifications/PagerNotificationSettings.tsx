@@ -1254,7 +1254,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
               <>
                 <Tooltip title="Preview the incoming pager call screen locally in this tab. Nothing is sent to any device." placement="left" arrow>
                   <span>
-                    <Button variant="outlined" size="small" onClick={testPagerCall} disabled={!criticalAvailable} sx={outlinedButtonSx}>
+                    <Button variant="outlined" size="small" onClick={() => requestCriticalTest('simulate')} disabled={!criticalAvailable} sx={outlinedButtonSx}>
                       Simulate call
                     </Button>
                   </span>
@@ -1265,7 +1265,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
                       <Button
                         variant="outlined"
                         size="small"
-                        onClick={() => handleTestRemotePush('critical')}
+                        onClick={() => requestCriticalTest('push')}
                         disabled={sendingType === 'critical' || !criticalAvailable}
                         sx={outlinedButtonSx}
                       >
