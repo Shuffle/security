@@ -1,4 +1,4 @@
-import { Box, Typography, Chip, Checkbox, Skeleton, Tooltip, CircularProgress, Avatar, Button } from '@mui/material';
+import { Box, Typography, Chip, Checkbox, Skeleton, Tooltip, CircularProgress, Avatar, Button, useMediaQuery } from '@mui/material';
 import { getLinkedPointers } from '@/lib/incidentRelations';
 import { Tag, RefreshCw as RefreshIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -273,6 +273,7 @@ export const IncidentCardView = ({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hasRendered, setHasRendered] = useState(false);
   const renderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMobile = useMediaQuery('(max-width:899px)');
 
   // Track when items have actually rendered to the DOM
   // Use requestAnimationFrame to wait until after paint
@@ -752,13 +753,14 @@ export const IncidentCardView = ({
                       cluster so the title row has more breathing room. They
                       sit alongside org / assignee / source as another piece
                       of contextual metadata. */}
-                   {(() => {
+                    {(() => {
                      // Hide the synthetic "Manual" label that's auto-attached to
                      // manually-created incidents — it's noise, not metadata.
-                     const visibleLabels = (incident.labels || []).filter(
-                       (l) => l.trim().toLowerCase() !== 'manual',
-                     );
-                     if (visibleLabels.length === 0) return null;
+                      const visibleLabels = (incident.labels || []).filter(
+                        (l) => l.trim().toLowerCase() !== 'manual',
+                      );
+                      if (isMobile) return null;
+                      if (visibleLabels.length === 0) return null;
                      return (
                        <>
                          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -802,7 +804,7 @@ export const IncidentCardView = ({
                          )}
                        </>
                      );
-                   })()}
+                    })()}
                 </Box>
               </Box>
 

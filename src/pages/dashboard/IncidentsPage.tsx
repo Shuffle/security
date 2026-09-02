@@ -2513,7 +2513,7 @@ const IncidentsPage = () => {
                   }}
                 />
                 {showOrgProgress && (
-                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', fontWeight: 500 }}>
+                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', fontWeight: 500, display: { xs: 'none', md: 'inline' } }}>
                     Loading orgs {loaded}/{totalOrgs}
                   </Typography>
                 )}
@@ -3179,7 +3179,7 @@ const IncidentsPage = () => {
             )}
 
             {/* Active filters */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               {filters.assignee && filters.assignee !== 'all' && (
                 <Chip
                   label={`${negatedFilters.has('assignee') ? 'NOT ' : ''}${filters.assignee === 'unassigned' ? 'Unassigned' : filters.assignee}`}
