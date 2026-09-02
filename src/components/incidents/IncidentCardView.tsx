@@ -681,7 +681,7 @@ export const IncidentCardView = ({
                       </Typography>
                     </>
                   )}
-                   {incident.assignee && (
+                   {!isMobile && incident.assignee && (
                     <>
                       <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                         •
