@@ -971,9 +971,18 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
         {rawMode ? (
           <Box sx={{ px: 2, py: 1.5 }}>
             <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexDirection: 'column', gap: 0.25, mb: 1.5 }}>
-              <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                From: {messages[0].from}
-              </Typography>
+              {(() => {
+                const first = messages[0];
+                const parsed = extractEmail(first.from);
+                const name = parsed.name || first.from;
+                const email = parsed.email || first.fromEmail;
+                const display = email ? (parsed.email && parsed.name ? `${name} <${email}>` : email) : name;
+                return (
+                  <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    From: {display}
+                  </Typography>
+                );
+              })()}
               {threadSubject && (
                 <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   Subject: {threadSubject}
