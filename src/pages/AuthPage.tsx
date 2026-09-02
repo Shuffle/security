@@ -256,18 +256,14 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         const hasExplicitReturn = Boolean(location.state?.from?.pathname || returnUrl);
         if (!isMobile && !hasExplicitReturn && !wasFirstLogin) {
           try {
-            const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
-              method: 'GET',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-            });
-            const infoData = await infoRes.json();
-            const orgId = infoData?.active_org?.id;
+            // Reuse the verified session info — no extra getinfo request.
+            const orgId = verifiedUserInfo?.active_org?.id;
             if (orgId) {
-              const incRes = await fetch(
+              const incRes = await shuffleFetch(
                 getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=shuffle-security_incidents&top=1`),
-                { method: 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json' } },
+                { method: 'GET', headers: { 'Content-Type': 'application/json' } },
               );
+
               if (incRes.ok) {
                 const incData = await incRes.json();
                 const items = incData?.keys || incData?.list || incData?.items || [];
