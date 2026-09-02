@@ -1424,7 +1424,44 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={Boolean(pendingCriticalTest)} onClose={() => setPendingCriticalTest(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 700 }}>Test Critical Pager?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '0.88rem' }}>
+            You are about to trigger a full-screen, blaring critical pager alert on{' '}
+            <strong>{testTargetName}</strong>.
+            {pendingCriticalTest === 'push'
+              ? ' A real push will be sent through the Shuffle API, exactly like a live escalation.'
+              : ' This preview will open locally in this browser tab.'}{' '}
+            Make sure you are ready before continuing.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button size="small" onClick={() => setPendingCriticalTest(null)} sx={outlinedButtonSx}>
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color={pendingCriticalTest === 'push' ? 'error' : 'primary'}
+            onClick={() => {
+              const mode = pendingCriticalTest;
+              setPendingCriticalTest(null);
+              if (mode === 'push') {
+                void handleTestRemotePush('critical');
+              } else if (mode === 'simulate') {
+                testPagerCall();
+              }
+            }}
+            sx={{ height: 36, textTransform: 'none' }}
+          >
+            {pendingCriticalTest === 'push' ? 'Send push' : 'Simulate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
+
 
   );
 };
