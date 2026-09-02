@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { getApiUrl, API_CONFIG, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
@@ -239,11 +239,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthenticated, userInfo?.active_org?.id]);
 
   const login = useCallback(async (token: string) => {
-    // Keep any stored API key. Session cookies are cross-site on preview/tunnel
-    // hosts and are frequently dropped by the browser; the Authorization header
-    // from the API key is the only auth that survives, so wiping it here made
-    // every later request go out unauthenticated (401 spam).
-    localStorage.setItem('session_token', token);
+    // Exactly one auth credential may exist at a time. Wipe any previous
+    // session token and every legacy API key before storing the new one, so
+    // two different users' tokens can never coexist.
+    persistSessionToken(token);
     setSessionToken(token);
     setIsAuthenticated(true);
     await fetchUserInfo(token);
@@ -309,13 +308,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     // Capture token before clearing storage so we can tell the backend to revoke it
-    const currentToken = sessionToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('session_token') : null);
-    const apiKey = API_CONFIG.apiKey;
-    const tokenToInvalidate = apiKey || currentToken;
+    const tokenToInvalidate = sessionToken || getSessionToken();
 
     // Thoroughly clean up local auth & cached state
     try {
-      localStorage.removeItem('session_token');
+      clearAuthTokens();
       localStorage.removeItem('shuffle_user_info');
       localStorage.removeItem('shuffle_region_url');
       // On web, drop any custom/self-hosted server override so the next login
@@ -332,7 +329,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setRuntimeOrgId(null);
-    API_CONFIG.setApiKey(null);
+    clearAuthTokens();
     resetRegionUrl();
     setSessionToken(null);
     setIsAuthenticated(false);

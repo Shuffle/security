@@ -114,9 +114,8 @@ const withStoredAuth = (input: RequestInfo | URL, init?: RequestInit): RequestIn
     if (!url.pathname.startsWith('/api/') || !isKnownShuffleOrigin) return init;
     if (url.pathname === '/api/v1/login' || url.pathname === '/api/v1/users/register') return init;
 
-    const apiKey = window.localStorage.getItem('shuffle_api_key');
     const sessionToken = window.localStorage.getItem('session_token');
-    const token = apiKey || (sessionToken && sessionToken.trim().length > 0 ? sessionToken : null);
+    const token = sessionToken && sessionToken.trim().length > 0 ? sessionToken.trim() : null;
 
     const requestHeaders = typeof Request !== 'undefined' && input instanceof Request
       ? input.headers

@@ -235,6 +235,40 @@ if (typeof window !== 'undefined') {
 export const getHostBaseUrl = (): string | null => _hostBaseUrl;
 
 
+/**
+ * Single source of truth for browser auth: session cookie first, then exactly
+ * one session token in localStorage. Legacy `shuffle_api_key` is purged.
+ */
+export const LEGACY_API_KEY_STORAGE_KEY = 'shuffle_api_key';
+
+export const clearAuthTokens = () => {
+  try {
+    localStorage.removeItem('session_token');
+    localStorage.removeItem(LEGACY_API_KEY_STORAGE_KEY);
+  } catch { /* ignore */ }
+};
+
+export const getSessionToken = (): string | null => {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    if (localStorage.getItem(LEGACY_API_KEY_STORAGE_KEY) !== null) {
+      localStorage.removeItem(LEGACY_API_KEY_STORAGE_KEY);
+    }
+    const stored = localStorage.getItem('session_token');
+    if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
+      return stored.trim();
+    }
+    return null;
+  } catch { return null; }
+};
+
+export const setSessionToken = (token: string | null) => {
+  clearAuthTokens();
+  if (token && token.trim().length > 0) {
+    try { localStorage.setItem('session_token', token.trim()); } catch { /* ignore */ }
+  }
+};
+
 export const API_CONFIG = {
   get baseUrl(): string {
     // In test/dev environments (Lovable preview, VITE_SHUFFLE_API_URL) the
@@ -244,14 +278,13 @@ export const API_CONFIG = {
     return url;
   },
   version: 'v1',
+  /** DEPRECATED alias for the single session token. */
   get apiKey(): string | null {
-    try { return typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_api_key') : null; } catch { return null; }
+    return getSessionToken();
   },
+  /** DEPRECATED: writes/clears the single session token. */
   setApiKey(key: string | null) {
-    try {
-      if (key) localStorage.setItem('shuffle_api_key', key);
-      else localStorage.removeItem('shuffle_api_key');
-    } catch { /* ignore */ }
+    setSessionToken(key);
   },
 };
 
@@ -260,20 +293,7 @@ export const getApiUrl = (endpoint: string): string => `${API_CONFIG.baseUrl}${e
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 
-  const apiKey = API_CONFIG.apiKey;
-  let sessionToken: string | null = null;
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('session_token');
-      if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
-        sessionToken = stored.trim();
-      }
-    } catch {
-      sessionToken = null;
-    }
-  }
-
-  const token = apiKey || sessionToken;
+  const token = getSessionToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
