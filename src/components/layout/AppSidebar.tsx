@@ -33,6 +33,8 @@ import { SidebarSearchDialog } from './SidebarSearchDialog';
 import { useEntityPreference, useSidebarTabs } from '@/hooks/useEntityLabel';
 import { SIDEBAR_NAV, SidebarChildSpec } from '@/config/sidebarNav';
 import { getRegionFlag } from '@/lib/regionFlag';
+import { resolveUserAvatar } from '@/components/incidents/UserHoverCard';
+import { useUsers } from '@/hooks/useUsers';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -113,6 +115,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const primaryColor = brandColor || '#FF6600';
   const { plural: entityPlural, basePath: entityBasePath } = useEntityPreference();
   const sidebarTabs = useSidebarTabs();
+  const { users } = useUsers();
   const isSupport = userInfo?.support === true;
 
   // Filter the shared SIDEBAR_NAV against the user's preferences and
@@ -257,6 +260,11 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
     }
     return 'U';
   };
+
+  // Prefer the user's synced profile picture (GitHub/Gravatar) over the
+  // generic initial avatar.
+  const currentUserAvatar = resolveUserAvatar(userInfo?.username || '', users).src;
+
 
   const handleOrgChange = async (org: { id: string; name: string } | null) => {
     if (org) {
@@ -1043,6 +1051,8 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             }}
           >
             <Avatar
+              src={currentUserAvatar || undefined}
+              alt={userInfo?.username || 'User'}
               sx={{
                 width: 36,
                 height: 36,
