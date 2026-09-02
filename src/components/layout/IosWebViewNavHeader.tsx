@@ -62,6 +62,100 @@ const getPageTitle = (pathname: string): { title: string; parentPath?: string; p
   return { title: 'Shuffle Security' };
 };
 
+const TenantSelector: React.FC<{ maxWidth?: number }> = ({ maxWidth = 140 }) => {
+  const { userInfo, setActiveOrg } = useAuth();
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [switching, setSwitching] = useState(false);
+
+  const activeOrg = userInfo?.active_org;
+  const orgs = useMemo(
+    () => [...(userInfo?.orgs || [])].sort((a, b) => (a.name || '').localeCompare(b.name || '')),
+    [userInfo?.orgs]
+  );
+
+  if (!activeOrg?.name) return null;
+
+  const handleSelect = async (orgId: string) => {
+    setAnchorEl(null);
+    if (orgId === activeOrg.id || switching) return;
+    setSwitching(true);
+    try {
+      await setActiveOrg(orgId);
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  return (
+    <>
+      <ButtonBase
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        disabled={switching || orgs.length === 0}
+        aria-label="Switch tenant"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.5,
+          px: 1.2,
+          py: 0.4,
+          borderRadius: 1.5,
+          bgcolor: 'hsl(var(--muted) / 0.6)',
+          border: '1px solid hsl(var(--border))',
+          maxWidth,
+          minWidth: 0,
+        }}
+      >
+        <Typography
+          noWrap
+          variant="caption"
+          sx={{
+            color: 'hsl(var(--muted-foreground))',
+            fontSize: '0.72rem',
+            fontWeight: 500,
+            minWidth: 0,
+          }}
+        >
+          {activeOrg.name}
+        </Typography>
+        <ChevronDown size={12} style={{ flexShrink: 0, color: 'hsl(var(--muted-foreground))' }} />
+      </ButtonBase>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 0.5,
+              maxHeight: 320,
+              minWidth: 200,
+              bgcolor: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+            },
+          },
+        }}
+      >
+        {orgs.map((org) => (
+          <MenuItem
+            key={org.id}
+            onClick={() => handleSelect(org.id)}
+            selected={org.id === activeOrg.id}
+            sx={{ gap: 1, fontSize: '0.82rem', color: 'hsl(var(--foreground))' }}
+          >
+            <Box sx={{ width: 14, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              {org.id === activeOrg.id && <Check size={14} />}
+            </Box>
+            <Typography noWrap sx={{ fontSize: '0.82rem' }}>{org.name}</Typography>
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
 export const MobileNavHeader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
