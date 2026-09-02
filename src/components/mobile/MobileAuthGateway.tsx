@@ -276,6 +276,30 @@ export const MobileAuthGateway = () => {
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
 
       if (data.success !== false) {
+        // Validate the session with getinfo BEFORE treating the user as logged in,
+        // otherwise we land in a "fake" authenticated UI when the cookie/token
+        // was not actually accepted by the backend.
+        let verified = false;
+        try {
+          const verifyRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+            },
+          });
+          const verifyData = await verifyRes.json().catch(() => ({} as any));
+          verified = verifyRes.ok && verifyData?.success === true;
+        } catch {
+          verified = false;
+        }
+
+        if (!verified) {
+          setError('Login succeeded but the session could not be verified. Please try again.');
+          return;
+        }
+
         localStorage.setItem('shuffle_has_logged_in', 'true');
         await login(sessionToken || '');
         navigate(from, { replace: true });
