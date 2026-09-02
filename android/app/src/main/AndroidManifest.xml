@@ -51,6 +51,8 @@
                 <data android:scheme="https" android:host="shuffle.security" />
             </intent-filter>
 
+        </activity>
+
         <!-- Full-screen Emergency Pager Activity shown over the lockscreen -->
         <activity
             android:name="io.shuffle.security.PagerAlertActivity"
