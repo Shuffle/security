@@ -139,7 +139,17 @@ const readCachedCustomHost = (): string | null => {
     const mode = localStorage.getItem('shuffle_selected_server_mode');
     if (mode && mode !== 'self-hosted') return null;
     const raw = localStorage.getItem('shuffle_custom_host_url');
-    return raw ? raw.trim().replace(/\/+$/, '') : null;
+    const cleaned = raw ? raw.trim().replace(/\/+$/, '') : null;
+    if (!cleaned) return null;
+    // A saved dev/test backend must never leak into a real deployment.
+    if (cleaned === DEV_BACKEND && !isDevEnvironment()) {
+      try {
+        localStorage.removeItem('shuffle_custom_host_url');
+        localStorage.removeItem('shuffle_selected_server_mode');
+      } catch { /* ignore */ }
+      return null;
+    }
+    return cleaned;
   } catch {
     return null;
   }
