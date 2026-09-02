@@ -94,6 +94,7 @@ interface SectionProps {
   onToggle: (value: boolean) => void;
   expanded: boolean;
   onExpandToggle: () => void;
+  expandDisabled?: boolean;
   onTest?: () => void;
   testing?: boolean;
   children: ReactNode;
@@ -107,6 +108,7 @@ const NotificationSection = ({
   onToggle,
   expanded,
   onExpandToggle,
+  expandDisabled,
   onTest,
   testing,
   children,
@@ -118,18 +120,23 @@ const NotificationSection = ({
       bgcolor: 'hsl(var(--muted) / 0.15)',
     }}
   >
-    <Box sx={{ ...rowSx, p: 2, cursor: 'pointer' }} onClick={onExpandToggle}>
+    <Box
+      sx={{ ...rowSx, p: 2, cursor: expandDisabled ? 'default' : 'pointer' }}
+      onClick={expandDisabled ? undefined : onExpandToggle}
+    >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
         <IconButton
           size="small"
+          disabled={expandDisabled}
           onClick={(e) => {
             e.stopPropagation();
+            if (expandDisabled) return;
             onExpandToggle();
           }}
           sx={{
             flexShrink: 0,
             color: 'hsl(var(--muted-foreground))',
-            transform: expanded ? 'rotate(180deg)' : 'none',
+            transform: expanded && !expandDisabled ? 'rotate(180deg)' : 'none',
             transition: 'transform 150ms ease',
           }}
         >
@@ -147,7 +154,15 @@ const NotificationSection = ({
           </Typography>
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+        <Switch
+          checked={enabled}
+          disabled={disabled}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => onToggle(e.target.checked)}
+          color="primary"
+          size="small"
+        />
         {enabled && onTest && (
           <Button
             variant="outlined"
@@ -162,24 +177,17 @@ const NotificationSection = ({
             {testing ? 'Sending' : 'Test'}
           </Button>
         )}
-        <Switch
-          checked={enabled}
-          disabled={disabled}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => onToggle(e.target.checked)}
-          color="primary"
-          size="small"
-        />
       </Box>
     </Box>
 
 
-    <Collapse in={expanded} unmountOnExit>
+    <Collapse in={expanded && !expandDisabled} unmountOnExit>
       <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>{children}</Box>
     </Collapse>
   </Box>
 );
+
 
 const SettingRow = ({
   label,
