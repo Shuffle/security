@@ -113,6 +113,8 @@ const NotificationSection = ({
   expandDisabled,
   onTest,
   testing,
+  testTooltip,
+  testDisabled,
   children,
 }: SectionProps) => (
   <Box
