@@ -318,7 +318,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('session_token');
       localStorage.removeItem('shuffle_user_info');
       localStorage.removeItem('shuffle_region_url');
+      // On web, drop any custom/self-hosted server override so the next login
+      // always starts from the default backend for this domain. Native mobile
+      // keeps it, since the user typed their own server URL there.
+      if (!isCapacitorNative()) {
+        localStorage.removeItem('shuffle_custom_host_url');
+        localStorage.removeItem('shuffle_selected_server_mode');
+      }
     } catch { /* ignore */ }
+
+    if (!isCapacitorNative()) {
+      setHostBaseUrl(null);
+    }
 
     setRuntimeOrgId(null);
     API_CONFIG.setApiKey(null);
