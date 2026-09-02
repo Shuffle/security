@@ -205,4 +205,3 @@ jobs:
           track: ${{ github.event.inputs.track }}
           status: ${{ github.event.inputs.release_status }}
           inAppUpdatePriority: 2
-          changesNotSentForReview: true
