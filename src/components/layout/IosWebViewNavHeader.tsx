@@ -219,8 +219,7 @@ export const MobileNavHeader: React.FC = () => {
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid hsl(var(--border) / 0.8)',
-        position: 'sticky',
-        top: 0,
+        position: 'relative',
         zIndex: 1100,
       }}
     >
