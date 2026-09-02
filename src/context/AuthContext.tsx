@@ -157,6 +157,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [applyAuthenticatedUserInfo]);
 
+  // A session must never be dropped because of a single unlucky request.
+  // Only tear down auth when repeated attempts, spaced out in time, keep
+  // coming back with an explicit auth failure. Anything else (network blips,
+  // 5xx, aborted/timed-out requests, a stale org hint on one attempt) is
+  // treated as transient and leaves the existing session untouched.
+  const verifyUserInfo = useCallback(async (
+    token?: string | null,
+    attempts = 3,
+  ): Promise<'ok' | 'unauthenticated' | 'error'> => {
+    let last: 'unauthenticated' | 'error' = 'error';
+    for (let i = 0; i < attempts; i++) {
+      const result = await fetchUserInfo(token);
+      if (result === 'ok') return 'ok';
+      last = result;
+      if (i < attempts - 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+    return last;
+  }, [fetchUserInfo]);
+
+
   // Verify authentication on mount (runs once when app loads).
   // If we already hydrated from cache, this runs in the background and only
   // tears down auth on an explicit unauthenticated response — transient
@@ -178,7 +200,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
 
-      const result = await fetchUserInfo(token);
+      // First attempt resolves the overlay quickly; only a repeated, explicit
+      // auth failure is allowed to clear the stored session.
+      let result = await fetchUserInfo(token);
+      if (result === 'ok') {
+        setIsAuthenticated(true);
+      } else {
+        setIsLoading(false);
+        result = await verifyUserInfo(token, 2);
+      }
+
       if (result === 'ok') {
         setIsAuthenticated(true);
       } else if (result === 'unauthenticated') {
@@ -259,7 +290,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return true;
     }
 
-    const result = await fetchUserInfo(tokenToStore);
+    const result = await verifyUserInfo(tokenToStore, 2);
     if (result === 'ok') {
       setIsAuthenticated(true);
       return true;
@@ -272,7 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
     setUserInfo(null);
     return false;
-  }, [applyAuthenticatedUserInfo, fetchUserInfo]);
+  }, [applyAuthenticatedUserInfo, fetchUserInfo, verifyUserInfo]);
 
   const refreshUserInfo = useCallback(async () => {
     const token = localStorage.getItem('session_token');
