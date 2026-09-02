@@ -17,6 +17,8 @@ export interface DevicePreferences {
 export interface NotificationDevice {
   id: string;
   token?: string;
+  has_token?: boolean;
+  push_registered?: boolean;
   platform?: string;
   device_name?: string;
   preferences?: Partial<DevicePreferences>;
@@ -113,23 +115,38 @@ const extractDevices = (payload: unknown): NotificationDevice[] => {
   const record = payload as Record<string, unknown>;
   const raw =
     (record.devices as unknown) ??
-    ((record.user as Record<string, unknown> | undefined)?.devices as unknown);
+    ((record.user as Record<string, unknown> | undefined)?.devices as unknown) ??
+    ((record.settings as Record<string, unknown> | undefined)?.devices as unknown);
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((item): item is NotificationDevice => Boolean(item) && typeof item === 'object')
-    .filter((item) => Boolean(item.id));
+    .filter((item) => Boolean(item.id || item.device_name));
 };
 
-/** Loads the registered notification devices from the current user. */
+/** Loads the registered notification devices from the current user via /api/v1/getsettings or /api/v1/getinfo. */
 export const fetchNotificationDevices = async (): Promise<NotificationDevice[]> => {
   try {
-    const response = await fetch(getApiUrl('/api/v1/getinfo'), {
+    // 1. Check /api/v1/getsettings first
+    const settingsRes = await fetch(getApiUrl('/api/v1/getsettings'), {
       credentials: 'include',
       headers: { ...getAuthHeader() },
     });
-    if (!response.ok) return [];
-    const data = await response.json();
-    return extractDevices(data);
+    if (settingsRes.ok) {
+      const settingsData = await settingsRes.json();
+      const extracted = extractDevices(settingsData);
+      if (extracted.length > 0) return extracted;
+    }
+
+    // 2. Fallback to /api/v1/getinfo
+    const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+      credentials: 'include',
+      headers: { ...getAuthHeader() },
+    });
+    if (infoRes.ok) {
+      const infoData = await infoRes.json();
+      return extractDevices(infoData);
+    }
+    return [];
   } catch {
     return [];
   }

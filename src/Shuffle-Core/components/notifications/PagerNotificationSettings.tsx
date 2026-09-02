@@ -20,6 +20,7 @@ import {
   DialogContentText,
   DialogActions,
   Tooltip,
+  Chip,
 } from '@mui/material';
 import { ChevronDown, Smartphone, Monitor, MoreVertical, Bell, BellOff, CalendarClock, PhoneCall } from 'lucide-react';
 import { toast } from '@/Shuffle-Core/lib/toast';
@@ -415,7 +416,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
 
   const mySchedules = (onCallConfig?.userSchedules || []).filter(isMine);
   const isOnCallEnabled = mySchedules.some((s) => s.enabled);
-  const hasValidDevice = devices.some((d) => Boolean(d.token));
+  const hasValidDevice = devices.some((d) => Boolean(d.token || d.has_token || d.push_registered));
 
   const handleToggleOnCall = async (enabled: boolean) => {
     if (!onCallConfig) return;
@@ -515,7 +516,7 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
     : Boolean(selectedDevice && devices.some((d) => d.id === selectedDevice.id));
   const pushAvailable = isLocalSelected
     ? settings.permissionStatus === 'granted' && Boolean(settings.pushToken)
-    : Boolean(selectedDevice?.token);
+    : Boolean(selectedDevice?.token || selectedDevice?.has_token || selectedDevice?.push_registered);
   const controlsAvailable = deviceRegistered && pushAvailable;
 
   const selectedPlatform = (selectedDevice?.platform || '').toLowerCase();
@@ -814,9 +815,30 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
         }}
       >
         <Box sx={{ minWidth: 0, flex: '1 1 220px' }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
-            Paging & Notifications
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', fontSize: '1.1rem' }}>
+              Paging & Notifications
+            </Typography>
+            <Tooltip title="This feature is made for the mobile app (coming soon)." arrow placement="top">
+              <Chip
+                label="Beta"
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  bgcolor: 'hsl(var(--primary) / 0.1)',
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsl(var(--primary) / 0.25)',
+                  borderRadius: 1,
+                  cursor: 'help',
+                  '& .MuiChip-label': {
+                    px: 0.75,
+                  },
+                }}
+              />
+            </Tooltip>
+          </Box>
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
             Control how and when Shuffle reaches out to you.
           </Typography>
