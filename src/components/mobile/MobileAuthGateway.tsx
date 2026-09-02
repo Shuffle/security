@@ -10,22 +10,19 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
-  useTheme,
   Divider,
-  Chip,
 } from '@mui/material';
 import {
   Eye as VisibilityIcon,
   EyeOff as VisibilityOffIcon,
   Server as ServerIcon,
   Cloud as CloudIcon,
-  ArrowRight as ArrowRightIcon,
   CheckCircle2 as CheckCircleIcon,
   AlertCircle as AlertCircleIcon,
   ShieldCheck as ShieldCheckIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, Link } from '@/lib/router-compat';
+import { useNavigate, useLocation, Link } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
@@ -36,10 +33,42 @@ const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
 
 export const MobileAuthGateway = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const mfaInputRef = useRef<HTMLInputElement>(null);
+
+  // Return URL resolution
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const returnUrl =
+    searchParams.get('redirect') ||
+    searchParams.get('redirect_to') ||
+    searchParams.get('return_to') ||
+    searchParams.get('view') ||
+    searchParams.get('returnUrl');
+
+  const isMobile =
+    isCapacitorNative() ||
+    (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches);
+  const hasLoggedInBefore =
+    typeof window !== 'undefined' && localStorage.getItem('shuffle_has_logged_in') === 'true';
+  const defaultDestination = isMobile
+    ? '/incidents'
+    : hasLoggedInBefore
+    ? '/dashboard'
+    : '/onboarding';
+  const from = location.state?.from?.pathname || returnUrl || defaultDestination;
+
+  // Redirect if already authenticated
+  const hasRedirectedRef = useRef(false);
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    if (hasRedirectedRef.current) return;
+    const target = (from || '/dashboard').split('?')[0];
+    if (target === location.pathname) return;
+    hasRedirectedRef.current = true;
+    navigate(from, { replace: true });
+  }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
   // Server instance selection: 'cloud' | 'self-hosted'
   const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
@@ -143,7 +172,7 @@ export const MobileAuthGateway = () => {
         setHostPingStatus('error');
         setHostPingMessage(`Server responded with status ${res.status}`);
       }
-    } catch (err: any) {
+    } catch {
       setHostPingStatus('error');
       setHostPingMessage('Unable to reach server. Check URL, HTTPS certificates, or firewall.');
     } finally {
@@ -236,17 +265,18 @@ export const MobileAuthGateway = () => {
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
 
       if (data.success !== false) {
+        localStorage.setItem('shuffle_has_logged_in', 'true');
         await login(sessionToken || '');
-        navigate('/incidents', { replace: true });
+        navigate(from, { replace: true });
       } else {
         setError(data.reason || data.message || 'Login failed. Please verify credentials.');
       }
     } catch (err: any) {
-      if (err.name === 'TypeError' || err.message?.includes('fetch')) {
+      if (err?.name === 'TypeError' || err?.message?.includes('fetch')) {
         const targetHost = serverMode === 'self-hosted' ? customHostUrl : 'Shuffle Cloud';
         setError(`Unable to reach server (${targetHost}). Please verify the URL, network connection, or SSL certificate.`);
       } else {
-        setError(err.message || 'Network error. Please check your connection.');
+        setError(err?.message || 'Network error. Please check your connection.');
       }
     } finally {
       setLoading(false);
@@ -311,7 +341,7 @@ export const MobileAuthGateway = () => {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        style={{ width: '100%', maxWidth: 'min(420px, 100%)', boxSizing: 'border-box' }}
+        style={{ width: '100%', maxWidth: 'min(440px, 100%)', boxSizing: 'border-box' }}
       >
         {/* Brand Header */}
         <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 3.5 }, mt: { xs: 1, sm: 0 } }}>
@@ -345,7 +375,7 @@ export const MobileAuthGateway = () => {
               mt: 0.5,
             }}
           >
-            Open Source Incident Response
+            Open Source Incident Response & Automation
           </Typography>
         </Box>
 
@@ -374,9 +404,10 @@ export const MobileAuthGateway = () => {
                 textTransform: 'none',
                 bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'transparent',
                 color: serverMode === 'cloud' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                boxShadow: serverMode === 'cloud' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                border: serverMode === 'cloud' ? '1px solid hsl(var(--border))' : '1px solid transparent',
+                boxShadow: serverMode === 'cloud' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
                 '&:hover': {
-                  bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'rgba(255,255,255,0.05)',
+                  bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'hsl(var(--muted) / 0.8)',
                 },
               }}
             >
@@ -395,9 +426,10 @@ export const MobileAuthGateway = () => {
                 textTransform: 'none',
                 bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'transparent',
                 color: serverMode === 'self-hosted' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                boxShadow: serverMode === 'self-hosted' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                border: serverMode === 'self-hosted' ? '1px solid hsl(var(--border))' : '1px solid transparent',
+                boxShadow: serverMode === 'self-hosted' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
                 '&:hover': {
-                  bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'rgba(255,255,255,0.05)',
+                  bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'hsl(var(--muted) / 0.8)',
                 },
               }}
             >
@@ -428,44 +460,74 @@ export const MobileAuthGateway = () => {
                 >
                   Instance URL
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    placeholder="https://shuffle.myorg.internal:3443"
-                    value={customHostUrl}
-                    onChange={(e) => {
-                      setCustomHostUrl(e.target.value);
-                      setHostPingStatus('idle');
-                    }}
-                    size="small"
-                    fullWidth
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    InputProps={{
-                      sx: {
-                        bgcolor: 'hsl(var(--card))',
-                        borderRadius: 2,
-                        fontSize: '0.85rem',
-                        '& fieldset': { borderColor: 'hsl(var(--border))' },
-                      },
-                    }}
-                  />
-                  <Button
-                    onClick={handlePingHost}
-                    variant="outlined"
-                    disabled={isPingingHost}
-                    sx={{
-                      minWidth: 72,
-                      textTransform: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      borderColor: 'hsl(var(--border))',
+                <TextField
+                  placeholder="https://shuffle.myorg.internal:3443"
+                  value={customHostUrl}
+                  onChange={(e) => {
+                    setCustomHostUrl(e.target.value);
+                    setHostPingStatus('idle');
+                  }}
+                  size="small"
+                  fullWidth
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  InputProps={{
+                    sx: {
+                      bgcolor: 'hsl(var(--card))',
                       color: 'hsl(var(--foreground))',
-                    }}
-                  >
-                    {isPingingHost ? <CircularProgress size={16} /> : 'Test'}
-                  </Button>
-                </Box>
+                      borderRadius: 2,
+                      fontSize: '0.85rem',
+                      pr: 0.75,
+                      '& input': {
+                        color: 'hsl(var(--foreground))',
+                        py: 1,
+                      },
+                      '& fieldset': { borderColor: 'hsl(var(--border))' },
+                      '&:hover fieldset': { borderColor: '#FF6600' },
+                      '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+                    },
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Button
+                          onClick={handlePingHost}
+                          variant="contained"
+                          disabled={isPingingHost || !customHostUrl.trim()}
+                          size="small"
+                          sx={{
+                            minWidth: 64,
+                            height: 28,
+                            px: 1.5,
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            borderRadius: 1.5,
+                            bgcolor: hostPingStatus === 'success' ? '#22c55e' : 'hsl(var(--muted))',
+                            color: hostPingStatus === 'success' ? '#FFFFFF' : 'hsl(var(--foreground))',
+                            border: '1px solid hsl(var(--border))',
+                            boxShadow: 'none',
+                            '&:hover': {
+                              bgcolor: hostPingStatus === 'success' ? '#16a34a' : 'hsl(var(--muted) / 0.8)',
+                              boxShadow: 'none',
+                            },
+                            '&.Mui-disabled': {
+                              bgcolor: 'hsl(var(--muted) / 0.4)',
+                              color: 'hsl(var(--muted-foreground) / 0.5)',
+                              borderColor: 'transparent',
+                            },
+                          }}
+                        >
+                          {isPingingHost ? (
+                            <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                          ) : hostPingStatus === 'success' ? (
+                            'Connected'
+                          ) : (
+                            'Test'
+                          )}
+                        </Button>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
                 {hostPingMessage && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1 }}>
                     {hostPingStatus === 'success' ? (
@@ -494,11 +556,11 @@ export const MobileAuthGateway = () => {
             bgcolor: 'hsl(var(--card))',
             borderRadius: 3,
             border: '1px solid hsl(var(--border))',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.25)',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.15)',
             overflow: 'hidden',
           }}
         >
-          <CardContent sx={{ p: 3 }}>
+          <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
             {error && (
               <Alert
                 severity="error"
@@ -553,9 +615,19 @@ export const MobileAuthGateway = () => {
                         InputProps={{
                           sx: {
                             bgcolor: 'hsl(var(--background))',
+                            color: 'hsl(var(--foreground))',
                             borderRadius: 2,
                             fontSize: '0.875rem',
+                            '& input': {
+                              color: 'hsl(var(--foreground))',
+                            },
+                            '& input::placeholder': {
+                              color: 'hsl(var(--muted-foreground))',
+                              opacity: 0.8,
+                            },
                             '& fieldset': { borderColor: 'hsl(var(--border))' },
+                            '&:hover fieldset': { borderColor: '#FF6600' },
+                            '&.Mui-focused fieldset': { borderColor: '#FF6600' },
                           },
                         }}
                       />
@@ -584,9 +656,19 @@ export const MobileAuthGateway = () => {
                         InputProps={{
                           sx: {
                             bgcolor: 'hsl(var(--background))',
+                            color: 'hsl(var(--foreground))',
                             borderRadius: 2,
                             fontSize: '0.875rem',
+                            '& input': {
+                              color: 'hsl(var(--foreground))',
+                            },
+                            '& input::placeholder': {
+                              color: 'hsl(var(--muted-foreground))',
+                              opacity: 0.8,
+                            },
                             '& fieldset': { borderColor: 'hsl(var(--border))' },
+                            '&:hover fieldset': { borderColor: '#FF6600' },
+                            '&.Mui-focused fieldset': { borderColor: '#FF6600' },
                           },
                           endAdornment: (
                             <InputAdornment position="end">
@@ -787,7 +869,7 @@ export const MobileAuthGateway = () => {
           </CardContent>
         </Card>
 
-        {/* Footer / Registration & Web Switcher links */}
+        {/* Footer / Registration link */}
         {!mfaRequired && (
           <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
@@ -800,26 +882,14 @@ export const MobileAuthGateway = () => {
                   textDecoration: 'none',
                 }}
               >
-                Sign up on Cloud
+                Sign up
               </Link>
             </Typography>
-            {!isCapacitorNative() && (
-              <Box sx={{ mt: 0.5 }}>
-                <Link
-                  to="/login"
-                  style={{
-                    color: 'hsl(var(--muted-foreground))',
-                    fontSize: '0.75rem',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  Switch to Standard Web Login
-                </Link>
-              </Box>
-            )}
           </Box>
         )}
       </motion.div>
     </Box>
   );
 };
+
+export default MobileAuthGateway;
