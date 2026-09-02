@@ -303,7 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
     setUserInfo(null);
     return false;
-  }, [applyAuthenticatedUserInfo, fetchUserInfo]);
+  }, [applyAuthenticatedUserInfo, fetchUserInfo, verifyUserInfo]);
 
   const refreshUserInfo = useCallback(async () => {
     const token = localStorage.getItem('session_token');
