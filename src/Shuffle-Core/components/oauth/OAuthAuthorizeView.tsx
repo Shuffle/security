@@ -16,6 +16,7 @@ import {
   IconButton,
   Tooltip,
   Collapse,
+  Checkbox,
 } from '@mui/material';
 import {
   ShieldCheck,
@@ -41,6 +42,7 @@ import {
   LogIn,
   Sliders,
   Code2,
+  UserCheck,
 } from 'lucide-react';
 import { getApiUrl, getAuthHeader } from '../../api';
 import { toast } from '../../toast';
@@ -80,56 +82,70 @@ export interface OAuthAuthorizeViewProps {
 
 export interface OAuthScopeDetail {
   id: string;
-  category: 'mcp' | 'app' | 'workflow' | 'incident' | 'system';
+  category: 'general' | 'app' | 'workflow' | 'incident' | 'mcp' | 'system';
   title: string;
   description: string;
   badge?: string;
 }
 
-// Predefined catalog of OAuth 2.1 scopes for Shuffle MCPs and Integrations
+// Predefined catalog of OAuth 2.0 / 2.1 scopes for Shuffle Applications and Integrations
 const PREDEFINED_SCOPES: Record<string, OAuthScopeDetail> = {
-  // MCP Scopes
-  'mcps:read': {
-    id: 'mcps:read',
-    category: 'mcp',
-    title: 'Inspect MCP Tools & Prompts',
-    description: 'Discover and inspect available Model Context Protocol (MCP) servers, tool definitions, and prompts.',
-    badge: 'MCP Read',
+  // Identity & Account Scopes
+  'openid': {
+    id: 'openid',
+    category: 'general',
+    title: 'Verify Identity (OpenID)',
+    description: 'Verify your identity and unique user identifier in Shuffle.',
+    badge: 'OpenID',
   },
-  'mcp:read': {
-    id: 'mcp:read',
-    category: 'mcp',
-    title: 'Inspect MCP Tools & Prompts',
-    description: 'Discover and inspect available Model Context Protocol (MCP) servers, tool definitions, and prompts.',
-    badge: 'MCP Read',
+  'profile': {
+    id: 'profile',
+    category: 'general',
+    title: 'Access Basic Profile',
+    description: 'Read your username, name, and active organization membership.',
+    badge: 'Profile',
   },
-  'mcps:execute': {
-    id: 'mcps:execute',
-    category: 'mcp',
-    title: 'Execute MCP Tools & Functions',
-    description: 'Call and execute MCP tools, autonomous actions, and model context queries on your behalf.',
-    badge: 'MCP Execute',
+  'email': {
+    id: 'email',
+    category: 'general',
+    title: 'Read Email Address',
+    description: 'Access the primary email address associated with your Shuffle user account.',
+    badge: 'Email',
   },
-  'mcp:execute': {
-    id: 'mcp:execute',
-    category: 'mcp',
-    title: 'Execute MCP Tools & Functions',
-    description: 'Call and execute MCP tools, autonomous actions, and model context queries on your behalf.',
-    badge: 'MCP Execute',
+  'offline_access': {
+    id: 'offline_access',
+    category: 'general',
+    title: 'Maintain Offline Access',
+    description: 'Maintain persistent access via refresh tokens while you are offline.',
+    badge: 'Offline',
   },
-  'tools:call': {
-    id: 'tools:call',
-    category: 'mcp',
-    title: 'Invoke Connected AI Tools',
-    description: 'Run tool calls and function executions triggered by AI models (ChatGPT, Claude, Cursor).',
-    badge: 'Tools Call',
+  'read': {
+    id: 'read',
+    category: 'general',
+    title: 'Read Platform Resources',
+    description: 'Read configurations, assets, and platform resources in your organization.',
+    badge: 'Read',
   },
-  'mcps:manage': {
-    id: 'mcps:manage',
-    category: 'mcp',
-    title: 'Manage MCP Servers',
-    description: 'Register, edit, or remove MCP server endpoints and configurations in your organization.',
-    badge: 'MCP Admin',
+  'write': {
+    id: 'write',
+    category: 'general',
+    title: 'Modify Platform Resources',
+    description: 'Create and update configurations, assets, and settings in your organization.',
+    badge: 'Write',
+  },
+  'api:read': {
+    id: 'api:read',
+    category: 'general',
+    title: 'API Read Access',
+    description: 'Query Shuffle REST API endpoints and data stores on your behalf.',
+    badge: 'API Read',
+  },
+  'api:write': {
+    id: 'api:write',
+    category: 'general',
+    title: 'API Write Access',
+    description: 'Perform mutations and submit data through Shuffle REST API endpoints.',
+    badge: 'API Write',
   },
 
   // App & Integration Scopes
@@ -221,9 +237,53 @@ const PREDEFINED_SCOPES: Record<string, OAuthScopeDetail> = {
     description: 'Update case statuses, add analyst investigation notes, and attach IOC observables.',
     badge: 'Incidents Write',
   },
+
+  // Model Context Protocol (MCP) Scopes
+  'mcps:read': {
+    id: 'mcps:read',
+    category: 'mcp',
+    title: 'Inspect MCP Tools & Prompts',
+    description: 'Discover and inspect available Model Context Protocol (MCP) servers, tool definitions, and prompts.',
+    badge: 'MCP Read',
+  },
+  'mcp:read': {
+    id: 'mcp:read',
+    category: 'mcp',
+    title: 'Inspect MCP Tools & Prompts',
+    description: 'Discover and inspect available Model Context Protocol (MCP) servers, tool definitions, and prompts.',
+    badge: 'MCP Read',
+  },
+  'mcps:execute': {
+    id: 'mcps:execute',
+    category: 'mcp',
+    title: 'Execute MCP Tools & Functions',
+    description: 'Call and execute MCP tools, autonomous actions, and model context queries on your behalf.',
+    badge: 'MCP Execute',
+  },
+  'mcp:execute': {
+    id: 'mcp:execute',
+    category: 'mcp',
+    title: 'Execute MCP Tools & Functions',
+    description: 'Call and execute MCP tools, autonomous actions, and model context queries on your behalf.',
+    badge: 'MCP Execute',
+  },
+  'tools:call': {
+    id: 'tools:call',
+    category: 'mcp',
+    title: 'Invoke Connected Tools',
+    description: 'Run tool calls and function executions triggered by connected client applications.',
+    badge: 'Tools Call',
+  },
+  'mcps:manage': {
+    id: 'mcps:manage',
+    category: 'mcp',
+    title: 'Manage MCP Servers',
+    description: 'Register, edit, or remove MCP server endpoints and configurations in your organization.',
+    badge: 'MCP Admin',
+  },
 };
 
-const DEFAULT_MCP_SCOPES = ['mcps:read', 'mcps:execute', 'apps:execute'];
+const DEFAULT_SCOPES = ['apps:read', 'workflows:read', 'incidents:read'];
 
 // Dynamic scope parser for custom per-server/per-app tokens
 const parseDynamicScope = (rawScope: string): OAuthScopeDetail => {
@@ -289,7 +349,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
       vendor: 'OpenAI',
       iconBg: '#10A37F',
       iconColor: '#FFFFFF',
-      description: 'OpenAI Model Context Protocol & Custom GPT Integration',
+      description: 'OpenAI custom assistant & platform integration',
     };
   }
 
@@ -299,7 +359,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
       vendor: 'Anthropic',
       iconBg: '#D97706',
       iconColor: '#FFFFFF',
-      description: 'Claude Desktop & Anthropic MCP Assistant',
+      description: 'Anthropic Claude assistant integration',
     };
   }
 
@@ -309,7 +369,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
       vendor: 'Anysphere',
       iconBg: '#000000',
       iconColor: '#FFFFFF',
-      description: 'Cursor AI IDE Context & Tool Runner',
+      description: 'Cursor IDE tool & context runner',
     };
   }
 
@@ -319,7 +379,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
       vendor: 'GitHub / Microsoft',
       iconBg: '#24292F',
       iconColor: '#FFFFFF',
-      description: 'GitHub Copilot Workspace & Extensions',
+      description: 'GitHub Copilot Workspace integration',
     };
   }
 
@@ -329,16 +389,16 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
       vendor: 'Microsoft',
       iconBg: '#007ACC',
       iconColor: '#FFFFFF',
-      description: 'Visual Studio Code MCP Integration',
+      description: 'Visual Studio Code extension integration',
     };
   }
 
   return {
-    name: clientName || clientId || 'External MCP Client',
+    name: clientName || clientId || 'External Application',
     vendor: 'Third-Party Developer',
     iconBg: '#3B82F6',
     iconColor: '#FFFFFF',
-    description: 'External application requesting OAuth 2.1 access to Shuffle Security tools.',
+    description: 'External application requesting permission to access your Shuffle organization.',
   };
 };
 
@@ -375,7 +435,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     return new URLSearchParams(window.location.search);
   }, []);
 
-  const clientId = queryParams.get('client_id') || 'mcp-client';
+  const clientId = queryParams.get('client_id') || 'external-app';
   const clientNameParam = queryParams.get('client_name') || queryParams.get('app_name') || '';
   const redirectUri = queryParams.get('redirect_uri') || '';
   const scopeParam = queryParams.get('scope') || queryParams.get('scopes') || '';
@@ -395,7 +455,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   const scopes = useMemo<OAuthScopeDetail[]>(() => {
     const rawTokens = scopeParam
       ? scopeParam.split(/[\s,+]+/).map((s) => s.trim()).filter(Boolean)
-      : DEFAULT_MCP_SCOPES;
+      : DEFAULT_SCOPES;
     const uniqueTokens = Array.from(new Set(rawTokens));
     return uniqueTokens.map(parseDynamicScope);
   }, [scopeParam]);
@@ -425,6 +485,38 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     queryParams.get('debug') === 'true'
   );
 
+  // Permissions selection state: All requested permissions are selected by default.
+  // The user can hook off (uncheck) any permissions they do not wish to grant.
+  const [selectedScopeIds, setSelectedScopeIds] = useState<Set<string>>(
+    () => new Set(scopes.map((s) => s.id)),
+  );
+
+  // Re-sync default selection if scopes change
+  useEffect(() => {
+    setSelectedScopeIds(new Set(scopes.map((s) => s.id)));
+  }, [scopes]);
+
+  const handleToggleScope = useCallback((scopeId: string) => {
+    setSelectedScopeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(scopeId)) {
+        next.delete(scopeId);
+      } else {
+        next.add(scopeId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleAllScopes = useCallback(() => {
+    setSelectedScopeIds((prev) => {
+      if (prev.size === scopes.length) {
+        return new Set();
+      }
+      return new Set(scopes.map((s) => s.id));
+    });
+  }, [scopes]);
+
   // States
   const [showDebug, setShowDebug] = useState<boolean>(queryParams.get('debug') === 'true');
   const [authorizing, setAuthorizing] = useState(false);
@@ -438,10 +530,11 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   // Group scopes
   const groupedScopes = useMemo(() => {
     const groups: Record<string, { label: string; icon: React.ReactNode; items: OAuthScopeDetail[] }> = {
-      mcp: { label: 'Model Context Protocol (MCP)', icon: <Bot size={16} />, items: [] },
-      app: { label: 'App Integrations & OpenAPI', icon: <Layers size={16} />, items: [] },
+      general: { label: 'Account & Identity', icon: <UserCheck size={16} />, items: [] },
+      app: { label: 'Applications & Integrations', icon: <Layers size={16} />, items: [] },
       workflow: { label: 'Workflows & Automation', icon: <Cpu size={16} />, items: [] },
-      incident: { label: 'Security Alerts & Incidents', icon: <ShieldCheck size={16} />, items: [] },
+      incident: { label: 'Security & Incidents', icon: <ShieldCheck size={16} />, items: [] },
+      mcp: { label: 'Model Context Protocol (MCP)', icon: <Bot size={16} />, items: [] },
       system: { label: 'General Permissions', icon: <Lock size={16} />, items: [] },
     };
 
@@ -484,24 +577,45 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     [onOrgChange],
   );
 
+  // Save return target for unauthenticated users
+  useEffect(() => {
+    if (!resolvedUserInfo && typeof window !== 'undefined') {
+      try {
+        const currentPathAndQuery = window.location.pathname + window.location.search;
+        sessionStorage.setItem('shuffle_redirect_after_login', currentPathAndQuery);
+      } catch {}
+    }
+  }, [resolvedUserInfo]);
+
   // Unauthenticated Sign-in redirect
   const handleSignInRedirect = useCallback(() => {
     if (typeof window === 'undefined') return;
     const currentPathAndQuery = window.location.pathname + window.location.search;
+    try {
+      sessionStorage.setItem('shuffle_redirect_after_login', currentPathAndQuery);
+    } catch {}
     window.location.href = `/login?redirect=${encodeURIComponent(currentPathAndQuery)}`;
   }, []);
 
   // Handle Approve Action
   const handleAuthorize = async () => {
     setErrorMsg(null);
+
+    if (selectedScopeIds.size === 0) {
+      setErrorMsg('Please select at least one permission to authorize.');
+      return;
+    }
+
     setAuthorizing(true);
 
     try {
       const generatedCode = `shf_auth_${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID().replace(/-/g, '') : Date.now().toString(36) + Math.random().toString(36).substring(2)}`;
+      const approvedScopeString = Array.from(selectedScopeIds).join(' ');
 
       // Backend authorization sync
+      let response: Response;
       try {
-        await fetch(getApiUrl('/api/v1/oauth2/authorize'), {
+        response = await fetch(getApiUrl('/api/v1/oauth2/authorize'), {
           method: 'POST',
           credentials: 'include',
           headers: {
@@ -511,7 +625,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
           body: JSON.stringify({
             client_id: clientId,
             redirect_uri: redirectUri,
-            scope: scopes.map((s) => s.id).join(' '),
+            scope: approvedScopeString,
             state,
             code_challenge: codeChallenge,
             code_challenge_method: codeChallengeMethod,
@@ -520,15 +634,50 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
             auth_code: generatedCode,
           }),
         });
+      } catch (networkErr: unknown) {
+        const msg = networkErr instanceof Error ? networkErr.message : 'Server could not be reached';
+        setErrorMsg(`Authorization failed: ${msg}. The backend authorization server could not be reached.`);
+        setAuthorizing(false);
+        return;
+      }
+
+      if (!response.ok) {
+        let errMessage = '';
+        try {
+          const errData = await response.json();
+          errMessage = errData?.message || errData?.error || errData?.reason || '';
+        } catch {}
+
+        if (!errMessage) {
+          if (response.status === 404) {
+            errMessage = 'OAuth authorization backend endpoint is not yet available (HTTP 404). Authorization cannot be completed.';
+          } else if (response.status === 401 || response.status === 403) {
+            errMessage = 'Authorization denied: Your current session does not have permission to approve this request.';
+          } else {
+            errMessage = `Authorization failed with status ${response.status} (${response.statusText || 'Server Error'}).`;
+          }
+        }
+
+        setErrorMsg(errMessage);
+        setAuthorizing(false);
+        return;
+      }
+
+      let backendCode = generatedCode;
+      try {
+        const resData = await response.json();
+        if (resData?.code || resData?.auth_code) {
+          backendCode = resData.code || resData.auth_code;
+        }
       } catch {}
 
       if (onAuthSuccess) {
-        onAuthSuccess(generatedCode, redirectUri);
+        onAuthSuccess(backendCode, redirectUri);
       }
 
       if (redirectUri) {
         const callbackUrl = new URL(redirectUri);
-        callbackUrl.searchParams.set('code', generatedCode);
+        callbackUrl.searchParams.set('code', backendCode);
         if (state) {
           callbackUrl.searchParams.set('state', state);
         }
@@ -536,7 +685,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
         return;
       }
 
-      setAuthCode(generatedCode);
+      setAuthCode(backendCode);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'An error occurred during authorization');
     } finally {
@@ -575,7 +724,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   const debugPayload = useMemo(() => {
     return {
       timestamp: new Date().toISOString(),
-      oauth_protocol: 'OAuth 2.1 / MCP',
+      oauth_protocol: 'OAuth 2.0 / 2.1',
       client: {
         id: clientId,
         name: clientProfile.name,
@@ -604,6 +753,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
         category: s.category,
         title: s.title,
       })),
+      approved_scopes: Array.from(selectedScopeIds),
       raw_query_string: typeof window !== 'undefined' ? window.location.search : '',
     };
   }, [
@@ -621,6 +771,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     resolvedUserInfo,
     isSupportUser,
     scopes,
+    selectedScopeIds,
   ]);
 
   const simulatedCallbackUrl = useMemo(() => {
@@ -686,7 +837,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
           </Typography>
 
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 3 }}>
-            <strong>{clientProfile.name}</strong> is requesting permission to access your Shuffle MCP tools and integrations. Please sign in to review and authorize.
+            <strong>{clientProfile.name}</strong> is requesting permission to access your Shuffle organization and resources. Please sign in to review and authorize.
           </Typography>
 
           <Button
@@ -760,7 +911,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
           </Typography>
 
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 3 }}>
-            <strong>{clientProfile.name}</strong> has been authorized to access your Shuffle MCP tools and integrations.
+            <strong>{clientProfile.name}</strong> has been authorized to access your requested Shuffle resources.
           </Typography>
 
           <Box
@@ -973,9 +1124,9 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Bug size={16} color="#8B5CF6" />
+                  <Terminal size={16} color="#8B5CF6" />
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#8B5CF6' }}>
-                    OAuth 2.1 & PKCE Inspector (Support Mode)
+                    OAuth 2.0 / 2.1 Inspector (Support Mode)
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -1022,59 +1173,111 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                 </Box>
               </Box>
 
-              {/* Debug Fields Grid */}
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                  gap: 1.5,
-                  fontSize: '0.75rem',
-                }}
-              >
-                <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mb: 2 }}>
+                <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
                   <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
                     Client ID / Name
                   </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.75rem', wordBreak: 'break-all' }}>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                     {clientId} ({clientProfile.name})
                   </Typography>
                 </Box>
 
-                <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
+                <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
                   <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
                     Response Type
                   </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.75rem' }}>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                     {responseType}
                   </Typography>
                 </Box>
 
-                <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
-                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
-                    PKCE Code Challenge
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.75rem', wordBreak: 'break-all' }}>
-                    {codeChallenge ? `${codeChallenge.substring(0, 24)}... (${codeChallengeMethod})` : 'Missing (Mandatory for public clients)'}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
-                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
-                    State / CSRF Token
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.75rem', wordBreak: 'break-all' }}>
-                    {state || 'None provided'}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ gridColumn: { sm: '1 / span 2' }, p: 1, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
+                <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
                   <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
                     Redirect URI
                   </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.75rem', wordBreak: 'break-all' }}>
-                    {redirectUri || 'None (Headless / Testing Mode)'}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      wordBreak: 'break-all',
+                      color: redirectUri ? 'hsl(var(--foreground))' : '#EF4444',
+                    }}
+                  >
+                    {redirectUri || '(None provided - code will be displayed on screen)'}
                   </Typography>
                 </Box>
+
+                <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
+                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block' }}>
+                    PKCE Code Challenge
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      wordBreak: 'break-all',
+                      color: codeChallenge ? '#22C55E' : 'hsl(var(--muted-foreground))',
+                    }}
+                  >
+                    {codeChallenge ? `${codeChallengeMethod}: ${codeChallenge.substring(0, 16)}...` : 'Not provided (Optional for web)'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {redirectUri && (
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 1.5,
+                    bgcolor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    mb: 1.5,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontWeight: 600 }}>
+                      Simulated Authorization Redirect URL
+                    </Typography>
+                    <Tooltip title={copiedSimulatedUrl ? 'Copied URL!' : 'Copy simulated redirect'}>
+                      <IconButton size="small" onClick={handleCopySimulatedUrl}>
+                        {copiedSimulatedUrl ? <Check size={14} color="#22C55E" /> : <Copy size={14} />}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: 'monospace',
+                      wordBreak: 'break-all',
+                      display: 'block',
+                      color: 'hsl(var(--muted-foreground))',
+                      fontSize: '0.7rem',
+                    }}
+                  >
+                    {simulatedCallbackUrl}
+                  </Typography>
+                </Box>
+              )}
+
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleSimulateOAuthFlow}
+                  startIcon={<ExternalLink size={14} />}
+                  sx={{
+                    fontSize: '0.75rem',
+                    textTransform: 'none',
+                    borderColor: '#8B5CF6',
+                    color: '#8B5CF6',
+                    '&:hover': { borderColor: '#7C3AED', bgcolor: 'rgba(139, 92, 246, 0.08)' },
+                  }}
+                >
+                  Simulate Grant Flow
+                </Button>
               </Box>
             </Box>
           </Collapse>
@@ -1160,21 +1363,37 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
             )}
           </Box>
 
-          {/* Requested Permissions (GitHub Style Scope List) */}
+          {/* Requested Permissions (Interactive Scope Selection) */}
           <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="caption"
-              sx={{
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                fontWeight: 700,
-                color: 'hsl(var(--muted-foreground))',
-                display: 'block',
-                mb: 1.5,
-              }}
-            >
-              Requested Permissions ({scopes.length})
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  fontWeight: 700,
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+              >
+                Requested Permissions ({selectedScopeIds.size} of {scopes.length} selected)
+              </Typography>
+              <Button
+                size="small"
+                variant="text"
+                onClick={handleToggleAllScopes}
+                sx={{
+                  fontSize: '0.75rem',
+                  textTransform: 'none',
+                  p: 0,
+                  minWidth: 'auto',
+                  color: 'hsl(var(--primary))',
+                  fontWeight: 600,
+                  '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                }}
+              >
+                {selectedScopeIds.size === scopes.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            </Box>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {groupedScopes.map((group) => (
@@ -1194,46 +1413,75 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                       overflow: 'hidden',
                     }}
                   >
-                    {group.items.map((item, idx) => (
-                      <Box
-                        key={item.id}
-                        sx={{
-                          p: 1.5,
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: 1.5,
-                          borderBottom:
-                            idx < group.items.length - 1 ? '1px solid hsl(var(--border))' : 'none',
-                        }}
-                      >
-                        <Box sx={{ color: '#22C55E', mt: 0.25, flexShrink: 0 }}>
-                          <CheckCircle2 size={16} />
-                        </Box>
-                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.25 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                              {item.title}
-                            </Typography>
-                            {item.badge && (
-                              <Chip
-                                size="small"
-                                label={item.badge}
+                    {group.items.map((item, idx) => {
+                      const isSelected = selectedScopeIds.has(item.id);
+                      return (
+                        <Box
+                          key={item.id}
+                          onClick={() => handleToggleScope(item.id)}
+                          sx={{
+                            p: 1.5,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1.5,
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            transition: 'background-color 0.15s ease, opacity 0.15s ease',
+                            borderBottom:
+                              idx < group.items.length - 1 ? '1px solid hsl(var(--border))' : 'none',
+                            bgcolor: isSelected ? 'transparent' : 'hsl(var(--muted) / 0.15)',
+                            '&:hover': {
+                              bgcolor: 'hsl(var(--muted) / 0.35)',
+                            },
+                          }}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onChange={() => handleToggleScope(item.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            size="small"
+                            sx={{
+                              p: 0,
+                              mt: 0.25,
+                              color: 'hsl(var(--muted-foreground))',
+                              '&.Mui-checked': {
+                                color: 'hsl(var(--primary))',
+                              },
+                            }}
+                          />
+                          <Box sx={{ flexGrow: 1, minWidth: 0, opacity: isSelected ? 1 : 0.6 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.25 }}>
+                              <Typography
+                                variant="body2"
                                 sx={{
-                                  height: 20,
-                                  fontSize: '0.65rem',
                                   fontWeight: 600,
-                                  bgcolor: 'hsl(var(--muted))',
-                                  color: 'hsl(var(--muted-foreground))',
+                                  color: isSelected ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                                  textDecoration: isSelected ? 'none' : 'line-through',
                                 }}
-                              />
-                            )}
+                              >
+                                {item.title}
+                              </Typography>
+                              {item.badge && (
+                                <Chip
+                                  size="small"
+                                  label={item.badge}
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 600,
+                                    bgcolor: isSelected ? 'hsl(var(--muted))' : 'hsl(var(--muted) / 0.5)',
+                                    color: 'hsl(var(--muted-foreground))',
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', lineHeight: 1.35 }}>
+                              {item.description}
+                            </Typography>
                           </Box>
-                          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', lineHeight: 1.35 }}>
-                            {item.description}
-                          </Typography>
                         </Box>
-                      </Box>
-                    ))}
+                      );
+                    })}
                   </Box>
                 </Box>
               ))}
@@ -1260,7 +1508,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                   Authorizing will redirect to <strong>{redirectHost}</strong>.
                 </>
               ) : (
-                'OAuth 2.1 protocol for Model Context Protocol (MCP) clients.'
+                'Standard OAuth 2.0 / 2.1 authorization request.'
               )}
             </Typography>
           </Box>
@@ -1294,7 +1542,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
               variant="contained"
               fullWidth
               onClick={handleAuthorize}
-              disabled={authorizing || denying}
+              disabled={authorizing || denying || selectedScopeIds.size === 0}
               sx={{
                 py: 1.25,
                 textTransform: 'none',
@@ -1308,6 +1556,8 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
             >
               {authorizing ? (
                 <CircularProgress size={20} sx={{ color: 'hsl(var(--primary-foreground))' }} />
+              ) : selectedScopeIds.size === 0 ? (
+                'Select permissions to authorize'
               ) : (
                 `Authorize ${clientProfile.name}`
               )}

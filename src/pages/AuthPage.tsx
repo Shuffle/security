@@ -1,5 +1,5 @@
 import { Eye as VisibilityIcon, EyeOff as VisibilityOffIcon } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from '@/lib/router-compat';
 import {
   Box,
@@ -22,6 +22,7 @@ import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ShuffleLogo } from '@/components/common/ShuffleLogo';
+import { sanitizeInternalDestination } from '@/lib/safeRedirect';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -54,22 +55,55 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const isLogin = mode === 'login';
   const isMobile = useIsMobile();
 
-  // Get return URL from state (set by ProtectedRoute) or from URL param (persists on refresh).
-  // Prefer `redirect` / `view` / `returnUrl` query parameters for post-login destination
-  const searchParams = new URLSearchParams(location.search);
-  const returnUrl =
-    searchParams.get('redirect') ||
-    searchParams.get('redirect_to') ||
-    searchParams.get('return_to') ||
-    searchParams.get('view') ||
-    searchParams.get('returnUrl');
   // First login detection: if no explicit returnUrl and user has never logged in, go to onboarding
   const hasLoggedInBefore = localStorage.getItem('shuffle_has_logged_in') === 'true';
   // On mobile, successful logins should always land on the incident list.
   const defaultDestination = isLogin && isMobile
     ? '/incidents'
     : (hasLoggedInBefore ? '/dashboard' : '/onboarding');
-  const from = location.state?.from?.pathname || returnUrl || defaultDestination;
+
+  const from = useMemo(() => {
+    const rawSearch =
+      (location.search && location.search !== '?' ? location.search : '') ||
+      (typeof window !== 'undefined' ? window.location.search : '');
+
+    const cleanSearch = rawSearch.startsWith('??')
+      ? rawSearch.slice(1)
+      : rawSearch.startsWith('?')
+      ? rawSearch
+      : rawSearch ? `?${rawSearch}` : '';
+
+    const searchParams = new URLSearchParams(cleanSearch);
+    const returnUrlParam =
+      searchParams.get('redirect') ||
+      searchParams.get('redirect_to') ||
+      searchParams.get('return_to') ||
+      searchParams.get('view') ||
+      searchParams.get('returnUrl') ||
+      searchParams.get('next');
+
+    let stateFrom: string | null = null;
+    if (location.state?.from) {
+      if (typeof location.state.from === 'string') {
+        stateFrom = location.state.from;
+      } else if (typeof location.state.from === 'object') {
+        const p = location.state.from.pathname || '';
+        const s = location.state.from.search || '';
+        const h = location.state.from.hash || '';
+        stateFrom = `${p}${s}${h}` || null;
+      }
+    }
+
+    let sessionRedirect: string | null = null;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionRedirect = sessionStorage.getItem('shuffle_redirect_after_login');
+      } catch {}
+    }
+
+    const candidate = returnUrlParam || stateFrom || sessionRedirect || defaultDestination;
+    return sanitizeInternalDestination(candidate, defaultDestination);
+  }, [location.search, location.state, defaultDestination]);
 
   // Redirect if already authenticated (e.g., via API key).
   // Guarded with a ref: without it, a redirect target that bounces back to
@@ -81,6 +115,11 @@ const AuthPage = ({ mode }: AuthPageProps) => {
     const target = (from || '/dashboard').split('?')[0];
     if (target === location.pathname) return;
     hasRedirectedRef.current = true;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('shuffle_redirect_after_login');
+      } catch {}
+    }
     navigate(from, { replace: true });
   }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
@@ -172,8 +211,52 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         throw new Error(`Server returned invalid response (status: ${response.status})`);
       }
 
-      // Handle MFA redirect
-      if (data.reason === 'MFA_REDIRECT') {
+      // 1. Handle SSO redirect (requires following to a separate website)
+      const isSsoRedirect =
+        data.reason === 'SSO_REDIRECT' ||
+        data.message === 'SSO_REDIRECT' ||
+        data.sso_redirect === true;
+
+      if (isSsoRedirect) {
+        const ssoUrl = data.url || data.redirect_url || data.sso_url;
+        if (ssoUrl && typeof ssoUrl === 'string') {
+          if (typeof window !== 'undefined' && from) {
+            try {
+              sessionStorage.setItem('shuffle_redirect_after_login', from);
+            } catch {}
+          }
+          window.location.assign(ssoUrl);
+          return;
+        }
+        throw new Error('Single Sign-On (SSO) is required, but no redirect URL was provided by the server.');
+      }
+
+      // 2. Handle MFA setup (/login/{url}/mfa-setup)
+      const isMfaSetup =
+        data.reason === 'MFA_SETUP' ||
+        data.message === 'MFA_SETUP' ||
+        data.mfa_setup === true;
+
+      if (isMfaSetup) {
+        const setupToken = data.url || data.token || data.extra;
+        if (setupToken && typeof setupToken === 'string') {
+          if (typeof window !== 'undefined' && from) {
+            try {
+              sessionStorage.setItem('shuffle_redirect_after_login', from);
+            } catch {}
+          }
+          const rawSearch =
+            (location.search && location.search !== '?' ? location.search : '') ||
+            (typeof window !== 'undefined' ? window.location.search : '');
+          const cleanSearch = rawSearch.startsWith('?') ? rawSearch : rawSearch ? `?${rawSearch}` : '';
+          navigate(`/login/${encodeURIComponent(setupToken)}/mfa-setup${cleanSearch}`);
+          return;
+        }
+        throw new Error('Multi-factor authentication setup is required, but no setup token was provided.');
+      }
+
+      // 3. Handle standard MFA redirect (already set up)
+      if (data.reason === 'MFA_REDIRECT' || data.message === 'MFA_REDIRECT' || data.mfa_required === true) {
         setMfaRequired(true);
         setLoading(false);
         return;
@@ -253,7 +336,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         // Determine post-login destination: honor explicit returnUrl if set.
         // Otherwise, if no incidents exist for this org, send to /dashboard.
         let destination = from;
-        const hasExplicitReturn = Boolean(location.state?.from?.pathname || returnUrl);
+        const hasExplicitReturn = Boolean(from && from !== defaultDestination);
         if (!isMobile && !hasExplicitReturn && !wasFirstLogin) {
           try {
             // Reuse the verified session info — no extra getinfo request.
@@ -275,6 +358,12 @@ const AuthPage = ({ mode }: AuthPageProps) => {
           } catch (err) {
             console.warn('Post-login incident check failed, using default destination', err);
           }
+        }
+
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.removeItem('shuffle_redirect_after_login');
+          } catch {}
         }
 
         setTimeout(() => {

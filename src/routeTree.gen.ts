@@ -90,6 +90,7 @@ import { Route as OnboardingOnboardingAutomateRouteImport } from './routes/_onbo
 import { Route as OnboardingOnboardingProductRouteImport } from './routes/_onboarding.onboarding.product'
 import { Route as OnboardingOnboardingSourcesRouteImport } from './routes/_onboarding.onboarding.sources'
 import { Route as OnboardingOnboardingWelcomeRouteImport } from './routes/_onboarding.onboarding.welcome'
+import { Route as LoginUrlMfaSetupRouteImport } from './routes/login.$url.mfa-setup'
 import { Route as CondUsecasesFlowIdIndexRouteImport } from './routes/_cond.usecases.$flowId.index'
 import { Route as CondUsecasesFlowIdDetailsRouteImport } from './routes/_cond.usecases.$flowId.details'
 import { Route as DashInfrastructureFlowsFlowIdRouteImport } from './routes/_dash.infrastructure.flows.$flowId'
@@ -512,6 +513,11 @@ const OnboardingOnboardingWelcomeRoute =
     path: '/onboarding/welcome',
     getParentRoute: () => OnboardingRoute,
   } as any)
+const LoginUrlMfaSetupRoute = LoginUrlMfaSetupRouteImport.update({
+  id: '/$url/mfa-setup',
+  path: '/$url/mfa-setup',
+  getParentRoute: () => LoginRoute,
+} as any)
 const CondUsecasesFlowIdIndexRoute = CondUsecasesFlowIdIndexRouteImport.update({
   id: '/usecases/$flowId/',
   path: '/usecases/$flowId/',
@@ -543,7 +549,7 @@ const DashMonitorsIdTerminalRoute = DashMonitorsIdTerminalRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
-  '/login': typeof LoginRoute
+  '/login': typeof LoginRouteWithChildren
   '/mobile-login': typeof MobileLoginRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
@@ -602,6 +608,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/product': typeof OnboardingOnboardingProductRoute
   '/onboarding/sources': typeof OnboardingOnboardingSourcesRoute
   '/onboarding/welcome': typeof OnboardingOnboardingWelcomeRoute
+  '/login/$url/mfa-setup': typeof LoginUrlMfaSetupRoute
   '/forms/': typeof CondFormsIndexRoute
   '/usecases/': typeof CondUsecasesIndexRoute
   '/vulnerabilities/': typeof CondVulnerabilitiesIndexRoute
@@ -628,7 +635,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
-  '/login': typeof LoginRoute
+  '/login': typeof LoginRouteWithChildren
   '/mobile-login': typeof MobileLoginRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
@@ -687,6 +694,7 @@ export interface FileRoutesByTo {
   '/onboarding/product': typeof OnboardingOnboardingProductRoute
   '/onboarding/sources': typeof OnboardingOnboardingSourcesRoute
   '/onboarding/welcome': typeof OnboardingOnboardingWelcomeRoute
+  '/login/$url/mfa-setup': typeof LoginUrlMfaSetupRoute
   '/forms': typeof CondFormsIndexRoute
   '/usecases': typeof CondUsecasesIndexRoute
   '/vulnerabilities': typeof CondVulnerabilitiesIndexRoute
@@ -717,7 +725,7 @@ export interface FileRoutesById {
   '/_dash': typeof DashRouteWithChildren
   '/_onboarding': typeof OnboardingRouteWithChildren
   '/apps': typeof AppsRoute
-  '/login': typeof LoginRoute
+  '/login': typeof LoginRouteWithChildren
   '/mobile-login': typeof MobileLoginRoute
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
@@ -776,6 +784,7 @@ export interface FileRoutesById {
   '/_onboarding/onboarding/product': typeof OnboardingOnboardingProductRoute
   '/_onboarding/onboarding/sources': typeof OnboardingOnboardingSourcesRoute
   '/_onboarding/onboarding/welcome': typeof OnboardingOnboardingWelcomeRoute
+  '/login/$url/mfa-setup': typeof LoginUrlMfaSetupRoute
   '/_cond/forms/': typeof CondFormsIndexRoute
   '/_cond/usecases/': typeof CondUsecasesIndexRoute
   '/_cond/vulnerabilities/': typeof CondVulnerabilitiesIndexRoute
@@ -863,6 +872,7 @@ export interface FileRouteTypes {
     | '/onboarding/product'
     | '/onboarding/sources'
     | '/onboarding/welcome'
+    | '/login/$url/mfa-setup'
     | '/forms/'
     | '/usecases/'
     | '/vulnerabilities/'
@@ -948,6 +958,7 @@ export interface FileRouteTypes {
     | '/onboarding/product'
     | '/onboarding/sources'
     | '/onboarding/welcome'
+    | '/login/$url/mfa-setup'
     | '/forms'
     | '/usecases'
     | '/vulnerabilities'
@@ -1036,6 +1047,7 @@ export interface FileRouteTypes {
     | '/_onboarding/onboarding/product'
     | '/_onboarding/onboarding/sources'
     | '/_onboarding/onboarding/welcome'
+    | '/login/$url/mfa-setup'
     | '/_cond/forms/'
     | '/_cond/usecases/'
     | '/_cond/vulnerabilities/'
@@ -1066,7 +1078,7 @@ export interface RootRouteChildren {
   DashRoute: typeof DashRouteWithChildren
   OnboardingRoute: typeof OnboardingRouteWithChildren
   AppsRoute: typeof AppsRoute
-  LoginRoute: typeof LoginRoute
+  LoginRoute: typeof LoginRouteWithChildren
   MobileLoginRoute: typeof MobileLoginRoute
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
@@ -1654,6 +1666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingOnboardingWelcomeRouteImport
       parentRoute: typeof OnboardingRoute
     }
+    '/login/$url/mfa-setup': {
+      id: '/login/$url/mfa-setup'
+      path: '/$url/mfa-setup'
+      fullPath: '/login/$url/mfa-setup'
+      preLoaderRoute: typeof LoginUrlMfaSetupRouteImport
+      parentRoute: typeof LoginRoute
+    }
     '/_cond/usecases/$flowId/': {
       id: '/_cond/usecases/$flowId/'
       path: '/usecases/$flowId'
@@ -1846,13 +1865,23 @@ const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
   OnboardingRouteChildren,
 )
 
+interface LoginRouteChildren {
+  LoginUrlMfaSetupRoute: typeof LoginUrlMfaSetupRoute
+}
+
+const LoginRouteChildren: LoginRouteChildren = {
+  LoginUrlMfaSetupRoute: LoginUrlMfaSetupRoute,
+}
+
+const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CondRoute: CondRouteWithChildren,
   DashRoute: DashRouteWithChildren,
   OnboardingRoute: OnboardingRouteWithChildren,
   AppsRoute: AppsRoute,
-  LoginRoute: LoginRoute,
+  LoginRoute: LoginRouteWithChildren,
   MobileLoginRoute: MobileLoginRoute,
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,

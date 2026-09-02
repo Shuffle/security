@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatches } from "@tanstack/react-router";
 import { routeMeta } from '@/lib/routeMeta';
 import { MobileAuthGateway } from '@/components/mobile/MobileAuthGateway';
 
@@ -10,5 +10,17 @@ export const Route = createFileRoute("/login")({
         'Sign in to Shuffle Security to manage incidents, alerts, and security automation.',
       url: '/login',
     }),
-  component: MobileAuthGateway,
+  component: LoginRouteComponent,
 });
+
+function LoginRouteComponent() {
+  const matches = useMatches();
+  const currentMatch = matches[matches.length - 1];
+  const isExactLogin = currentMatch?.routeId === Route.id;
+
+  if (!isExactLogin) {
+    return <Outlet />;
+  }
+
+  return <MobileAuthGateway />;
+}

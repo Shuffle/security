@@ -172,7 +172,13 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (AUTH_PATHS.has(location.pathname)) {
       return null;
     }
-    const view = encodeURIComponent(location.pathname + location.search);
+    const fullTarget = location.pathname + (location.search || '');
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('shuffle_redirect_after_login', fullTarget);
+      } catch {}
+    }
+    const view = encodeURIComponent(fullTarget);
     return <Navigate to={`/login?view=${view}`} state={{ from: location }} replace />;
   }
 

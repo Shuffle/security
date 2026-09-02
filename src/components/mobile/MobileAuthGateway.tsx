@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -28,6 +28,7 @@ import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, getApiUrl, API_ENDPOI
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
 import { isCapacitorNative } from '@/lib/platform';
+import { sanitizeInternalDestination } from '@/lib/safeRedirect';
 
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
@@ -37,15 +38,6 @@ export const MobileAuthGateway = () => {
   const location = useLocation();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const mfaInputRef = useRef<HTMLInputElement>(null);
-
-  // Return URL resolution (router-driven so it stays correct after navigation)
-  const searchParams = new URLSearchParams(location.search || '');
-  const returnUrl =
-    searchParams.get('redirect') ||
-    searchParams.get('redirect_to') ||
-    searchParams.get('return_to') ||
-    searchParams.get('view') ||
-    searchParams.get('returnUrl');
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
@@ -62,7 +54,50 @@ export const MobileAuthGateway = () => {
     : hasLoggedInBefore
     ? '/dashboard'
     : '/onboarding';
-  const from = location.state?.from?.pathname || (returnUrl ? decodeURIComponent(returnUrl) : null) || defaultDestination;
+
+  // Return URL resolution: robust across query parameters, router location state, and session storage
+  const from = useMemo(() => {
+    const rawSearch =
+      (location.search && location.search !== '?' ? location.search : '') ||
+      (typeof window !== 'undefined' ? window.location.search : '');
+
+    const cleanSearch = rawSearch.startsWith('??')
+      ? rawSearch.slice(1)
+      : rawSearch.startsWith('?')
+      ? rawSearch
+      : rawSearch ? `?${rawSearch}` : '';
+
+    const searchParams = new URLSearchParams(cleanSearch);
+    const returnUrl =
+      searchParams.get('redirect') ||
+      searchParams.get('redirect_to') ||
+      searchParams.get('return_to') ||
+      searchParams.get('view') ||
+      searchParams.get('returnUrl') ||
+      searchParams.get('next');
+
+    let stateFrom: string | null = null;
+    if (location.state?.from) {
+      if (typeof location.state.from === 'string') {
+        stateFrom = location.state.from;
+      } else if (typeof location.state.from === 'object') {
+        const p = location.state.from.pathname || '';
+        const s = location.state.from.search || '';
+        const h = location.state.from.hash || '';
+        stateFrom = `${p}${s}${h}` || null;
+      }
+    }
+
+    let sessionRedirect: string | null = null;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionRedirect = sessionStorage.getItem('shuffle_redirect_after_login');
+      } catch {}
+    }
+
+    const candidate = returnUrl || stateFrom || sessionRedirect || defaultDestination;
+    return sanitizeInternalDestination(candidate, defaultDestination);
+  }, [location.search, location.state, defaultDestination]);
 
   // Redirect if already authenticated
   const hasRedirectedRef = useRef(false);
@@ -72,6 +107,11 @@ export const MobileAuthGateway = () => {
     const target = (from || '/dashboard').split('?')[0];
     if (target === location.pathname) return;
     hasRedirectedRef.current = true;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('shuffle_redirect_after_login');
+      } catch {}
+    }
     navigate(from, { replace: true });
   }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
@@ -250,14 +290,59 @@ export const MobileAuthGateway = () => {
 
       const data = await response.json().catch(() => ({}));
 
-      // Check for MFA redirect/requirement from Shuffle backend
+      // 1. Check for SSO redirect requirement from Shuffle backend (follow URL to external website)
+      const isSsoRedirect =
+        data.reason === 'SSO_REDIRECT' ||
+        data.message === 'SSO_REDIRECT' ||
+        data.sso_redirect === true;
+
+      if (isSsoRedirect) {
+        const ssoUrl = data.url || data.redirect_url || data.sso_url;
+        if (ssoUrl && typeof ssoUrl === 'string') {
+          if (typeof window !== 'undefined' && from) {
+            try {
+              sessionStorage.setItem('shuffle_redirect_after_login', from);
+            } catch {}
+          }
+          window.location.assign(ssoUrl);
+          return;
+        }
+        setError('Single Sign-On (SSO) is required, but no redirect URL was provided by the server.');
+        return;
+      }
+
+      // 2. Check for MFA setup requirement from Shuffle backend (/login/{url}/mfa-setup)
+      const isMfaSetup =
+        data.reason === 'MFA_SETUP' ||
+        data.message === 'MFA_SETUP' ||
+        data.mfa_setup === true;
+
+      if (isMfaSetup) {
+        const setupToken = data.url || data.token || data.extra;
+        if (setupToken && typeof setupToken === 'string') {
+          if (typeof window !== 'undefined' && from) {
+            try {
+              sessionStorage.setItem('shuffle_redirect_after_login', from);
+            } catch {}
+          }
+          const rawSearch =
+            (location.search && location.search !== '?' ? location.search : '') ||
+            (typeof window !== 'undefined' ? window.location.search : '');
+          const cleanSearch = rawSearch.startsWith('?') ? rawSearch : rawSearch ? `?${rawSearch}` : '';
+          navigate(`/login/${encodeURIComponent(setupToken)}/mfa-setup${cleanSearch}`);
+          return;
+        }
+        setError('Multi-factor authentication setup is required, but no setup token was provided.');
+        return;
+      }
+
+      // 3. Check for standard MFA code prompt (MFA_REDIRECT / already set up)
       const isMfaRedirect =
         data.reason === 'MFA_REDIRECT' ||
         data.message === 'MFA_REDIRECT' ||
         data.mfa_required === true ||
         response.status === 402 ||
-        data.reason === 'MFA_REQUIRED' ||
-        (typeof data.reason === 'string' && data.reason.toUpperCase().includes('MFA'));
+        data.reason === 'MFA_REQUIRED';
 
       if (isMfaRedirect) {
         setMfaRequired(true);
@@ -338,6 +423,11 @@ export const MobileAuthGateway = () => {
         }
 
         localStorage.setItem('shuffle_has_logged_in', 'true');
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.removeItem('shuffle_redirect_after_login');
+          } catch {}
+        }
         navigate(from, { replace: true });
       } else {
         setError(data.reason || data.message || 'Login failed. Please verify credentials.');

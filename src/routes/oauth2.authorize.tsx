@@ -7,7 +7,7 @@ export const Route = createFileRoute("/oauth2/authorize")({
     routeMeta({
       title: 'Authorize Application',
       description:
-        'Authorize third-party application or MCP client access to Shuffle Security.',
+        'Authorize application or service access to Shuffle Security.',
       url: '/oauth2/authorize',
       noindex: true,
     }),

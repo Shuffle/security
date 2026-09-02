@@ -94,15 +94,24 @@ export function useNavigate(): NavigateFn {
 export function useLocation() {
   const loc = tsLocation({ strict: false } as never);
   return useMemo(
-    () => ({
-      pathname: loc.pathname,
-      search: loc.searchStr ? `?${loc.searchStr}` : "",
-      hash: loc.hash ?? "",
-      // react-router types state loosely; call sites read arbitrary keys
-      // (e.g. location.state?.from), so keep it `any` here.
-      state: (loc.state ?? null) as any,
-      key: loc.pathname + (loc.searchStr ?? ""),
-    }),
+    () => {
+      let search = loc.searchStr ?? "";
+      if (!search && typeof window !== "undefined") {
+        search = window.location.search || "";
+      }
+      if (search && !search.startsWith("?")) {
+        search = `?${search}`;
+      }
+      return {
+        pathname: loc.pathname,
+        search,
+        hash: loc.hash ?? "",
+        // react-router types state loosely; call sites read arbitrary keys
+        // (e.g. location.state?.from), so keep it `any` here.
+        state: (loc.state ?? null) as any,
+        key: loc.pathname + (loc.searchStr ?? ""),
+      };
+    },
     [loc.pathname, loc.searchStr, loc.hash, loc.state],
   );
 }
