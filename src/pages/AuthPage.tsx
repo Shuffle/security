@@ -15,7 +15,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { getApiUrl, API_ENDPOINTS, API_CONFIG, isDevEnvironment } from '@/Shuffle-MCPs/api';
+import { getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
@@ -47,11 +47,9 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
   const [success, setSuccess] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading: authLoading, authenticateWithApiKey } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const isLogin = mode === 'login';
   const isMobile = useIsMobile();
@@ -191,6 +189,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
 
       if (sessionToken) {
         // Verify the token works before showing success
+        let verifiedUserInfo: any = null;
         try {
           const verifyResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
             method: 'GET',
@@ -211,6 +210,10 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                 `Check the backend's cookie domain and SameSite settings.`
               );
             }
+            throw new Error('Login succeeded but session verification failed. Please try again.');
+          }
+          verifiedUserInfo = await verifyResponse.json().catch(() => null);
+          if (verifiedUserInfo?.success !== true) {
             throw new Error('Login succeeded but session verification failed. Please try again.');
           }
         } catch (verifyError) {
@@ -234,7 +237,10 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         trackPredefinedEvent(GA_EVENTS.LOGIN_SUCCESS);
         const wasFirstLogin = !hasLoggedInBefore;
         localStorage.setItem('shuffle_has_logged_in', 'true');
-        await login(sessionToken);
+        const accepted = await login(sessionToken, verifiedUserInfo);
+        if (!accepted) {
+          throw new Error('Login succeeded but session verification failed. Please try again.');
+        }
 
         // Determine post-login destination: honor explicit returnUrl if set.
         // Otherwise, if no incidents exist for this org, send to /dashboard.
@@ -623,111 +629,6 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                 </Link>
               </Typography>
 
-              {/* Developer API Key Section - only in Lovable preview */}
-              {isLogin && isDevEnvironment() && (
-                <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-                  <Typography
-                    variant="body2"
-                    onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                    sx={{
-                      textAlign: 'center',
-                      color: 'text.disabled',
-                      cursor: 'pointer',
-                      fontSize: '0.75rem',
-                      '&:hover': { color: 'text.secondary' },
-                    }}
-                  >
-                    {showApiKeyInput ? '▼ Hide API Key Login' : '▶ Developer: Use API Key'}
-                  </Typography>
-                  
-                  {showApiKeyInput && (
-                    <Box sx={{ mt: 2 }}>
-                      <TextField
-                        type="password"
-                        placeholder="Enter your Shuffle API key"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        fullWidth
-                        size="small"
-                        sx={{
-                          mb: 1.5,
-                          '& .MuiOutlinedInput-root': {
-                            bgcolor: 'background.paper',
-                            fontSize: '0.875rem',
-                            '& fieldset': { borderColor: 'divider' },
-                            '&:hover fieldset': { borderColor: 'primary.main' },
-                            '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-                          },
-                          '& .MuiInputBase-input': { color: 'text.primary' },
-                        }}
-                      />
-                      <Button
-                        fullWidth
-                        size="small"
-                        disabled={loading}
-                        onClick={async () => {
-                          if (!apiKey.trim()) return;
-                          
-                          setLoading(true);
-                          setError('');
-                          
-                          try {
-                            // Verify the API key before persisting it. The key is
-                            // sent explicitly for this request so other mounted
-                            // API consumers cannot observe an unverified key.
-                            let response: Response;
-                            try {
-                              response = await fetch(getApiUrl('/api/v1/getinfo'), {
-                                method: 'GET',
-                                credentials: 'include',
-                                headers: {
-                                  'Authorization': `Bearer ${apiKey.trim()}`,
-                                  'Content-Type': 'application/json',
-                                },
-                              });
-                            } catch (fetchError) {
-                              // Network error, CORS error, or connection refused
-                              throw new Error('Network error: Unable to connect to server. Please check your connection.');
-                            }
-                            
-                            let data: any;
-                            try {
-                              data = await response.json();
-                            } catch (parseError) {
-                              throw new Error(`Server returned invalid response (status: ${response.status})`);
-                            }
-                            
-                            if (!response.ok || data.success !== true) {
-                              throw new Error(data.reason || 'Invalid API key');
-                            }
-                            
-                            // API key is valid
-                            API_CONFIG.setApiKey(apiKey.trim());
-                            setSuccess(true);
-                            localStorage.setItem('shuffle_has_logged_in', 'true');
-                            // Reuse the successful getinfo payload. Calling
-                            // refreshUserInfo and then reloading caused two more
-                            // duplicate getinfo requests during API-key login.
-                            authenticateWithApiKey(data);
-                          } catch (err) {
-                            setError(err instanceof Error ? err.message : 'Failed to authenticate with API key');
-                          } finally {
-                            setLoading(false);
-                          }
-                        }}
-                        sx={{
-                          bgcolor: (t) => `${t.palette.primary.main}33`,
-                          color: 'primary.main',
-                          textTransform: 'none',
-                          '&:hover': { bgcolor: (t) => `${t.palette.primary.main}4D` },
-                        }}
-                      >
-                        {loading ? <CircularProgress size={18} color="inherit" /> : 'Save API Key & Login'}
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              )}
             </CardContent>
           </Card>
         </motion.div>
