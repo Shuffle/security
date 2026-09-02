@@ -48,8 +48,7 @@ const FeatureSection = ({ title, highlight, description, bullets, color, reverse
         <Grid size={{ xs: 12, md: 6 }}>
           <motion.div
             initial={{ opacity: 0, x: reverse ? 40 : -40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7 }}
           >
             <Typography
@@ -89,8 +88,7 @@ const FeatureSection = ({ title, highlight, description, bullets, color, reverse
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
@@ -160,8 +158,7 @@ const FeatureSection = ({ title, highlight, description, bullets, color, reverse
         <Grid size={{ xs: 12, md: 6 }}>
           <motion.div
             initial={{ opacity: 0, x: reverse ? -40 : 40, scale: 0.95 }}
-            whileInView={{ opacity: 1, x: 0, scale: 1 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.2 }}
           >
             {visual}
@@ -295,8 +292,7 @@ const UniversalReachVisual = () => (
         <motion.div
           key={env.label}
           initial={{ opacity: 0, x: 20 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.15 }}
         >
           <Box
@@ -373,8 +369,7 @@ const IntegrationsVisual = () => (
         <motion.div
           key={int.name}
           initial={{ opacity: 0, scale: 0.8 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: i * 0.05 }}
           whileHover={{ scale: 1.1, y: -4 }}
         >
@@ -501,8 +496,7 @@ const DetectionLoopVisual = () => {
             <motion.div
               key={stage.label}
               initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.12 }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -590,8 +584,7 @@ const HostMonitorVisual = () => {
           <motion.div
             key={c.label}
             initial={{ opacity: 0, x: -10 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.08 }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, borderRadius: 2, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -635,8 +628,7 @@ const VulnAutomationVisual = () => {
           <motion.div
             key={v.cve}
             initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
           >
             <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -778,8 +770,7 @@ export const FeaturesSection = () => {
         <Container maxWidth="md">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
             <Typography
