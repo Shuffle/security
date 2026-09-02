@@ -4762,7 +4762,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
         zIndex: isPhone ? 20 : 5,
         bgcolor: isPhone ? 'hsl(var(--background))' : 'hsl(var(--card))',
         borderRadius: isPhone ? 0 : 9999,
-        borderBottom: isPhone ? '1px solid hsl(var(--border))' : 'none',
         boxShadow: isPhone ? '0 4px 16px rgba(0,0,0,0.12)' : 'none',
         px: isPhone ? 1 : 0,
         py: isPhone ? 1 : 0,
