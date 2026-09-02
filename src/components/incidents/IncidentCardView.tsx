@@ -753,13 +753,14 @@ export const IncidentCardView = ({
                       cluster so the title row has more breathing room. They
                       sit alongside org / assignee / source as another piece
                       of contextual metadata. */}
-                    {!isMobile && (() => {
+                    {(() => {
                      // Hide the synthetic "Manual" label that's auto-attached to
                      // manually-created incidents — it's noise, not metadata.
-                     const visibleLabels = (incident.labels || []).filter(
-                       (l) => l.trim().toLowerCase() !== 'manual',
-                     );
-                     if (visibleLabels.length === 0) return null;
+                      const visibleLabels = (incident.labels || []).filter(
+                        (l) => l.trim().toLowerCase() !== 'manual',
+                      );
+                      if (isMobile) return null;
+                      if (visibleLabels.length === 0) return null;
                      return (
                        <>
                          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -803,7 +804,7 @@ export const IncidentCardView = ({
                          )}
                        </>
                      );
-                    })())}
+                    })()}
                 </Box>
               </Box>
 
