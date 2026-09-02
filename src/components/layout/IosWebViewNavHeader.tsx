@@ -159,7 +159,7 @@ const TenantSelector: React.FC<{ maxWidth?: number }> = ({ maxWidth = 140 }) => 
 export const MobileNavHeader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { userInfo } = useAuth();
+  
   const { brandColor } = useTheme();
   const primaryColor = brandColor || '#FF6600';
 
