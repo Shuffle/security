@@ -332,6 +332,8 @@ export const PagerNotificationSettings = ({ userInfo: userInfoProp }: PagerNotif
   const [savingDevice, setSavingDevice] = useState(false);
   const [inIframe, setInIframe] = useState(false);
   const [confirmCritical, setConfirmCritical] = useState(false);
+  const [pendingCriticalTest, setPendingCriticalTest] = useState<'push' | 'simulate' | null>(null);
+
 
   useEffect(() => {
     setInIframe(typeof window !== 'undefined' && window.top !== window.self);
