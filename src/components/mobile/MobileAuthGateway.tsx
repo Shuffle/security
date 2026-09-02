@@ -71,15 +71,23 @@ export const MobileAuthGateway = () => {
   }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
   // Server instance selection: 'cloud' | 'self-hosted'
-  const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
-    if (typeof window === 'undefined') return 'cloud';
-    return (localStorage.getItem(SERVER_MODE_STORAGE_KEY) as 'cloud' | 'self-hosted') || 'cloud';
-  });
+  // NOTE: these must start with SSR-safe defaults and only read localStorage
+  // after hydration, otherwise the server and client markup diverge.
+  const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>('cloud');
+  const [customHostUrl, setCustomHostUrl] = useState('');
+  const [hydrated, setHydrated] = useState(false);
 
-  const [customHostUrl, setCustomHostUrl] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return localStorage.getItem(CUSTOM_HOST_STORAGE_KEY) || '';
-  });
+  useEffect(() => {
+    try {
+      const storedMode = localStorage.getItem(SERVER_MODE_STORAGE_KEY);
+      if (storedMode === 'self-hosted' || storedMode === 'cloud') setServerMode(storedMode);
+      const storedHost = localStorage.getItem(CUSTOM_HOST_STORAGE_KEY);
+      if (storedHost) setCustomHostUrl(storedHost);
+    } catch {
+      // ignore storage errors
+    }
+    setHydrated(true);
+  }, []);
 
   const [isPingingHost, setIsPingingHost] = useState(false);
   const [hostPingStatus, setHostPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -97,6 +105,7 @@ export const MobileAuthGateway = () => {
 
   // Ensure host URL is synchronized in API config whenever serverMode or customHostUrl changes
   useEffect(() => {
+    if (!hydrated) return;
     if (serverMode === 'self-hosted' && customHostUrl.trim()) {
       let normalized = customHostUrl.trim().replace(/\/+$/, '');
       if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
@@ -108,7 +117,7 @@ export const MobileAuthGateway = () => {
       setHostBaseUrl(null);
       setCoreHostBaseUrl(null);
     }
-  }, [serverMode, customHostUrl]);
+  }, [serverMode, customHostUrl, hydrated]);
 
   // Handle server mode change
   const handleServerModeChange = (mode: 'cloud' | 'self-hosted') => {
