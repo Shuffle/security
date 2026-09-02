@@ -1051,6 +1051,8 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             }}
           >
             <Avatar
+              src={currentUserAvatar || undefined}
+              alt={userInfo?.username || 'User'}
               sx={{
                 width: 36,
                 height: 36,
