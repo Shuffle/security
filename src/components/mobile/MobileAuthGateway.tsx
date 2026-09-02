@@ -38,14 +38,19 @@ export const MobileAuthGateway = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const mfaInputRef = useRef<HTMLInputElement>(null);
 
-  // Return URL resolution
-  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  // Return URL resolution (router-driven so it stays correct after navigation)
+  const searchParams = new URLSearchParams(location.search || '');
   const returnUrl =
     searchParams.get('redirect') ||
     searchParams.get('redirect_to') ||
     searchParams.get('return_to') ||
     searchParams.get('view') ||
     searchParams.get('returnUrl');
+
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const isMobile =
     isCapacitorNative() ||
@@ -57,7 +62,7 @@ export const MobileAuthGateway = () => {
     : hasLoggedInBefore
     ? '/dashboard'
     : '/onboarding';
-  const from = location.state?.from?.pathname || returnUrl || defaultDestination;
+  const from = location.state?.from?.pathname || (returnUrl ? decodeURIComponent(returnUrl) : null) || defaultDestination;
 
   // Redirect if already authenticated
   const hasRedirectedRef = useRef(false);
@@ -71,23 +76,21 @@ export const MobileAuthGateway = () => {
   }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
   // Server instance selection: 'cloud' | 'self-hosted'
-  // NOTE: these must start with SSR-safe defaults and only read localStorage
-  // after hydration, otherwise the server and client markup diverge.
+  // SSR-safe defaults; real values hydrate in an effect below.
   const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>('cloud');
   const [customHostUrl, setCustomHostUrl] = useState('');
-  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
-      const storedMode = localStorage.getItem(SERVER_MODE_STORAGE_KEY);
+      const storedMode = localStorage.getItem(SERVER_MODE_STORAGE_KEY) as 'cloud' | 'self-hosted' | null;
       if (storedMode === 'self-hosted' || storedMode === 'cloud') setServerMode(storedMode);
       const storedHost = localStorage.getItem(CUSTOM_HOST_STORAGE_KEY);
       if (storedHost) setCustomHostUrl(storedHost);
     } catch {
-      // ignore storage errors
+      // ignore
     }
-    setHydrated(true);
   }, []);
+
 
   const [isPingingHost, setIsPingingHost] = useState(false);
   const [hostPingStatus, setHostPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -117,7 +120,7 @@ export const MobileAuthGateway = () => {
       setHostBaseUrl(null);
       setCoreHostBaseUrl(null);
     }
-  }, [serverMode, customHostUrl, hydrated]);
+  }, [hydrated, serverMode, customHostUrl]);
 
   // Handle server mode change
   const handleServerModeChange = (mode: 'cloud' | 'self-hosted') => {
@@ -274,6 +277,30 @@ export const MobileAuthGateway = () => {
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
 
       if (data.success !== false) {
+        // Validate the session with getinfo BEFORE treating the user as logged in,
+        // otherwise we land in a "fake" authenticated UI when the cookie/token
+        // was not actually accepted by the backend.
+        let verified = false;
+        try {
+          const verifyRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+            },
+          });
+          const verifyData = await verifyRes.json().catch(() => ({} as any));
+          verified = verifyRes.ok && verifyData?.success === true;
+        } catch {
+          verified = false;
+        }
+
+        if (!verified) {
+          setError('Login succeeded but the session could not be verified. Please try again.');
+          return;
+        }
+
         localStorage.setItem('shuffle_has_logged_in', 'true');
         await login(sessionToken || '');
         navigate(from, { replace: true });
