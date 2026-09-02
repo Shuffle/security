@@ -956,9 +956,10 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
   // window so behaviour stays identical in both surfaces.
   const panelBody = (
     <>
-      {/* Subject line */}
+      {/* Subject line — hidden on mobile; the raw view shows a labelled
+          From/Subject block above the email body instead. */}
       {threadSubject && (
-        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid hsl(var(--border))' }}>
+        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid hsl(var(--border))', display: { xs: 'none', sm: 'block' } }}>
           <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
             {threadSubject}
           </Typography>
@@ -969,6 +970,16 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       <Box sx={{ maxHeight: poppedOut ? 'none' : 500, flex: poppedOut ? 1 : 'unset', overflow: 'auto' }}>
         {rawMode ? (
           <Box sx={{ px: 2, py: 1.5 }}>
+            <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexDirection: 'column', gap: 0.25, mb: 1.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                From: {messages[0].from}
+              </Typography>
+              {threadSubject && (
+                <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Subject: {threadSubject}
+                </Typography>
+              )}
+            </Box>
             <EmailHtmlFrame html={rawHtml || plainTextToEmailHtml(rawText)} />
           </Box>
 
