@@ -375,7 +375,18 @@ export const MobileAuthGateway = () => {
               mt: 0.5,
             }}
           >
-            Open Source Incident Response & Automation
+            <a
+              href="https://github.com/shuffle/security"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'inherit',
+                textDecoration: 'underline',
+              }}
+            >
+              Open Source
+            </a>{' '}
+            Incident Response & Automation
           </Typography>
         </Box>
 
