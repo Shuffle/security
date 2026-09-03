@@ -296,6 +296,8 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
     if (serverMode === 'cloud' && !isValidEmail(username))
       return 'Enter a valid email address. Shuffle Cloud requires an email, not a username.';
     if (!password) return 'Enter your password.';
+    if (isRegister && password.length < 10)
+      return 'Choose a password with at least 10 characters.';
     return '';
   })();
 
