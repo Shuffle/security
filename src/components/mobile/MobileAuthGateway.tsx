@@ -613,6 +613,39 @@ export const MobileAuthGateway = () => {
           </Typography>
         </Box>
 
+        {/* Server Instance Switcher - above the auth card */}
+        {!mfaRequired && !isResetPasswordMode && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
+            <SegmentedControl
+              value={serverMode}
+              onChange={handleServerModeChange}
+              size="md"
+              variant="outline"
+              ariaLabel="Server instance"
+              options={[
+                {
+                  value: 'cloud',
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <CloudIcon size={14} />
+                      Shuffle Cloud
+                    </span>
+                  ),
+                },
+                {
+                  value: 'self-hosted',
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <ServerIcon size={14} />
+                      Self-Hosted
+                    </span>
+                  ),
+                },
+              ]}
+            />
+          </Box>
+        )}
+
         {/* Main Authentication Card */}
         <Card
           sx={{
@@ -624,38 +657,7 @@ export const MobileAuthGateway = () => {
           }}
         >
           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-            {/* Server Instance Switcher - at the top of the auth card */}
-            {!mfaRequired && !isResetPasswordMode && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                <SegmentedControl
-                  value={serverMode}
-                  onChange={handleServerModeChange}
-                  size="md"
-                  variant="outline"
-                  ariaLabel="Server instance"
-                  options={[
-                    {
-                      value: 'cloud',
-                      label: (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <CloudIcon size={14} />
-                          Shuffle Cloud
-                        </span>
-                      ),
-                    },
-                    {
-                      value: 'self-hosted',
-                      label: (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <ServerIcon size={14} />
-                          Self-Hosted
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
-              </Box>
-            )}
+
 
             {/* Self-Hosted Server URL Configuration */}
             <AnimatePresence>
