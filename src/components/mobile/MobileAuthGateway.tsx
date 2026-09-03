@@ -613,151 +613,6 @@ export const MobileAuthGateway = () => {
           </Typography>
         </Box>
 
-        {/* Server Instance Switcher - Only shown during initial credential step in standard login */}
-        {!mfaRequired && !isResetPasswordMode && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
-            <SegmentedControl
-              value={serverMode}
-              onChange={handleServerModeChange}
-              size="md"
-              variant="outline"
-              ariaLabel="Server instance"
-              options={[
-                {
-                  value: 'cloud',
-                  label: (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <CloudIcon size={14} />
-                      Shuffle Cloud
-                    </span>
-                  ),
-                },
-                {
-                  value: 'self-hosted',
-                  label: (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <ServerIcon size={14} />
-                      Self-Hosted
-                    </span>
-                  ),
-                },
-              ]}
-            />
-          </Box>
-        )}
-
-        {/* Self-Hosted Server URL Configuration */}
-        <AnimatePresence>
-          {!mfaRequired && serverMode === 'self-hosted' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Box sx={{ mb: 2.5 }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: 'hsl(var(--muted-foreground))',
-                    mb: 0.75,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}
-                >
-                  Instance URL
-                </Typography>
-                <TextField
-                  placeholder="https://shuffle.myorg.internal:3443"
-                  value={customHostUrl}
-                  onChange={(e) => {
-                    setCustomHostUrl(e.target.value);
-                    setHostPingStatus('idle');
-                  }}
-                  size="small"
-                  fullWidth
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  InputProps={{
-                    sx: {
-                      bgcolor: 'hsl(var(--card))',
-                      color: 'hsl(var(--foreground))',
-                      borderRadius: 2,
-                      fontSize: '0.85rem',
-                      pr: 0.75,
-                      '& input': {
-                        color: 'hsl(var(--foreground))',
-                        py: 1,
-                      },
-                      '& fieldset': { borderColor: 'hsl(var(--border))' },
-                      '&:hover fieldset': { borderColor: '#FF6600' },
-                      '&.Mui-focused fieldset': { borderColor: '#FF6600' },
-                    },
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Button
-                          onClick={handlePingHost}
-                          variant="contained"
-                          disabled={isPingingHost || !customHostUrl.trim()}
-                          size="small"
-                          sx={{
-                            minWidth: 64,
-                            height: 28,
-                            px: 1.5,
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            textTransform: 'none',
-                            borderRadius: 1.5,
-                            bgcolor: hostPingStatus === 'success' ? '#22c55e' : 'hsl(var(--muted))',
-                            color: hostPingStatus === 'success' ? '#FFFFFF' : 'hsl(var(--foreground))',
-                            border: '1px solid hsl(var(--border))',
-                            boxShadow: 'none',
-                            '&:hover': {
-                              bgcolor: hostPingStatus === 'success' ? '#16a34a' : 'hsl(var(--muted) / 0.8)',
-                              boxShadow: 'none',
-                            },
-                            '&.Mui-disabled': {
-                              bgcolor: 'hsl(var(--muted) / 0.4)',
-                              color: 'hsl(var(--muted-foreground) / 0.5)',
-                              borderColor: 'transparent',
-                            },
-                          }}
-                        >
-                          {isPingingHost ? (
-                            <CircularProgress size={14} sx={{ color: 'inherit' }} />
-                          ) : hostPingStatus === 'success' ? (
-                            'Connected'
-                          ) : (
-                            'Test'
-                          )}
-                        </Button>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                {hostPingMessage && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1 }}>
-                    {hostPingStatus === 'success' ? (
-                      <CheckCircleIcon size={14} color="#22c55e" />
-                    ) : (
-                      <AlertCircleIcon size={14} color="#ef4444" />
-                    )}
-                    <Typography
-                      sx={{
-                        fontSize: '0.75rem',
-                        color: hostPingStatus === 'success' ? '#22c55e' : '#ef4444',
-                      }}
-                    >
-                      {hostPingMessage}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Main Authentication Card */}
         <Card
           sx={{
@@ -769,6 +624,150 @@ export const MobileAuthGateway = () => {
           }}
         >
           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+            {/* Server Instance Switcher - at the top of the auth card */}
+            {!mfaRequired && !isResetPasswordMode && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <SegmentedControl
+                  value={serverMode}
+                  onChange={handleServerModeChange}
+                  size="md"
+                  variant="outline"
+                  ariaLabel="Server instance"
+                  options={[
+                    {
+                      value: 'cloud',
+                      label: (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <CloudIcon size={14} />
+                          Shuffle Cloud
+                        </span>
+                      ),
+                    },
+                    {
+                      value: 'self-hosted',
+                      label: (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <ServerIcon size={14} />
+                          Self-Hosted
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
+              </Box>
+            )}
+
+            {/* Self-Hosted Server URL Configuration */}
+            <AnimatePresence>
+              {!mfaRequired && serverMode === 'self-hosted' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: 'hsl(var(--muted-foreground))',
+                        mb: 0.75,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      Instance URL
+                    </Typography>
+                    <TextField
+                      placeholder="https://shuffle.myorg.internal:3443"
+                      value={customHostUrl}
+                      onChange={(e) => {
+                        setCustomHostUrl(e.target.value);
+                        setHostPingStatus('idle');
+                      }}
+                      size="small"
+                      fullWidth
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      InputProps={{
+                        sx: {
+                          bgcolor: 'hsl(var(--card))',
+                          color: 'hsl(var(--foreground))',
+                          borderRadius: 2,
+                          fontSize: '0.85rem',
+                          pr: 0.75,
+                          '& input': {
+                            color: 'hsl(var(--foreground))',
+                            py: 1,
+                          },
+                          '& fieldset': { borderColor: 'hsl(var(--border))' },
+                          '&:hover fieldset': { borderColor: '#FF6600' },
+                          '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+                        },
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Button
+                              onClick={handlePingHost}
+                              variant="contained"
+                              disabled={isPingingHost || !customHostUrl.trim()}
+                              size="small"
+                              sx={{
+                                minWidth: 64,
+                                height: 28,
+                                px: 1.5,
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                borderRadius: 1.5,
+                                bgcolor: hostPingStatus === 'success' ? '#22c55e' : 'hsl(var(--muted))',
+                                color: hostPingStatus === 'success' ? '#FFFFFF' : 'hsl(var(--foreground))',
+                                border: '1px solid hsl(var(--border))',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                  bgcolor: hostPingStatus === 'success' ? '#16a34a' : 'hsl(var(--muted) / 0.8)',
+                                  boxShadow: 'none',
+                                },
+                                '&.Mui-disabled': {
+                                  bgcolor: 'hsl(var(--muted) / 0.4)',
+                                  color: 'hsl(var(--muted-foreground) / 0.5)',
+                                  borderColor: 'transparent',
+                                },
+                              }}
+                            >
+                              {isPingingHost ? (
+                                <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                              ) : hostPingStatus === 'success' ? (
+                                'Connected'
+                              ) : (
+                                'Test'
+                              )}
+                            </Button>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    {hostPingMessage && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1 }}>
+                        {hostPingStatus === 'success' ? (
+                          <CheckCircleIcon size={14} color="#22c55e" />
+                        ) : (
+                          <AlertCircleIcon size={14} color="#ef4444" />
+                        )}
+                        <Typography
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: hostPingStatus === 'success' ? '#22c55e' : '#ef4444',
+                          }}
+                        >
+                          {hostPingMessage}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </motion.div>
+              )}
+            </AnimatePresence>
             {error && (
               <Alert
                 severity="error"
