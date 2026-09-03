@@ -257,6 +257,36 @@ export const MobileAuthGateway = () => {
     }
   };
 
+  // Cloud requires a valid email address; self-hosted allows username or email
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+  const identifierLabel =
+    serverMode === 'cloud' ? 'Email' : 'Username or Email';
+  const cloudEmailInvalid =
+    serverMode === 'cloud' && username.trim().length > 0 && !isValidEmail(username);
+
+  // Reason the Sign In button is blocked (empty string = not blocked)
+  const signInBlockedReason = (() => {
+    if (isResetPasswordMode) return '';
+    if (serverMode === 'self-hosted' && hostPingStatus !== 'success') {
+      if (!customHostUrl.trim())
+        return 'Enter your self-hosted Shuffle server URL and test the connection before signing in.';
+      if (hostPingStatus === 'error')
+        return 'The connection test failed. Fix the URL and test again before signing in.';
+      return 'Test the server connection before signing in.';
+    }
+    if (!username.trim())
+      return serverMode === 'cloud'
+        ? 'Enter your email address.'
+        : 'Enter your username or email address.';
+    if (serverMode === 'cloud' && !isValidEmail(username))
+      return 'Enter a valid email address. Shuffle Cloud requires an email, not a username.';
+    if (!password) return 'Enter your password.';
+    return '';
+  })();
+
+
+
   // Auto-focus MFA input whenever MFA becomes required
   useEffect(() => {
     if (!mfaRequired) return undefined;
