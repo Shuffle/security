@@ -102,6 +102,32 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
     return sanitizeInternalDestination(candidate, defaultDestination);
   }, [location.search, location.state, defaultDestination]);
 
+  // Persist an explicit redirect target as soon as it arrives in the URL, so it
+  // survives navigating between pre-login pages (login <-> register, password
+  // reset, MFA setup) where the query string is not carried along.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const rawSearch =
+      (location.search && location.search !== '?' ? location.search : '') ||
+      window.location.search;
+    if (!rawSearch) return;
+    const params = new URLSearchParams(rawSearch.startsWith('??') ? rawSearch.slice(1) : rawSearch);
+    const explicit =
+      params.get('redirect') ||
+      params.get('redirect_to') ||
+      params.get('return_to') ||
+      params.get('view') ||
+      params.get('returnUrl') ||
+      params.get('next');
+    if (!explicit) return;
+    const safe = sanitizeInternalDestination(explicit, '');
+    if (!safe) return;
+    try {
+      sessionStorage.setItem('shuffle_redirect_after_login', safe);
+    } catch {}
+  }, [location.search]);
+
+
   // Redirect if already authenticated
   const hasRedirectedRef = useRef(false);
   useEffect(() => {
