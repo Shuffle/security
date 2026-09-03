@@ -301,6 +301,27 @@ export const MobileAuthGateway = () => {
     setError('');
     const code = codeToUse !== undefined ? codeToUse : mfaCode;
 
+    if (!mfaRequired) {
+      if (!username.trim()) {
+        setError(
+          serverMode === 'cloud'
+            ? 'Please enter your email address.'
+            : 'Please enter your username or email address.'
+        );
+        return;
+      }
+      if (serverMode === 'cloud' && !isValidEmail(username)) {
+        setError('Please enter a valid email address. Shuffle Cloud requires an email address.');
+        return;
+      }
+      if (!password) {
+        setError('Please enter your password.');
+        return;
+      }
+    }
+
+
+
     if (serverMode === 'self-hosted') {
       if (!customHostUrl.trim()) {
         setError('Please provide your self-hosted Shuffle server URL');
