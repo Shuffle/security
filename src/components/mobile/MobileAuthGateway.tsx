@@ -1333,21 +1333,32 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
           </CardContent>
         </Card>
 
-        {/* Footer / Registration link */}
-        {!mfaRequired && (
+        {/* Footer / Login <-> Registration switch (keeps the selected server) */}
+        {!mfaRequired && !isResetPasswordMode && (
           <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
-              Don't have an account?{' '}
-              <Link
-                to="/register"
-                style={{
+              {isRegister ? 'Already have an account?' : 'Do not have an account?'}{' '}
+              <Box
+                component="button"
+                type="button"
+                onClick={() => {
+                  setAuthMode(isRegister ? 'login' : 'register');
+                  setError('');
+                  setNotice('');
+                  setPassword('');
+                }}
+                sx={{
+                  background: 'none',
+                  border: 'none',
+                  p: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
                   color: '#FF6600',
                   fontWeight: 600,
-                  textDecoration: 'none',
                 }}
               >
-                Sign up
-              </Link>
+                {isRegister ? 'Sign in' : 'Sign up'}
+              </Box>
             </Typography>
           </Box>
         )}
