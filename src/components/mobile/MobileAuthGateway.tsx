@@ -1,3 +1,4 @@
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
