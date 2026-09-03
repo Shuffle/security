@@ -26,6 +26,7 @@ import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useTheme as useAppTheme } from '@/context/ThemeContext';
 import { PagerNotificationSettings } from '@/components/settings/PagerNotificationSettings';
+import TenantOAuthTokens from '@/components/tenants/TenantOAuthTokens';
 
 const REGION_OPTIONS = [
   { value: '', label: 'Default (UK)' },
@@ -72,6 +73,8 @@ const AdminPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [fullOrg, setFullOrg] = useState<any>(null);
+  const oauthTokens = fullOrg?.oauth_tokens ?? (userInfo?.active_org as any)?.oauth_tokens;
+  const hasOAuthTokens = oauthTokens !== undefined && oauthTokens !== null;
 
   const [orgName, setOrgName] = useState('');
   const [orgDescription, setOrgDescription] = useState('');
@@ -176,58 +179,58 @@ const AdminPage = () => {
   };
 
   // Fetch org details
-  useEffect(() => {
+  const fetchOrg = useCallback(async () => {
     if (!orgId) return;
 
-    const fetchOrg = async () => {
-      try {
-        const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}`), {
-          credentials: 'include',
-          headers: { ...getAuthHeader() },
-        });
+    try {
+      const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}`), {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      });
 
-        if (!response.ok) throw new Error('Failed to fetch organization details');
+      if (!response.ok) throw new Error('Failed to fetch organization details');
 
-        const data = await response.json();
-        setFullOrg(data);
-        const name = data.name || '';
-        const description = data.description || '';
-        const image = data.image || '';
-        const regionUrl = data.region_url || '';
-        
-        setOrgName(name);
-        setOrgDescription(description);
-        setOrgImage(image);
-        setOrgRegionUrl(regionUrl);
-        
-        setOriginalName(name);
-        setOriginalDescription(description);
-        setOriginalImage(image);
-        setOriginalRegionUrl(regionUrl);
-      } catch (err) {
-        // Fallback to userInfo
-        const name = userInfo?.active_org?.name || '';
-        const image = userInfo?.active_org?.image || '';
-        const regionUrl = userInfo?.active_org?.region_url || '';
-        
-        setOrgName(name);
-        setOrgDescription('');
-        setOrgImage(image);
-        setOrgRegionUrl(regionUrl);
-        
-        setOriginalName(name);
-        setOriginalDescription('');
-        setOriginalImage(image);
-        setOriginalRegionUrl(regionUrl);
-        
-        setError(err instanceof Error ? err.message : 'Failed to load');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrg();
+      const data = await response.json();
+      setFullOrg(data);
+      const name = data.name || '';
+      const description = data.description || '';
+      const image = data.image || '';
+      const regionUrl = data.region_url || '';
+      
+      setOrgName(name);
+      setOrgDescription(description);
+      setOrgImage(image);
+      setOrgRegionUrl(regionUrl);
+      
+      setOriginalName(name);
+      setOriginalDescription(description);
+      setOriginalImage(image);
+      setOriginalRegionUrl(regionUrl);
+    } catch (err) {
+      // Fallback to userInfo
+      const name = userInfo?.active_org?.name || '';
+      const image = userInfo?.active_org?.image || '';
+      const regionUrl = userInfo?.active_org?.region_url || '';
+      
+      setOrgName(name);
+      setOrgDescription('');
+      setOrgImage(image);
+      setOrgRegionUrl(regionUrl);
+      
+      setOriginalName(name);
+      setOriginalDescription('');
+      setOriginalImage(image);
+      setOriginalRegionUrl(regionUrl);
+      
+      setError(err instanceof Error ? err.message : 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
   }, [orgId, userInfo]);
+
+  useEffect(() => {
+    fetchOrg();
+  }, [fetchOrg]);
 
   const handleSave = async () => {
     if (!orgId) return;
@@ -522,6 +525,16 @@ const AdminPage = () => {
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </Box>
+          )}
+
+          {/* OAuth Tokens Section (rendered if oauth_tokens returned in org response) */}
+          {!loading && hasOAuthTokens && (
+            <TenantOAuthTokens
+              tokens={oauthTokens}
+              orgId={orgId}
+              onRefresh={fetchOrg}
+              onTokenRevoked={fetchOrg}
+            />
           )}
         </>
       )}
