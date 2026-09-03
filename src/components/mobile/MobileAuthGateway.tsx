@@ -914,11 +914,18 @@ export const MobileAuthGateway = () => {
                           mb: 0.75,
                         }}
                       >
-                        {isResetPasswordMode ? 'Email or Username' : 'Username or Email'}
+                        {isResetPasswordMode ? 'Email or Username' : identifierLabel}
                       </Typography>
                       <TextField
                         placeholder="analyst@organization.com"
-                        value={username}
+                        type={serverMode === 'cloud' && !isResetPasswordMode ? 'email' : 'text'}
+                        error={!isResetPasswordMode && cloudEmailInvalid}
+                        helperText={
+                          !isResetPasswordMode && cloudEmailInvalid
+                            ? 'Enter a valid email address for Shuffle Cloud.'
+                            : undefined
+                        }
+
                         onChange={(e) => setUsername(e.target.value)}
                         fullWidth
                         required
