@@ -1035,50 +1035,40 @@ export const MobileAuthGateway = () => {
                       </Box>
                     )}
 
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      fullWidth
-                      disabled={
-                        loading ||
-                        (!isResetPasswordMode &&
-                          serverMode === 'self-hosted' &&
-                          hostPingStatus !== 'success')
-                      }
-                      title={
-                        !loading &&
-                        !isResetPasswordMode &&
-                        serverMode === 'self-hosted' &&
-                        hostPingStatus !== 'success'
-                          ? !customHostUrl.trim()
-                            ? 'Enter your self-hosted Shuffle server URL and test the connection before signing in.'
-                            : hostPingStatus === 'error'
-                            ? 'The connection test failed. Fix the URL and test again before signing in.'
-                            : 'Test the server connection before signing in.'
-                          : undefined
-                      }
-                      sx={{
-                        py: 1.25,
-                        borderRadius: 2,
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        textTransform: 'none',
-                        bgcolor: '#FF6600',
-                        color: '#FFFFFF',
-                        boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
-                        '&:hover': {
-                          bgcolor: '#e65c00',
-                        },
-                      }}
+                    <Box
+                      title={!loading && signInBlockedReason ? signInBlockedReason : undefined}
+                      sx={{ width: '100%' }}
                     >
-                      {loading ? (
-                        <CircularProgress size={22} sx={{ color: '#ffffff' }} />
-                      ) : isResetPasswordMode ? (
-                        resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
-                      ) : (
-                        'Sign In'
-                      )}
-                    </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        fullWidth
+                        disabled={loading || !!signInBlockedReason}
+                        title={!loading && signInBlockedReason ? signInBlockedReason : undefined}
+                        sx={{
+                          py: 1.25,
+                          borderRadius: 2,
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'none',
+                          bgcolor: '#FF6600',
+                          color: '#FFFFFF',
+                          boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
+                          '&:hover': {
+                            bgcolor: '#e65c00',
+                          },
+                        }}
+                      >
+                        {loading ? (
+                          <CircularProgress size={22} sx={{ color: '#ffffff' }} />
+                        ) : isResetPasswordMode ? (
+                          resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
+                        ) : (
+                          'Sign In'
+                        )}
+                      </Button>
+                    </Box>
+
 
                     {isResetPasswordMode && (
                       <Box sx={{ textAlign: 'center', mt: 2 }}>
