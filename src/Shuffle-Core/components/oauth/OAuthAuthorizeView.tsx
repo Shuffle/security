@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { getApiUrl, getAuthHeader } from '../../api';
 import { toast } from '../../toast';
+import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
 
 export interface OrganizationLike {
   id: string;
@@ -104,7 +105,7 @@ const PREDEFINED_SCOPES: Record<string, OAuthScopeDetail> = {
     id: 'profile',
     category: 'general',
     title: 'Access Basic Profile',
-    description: 'Read your username, name, and active organization membership.',
+    description: 'Read your username, name, and active tenant membership.',
     badge: 'Profile',
   },
   'email': {
@@ -125,14 +126,14 @@ const PREDEFINED_SCOPES: Record<string, OAuthScopeDetail> = {
     id: 'read',
     category: 'general',
     title: 'Read Platform Resources',
-    description: 'Read configurations, assets, and platform resources in your organization.',
+    description: 'Read configurations, assets, and platform resources in your tenant.',
     badge: 'Read',
   },
   'write': {
     id: 'write',
     category: 'general',
     title: 'Modify Platform Resources',
-    description: 'Create and update configurations, assets, and settings in your organization.',
+    description: 'Create and update configurations, assets, and settings in your tenant.',
     badge: 'Write',
   },
   'api:read': {
@@ -280,7 +281,7 @@ const PREDEFINED_SCOPES: Record<string, OAuthScopeDetail> = {
     id: 'mcps:manage',
     category: 'mcp',
     title: 'Manage MCP Servers',
-    description: 'Register, edit, or remove MCP server endpoints and configurations in your organization.',
+    description: 'Register, edit, or remove MCP server endpoints and configurations in your tenant.',
     badge: 'MCP Admin',
   },
 };
@@ -341,26 +342,100 @@ interface ClientProfile {
   description: string;
 }
 
-/**
- * Client IDs like `shuffle_client_f9ffacb6-ce10-489e-ad7d-635de96932dd` are far
- * too long (and unidentifiable) to render as a title. Shorten to a readable label.
- */
-const shortenClientId = (clientId?: string): string => {
-  if (!clientId) return '';
-  const stripped = clientId.replace(/^shuffle[_-]client[_-]/i, '');
-  const uuidMatch = stripped.match(/^[0-9a-f]{8}/i);
-  if (uuidMatch && stripped.length > 12) return `Application ${uuidMatch[0]}`;
-  if (stripped.length > 24) return `${stripped.slice(0, 24)}…`;
-  return stripped;
+const isUuidLike = (val?: string): boolean => {
+  if (!val) return false;
+  const cleaned = val.replace(/^shuffle[_-]client[_-]/i, '').trim();
+  return (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleaned) ||
+    /^[0-9a-f]{32}$/i.test(cleaned) ||
+    /^[0-9a-f]{8,}$/i.test(cleaned) ||
+    /^application\s+[0-9a-f]+/i.test(cleaned)
+  );
 };
 
-const getClientProfile = (clientId?: string, clientName?: string): ClientProfile => {
+const getAppFromRedirectUri = (
+  redirectUri?: string,
+): { name: string; vendor: string; iconBg: string; iconColor: string; description: string } | null => {
+  if (!redirectUri) return null;
+  let decoded = redirectUri;
+  try {
+    decoded = decodeURIComponent(redirectUri);
+  } catch {
+    // ignore
+  }
+  const lower = decoded.toLowerCase();
+
+  if (lower.includes('chatgpt.com') || lower.includes('openai.com')) {
+    return {
+      name: 'ChatGPT',
+      vendor: 'OpenAI',
+      iconBg: '#10A37F',
+      iconColor: '#FFFFFF',
+      description: 'OpenAI custom assistant & platform integration',
+    };
+  }
+
+  if (lower.includes('claude.ai') || lower.includes('anthropic.com')) {
+    return {
+      name: 'Claude',
+      vendor: 'Anthropic',
+      iconBg: '#D97706',
+      iconColor: '#FFFFFF',
+      description: 'Anthropic Claude assistant integration',
+    };
+  }
+
+  if (lower.includes('cursor.sh') || lower.includes('cursor.com') || lower.includes('cursor://')) {
+    return {
+      name: 'Cursor',
+      vendor: 'Anysphere',
+      iconBg: '#000000',
+      iconColor: '#FFFFFF',
+      description: 'Cursor IDE tool & context runner',
+    };
+  }
+
+  if (lower.includes('copilot') || lower.includes('github.com')) {
+    return {
+      name: 'GitHub Copilot',
+      vendor: 'GitHub / Microsoft',
+      iconBg: '#24292F',
+      iconColor: '#FFFFFF',
+      description: 'GitHub Copilot Workspace integration',
+    };
+  }
+
+  if (lower.includes('vscode://') || lower.includes('vscode.dev')) {
+    return {
+      name: 'VS Code Extension',
+      vendor: 'Microsoft',
+      iconBg: '#007ACC',
+      iconColor: '#FFFFFF',
+      description: 'Visual Studio Code extension integration',
+    };
+  }
+
+  return null;
+};
+
+const getClientProfile = (
+  clientId?: string,
+  clientName?: string,
+  redirectUri?: string,
+): ClientProfile => {
+  // 1. Identify source application via redirect_uri (e.g. ChatGPT, Claude, Cursor)
+  const fromRedirect = getAppFromRedirectUri(redirectUri);
+  if (fromRedirect) {
+    return fromRedirect;
+  }
+
   const id = (clientId || '').toLowerCase();
   const name = (clientName || '').toLowerCase();
 
+  // 2. Identify known applications via client_id or client_name
   if (id.includes('chatgpt') || name.includes('chatgpt') || id.includes('openai') || name.includes('openai')) {
     return {
-      name: clientName || 'ChatGPT',
+      name: clientName && !isUuidLike(clientName) ? clientName : 'ChatGPT',
       vendor: 'OpenAI',
       iconBg: '#10A37F',
       iconColor: '#FFFFFF',
@@ -370,7 +445,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
 
   if (id.includes('claude') || name.includes('claude') || id.includes('anthropic') || name.includes('anthropic')) {
     return {
-      name: clientName || 'Claude',
+      name: clientName && !isUuidLike(clientName) ? clientName : 'Claude',
       vendor: 'Anthropic',
       iconBg: '#D97706',
       iconColor: '#FFFFFF',
@@ -380,7 +455,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
 
   if (id.includes('cursor') || name.includes('cursor')) {
     return {
-      name: clientName || 'Cursor',
+      name: clientName && !isUuidLike(clientName) ? clientName : 'Cursor',
       vendor: 'Anysphere',
       iconBg: '#000000',
       iconColor: '#FFFFFF',
@@ -390,7 +465,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
 
   if (id.includes('copilot') || name.includes('copilot') || id.includes('github') || name.includes('github')) {
     return {
-      name: clientName || 'GitHub Copilot',
+      name: clientName && !isUuidLike(clientName) ? clientName : 'GitHub Copilot',
       vendor: 'GitHub / Microsoft',
       iconBg: '#24292F',
       iconColor: '#FFFFFF',
@@ -400,7 +475,7 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
 
   if (id.includes('vscode') || name.includes('vscode')) {
     return {
-      name: clientName || 'VS Code Extension',
+      name: clientName && !isUuidLike(clientName) ? clientName : 'VS Code Extension',
       vendor: 'Microsoft',
       iconBg: '#007ACC',
       iconColor: '#FFFFFF',
@@ -408,12 +483,24 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
     };
   }
 
+  // 3. User-friendly client name if provided (and not a raw UUID)
+  if (clientName && !isUuidLike(clientName)) {
+    return {
+      name: clientName,
+      vendor: 'Third-Party Developer',
+      iconBg: '#3B82F6',
+      iconColor: '#FFFFFF',
+      description: 'External application requesting permission to access your Shuffle tenant.',
+    };
+  }
+
+  // 4. Default clean fallback ("Authorize Application", no messy UUID)
   return {
-    name: clientName || shortenClientId(clientId) || 'External Application',
+    name: 'Application',
     vendor: 'Third-Party Developer',
     iconBg: '#3B82F6',
     iconColor: '#FFFFFF',
-    description: 'External application requesting permission to access your Shuffle organization.',
+    description: 'External application requesting permission to access your Shuffle tenant.',
   };
 };
 
@@ -457,12 +544,6 @@ const sortOrgsWithHierarchy = (orgs: OrganizationLike[]): Array<{ org: Organizat
   return result;
 };
 
-const ShuffleVectorBadge = ({ size = 28 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 56 56" fill="none" style={{ display: 'inline-block', flexShrink: 0 }}>
-    <path d="M14 14h28v6H20v16h16v-10h-8v-6h14v22H14V14z" fill="#FF6600" />
-  </svg>
-);
-
 export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   userInfo: propUserInfo,
   activeOrg: propActiveOrg,
@@ -502,8 +583,8 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   const requestedOrgId = queryParams.get('org_id') || queryParams.get('org') || '';
 
   const clientProfile = useMemo(
-    () => getClientProfile(clientId, clientNameParam),
-    [clientId, clientNameParam],
+    () => getClientProfile(clientId, clientNameParam, redirectUri),
+    [clientId, clientNameParam, redirectUri],
   );
 
   // Parse scopes dynamically
@@ -515,13 +596,30 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     return uniqueTokens.map(parseDynamicScope);
   }, [scopeParam]);
 
-  // Organization resolution
+  // Tenant resolution
   const activeOrg = propActiveOrg || resolvedUserInfo?.active_org;
-  const userOrgs = resolvedUserInfo?.orgs || (activeOrg ? [activeOrg] : []);
+  const userOrgs = useMemo(() => {
+    const list = [...(resolvedUserInfo?.orgs || [])];
+    if (activeOrg && !list.some((o) => o.id === activeOrg.id)) {
+      list.unshift(activeOrg);
+    }
+    return list.length > 0 ? list : (activeOrg ? [activeOrg] : []);
+  }, [resolvedUserInfo?.orgs, activeOrg]);
+
   const sortedUserOrgs = useMemo(() => sortOrgsWithHierarchy(userOrgs), [userOrgs]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>(
     requestedOrgId || activeOrg?.id || userOrgs[0]?.id || '',
   );
+
+  const currentSelectedOrg = useMemo(() => {
+    return (
+      userOrgs.find((o) => o.id === selectedOrgId) ||
+      (activeOrg?.id === selectedOrgId ? activeOrg : null) ||
+      activeOrg ||
+      userOrgs[0] ||
+      null
+    );
+  }, [userOrgs, selectedOrgId, activeOrg]);
 
   useEffect(() => {
     if (requestedOrgId && userOrgs.some((o) => o.id === requestedOrgId)) {
@@ -613,12 +711,12 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     }
   }, [redirectUri]);
 
-  // In-place Org Switch Handler with URL sync
+  // In-place Tenant Switch Handler with URL sync
   const handleOrgSwitch = useCallback(
     async (newOrgId: string) => {
-      // Selecting an organization here only scopes THIS authorization: the
+      // Selecting a tenant here only scopes THIS authorization: the
       // choice is sent as the `Org-Id` header (and org_id body field) on the
-      // authorize call. It intentionally does not switch the active org,
+      // authorize call. It intentionally does not switch the active tenant,
       // which would reload the page and drop the OAuth request.
       setSelectedOrgId(newOrgId);
 
@@ -887,16 +985,17 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
               width: 56,
               height: 56,
               borderRadius: '50%',
-              bgcolor: 'hsl(var(--muted))',
-              border: '1px solid hsl(var(--border))',
+              bgcolor: 'hsl(var(--background))',
+              border: '2px solid hsl(var(--border))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               mx: 'auto',
               mb: 2,
+              overflow: 'hidden',
             }}
           >
-            <ShuffleVectorBadge size={32} />
+            <ShuffleCompanyLogo size={38} alt="Shuffle AS" style={{ borderRadius: 0 }} />
           </Box>
 
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', mb: 1 }}>
@@ -904,7 +1003,13 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
           </Typography>
 
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 3 }}>
-            <strong>{clientProfile.name}</strong> is requesting permission to access your Shuffle organization and resources. Please sign in to review and authorize.
+            {clientProfile.name === 'Application' ? (
+              <>An external application is requesting permission to access your Shuffle tenant and resources. Please sign in to review and authorize.</>
+            ) : (
+              <>
+                <strong>{clientProfile.name}</strong> is requesting permission to access your Shuffle tenant and resources. Please sign in to review and authorize.
+              </>
+            )}
           </Typography>
 
           <Button
@@ -1141,8 +1246,9 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                 sx={{
                   p: 0.75,
                   borderRadius: '50%',
-                  bgcolor: 'rgba(34, 197, 94, 0.15)',
-                  color: '#22C55E',
+                  bgcolor: 'hsl(var(--muted))',
+                  color: 'hsl(var(--muted-foreground))',
+                  border: '1px solid hsl(var(--border))',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1164,9 +1270,10 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                overflow: 'hidden',
               }}
             >
-              <ShuffleVectorBadge size={28} />
+              <ShuffleCompanyLogo size={34} alt="Shuffle AS" style={{ borderRadius: 0 }} />
             </Box>
           </Box>
 
@@ -1175,7 +1282,17 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
           </Typography>
 
           <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
-            <strong>{clientProfile.name}</strong> by <em>{clientProfile.vendor}</em> wants to access your Shuffle Security tools.
+            {clientProfile.name === 'Application' ? (
+              <>An external application wants to access your Shuffle tools.</>
+            ) : (
+              <>
+                <strong>{clientProfile.name}</strong>
+                {clientProfile.vendor && clientProfile.vendor !== 'Third-Party Developer' ? (
+                  <> by <em>{clientProfile.vendor}</em></>
+                ) : null}{' '}
+                wants to access your Shuffle tools.
+              </>
+            )}
           </Typography>
         </Box>
 
@@ -1352,70 +1469,61 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
 
         {/* Content Body */}
         <Box sx={{ p: 3 }}>
-          {/* User Account & Organization Selection */}
+          {/* User Account & Tenant Selection (Compact single row) */}
           <Box
             sx={{
-              p: 2,
+              p: 1.5,
+              px: 2,
               borderRadius: 2.5,
               bgcolor: 'hsl(var(--muted) / 0.4)',
               border: '1px solid hsl(var(--border))',
               mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: { xs: 'wrap', sm: 'nowrap' },
+              gap: 2,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: userOrgs.length > 1 ? 1.5 : 0 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    fontSize: '0.8rem',
-                    bgcolor: 'hsl(var(--primary))',
-                    color: 'hsl(var(--primary-foreground))',
-                  }}
-                >
-                  {resolvedUserInfo?.username?.charAt(0).toUpperCase() || 'U'}
-                </Avatar>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', lineHeight: 1.2 }}>
-                    {resolvedUserInfo?.username || 'Signed In User'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    {resolvedUserInfo?.email || 'Active Account'}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Chip
-                size="small"
-                icon={<Building2 size={12} />}
-                label={userOrgs.find((o) => o.id === selectedOrgId)?.name || activeOrg?.name || 'Current Organization'}
+            {/* Left: Avatar + Username + Active Account */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flexShrink: 1 }}>
+              <Avatar
                 sx={{
-                  bgcolor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
-                  color: 'hsl(var(--foreground))',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
+                  width: 34,
+                  height: 34,
+                  fontSize: '0.85rem',
+                  bgcolor: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                  flexShrink: 0,
                 }}
-              />
+              >
+                {resolvedUserInfo?.username?.charAt(0).toUpperCase() || 'U'}
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', lineHeight: 1.2, noWrap: true }}>
+                  {resolvedUserInfo?.username || 'Signed In User'}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+                  {resolvedUserInfo?.email || 'Active Account'}
+                </Typography>
+              </Box>
             </Box>
 
-            {/* In-Place Organization Switcher (same autocomplete as the sidebar) */}
-            {userOrgs.length > 1 && (
-              <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid hsl(var(--border))' }}>
-                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mb: 0.75 }}>
-                  Authorize for Organization
-                </Typography>
+            {/* Right: Tenant Dropdown (Defaulting to current selected tenant) */}
+            <Box sx={{ minWidth: { xs: '100%', sm: 220 }, maxWidth: { sm: 300 }, flexShrink: 0, ml: { sm: 'auto' } }}>
+              {userOrgs.length > 1 ? (
                 <Autocomplete
-                  value={sortedUserOrgs.find((item) => item.org.id === selectedOrgId)?.org || undefined}
-                  onChange={(_, newValue) => { if (newValue) handleOrgSwitch(newValue.id); }}
+                  value={currentSelectedOrg}
+                  onChange={(_, newValue) => {
+                    if (newValue) handleOrgSwitch(newValue.id);
+                  }}
                   options={sortedUserOrgs.map((item) => item.org)}
-                  getOptionLabel={(option) => option.name || ''}
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  getOptionLabel={(option) => option?.name || ''}
+                  isOptionEqualToValue={(option, value) => option?.id === value?.id}
                   size="small"
                   disableClearable
                   renderInput={(params) => {
-                    const current = userOrgs.find((o) => o.id === selectedOrgId);
-                    const region = getRegionFlag(current?.region_url);
+                    const region = getRegionFlag(currentSelectedOrg?.region_url);
                     return (
                       <TextField
                         {...params}
@@ -1423,9 +1531,9 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                         slotProps={{
                           input: {
                             ...params.InputProps,
-                            startAdornment: current ? (
-                              <Tooltip title={current.region_url ? `Region URL: ${current.region_url}` : region.code} placement="bottom">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5 }}>
+                            startAdornment: currentSelectedOrg ? (
+                              <Tooltip title={currentSelectedOrg.region_url ? `Region URL: ${currentSelectedOrg.region_url}` : region.code} placement="bottom">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5, mr: 0.5, flexShrink: 0 }}>
                                   <span style={{ fontSize: '14px' }}>{region.flag}</span>
                                   <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
                                     {region.code || '?'}
@@ -1437,14 +1545,19 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                         }}
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'hsl(var(--muted))',
-                            borderRadius: 1,
-                            fontSize: '0.875rem',
-                            '& fieldset': { borderColor: 'transparent' },
-                            '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                            backgroundColor: 'hsl(var(--card))',
+                            borderRadius: 1.5,
+                            fontSize: '0.8125rem',
+                            py: 0.25,
+                            '& fieldset': { borderColor: 'hsl(var(--border))' },
+                            '&:hover fieldset': { borderColor: 'hsl(var(--primary))' },
                             '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
                           },
-                          '& .MuiInputBase-input': { color: 'hsl(var(--foreground))' },
+                          '& .MuiInputBase-input': {
+                            color: 'hsl(var(--foreground))',
+                            fontWeight: 500,
+                            fontSize: '0.8125rem',
+                          },
                         }}
                       />
                     );
@@ -1454,11 +1567,12 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                       sx: {
                         backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: 1,
+                        borderRadius: 1.5,
                         mt: 0.5,
-                        minWidth: 280,
-                        maxHeight: 300,
+                        minWidth: 260,
+                        maxHeight: 280,
                         overflow: 'auto',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
                         '& .MuiAutocomplete-listbox': { padding: 0, maxHeight: 'none' },
                       },
                     },
@@ -1467,33 +1581,33 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                     const level = sortedUserOrgs.find((item) => item.org.id === option.id)?.level || 0;
                     const region = getRegionFlag(option.region_url);
                     const { key, ...restProps } = props;
-                    const isCurrentOrg = option.id === selectedOrgId;
+                    const isCurrentTenant = option.id === selectedOrgId;
                     return (
                       <Box
                         component="li"
                         key={option.id}
                         {...restProps}
                         sx={{
-                          fontSize: '0.875rem',
-                          color: isCurrentOrg ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
-                          backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--card))',
-                          pl: `${16 + level * 16}px !important`,
-                          py: 1,
-                          borderLeft: isCurrentOrg ? '2px solid hsl(var(--primary))' : '2px solid transparent',
-                          '&:hover': { backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
-                          '&.Mui-focused': { backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
+                          fontSize: '0.8125rem',
+                          color: isCurrentTenant ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                          backgroundColor: isCurrentTenant ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--card))',
+                          pl: `${12 + level * 14}px !important`,
+                          py: 0.75,
+                          borderLeft: isCurrentTenant ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                          '&:hover': { backgroundColor: isCurrentTenant ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
+                          '&.Mui-focused': { backgroundColor: isCurrentTenant ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
                         }}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Tooltip title={option.region_url ? `Region URL: ${option.region_url}` : ''} placement="left">
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <span style={{ fontSize: '14px' }}>{region.flag}</span>
-                              <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', minWidth: 28 }}>
+                              <span style={{ fontSize: '13px' }}>{region.flag}</span>
+                              <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', minWidth: 24 }}>
                                 {region.code || '?'}
                               </Typography>
                             </Box>
                           </Tooltip>
-                          <Typography sx={{ fontSize: '0.875rem', fontWeight: isCurrentOrg ? 600 : 400, color: isCurrentOrg ? 'hsl(var(--primary))' : 'inherit' }}>
+                          <Typography sx={{ fontSize: '0.8125rem', fontWeight: isCurrentTenant ? 600 : 400, color: isCurrentTenant ? 'hsl(var(--primary))' : 'inherit' }}>
                             {option.name}
                           </Typography>
                         </Box>
@@ -1501,8 +1615,27 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                     );
                   }}
                 />
-              </Box>
-            )}
+              ) : (
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: 1.5,
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                  }}
+                >
+                  <Building2 size={14} style={{ color: 'hsl(var(--primary))' }} />
+                  <span>{currentSelectedOrg?.name || 'Current Tenant'}</span>
+                </Box>
+              )}
+            </Box>
           </Box>
 
           {/* Requested Permissions (Interactive Scope Selection) */}
