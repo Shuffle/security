@@ -1,4 +1,4 @@
-import { Eye as VisibilityIcon, EyeOff as VisibilityOffIcon } from 'lucide-react';
+import { Eye as VisibilityIcon, EyeOff as VisibilityOffIcon, ArrowLeft as ArrowLeftIcon } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from '@/lib/router-compat';
 import {
@@ -15,7 +15,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { getApiUrl, API_ENDPOINTS, getHostBaseUrl, isDevEnvironment, isCapacitorNative, shuffleFetch } from '@/Shuffle-MCPs/api';
+import { getApiUrl, API_ENDPOINTS, getHostBaseUrl, isDevEnvironment, isCapacitorNative, shuffleFetch, isCloud } from '@/Shuffle-MCPs/api';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { useAuth } from '@/context/AuthContext';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
@@ -48,6 +48,9 @@ const AuthPage = ({ mode }: AuthPageProps) => {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetEmailSuccessMsg, setResetEmailSuccessMsg] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -153,6 +156,44 @@ const AuthPage = ({ mode }: AuthPageProps) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
+
+    if (isResetPasswordMode) {
+      if (!username.trim()) {
+        setError('Please enter your email or username.');
+        return;
+      }
+      setLoading(true);
+      setResetEmailSent(false);
+
+      try {
+        const res = await fetch(getApiUrl('/api/v1/users/passwordresetmail'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ username: username.trim() }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.reason || data.message || `Password reset request failed (status: ${res.status})`);
+        }
+
+        setResetEmailSent(true);
+        setResetEmailSuccessMsg(
+          data.reason ||
+            `If an account exists for "${username.trim()}", a password reset link has been sent to your email.`
+        );
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Error requesting password reset.';
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     // Track auth attempt
     trackPredefinedEvent(isLogin ? GA_EVENTS.LOGIN_START : GA_EVENTS.REGISTER_START);
@@ -530,7 +571,30 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                 </Alert>
               )}
 
+              {resetEmailSent && (
+                <Alert
+                  severity="success"
+                  sx={{
+                    mb: 3,
+                    bgcolor: 'rgba(34, 197, 94, 0.1)',
+                    color: '#22c55e',
+                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                    '& .MuiAlert-icon': { color: '#22c55e' },
+                  }}
+                >
+                  {resetEmailSuccessMsg}
+                </Alert>
+              )}
+
               <Box component="form" onSubmit={handleSubmit}>
+                {isResetPasswordMode && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                      Enter the email address or username associated with your account, and we will send you a password reset link.
+                    </Typography>
+                  </Box>
+                )}
+
                 <Box sx={{ mb: 2.5 }}>
                   <Typography
                     component="label"
@@ -542,10 +606,10 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                       color: 'text.primary',
                     }}
                   >
-                    Email
+                    {isResetPasswordMode ? 'Email or Username' : 'Email'}
                   </Typography>
                   <TextField
-                    type="email"
+                    type="text"
                     placeholder="username@example.com"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -558,47 +622,74 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                   />
                 </Box>
 
-                <Box sx={{ mb: isLogin ? 4 : 2.5 }}>
-                  <Typography
-                    component="label"
-                    sx={{
-                      display: 'block',
-                      mb: 1,
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                      color: 'text.primary',
-                    }}
-                  >
-                    Password
-                  </Typography>
-                  <TextField
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="at least 10 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    fullWidth
-                    required
-                    disabled={loading}
-                    autoComplete={isLogin ? 'current-password' : 'new-password'}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            aria-label={showPassword ? 'Hide password' : 'Show password'}
-                            sx={{ color: 'text.secondary' }}
-                          >
-                            {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={inputSx}
-                  />
-                </Box>
+                {!isResetPasswordMode && (
+                  <Box sx={{ mb: isLogin ? 4 : 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography
+                        component="label"
+                        sx={{
+                          display: 'block',
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'text.primary',
+                        }}
+                      >
+                        Password
+                      </Typography>
+                      {isLogin && isCloud() && (
+                        <Button
+                          onClick={() => {
+                            setIsResetPasswordMode(true);
+                            setError('');
+                            setResetEmailSent(false);
+                          }}
+                          size="small"
+                          sx={{
+                            p: 0,
+                            minWidth: 0,
+                            fontSize: '0.75rem',
+                            textTransform: 'none',
+                            color: 'primary.main',
+                            fontWeight: 500,
+                            '&:hover': {
+                              bgcolor: 'transparent',
+                              textDecoration: 'underline',
+                            },
+                          }}
+                        >
+                          Forgot password?
+                        </Button>
+                      )}
+                    </Box>
+                    <TextField
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="at least 10 characters"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      fullWidth
+                      required
+                      disabled={loading}
+                      autoComplete={isLogin ? 'current-password' : 'new-password'}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => setShowPassword(!showPassword)}
+                              edge="end"
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                              sx={{ color: 'text.secondary' }}
+                            >
+                              {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={inputSx}
+                    />
+                  </Box>
+                )}
 
-                {!isLogin && (
+                {!isLogin && !isResetPasswordMode && (
                   <Box sx={{ mb: 4 }}>
                     <Typography
                       component="label"
@@ -626,7 +717,7 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                   </Box>
                 )}
 
-                {mfaRequired && (
+                {mfaRequired && !isResetPasswordMode && (
                   <Box sx={{ mb: 4 }}>
                     <Typography
                       component="label"
@@ -693,34 +784,60 @@ const AuthPage = ({ mode }: AuthPageProps) => {
                 >
                   {loading ? (
                     <CircularProgress size={24} color="inherit" />
+                  ) : isResetPasswordMode ? (
+                    resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
                   ) : isLogin ? (
                     'Continue'
                   ) : (
                     'Create Account'
                   )}
                 </Button>
+
+                {isResetPasswordMode && (
+                  <Box sx={{ textAlign: 'center', mt: 2 }}>
+                    <Button
+                      onClick={() => {
+                        setIsResetPasswordMode(false);
+                        setResetEmailSent(false);
+                        setError('');
+                      }}
+                      size="small"
+                      startIcon={<ArrowLeftIcon size={14} />}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.875rem',
+                        color: 'text.secondary',
+                        '&:hover': { color: 'text.primary' },
+                      }}
+                    >
+                      Back to Sign In
+                    </Button>
+                  </Box>
+                )}
               </Box>
 
-              <Typography
-                variant="body2"
-                sx={{
-                  textAlign: 'center',
-                  mt: 4,
-                  color: 'text.secondary',
-                }}
-              >
-                {isLogin ? 'Do not have an account yet? ' : 'Already have an account? '}
-                <Link
-                  to={isLogin ? '/register' : '/login'}
-                  style={{
-                    color: 'hsl(var(--primary))',
-                    textDecoration: 'none',
-                    fontWeight: 500,
+              {!isResetPasswordMode && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    textAlign: 'center',
+                    mt: 4,
+                    color: 'text.secondary',
                   }}
                 >
-                  {isLogin ? 'Register here' : 'Sign in'}
-                </Link>
-              </Typography>
+                  {isLogin ? 'Do not have an account yet? ' : 'Already have an account? '}
+                  <Link
+                    to={isLogin ? '/register' : '/login'}
+                    style={{
+                      color: 'hsl(var(--primary))',
+                      textDecoration: 'none',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {isLogin ? 'Register here' : 'Sign in'}
+                  </Link>
+                </Typography>
+              )}
 
             </CardContent>
           </Card>

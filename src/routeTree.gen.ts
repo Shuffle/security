@@ -39,6 +39,7 @@ import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as LegalIndexRouteImport } from './routes/legal.index'
 import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
 import { Route as Oauth2AuthorizeRouteImport } from './routes/oauth2.authorize'
+import { Route as PasswordresetKeyRouteImport } from './routes/passwordreset.$key'
 import { Route as CondAppsAppnameRouteImport } from './routes/_cond.apps.$appname'
 import { Route as CondFormsIndexRouteImport } from './routes/_cond.forms.index'
 import { Route as CondFormsIdRouteImport } from './routes/_cond.forms.$id'
@@ -242,6 +243,11 @@ const LegalSlugRoute = LegalSlugRouteImport.update({
 const Oauth2AuthorizeRoute = Oauth2AuthorizeRouteImport.update({
   id: '/oauth2/authorize',
   path: '/oauth2/authorize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PasswordresetKeyRoute = PasswordresetKeyRouteImport.update({
+  id: '/passwordreset/$key',
+  path: '/passwordreset/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CondAppsAppnameRoute = CondAppsAppnameRouteImport.update({
@@ -570,6 +576,7 @@ export interface FileRoutesByFullPath {
   '/docs/$slug': typeof DocsSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/oauth2/authorize': typeof Oauth2AuthorizeRoute
+  '/passwordreset/$key': typeof PasswordresetKeyRoute
   '/articles/': typeof ArticlesIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -656,6 +663,7 @@ export interface FileRoutesByTo {
   '/docs/$slug': typeof DocsSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/oauth2/authorize': typeof Oauth2AuthorizeRoute
+  '/passwordreset/$key': typeof PasswordresetKeyRoute
   '/articles': typeof ArticlesIndexRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -746,6 +754,7 @@ export interface FileRoutesById {
   '/docs/$slug': typeof DocsSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/oauth2/authorize': typeof Oauth2AuthorizeRoute
+  '/passwordreset/$key': typeof PasswordresetKeyRoute
   '/articles/': typeof ArticlesIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -834,6 +843,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/legal/$slug'
     | '/oauth2/authorize'
+    | '/passwordreset/$key'
     | '/articles/'
     | '/blog/'
     | '/docs/'
@@ -920,6 +930,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/legal/$slug'
     | '/oauth2/authorize'
+    | '/passwordreset/$key'
     | '/articles'
     | '/blog'
     | '/docs'
@@ -1009,6 +1020,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/legal/$slug'
     | '/oauth2/authorize'
+    | '/passwordreset/$key'
     | '/articles/'
     | '/blog/'
     | '/docs/'
@@ -1091,6 +1103,7 @@ export interface RootRouteChildren {
   DocsSlugRoute: typeof DocsSlugRoute
   LegalSlugRoute: typeof LegalSlugRoute
   Oauth2AuthorizeRoute: typeof Oauth2AuthorizeRoute
+  PasswordresetKeyRoute: typeof PasswordresetKeyRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
@@ -1307,6 +1320,13 @@ declare module '@tanstack/react-router' {
       path: '/oauth2/authorize'
       fullPath: '/oauth2/authorize'
       preLoaderRoute: typeof Oauth2AuthorizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/passwordreset/$key': {
+      id: '/passwordreset/$key'
+      path: '/passwordreset/$key'
+      fullPath: '/passwordreset/$key'
+      preLoaderRoute: typeof PasswordresetKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_cond/apps/$appname': {
@@ -1894,6 +1914,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSlugRoute: DocsSlugRoute,
   LegalSlugRoute: LegalSlugRoute,
   Oauth2AuthorizeRoute: Oauth2AuthorizeRoute,
+  PasswordresetKeyRoute: PasswordresetKeyRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,

@@ -20,6 +20,7 @@ import {
   CheckCircle2 as CheckCircleIcon,
   AlertCircle as AlertCircleIcon,
   ShieldCheck as ShieldCheckIcon,
+  ArrowLeft as ArrowLeftIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, Link } from '@/lib/router-compat';
@@ -142,9 +143,11 @@ export const MobileAuthGateway = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetEmailSuccessMsg, setResetEmailSuccessMsg] = useState('');
 
   // Ensure host URL is synchronized in API config whenever serverMode or customHostUrl changes
   useEffect(() => {
@@ -169,6 +172,10 @@ export const MobileAuthGateway = () => {
     setMfaRequired(false);
     setMfaCode('');
     setHostPingStatus('idle');
+    if (mode === 'self-hosted') {
+      setIsResetPasswordMode(false);
+      setResetEmailSent(false);
+    }
     try {
       localStorage.setItem(SERVER_MODE_STORAGE_KEY, mode);
       if (mode === 'cloud') {
@@ -453,8 +460,53 @@ export const MobileAuthGateway = () => {
     }
   };
 
+  const handleResetPasswordSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!username.trim()) {
+      setError('Please enter your username or email address.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setResetEmailSent(false);
+
+    try {
+      const res = await fetch(getApiUrl('/api/v1/users/passwordresetmail'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username: username.trim() }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.reason || data.message || `Password reset request failed (status: ${res.status})`);
+      }
+
+      setResetEmailSent(true);
+      setResetEmailSuccessMsg(
+        data.reason ||
+          `If an account exists for "${username.trim()}", a password reset link has been sent to your email.`
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error requesting password reset.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isResetPasswordMode) {
+      handleResetPasswordSubmit(e);
+      return;
+    }
 
     if (mfaRequired) {
       if (mfaCode.length < 6) {
@@ -551,8 +603,8 @@ export const MobileAuthGateway = () => {
           </Typography>
         </Box>
 
-        {/* Server Instance Switcher - Only shown during initial credential step */}
-        {!mfaRequired && (
+        {/* Server Instance Switcher - Only shown during initial credential step in standard login */}
+        {!mfaRequired && !isResetPasswordMode && (
           <Box
             sx={{
               display: 'flex',
@@ -757,12 +809,55 @@ export const MobileAuthGateway = () => {
               <AnimatePresence mode="wait">
                 {!mfaRequired ? (
                   <motion.div
-                    key="credentials-step"
+                    key={isResetPasswordMode ? 'reset-step' : 'credentials-step'}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: 0.2 }}
                   >
+                    {isResetPasswordMode && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 700,
+                            color: 'hsl(var(--foreground))',
+                            mb: 0.5,
+                          }}
+                        >
+                          Reset Your Password
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: '0.8rem',
+                            color: 'hsl(var(--muted-foreground))',
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          Enter your email address or username and we will send you a link to reset your password.
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {resetEmailSent && (
+                      <Alert
+                        severity="success"
+                        sx={{
+                          mb: 2.5,
+                          borderRadius: 2,
+                          fontSize: '0.8rem',
+                          py: 0.5,
+                          bgcolor: 'rgba(34, 197, 94, 0.1)',
+                          color: '#22c55e',
+                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                          '& .MuiAlert-icon': { color: '#22c55e' },
+                        }}
+                      >
+                        {resetEmailSuccessMsg}
+                      </Alert>
+                    )}
+
                     <Box sx={{ mb: 2 }}>
                       <Typography
                         sx={{
@@ -772,7 +867,7 @@ export const MobileAuthGateway = () => {
                           mb: 0.75,
                         }}
                       >
-                        Username or Email
+                        {isResetPasswordMode ? 'Email or Username' : 'Username or Email'}
                       </Typography>
                       <TextField
                         placeholder="analyst@organization.com"
@@ -805,58 +900,85 @@ export const MobileAuthGateway = () => {
                       />
                     </Box>
 
-                    <Box sx={{ mb: 2.5 }}>
-                      <Typography
-                        sx={{
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          color: 'hsl(var(--foreground))',
-                          mb: 0.75,
-                        }}
-                      >
-                        Password
-                      </Typography>
-                      <TextField
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Enter password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        fullWidth
-                        required
-                        size="small"
-                        autoComplete="current-password"
-                        InputProps={{
-                          sx: {
-                            bgcolor: 'hsl(var(--background))',
-                            color: 'hsl(var(--foreground))',
-                            borderRadius: 2,
-                            fontSize: '0.875rem',
-                            '& input': {
+                    {!isResetPasswordMode && (
+                      <Box sx={{ mb: 2.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+                          <Typography
+                            sx={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
                               color: 'hsl(var(--foreground))',
+                            }}
+                          >
+                            Password
+                          </Typography>
+                          {serverMode === 'cloud' && (
+                            <Button
+                              onClick={() => {
+                                setIsResetPasswordMode(true);
+                                setError('');
+                                setResetEmailSent(false);
+                              }}
+                              size="small"
+                              sx={{
+                                p: 0,
+                                minWidth: 0,
+                                fontSize: '0.75rem',
+                                textTransform: 'none',
+                                color: '#FF6600',
+                                fontWeight: 500,
+                                '&:hover': {
+                                  bgcolor: 'transparent',
+                                  textDecoration: 'underline',
+                                },
+                              }}
+                            >
+                              Forgot password?
+                            </Button>
+                          )}
+                        </Box>
+                        <TextField
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Enter password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          fullWidth
+                          required
+                          size="small"
+                          autoComplete="current-password"
+                          InputProps={{
+                            sx: {
+                              bgcolor: 'hsl(var(--background))',
+                              color: 'hsl(var(--foreground))',
+                              borderRadius: 2,
+                              fontSize: '0.875rem',
+                              '& input': {
+                                color: 'hsl(var(--foreground))',
+                              },
+                              '& input::placeholder': {
+                                color: 'hsl(var(--muted-foreground))',
+                                opacity: 0.8,
+                              },
+                              '& fieldset': { borderColor: 'hsl(var(--border))' },
+                              '&:hover fieldset': { borderColor: '#FF6600' },
+                              '&.Mui-focused fieldset': { borderColor: '#FF6600' },
                             },
-                            '& input::placeholder': {
-                              color: 'hsl(var(--muted-foreground))',
-                              opacity: 0.8,
-                            },
-                            '& fieldset': { borderColor: 'hsl(var(--border))' },
-                            '&:hover fieldset': { borderColor: '#FF6600' },
-                            '&.Mui-focused fieldset': { borderColor: '#FF6600' },
-                          },
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                onClick={() => setShowPassword(!showPassword)}
-                                edge="end"
-                                size="small"
-                                sx={{ color: 'hsl(var(--muted-foreground))' }}
-                              >
-                                {showPassword ? <VisibilityOffIcon size={18} /> : <VisibilityIcon size={18} />}
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                    </Box>
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  edge="end"
+                                  size="small"
+                                  sx={{ color: 'hsl(var(--muted-foreground))' }}
+                                >
+                                  {showPassword ? <VisibilityOffIcon size={18} /> : <VisibilityIcon size={18} />}
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                      </Box>
+                    )}
 
                     <Button
                       type="submit"
@@ -877,8 +999,36 @@ export const MobileAuthGateway = () => {
                         },
                       }}
                     >
-                      {loading ? <CircularProgress size={22} sx={{ color: '#ffffff' }} /> : 'Sign In'}
+                      {loading ? (
+                        <CircularProgress size={22} sx={{ color: '#ffffff' }} />
+                      ) : isResetPasswordMode ? (
+                        resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
+                      ) : (
+                        'Sign In'
+                      )}
                     </Button>
+
+                    {isResetPasswordMode && (
+                      <Box sx={{ textAlign: 'center', mt: 2 }}>
+                        <Button
+                          onClick={() => {
+                            setIsResetPasswordMode(false);
+                            setResetEmailSent(false);
+                            setError('');
+                          }}
+                          size="small"
+                          startIcon={<ArrowLeftIcon size={14} />}
+                          sx={{
+                            textTransform: 'none',
+                            fontSize: '0.8rem',
+                            color: 'hsl(var(--muted-foreground))',
+                            '&:hover': { color: 'hsl(var(--foreground))' },
+                          }}
+                        >
+                          Back to Sign In
+                        </Button>
+                      </Box>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div

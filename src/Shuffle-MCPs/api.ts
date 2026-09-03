@@ -435,6 +435,8 @@ export const API_ENDPOINTS = {
   cases: '/api/v1/cases',
   workflows: '/api/v1/workflows',
   apps: '/api/v1/apps',
+  passwordResetMail: '/api/v1/users/passwordresetmail',
+  passwordReset: '/api/v1/users/passwordreset',
 };
 
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
