@@ -49,6 +49,7 @@ import {
 import { getApiUrl, getAuthHeader } from '../../api';
 import { toast } from '../../toast';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
+import { useOptionalAuth } from '@/context/AuthContext';
 
 export interface OrganizationLike {
   id: string;
