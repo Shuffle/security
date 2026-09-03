@@ -334,6 +334,10 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
         setError('Please enter your password.');
         return;
       }
+      if (isRegister && password.length < 10) {
+        setError('Password must be at least 10 characters.');
+        return;
+      }
     }
 
 
