@@ -555,16 +555,23 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   className,
   style,
 }) => {
+  // Auth state (optional: the view can also be used standalone with props)
+  const auth = useOptionalAuth();
+  // While the initial /api/v1/getinfo verification is still running we must not
+  // decide that the user is signed out - cookies/headers may still authenticate.
+  const isAuthChecking = propUserInfo === undefined && !!auth && auth.isLoading;
+
   // Resolve local user info from localStorage if not provided via props
   const resolvedUserInfo = useMemo<UserInfoLike | null>(() => {
     if (propUserInfo !== undefined) return propUserInfo;
+    if (auth?.userInfo) return auth.userInfo as UserInfoLike;
     if (typeof window === 'undefined') return null;
     try {
       const stored = localStorage.getItem('shuffle_user_info');
       if (stored) return JSON.parse(stored);
     } catch {}
     return null;
-  }, [propUserInfo]);
+  }, [propUserInfo, auth?.userInfo]);
 
   // Read query parameters
   const queryParams = useMemo(() => {
