@@ -231,6 +231,8 @@ export const MobileAuthGateway = () => {
     setHostPingStatus('idle');
     setHostPingMessage('');
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5000);
 
     try {
       setHostBaseUrl(urlToTest);
@@ -240,6 +242,7 @@ export const MobileAuthGateway = () => {
       const res = await fetch(`${urlToTest}/api/v1/getinfo`, {
         method: 'GET',
         headers: { Accept: 'application/json' },
+        signal: controller.signal,
       });
 
       if (res.ok || res.status === 401 || res.status === 403) {
@@ -249,10 +252,16 @@ export const MobileAuthGateway = () => {
         setHostPingStatus('error');
         setHostPingMessage(`Server responded with status ${res.status}`);
       }
-    } catch {
-      setHostPingStatus('error');
-      setHostPingMessage('Unable to reach server. Check URL, HTTPS certificates, or firewall.');
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setHostPingStatus('error');
+        setHostPingMessage('Connection test timed out after 5 seconds. Check the URL or network path.');
+      } else {
+        setHostPingStatus('error');
+        setHostPingMessage('Unable to reach server. Check URL, HTTPS certificates, or firewall.');
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsPingingHost(false);
     }
   };
