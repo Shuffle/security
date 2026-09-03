@@ -139,6 +139,11 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
   const [hostPingStatus, setHostPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [hostPingMessage, setHostPingMessage] = useState('');
 
+  // Login vs registration. Initialized from the route, toggleable in-page so
+  // the selected server (cloud / self-hosted) carries over between the two.
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(mode);
+  const isRegister = authMode === 'register';
+
   // Form states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
