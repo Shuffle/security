@@ -1,3 +1,4 @@
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
@@ -23,7 +24,7 @@ import {
   ArrowLeft as ArrowLeftIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation, Link } from '@/lib/router-compat';
+import { useNavigate, useLocation } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
@@ -35,7 +36,7 @@ import { sanitizeInternalDestination } from '@/lib/safeRedirect';
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
 
-export const MobileAuthGateway = () => {
+export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'register' } = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -101,6 +102,32 @@ export const MobileAuthGateway = () => {
     return sanitizeInternalDestination(candidate, defaultDestination);
   }, [location.search, location.state, defaultDestination]);
 
+  // Persist an explicit redirect target as soon as it arrives in the URL, so it
+  // survives navigating between pre-login pages (login <-> register, password
+  // reset, MFA setup) where the query string is not carried along.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const rawSearch =
+      (location.search && location.search !== '?' ? location.search : '') ||
+      window.location.search;
+    if (!rawSearch) return;
+    const params = new URLSearchParams(rawSearch.startsWith('??') ? rawSearch.slice(1) : rawSearch);
+    const explicit =
+      params.get('redirect') ||
+      params.get('redirect_to') ||
+      params.get('return_to') ||
+      params.get('view') ||
+      params.get('returnUrl') ||
+      params.get('next');
+    if (!explicit) return;
+    const safe = sanitizeInternalDestination(explicit, '');
+    if (!safe) return;
+    try {
+      sessionStorage.setItem('shuffle_redirect_after_login', safe);
+    } catch {}
+  }, [location.search]);
+
+
   // Redirect if already authenticated
   const hasRedirectedRef = useRef(false);
   useEffect(() => {
@@ -138,6 +165,14 @@ export const MobileAuthGateway = () => {
   const [hostPingStatus, setHostPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [hostPingMessage, setHostPingMessage] = useState('');
 
+  // Login vs registration. Initialized from the route, toggleable in-page so
+  // the selected server (cloud / self-hosted) carries over between the two.
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(mode);
+  const isRegister = authMode === 'register';
+  useEffect(() => {
+    setAuthMode(mode);
+  }, [mode]);
+
   // Form states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -146,6 +181,7 @@ export const MobileAuthGateway = () => {
   const [mfaCode, setMfaCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetEmailSuccessMsg, setResetEmailSuccessMsg] = useState('');
@@ -211,9 +247,27 @@ export const MobileAuthGateway = () => {
       setCustomHostUrl(urlToTest);
     }
 
+    // shuffler.io hosts are Shuffle Cloud - switch back to cloud rules
+    let testHostname = '';
+    try {
+      testHostname = new URL(urlToTest).hostname.toLowerCase();
+    } catch {
+      testHostname = '';
+    }
+    if (testHostname === 'shuffler.io' || testHostname.endsWith('.shuffler.io')) {
+      setCustomHostUrl('');
+      setHostPingStatus('idle');
+      setHostPingMessage('');
+      handleServerModeChange('cloud');
+      return;
+    }
+
     setIsPingingHost(true);
     setHostPingStatus('idle');
     setHostPingMessage('');
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5000);
 
     try {
       setHostBaseUrl(urlToTest);
@@ -223,6 +277,7 @@ export const MobileAuthGateway = () => {
       const res = await fetch(`${urlToTest}/api/v1/getinfo`, {
         method: 'GET',
         headers: { Accept: 'application/json' },
+        signal: controller.signal,
       });
 
       if (res.ok || res.status === 401 || res.status === 403) {
@@ -232,13 +287,51 @@ export const MobileAuthGateway = () => {
         setHostPingStatus('error');
         setHostPingMessage(`Server responded with status ${res.status}`);
       }
-    } catch {
-      setHostPingStatus('error');
-      setHostPingMessage('Unable to reach server. Check URL, HTTPS certificates, or firewall.');
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setHostPingStatus('error');
+        setHostPingMessage('Connection test timed out after 5 seconds. Check the URL or network path.');
+      } else {
+        setHostPingStatus('error');
+        setHostPingMessage('Unable to reach server. Check URL, HTTPS certificates, or firewall.');
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsPingingHost(false);
     }
   };
+
+  // Cloud requires a valid email address; self-hosted allows username or email
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+  const identifierLabel =
+    serverMode === 'cloud' ? 'Email' : 'Username or Email';
+  const cloudEmailInvalid =
+    serverMode === 'cloud' && username.trim().length > 0 && !isValidEmail(username);
+
+  // Reason the Sign In button is blocked (empty string = not blocked)
+  const signInBlockedReason = (() => {
+    if (isResetPasswordMode) return '';
+    if (serverMode === 'self-hosted' && hostPingStatus !== 'success') {
+      if (!customHostUrl.trim())
+        return 'Enter your self-hosted Shuffle server URL and test the connection before signing in.';
+      if (hostPingStatus === 'error')
+        return 'The connection test failed. Fix the URL and test again before signing in.';
+      return 'Test the server connection before signing in.';
+    }
+    if (!username.trim())
+      return serverMode === 'cloud'
+        ? 'Enter your email address.'
+        : 'Enter your username or email address.';
+    if (serverMode === 'cloud' && !isValidEmail(username))
+      return 'Enter a valid email address. Shuffle Cloud requires an email, not a username.';
+    if (!password) return 'Enter your password.';
+    if (isRegister && password.length < 10)
+      return 'Choose a password with at least 10 characters.';
+    return '';
+  })();
+
+
 
   // Auto-focus MFA input whenever MFA becomes required
   useEffect(() => {
@@ -253,6 +346,31 @@ export const MobileAuthGateway = () => {
   const performLogin = async (codeToUse?: string) => {
     setError('');
     const code = codeToUse !== undefined ? codeToUse : mfaCode;
+
+    if (!mfaRequired) {
+      if (!username.trim()) {
+        setError(
+          serverMode === 'cloud'
+            ? 'Please enter your email address.'
+            : 'Please enter your username or email address.'
+        );
+        return;
+      }
+      if (serverMode === 'cloud' && !isValidEmail(username)) {
+        setError('Please enter a valid email address. Shuffle Cloud requires an email address.');
+        return;
+      }
+      if (!password) {
+        setError('Please enter your password.');
+        return;
+      }
+      if (isRegister && password.length < 10) {
+        setError('Password must be at least 10 characters.');
+        return;
+      }
+    }
+
+
 
     if (serverMode === 'self-hosted') {
       if (!customHostUrl.trim()) {
@@ -285,7 +403,7 @@ export const MobileAuthGateway = () => {
         body.mfa_code = code;
       }
 
-      const loginUrl = getApiUrl(API_ENDPOINTS.login);
+      const loginUrl = getApiUrl(isRegister ? API_ENDPOINTS.register : API_ENDPOINTS.login);
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -360,7 +478,15 @@ export const MobileAuthGateway = () => {
       }
 
       if (!response.ok) {
-        setError(data.reason || data.message || (mfaRequired ? 'Invalid MFA code' : 'Invalid username or password'));
+        setError(
+          data.reason ||
+            data.message ||
+            (isRegister
+              ? 'Registration failed. Please try again.'
+              : mfaRequired
+              ? 'Invalid MFA code'
+              : 'Invalid username or password')
+        );
         return;
       }
 
@@ -368,6 +494,15 @@ export const MobileAuthGateway = () => {
       const sessionToken =
         data.session_token ||
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
+
+      // Registration that does not return a session: fall back to signing in.
+      // The redirect target lives in the URL / session storage, so it survives.
+      if (isRegister && data.success !== false && !sessionToken) {
+        setAuthMode('login');
+        setPassword('');
+        setNotice('Registration successful. Please sign in.');
+        return;
+      }
 
       if (data.success !== false) {
         // Validate the session with getinfo BEFORE treating the user as logged in,
@@ -612,188 +747,179 @@ export const MobileAuthGateway = () => {
           </Typography>
         </Box>
 
-        {/* Server Instance Switcher - Only shown during initial credential step in standard login */}
+        {/* Server Instance Switcher - above the auth card */}
         {!mfaRequired && !isResetPasswordMode && (
-          <Box
-            sx={{
-              display: 'flex',
-              bgcolor: 'hsl(var(--muted))',
-              borderRadius: 2.5,
-              p: 0.5,
-              mb: 2.5,
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
-            <Button
-              onClick={() => handleServerModeChange('cloud')}
-              size="small"
-              fullWidth
-              startIcon={<CloudIcon size={16} />}
-              sx={{
-                py: 0.9,
-                borderRadius: 2,
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                textTransform: 'none',
-                bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'transparent',
-                color: serverMode === 'cloud' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                border: serverMode === 'cloud' ? '1px solid hsl(var(--border))' : '1px solid transparent',
-                boxShadow: serverMode === 'cloud' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                '&:hover': {
-                  bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'hsl(var(--muted) / 0.8)',
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
+            <SegmentedControl
+              value={serverMode}
+              onChange={handleServerModeChange}
+              size="md"
+              variant="outline"
+              ariaLabel="Server instance"
+              options={[
+                {
+                  value: 'cloud',
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <CloudIcon size={14} />
+                      Shuffle Cloud
+                    </span>
+                  ),
                 },
-              }}
-            >
-              Shuffle Cloud
-            </Button>
-            <Button
-              onClick={() => handleServerModeChange('self-hosted')}
-              size="small"
-              fullWidth
-              startIcon={<ServerIcon size={16} />}
-              sx={{
-                py: 0.9,
-                borderRadius: 2,
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                textTransform: 'none',
-                bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'transparent',
-                color: serverMode === 'self-hosted' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                border: serverMode === 'self-hosted' ? '1px solid hsl(var(--border))' : '1px solid transparent',
-                boxShadow: serverMode === 'self-hosted' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                '&:hover': {
-                  bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'hsl(var(--muted) / 0.8)',
+                {
+                  value: 'self-hosted',
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <ServerIcon size={14} />
+                      Self-Hosted
+                    </span>
+                  ),
                 },
-              }}
-            >
-              Self-Hosted
-            </Button>
+              ]}
+            />
           </Box>
         )}
-
-        {/* Self-Hosted Server URL Configuration */}
-        <AnimatePresence>
-          {!mfaRequired && serverMode === 'self-hosted' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Box sx={{ mb: 2.5 }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: 'hsl(var(--muted-foreground))',
-                    mb: 0.75,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}
-                >
-                  Instance URL
-                </Typography>
-                <TextField
-                  placeholder="https://shuffle.myorg.internal:3443"
-                  value={customHostUrl}
-                  onChange={(e) => {
-                    setCustomHostUrl(e.target.value);
-                    setHostPingStatus('idle');
-                  }}
-                  size="small"
-                  fullWidth
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  InputProps={{
-                    sx: {
-                      bgcolor: 'hsl(var(--card))',
-                      color: 'hsl(var(--foreground))',
-                      borderRadius: 2,
-                      fontSize: '0.85rem',
-                      pr: 0.75,
-                      '& input': {
-                        color: 'hsl(var(--foreground))',
-                        py: 1,
-                      },
-                      '& fieldset': { borderColor: 'hsl(var(--border))' },
-                      '&:hover fieldset': { borderColor: '#FF6600' },
-                      '&.Mui-focused fieldset': { borderColor: '#FF6600' },
-                    },
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Button
-                          onClick={handlePingHost}
-                          variant="contained"
-                          disabled={isPingingHost || !customHostUrl.trim()}
-                          size="small"
-                          sx={{
-                            minWidth: 64,
-                            height: 28,
-                            px: 1.5,
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            textTransform: 'none',
-                            borderRadius: 1.5,
-                            bgcolor: hostPingStatus === 'success' ? '#22c55e' : 'hsl(var(--muted))',
-                            color: hostPingStatus === 'success' ? '#FFFFFF' : 'hsl(var(--foreground))',
-                            border: '1px solid hsl(var(--border))',
-                            boxShadow: 'none',
-                            '&:hover': {
-                              bgcolor: hostPingStatus === 'success' ? '#16a34a' : 'hsl(var(--muted) / 0.8)',
-                              boxShadow: 'none',
-                            },
-                            '&.Mui-disabled': {
-                              bgcolor: 'hsl(var(--muted) / 0.4)',
-                              color: 'hsl(var(--muted-foreground) / 0.5)',
-                              borderColor: 'transparent',
-                            },
-                          }}
-                        >
-                          {isPingingHost ? (
-                            <CircularProgress size={14} sx={{ color: 'inherit' }} />
-                          ) : hostPingStatus === 'success' ? (
-                            'Connected'
-                          ) : (
-                            'Test'
-                          )}
-                        </Button>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                {hostPingMessage && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1 }}>
-                    {hostPingStatus === 'success' ? (
-                      <CheckCircleIcon size={14} color="#22c55e" />
-                    ) : (
-                      <AlertCircleIcon size={14} color="#ef4444" />
-                    )}
-                    <Typography
-                      sx={{
-                        fontSize: '0.75rem',
-                        color: hostPingStatus === 'success' ? '#22c55e' : '#ef4444',
-                      }}
-                    >
-                      {hostPingMessage}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Main Authentication Card */}
         <Card
           sx={{
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent',
+            backgroundImage: 'none',
             borderRadius: 3,
             border: '1px solid hsl(var(--border))',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.15)',
+            boxShadow: 'none',
             overflow: 'hidden',
           }}
         >
           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+
+
+            {/* Self-Hosted Server URL Configuration */}
+            <AnimatePresence>
+              {!mfaRequired && serverMode === 'self-hosted' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: 'hsl(var(--muted-foreground))',
+                        mb: 0.75,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      Instance URL
+                    </Typography>
+                    <TextField
+                      placeholder="https://shuffle.myorg.internal:3443"
+                      value={customHostUrl}
+                      onChange={(e) => {
+                        setCustomHostUrl(e.target.value);
+                        setHostPingStatus('idle');
+                      }}
+                      size="small"
+                      fullWidth
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      InputProps={{
+                        sx: {
+                          bgcolor: 'hsl(var(--card))',
+                          color: 'hsl(var(--foreground))',
+                          borderRadius: 2,
+                          fontSize: '0.85rem',
+                          pr: 0.75,
+                          '& input': {
+                            color: 'hsl(var(--foreground))',
+                            py: 1,
+                          },
+                          '& fieldset': { borderColor: 'hsl(var(--border))' },
+                          '&:hover fieldset': { borderColor: '#FF6600' },
+                          '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+                        },
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Button
+                              onClick={handlePingHost}
+                              variant="contained"
+                              disabled={isPingingHost}
+                              size="small"
+                              sx={{
+                                minWidth: 64,
+                                height: 28,
+                                px: 1.5,
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                borderRadius: 1.5,
+                                bgcolor: hostPingStatus === 'success' ? '#22c55e' : '#FF6600',
+                                color: '#FFFFFF',
+                                border: '1px solid hsl(var(--border))',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                  bgcolor: hostPingStatus === 'success' ? '#16a34a' : '#e65c00',
+                                  boxShadow: 'none',
+                                },
+                                '&.Mui-disabled': {
+                                  bgcolor: 'hsl(var(--muted) / 0.4)',
+                                  color: 'hsl(var(--muted-foreground) / 0.5)',
+                                  borderColor: 'transparent',
+                                },
+                              }}
+                            >
+                              {isPingingHost ? (
+                                <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                              ) : hostPingStatus === 'success' ? (
+                                'Connected'
+                              ) : (
+                                'Test'
+                              )}
+                            </Button>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    {hostPingMessage && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1 }}>
+                        {hostPingStatus === 'success' ? (
+                          <CheckCircleIcon size={14} color="#22c55e" />
+                        ) : (
+                          <AlertCircleIcon size={14} color="#ef4444" />
+                        )}
+                        <Typography
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: hostPingStatus === 'success' ? '#22c55e' : '#ef4444',
+                          }}
+                        >
+                          {hostPingMessage}
+                        </Typography>
+                      </Box>
+                    )}
+                    {!hostPingMessage && serverMode === 'self-hosted' && hostPingStatus !== 'success' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1 }}>
+                        <AlertCircleIcon size={14} color="#FF6600" />
+                        <Typography
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: 'hsl(var(--muted-foreground))',
+                          }}
+                        >
+                          {customHostUrl.trim()
+                            ? 'Click Test to verify the server and enable Sign In.'
+                            : 'Enter your server URL, then click Test to enable Sign In.'}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </motion.div>
+              )}
+            </AnimatePresence>
             {error && (
               <Alert
                 severity="error"
@@ -849,6 +975,25 @@ export const MobileAuthGateway = () => {
                       </Box>
                     )}
 
+                    {notice && (
+                      <Alert
+                        severity="success"
+                        onClose={() => setNotice('')}
+                        sx={{
+                          mb: 2.5,
+                          borderRadius: 2,
+                          fontSize: '0.8rem',
+                          py: 0.5,
+                          bgcolor: 'rgba(34, 197, 94, 0.1)',
+                          color: '#22c55e',
+                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                          '& .MuiAlert-icon': { color: '#22c55e' },
+                        }}
+                      >
+                        {notice}
+                      </Alert>
+                    )}
+
                     {resetEmailSent && (
                       <Alert
                         severity="success"
@@ -876,12 +1021,20 @@ export const MobileAuthGateway = () => {
                           mb: 0.75,
                         }}
                       >
-                        {isResetPasswordMode ? 'Email or Username' : 'Username or Email'}
+                        {isResetPasswordMode ? 'Email or Username' : identifierLabel}
                       </Typography>
                       <TextField
                         placeholder="analyst@organization.com"
+                        type={serverMode === 'cloud' && !isResetPasswordMode ? 'email' : 'text'}
+                        error={!isResetPasswordMode && cloudEmailInvalid}
+                        helperText={
+                          !isResetPasswordMode && cloudEmailInvalid
+                            ? 'Enter a valid email address for Shuffle Cloud.'
+                            : undefined
+                        }
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+
                         fullWidth
                         required
                         size="small"
@@ -921,7 +1074,7 @@ export const MobileAuthGateway = () => {
                           >
                             Password
                           </Typography>
-                          {serverMode === 'cloud' && (
+                          {serverMode === 'cloud' && !isRegister && (
                             <Button
                               onClick={() => {
                                 setIsResetPasswordMode(true);
@@ -948,13 +1101,13 @@ export const MobileAuthGateway = () => {
                         </Box>
                         <TextField
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Enter password"
+                          placeholder={isRegister ? 'At least 10 characters' : 'Enter password'}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           fullWidth
                           required
                           size="small"
-                          autoComplete="current-password"
+                          autoComplete={isRegister ? 'new-password' : 'current-password'}
                           InputProps={{
                             sx: {
                               bgcolor: 'hsl(var(--background))',
@@ -989,33 +1142,42 @@ export const MobileAuthGateway = () => {
                       </Box>
                     )}
 
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      fullWidth
-                      disabled={loading}
-                      sx={{
-                        py: 1.25,
-                        borderRadius: 2,
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        textTransform: 'none',
-                        bgcolor: '#FF6600',
-                        color: '#FFFFFF',
-                        boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
-                        '&:hover': {
-                          bgcolor: '#e65c00',
-                        },
-                      }}
+                    <Box
+                      title={!loading && signInBlockedReason ? signInBlockedReason : undefined}
+                      sx={{ width: '100%' }}
                     >
-                      {loading ? (
-                        <CircularProgress size={22} sx={{ color: '#ffffff' }} />
-                      ) : isResetPasswordMode ? (
-                        resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
-                      ) : (
-                        'Sign In'
-                      )}
-                    </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        fullWidth
+                        disabled={loading || !!signInBlockedReason}
+                        title={!loading && signInBlockedReason ? signInBlockedReason : undefined}
+                        sx={{
+                          py: 1.25,
+                          borderRadius: 2,
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          textTransform: 'none',
+                          bgcolor: '#FF6600',
+                          color: '#FFFFFF',
+                          boxShadow: '0 4px 14px rgba(255, 102, 0, 0.35)',
+                          '&:hover': {
+                            bgcolor: '#e65c00',
+                          },
+                        }}
+                      >
+                        {loading ? (
+                          <CircularProgress size={22} sx={{ color: '#ffffff' }} />
+                        ) : isResetPasswordMode ? (
+                          resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
+                        ) : isRegister ? (
+                          'Create Account'
+                        ) : (
+                          'Sign In'
+                        )}
+                      </Button>
+                    </Box>
+
 
                     {isResetPasswordMode && (
                       <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -1200,21 +1362,32 @@ export const MobileAuthGateway = () => {
           </CardContent>
         </Card>
 
-        {/* Footer / Registration link */}
-        {!mfaRequired && (
+        {/* Footer / Login <-> Registration switch (keeps the selected server) */}
+        {!mfaRequired && !isResetPasswordMode && (
           <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
-              Don't have an account?{' '}
-              <Link
-                to="/register"
-                style={{
+              {isRegister ? 'Already have an account?' : 'Do not have an account?'}{' '}
+              <Box
+                component="button"
+                type="button"
+                onClick={() => {
+                  setAuthMode(isRegister ? 'login' : 'register');
+                  setError('');
+                  setNotice('');
+                  setPassword('');
+                }}
+                sx={{
+                  background: 'none',
+                  border: 'none',
+                  p: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
                   color: '#FF6600',
                   fontWeight: 600,
-                  textDecoration: 'none',
                 }}
               >
-                Sign up
-              </Link>
+                {isRegister ? 'Sign in' : 'Sign up'}
+              </Box>
             </Typography>
           </Box>
         )}
