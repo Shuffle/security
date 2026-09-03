@@ -212,9 +212,25 @@ export const MobileAuthGateway = () => {
       setCustomHostUrl(urlToTest);
     }
 
+    // shuffler.io hosts are Shuffle Cloud - switch back to cloud rules
+    let testHostname = '';
+    try {
+      testHostname = new URL(urlToTest).hostname.toLowerCase();
+    } catch {
+      testHostname = '';
+    }
+    if (testHostname === 'shuffler.io' || testHostname.endsWith('.shuffler.io')) {
+      setCustomHostUrl('');
+      setHostPingStatus('idle');
+      setHostPingMessage('');
+      handleServerModeChange('cloud');
+      return;
+    }
+
     setIsPingingHost(true);
     setHostPingStatus('idle');
     setHostPingMessage('');
+
 
     try {
       setHostBaseUrl(urlToTest);
@@ -649,10 +665,11 @@ export const MobileAuthGateway = () => {
         {/* Main Authentication Card */}
         <Card
           sx={{
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent',
+            backgroundImage: 'none',
             borderRadius: 3,
             border: '1px solid hsl(var(--border))',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.15)',
+            boxShadow: 'none',
             overflow: 'hidden',
           }}
         >
