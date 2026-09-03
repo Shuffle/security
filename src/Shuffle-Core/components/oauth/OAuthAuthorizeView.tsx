@@ -394,12 +394,52 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
   }
 
   return {
-    name: clientName || clientId || 'External Application',
+    name: clientName || shortenClientId(clientId) || 'External Application',
     vendor: 'Third-Party Developer',
     iconBg: '#3B82F6',
     iconColor: '#FFFFFF',
     description: 'External application requesting permission to access your Shuffle organization.',
   };
+};
+
+/** Region flag/code from a region URL (mirrors the sidebar tenant selector). */
+const getRegionFlag = (regionUrl?: string): { flag: string; code: string } => {
+  if (!regionUrl) return { flag: '🇬🇧', code: 'UK' };
+  const url = regionUrl.toLowerCase();
+  if (url.includes('california') || url.includes('us.') || url.includes('us-')) return { flag: '🇺🇸', code: 'US' };
+  if (url.includes('frankfurt') || url.includes('de.') || url.includes('de-')) return { flag: '🇪🇺', code: 'EU' };
+  if (url.includes('eu-2') || url.includes('eu2')) return { flag: '🇪🇺', code: 'EU-2' };
+  if (url.includes('eu.') || url.includes('eu-')) return { flag: '🇪🇺', code: 'EU' };
+  if (url.includes('ca.') || url.includes('canada')) return { flag: '🇨🇦', code: 'CA' };
+  if (url.includes('au.') || url.includes('aus') || url.includes('australia')) return { flag: '🇦🇺', code: 'AUS' };
+  if (url.includes('uk.') || url.includes('uk-') || url.includes('london')) return { flag: '🇬🇧', code: 'UK' };
+  return { flag: '🇬🇧', code: 'UK' };
+};
+
+/** Sort organizations into a parent → child hierarchy (mirrors the sidebar). */
+const sortOrgsWithHierarchy = (orgs: OrganizationLike[]): Array<{ org: OrganizationLike; level: number }> => {
+  const orgMap = new Map(orgs.map((org) => [org.id, org]));
+  const result: Array<{ org: OrganizationLike; level: number }> = [];
+  const processed = new Set<string>();
+
+  const addOrgWithChildren = (org: OrganizationLike, level: number) => {
+    if (processed.has(org.id)) return;
+    processed.add(org.id);
+    result.push({ org, level });
+    const children = orgs.filter((o) => o.creator_org === org.id);
+    children.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    children.forEach((child) => addOrgWithChildren(child, level + 1));
+  };
+
+  const rootOrgs = orgs.filter((org) => !org.creator_org || !orgMap.has(org.creator_org));
+  rootOrgs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  rootOrgs.forEach((org) => addOrgWithChildren(org, 0));
+
+  orgs.forEach((org) => {
+    if (!processed.has(org.id)) result.push({ org, level: 1 });
+  });
+
+  return result;
 };
 
 const ShuffleVectorBadge = ({ size = 28 }: { size?: number }) => (
