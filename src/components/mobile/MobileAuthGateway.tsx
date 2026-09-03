@@ -212,9 +212,25 @@ export const MobileAuthGateway = () => {
       setCustomHostUrl(urlToTest);
     }
 
+    // shuffler.io hosts are Shuffle Cloud - switch back to cloud rules
+    let testHostname = '';
+    try {
+      testHostname = new URL(urlToTest).hostname.toLowerCase();
+    } catch {
+      testHostname = '';
+    }
+    if (testHostname === 'shuffler.io' || testHostname.endsWith('.shuffler.io')) {
+      setCustomHostUrl('');
+      setHostPingStatus('idle');
+      setHostPingMessage('');
+      handleServerModeChange('cloud');
+      return;
+    }
+
     setIsPingingHost(true);
     setHostPingStatus('idle');
     setHostPingMessage('');
+
 
     try {
       setHostBaseUrl(urlToTest);
