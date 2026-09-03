@@ -1353,12 +1353,6 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
 
         {/* Content Body */}
         <Box sx={{ p: 3 }}>
-          {errorMsg && (
-            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2, fontSize: '0.85rem' }}>
-              {errorMsg}
-            </Alert>
-          )}
-
           {/* User Account & Organization Selection */}
           <Box
             sx={{
@@ -1661,6 +1655,12 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
               )}
             </Typography>
           </Box>
+
+          {errorMsg && (
+            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2, fontSize: '0.85rem' }}>
+              {errorMsg}
+            </Alert>
+          )}
 
           {/* Action Buttons */}
           <Box sx={{ display: 'flex', gap: 1.5 }}>
