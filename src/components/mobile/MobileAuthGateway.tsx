@@ -36,7 +36,7 @@ import { sanitizeInternalDestination } from '@/lib/safeRedirect';
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
 
-export const MobileAuthGateway = () => {
+export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'register' } = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
