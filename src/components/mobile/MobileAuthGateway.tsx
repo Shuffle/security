@@ -925,8 +925,9 @@ export const MobileAuthGateway = () => {
                             ? 'Enter a valid email address for Shuffle Cloud.'
                             : undefined
                         }
-
+                        value={username}
                         onChange={(e) => setUsername(e.target.value)}
+
                         fullWidth
                         required
                         size="small"
