@@ -1407,7 +1407,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                   Authorize for Organization
                 </Typography>
                 <Autocomplete
-                  value={sortedUserOrgs.find((item) => item.org.id === selectedOrgId)?.org || null}
+                  value={sortedUserOrgs.find((item) => item.org.id === selectedOrgId)?.org || undefined}
                   onChange={(_, newValue) => { if (newValue) handleOrgSwitch(newValue.id); }}
                   options={sortedUserOrgs.map((item) => item.org)}
                   getOptionLabel={(option) => option.name || ''}
