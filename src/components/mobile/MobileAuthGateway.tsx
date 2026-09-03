@@ -969,7 +969,13 @@ export const MobileAuthGateway = () => {
                       type="submit"
                       variant="contained"
                       fullWidth
-                      disabled={loading}
+                      disabled={
+                        loading ||
+                        (!isResetPasswordMode &&
+                          serverMode === 'self-hosted' &&
+                          hostPingStatus !== 'success')
+                      }
+
                       sx={{
                         py: 1.25,
                         borderRadius: 2,
