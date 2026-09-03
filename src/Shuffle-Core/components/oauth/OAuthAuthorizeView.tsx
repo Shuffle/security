@@ -7,6 +7,7 @@ import {
   Divider,
   Chip,
   CircularProgress,
+  LinearProgress,
   Avatar,
   Select,
   MenuItem,
@@ -673,7 +674,8 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
 
   // States
   const [showDebug, setShowDebug] = useState<boolean>(queryParams.get('debug') === 'true');
-  const [authorizing, setAuthorizing] = useState(false);
+  const [authorizingStep, setAuthorizingStep] = useState<'idle' | 'authorizing' | 'redirecting'>('idle');
+  const authorizing = authorizingStep !== 'idle';
   const [denying, setDenying] = useState(false);
   const [authCode, setAuthCode] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -759,7 +761,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
       return;
     }
 
-    setAuthorizing(true);
+    setAuthorizingStep('authorizing');
 
     try {
       const generatedCode = `shf_auth_${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID().replace(/-/g, '') : Date.now().toString(36) + Math.random().toString(36).substring(2)}`;
@@ -790,7 +792,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
       } catch (networkErr: unknown) {
         const msg = networkErr instanceof Error ? networkErr.message : 'Server could not be reached';
         setErrorMsg(`Authorization failed: ${msg}. The backend authorization server could not be reached.`);
-        setAuthorizing(false);
+        setAuthorizingStep('idle');
         return;
       }
 
@@ -812,7 +814,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
         }
 
         setErrorMsg(errMessage);
-        setAuthorizing(false);
+        setAuthorizingStep('idle');
         return;
       }
 
@@ -829,6 +831,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
       }
 
       if (redirectUri) {
+        setAuthorizingStep('redirecting');
         const callbackUrl = new URL(redirectUri);
         callbackUrl.searchParams.set('code', backendCode);
         if (state) {
@@ -839,10 +842,10 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
       }
 
       setAuthCode(backendCode);
+      setAuthorizingStep('idle');
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'An error occurred during authorization');
-    } finally {
-      setAuthorizing(false);
+      setAuthorizingStep('idle');
     }
   };
 
@@ -1177,6 +1180,18 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
           boxShadow: '0 20px 40px -15px rgba(0,0,0,0.3)',
         }}
       >
+        {authorizing && (
+          <LinearProgress
+            sx={{
+              height: 3,
+              bgcolor: 'transparent',
+              '& .MuiLinearProgress-bar': {
+                bgcolor: 'hsl(var(--primary))',
+              },
+            }}
+          />
+        )}
+
         {/* Top Visual Header: Client <-> Shuffle */}
         <Box
           sx={{
@@ -1833,10 +1848,23 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                 bgcolor: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
                 '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+                '&.Mui-disabled': {
+                  bgcolor: selectedScopeIds.size === 0 && !authorizing ? undefined : 'hsl(var(--primary))',
+                  color: selectedScopeIds.size === 0 && !authorizing ? undefined : 'hsl(var(--primary-foreground))',
+                  opacity: selectedScopeIds.size === 0 && !authorizing ? undefined : 0.85,
+                  cursor: authorizing ? 'wait' : 'not-allowed',
+                },
               }}
             >
               {authorizing ? (
-                <CircularProgress size={20} sx={{ color: 'hsl(var(--primary-foreground))' }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.25 }}>
+                  <CircularProgress size={18} sx={{ color: 'inherit' }} />
+                  <span>
+                    {authorizingStep === 'redirecting'
+                      ? `Redirecting to ${clientProfile.name}...`
+                      : 'Authorizing...'}
+                  </span>
+                </Box>
               ) : selectedScopeIds.size === 0 ? (
                 'Select permissions to authorize'
               ) : (
