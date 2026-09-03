@@ -1141,6 +1141,8 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
                           <CircularProgress size={22} sx={{ color: '#ffffff' }} />
                         ) : isResetPasswordMode ? (
                           resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
+                        ) : isRegister ? (
+                          'Create Account'
                         ) : (
                           'Sign In'
                         )}
