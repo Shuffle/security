@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useMatches } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatches, ClientOnly } from "@tanstack/react-router";
 import { routeMeta } from '@/lib/routeMeta';
 import { MobileAuthGateway } from '@/components/mobile/MobileAuthGateway';
 
@@ -22,5 +22,12 @@ function LoginRouteComponent() {
     return <Outlet />;
   }
 
-  return <MobileAuthGateway />;
+  // Password-manager extensions (LastPass, 1Password, ...) inject nodes into
+  // the login inputs before React hydrates, which breaks hydration and blanks
+  // the page. Render the form on the client only to avoid the mismatch.
+  return (
+    <ClientOnly fallback={null}>
+      <MobileAuthGateway />
+    </ClientOnly>
+  );
 }
