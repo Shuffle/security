@@ -712,7 +712,7 @@ export const MobileAuthGateway = () => {
                             <Button
                               onClick={handlePingHost}
                               variant="contained"
-                              disabled={isPingingHost || !customHostUrl.trim()}
+                              disabled={isPingingHost}
                               size="small"
                               sx={{
                                 minWidth: 64,
@@ -722,12 +722,12 @@ export const MobileAuthGateway = () => {
                                 fontWeight: 600,
                                 textTransform: 'none',
                                 borderRadius: 1.5,
-                                bgcolor: hostPingStatus === 'success' ? '#22c55e' : 'hsl(var(--muted))',
-                                color: hostPingStatus === 'success' ? '#FFFFFF' : 'hsl(var(--foreground))',
+                                bgcolor: hostPingStatus === 'success' ? '#22c55e' : '#FF6600',
+                                color: '#FFFFFF',
                                 border: '1px solid hsl(var(--border))',
                                 boxShadow: 'none',
                                 '&:hover': {
-                                  bgcolor: hostPingStatus === 'success' ? '#16a34a' : 'hsl(var(--muted) / 0.8)',
+                                  bgcolor: hostPingStatus === 'success' ? '#16a34a' : '#e65c00',
                                   boxShadow: 'none',
                                 },
                                 '&.Mui-disabled': {
@@ -763,6 +763,21 @@ export const MobileAuthGateway = () => {
                           }}
                         >
                           {hostPingMessage}
+                        </Typography>
+                      </Box>
+                    )}
+                    {!hostPingMessage && serverMode === 'self-hosted' && hostPingStatus !== 'success' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1 }}>
+                        <AlertCircleIcon size={14} color="#FF6600" />
+                        <Typography
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: 'hsl(var(--muted-foreground))',
+                          }}
+                        >
+                          {customHostUrl.trim()
+                            ? 'Click Test to verify the server and enable Sign In.'
+                            : 'Enter your server URL, then click Test to enable Sign In.'}
                         </Typography>
                       </Box>
                     )}
@@ -975,7 +990,18 @@ export const MobileAuthGateway = () => {
                           serverMode === 'self-hosted' &&
                           hostPingStatus !== 'success')
                       }
-
+                      title={
+                        !loading &&
+                        !isResetPasswordMode &&
+                        serverMode === 'self-hosted' &&
+                        hostPingStatus !== 'success'
+                          ? !customHostUrl.trim()
+                            ? 'Enter your self-hosted Shuffle server URL and test the connection before signing in.'
+                            : hostPingStatus === 'error'
+                            ? 'The connection test failed. Fix the URL and test again before signing in.'
+                            : 'Test the server connection before signing in.'
+                          : undefined
+                      }
                       sx={{
                         py: 1.25,
                         borderRadius: 2,
