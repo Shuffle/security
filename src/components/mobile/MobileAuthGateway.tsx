@@ -712,7 +712,7 @@ export const MobileAuthGateway = () => {
                             <Button
                               onClick={handlePingHost}
                               variant="contained"
-                              disabled={isPingingHost || !customHostUrl.trim()}
+                              disabled={isPingingHost}
                               size="small"
                               sx={{
                                 minWidth: 64,
