@@ -649,10 +649,11 @@ export const MobileAuthGateway = () => {
         {/* Main Authentication Card */}
         <Card
           sx={{
-            bgcolor: 'hsl(var(--card))',
+            bgcolor: 'transparent',
+            backgroundImage: 'none',
             borderRadius: 3,
             border: '1px solid hsl(var(--border))',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.15)',
+            boxShadow: 'none',
             overflow: 'hidden',
           }}
         >
