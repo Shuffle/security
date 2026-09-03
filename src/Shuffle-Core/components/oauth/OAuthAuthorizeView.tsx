@@ -339,6 +339,19 @@ interface ClientProfile {
   description: string;
 }
 
+/**
+ * Client IDs like `shuffle_client_f9ffacb6-ce10-489e-ad7d-635de96932dd` are far
+ * too long (and unidentifiable) to render as a title. Shorten to a readable label.
+ */
+const shortenClientId = (clientId?: string): string => {
+  if (!clientId) return '';
+  const stripped = clientId.replace(/^shuffle[_-]client[_-]/i, '');
+  const uuidMatch = stripped.match(/^[0-9a-f]{8}/i);
+  if (uuidMatch && stripped.length > 12) return `Application ${uuidMatch[0]}`;
+  if (stripped.length > 24) return `${stripped.slice(0, 24)}…`;
+  return stripped;
+};
+
 const getClientProfile = (clientId?: string, clientName?: string): ClientProfile => {
   const id = (clientId || '').toLowerCase();
   const name = (clientName || '').toLowerCase();
