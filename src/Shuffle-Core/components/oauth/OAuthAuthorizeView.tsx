@@ -616,12 +616,11 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   // In-place Org Switch Handler with URL sync
   const handleOrgSwitch = useCallback(
     async (newOrgId: string) => {
+      // Selecting an organization here only scopes THIS authorization: the
+      // choice is sent as the `Org-Id` header (and org_id body field) on the
+      // authorize call. It intentionally does not switch the active org,
+      // which would reload the page and drop the OAuth request.
       setSelectedOrgId(newOrgId);
-      if (onOrgChange) {
-        try {
-          await onOrgChange(newOrgId);
-        } catch {}
-      }
 
       // Update URL query parameter org_id while preserving all OAuth params
       if (typeof window !== 'undefined') {
