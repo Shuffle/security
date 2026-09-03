@@ -1072,13 +1072,13 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
                         </Box>
                         <TextField
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Enter password"
+                          placeholder={isRegister ? 'At least 10 characters' : 'Enter password'}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           fullWidth
                           required
                           size="small"
-                          autoComplete="current-password"
+                          autoComplete={isRegister ? 'new-password' : 'current-password'}
                           InputProps={{
                             sx: {
                               bgcolor: 'hsl(var(--background))',
