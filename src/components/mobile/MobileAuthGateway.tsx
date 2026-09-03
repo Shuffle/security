@@ -24,7 +24,7 @@ import {
   ArrowLeft as ArrowLeftIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation, Link } from '@/lib/router-compat';
+import { useNavigate, useLocation } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
@@ -36,7 +36,7 @@ import { sanitizeInternalDestination } from '@/lib/safeRedirect';
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
 
-export const MobileAuthGateway = () => {
+export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'register' } = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -139,6 +139,14 @@ export const MobileAuthGateway = () => {
   const [hostPingStatus, setHostPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [hostPingMessage, setHostPingMessage] = useState('');
 
+  // Login vs registration. Initialized from the route, toggleable in-page so
+  // the selected server (cloud / self-hosted) carries over between the two.
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(mode);
+  const isRegister = authMode === 'register';
+  useEffect(() => {
+    setAuthMode(mode);
+  }, [mode]);
+
   // Form states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -147,6 +155,7 @@ export const MobileAuthGateway = () => {
   const [mfaCode, setMfaCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetEmailSuccessMsg, setResetEmailSuccessMsg] = useState('');
@@ -291,6 +300,8 @@ export const MobileAuthGateway = () => {
     if (serverMode === 'cloud' && !isValidEmail(username))
       return 'Enter a valid email address. Shuffle Cloud requires an email, not a username.';
     if (!password) return 'Enter your password.';
+    if (isRegister && password.length < 10)
+      return 'Choose a password with at least 10 characters.';
     return '';
   })();
 
@@ -325,6 +336,10 @@ export const MobileAuthGateway = () => {
       }
       if (!password) {
         setError('Please enter your password.');
+        return;
+      }
+      if (isRegister && password.length < 10) {
+        setError('Password must be at least 10 characters.');
         return;
       }
     }
@@ -362,7 +377,7 @@ export const MobileAuthGateway = () => {
         body.mfa_code = code;
       }
 
-      const loginUrl = getApiUrl(API_ENDPOINTS.login);
+      const loginUrl = getApiUrl(isRegister ? API_ENDPOINTS.register : API_ENDPOINTS.login);
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -437,7 +452,15 @@ export const MobileAuthGateway = () => {
       }
 
       if (!response.ok) {
-        setError(data.reason || data.message || (mfaRequired ? 'Invalid MFA code' : 'Invalid username or password'));
+        setError(
+          data.reason ||
+            data.message ||
+            (isRegister
+              ? 'Registration failed. Please try again.'
+              : mfaRequired
+              ? 'Invalid MFA code'
+              : 'Invalid username or password')
+        );
         return;
       }
 
@@ -445,6 +468,15 @@ export const MobileAuthGateway = () => {
       const sessionToken =
         data.session_token ||
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
+
+      // Registration that does not return a session: fall back to signing in.
+      // The redirect target lives in the URL / session storage, so it survives.
+      if (isRegister && data.success !== false && !sessionToken) {
+        setAuthMode('login');
+        setPassword('');
+        setNotice('Registration successful. Please sign in.');
+        return;
+      }
 
       if (data.success !== false) {
         // Validate the session with getinfo BEFORE treating the user as logged in,
@@ -917,6 +949,25 @@ export const MobileAuthGateway = () => {
                       </Box>
                     )}
 
+                    {notice && (
+                      <Alert
+                        severity="success"
+                        onClose={() => setNotice('')}
+                        sx={{
+                          mb: 2.5,
+                          borderRadius: 2,
+                          fontSize: '0.8rem',
+                          py: 0.5,
+                          bgcolor: 'rgba(34, 197, 94, 0.1)',
+                          color: '#22c55e',
+                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                          '& .MuiAlert-icon': { color: '#22c55e' },
+                        }}
+                      >
+                        {notice}
+                      </Alert>
+                    )}
+
                     {resetEmailSent && (
                       <Alert
                         severity="success"
@@ -997,7 +1048,7 @@ export const MobileAuthGateway = () => {
                           >
                             Password
                           </Typography>
-                          {serverMode === 'cloud' && (
+                          {serverMode === 'cloud' && !isRegister && (
                             <Button
                               onClick={() => {
                                 setIsResetPasswordMode(true);
@@ -1024,13 +1075,13 @@ export const MobileAuthGateway = () => {
                         </Box>
                         <TextField
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Enter password"
+                          placeholder={isRegister ? 'At least 10 characters' : 'Enter password'}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           fullWidth
                           required
                           size="small"
-                          autoComplete="current-password"
+                          autoComplete={isRegister ? 'new-password' : 'current-password'}
                           InputProps={{
                             sx: {
                               bgcolor: 'hsl(var(--background))',
@@ -1093,6 +1144,8 @@ export const MobileAuthGateway = () => {
                           <CircularProgress size={22} sx={{ color: '#ffffff' }} />
                         ) : isResetPasswordMode ? (
                           resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
+                        ) : isRegister ? (
+                          'Create Account'
                         ) : (
                           'Sign In'
                         )}
@@ -1283,21 +1336,32 @@ export const MobileAuthGateway = () => {
           </CardContent>
         </Card>
 
-        {/* Footer / Registration link */}
-        {!mfaRequired && (
+        {/* Footer / Login <-> Registration switch (keeps the selected server) */}
+        {!mfaRequired && !isResetPasswordMode && (
           <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
-              Don't have an account?{' '}
-              <Link
-                to="/register"
-                style={{
+              {isRegister ? 'Already have an account?' : 'Do not have an account?'}{' '}
+              <Box
+                component="button"
+                type="button"
+                onClick={() => {
+                  setAuthMode(isRegister ? 'login' : 'register');
+                  setError('');
+                  setNotice('');
+                  setPassword('');
+                }}
+                sx={{
+                  background: 'none',
+                  border: 'none',
+                  p: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
                   color: '#FF6600',
                   fontWeight: 600,
-                  textDecoration: 'none',
                 }}
               >
-                Sign up
-              </Link>
+                {isRegister ? 'Sign in' : 'Sign up'}
+              </Box>
             </Typography>
           </Box>
         )}
