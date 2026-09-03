@@ -571,7 +571,7 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
             sessionStorage.removeItem('shuffle_redirect_after_login');
           } catch {}
         }
-        navigate(from, { replace: true });
+        goToRedirectTarget(from);
       } else {
         setError(data.reason || data.message || 'Login failed. Please verify credentials.');
       }
