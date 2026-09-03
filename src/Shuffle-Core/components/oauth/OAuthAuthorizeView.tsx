@@ -786,6 +786,18 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     }
   }, [redirectUri, state]);
 
+  const handleCopySimulatedUrl = useCallback(() => {
+    if (!simulatedCallbackUrl) return;
+    navigator.clipboard.writeText(simulatedCallbackUrl);
+    setCopiedSimulatedUrl(true);
+    setTimeout(() => setCopiedSimulatedUrl(false), 2000);
+  }, [simulatedCallbackUrl]);
+
+  const handleSimulateOAuthFlow = useCallback(() => {
+    if (!simulatedCallbackUrl) return;
+    window.open(simulatedCallbackUrl, '_blank', 'noopener,noreferrer');
+  }, [simulatedCallbackUrl]);
+
   // 1. Unauthenticated State
   if (!resolvedUserInfo) {
     return (
