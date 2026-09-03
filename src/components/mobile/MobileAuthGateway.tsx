@@ -615,60 +615,34 @@ export const MobileAuthGateway = () => {
 
         {/* Server Instance Switcher - Only shown during initial credential step in standard login */}
         {!mfaRequired && !isResetPasswordMode && (
-          <Box
-            sx={{
-              display: 'flex',
-              bgcolor: 'hsl(var(--muted))',
-              borderRadius: 2.5,
-              p: 0.5,
-              mb: 2.5,
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
-            <Button
-              onClick={() => handleServerModeChange('cloud')}
-              size="small"
-              fullWidth
-              startIcon={<CloudIcon size={16} />}
-              sx={{
-                py: 0.9,
-                borderRadius: 2,
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                textTransform: 'none',
-                bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'transparent',
-                color: serverMode === 'cloud' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                border: serverMode === 'cloud' ? '1px solid hsl(var(--border))' : '1px solid transparent',
-                boxShadow: serverMode === 'cloud' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                '&:hover': {
-                  bgcolor: serverMode === 'cloud' ? 'hsl(var(--card))' : 'hsl(var(--muted) / 0.8)',
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
+            <SegmentedControl
+              value={serverMode}
+              onChange={handleServerModeChange}
+              size="md"
+              variant="outline"
+              ariaLabel="Server instance"
+              options={[
+                {
+                  value: 'cloud',
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <CloudIcon size={14} />
+                      Shuffle Cloud
+                    </span>
+                  ),
                 },
-              }}
-            >
-              Shuffle Cloud
-            </Button>
-            <Button
-              onClick={() => handleServerModeChange('self-hosted')}
-              size="small"
-              fullWidth
-              startIcon={<ServerIcon size={16} />}
-              sx={{
-                py: 0.9,
-                borderRadius: 2,
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                textTransform: 'none',
-                bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'transparent',
-                color: serverMode === 'self-hosted' ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                border: serverMode === 'self-hosted' ? '1px solid hsl(var(--border))' : '1px solid transparent',
-                boxShadow: serverMode === 'self-hosted' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                '&:hover': {
-                  bgcolor: serverMode === 'self-hosted' ? 'hsl(var(--card))' : 'hsl(var(--muted) / 0.8)',
+                {
+                  value: 'self-hosted',
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <ServerIcon size={14} />
+                      Self-Hosted
+                    </span>
+                  ),
                 },
-              }}
-            >
-              Self-Hosted
-            </Button>
+              ]}
+            />
           </Box>
         )}
 
