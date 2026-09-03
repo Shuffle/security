@@ -1500,7 +1500,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                 {resolvedUserInfo?.username?.charAt(0).toUpperCase() || 'U'}
               </Avatar>
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', lineHeight: 1.2, noWrap: true }}>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', lineHeight: 1.2 }}>
                   {resolvedUserInfo?.username || 'Signed In User'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
