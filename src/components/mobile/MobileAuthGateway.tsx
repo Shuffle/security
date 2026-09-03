@@ -946,6 +946,25 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
                       </Box>
                     )}
 
+                    {notice && (
+                      <Alert
+                        severity="success"
+                        onClose={() => setNotice('')}
+                        sx={{
+                          mb: 2.5,
+                          borderRadius: 2,
+                          fontSize: '0.8rem',
+                          py: 0.5,
+                          bgcolor: 'rgba(34, 197, 94, 0.1)',
+                          color: '#22c55e',
+                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                          '& .MuiAlert-icon': { color: '#22c55e' },
+                        }}
+                      >
+                        {notice}
+                      </Alert>
+                    )}
+
                     {resetEmailSent && (
                       <Alert
                         severity="success"
