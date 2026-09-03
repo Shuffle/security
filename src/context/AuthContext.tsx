@@ -1,7 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
+
+const TAB_FOCUS_GETINFO_COOLDOWN_MS = 60 * 1000; // 60 seconds cooldown between tab-in getinfo audits
 
 interface Organization {
   name: string;
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [orgMismatchWarning, setOrgMismatchWarning] = useState(false);
+  const lastGetInfoTimeRef = useRef<number>(Date.now());
 
   // Seed the runtime org id from cache synchronously so datastore calls
   // fired on the very first render don't get "no org" and 401.
@@ -119,6 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchUserInfo = useCallback(async (_token?: string | null): Promise<'ok' | 'unauthenticated' | 'error'> => {
+    lastGetInfoTimeRef.current = Date.now();
     // Hard timeout: if the backend is unavailable the request can otherwise
     // hang forever and the "Checking login details…" overlay never resolves.
     const controller = new AbortController();
@@ -233,12 +237,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-check org on tab focus to detect out-of-band org switches
+  // Re-check org on tab focus to detect out-of-band org switches (throttled to 60s)
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const handleVisibilityChange = async () => {
+    const handleTabFocus = async () => {
       if (document.visibilityState !== 'visible') return;
+
+      const now = Date.now();
+      if (now - lastGetInfoTimeRef.current < TAB_FOCUS_GETINFO_COOLDOWN_MS) {
+        return;
+      }
+      lastGetInfoTimeRef.current = now;
 
       try {
         const token = getSessionToken();
@@ -253,19 +263,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (response.ok && data.success === true) {
           const remoteOrgId = data.active_org?.id;
-          const localOrgId = userInfo?.active_org?.id;
+          const localOrgId = userInfo?.active_org?.id || getTrackedOrgId();
           if (remoteOrgId && localOrgId && remoteOrgId !== localOrgId) {
-            console.warn(`[Auth] Org mismatch detected: local=${localOrgId}, remote=${remoteOrgId}`);
+            console.warn(`[Auth] Org mismatch detected on tab focus: local=${localOrgId}, remote=${remoteOrgId}`);
             setOrgMismatchWarning(true);
+          } else if (remoteOrgId && localOrgId && remoteOrgId === localOrgId) {
+            setOrgMismatchWarning(false);
           }
         }
       } catch (err) {
-        console.error('[Auth] Visibility getinfo check failed:', err);
+        console.error('[Auth] Tab focus getinfo check failed:', err);
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleTabFocus);
+    window.addEventListener('focus', handleTabFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', handleTabFocus);
+      window.removeEventListener('focus', handleTabFocus);
+    };
   }, [isAuthenticated, userInfo?.active_org?.id]);
 
   const login = useCallback(async (token: string, verifiedUserInfo?: any): Promise<boolean> => {
