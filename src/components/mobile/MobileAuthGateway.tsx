@@ -152,6 +152,7 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
   const [mfaCode, setMfaCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetEmailSuccessMsg, setResetEmailSuccessMsg] = useState('');
