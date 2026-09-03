@@ -962,6 +962,33 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     window.open(simulatedCallbackUrl, '_blank', 'noopener,noreferrer');
   }, [simulatedCallbackUrl]);
 
+  // Once approval has been submitted, the authorization request owns the
+  // screen until it settles. A concurrent getinfo refresh must not replace
+  // this state with the unauthenticated view while the backend is working.
+  if (authorizing) {
+    return (
+      <Box
+        className={className}
+        style={style}
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+          bgcolor: 'hsl(var(--background))',
+          p: { xs: 2, sm: 3 },
+        }}
+      >
+        <CircularProgress size={28} sx={{ color: 'hsl(var(--primary))' }} />
+        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+          {authorizingStep === 'redirecting' ? 'Redirecting...' : 'Authorizing...'}
+        </Typography>
+      </Box>
+    );
+  }
+
   // 0. Verifying session (getinfo in flight) - never claim signed out yet
   if (isAuthChecking && !resolvedUserInfo) {
     return (
