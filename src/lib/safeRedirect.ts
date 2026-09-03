@@ -12,10 +12,16 @@ export function sanitizeInternalDestination(
   }
 
   let candidate = rawCandidate.trim();
-  try {
-    candidate = decodeURIComponent(candidate).trim();
-  } catch {
-    // ignore decode error
+  // Only decode when the value is still percent-encoded as a whole (e.g.
+  // "%2Fdashboard"). Values read through URLSearchParams.get() are already
+  // decoded once; decoding again destroys nested encoded query parameters
+  // such as ?redirect_uri=https%3A%2F%2F... in OAuth authorize links.
+  if (!candidate.startsWith('/') && !/^https?:\/\//i.test(candidate)) {
+    try {
+      candidate = decodeURIComponent(candidate).trim();
+    } catch {
+      // ignore decode error
+    }
   }
 
   // Remove ASCII control characters, newlines, and whitespace
