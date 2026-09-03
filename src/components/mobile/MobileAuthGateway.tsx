@@ -128,6 +128,17 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
   }, [location.search]);
 
 
+  // Targets carrying a query string (OAuth authorize links, deep filters) must
+  // keep their exact, encoded search string. Client-side navigation re-parses
+  // and re-serializes it, so do a full navigation for those.
+  const goToRedirectTarget = (target: string) => {
+    if (typeof window !== 'undefined' && target.includes('?')) {
+      window.location.assign(target);
+      return;
+    }
+    navigate(target, { replace: true });
+  };
+
   // Redirect if already authenticated
   const hasRedirectedRef = useRef(false);
   useEffect(() => {
@@ -141,7 +152,7 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
         sessionStorage.removeItem('shuffle_redirect_after_login');
       } catch {}
     }
-    navigate(from, { replace: true });
+    goToRedirectTarget(from);
   }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
   // Server instance selection: 'cloud' | 'self-hosted'
@@ -571,7 +582,7 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
             sessionStorage.removeItem('shuffle_redirect_after_login');
           } catch {}
         }
-        navigate(from, { replace: true });
+        goToRedirectTarget(from);
       } else {
         setError(data.reason || data.message || 'Login failed. Please verify credentials.');
       }
