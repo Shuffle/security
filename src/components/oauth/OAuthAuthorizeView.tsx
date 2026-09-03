@@ -3,15 +3,16 @@ import { OAuthAuthorizeView as CoreOAuthAuthorizeView, type OAuthAuthorizeViewPr
 import { useAuth } from '@/context/AuthContext';
 
 export const OAuthAuthorizeView: React.FC<Partial<OAuthAuthorizeViewProps>> = (props) => {
-  const { userInfo, setActiveOrg } = useAuth();
+  const { userInfo, setActiveOrg, isLoading } = useAuth();
+  const resolvedUserInfo = props.userInfo !== undefined ? props.userInfo : userInfo;
 
   return (
     <CoreOAuthAuthorizeView
-      userInfo={(props.userInfo || userInfo) as OAuthAuthorizeViewProps['userInfo']}
+      {...props}
+      userInfo={(isLoading && !resolvedUserInfo ? undefined : resolvedUserInfo) as OAuthAuthorizeViewProps['userInfo']}
       activeOrg={(props.activeOrg || userInfo?.active_org) as OAuthAuthorizeViewProps['activeOrg']}
       onOrgChange={props.onOrgChange || setActiveOrg}
       isSupport={props.isSupport ?? userInfo?.support}
-      {...props}
     />
   );
 };
