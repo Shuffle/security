@@ -17,6 +17,8 @@ import {
   Tooltip,
   Collapse,
   Checkbox,
+  Autocomplete,
+  TextField,
 } from '@mui/material';
 import {
   ShieldCheck,
@@ -516,6 +518,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   // Organization resolution
   const activeOrg = propActiveOrg || resolvedUserInfo?.active_org;
   const userOrgs = resolvedUserInfo?.orgs || (activeOrg ? [activeOrg] : []);
+  const sortedUserOrgs = useMemo(() => sortOrgsWithHierarchy(userOrgs), [userOrgs]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>(
     requestedOrgId || activeOrg?.id || userOrgs[0]?.id || '',
   );
@@ -1705,7 +1708,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
               ) : selectedScopeIds.size === 0 ? (
                 'Select permissions to authorize'
               ) : (
-                `Authorize ${clientProfile.name}`
+                'Authorize'
               )}
             </Button>
           </Box>
