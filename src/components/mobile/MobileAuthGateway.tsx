@@ -143,6 +143,9 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
   // the selected server (cloud / self-hosted) carries over between the two.
   const [authMode, setAuthMode] = useState<'login' | 'register'>(mode);
   const isRegister = authMode === 'register';
+  useEffect(() => {
+    setAuthMode(mode);
+  }, [mode]);
 
   // Form states
   const [username, setUsername] = useState('');
