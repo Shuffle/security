@@ -17,6 +17,8 @@ import {
   Tooltip,
   Collapse,
   Checkbox,
+  Autocomplete,
+  TextField,
 } from '@mui/material';
 import {
   ShieldCheck,
@@ -339,6 +341,19 @@ interface ClientProfile {
   description: string;
 }
 
+/**
+ * Client IDs like `shuffle_client_f9ffacb6-ce10-489e-ad7d-635de96932dd` are far
+ * too long (and unidentifiable) to render as a title. Shorten to a readable label.
+ */
+const shortenClientId = (clientId?: string): string => {
+  if (!clientId) return '';
+  const stripped = clientId.replace(/^shuffle[_-]client[_-]/i, '');
+  const uuidMatch = stripped.match(/^[0-9a-f]{8}/i);
+  if (uuidMatch && stripped.length > 12) return `Application ${uuidMatch[0]}`;
+  if (stripped.length > 24) return `${stripped.slice(0, 24)}…`;
+  return stripped;
+};
+
 const getClientProfile = (clientId?: string, clientName?: string): ClientProfile => {
   const id = (clientId || '').toLowerCase();
   const name = (clientName || '').toLowerCase();
@@ -394,12 +409,52 @@ const getClientProfile = (clientId?: string, clientName?: string): ClientProfile
   }
 
   return {
-    name: clientName || clientId || 'External Application',
+    name: clientName || shortenClientId(clientId) || 'External Application',
     vendor: 'Third-Party Developer',
     iconBg: '#3B82F6',
     iconColor: '#FFFFFF',
     description: 'External application requesting permission to access your Shuffle organization.',
   };
+};
+
+/** Region flag/code from a region URL (mirrors the sidebar tenant selector). */
+const getRegionFlag = (regionUrl?: string): { flag: string; code: string } => {
+  if (!regionUrl) return { flag: '🇬🇧', code: 'UK' };
+  const url = regionUrl.toLowerCase();
+  if (url.includes('california') || url.includes('us.') || url.includes('us-')) return { flag: '🇺🇸', code: 'US' };
+  if (url.includes('frankfurt') || url.includes('de.') || url.includes('de-')) return { flag: '🇪🇺', code: 'EU' };
+  if (url.includes('eu-2') || url.includes('eu2')) return { flag: '🇪🇺', code: 'EU-2' };
+  if (url.includes('eu.') || url.includes('eu-')) return { flag: '🇪🇺', code: 'EU' };
+  if (url.includes('ca.') || url.includes('canada')) return { flag: '🇨🇦', code: 'CA' };
+  if (url.includes('au.') || url.includes('aus') || url.includes('australia')) return { flag: '🇦🇺', code: 'AUS' };
+  if (url.includes('uk.') || url.includes('uk-') || url.includes('london')) return { flag: '🇬🇧', code: 'UK' };
+  return { flag: '🇬🇧', code: 'UK' };
+};
+
+/** Sort organizations into a parent → child hierarchy (mirrors the sidebar). */
+const sortOrgsWithHierarchy = (orgs: OrganizationLike[]): Array<{ org: OrganizationLike; level: number }> => {
+  const orgMap = new Map(orgs.map((org) => [org.id, org]));
+  const result: Array<{ org: OrganizationLike; level: number }> = [];
+  const processed = new Set<string>();
+
+  const addOrgWithChildren = (org: OrganizationLike, level: number) => {
+    if (processed.has(org.id)) return;
+    processed.add(org.id);
+    result.push({ org, level });
+    const children = orgs.filter((o) => o.creator_org === org.id);
+    children.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    children.forEach((child) => addOrgWithChildren(child, level + 1));
+  };
+
+  const rootOrgs = orgs.filter((org) => !org.creator_org || !orgMap.has(org.creator_org));
+  rootOrgs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  rootOrgs.forEach((org) => addOrgWithChildren(org, 0));
+
+  orgs.forEach((org) => {
+    if (!processed.has(org.id)) result.push({ org, level: 1 });
+  });
+
+  return result;
 };
 
 const ShuffleVectorBadge = ({ size = 28 }: { size?: number }) => (
@@ -463,6 +518,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   // Organization resolution
   const activeOrg = propActiveOrg || resolvedUserInfo?.active_org;
   const userOrgs = resolvedUserInfo?.orgs || (activeOrg ? [activeOrg] : []);
+  const sortedUserOrgs = useMemo(() => sortOrgsWithHierarchy(userOrgs), [userOrgs]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>(
     requestedOrgId || activeOrg?.id || userOrgs[0]?.id || '',
   );
@@ -560,12 +616,11 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   // In-place Org Switch Handler with URL sync
   const handleOrgSwitch = useCallback(
     async (newOrgId: string) => {
+      // Selecting an organization here only scopes THIS authorization: the
+      // choice is sent as the `Org-Id` header (and org_id body field) on the
+      // authorize call. It intentionally does not switch the active org,
+      // which would reload the page and drop the OAuth request.
       setSelectedOrgId(newOrgId);
-      if (onOrgChange) {
-        try {
-          await onOrgChange(newOrgId);
-        } catch {}
-      }
 
       // Update URL query parameter org_id while preserving all OAuth params
       if (typeof window !== 'undefined') {
@@ -574,7 +629,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
         window.history.replaceState({}, '', url.toString());
       }
     },
-    [onOrgChange],
+    [],
   );
 
   // Save return target for unauthenticated users
@@ -1297,12 +1352,6 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
 
         {/* Content Body */}
         <Box sx={{ p: 3 }}>
-          {errorMsg && (
-            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2, fontSize: '0.85rem' }}>
-              {errorMsg}
-            </Alert>
-          )}
-
           {/* User Account & Organization Selection */}
           <Box
             sx={{
@@ -1350,27 +1399,108 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
               />
             </Box>
 
-            {/* In-Place Organization Switcher */}
+            {/* In-Place Organization Switcher (same autocomplete as the sidebar) */}
             {userOrgs.length > 1 && (
               <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid hsl(var(--border))' }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="core-org-select-label" sx={{ fontSize: '0.8rem' }}>
-                    Authorize for Organization
-                  </InputLabel>
-                  <Select
-                    labelId="core-org-select-label"
-                    value={selectedOrgId}
-                    label="Authorize for Organization"
-                    onChange={(e) => handleOrgSwitch(e.target.value)}
-                    sx={{ fontSize: '0.85rem' }}
-                  >
-                    {userOrgs.map((org) => (
-                      <MenuItem key={org.id} value={org.id} sx={{ fontSize: '0.85rem' }}>
-                        {org.name} {org.id === activeOrg?.id ? '(Active)' : ''}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mb: 0.75 }}>
+                  Authorize for Organization
+                </Typography>
+                <Autocomplete
+                  value={sortedUserOrgs.find((item) => item.org.id === selectedOrgId)?.org || undefined}
+                  onChange={(_, newValue) => { if (newValue) handleOrgSwitch(newValue.id); }}
+                  options={sortedUserOrgs.map((item) => item.org)}
+                  getOptionLabel={(option) => option.name || ''}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  size="small"
+                  disableClearable
+                  renderInput={(params) => {
+                    const current = userOrgs.find((o) => o.id === selectedOrgId);
+                    const region = getRegionFlag(current?.region_url);
+                    return (
+                      <TextField
+                        {...params}
+                        placeholder="Select tenant"
+                        slotProps={{
+                          input: {
+                            ...params.InputProps,
+                            startAdornment: current ? (
+                              <Tooltip title={current.region_url ? `Region URL: ${current.region_url}` : region.code} placement="bottom">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5 }}>
+                                  <span style={{ fontSize: '14px' }}>{region.flag}</span>
+                                  <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                                    {region.code || '?'}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            ) : null,
+                          },
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: 'hsl(var(--muted))',
+                            borderRadius: 1,
+                            fontSize: '0.875rem',
+                            '& fieldset': { borderColor: 'transparent' },
+                            '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                            '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                          },
+                          '& .MuiInputBase-input': { color: 'hsl(var(--foreground))' },
+                        }}
+                      />
+                    );
+                  }}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: 1,
+                        mt: 0.5,
+                        minWidth: 280,
+                        maxHeight: 300,
+                        overflow: 'auto',
+                        '& .MuiAutocomplete-listbox': { padding: 0, maxHeight: 'none' },
+                      },
+                    },
+                  }}
+                  renderOption={(props, option) => {
+                    const level = sortedUserOrgs.find((item) => item.org.id === option.id)?.level || 0;
+                    const region = getRegionFlag(option.region_url);
+                    const { key, ...restProps } = props;
+                    const isCurrentOrg = option.id === selectedOrgId;
+                    return (
+                      <Box
+                        component="li"
+                        key={option.id}
+                        {...restProps}
+                        sx={{
+                          fontSize: '0.875rem',
+                          color: isCurrentOrg ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                          backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--card))',
+                          pl: `${16 + level * 16}px !important`,
+                          py: 1,
+                          borderLeft: isCurrentOrg ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                          '&:hover': { backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
+                          '&.Mui-focused': { backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Tooltip title={option.region_url ? `Region URL: ${option.region_url}` : ''} placement="left">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <span style={{ fontSize: '14px' }}>{region.flag}</span>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', minWidth: 28 }}>
+                                {region.code || '?'}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                          <Typography sx={{ fontSize: '0.875rem', fontWeight: isCurrentOrg ? 600 : 400, color: isCurrentOrg ? 'hsl(var(--primary))' : 'inherit' }}>
+                            {option.name}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  }}
+                />
               </Box>
             )}
           </Box>
@@ -1525,6 +1655,12 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
             </Typography>
           </Box>
 
+          {errorMsg && (
+            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2, fontSize: '0.85rem' }}>
+              {errorMsg}
+            </Alert>
+          )}
+
           {/* Action Buttons */}
           <Box sx={{ display: 'flex', gap: 1.5 }}>
             <Button
@@ -1571,7 +1707,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
               ) : selectedScopeIds.size === 0 ? (
                 'Select permissions to authorize'
               ) : (
-                `Authorize ${clientProfile.name}`
+                'Authorize'
               )}
             </Button>
           </Box>
