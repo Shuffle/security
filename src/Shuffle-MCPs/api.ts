@@ -141,8 +141,9 @@ const readCachedCustomHost = (): string | null => {
     const raw = localStorage.getItem('shuffle_custom_host_url');
     const cleaned = raw ? raw.trim().replace(/\/+$/, '') : null;
     if (!cleaned) return null;
-    // A saved dev/test backend must never leak into a real deployment.
-    if (cleaned === DEV_BACKEND && !isDevEnvironment()) {
+    // A saved dev/test backend must never leak into a real deployment UNLESS
+    // the user explicitly picked it as their self-hosted server.
+    if (cleaned === DEV_BACKEND && !isDevEnvironment() && mode !== 'self-hosted') {
       try {
         localStorage.removeItem('shuffle_custom_host_url');
         localStorage.removeItem('shuffle_selected_server_mode');
