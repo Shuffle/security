@@ -629,7 +629,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
         window.history.replaceState({}, '', url.toString());
       }
     },
-    [onOrgChange],
+    [],
   );
 
   // Save return target for unauthenticated users
