@@ -101,9 +101,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
+      { title: "Shuffle Security — Open Source Alert & Case Management" },
       {
         name: "viewport",
         content: "width=device-width, initial-scale=1.0, viewport-fit=cover",
+      },
+      {
+        name: "description",
+        content:
+          "Open-source AI-powered incident response platform with 3,000+ integrations. Automatic security you control — cloud, on-prem, hybrid.",
       },
       {
         name: "keywords",

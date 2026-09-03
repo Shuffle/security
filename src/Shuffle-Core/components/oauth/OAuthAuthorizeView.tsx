@@ -50,6 +50,7 @@ import {
 import { getApiUrl, getAuthHeader } from '../../api';
 import { toast } from '../../toast';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
+import { useOptionalAuth } from '@/context/AuthContext';
 
 export interface OrganizationLike {
   id: string;
@@ -555,16 +556,23 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
   className,
   style,
 }) => {
+  // Auth state (optional: the view can also be used standalone with props)
+  const auth = useOptionalAuth();
+  // While the initial /api/v1/getinfo verification is still running we must not
+  // decide that the user is signed out - cookies/headers may still authenticate.
+  const isAuthChecking = propUserInfo === undefined && !!auth && auth.isLoading;
+
   // Resolve local user info from localStorage if not provided via props
   const resolvedUserInfo = useMemo<UserInfoLike | null>(() => {
     if (propUserInfo !== undefined) return propUserInfo;
+    if (auth?.userInfo) return auth.userInfo as UserInfoLike;
     if (typeof window === 'undefined') return null;
     try {
       const stored = localStorage.getItem('shuffle_user_info');
       if (stored) return JSON.parse(stored);
     } catch {}
     return null;
-  }, [propUserInfo]);
+  }, [propUserInfo, auth?.userInfo]);
 
   // Read query parameters
   const queryParams = useMemo(() => {
@@ -953,6 +961,31 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     if (!simulatedCallbackUrl) return;
     window.open(simulatedCallbackUrl, '_blank', 'noopener,noreferrer');
   }, [simulatedCallbackUrl]);
+
+  // 0. Verifying session (getinfo in flight) - never claim signed out yet
+  if (isAuthChecking && !resolvedUserInfo) {
+    return (
+      <Box
+        className={className}
+        style={style}
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+          bgcolor: 'hsl(var(--background))',
+          p: { xs: 2, sm: 3 },
+        }}
+      >
+        <CircularProgress size={28} sx={{ color: 'hsl(var(--primary))' }} />
+        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+          Verifying your session...
+        </Typography>
+      </Box>
+    );
+  }
 
   // 1. Unauthenticated State
   if (!resolvedUserInfo) {
@@ -1515,7 +1548,7 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                 {resolvedUserInfo?.username?.charAt(0).toUpperCase() || 'U'}
               </Avatar>
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', lineHeight: 1.2, noWrap: true }}>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', lineHeight: 1.2 }}>
                   {resolvedUserInfo?.username || 'Signed In User'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
