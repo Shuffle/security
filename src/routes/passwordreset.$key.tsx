@@ -23,6 +23,7 @@ import { routeMeta } from '@/lib/routeMeta';
 import { useNavigate, Link } from '@/lib/router-compat';
 import { getApiUrl } from '@/Shuffle-MCPs/api';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 
 export const Route = createFileRoute('/passwordreset/$key')({
   head: () =>
@@ -124,17 +125,23 @@ function PasswordResetPage() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'hsl(var(--background))',
-        p: { xs: 2, sm: 3 },
-      }}
-    >
-      <Box style={{ width: '100%', maxWidth: 'min(440px, 100%)', boxSizing: 'border-box' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'hsl(var(--background))', position: 'relative' }}>
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <LandingNavbar />
+      </Box>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'hsl(var(--background))',
+          p: { xs: 2, sm: 3 },
+          pt: { xs: 2, sm: 3, md: 'max(6rem, 80px)' },
+          pb: { xs: 2, sm: 3, md: 5 },
+        }}
+      >
+        <Box style={{ width: '100%', maxWidth: 'min(440px, 100%)', boxSizing: 'border-box' }}>
         {/* Brand Header */}
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Box
@@ -362,6 +369,7 @@ function PasswordResetPage() {
         </Card>
       </Box>
     </Box>
+  </Box>
   );
 }
 

@@ -28,6 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { isCapacitorNative } from '@/lib/platform';
 import { sanitizeInternalDestination } from '@/lib/safeRedirect';
 
@@ -521,36 +522,44 @@ export const MobileAuthGateway = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        width: '100%',
-        maxWidth: '100vw',
-        overflowX: 'hidden',
-        overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        boxSizing: 'border-box',
-        bgcolor: 'hsl(var(--background))',
-        color: 'hsl(var(--foreground))',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: { xs: 'flex-start', sm: 'center' },
-        alignItems: 'center',
-        px: { xs: 2, sm: 2.5 },
-        py: { xs: 2, sm: 4 },
-        pt: {
-          xs: 'max(5.5rem, calc(2.75rem + env(safe-area-inset-top, 52px)))',
-          sm: 5,
-        },
-        pb: {
-          xs: 'max(2.5rem, calc(2rem + env(safe-area-inset-bottom, 24px)))',
-          sm: 4,
-        },
-        pl: 'max(1.25rem, calc(1rem + env(safe-area-inset-left, 0px)))',
-        pr: 'max(1.25rem, calc(1rem + env(safe-area-inset-right, 0px)))',
-      }}
-    >
-      <motion.div
+    <Box sx={{ minHeight: '100dvh', bgcolor: 'hsl(var(--background))', position: 'relative' }}>
+      {!isCapacitorNative() && (
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+          <LandingNavbar />
+        </Box>
+      )}
+      <Box
+        sx={{
+          minHeight: '100dvh',
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'hidden',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          boxSizing: 'border-box',
+          bgcolor: 'hsl(var(--background))',
+          color: 'hsl(var(--foreground))',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: { xs: 'flex-start', md: 'center' },
+          alignItems: 'center',
+          px: { xs: 2, sm: 2.5 },
+          py: { xs: 2, sm: 4 },
+          pt: {
+            xs: 'max(5.5rem, calc(2.75rem + env(safe-area-inset-top, 52px)))',
+            sm: 5,
+            md: 'max(7rem, 96px)',
+          },
+          pb: {
+            xs: 'max(2.5rem, calc(2rem + env(safe-area-inset-bottom, 24px)))',
+            sm: 4,
+            md: 6,
+          },
+          pl: 'max(1.25rem, calc(1rem + env(safe-area-inset-left, 0px)))',
+          pr: 'max(1.25rem, calc(1rem + env(safe-area-inset-right, 0px)))',
+        }}
+      >
+        <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -1211,6 +1220,7 @@ export const MobileAuthGateway = () => {
         )}
       </motion.div>
     </Box>
+  </Box>
   );
 };
 
