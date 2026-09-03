@@ -373,7 +373,7 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
         body.mfa_code = code;
       }
 
-      const loginUrl = getApiUrl(API_ENDPOINTS.login);
+      const loginUrl = getApiUrl(isRegister ? API_ENDPOINTS.register : API_ENDPOINTS.login);
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
