@@ -1403,27 +1403,108 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
               />
             </Box>
 
-            {/* In-Place Organization Switcher */}
+            {/* In-Place Organization Switcher (same autocomplete as the sidebar) */}
             {userOrgs.length > 1 && (
               <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid hsl(var(--border))' }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="core-org-select-label" sx={{ fontSize: '0.8rem' }}>
-                    Authorize for Organization
-                  </InputLabel>
-                  <Select
-                    labelId="core-org-select-label"
-                    value={selectedOrgId}
-                    label="Authorize for Organization"
-                    onChange={(e) => handleOrgSwitch(e.target.value)}
-                    sx={{ fontSize: '0.85rem' }}
-                  >
-                    {userOrgs.map((org) => (
-                      <MenuItem key={org.id} value={org.id} sx={{ fontSize: '0.85rem' }}>
-                        {org.name} {org.id === activeOrg?.id ? '(Active)' : ''}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', display: 'block', mb: 0.75 }}>
+                  Authorize for Organization
+                </Typography>
+                <Autocomplete
+                  value={sortedUserOrgs.find((item) => item.org.id === selectedOrgId)?.org || null}
+                  onChange={(_, newValue) => { if (newValue) handleOrgSwitch(newValue.id); }}
+                  options={sortedUserOrgs.map((item) => item.org)}
+                  getOptionLabel={(option) => option.name || ''}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  size="small"
+                  disableClearable
+                  renderInput={(params) => {
+                    const current = userOrgs.find((o) => o.id === selectedOrgId);
+                    const region = getRegionFlag(current?.region_url);
+                    return (
+                      <TextField
+                        {...params}
+                        placeholder="Select tenant"
+                        slotProps={{
+                          input: {
+                            ...params.InputProps,
+                            startAdornment: current ? (
+                              <Tooltip title={current.region_url ? `Region URL: ${current.region_url}` : region.code} placement="bottom">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5 }}>
+                                  <span style={{ fontSize: '14px' }}>{region.flag}</span>
+                                  <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                                    {region.code || '?'}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            ) : null,
+                          },
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: 'hsl(var(--muted))',
+                            borderRadius: 1,
+                            fontSize: '0.875rem',
+                            '& fieldset': { borderColor: 'transparent' },
+                            '&:hover fieldset': { borderColor: 'hsl(var(--border))' },
+                            '&.Mui-focused fieldset': { borderColor: 'hsl(var(--primary))' },
+                          },
+                          '& .MuiInputBase-input': { color: 'hsl(var(--foreground))' },
+                        }}
+                      />
+                    );
+                  }}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: 1,
+                        mt: 0.5,
+                        minWidth: 280,
+                        maxHeight: 300,
+                        overflow: 'auto',
+                        '& .MuiAutocomplete-listbox': { padding: 0, maxHeight: 'none' },
+                      },
+                    },
+                  }}
+                  renderOption={(props, option) => {
+                    const level = sortedUserOrgs.find((item) => item.org.id === option.id)?.level || 0;
+                    const region = getRegionFlag(option.region_url);
+                    const { key, ...restProps } = props;
+                    const isCurrentOrg = option.id === selectedOrgId;
+                    return (
+                      <Box
+                        component="li"
+                        key={option.id}
+                        {...restProps}
+                        sx={{
+                          fontSize: '0.875rem',
+                          color: isCurrentOrg ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                          backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--card))',
+                          pl: `${16 + level * 16}px !important`,
+                          py: 1,
+                          borderLeft: isCurrentOrg ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                          '&:hover': { backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
+                          '&.Mui-focused': { backgroundColor: isCurrentOrg ? 'rgba(255, 102, 0, 0.15) !important' : 'hsl(var(--muted)) !important' },
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Tooltip title={option.region_url ? `Region URL: ${option.region_url}` : ''} placement="left">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <span style={{ fontSize: '14px' }}>{region.flag}</span>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', minWidth: 28 }}>
+                                {region.code || '?'}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                          <Typography sx={{ fontSize: '0.875rem', fontWeight: isCurrentOrg ? 600 : 400, color: isCurrentOrg ? 'hsl(var(--primary))' : 'inherit' }}>
+                            {option.name}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  }}
+                />
               </Box>
             )}
           </Box>
