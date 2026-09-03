@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useMatches } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatches, ClientOnly } from "@tanstack/react-router";
 import { routeMeta } from '@/lib/routeMeta';
 import { MobileAuthGateway } from '@/components/mobile/MobileAuthGateway';
 
