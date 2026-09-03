@@ -959,6 +959,31 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
     window.open(simulatedCallbackUrl, '_blank', 'noopener,noreferrer');
   }, [simulatedCallbackUrl]);
 
+  // 0. Verifying session (getinfo in flight) - never claim signed out yet
+  if (isAuthChecking && !resolvedUserInfo) {
+    return (
+      <Box
+        className={className}
+        style={style}
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+          bgcolor: 'hsl(var(--background))',
+          p: { xs: 2, sm: 3 },
+        }}
+      >
+        <CircularProgress size={28} sx={{ color: 'hsl(var(--primary))' }} />
+        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+          Verifying your session...
+        </Typography>
+      </Box>
+    );
+  }
+
   // 1. Unauthenticated State
   if (!resolvedUserInfo) {
     return (
