@@ -1045,7 +1045,7 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
                           >
                             Password
                           </Typography>
-                          {serverMode === 'cloud' && (
+                          {serverMode === 'cloud' && !isRegister && (
                             <Button
                               onClick={() => {
                                 setIsResetPasswordMode(true);
