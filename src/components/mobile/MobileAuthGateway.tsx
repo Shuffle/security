@@ -448,7 +448,15 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
       }
 
       if (!response.ok) {
-        setError(data.reason || data.message || (mfaRequired ? 'Invalid MFA code' : 'Invalid username or password'));
+        setError(
+          data.reason ||
+            data.message ||
+            (isRegister
+              ? 'Registration failed. Please try again.'
+              : mfaRequired
+              ? 'Invalid MFA code'
+              : 'Invalid username or password')
+        );
         return;
       }
 
@@ -456,6 +464,15 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
       const sessionToken =
         data.session_token ||
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
+
+      // Registration that does not return a session: fall back to signing in.
+      // The redirect target lives in the URL / session storage, so it survives.
+      if (isRegister && data.success !== false && !sessionToken) {
+        setAuthMode('login');
+        setPassword('');
+        setNotice('Registration successful. Please sign in.');
+        return;
+      }
 
       if (data.success !== false) {
         // Validate the session with getinfo BEFORE treating the user as logged in,
