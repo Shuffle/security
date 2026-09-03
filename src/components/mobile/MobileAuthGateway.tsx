@@ -152,7 +152,7 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
         sessionStorage.removeItem('shuffle_redirect_after_login');
       } catch {}
     }
-    navigate(from, { replace: true });
+    goToRedirectTarget(from);
   }, [isAuthenticated, authLoading, navigate, from, location.pathname]);
 
   // Server instance selection: 'cloud' | 'self-hosted'
