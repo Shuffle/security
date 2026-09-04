@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+.output/
+dist/
+.wrangler/
+.nitro/
+
+# Version control
+.git/
+.github/
+
+# Mobile apps and native builds
+android/
+ios/
+*.keystore
+*.jks
+*.mobileprovision
+
+# Database & local data volumes
+shuffle-database/
+shuffle-files/
+shuffle-apps/
+
+# Environment files
+.env.local
+.env.*.local
+
+# Logs and system files
+*.log
+.DS_Store
+Thumbs.db
