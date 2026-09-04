@@ -23,6 +23,8 @@ import { SIDEBAR_NAV } from '@/config/sidebarNav';
 import { TaskStatusesEditor } from '@/components/settings/TaskStatusesEditor';
 import { SlaEditor } from '@/components/settings/SlaEditor';
 import { IncidentRoutingEditor } from '@/components/settings/IncidentRoutingEditor';
+import { DefaultEnvironmentSelector } from '@/components/settings/DefaultEnvironmentSelector';
+
 import { useAuth } from '@/context/AuthContext';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
@@ -197,7 +199,33 @@ const OrgPreferencesPage = ({ embedded = false }: { embedded?: boolean }) => {
 
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Default runtime location (environment workflows execute in) */}
+        <Paper
+          sx={{
+            p: 2.5,
+            bgcolor: 'transparent', backgroundImage: 'none', backdropFilter: 'blur(12px)',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+              Default Runtime Location
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+              Where workflows execute by default. Archived environments and sensor groups cannot be selected.
+            </Typography>
+          </Box>
+          <DefaultEnvironmentSelector />
+        </Paper>
+
         {/* Terminology */}
+
         <Paper
           sx={{
             p: 2.5,
