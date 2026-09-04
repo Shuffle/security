@@ -96,13 +96,11 @@ export const DefaultEnvironmentSelector = () => {
     }
   };
 
-  const selectedOrNull = selected || null;
-
   return (
     <Box sx={{ minWidth: { xs: '100%', sm: 280 }, maxWidth: { sm: 340 } }}>
       <Autocomplete
-        key={selectedOrNull?.id ?? 'none'}
-        value={selectedOrNull}
+        key={selected?.id ?? 'none'}
+        value={selected}
         loading={loading}
         disabled={loading || saving}
         onChange={(_, newValue) => handleSelect(newValue)}
