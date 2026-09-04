@@ -70,7 +70,7 @@ export const DefaultEnvironmentSelector = () => {
     fetchEnvironments();
   }, [fetchEnvironments]);
 
-  const selected = environments.find((e) => e.default) || null;
+  const selected = environments.find((e) => e.default);
 
   // The API replaces the whole list, so we send every environment back with
   // only the `default` flag swapped over to the new selection.
