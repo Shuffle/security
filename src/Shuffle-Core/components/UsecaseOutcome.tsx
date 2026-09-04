@@ -12,9 +12,9 @@ import { Box, Typography, Tooltip, CircularProgress, useTheme } from '@mui/mater
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 // In the standalone library build, support diagnostics are always off.
 // The host app overrides this internally via its own AuthContext, but the
-// published package has no access to that, so we stub it locally.
 const useIsSupport = (): boolean => false;
 import type { UsecaseOutcome } from '../lib/outcomes';
+import { getShuffleCoreUrl } from '../api';
 
 /** Frontend routes we know exist in src/App.tsx — used by the support-only
  *  CTA diagnostic chip to flag broken outcome links before users hit them. */
@@ -214,7 +214,7 @@ function deriveCta(
       };
     case 'iocs_managed':
       return {
-        href: 'https://shuffler.io/admin?tab=datastore',
+        href: getShuffleCoreUrl('/admin?tab=datastore'),
         label: isDisabled ? 'Open observables datastore' : 'Manage observables',
         external: true,
       };
@@ -358,7 +358,7 @@ export function UsecaseOutcomeSection({
                     {(() => {
                       const iocCategory = iocCategoryByKey?.[entry.key];
                       const href = entry.href || (iocCategory
-                        ? `https://shuffler.io/admin?tab=datastore&category=${encodeURIComponent(iocCategory)}`
+                        ? getShuffleCoreUrl(`/admin?tab=datastore&category=${encodeURIComponent(iocCategory)}`)
                         : undefined);
                       const external = entry.external || !!iocCategory;
                       const clickable = !!entry.onClick || !!href;

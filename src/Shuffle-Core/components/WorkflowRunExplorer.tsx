@@ -448,7 +448,7 @@ const copyExecutionLink = () => {
           {(exec.execution_source || exec.authgroup) && (() => {
             const ds = datastoreSourceParts(exec);
             if (ds) {
-              const href = `https://shuffler.io/admin?tab=datastore&category=${encodeURIComponent(ds.category)}&key=${encodeURIComponent(ds.key)}`;
+              const href = getShuffleCoreUrl(`/admin?tab=datastore&category=${encodeURIComponent(ds.category)}&key=${encodeURIComponent(ds.key)}`);
               return (
                 <MetaRow
                   label="Source"
@@ -569,7 +569,7 @@ const copyExecutionLink = () => {
                 >
                   <Box
                     component="a"
-                    href={`https://shuffler.io/admin?tab=locations`}
+                    href={getShuffleCoreUrl('/admin?tab=locations')}
                     target="_blank"
                     rel="noopener noreferrer"
                     sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}

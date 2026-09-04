@@ -13,7 +13,7 @@ import {
 import { Box, Typography, InputBase, CircularProgress } from '@mui/material';
 import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Bug, MonitorCheck, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getShuffleCoreUrl, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 
@@ -138,10 +138,10 @@ const navItems: NavResult[] = [
   { type: 'nav', label: 'Host Monitors', path: '/monitors', icon: <MonitorCheck size={16} />, group: 'Security' },
 
 
-  { type: 'nav', label: 'Workflows', path: 'https://shuffler.io/workflows', icon: <Workflow size={16} />, group: 'Automation', external: true },
+  { type: 'nav', label: 'Workflows', path: getShuffleCoreWorkflowUrl(), icon: <Workflow size={16} />, group: 'Automation', external: true },
   { type: 'nav', label: 'Apps', path: '/apps', icon: <Braces size={16} />, group: 'Automation' },
-  { type: 'nav', label: 'Storage', path: 'https://shuffler.io/admin?tab=datastore', icon: <HardDrive size={16} />, group: 'Automation', external: true },
-  { type: 'nav', label: 'Files', path: 'https://shuffler.io/admin?tab=files', icon: <DescriptionIcon size={16} />, group: 'Automation', external: true },
+  { type: 'nav', label: 'Storage', path: getShuffleCoreUrl('/admin?tab=datastore'), icon: <HardDrive size={16} />, group: 'Automation', external: true },
+  { type: 'nav', label: 'Files', path: getShuffleCoreUrl('/admin?tab=files'), icon: <DescriptionIcon size={16} />, group: 'Automation', external: true },
 ];
 
 

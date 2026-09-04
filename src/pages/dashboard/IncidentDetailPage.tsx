@@ -59,7 +59,7 @@ import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
 import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem, deleteDatastoreItem, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
 import type { GenerateReportInput } from '@/services/incidentReports';
-import { API_CONFIG, getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
+import { API_CONFIG, getApiUrl, getAuthHeader, getShuffleCoreUrl, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
 import { resyncState } from '@/lib/resyncState';
 import { autoCorrectTranslatedString, repairCorruptedOcsfFields, type FieldRepair } from '@/lib/translationFallback';
 import { useUsers } from '@/hooks/useUsers';
@@ -6970,9 +6970,9 @@ const IncidentDetailPage = () => {
         const shortId = String(run.execution_id || '').slice(0, 8);
         const wfId = run.workflow_id || run.workflow?.id || '';
         const execUrl = wfId && run.execution_id
-          ? `https://shuffler.io/workflows/${wfId}?execution_id=${run.execution_id}`
+          ? getShuffleCoreWorkflowUrl(wfId, { execution_id: run.execution_id })
           : run.execution_id
-            ? `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${run.execution_id}`
+            ? getShuffleCoreUrl(`/admin?admin_tab=workflow_runs&execution_id=${run.execution_id}`)
             : '';
         const warnTitle = hasNotifications && isLongRunning
           ? `${notifCount} notification${notifCount === 1 ? '' : 's'} created · running >5 min`

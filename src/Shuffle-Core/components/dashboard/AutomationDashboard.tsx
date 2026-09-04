@@ -147,7 +147,6 @@ export const AutomationDashboard = ({
   useSyncHostBaseUrl(globalUrl);
   const orgId = orgIdProp ?? userdata?.active_org?.id ?? null;
   const _name = (displayName || userdata?.username || '').split('@')[0] || 'there';
-  const navigate = useNavigate();
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -429,7 +428,7 @@ export const AutomationDashboard = ({
           label="Notifications"
           isLoading={loading}
           delay={0}
-          onClick={() => window.open('https://shuffler.io/admin?admin_tab=notifications', '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open(getShuffleCoreUrl('/admin?admin_tab=notifications'), '_blank', 'noopener,noreferrer')}
         />
         <KpiTile
           icon={Workflow}

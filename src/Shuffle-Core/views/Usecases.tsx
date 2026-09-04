@@ -2602,7 +2602,7 @@ function WebhookExecutionsOutcomeBlock({
           label: 'Webhook',
           value: stats.total,
           iconNode: <Webhook size={14} strokeWidth={2} />,
-          href: `https://shuffler.io/workflows/${webhookWorkflow.id}`,
+          href: getShuffleCoreWorkflowUrl(webhookWorkflow.id),
           external: true,
         },
         ...next.breakdown,
