@@ -711,7 +711,7 @@ const EditWorkflow = (props) => {
 											setTimeout(() => {
 												setModalOpen(false);
 												setAiGenerateLoading(false);
-												window.location.href = `/workflows/${workflowId}`;
+												window.location.href = getShuffleCoreWorkflowUrl(workflowId);
 											}, 1500); 
 
 										} catch (error) {
