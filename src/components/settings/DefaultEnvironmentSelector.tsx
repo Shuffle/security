@@ -80,7 +80,7 @@ export const DefaultEnvironmentSelector = () => {
     setSaving(true);
     try {
       const res = await fetch(getApiUrl('/api/v1/setenvironments'), {
-        method: 'POST',
+        method: 'PUT',
         credentials: 'include',
         headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -99,6 +99,7 @@ export const DefaultEnvironmentSelector = () => {
   return (
     <Box sx={{ minWidth: { xs: '100%', sm: 280 }, maxWidth: { sm: 340 } }}>
       <Autocomplete
+        key={selected?.id ?? 'none'}
         value={selected}
         loading={loading}
         disabled={loading || saving}
