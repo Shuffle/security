@@ -47,7 +47,9 @@ import { Route as CondUsecasesIndexRouteImport } from './routes/_cond.usecases.i
 import { Route as CondVulnerabilitiesIndexRouteImport } from './routes/_cond.vulnerabilities.index'
 import { Route as CondVulnerabilitiesSplatRouteImport } from './routes/_cond.vulnerabilities.$'
 import { Route as DashAdminIndexRouteImport } from './routes/_dash.admin.index'
+import { Route as DashAdminLocationsRouteImport } from './routes/_dash.admin.locations'
 import { Route as DashAdminPreferencesRouteImport } from './routes/_dash.admin.preferences'
+import { Route as DashAdminRuntimeLocationsRouteImport } from './routes/_dash.admin.runtime-locations'
 import { Route as DashAdminTenantsRouteImport } from './routes/_dash.admin.tenants'
 import { Route as DashAdminUsersRouteImport } from './routes/_dash.admin.users'
 import { Route as DashAgentsIndexRouteImport } from './routes/_dash.agents.index'
@@ -287,11 +289,22 @@ const DashAdminIndexRoute = DashAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => DashRoute,
 } as any)
+const DashAdminLocationsRoute = DashAdminLocationsRouteImport.update({
+  id: '/admin/locations',
+  path: '/admin/locations',
+  getParentRoute: () => DashRoute,
+} as any)
 const DashAdminPreferencesRoute = DashAdminPreferencesRouteImport.update({
   id: '/admin/preferences',
   path: '/admin/preferences',
   getParentRoute: () => DashRoute,
 } as any)
+const DashAdminRuntimeLocationsRoute =
+  DashAdminRuntimeLocationsRouteImport.update({
+    id: '/admin/runtime-locations',
+    path: '/admin/runtime-locations',
+    getParentRoute: () => DashRoute,
+  } as any)
 const DashAdminTenantsRoute = DashAdminTenantsRouteImport.update({
   id: '/admin/tenants',
   path: '/admin/tenants',
@@ -584,7 +597,9 @@ export interface FileRoutesByFullPath {
   '/apps/$appname': typeof CondAppsAppnameRoute
   '/forms/$id': typeof CondFormsIdRoute
   '/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
+  '/admin/locations': typeof DashAdminLocationsRoute
   '/admin/preferences': typeof DashAdminPreferencesRoute
+  '/admin/runtime-locations': typeof DashAdminRuntimeLocationsRoute
   '/admin/tenants': typeof DashAdminTenantsRoute
   '/admin/users': typeof DashAdminUsersRoute
   '/agents/$executionId': typeof DashAgentsExecutionIdRoute
@@ -671,7 +686,9 @@ export interface FileRoutesByTo {
   '/apps/$appname': typeof CondAppsAppnameRoute
   '/forms/$id': typeof CondFormsIdRoute
   '/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
+  '/admin/locations': typeof DashAdminLocationsRoute
   '/admin/preferences': typeof DashAdminPreferencesRoute
+  '/admin/runtime-locations': typeof DashAdminRuntimeLocationsRoute
   '/admin/tenants': typeof DashAdminTenantsRoute
   '/admin/users': typeof DashAdminUsersRoute
   '/agents/$executionId': typeof DashAgentsExecutionIdRoute
@@ -762,7 +779,9 @@ export interface FileRoutesById {
   '/_cond/apps/$appname': typeof CondAppsAppnameRoute
   '/_cond/forms/$id': typeof CondFormsIdRoute
   '/_cond/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
+  '/_dash/admin/locations': typeof DashAdminLocationsRoute
   '/_dash/admin/preferences': typeof DashAdminPreferencesRoute
+  '/_dash/admin/runtime-locations': typeof DashAdminRuntimeLocationsRoute
   '/_dash/admin/tenants': typeof DashAdminTenantsRoute
   '/_dash/admin/users': typeof DashAdminUsersRoute
   '/_dash/agents/$executionId': typeof DashAgentsExecutionIdRoute
@@ -851,7 +870,9 @@ export interface FileRouteTypes {
     | '/apps/$appname'
     | '/forms/$id'
     | '/vulnerabilities/$'
+    | '/admin/locations'
     | '/admin/preferences'
+    | '/admin/runtime-locations'
     | '/admin/tenants'
     | '/admin/users'
     | '/agents/$executionId'
@@ -938,7 +959,9 @@ export interface FileRouteTypes {
     | '/apps/$appname'
     | '/forms/$id'
     | '/vulnerabilities/$'
+    | '/admin/locations'
     | '/admin/preferences'
+    | '/admin/runtime-locations'
     | '/admin/tenants'
     | '/admin/users'
     | '/agents/$executionId'
@@ -1028,7 +1051,9 @@ export interface FileRouteTypes {
     | '/_cond/apps/$appname'
     | '/_cond/forms/$id'
     | '/_cond/vulnerabilities/$'
+    | '/_dash/admin/locations'
     | '/_dash/admin/preferences'
+    | '/_dash/admin/runtime-locations'
     | '/_dash/admin/tenants'
     | '/_dash/admin/users'
     | '/_dash/agents/$executionId'
@@ -1378,11 +1403,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashAdminIndexRouteImport
       parentRoute: typeof DashRoute
     }
+    '/_dash/admin/locations': {
+      id: '/_dash/admin/locations'
+      path: '/admin/locations'
+      fullPath: '/admin/locations'
+      preLoaderRoute: typeof DashAdminLocationsRouteImport
+      parentRoute: typeof DashRoute
+    }
     '/_dash/admin/preferences': {
       id: '/_dash/admin/preferences'
       path: '/admin/preferences'
       fullPath: '/admin/preferences'
       preLoaderRoute: typeof DashAdminPreferencesRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/runtime-locations': {
+      id: '/_dash/admin/runtime-locations'
+      path: '/admin/runtime-locations'
+      fullPath: '/admin/runtime-locations'
+      preLoaderRoute: typeof DashAdminRuntimeLocationsRouteImport
       parentRoute: typeof DashRoute
     }
     '/_dash/admin/tenants': {
@@ -1764,7 +1803,9 @@ interface DashRouteChildren {
   DashSettingsRoute: typeof DashSettingsRoute
   DashTemplatesRoute: typeof DashTemplatesRoute
   DashUsersRoute: typeof DashUsersRoute
+  DashAdminLocationsRoute: typeof DashAdminLocationsRoute
   DashAdminPreferencesRoute: typeof DashAdminPreferencesRoute
+  DashAdminRuntimeLocationsRoute: typeof DashAdminRuntimeLocationsRoute
   DashAdminTenantsRoute: typeof DashAdminTenantsRoute
   DashAdminUsersRoute: typeof DashAdminUsersRoute
   DashAgentsExecutionIdRoute: typeof DashAgentsExecutionIdRoute
@@ -1817,7 +1858,9 @@ const DashRouteChildren: DashRouteChildren = {
   DashSettingsRoute: DashSettingsRoute,
   DashTemplatesRoute: DashTemplatesRoute,
   DashUsersRoute: DashUsersRoute,
+  DashAdminLocationsRoute: DashAdminLocationsRoute,
   DashAdminPreferencesRoute: DashAdminPreferencesRoute,
+  DashAdminRuntimeLocationsRoute: DashAdminRuntimeLocationsRoute,
   DashAdminTenantsRoute: DashAdminTenantsRoute,
   DashAdminUsersRoute: DashAdminUsersRoute,
   DashAgentsExecutionIdRoute: DashAgentsExecutionIdRoute,

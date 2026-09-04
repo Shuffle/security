@@ -2343,23 +2343,23 @@ const IncidentsPage = () => {
               </IconButton>
             </Tooltip>
             {ingestWorkflowId && (
-              <Tooltip title={isUpdatingApps ? "Updating sources…" : scheduleStopped ? "Schedule is stopped — click to run now" : "Sync now"}>
+              <Tooltip title={isUpdatingApps ? "Updating sources…" : ingestScheduleStopped ? "Schedule is stopped — click to run now" : "Sync now"}>
                 <span>
                 <IconButton
                   data-tour="sync-ingestion-button"
-                  onClick={triggerSync}
+                  onClick={() => { triggerSync(); }}
                   disabled={isSyncing || isUpdatingApps}
                   size="small"
                   sx={{
                     width: 28,
                     height: 28,
-                    color: scheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))',
+                    color: ingestScheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))',
                     border: '1px solid',
-                    borderColor: scheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--border))',
+                    borderColor: ingestScheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--border))',
                     borderRadius: 1,
                     '&:hover': {
                       bgcolor: 'hsl(var(--muted))',
-                      color: scheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--primary))',
+                      color: ingestScheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--primary))',
                     },
                   }}
                 >

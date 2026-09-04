@@ -21,6 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
 import OrgPreferencesPage from './OrgPreferencesPage';
+import RuntimeLocationsTab from '@/components/settings/RuntimeLocationsTab';
 import { TenantManagement } from '@/Shuffle-Core';
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -64,9 +65,14 @@ const AdminPage = () => {
   const getTabFromPath = useCallback(() => {
     if (location.pathname === '/admin/users') return 1;
     if (location.pathname === '/admin/tenants') return 2;
-    if (location.pathname === '/admin/preferences') return 3;
+    if (location.pathname === '/admin/runtime-locations' || location.pathname === '/admin/locations') return 3;
+    if (location.pathname === '/admin/preferences') return 4;
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('admin_tab') || searchParams.get('tab');
+    if (tabParam === 'runtime-locations' || tabParam === 'locations') return 3;
+    if (tabParam === 'preferences') return 4;
     return 0;
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const [activeTab, setActiveTab] = useState(getTabFromPath());
   const [loading, setLoading] = useState(true);
@@ -175,7 +181,8 @@ const AdminPage = () => {
     if (newValue === 0) navigate('/admin');
     else if (newValue === 1) navigate('/admin/users');
     else if (newValue === 2) navigate('/admin/tenants');
-    else if (newValue === 3) navigate('/admin/preferences');
+    else if (newValue === 3) navigate('/admin/runtime-locations');
+    else if (newValue === 4) navigate('/admin/preferences');
   };
 
   // Fetch org details
@@ -342,13 +349,14 @@ const AdminPage = () => {
       </Box>
 
       {(() => {
-        type TabValue = 'overview' | 'users' | 'tenants' | 'preferences';
-        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'preferences'];
+        type TabValue = 'overview' | 'users' | 'tenants' | 'runtime-locations' | 'preferences';
+        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'runtime-locations', 'preferences'];
         const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
         const options: SegmentedItem<TabValue>[] = [
           { value: 'overview', label: 'Overview' },
           { value: 'users', label: 'Users' },
           { value: 'tenants', label: 'Tenants' },
+          { value: 'runtime-locations', label: 'Runtime Locations' },
           { value: 'preferences', label: 'Preferences' },
         ];
         return (
@@ -539,7 +547,8 @@ const AdminPage = () => {
         </>
       )}
 
-      {activeTab === 3 && <OrgPreferencesPage embedded />}
+      {activeTab === 3 && <RuntimeLocationsTab />}
+      {activeTab === 4 && <OrgPreferencesPage embedded />}
       {activeTab === 1 && <UsersPage embedded />}
       {activeTab === 2 && (
         <TenantManagement
