@@ -17,7 +17,7 @@ ENV VITE_SHUFFLE_SECURITY_URL=$VITE_SHUFFLE_SECURITY_URL
 ENV NITRO_PRESET=node-server
 
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --ignore-scripts
+RUN bun install --ignore-scripts
 
 COPY . .
 RUN bun run build
@@ -45,7 +45,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy built server bundle and public assets
 COPY --from=build /app/.output /app/.output
-RUN mkdir -p /usr/share/nginx/html && cp -r /app/.output/public/* /usr/share/nginx/html/
+COPY --from=build /app/.output/public /usr/share/nginx/html
 
 # BACKEND_HOSTNAME is resolved at runtime via envsubst
 ENV BACKEND_HOSTNAME=backend
