@@ -283,41 +283,39 @@ const AuthenticatedVulnerabilitiesView = () => {
           <p className="text-sm text-muted-foreground">Track and manage vulnerabilities across your assets and users</p>
         </div>
         <div className="flex items-center gap-2">
-          {isSupport && (
-            <IngestionSourcesRow
-              workflowLabel="Ingest Vulnerabilities"
-              category="vulnerabilities"
-              webhookLabel="vulnerabilities_webhook"
-              webhookWorkflowName="Vulnerability Ingestion Webhook"
-              titleTooltip="Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in vulnerabilities."
-              addSubtitle="Search and authenticate a tool to ingest vulnerabilities from"
-              searchPriorityQuery="asset management cloud iam"
-              onSourcesChanged={() => refresh()}
-              afterWebhook={
-                <MuiTooltip title="Add Host Monitor" placement="top" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={() => navigate('/monitors?add_host=true')}
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: hasHostMonitors ? 'hsl(var(--border))' : 'hsl(var(--primary))',
-                      color: hasHostMonitors ? 'hsl(var(--muted-foreground))' : 'hsl(var(--primary))',
-                      bgcolor: hasHostMonitors ? 'transparent' : 'hsl(var(--primary) / 0.12)',
-                      '&:hover': {
-                        bgcolor: 'hsl(var(--primary) / 0.18)',
-                        color: 'hsl(var(--primary))',
-                      },
-                    }}
-                  >
-                    <MonitorCheck size={16} />
-                  </IconButton>
-                </MuiTooltip>
-              }
-            />
-          )}
+          <IngestionSourcesRow
+            workflowLabel="Ingest Vulnerabilities"
+            category="vulnerabilities"
+            webhookLabel="vulnerabilities_webhook"
+            webhookWorkflowName="Vulnerability Ingestion Webhook"
+            titleTooltip="Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in vulnerabilities."
+            addSubtitle="Search and authenticate vulnerability scanners and security tools to ingest from"
+            searchPriorityQuery="vulnerability scanner cve snyk qualys tenable rapid7 trivy"
+            onSourcesChanged={() => refresh()}
+            afterWebhook={
+              <MuiTooltip title="Add Host Monitor" placement="top" arrow>
+                <IconButton
+                  size="small"
+                  onClick={() => navigate('/monitors?add_host=true')}
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: hasHostMonitors ? 'hsl(var(--border))' : 'hsl(var(--primary))',
+                    color: hasHostMonitors ? 'hsl(var(--muted-foreground))' : 'hsl(var(--primary))',
+                    bgcolor: hasHostMonitors ? 'transparent' : 'hsl(var(--primary) / 0.12)',
+                    '&:hover': {
+                      bgcolor: 'hsl(var(--primary) / 0.18)',
+                      color: 'hsl(var(--primary))',
+                    },
+                  }}
+                >
+                  <MonitorCheck size={16} />
+                </IconButton>
+              </MuiTooltip>
+            }
+          />
           <IconActionButton
             tone="success"
             active={!!categoryAutomations?.some(a => a.enabled)}

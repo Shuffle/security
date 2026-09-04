@@ -273,7 +273,51 @@ export const IngestionSourcesRow = ({
     hoverTimer.current = setTimeout(() => setHovered(false), 300);
   }, []);
 
-  if (ingestionLoading) return null;
+  if (ingestionLoading) {
+    return (
+      <Box
+        sx={{
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.5,
+          bgcolor: 'hsl(var(--muted) / 0.4)',
+          border: '1px solid hsl(var(--border))',
+          borderRadius: 1.5,
+          px: 0.75,
+          py: 0.5,
+          height: 38,
+        }}
+      >
+        <Typography
+          className="automation-section-title"
+          sx={{
+            position: 'absolute',
+            top: -10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: '0.55rem',
+            fontWeight: 600,
+            color: 'hsl(var(--muted-foreground))',
+            bgcolor: 'hsl(var(--muted))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 10,
+            px: 1,
+            py: 0.15,
+            lineHeight: 1.3,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {title}
+        </Typography>
+        <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.6)', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+        <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.6)', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite', animationDelay: '0.2s' }} />
+        <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.6)', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite', animationDelay: '0.4s' }} />
+      </Box>
+    );
+  }
 
   const allApps = [
     ...ingestionApps,

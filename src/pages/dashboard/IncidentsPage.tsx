@@ -2127,6 +2127,257 @@ const IncidentsPage = () => {
     );
   }
 
+  const renderAutomationPipeline = () => {
+    if (!showAutomation && !demoActive) return null;
+    return (
+      <Box
+        className="automation-pipeline"
+        sx={{
+          // In demo mode the Ingest area is the focal point of the tour,
+          // so it must remain visible regardless of viewport width.
+          display: demoActive ? 'flex' : { xs: 'none', md: 'flex' },
+          alignItems: 'center',
+          gap: 0,
+          position: 'relative',
+          // Default state
+          '& .automation-section-ingest, & .automation-section-forward': {
+            transition: 'border-color 0.3s ease, background-color 0.3s ease',
+            overflow: 'visible',
+            clipPath: 'inset(-24px -20px -20px -20px)',
+            position: 'relative',
+          },
+          '& .automation-section-title': {
+            transition: 'opacity 0.25s ease',
+          },
+          '& .automation-arrow': {
+            transition: 'max-width 0.4s cubic-bezier(0.4,0,0.2,1) 0.15s, opacity 0.3s ease 0.15s',
+            overflow: 'hidden',
+          },
+          // Hovering either section: boost z-index and make bg opaque, hide other title
+          '&:has(.automation-section-ingest:hover), &:has(.automation-section-ingest.is-hovered)': {
+            '& .automation-section-ingest': {
+              zIndex: 10,
+              bgcolor: 'hsl(var(--muted))',
+              clipPath: 'inset(-20px 0px -20px -500px)',
+            },
+            '& .automation-section-forward .automation-section-title': {
+              opacity: 0,
+              transition: 'opacity 0.2s ease',
+            },
+          },
+          '&:has(.automation-section-forward:hover), &:has(.automation-section-forward.is-hovered)': {
+            '& .automation-section-forward': {
+              zIndex: 10,
+              bgcolor: 'hsl(var(--muted))',
+              clipPath: 'inset(-20px 0px -20px -500px)',
+            },
+            '& .automation-section-ingest .automation-section-title': {
+              opacity: 0,
+              transition: 'opacity 0.2s ease',
+            },
+          },
+        }}
+      >
+        {/* Ingestion Sources - grouped in a subtle container with add button */}
+        {ingestionLoading ? (
+          <Box
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              bgcolor: 'hsl(var(--muted) / 0.4)',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 1.5,
+              px: 0.75,
+              py: 0.5,
+              height: 38,
+            }}
+          >
+            <Typography
+              className="automation-section-title"
+              sx={{
+                position: 'absolute',
+                top: -10,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '0.55rem',
+                fontWeight: 600,
+                color: 'hsl(var(--muted-foreground))',
+                bgcolor: 'hsl(var(--muted))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 10,
+                px: 1,
+                py: 0.15,
+                lineHeight: 1.3,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Ingest
+            </Typography>
+            <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.6)', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+            <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.6)', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite', animationDelay: '0.2s' }} />
+            <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: 'hsl(var(--muted) / 0.6)', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite', animationDelay: '0.4s' }} />
+          </Box>
+        ) : (
+          <Box className={`automation-section-ingest${ingestHovered ? ' is-hovered' : ''}`}
+            onMouseEnter={handleIngestEnter}
+            onMouseLeave={handleIngestLeave}
+            sx={{ 
+            position: 'relative',
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 0.5,
+            bgcolor: 'hsl(var(--muted) / 0.4)',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 1.5,
+            px: 0.75,
+            py: 0.5,
+            '& .automation-overflow': {
+              display: 'flex',
+              alignItems: 'center',
+              flexDirection: 'row-reverse',
+              gap: 0.5,
+              position: 'absolute',
+              right: 'calc(100% - 6px)',
+              top: -1,
+              bottom: -1,
+              opacity: 0,
+              pl: 0.75,
+              pr: 1.5,
+              bgcolor: 'hsl(var(--muted))',
+              borderRadius: '6px 0 0 6px',
+              border: '1px solid hsl(var(--border))',
+              borderRight: 'none',
+              transition: 'opacity 0.3s ease',
+              pointerEvents: 'none',
+            },
+            '& .automation-overflow-count': {
+              maxWidth: 36,
+              opacity: 1,
+              overflow: 'hidden',
+              transition: 'max-width 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+            },
+            '&:hover .automation-overflow, &.is-hovered .automation-overflow': {
+              opacity: 1,
+              pointerEvents: 'auto',
+              transitionDelay: '0.25s',
+            },
+            '&:hover, &.is-hovered': {
+              borderRadius: '0 6px 6px 0',
+            },
+            '&:hover .automation-overflow-count, &.is-hovered .automation-overflow-count': {
+              maxWidth: 0,
+              opacity: 0,
+            },
+          }}>
+            <Typography className="automation-section-title" sx={{
+              position: 'absolute',
+              top: -10,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              fontSize: '0.55rem',
+              fontWeight: 600,
+              color: 'hsl(var(--muted-foreground))',
+              bgcolor: 'hsl(var(--muted))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 10,
+              px: 1,
+              py: 0.15,
+              lineHeight: 1.3,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+            }}>
+              {demoActive ? (
+                <span>Ingest</span>
+              ) : (
+                <Tooltip title={t('Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in incidents.')} placement="top" arrow>
+                  <span style={{ cursor: 'help' }}>Ingest</span>
+                </Tooltip>
+              )}
+            </Typography>
+            {/* Webhook counts as 1 of the 5 visible slots */}
+            <WebhookIngestionButton webhook={webhookIngestion} onToggled={fetchIngestionApps} />
+            {/* Demo-injected apps (e.g. Outlook after fake auth) only render
+                while demo mode is active, so they vanish after cleanup. */}
+            {demoActive && demoInjectedApps.map(app => (
+              <IngestionSourceButton key={`demo-${app.name}`} app={app} onToggle={() => { /* no-op for demo apps */ }} incidentCount={0} />
+            ))}
+            {!isDemoTourActive && ingestionApps.slice(0, 3).map(app => (
+              <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleApp} incidentCount={incidentCountsBySource.get(normalizeAppName(app.name)) || 0} />
+            ))}
+            {!isDemoTourActive && ingestionApps.length > 3 && (
+              <>
+                <Typography className="automation-overflow-count" sx={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', fontWeight: 600, px: 0.25 }}>
+                  +{ingestionApps.length - 3}
+                </Typography>
+                <Box className="automation-overflow" sx={{ px: 0.75, py: 0.5 }}>
+                  {ingestionApps.slice(3).map(app => (
+                    <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleApp} incidentCount={incidentCountsBySource.get(normalizeAppName(app.name)) || 0} />
+                  ))}
+                </Box>
+              </>
+            )}
+            <Tooltip title="Add ingestion source">
+              <IconButton
+                data-tour="add-ingestion-source-button"
+                onClick={() => setAppSearchOpen(true)}
+                size="small"
+                sx={{
+                  width: 28,
+                  height: 28,
+                  color: 'hsl(var(--muted-foreground))',
+                  border: '1px dashed hsl(var(--border))',
+                  borderRadius: 1,
+                  '&:hover': {
+                    bgcolor: 'hsl(var(--muted))',
+                    borderStyle: 'solid',
+                    color: 'hsl(var(--primary))',
+                  },
+                }}
+              >
+                <AddIcon size={16} />
+              </IconButton>
+            </Tooltip>
+            {ingestWorkflowId && (
+              <Tooltip title={isUpdatingApps ? "Updating sources…" : scheduleStopped ? "Schedule is stopped — click to run now" : "Sync now"}>
+                <span>
+                <IconButton
+                  data-tour="sync-ingestion-button"
+                  onClick={triggerSync}
+                  disabled={isSyncing || isUpdatingApps}
+                  size="small"
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    color: scheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))',
+                    border: '1px solid',
+                    borderColor: scheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--border))',
+                    borderRadius: 1,
+                    '&:hover': {
+                      bgcolor: 'hsl(var(--muted))',
+                      color: scheduleStopped ? 'hsl(var(--severity-medium))' : 'hsl(var(--primary))',
+                    },
+                  }}
+                >
+                  {isSyncing || isUpdatingApps ? (
+                    <CircularProgress size={14} color="inherit" />
+                  ) : (
+                    <PlayArrowIcon size={16} />
+                  )}
+                </IconButton>
+                </span>
+              </Tooltip>
+            )}
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
   // During the demo tour, always render the full incidents UI (with seeded
   // demo data) instead of the empty state, so users see the real layout.
   if (hasFetched && !isLoading && !isRefreshing && !hasAnyIncidents && !(primaryFetchFailed && subOrgDataAvailable) && !demoActive) {
@@ -2137,11 +2388,13 @@ const IncidentsPage = () => {
         transition={{ duration: 0.4 }}
       >
         {/* Header */}
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
            <Typography variant="h5" sx={{ fontWeight: 600 }}>
             {entityPlural}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            {renderAutomationPipeline()}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {showAutomation && (
               <Tooltip title="Automation for Incidents">
                 <IconButton
@@ -2191,6 +2444,7 @@ const IncidentsPage = () => {
                 <AddIcon size={20} />
               </IconButton>
             </Tooltip>
+          </Box>
           </Box>
         </Box>
 
@@ -2526,355 +2780,7 @@ const IncidentsPage = () => {
         </Box>
         <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {/* Ingestion + Forward pipeline container */}
-          {(showAutomation || demoActive) && (
-          <Box
-            className="automation-pipeline"
-            sx={{
-              // In demo mode the Ingest area is the focal point of the tour,
-              // so it must remain visible regardless of viewport width.
-              display: demoActive ? 'flex' : { xs: 'none', md: 'flex' },
-              alignItems: 'center',
-              gap: 0,
-              position: 'relative',
-              // Default state
-              '& .automation-section-ingest, & .automation-section-forward': {
-                transition: 'border-color 0.3s ease, background-color 0.3s ease',
-                overflow: 'visible',
-                clipPath: 'inset(-24px -20px -20px -20px)',
-                position: 'relative',
-              },
-              '& .automation-section-title': {
-                transition: 'opacity 0.25s ease',
-              },
-              '& .automation-arrow': {
-                transition: 'max-width 0.4s cubic-bezier(0.4,0,0.2,1) 0.15s, opacity 0.3s ease 0.15s',
-                overflow: 'hidden',
-              },
-              // Hovering either section: boost z-index and make bg opaque, hide other title
-              '&:has(.automation-section-ingest:hover), &:has(.automation-section-ingest.is-hovered)': {
-                '& .automation-section-ingest': {
-                  zIndex: 10,
-                  bgcolor: 'hsl(var(--muted))',
-                  clipPath: 'inset(-20px 0px -20px -500px)',
-                },
-                '& .automation-section-forward .automation-section-title': {
-                  opacity: 0,
-                  transition: 'opacity 0.2s ease',
-                },
-              },
-              '&:has(.automation-section-forward:hover), &:has(.automation-section-forward.is-hovered)': {
-                '& .automation-section-forward': {
-                  zIndex: 10,
-                  bgcolor: 'hsl(var(--muted))',
-                  clipPath: 'inset(-20px 0px -20px -500px)',
-                },
-                '& .automation-section-ingest .automation-section-title': {
-                  opacity: 0,
-                  transition: 'opacity 0.2s ease',
-                },
-              },
-            }}
-          >
-          {/* Ingestion Sources - grouped in a subtle container with add button */}
-          {!ingestionLoading && (
-            <Box className={`automation-section-ingest${ingestHovered ? ' is-hovered' : ''}`}
-              onMouseEnter={handleIngestEnter}
-              onMouseLeave={handleIngestLeave}
-              sx={{ 
-              position: 'relative',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 0.5,
-              bgcolor: 'hsl(var(--muted) / 0.4)',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 1.5,
-              px: 0.75,
-              py: 0.5,
-              '& .automation-overflow': {
-                display: 'flex',
-                alignItems: 'center',
-                flexDirection: 'row-reverse',
-                gap: 0.5,
-                position: 'absolute',
-                right: 'calc(100% - 6px)',
-                top: -1,
-                bottom: -1,
-                opacity: 0,
-                pl: 0.75,
-                pr: 1.5,
-                bgcolor: 'hsl(var(--muted))',
-                borderRadius: '6px 0 0 6px',
-                border: '1px solid hsl(var(--border))',
-                borderRight: 'none',
-                transition: 'opacity 0.3s ease',
-                pointerEvents: 'none',
-              },
-              '& .automation-overflow-count': {
-                maxWidth: 36,
-                opacity: 1,
-                overflow: 'hidden',
-                transition: 'max-width 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-              },
-              '&:hover .automation-overflow, &.is-hovered .automation-overflow': {
-                opacity: 1,
-                pointerEvents: 'auto',
-                transitionDelay: '0.25s',
-              },
-              '&:hover, &.is-hovered': {
-                borderRadius: '0 6px 6px 0',
-              },
-              '&:hover .automation-overflow-count, &.is-hovered .automation-overflow-count': {
-                maxWidth: 0,
-                opacity: 0,
-              },
-            }}>
-              <Typography className="automation-section-title" sx={{
-                position: 'absolute',
-                top: -10,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                fontSize: '0.55rem',
-                fontWeight: 600,
-                color: 'hsl(var(--muted-foreground))',
-                bgcolor: 'hsl(var(--muted))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 10,
-                px: 1,
-                py: 0.15,
-                lineHeight: 1.3,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}>
-                {demoActive ? (
-                  <span>Ingest</span>
-                ) : (
-                  <Tooltip title={t('Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in incidents.')} placement="top" arrow>
-                    <span style={{ cursor: 'help' }}>Ingest</span>
-                  </Tooltip>
-                )}
-              </Typography>
-              {/* Webhook counts as 1 of the 5 visible slots */}
-              <WebhookIngestionButton webhook={webhookIngestion} onToggled={fetchIngestionApps} />
-              {/* Demo-injected apps (e.g. Outlook after fake auth) only render
-                  while demo mode is active, so they vanish after cleanup. */}
-              {demoActive && demoInjectedApps.map(app => (
-                <IngestionSourceButton key={`demo-${app.name}`} app={app} onToggle={() => { /* no-op for demo apps */ }} incidentCount={0} />
-              ))}
-              {!isDemoTourActive && ingestionApps.slice(0, 3).map(app => (
-                <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleApp} incidentCount={incidentCountsBySource.get(normalizeAppName(app.name)) || 0} />
-              ))}
-              {!isDemoTourActive && ingestionApps.length > 3 && (
-                <>
-                  <Typography className="automation-overflow-count" sx={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', fontWeight: 600, px: 0.25 }}>
-                    +{ingestionApps.length - 3}
-                  </Typography>
-                  <Box className="automation-overflow" sx={{ px: 0.75, py: 0.5 }}>
-                    {ingestionApps.slice(3).map(app => (
-                      <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleApp} incidentCount={incidentCountsBySource.get(normalizeAppName(app.name)) || 0} />
-                    ))}
-                  </Box>
-                </>
-              )}
-              <Tooltip title="Add ingestion source">
-                <IconButton
-                  data-tour="add-ingestion-source-button"
-                  onClick={() => setAppSearchOpen(true)}
-                  size="small"
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    color: 'hsl(var(--muted-foreground))',
-                    border: '1px dashed hsl(var(--border))',
-                    borderRadius: 1,
-                    '&:hover': {
-                      bgcolor: 'hsl(var(--muted))',
-                      borderStyle: 'solid',
-                      color: 'hsl(var(--primary))',
-                    },
-                  }}
-                >
-                  <AddIcon size={16} />
-                </IconButton>
-              </Tooltip>
-              {ingestWorkflowId && (
-              <Tooltip title={isUpdatingApps ? "Updating sources…" : isSyncing ? "Syncing…" : "Sync now"}>
-                  <span>
-                  <IconButton
-                    size="small"
-                    disabled={isSyncing || isUpdatingApps}
-                    onClick={() => triggerSync()}
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      color: isSyncing ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: 1,
-                      '&:hover': {
-                        bgcolor: 'hsl(var(--muted))',
-                        color: 'hsl(var(--primary))',
-                      },
-                    }}
-                  >
-                    {(isSyncing || isUpdatingApps) ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon size={16} />}
-                  </IconButton>
-                  </span>
-                </Tooltip>
-              )}
-            </Box>
-          )}
-
-          {false && <>
-          {/* Arrow between Ingest and Forward — hidden until workflows loaded,
-              while the demo tour drawer is open, while in demo mode, and
-              when no ingestion source has been set up yet (Forward only
-              makes sense once at least one app is ingesting). */}
-          {!ingestionLoading && !isDemoTourActive && !demoActive && ingestionApps.length > 0 && (
-          <Box className="automation-arrow" sx={{ display: 'flex', alignItems: 'center', color: 'hsl(var(--muted-foreground))', mx: -0.25, maxWidth: 30, opacity: 1 }}>
-            <ChevronRightIcon size={18} />
-          </Box>
-          )}
-          </>}
-
-          {false && <>
-          {/* Forward Destinations — same visibility rules as the arrow above. */}
-          {!ingestionLoading && !isDemoTourActive && !demoActive && ingestionApps.length > 0 && (
-            <Box className={`automation-section-forward${forwardHovered ? ' is-hovered' : ''}`}
-              onMouseEnter={handleForwardEnter}
-              onMouseLeave={handleForwardLeave}
-              sx={{ 
-              position: 'relative',
-              overflow: 'visible',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 0.5,
-              bgcolor: 'hsl(var(--muted) / 0.4)',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 1.5,
-              px: 0.75,
-              py: 0.5,
-              '& .automation-overflow': {
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                position: 'absolute',
-                right: 'calc(100% - 6px)',
-                top: -1,
-                bottom: -1,
-                opacity: 0,
-                pr: 1.5,
-                pl: 0.75,
-                bgcolor: 'hsl(var(--muted))',
-                borderRadius: '6px 0 0 6px',
-                border: '1px solid hsl(var(--border))',
-                borderRight: 'none',
-                transition: 'opacity 0.3s ease',
-                pointerEvents: 'none',
-              },
-              '& .automation-overflow-count': {
-                maxWidth: 36,
-                opacity: 1,
-                overflow: 'hidden',
-                transition: 'max-width 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-              },
-              '&:hover .automation-overflow, &.is-hovered .automation-overflow': {
-                opacity: 1,
-                pointerEvents: 'auto',
-                transitionDelay: '0.25s',
-              },
-              '&:hover, &.is-hovered': {
-                borderRadius: '0 6px 6px 0',
-              },
-              '&:hover .automation-overflow-count, &.is-hovered .automation-overflow-count': {
-                maxWidth: 0,
-                opacity: 0,
-              },
-            }}>
-              <Typography className="automation-section-title" sx={{
-                position: 'absolute',
-                top: -10,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                fontSize: '0.55rem',
-                fontWeight: 600,
-                color: 'hsl(var(--muted-foreground))',
-                bgcolor: 'hsl(var(--muted))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 10,
-                px: 1,
-                py: 0.15,
-                lineHeight: 1.3,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}>
-                <Tooltip title="Apps configured to receive forwarded incidents. Toggle to control which tools incidents are sent to." placement="top" arrow>
-                  <span style={{ cursor: 'help' }}>Forward</span>
-                </Tooltip>
-              </Typography>
-              {forwardApps.slice(0, 4).map(app => (
-                <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleForwardApp} variant="forward" />
-              ))}
-              {forwardApps.length > 4 && (
-                <>
-                  <Typography className="automation-overflow-count" sx={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', fontWeight: 600, px: 0.25 }}>
-                    +{forwardApps.length - 4}
-                  </Typography>
-                  <Box className="automation-overflow" sx={{ px: 0.75, py: 0.5 }}>
-                    {forwardApps.slice(4).map(app => (
-                      <IngestionSourceButton key={app.name} app={app} onToggle={handleToggleForwardApp} variant="forward" />
-                    ))}
-                  </Box>
-                </>
-              )}
-              <Tooltip title="Add forward destination">
-                <IconButton
-                  onClick={() => setForwardAppSearchOpen(true)}
-                  size="small"
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    color: 'hsl(var(--muted-foreground))',
-                    border: '1px dashed hsl(var(--border))',
-                    borderRadius: 1,
-                    '&:hover': {
-                      bgcolor: 'hsl(var(--muted))',
-                      borderStyle: 'solid',
-                      color: 'hsl(var(--primary))',
-                    },
-                  }}
-                >
-                  <AddIcon size={16} />
-                </IconButton>
-              </Tooltip>
-              {forwardWorkflowId && (
-                <Tooltip title={isUpdatingForwardApps ? "Updating destinations…" : "Open workflow"}>
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => window.open(`https://shuffler.io/workflows/${forwardWorkflowId}`, '_blank')}
-                      sx={{
-                        width: 28,
-                        height: 28,
-                        color: 'hsl(var(--muted-foreground))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: 1,
-                        '&:hover': {
-                          bgcolor: 'hsl(var(--muted))',
-                          color: 'hsl(var(--primary))',
-                        },
-                      }}
-                    >
-                      {isUpdatingForwardApps ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon size={16} />}
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              )}
-            </Box>
-          )}
-          </>}
-          </Box>
-          )}
+          {renderAutomationPipeline()}
 
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
             {showAutomation && (
