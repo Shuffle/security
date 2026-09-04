@@ -10,6 +10,7 @@ import {
   Paper,
   Tooltip,
   Avatar,
+  Chip,
 } from '@mui/material';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 
@@ -149,9 +150,25 @@ export const WeeklyScheduleTimeline = ({ userSchedules }: WeeklyScheduleTimeline
         overflow: 'hidden',
       }}
     >
-      <Typography variant="h6" sx={{ mb: 3, color: 'hsl(var(--foreground))' }}>
-        Weekly On-Call Schedule
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+        <Typography variant="h6" sx={{ color: 'hsl(var(--foreground))' }}>
+          Weekly On-Call Schedule
+        </Typography>
+        <Chip
+          label="Beta"
+          size="small"
+          sx={{
+            height: 20,
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            bgcolor: 'hsl(var(--primary) / 0.1)',
+            color: 'hsl(var(--primary))',
+            border: '1px solid hsl(var(--primary) / 0.25)',
+            borderRadius: 1,
+            '& .MuiChip-label': { px: 0.75 },
+          }}
+        />
+      </Box>
       
       {/* Legend */}
       <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>

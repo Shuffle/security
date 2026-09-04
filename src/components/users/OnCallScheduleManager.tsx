@@ -41,6 +41,8 @@ import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { setDatastoreItem, getDatastoreItem, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { WeeklyScheduleTimeline, AI_AGENT_SCHEDULE } from '@/components/users/WeeklyScheduleTimeline';
 import { ScheduleImportDialog } from '@/components/users/ScheduleImportDialog';
+import { AddUserDialog } from '@/components/users/AddUserDialog';
+import { UserRoleSelect } from '@/components/users/UserRoleSelect';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export type EscalationLevel = 'tier1' | 'tier2' | 'tier3' | 'manager';
@@ -169,6 +171,7 @@ interface OnCallScheduleManagerProps {
    *  cleanly into a parent that already provides its own framing (e.g. the
    *  onboarding "Assign & Escalate" expanded card). */
   compact?: boolean;
+  onRefreshUsers?: () => void | Promise<void>;
 }
 
 // ── Constants & helpers ──────────────────────────────────────────────────────
@@ -196,7 +199,28 @@ const cardVariants = {
 };
 
 // ── Component ────────────────────────────────────────────────────────────────
-export const OnCallScheduleManager = ({ users, loading = false, compact = false }: OnCallScheduleManagerProps) => {
+export const OnCallScheduleManager = ({
+  users,
+  loading = false,
+  compact = false,
+  onRefreshUsers,
+}: OnCallScheduleManagerProps) => {
+  const [localUsers, setLocalUsers] = useState<OnCallUser[]>(users);
+  const [addUserOpen, setAddUserOpen] = useState(false);
+
+  useEffect(() => {
+    setLocalUsers(users);
+  }, [users]);
+
+  const handleRoleChanged = useCallback((userId: string, newRole: string) => {
+    setLocalUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+    );
+    if (onRefreshUsers) {
+      onRefreshUsers();
+    }
+  }, [onRefreshUsers]);
+
   const [config, setConfig] = useState<AssignmentConfig>({ userSchedules: [], updatedAt: '' });
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -605,7 +629,7 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
     [config.userSchedules]
   );
 
-  const activeUsers = users.filter(u => u.active !== false).length;
+  const activeUsers = localUsers.filter(u => u.active !== false).length;
   const configuredUsers = config.userSchedules.filter(s => s.enabled).length;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -616,12 +640,28 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
           {!compact && (
             <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}
-              >
-                Team Members
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}
+                >
+                  On-Call Schedule
+                </Typography>
+                <Chip
+                  label="Beta"
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    bgcolor: 'hsl(var(--primary) / 0.1)',
+                    color: 'hsl(var(--primary))',
+                    border: '1px solid hsl(var(--primary) / 0.25)',
+                    borderRadius: 1,
+                    '& .MuiChip-label': { px: 0.75 },
+                  }}
+                />
+              </Box>
               <Typography variant="body1" sx={{ color: 'hsl(var(--muted-foreground))', mt: 1, maxWidth: 560 }}>
                 Mark a user On-Call to make them eligible for incident assignment, then expand their row to set weekly availability windows.
               </Typography>
@@ -641,6 +681,21 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
               }}
             >
               Schedule View
+              <Chip
+                label="Beta"
+                size="small"
+                sx={{
+                  ml: 1,
+                  height: 18,
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  bgcolor: 'hsl(var(--primary) / 0.1)',
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsl(var(--primary) / 0.25)',
+                  borderRadius: 1,
+                  '& .MuiChip-label': { px: 0.5 },
+                }}
+              />
             </Button>
             <Button
               variant="outlined"
@@ -655,6 +710,22 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
               }}
             >
               Import
+            </Button>
+            <Button
+              variant="contained"
+              size={compact ? 'small' : 'medium'}
+              startIcon={<AddIcon size={16} />}
+              onClick={() => setAddUserOpen(true)}
+              sx={{
+                height: 36,
+                bgcolor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                fontWeight: 600,
+                textTransform: 'none',
+                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+              }}
+            >
+              Add User
             </Button>
           </Box>
         </Box>
@@ -741,7 +812,7 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
 
           {/* User cards */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {users.length === 0 ? (
+            {localUsers.length === 0 ? (
               <Paper sx={{
                 p: 6, textAlign: 'center', bgcolor: 'hsl(var(--card))',
                 border: '1px solid hsl(var(--border))', borderRadius: 2,
@@ -750,7 +821,7 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                 <Typography sx={{ color: 'hsl(var(--muted-foreground))' }}>No users found</Typography>
               </Paper>
             ) : (
-              users.map((user) => {
+              localUsers.map((user) => {
                 const schedule = getUserSchedule(user.id);
                 const isExpanded = expandedRows.has(user.id);
 
@@ -782,16 +853,11 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
                               {user.username}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                              <Chip
-                                label={user.role || 'user'}
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                  height: 22, fontSize: '0.7rem', fontWeight: 600,
-                                  borderColor: 'hsl(var(--border))',
-                                  color: 'hsl(var(--muted-foreground))',
-                                  textTransform: 'uppercase', letterSpacing: '0.05em',
-                                }}
+                              <UserRoleSelect
+                                userId={user.id}
+                                username={user.username}
+                                currentRole={user.role}
+                                onRoleChanged={(newRole) => handleRoleChanged(user.id, newRole)}
                               />
                             </Box>
                           </Box>
@@ -1089,7 +1155,23 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
           sx: { backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider' },
         }}
       >
-        <DialogTitle sx={{ color: 'hsl(var(--foreground))' }}>On-Call Schedule</DialogTitle>
+        <DialogTitle sx={{ color: 'hsl(var(--foreground))', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          On-Call Schedule
+          <Chip
+            label="Beta"
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              bgcolor: 'hsl(var(--primary) / 0.1)',
+              color: 'hsl(var(--primary))',
+              border: '1px solid hsl(var(--primary) / 0.25)',
+              borderRadius: 1,
+              '& .MuiChip-label': { px: 0.75 },
+            }}
+          />
+        </DialogTitle>
         <DialogContent>
           <WeeklyScheduleTimeline userSchedules={allSchedulesForTimeline} />
         </DialogContent>
@@ -1101,8 +1183,14 @@ export const OnCallScheduleManager = ({ users, loading = false, compact = false 
       <ScheduleImportDialog
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
-        existingUsers={users}
+        existingUsers={localUsers}
         onImport={handleImportSchedules}
+      />
+
+      <AddUserDialog
+        open={addUserOpen}
+        onClose={() => setAddUserOpen(false)}
+        onUserAdded={onRefreshUsers}
       />
     </Box>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -33,30 +33,30 @@ const UsersPage = ({ embedded }: { embedded?: boolean }) => {
   const [error, setError] = useState('');
   const { sessionToken } = useAuth();
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch(getApiUrl('/api/v1/getusers'), {
-          credentials: 'include',
-          headers: { ...getAuthHeader() },
-        });
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await fetch(getApiUrl('/api/v1/getusers'), {
+        credentials: 'include',
+        headers: { ...getAuthHeader() },
+      });
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.reason || 'Failed to fetch users');
-        }
-
+      if (!response.ok) {
         const data = await response.json();
-        setUsers(Array.isArray(data) ? data : data.users || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch users');
-      } finally {
-        setLoading(false);
+        throw new Error(data.reason || 'Failed to fetch users');
       }
-    };
 
+      const data = await response.json();
+      setUsers(Array.isArray(data) ? data : data.users || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     fetchUsers();
-  }, [sessionToken]);
+  }, [sessionToken, fetchUsers]);
 
   return (
     <Box sx={{ p: embedded ? 0 : { xs: 2, md: 4 }, maxWidth: 1400, width: '100%', mx: embedded ? 0 : 'auto' }}>
@@ -115,7 +115,7 @@ const UsersPage = ({ embedded }: { embedded?: boolean }) => {
                 <PagerNotificationSettings />
               </Box>
               <ScheduleHealthBanner hideManageCta />
-              <OnCallScheduleManager users={users} loading={loading} />
+              <OnCallScheduleManager users={users} loading={loading} onRefreshUsers={fetchUsers} />
             </>
           )}
         </>
