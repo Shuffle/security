@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSupport } from '@/hooks/useIsSupport';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
 import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
 import { VulnerabilitySidebar } from '@/components/vulnerabilities/VulnerabilitySidebar';
@@ -328,7 +328,7 @@ const AuthenticatedVulnerabilitiesView = () => {
               const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
               const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
               if (wfId) {
-                window.open(`https://shuffler.io/workflows/${wfId}`, '_blank');
+                window.open(getShuffleCoreWorkflowUrl(wfId), '_blank');
               } else {
                 setAutomationsDialogOpen(true);
               }

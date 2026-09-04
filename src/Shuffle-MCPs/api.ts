@@ -19,8 +19,24 @@ installFetchBreaker();
 const DEV_BACKEND = 'https://tunnel.schemaless.org';
 const PROD_BACKEND = 'https://shuffler.io';
 
+import {
+  getShuffleCoreBaseUrl,
+  getShuffleCoreUrl,
+  getShuffleCoreWorkflowUrl,
+  getShuffleSecurityBaseUrl,
+  getShuffleSecurityUrl,
+} from '@/lib/shuffleUrls';
+
+export {
+  getShuffleCoreBaseUrl,
+  getShuffleCoreUrl,
+  getShuffleCoreWorkflowUrl,
+  getShuffleSecurityBaseUrl,
+  getShuffleSecurityUrl,
+};
+
 // Base URL for Shuffle Automation dashboard (used in tool switcher)
-export const SHUFFLE_AUTOMATION_URL = 'https://shuffler.io/new-dashboard';
+export const SHUFFLE_AUTOMATION_URL = getShuffleCoreUrl('/new-dashboard');
 
 // Known cloud domains that should always use shuffler.io as the default backend
 const CLOUD_DOMAINS = ['shuffle.security', 'www.shuffle.security', 'security.shuffler.io', 'shutdown.no', 'www.shutdown.no'];
@@ -391,10 +407,7 @@ export const getShuffleCoreFormUrl = (refUrl: string): string => {
   // Already absolute — trust it.
   if (/^https?:\/\//i.test(refUrl)) return refUrl;
   const path = refUrl.startsWith('/') ? refUrl : `/${refUrl}`;
-  // Cloud always points at shuffler.io for forms.
-  if (isCloud()) return `https://shuffler.io${path}`;
-  // Self-hosted / dev — use the active backend.
-  return `${API_CONFIG.baseUrl}${path}`;
+  return getShuffleCoreUrl(path);
 };
 
 /** True when a notification.reference_url points at an agent approval form. */

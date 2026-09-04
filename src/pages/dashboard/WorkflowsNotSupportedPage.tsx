@@ -2,19 +2,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from '@/lib/router-compat';
 import { ExternalLink, ArrowLeft, Workflow } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getShuffleCoreBaseUrl, getShuffleCoreWorkflowUrl } from '@/lib/shuffleUrls';
 
 /**
  * Shuffle Security does not host the workflow editor — that lives in
- * Shuffle Core (shuffler.io). This page explains that and deep-links the
+ * Shuffle Core. This page explains that and deep-links the
  * user across to the matching URL on Shuffle Core.
  */
-const SHUFFLE_CORE_BASE = 'https://shuffler.io';
 const AUTO_REDIRECT_MS = 4000;
 
 export default function WorkflowsNotSupportedPage() {
   const { id } = useParams<{ id?: string }>();
+  const coreBase = useMemo(() => getShuffleCoreBaseUrl(), []);
   const targetUrl = useMemo(
-    () => (id ? `${SHUFFLE_CORE_BASE}/workflows/${id}` : `${SHUFFLE_CORE_BASE}/workflows`),
+    () => getShuffleCoreWorkflowUrl(id),
     [id],
   );
 
@@ -46,8 +47,8 @@ export default function WorkflowsNotSupportedPage() {
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
           The workflow editor is not part of Shuffle Security. It is provided by
           Shuffle Core, the upstream automation platform. We are opening{' '}
-          <span className="font-mono text-foreground">{targetUrl.replace(SHUFFLE_CORE_BASE, '')}</span>{' '}
-          on <span className="font-medium text-foreground">shuffler.io</span> for you
+          <span className="font-mono text-foreground">{targetUrl.replace(coreBase, '')}</span>{' '}
+          on <span className="font-medium text-foreground">{coreBase.replace(/^https?:\/\//, '')}</span> for you
           {secondsLeft > 0 ? ` in ${secondsLeft}s` : ' now'}.
         </p>
 

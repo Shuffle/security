@@ -19,6 +19,11 @@ import {
   MenuItem,
   Select,
   FormControl,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import {
   Search,
@@ -26,13 +31,19 @@ import {
   RefreshCw,
   Server,
   Layers,
-  Sparkles,
   Filter,
+  Trash2,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useWorkflows, WorkflowSummary } from "@/hooks/useWorkflows";
 import { useUsecases } from "@/Shuffle-Core/hooks/useUsecases";
 import { DEFAULT_USECASES, Usecase } from "@/Shuffle-Core/config/usecases";
 import { getApiUrl, getAuthHeader } from "@/Shuffle-MCPs/api";
+import { API_CONFIG, UsecaseDrawer } from "@/Shuffle-Core";
+import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/lib/toast";
+import { getShuffleCoreWorkflowUrl } from "@/lib/shuffleUrls";
 import {
   DefaultEnvironmentSelector,
   EnvironmentItem,
@@ -47,6 +58,10 @@ interface EnrichedWorkflow {
 }
 
 export const RuntimeLocationsTab = () => {
+  const queryClient = useQueryClient();
+  const { resolvedTheme } = useTheme();
+  const { userInfo } = useAuth();
+
   const {
     data: workflows = [],
     isLoading: workflowsLoading,
@@ -61,6 +76,16 @@ export const RuntimeLocationsTab = () => {
   const [filterMode, setFilterMode] = useState<"relevant" | "all">("relevant");
   const [searchQuery, setSearchQuery] = useState("");
   const [envFilter, setEnvFilter] = useState<string>("all");
+
+  // Selected usecase for drawer
+  const [selectedUsecaseId, setSelectedUsecaseId] = useState<string | null>(
+    null,
+  );
+
+  // Workflow deletion state
+  const [workflowToDelete, setWorkflowToDelete] =
+    useState<WorkflowSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Fetch environments list
   const fetchEnvironments = useCallback(async () => {
@@ -93,16 +118,58 @@ export const RuntimeLocationsTab = () => {
     setRefreshing(false);
   };
 
+  const handleDeleteWorkflow = async () => {
+    if (!workflowToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        getApiUrl(`/api/v1/workflows/${workflowToDelete.id}`),
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: { ...getAuthHeader() },
+        },
+      );
+      if (!res.ok) {
+        throw new Error(`Failed to delete workflow (HTTP ${res.status})`);
+      }
+      toast.success(
+        `Workflow "${workflowToDelete.name || "Workflow"}" deleted`,
+      );
+      setWorkflowToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["workflows"] });
+      refetchWorkflows();
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete workflow",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Correlate workflows with usecases and background_processing flag
   const enrichedWorkflows: EnrichedWorkflow[] = useMemo(() => {
     if (!Array.isArray(workflows)) return [];
 
     return workflows.map((wf) => {
       const wfName = (wf.name || "").toLowerCase();
-      const wfTags = (wf.tags || []).map((t) => String(t).toLowerCase());
+      const rawTags = (wf.tags || []).map((t) => String(t).trim()).filter(Boolean);
+      const wfTags = rawTags.map((t) => t.toLowerCase());
+
+      // Deduplicate tags (case-insensitive) while preserving display casing
+      const dedupedTags: string[] = [];
+      const seenTagSet = new Set<string>();
+      for (const t of rawTags) {
+        const lower = t.toLowerCase();
+        if (!seenTagSet.has(lower)) {
+          seenTagSet.add(lower);
+          dedupedTags.push(t);
+        }
+      }
 
       // Match against platform usecases
-      const matchedUsecases = usecases.filter((uc) => {
+      const rawMatched = usecases.filter((uc) => {
         if (!uc.automationLabel) return false;
         const lbl = uc.automationLabel.toLowerCase();
         const isIngestion = uc.automationArea === "automatic_ingestion";
@@ -139,6 +206,21 @@ export const RuntimeLocationsTab = () => {
         );
       });
 
+      // Deduplicate matched usecases by id and by label (case-insensitive)
+      const matchedUsecases: Usecase[] = [];
+      const seenUcIds = new Set<string>();
+      const seenUcLabels = new Set<string>();
+      for (const uc of rawMatched) {
+        if (!uc) continue;
+        const normId = (uc.id || "").trim().toLowerCase();
+        const normLabel = (uc.label || "").trim().toLowerCase();
+        if (normId && seenUcIds.has(normId)) continue;
+        if (normLabel && seenUcLabels.has(normLabel)) continue;
+        if (normId) seenUcIds.add(normId);
+        if (normLabel) seenUcLabels.add(normLabel);
+        matchedUsecases.push(uc);
+      }
+
       // A workflow is relevant if it has background_processing === true OR matches a platform usecase
       const isRelevant =
         wf.background_processing === true || matchedUsecases.length > 0;
@@ -155,7 +237,10 @@ export const RuntimeLocationsTab = () => {
         explicitEnv || defaultEnvironment?.Name || "Cloud";
 
       return {
-        workflow: wf,
+        workflow: {
+          ...wf,
+          tags: dedupedTags,
+        },
         matchedUsecases,
         isRelevant,
         environmentName,
@@ -276,7 +361,7 @@ export const RuntimeLocationsTab = () => {
                 variant="subtitle1"
                 sx={{ fontWeight: 600, color: "hsl(var(--foreground))" }}
               >
-                Usecase Workflows
+                Shuffle Security Workflows
               </Typography>
               <Chip
                 label={`${filteredWorkflows.length} workflow${filteredWorkflows.length === 1 ? "" : "s"}`}
@@ -323,7 +408,6 @@ export const RuntimeLocationsTab = () => {
                 label={`Relevant (${relevantCount})`}
                 size="small"
                 onClick={() => setFilterMode("relevant")}
-                icon={<Sparkles size={12} />}
                 sx={{
                   height: 24,
                   fontSize: "0.75rem",
@@ -604,6 +688,20 @@ export const RuntimeLocationsTab = () => {
                   >
                     Runtime Location
                   </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: "0.75rem",
+                      color: "hsl(var(--muted-foreground))",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      py: 1.25,
+                      width: 48,
+                    }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -646,7 +744,7 @@ export const RuntimeLocationsTab = () => {
                           >
                             <Typography
                               component="a"
-                              href={`/workflows/${workflow.id}`}
+                              href={getShuffleCoreWorkflowUrl(workflow.id)}
                               target="_blank"
                               rel="noopener noreferrer"
                               sx={{
@@ -687,6 +785,24 @@ export const RuntimeLocationsTab = () => {
                                 }}
                               />
                             )}
+
+                            {Array.isArray(workflow.tags) &&
+                              workflow.tags.map((tag: string) => (
+                                <Chip
+                                  key={tag}
+                                  label={tag}
+                                  size="small"
+                                  sx={{
+                                    height: 18,
+                                    fontSize: "0.625rem",
+                                    fontWeight: 500,
+                                    bgcolor: "hsl(var(--muted))",
+                                    color: "hsl(var(--muted-foreground))",
+                                    border: "1px solid hsl(var(--border))",
+                                    "& .MuiChip-label": { px: 0.6 },
+                                  }}
+                                />
+                              ))}
                           </Box>
 
                           {workflow.description ? (
@@ -739,20 +855,33 @@ export const RuntimeLocationsTab = () => {
                             }}
                           >
                             {matchedUsecases.map((uc) => (
-                              <Chip
+                              <Tooltip
                                 key={uc.id}
-                                label={uc.label}
-                                size="small"
-                                sx={{
-                                  height: 22,
-                                  fontSize: "0.7rem",
-                                  fontWeight: 500,
-                                  bgcolor: "hsl(var(--muted))",
-                                  color: "hsl(var(--foreground))",
-                                  border: "1px solid hsl(var(--border))",
-                                  "& .MuiChip-label": { px: 0.75 },
-                                }}
-                              />
+                                title={`Open ${uc.label} usecase details`}
+                              >
+                                <Chip
+                                  label={uc.label}
+                                  size="small"
+                                  onClick={() => setSelectedUsecaseId(uc.id)}
+                                  clickable
+                                  sx={{
+                                    height: 22,
+                                    fontSize: "0.7rem",
+                                    fontWeight: 500,
+                                    bgcolor: "hsl(var(--muted))",
+                                    color: "hsl(var(--foreground))",
+                                    border: "1px solid hsl(var(--border))",
+                                    cursor: "pointer",
+                                    transition: "all 0.15s ease",
+                                    "&:hover": {
+                                      bgcolor: "hsl(var(--accent))",
+                                      borderColor: "hsl(var(--primary))",
+                                      color: "hsl(var(--primary))",
+                                    },
+                                    "& .MuiChip-label": { px: 0.75 },
+                                  }}
+                                />
+                              </Tooltip>
                             ))}
                           </Box>
                         ) : hasBg ? (
@@ -789,6 +918,28 @@ export const RuntimeLocationsTab = () => {
                           defaultEnvironment={defaultEnvironment}
                         />
                       </TableCell>
+
+                      {/* Actions (Delete button) */}
+                      <TableCell
+                        align="right"
+                        sx={{ py: 1.5, verticalAlign: "top", width: 48 }}
+                      >
+                        <Tooltip title="Delete workflow">
+                          <IconButton
+                            size="small"
+                            onClick={() => setWorkflowToDelete(workflow)}
+                            sx={{
+                              color: "hsl(var(--muted-foreground))",
+                              "&:hover": {
+                                color: "hsl(var(--destructive))",
+                                bgcolor: "rgba(239, 68, 68, 0.1)",
+                              },
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -797,6 +948,89 @@ export const RuntimeLocationsTab = () => {
           </TableContainer>
         )}
       </Paper>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={workflowToDelete !== null}
+        onClose={() => !deleting && setWorkflowToDelete(null)}
+        PaperProps={{
+          sx: {
+            bgcolor: "hsl(var(--card))",
+            backgroundImage: "none",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: 2,
+            maxWidth: 440,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: "hsl(var(--foreground))", fontWeight: 600 }}>
+          Delete Workflow
+        </DialogTitle>
+        <DialogContent>
+          <Typography
+            sx={{
+              color: "hsl(var(--muted-foreground))",
+              fontSize: "0.875rem",
+            }}
+          >
+            Are you sure you want to delete &ldquo;
+            {workflowToDelete?.name || "Untitled Workflow"}&rdquo;? This action
+            cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setWorkflowToDelete(null)}
+            disabled={deleting}
+            sx={{
+              borderColor: "hsl(var(--border))",
+              color: "hsl(var(--muted-foreground))",
+              textTransform: "none",
+              "&:hover": {
+                borderColor: "hsl(var(--border) / 0.8)",
+                backgroundColor: "hsl(var(--muted) / 0.5)",
+              },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            size="small"
+            onClick={handleDeleteWorkflow}
+            disabled={deleting}
+            startIcon={
+              deleting ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : (
+                <Trash2 size={14} />
+              )
+            }
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Standalone Usecase Drawer */}
+      <UsecaseDrawer
+        open={selectedUsecaseId !== null}
+        onClose={() => setSelectedUsecaseId(null)}
+        flowId={selectedUsecaseId}
+        globalUrl={API_CONFIG.baseUrl}
+        userdata={userInfo as any}
+        isLoaded={true}
+        isLoggedIn={!!userInfo}
+        theme={resolvedTheme}
+      />
     </Box>
   );
 };

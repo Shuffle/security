@@ -13,7 +13,7 @@ import {
 import { Box, Typography, InputBase, CircularProgress } from '@mui/material';
 import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Bug, MonitorCheck, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 
@@ -376,8 +376,8 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
     } else if (result.type === 'app') {
       navigate(`/apps?app=${result.app.name}`);
     } else if (result.type === 'workflow') {
-      // Open workflow in Shuffle Automation
-      window.open(`https://shuffler.io/workflows/${result.workflow.id}`, '_blank');
+      // Open workflow in Shuffle Core
+      window.open(getShuffleCoreWorkflowUrl(result.workflow.id), '_blank');
     } else if (result.type === 'doc') {
       navigate(result.doc.path || `/docs/${result.doc.slug}`);
     } else if (result.type === 'incident') {

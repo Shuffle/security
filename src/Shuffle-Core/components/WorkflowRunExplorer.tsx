@@ -46,7 +46,7 @@ import {
   Notifications as NotificationsIcon,
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
-import { getApiUrl, getAuthHeader } from '../api';
+import { getApiUrl, getAuthHeader, getShuffleCoreUrl, getShuffleCoreWorkflowUrl } from '../api';
 import NotificationsDrawer from './NotificationsDrawer';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import shuffleLogo from '@/assets/shuffle-logo.png';
@@ -148,8 +148,8 @@ const shuffleUrlForExecution = (exec: WorkflowExecution): string | null => {
   const wfId = exec.workflow?.id;
   const execId = exec.execution_id;
   if (!execId) return null;
-  if (wfId) return `https://shuffler.io/workflows/${wfId}?execution_id=${execId}`;
-  return `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${execId}`;
+  if (wfId) return getShuffleCoreWorkflowUrl(wfId, { execution_id: execId });
+  return getShuffleCoreUrl(`/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(execId)}`);
 };
 
 /** Make action labels readable in the sidebar while leaving action names as-is
@@ -230,7 +230,10 @@ const openInShuffle = () => {
 const copyExecutionLink = () => {
     if (!exec?.workflow?.id || !exec?.execution_id) return;
     const auth = authorization || exec.execution_id;
-    const url = `${window.location.origin}/workflows/${exec.workflow.id}?execution_id=${encodeURIComponent(exec.execution_id)}&authorization=${encodeURIComponent(auth)}`;
+    const url = getShuffleCoreWorkflowUrl(exec.workflow.id, {
+      execution_id: exec.execution_id,
+      authorization: auth,
+    });
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -496,8 +499,8 @@ const copyExecutionLink = () => {
             if (exec.execution_parent) {
               const parentWorkflowId = (exec.execution_source || '').trim();
               const href = parentWorkflowId
-                ? `https://shuffler.io/workflows/${encodeURIComponent(parentWorkflowId)}?view=executions&execution_id=${encodeURIComponent(exec.execution_parent)}`
-                : `https://shuffler.io/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(exec.execution_parent)}`;
+                ? getShuffleCoreWorkflowUrl(parentWorkflowId, { view: 'executions', execution_id: exec.execution_parent })
+                : getShuffleCoreUrl(`/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(exec.execution_parent)}`);
               return (
                 <MetaRow
                   label="Source"

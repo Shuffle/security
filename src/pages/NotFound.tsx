@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import AgentIcon from "@/Shuffle-MCPs/components/AgentIcon";
 import shuffleInfraLogo from "@/assets/shuffle-infrastructure-logo.png";
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { getShuffleCoreUrl } from '@/lib/shuffleUrls';
 
 const NotFound = () => {
 
@@ -58,7 +59,7 @@ const NotFound = () => {
           </Link>
 
           <a
-            href="https://shuffler.io"
+            href={getShuffleCoreUrl()}
             className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary hover:bg-card/80"
           >
             <div className="mb-4 flex h-10 w-10 items-center justify-center">

@@ -26,7 +26,7 @@ import { NOTIFICATIONS_OPEN_EVENT } from '@/Shuffle-Core';
 import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as WarningAmberIcon, Users as PeopleIcon, Building2 as BusinessIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronUp as ExpandLess, ChevronDown as ExpandMore, Search as SearchIcon, Settings as SettingsIcon, FileText as DescriptionIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Radar as RadarIcon, LogOut as LogoutIcon, ShieldCheck as AdminPanelSettingsIcon, Rocket as RocketLaunchIcon, Bell as BellIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { SHUFFLE_AUTOMATION_URL } from '@/Shuffle-MCPs/api';
+import { SHUFFLE_AUTOMATION_URL, getShuffleCoreUrl } from '@/Shuffle-MCPs/api';
 // IntegrationStatus removed from sidebar; it now lives only on relevant pages (e.g. /onboarding/sources, infrastructure).
 import { SidebarSearchDialog } from './SidebarSearchDialog';
 
@@ -435,13 +435,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           </MenuItem>
           <MenuItem
             component="a"
-            href={(() => {
-              const hostname = window.location.hostname;
-              const isManagedHost = hostname.includes('lovable') || hostname.includes('shuffler.io') || hostname.includes('shutdown.no') || hostname.includes('shuffle.security');
-              return isManagedHost
-                ? SHUFFLE_AUTOMATION_URL
-                : `${window.location.protocol}//${hostname}:3001`;
-            })()}
+            href={getShuffleCoreUrl('/new-dashboard')}
             sx={{
               py: 1.5,
               px: 2,

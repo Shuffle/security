@@ -59,7 +59,7 @@ import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
 import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem, deleteDatastoreItem, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
 import type { GenerateReportInput } from '@/services/incidentReports';
-import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { API_CONFIG, getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
 import { resyncState } from '@/lib/resyncState';
 import { autoCorrectTranslatedString, repairCorruptedOcsfFields, type FieldRepair } from '@/lib/translationFallback';
 import { useUsers } from '@/hooks/useUsers';
@@ -10258,7 +10258,7 @@ const IncidentDetailPage = () => {
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>Original ingestion execution</Typography>
                     <Typography
                       variant="body2"
-                      onClick={() => window.open(`https://shuffler.io/workflows/${incident.rawOCSF.shuffle_execution_id}?execution_id=${incident.rawOCSF.shuffle_execution_id}`, '_blank')}
+                      onClick={() => window.open(getShuffleCoreWorkflowUrl(incident.rawOCSF.shuffle_execution_id, { execution_id: incident.rawOCSF.shuffle_execution_id }), '_blank')}
                       sx={{ color: '#06b6d4', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.75rem', wordBreak: 'break-all', '&:hover': { textDecoration: 'underline' } }}
                     >
                       {String(incident.rawOCSF.shuffle_execution_id)}

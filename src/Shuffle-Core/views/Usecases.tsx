@@ -47,7 +47,7 @@ import {
   getDatastoreByCategory,
   resolveApp,
 } from '@shuffleio/shuffle-mcps';
-import { getAuthHeader } from '../api';
+import { getAuthHeader, getShuffleCoreWorkflowUrl } from '../api';
 import { useUsecaseOutcomes } from '../hooks/useUsecaseOutcomes';
 import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
 import { resolveOutcomeKind } from '../lib/outcomes';
@@ -4647,7 +4647,7 @@ function UsecaseDetailContent({
                   <Box
                     key={wf.id}
                     component="a"
-                    href={`https://shuffler.io/workflows/${wf.id}`}
+                    href={getShuffleCoreWorkflowUrl(wf.id)}
                     target="_blank"
                     rel="noopener noreferrer"
                     sx={{

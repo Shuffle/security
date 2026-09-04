@@ -21,10 +21,9 @@ import {
   PolarAngleAxis, Cell,
 } from 'recharts';
 import { AlertCircle, RefreshCw, Zap, Workflow, Activity, ExternalLink } from 'lucide-react';
-import { useNavigate } from '@/lib/router-compat';
-import { useWorkflows } from '../../hooks/useWorkflows';
 import { SegmentedControl } from '../ui/segmented-control';
-import { getApiUrl, getAuthHeader } from '../../api';
+import { useWorkflows } from '../../hooks/useWorkflows';
+import { getApiUrl, getAuthHeader, getShuffleCoreUrl, getShuffleCoreWorkflowUrl } from '../../api';
 import { NEON, TooltipContent, KpiTile, Panel, EmptyState, buildBuckets, buildBucketsBetween, bucketIndexOf, useChartRangeDrag, ReferenceArea } from './_shared';
 import { useSyncHostBaseUrl } from '../../useSyncHostBaseUrl';
 
@@ -439,7 +438,7 @@ export const AutomationDashboard = ({
           label={`Successful ${isApps ? 'App' : 'Workflow'} Runs`}
           isLoading={loading}
           delay={0.05}
-          onClick={() => window.open('https://shuffler.io/workflows/debug', '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open(getShuffleCoreUrl('/workflows/debug'), '_blank', 'noopener,noreferrer')}
         />
         <KpiTile
           icon={Zap}
@@ -448,7 +447,7 @@ export const AutomationDashboard = ({
           label={`Failed ${isApps ? 'App' : 'Workflow'} Runs`}
           isLoading={loading}
           delay={0.1}
-          onClick={() => window.open('https://shuffler.io/workflows/debug', '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open(getShuffleCoreUrl('/workflows/debug'), '_blank', 'noopener,noreferrer')}
         />
         <KpiTile
           icon={Activity}
@@ -457,7 +456,7 @@ export const AutomationDashboard = ({
           label="Workflows"
           isLoading={loading || workflowsLoading}
           delay={0.15}
-          onClick={() => window.open('https://shuffler.io/workflows', '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open(getShuffleCoreWorkflowUrl(), '_blank', 'noopener,noreferrer')}
         />
       </Box>
 
@@ -486,7 +485,7 @@ export const AutomationDashboard = ({
                 <EmptyState
                   text={`Not enough ${isApps ? 'app' : 'workflow'} runs in this range to chart trends yet`}
                   ctaLabel="Build a workflow"
-                  onCta={() => navigate('/workflows')}
+                  onCta={() => window.open(getShuffleCoreWorkflowUrl(), '_blank', 'noopener,noreferrer')}
                 />
               </Box>
 

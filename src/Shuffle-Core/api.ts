@@ -16,8 +16,24 @@ import { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
 // Install the global fetch breaker as soon as api.ts is imported. Idempotent.
 installFetchBreaker();
 
-const DEV_BACKEND = 'https://tunnel.schemaless.org';
-const PROD_BACKEND = 'https://shuffler.io';
+import {
+  getShuffleCoreBaseUrl,
+  getShuffleCoreUrl,
+  getShuffleCoreWorkflowUrl,
+  getShuffleSecurityBaseUrl,
+  getShuffleSecurityUrl,
+} from './lib/shuffleUrls';
+
+export {
+  getShuffleCoreBaseUrl,
+  getShuffleCoreUrl,
+  getShuffleCoreWorkflowUrl,
+  getShuffleSecurityBaseUrl,
+  getShuffleSecurityUrl,
+};
+
+// Base URL for Shuffle Automation dashboard
+export const SHUFFLE_AUTOMATION_URL = getShuffleCoreUrl('/new-dashboard');
 
 const CLOUD_DOMAINS = ['shuffle.security', 'www.shuffle.security', 'security.shuffler.io', 'shutdown.no', 'www.shutdown.no'];
 

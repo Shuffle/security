@@ -19,12 +19,11 @@ import {
   FileEdit as EditNoteIcon,
   ChevronUp as ExpandLessIcon,
   ChevronDown as ExpandMoreIcon,
-  ExternalLink as OpenInNewIcon,
   Upload as PublishIcon,
-  Minus as RemoveIcon
+  Minus as RemoveIcon,
 } from 'lucide-react';
 import { getTheme, Context, UsecaseSearch, WorkflowGrid, WorkflowTemplatePopup, WorkflowValidationTimeline, useStyles } from "./stubs";
-import { getAuthHeader } from "../api";
+import { getAuthHeader, getShuffleCoreWorkflowUrl } from "../api";
 import { isMobile } from "react-device-detect";
 import { MuiChipsInput } from "mui-chips-input";
 import { toast } from "react-toastify";

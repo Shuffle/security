@@ -12,7 +12,7 @@ import { IntegrationStatus } from '@/Shuffle-MCPs/components/IntegrationStatus';
 import { Clock } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useUsecases } from '@/hooks/useUsecases';
-import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { API_CONFIG, getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
 import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
 import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
 import {
@@ -616,7 +616,7 @@ export const UsecaseDetailContent = ({
                 <Box
                   key={wf.id}
                   component="a"
-                  href={`https://shuffler.io/workflows/${wf.id}`}
+                  href={getShuffleCoreWorkflowUrl(wf.id)}
                   target="_blank"
                   rel="noopener noreferrer"
                   sx={{
