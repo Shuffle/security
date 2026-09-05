@@ -71,8 +71,6 @@
   --card-foreground: 0 0% 9%;
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 9%;
-  --primary: 24 100% 50%;
-  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 94%;
   --secondary-foreground: 0 0% 9%;
   --muted: 0 0% 94%;
@@ -83,7 +81,6 @@
   --destructive-foreground: 0 0% 100%;
   --border: 0 0% 80%;
   --input: 0 0% 94%;
-  --ring: 24 100% 50%;
 }
 
 .shuffle-mcp-scope.dark {
@@ -95,8 +92,6 @@
   --card-foreground: 0 0% 100%;
   --popover: 0 0% 12%;
   --popover-foreground: 0 0% 100%;
-  --primary: 24 100% 50%;
-  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 18%;
   --secondary-foreground: 0 0% 100%;
   --muted: 0 0% 16%;
@@ -107,7 +102,6 @@
   --destructive-foreground: 0 0% 100%;
   --border: 0 0% 20%;
   --input: 0 0% 18%;
-  --ring: 24 100% 50%;
 }
 
 

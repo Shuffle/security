@@ -86,8 +86,6 @@
   --card-foreground: 0 0% 9%;
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 9%;
-  --primary: 24 100% 50%;
-  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 94%;
   --secondary-foreground: 0 0% 9%;
   --muted: 0 0% 94%;
@@ -99,8 +97,6 @@
   --border: 0 0% 80%;
   --border-subtle: 0 0% 86%;
   --input: 0 0% 94%;
-  --ring: 24 100% 50%;
-  --primary-glow: 24 100% 60%;
   --severity-critical: 0 84% 60%;
   --severity-high: 25 95% 53%;
   --severity-medium: 45 93% 47%;
@@ -108,14 +104,10 @@
   --severity-info: 210 100% 56%;
   --sidebar-background: 0 0% 97%;
   --sidebar-foreground: 0 0% 9%;
-  --sidebar-primary: 24 100% 50%;
-  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 94%;
   --sidebar-accent-foreground: 0 0% 9%;
   --sidebar-border: 0 0% 80%;
-  --sidebar-ring: 24 100% 50%;
   --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
-  --gradient-accent: linear-gradient(135deg, hsl(24 100% 50%) 0%, hsl(24 100% 60%) 100%);
 }
 
 .shuffle-core-scope.dark {
@@ -128,21 +120,17 @@
   --card-foreground: 0 0% 100%;
   --popover: 0 0% 12%;
   --popover-foreground: 0 0% 100%;
-  --primary: 24 100% 50%;
-  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 18%;
   --secondary-foreground: 0 0% 100%;
   --muted: 0 0% 16%;
   --muted-foreground: 0 0% 50%;
-  --accent: 24 100% 50%;
+  --accent: 0 0% 20%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   --border: 0 0% 20%;
   --border-subtle: 0 0% 16%;
   --input: 0 0% 18%;
-  --ring: 24 100% 50%;
-  --primary-glow: 24 100% 60%;
   --severity-critical: 0 84% 60%;
   --severity-high: 25 95% 53%;
   --severity-medium: 45 93% 47%;
@@ -150,13 +138,9 @@
   --severity-info: 210 100% 56%;
   --sidebar-background: 0 0% 9%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 24 100% 50%;
-  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 16%;
   --sidebar-accent-foreground: 0 0% 100%;
   --sidebar-border: 0 0% 16%;
-  --sidebar-ring: 24 100% 50%;
   --gradient-card: linear-gradient(145deg, hsl(0 0% 14%) 0%, hsl(0 0% 12%) 100%);
-  --gradient-accent: linear-gradient(135deg, hsl(24 100% 50%) 0%, hsl(24 100% 60%) 100%);
 }
 

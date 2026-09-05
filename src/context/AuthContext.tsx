@@ -77,9 +77,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try { return window.localStorage.getItem('session_token'); } catch { return null; }
   })();
   const [sessionToken, setSessionToken] = useState<string | null>(cachedToken);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(cachedToken || cachedUserInfo));
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(cachedUserInfo);
+  const [isLoading, setIsLoading] = useState(!cachedUserInfo && !cachedToken);
   const [orgMismatchWarning, setOrgMismatchWarning] = useState(false);
   const lastGetInfoTimeRef = useRef<number>(Date.now());
 
@@ -336,10 +336,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       console.trace('[Auth] setActiveOrg call site');
 
-      // Reset region URL and theme immediately — the new org may have different settings
-      resetRegionUrl();
-      localStorage.removeItem('shuffle-theme');
-      localStorage.removeItem('shuffle-theme-explicit');
+      // Optimistically resolve target org from existing org list
+      const targetOrg = userInfo?.orgs?.find(o => o.id === orgId);
+      if (targetOrg) {
+        // 1. Immediately broadcast org-change event so ThemeContext primes theme and brand color in 0ms
+        try {
+          window.dispatchEvent(new CustomEvent('shuffle:org-change', { detail: { org: targetOrg } }));
+        } catch { /* ignore */ }
+
+        // 2. Set runtime org id immediately
+        setRuntimeOrgId(orgId);
+
+        // 3. If target org has region_url, apply immediately
+        if (targetOrg.region_url) {
+          applyRegionFromPayload({ region_url: targetOrg.region_url }, orgId);
+        } else {
+          resetRegionUrl();
+        }
+
+        // 4. Update userInfo state and prime localStorage
+        setUserInfo(prev => {
+          if (!prev) return null;
+          const next = { ...prev, active_org: targetOrg };
+          try {
+            localStorage.setItem('shuffle_user_info', JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      } else {
+        resetRegionUrl();
+      }
 
       const response = await fetch(getApiUrl('/api/v1/orgs/' + orgId + '/change'), {
         method: 'POST',
@@ -361,18 +387,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         applyRegionFromPayload(changeData, orgId);
       }
 
-      // Always call getinfo after org change to resolve the new region_url
-      // and update userInfo before reloading
+      // Always call getinfo after org change to resolve latest details and update userInfo
       await fetchUserInfo();
 
-      // Reload so all components refetch for the new org
+      // Reload so all backend-query caches cleanly re-init for the new org
       window.location.reload();
     } catch (err) {
       console.error('Failed to change org:', err);
       // Still reload on error to ensure a clean state
       window.location.reload();
     }
-  }, [fetchUserInfo]);
+  }, [fetchUserInfo, userInfo]);
 
   const logout = useCallback(async () => {
     // Capture token before clearing storage so we can tell the backend to revoke it

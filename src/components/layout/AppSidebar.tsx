@@ -111,7 +111,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { userInfo, setActiveOrg, logout } = useAuth();
-  const { theme: currentTheme, setTheme, brandColor } = useTheme();
+  const { theme: currentTheme, setTheme, brandColor, brandName } = useTheme();
   const primaryColor = brandColor || '#FF6600';
   const { plural: entityPlural, basePath: entityBasePath } = useEntityPreference();
   const sidebarTabs = useSidebarTabs();
@@ -370,16 +370,28 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           {!visuallyCollapsed && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                <Typography sx={{ 
-                  color: primaryColor,
-                  fontWeight: 600, 
-                  fontSize: '1rem' 
-                }}>
-                  Shuffle
-                </Typography>
-                <Typography sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, fontSize: '1rem' }}>
-                  Security
-                </Typography>
+                {brandName ? (
+                  <Typography sx={{ 
+                    color: primaryColor,
+                    fontWeight: 600, 
+                    fontSize: '1rem' 
+                  }}>
+                    {brandName}
+                  </Typography>
+                ) : (
+                  <>
+                    <Typography sx={{ 
+                      color: primaryColor,
+                      fontWeight: 600, 
+                      fontSize: '1rem' 
+                    }}>
+                      Shuffle
+                    </Typography>
+                    <Typography sx={{ color: 'hsl(var(--foreground))', fontWeight: 600, fontSize: '1rem' }}>
+                      Security
+                    </Typography>
+                  </>
+                )}
               </Box>
               <ExpandMore size={16} style={{ color: 'hsl(var(--muted-foreground))', marginLeft: '4px' }} />
             </Box>

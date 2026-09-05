@@ -160,7 +160,7 @@ export const MobileNavHeader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const { brandColor } = useTheme();
+  const { brandColor, brandName } = useTheme();
   const primaryColor = brandColor || '#FF6600';
 
   // The extra status-bar / notch padding is only needed inside the native
@@ -249,26 +249,41 @@ export const MobileNavHeader: React.FC = () => {
             >
               <ShuffleLogo size={24} color={primaryColor} />
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                <Typography
-                  sx={{
-                    color: primaryColor,
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    letterSpacing: '-0.3px',
-                  }}
-                >
-                  Shuffle
-                </Typography>
-                <Typography
-                  sx={{
-                    color: 'hsl(var(--foreground))',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    letterSpacing: '-0.3px',
-                  }}
-                >
-                  Security
-                </Typography>
+                {brandName ? (
+                  <Typography
+                    sx={{
+                      color: primaryColor,
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      letterSpacing: '-0.3px',
+                    }}
+                  >
+                    {brandName}
+                  </Typography>
+                ) : (
+                  <>
+                    <Typography
+                      sx={{
+                        color: primaryColor,
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        letterSpacing: '-0.3px',
+                      }}
+                    >
+                      Shuffle
+                    </Typography>
+                    <Typography
+                      sx={{
+                        color: 'hsl(var(--foreground))',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        letterSpacing: '-0.3px',
+                      }}
+                    >
+                      Security
+                    </Typography>
+                  </>
+                )}
               </Box>
             </Box>
 

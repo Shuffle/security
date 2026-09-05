@@ -89,9 +89,6 @@ const lightTokenStyle: ShuffleTokenStyle = {
   "--card-foreground": "0 0% 9%",
   "--popover": "0 0% 100%",
   "--popover-foreground": "0 0% 9%",
-  "--primary": "24 100% 50%",
-  "--primary-foreground": "0 0% 100%",
-  "--primary-glow": "24 100% 60%",
   "--secondary": "0 0% 94%",
   "--secondary-foreground": "0 0% 9%",
   "--muted": "0 0% 94%",
@@ -103,7 +100,6 @@ const lightTokenStyle: ShuffleTokenStyle = {
   "--border": "0 0% 80%",
   "--border-subtle": "0 0% 86%",
   "--input": "0 0% 94%",
-  "--ring": "24 100% 50%",
   "--severity-critical": "0 84% 60%",
   "--severity-high": "25 95% 53%",
   "--severity-medium": "45 93% 47%",
@@ -111,14 +107,10 @@ const lightTokenStyle: ShuffleTokenStyle = {
   "--severity-info": "210 100% 56%",
   "--sidebar-background": "0 0% 97%",
   "--sidebar-foreground": "0 0% 9%",
-  "--sidebar-primary": "24 100% 50%",
-  "--sidebar-primary-foreground": "0 0% 100%",
   "--sidebar-accent": "0 0% 94%",
   "--sidebar-accent-foreground": "0 0% 9%",
   "--sidebar-border": "0 0% 80%",
-  "--sidebar-ring": "24 100% 50%",
   "--gradient-card": "linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%)",
-  "--gradient-accent": "linear-gradient(135deg, hsl(24 100% 50%) 0%, hsl(24 100% 60%) 100%)",
 };
 
 const darkTokenStyle: ShuffleTokenStyle = {

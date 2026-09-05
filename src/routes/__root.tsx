@@ -87,11 +87,10 @@ if (typeof window !== "undefined") {
 }
 
 
-// Pre-paint theme bootstrap: ThemeContext applies the class after hydration,
-// but SSR paints first — resolve shuffle-theme (default: system) before paint
-// to avoid a light-theme flash for dark users. RootShell's
-// suppressHydrationWarning covers the expected <html> class mismatch.
-const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem("shuffle-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.classList.remove("light","dark");document.documentElement.classList.add(t);document.documentElement.style.colorScheme=t;}catch(e){}})();`;
+// Pre-paint theme & brand bootstrap: ThemeContext applies classes after hydration,
+// but SSR paints first — resolve shuffle-theme (default: system) and custom brand color
+// before first paint to avoid flashes of wrong theme or default orange.
+const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem("shuffle-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}var root=document.documentElement;root.classList.remove("light","dark");root.classList.add(t);root.style.colorScheme=t;var bc=localStorage.getItem("shuffle-brand-color");if(!bc){try{var u=JSON.parse(localStorage.getItem("shuffle_user_info")||"{}");bc=u&&u.active_org&&u.active_org.branding&&u.active_org.branding.brand_color;}catch(e){}}if(bc&&typeof bc==="string"){var hex=bc.replace(/^#/,"");if(hex.length===3)hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];if(hex.length===6){var r=parseInt(hex.substring(0,2),16)/255,g=parseInt(hex.substring(2,4),16)/255,b=parseInt(hex.substring(4,6),16)/255;var max=Math.max(r,g,b),min=Math.min(r,g,b);var h=0,s=0,l=(max+min)/2;if(max!==min){var d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}var H=Math.round(h*360),S=Math.round(s*100),L=Math.round(l*100);var hsl=H+" "+S+"% "+L+"%";var glowL=Math.min(L+10,100);var fg=L>60?"0 0% 9%":"0 0% 100%";root.style.setProperty("--primary",hsl);root.style.setProperty("--ring",hsl);root.style.setProperty("--sidebar-primary",hsl);root.style.setProperty("--sidebar-ring",hsl);root.style.setProperty("--status-open",hsl);root.style.setProperty("--primary-glow",H+" "+S+"% "+glowL+"%");root.style.setProperty("--primary-foreground",fg);root.style.setProperty("--sidebar-primary-foreground",fg);}}}catch(e){}})();`;
 
 // Show the mobile login CTA bar on the auth-checking overlay immediately,
 // before React hydrates, so it is visible even when the backend is slow.
