@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useRef, useCallback, ReactNode } from 'react';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -12,6 +12,9 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_STORAGE_KEY = 'shuffle-theme';
+const USER_EXPLICIT_KEY = 'shuffle-theme-explicit';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 const getSystemTheme = (): 'light' | 'dark' => {
   if (typeof window === 'undefined') return 'dark';
@@ -21,6 +24,33 @@ const getSystemTheme = (): 'light' | 'dark' => {
 const resolveTheme = (mode: ThemeMode): 'light' | 'dark' => {
   if (mode === 'system') return getSystemTheme();
   return mode;
+};
+
+const applyDomTheme = (resolved: 'light' | 'dark') => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  root.classList.remove('light', 'dark');
+  root.classList.add(resolved);
+  root.style.colorScheme = resolved;
+};
+
+const persistThemeToBackend = async (theme: ThemeMode) => {
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('session_token') : null;
+    const base = typeof window !== 'undefined' ? (window as any).__SHUFFLE_API_BASE__ || '' : '';
+    // Fire-and-forget; ignore status or errors so frontend changes happen immediately
+    await fetch(`${base}/api/v1/updateuser`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ theme }),
+    });
+  } catch {
+    // Non-blocking: optimistic frontend changes must never depend on backend success
+  }
 };
 
 const hexToHSL = (hex: string): string => {
@@ -77,15 +107,43 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [brandColor, setBrandColor] = useState<string | null>(null);
   const [apiChecked, setApiChecked] = useState(false);
 
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+
+  const userExplicitRef = useRef<boolean>(
+    typeof localStorage !== 'undefined' && localStorage.getItem(USER_EXPLICIT_KEY) === 'true'
+  );
+
   // Keep systemTheme reactive to OS prefers-color-scheme changes
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => {
-      setSystemTheme(e.matches ? 'dark' : 'light');
+      const nextSys = e.matches ? 'dark' : 'light';
+      setSystemTheme(nextSys);
+      if (themeRef.current === 'system') {
+        applyDomTheme(nextSys);
+      }
     };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Cross-tab synchronization via storage event
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === THEME_STORAGE_KEY && e.newValue) {
+        const next = e.newValue as ThemeMode;
+        if (next === 'light' || next === 'dark' || next === 'system') {
+          const nextResolved = resolveTheme(next);
+          applyDomTheme(nextResolved);
+          setThemeState(next);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const resolvedTheme: 'light' | 'dark' = theme === 'system' ? systemTheme : theme;
@@ -94,11 +152,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     updateCSSVariables(brandColor);
   }, [brandColor]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(resolvedTheme);
-    root.style.colorScheme = resolvedTheme;
+  useIsomorphicLayoutEffect(() => {
+    applyDomTheme(resolvedTheme);
   }, [resolvedTheme]);
 
   // Theme preference is sourced from the same `/api/v1/getinfo` request that
@@ -122,17 +177,30 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         const brandingTheme = data.active_org?.branding?.theme;
         const dataTheme = data.theme;
 
-        if (isValidTheme(brandingTheme)) {
-          // Priority: Tenant branding theme overrides theme for this tenant
+        const isUserExplicit =
+          userExplicitRef.current ||
+          (typeof localStorage !== 'undefined' && localStorage.getItem(USER_EXPLICIT_KEY) === 'true');
+
+        if (isUserExplicit) {
+          // Frontend user choice is optimistic and takes precedence over backend preferences!
+          // We do not clobber the user's active theme.
+        } else if (isValidTheme(brandingTheme)) {
+          // Priority: Tenant branding theme overrides theme for this tenant when user hasn't explicitly set one
           setThemeState(brandingTheme);
-          localStorage.setItem(THEME_STORAGE_KEY, brandingTheme);
+          applyDomTheme(resolveTheme(brandingTheme));
+          try {
+            localStorage.setItem(THEME_STORAGE_KEY, brandingTheme);
+          } catch {}
         } else {
           // No tenant branding theme: preserve existing user preference if set,
           // or hydrate user's account theme (data.theme) if available.
-          const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
+          const saved = typeof localStorage !== 'undefined' ? (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null) : null;
           if (!saved && isValidTheme(dataTheme)) {
             setThemeState(dataTheme);
-            localStorage.setItem(THEME_STORAGE_KEY, dataTheme);
+            applyDomTheme(resolveTheme(dataTheme));
+            try {
+              localStorage.setItem(THEME_STORAGE_KEY, dataTheme);
+            } catch {}
           }
         }
       }
@@ -143,8 +211,32 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [apiChecked]);
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
+    const nextResolved = resolveTheme(newTheme);
+
+    // 1. Immediately and synchronously apply DOM class changes
+    applyDomTheme(nextResolved);
+
+    // 2. Mark explicit user selection so backend preferences don't clobber it
+    userExplicitRef.current = true;
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+      localStorage.setItem(USER_EXPLICIT_KEY, 'true');
+    } catch {}
+
+    // 3. Immediately update React state
     setThemeState(newTheme);
-    localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+
+    // 4. Dispatch instant change event for any custom listeners
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('shuffle:theme-change', {
+          detail: { theme: newTheme, resolvedTheme: nextResolved },
+        })
+      );
+    }
+
+    // 5. Fire-and-forget optimistic persist to backend
+    persistThemeToBackend(newTheme).catch(() => {});
   }, []);
 
   return (

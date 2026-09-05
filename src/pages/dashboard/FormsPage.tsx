@@ -11,14 +11,17 @@
  * AppCreator useStyles). They render placeholders or null until ported.
  */
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { API_CONFIG } from '@/Shuffle-MCPs/api';
 import { FormInput } from '@/Shuffle-Core';
 
 const FormsPage = () => {
   const { userInfo, isAuthenticated } = useAuth();
+  const { resolvedTheme } = useTheme();
   return (
     <FormInput
       globalUrl={API_CONFIG.baseUrl}
+      theme={resolvedTheme}
       userdata={userInfo || {}}
       isLoaded={true}
       isLoggedIn={!!isAuthenticated}

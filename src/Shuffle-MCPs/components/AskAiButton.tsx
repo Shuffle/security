@@ -10,6 +10,7 @@ import { Box, ButtonBase, Tooltip, Typography } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { isSupportUser } from '@/Shuffle-MCPs/components/AgentPresets';
+import { isAgentRoute } from '@/Shuffle-MCPs/agentContextRegistry';
 import { useShuffleMcpTheme } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
 
 export interface AskAiButtonProps {
@@ -24,6 +25,8 @@ export interface AskAiButtonProps {
    * Default: true ("This is for now just for support users").
    */
   requireSupport?: boolean;
+  /** Current URL pathname. Automatically disables button on /agents and /agent */
+  pathname?: string;
   /** Custom button label. Default: "Ask AI". */
   label?: string;
   /** Tag label in the button. Default: "Support only". Set to null to hide tag. */
@@ -34,7 +37,7 @@ export interface AskAiButtonProps {
   tooltipTitle?: React.ReactNode;
   /** Custom sx style overrides for the button */
   sx?: SxProps<Theme>;
-  /** Hide button when drawer is open. Default: false. */
+  /** Hide button when drawer is open. Default: true. */
   hideWhenOpen?: boolean;
 }
 
@@ -43,14 +46,24 @@ export const AskAiButton: React.FC<AskAiButtonProps> = ({
   isOpen = false,
   isSupport,
   requireSupport = true,
+  pathname,
   label = 'Ask AI',
   tagLabel = 'Support only',
   contextHint,
   tooltipTitle,
   sx,
-  hideWhenOpen = false,
+  hideWhenOpen = true,
 }) => {
   const themeScope = useShuffleMcpTheme();
+
+  const currentPath = pathname !== undefined
+    ? pathname
+    : (typeof window !== 'undefined' ? window.location.pathname : '');
+
+  // Disable on /agents and /agent
+  if (isAgentRoute(currentPath)) {
+    return null;
+  }
 
   // Check support status (prop or fallback to localStorage)
   const isEffectiveSupport = isSupport !== undefined ? isSupport : isSupportUser();

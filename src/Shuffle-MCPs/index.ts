@@ -29,7 +29,7 @@ const resolveMode = (theme?: ShuffleTheme, colorMode?: ShuffleMcpColorMode): Shu
   if (theme === 'light' || theme === 'dark') return theme;
   if (theme === 'system') return 'auto';
   if (colorMode) return colorMode;
-  return 'dark';
+  return 'auto';
 };
 
 const withMcpTheme = <P extends object>(Inner: React.ComponentType<P>, displayName: string) => {
@@ -74,6 +74,7 @@ import LocalLLMConfigRaw from '@/Shuffle-MCPs/components/LocalLLMConfig';
 import AddAppModalRaw from '@/Shuffle-MCPs/components/AddAppModal';
 import AskAiButtonRaw from '@/Shuffle-MCPs/components/AskAiButton';
 import AskAiDrawerRaw from '@/Shuffle-MCPs/components/AskAiDrawer';
+import AskAiSidePanelRaw from '@/Shuffle-MCPs/components/AskAiSidePanel';
 import AskAiWidgetRaw from '@/Shuffle-MCPs/components/AskAiWidget';
 
 export { ShuffleMcpThemeProvider } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
@@ -114,6 +115,8 @@ export const AskAiButton = withMcpTheme(AskAiButtonRaw as React.ComponentType<an
 export type { AskAiButtonProps } from '@/Shuffle-MCPs/components/AskAiButton';
 export const AskAiDrawer = withMcpTheme(AskAiDrawerRaw as React.ComponentType<any>, 'AskAiDrawer');
 export type { AskAiDrawerProps } from '@/Shuffle-MCPs/components/AskAiDrawer';
+export const AskAiSidePanel = withMcpTheme(AskAiSidePanelRaw as React.ComponentType<any>, 'AskAiSidePanel');
+export type { AskAiSidePanelProps } from '@/Shuffle-MCPs/components/AskAiSidePanel';
 export const AskAiWidget = withMcpTheme(AskAiWidgetRaw as React.ComponentType<any>, 'AskAiWidget');
 export type { AskAiWidgetProps } from '@/Shuffle-MCPs/components/AskAiWidget';
 export { useContextAwareAgent } from '@/Shuffle-MCPs/components/AskAiWidget';
@@ -126,6 +129,8 @@ export {
   clearPageContextChoice,
   DEFAULT_AGENT_CONTEXT_RULES,
   matchRoutePattern,
+  isAgentRoute,
+  getActivePageEntityName,
 } from '@/Shuffle-MCPs/agentContextRegistry';
 export type {
   AgentContextRule,

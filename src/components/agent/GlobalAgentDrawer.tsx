@@ -8,7 +8,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from '@/lib/router-compat';
-import { AskAiWidget, API_CONFIG, type AgentRunDrawerTab, type AgentUIProps } from '@/Shuffle-MCPs';
+import {
+  AskAiWidget,
+  API_CONFIG,
+  isAgentRoute,
+  type AgentRunDrawerTab,
+  type AgentUIProps,
+} from '@/Shuffle-MCPs';
 import PermissionsPanel from '@/components/agent/PermissionsPanel';
 import LocalLLMConfig from '@/components/agent/LocalLLMConfig';
 import { useTheme } from '@/context/ThemeContext';
@@ -39,18 +45,29 @@ const GlobalAgentDrawer = () => {
     [scheduleAgentRun],
   );
 
+  const isAgentDisabled = isAgentRoute(location.pathname);
+
   useEffect(() => {
     const handler = (e: Event) => {
+      if (isAgentDisabled) return;
       const detail = (e as CustomEvent<AgentDrawerOpenDetail>).detail;
       setInitialTab((detail?.tab ?? 'run') as AgentRunDrawerTab);
       setOpen(true);
     };
     window.addEventListener(AGENT_DRAWER_OPEN_EVENT, handler);
     return () => window.removeEventListener(AGENT_DRAWER_OPEN_EVENT, handler);
-  }, []);
+  }, [isAgentDisabled]);
 
-  // Legacy: ?openPermissions=1 still works from any page.
+  // Auto-close if user navigates to /agents or /agent
   useEffect(() => {
+    if (isAgentDisabled && open) {
+      setOpen(false);
+    }
+  }, [isAgentDisabled, open]);
+
+  // Legacy: ?openPermissions=1 still works from any non-agent page.
+  useEffect(() => {
+    if (isAgentDisabled) return;
     const params = new URLSearchParams(location.search);
     if (params.get('openPermissions') === '1') {
       setInitialTab('permissions');
@@ -61,38 +78,7 @@ const GlobalAgentDrawer = () => {
         { replace: true },
       );
     }
-  }, [location.search, location.pathname, navigate]);
-
-  // /agents?permissions=true — auto-open the Local LLM sidebar on /agents.
-  useEffect(() => {
-    if (location.pathname !== '/agents') return;
-    const params = new URLSearchParams(location.search);
-    if (params.get('permissions') === 'true') {
-      setInitialTab('localLLM');
-      setOpen(true);
-    }
-  }, [location.pathname, location.search]);
-
-  // When the drawer is open on /agents, mirror it as ?permissions=true.
-  // When it closes on /agents, strip the param.
-  useEffect(() => {
-    if (location.pathname !== '/agents') return;
-    const params = new URLSearchParams(location.search);
-    const has = params.get('permissions') === 'true';
-    if (open && !has) {
-      params.set('permissions', 'true');
-      navigate(
-        { pathname: location.pathname, search: `?${params}` },
-        { replace: true },
-      );
-    } else if (!open && has) {
-      params.delete('permissions');
-      navigate(
-        { pathname: location.pathname, search: params.toString() ? `?${params}` : '' },
-        { replace: true },
-      );
-    }
-  }, [open, location.pathname, location.search, navigate]);
+  }, [isAgentDisabled, location.search, location.pathname, navigate]);
 
   return (
     <AskAiWidget

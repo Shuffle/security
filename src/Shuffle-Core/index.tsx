@@ -50,7 +50,7 @@ const resolveMode = (theme?: ShuffleTheme, colorMode?: ShuffleColorMode): Shuffl
   if (theme === 'light' || theme === 'dark') return theme;
   if (theme === 'system') return 'auto';
   if (colorMode) return colorMode;
-  return 'dark';
+  return 'auto';
 };
 
 /**

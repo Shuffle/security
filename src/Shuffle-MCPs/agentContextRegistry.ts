@@ -41,6 +41,8 @@ export interface AgentContextRule {
   getStorageKey?: (params: Record<string, string>, pathname: string) => string;
   /** Human-readable description of what this context provides */
   description?: string;
+  /** Explicit flag indicating this route lacks a dedicated MCP mapping */
+  missingConfig?: boolean;
 }
 
 export interface AgentResolvedContext {
@@ -60,6 +62,8 @@ export interface AgentResolvedContext {
   originalDefaultApps: AgentContextApp[];
   /** The default preset before any user customization */
   originalDefaultPresetId?: string;
+  /** True when no specific rule was configured for this route (fallback rule used) */
+  missingConfig: boolean;
 }
 
 export interface PageContextChoice {
@@ -112,6 +116,30 @@ export const matchRoutePattern = (pattern: string, pathname: string): Record<str
   return params;
 };
 
+/** Checks whether the given pathname is an Agent-specific route that must disable Ask AI */
+export const isAgentRoute = (pathname: string): boolean => {
+  const norm = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  return norm === '/agents' || norm === '/agent' || norm.startsWith('/agents/') || norm.startsWith('/agent/');
+};
+
+/** Attempts to discover the primary entity name/title from the active DOM (e.g. incident title input) */
+export const getActivePageEntityName = (): string | undefined => {
+  if (typeof document === 'undefined') return undefined;
+  try {
+    const titleInput = document.querySelector('[data-incident-field="title"] input') as HTMLInputElement | null;
+    if (titleInput?.value && titleInput.value.trim().length > 0) {
+      return titleInput.value.trim();
+    }
+    const heading = document.querySelector('h1, h2, [data-entity-title]') as HTMLElement | null;
+    if (heading?.textContent && heading.textContent.trim().length > 0 && heading.textContent.trim().length < 90) {
+      return heading.textContent.trim();
+    }
+  } catch {
+    /* ignore DOM query errors */
+  }
+  return undefined;
+};
+
 /**
  * Built-in context rules for Shuffle.
  * Most specific rules are defined first.
@@ -123,8 +151,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/incidents/:id',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
-    title: (params) => `Incident #${params.id}`,
-    subtitle: () => 'Context aware: Shuffle Incidents MCP injected',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Incidents MCP',
     defaultPrompt: (params) => `Investigate incident ${params.id} and recommend next steps: `,
     placeholder: 'Ask about this incident, triage observables, or correlate...',
     getStorageKey: (params) => `incident_${params.id}`,
@@ -136,8 +167,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/incidents-simple/:id',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
-    title: (params) => `Incident #${params.id}`,
-    subtitle: () => 'Context aware: Shuffle Incidents MCP injected',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Incidents MCP',
     defaultPrompt: (params) => `Investigate incident ${params.id} and recommend next steps: `,
     placeholder: 'Ask about this incident, triage observables, or correlate...',
     getStorageKey: (params) => `incident_${params.id}`,
@@ -149,8 +183,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/incidents',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
-    title: 'Incidents Agent',
-    subtitle: 'Context aware: Shuffle Incidents MCP injected',
+    title: 'How can we help handle incidents?',
+    subtitle: 'Shuffle Incidents MCP',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     placeholder: 'Triage incidents, correlate alerts, or search threat intelligence...',
     getStorageKey: () => 'incidents_list',
@@ -161,8 +195,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/incidents-simple',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
-    title: 'Incidents Agent',
-    subtitle: 'Context aware: Shuffle Incidents MCP injected',
+    title: 'How can we help handle incidents?',
+    subtitle: 'Shuffle Incidents MCP',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     placeholder: 'Triage incidents, correlate alerts, or search threat intelligence...',
     getStorageKey: () => 'incidents_list',
@@ -174,8 +208,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/vulnerabilities/:id',
     defaultApps: [{ name: 'vulnerabilities' }],
     defaultPresetId: 'vulnerability',
-    title: (params) => `Vulnerability ${params.id}`,
-    subtitle: () => 'Context aware: Vulnerabilities MCP injected',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help with ${entity}?` : `How can we help with vulnerability ${params.id}?`;
+    },
+    subtitle: () => 'Vulnerabilities MCP',
     defaultPrompt: (params) => `Review vulnerability ${params.id} and draft remediation plan: `,
     placeholder: 'Analyze this CVE, check affected hosts, and draft remediation...',
     getStorageKey: (params) => `vulnerability_${params.id}`,
@@ -187,8 +224,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/vulnerabilities',
     defaultApps: [{ name: 'vulnerabilities' }],
     defaultPresetId: 'vulnerability',
-    title: 'Vulnerability Agent',
-    subtitle: 'Context aware: Vulnerabilities MCP injected',
+    title: 'How can we help review vulnerabilities?',
+    subtitle: 'Vulnerabilities MCP',
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
     placeholder: 'Review CVEs, prioritize by exploitability, or draft patch workflows...',
     getStorageKey: () => 'vulnerabilities_list',
@@ -201,8 +238,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
       pathname.startsWith('/workflows') || pathname.startsWith('/usecases') || pathname.startsWith('/infrastructure/flows'),
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
     defaultPresetId: 'build-workflows',
-    title: 'Workflow Agent',
-    subtitle: 'Context aware: Workflow Builder MCP injected',
+    title: 'How can we help build workflows?',
+    subtitle: 'Workflow Builder & Apps MCP',
     defaultPrompt: 'Build a Shuffle workflow that ',
     placeholder: 'Describe the automation you want to build or edit...',
     getStorageKey: () => 'workflows_builder',
@@ -214,8 +251,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/monitors'),
     defaultApps: [{ name: 'shuffle_host_monitors' }],
     defaultPresetId: 'host-monitor-control',
-    title: 'Computer Use Agent',
-    subtitle: 'Context aware: Host Monitors MCP injected',
+    title: 'How can we help with host monitors?',
+    subtitle: 'Host Monitors MCP',
     defaultPrompt: 'Take control of this host and help me with: ',
     placeholder: 'Ask the agent to run terminal commands, inspect files, or remediate...',
     getStorageKey: () => 'host_monitors',
@@ -227,8 +264,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/detection'),
     defaultApps: [{ name: 'shuffle_detection' }],
     defaultPresetId: 'detection',
-    title: 'Detection Agent',
-    subtitle: 'Context aware: Detection MCP injected',
+    title: 'How can we help tune detections?',
+    subtitle: 'Shuffle Detection MCP',
     defaultPrompt: 'Modify my detections to ',
     placeholder: 'Create Sigma rules, tune detection pipelines, or filter false positives...',
     getStorageKey: () => 'detection',
@@ -240,8 +277,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/alerts') || pathname.startsWith('/notifications'),
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'handle-notifications',
-    title: 'Alerts Agent',
-    subtitle: 'Context aware: Incident & Notification MCP injected',
+    title: 'How can we help triage alerts?',
+    subtitle: 'Incident & Notification MCP',
     defaultPrompt: 'Automatically handle incoming incidents by ',
     placeholder: 'Define triage rules or correlate incoming security alerts...',
     getStorageKey: () => 'alerts',
@@ -253,12 +290,13 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: () => true,
     defaultApps: [{ name: 'shuffle_tools' }],
     defaultPresetId: 'support',
-    title: 'Support Agent',
-    subtitle: 'Shuffle AI Platform Assistant',
-    defaultPrompt: 'Help me with the following on the Shuffle platform: ',
-    placeholder: 'Ask anything about Shuffle, integrations, workflows, or diagnostics...',
+    title: 'How can we help on this page?',
+    subtitle: 'General Platform Assistant',
+    defaultPrompt: 'Help me with the following on this page: ',
+    placeholder: 'Ask anything about Shuffle, integrations, or workflows...',
     getStorageKey: (params, pathname) => `page_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'General support agent for the platform',
+    missingConfig: true,
   },
 ];
 
@@ -392,6 +430,8 @@ export const resolveAgentContext = (
     ? matchedRule.defaultPrompt(matchedParams, normPath)
     : matchedRule.defaultPrompt ?? '';
 
+  const missingConfig = Boolean(matchedRule.missingConfig ?? (matchedRule.id === 'default'));
+
   return {
     ruleId: matchedRule.id,
     apps: effectiveApps,
@@ -406,5 +446,6 @@ export const resolveAgentContext = (
     isOverridden,
     originalDefaultApps: matchedRule.defaultApps,
     originalDefaultPresetId: matchedRule.defaultPresetId,
+    missingConfig,
   };
 };

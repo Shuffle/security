@@ -10,9 +10,14 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { AskAiButton, AskAiButtonProps } from '@/Shuffle-MCPs/components/AskAiButton';
+import { AskAiSidePanel, AskAiSidePanelProps } from '@/Shuffle-MCPs/components/AskAiSidePanel';
 import { AskAiDrawer, AskAiDrawerProps } from '@/Shuffle-MCPs/components/AskAiDrawer';
 import { AgentRunDrawerTab } from '@/Shuffle-MCPs/components/AgentRunDrawer';
-import { AgentResolvedContext, resolveAgentContext } from '@/Shuffle-MCPs/agentContextRegistry';
+import {
+  AgentResolvedContext,
+  isAgentRoute,
+  resolveAgentContext,
+} from '@/Shuffle-MCPs/agentContextRegistry';
 
 export const AGENT_DRAWER_OPEN_EVENT = 'agent-drawer-open';
 
@@ -22,11 +27,13 @@ export interface AgentDrawerOpenDetail {
   defaultInput?: string;
 }
 
-export interface AskAiWidgetProps extends Omit<AskAiDrawerProps, 'open' | 'onClose'> {
+export interface AskAiWidgetProps extends Omit<AskAiSidePanelProps, 'open' | 'onClose'> {
   /** Controlled open state. When omitted, the widget manages its own open state. */
   open?: boolean;
   /** Controlled open state change handler. */
   onOpenChange?: (open: boolean) => void;
+  /** Presentation mode: 'panel' (sideshifting persistent side panel, default) or 'drawer' (modal slide-over) */
+  mode?: 'panel' | 'drawer';
   /** Authoritative support user flag. When omitted, checks localStorage. */
   isSupport?: boolean;
   /** Whether to require support status to show the floating button. Default: true. */
@@ -35,11 +42,18 @@ export interface AskAiWidgetProps extends Omit<AskAiDrawerProps, 'open' | 'onClo
   buttonProps?: Partial<AskAiButtonProps>;
   /** Hide the floating button completely (e.g. if controlled only by external triggers) */
   hideButton?: boolean;
+  /** Legacy drawer tab support */
+  initialTab?: AgentRunDrawerTab;
+  /** Legacy drawer slot */
+  permissionsSlot?: React.ReactNode;
+  /** Legacy drawer slot */
+  localLLMSlot?: React.ReactNode;
 }
 
 export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
   open: controlledOpen,
   onOpenChange,
+  mode = 'panel',
   isSupport,
   requireSupport = true,
   buttonProps,
@@ -49,21 +63,37 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
   rules,
   initialTab: propInitialTab = 'run',
   onContextResolved,
-  ...drawerProps
+  permissionsSlot,
+  localLLMSlot,
+  ...panelProps
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<AgentRunDrawerTab>(propInitialTab);
   const isDrawerOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
 
+  const currentPath = pathname !== undefined
+    ? pathname
+    : (typeof window !== 'undefined' ? window.location.pathname : '');
+
+  const isAgentDisabled = isAgentRoute(currentPath);
+
   const setDrawerOpen = useCallback(
     (nextOpen: boolean) => {
+      if (isAgentDisabled && nextOpen) return;
       if (controlledOpen === undefined) {
         setInternalOpen(nextOpen);
       }
       onOpenChange?.(nextOpen);
     },
-    [controlledOpen, onOpenChange],
+    [controlledOpen, isAgentDisabled, onOpenChange],
   );
+
+  // Auto-close if user navigates to an excluded Agent route
+  useEffect(() => {
+    if (isAgentDisabled && isDrawerOpen) {
+      setDrawerOpen(false);
+    }
+  }, [isAgentDisabled, isDrawerOpen, setDrawerOpen]);
 
   // Track resolved context for button tooltip / hint
   const [currentContext, setCurrentContext] = useState<AgentResolvedContext | null>(null);
@@ -79,6 +109,7 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
   // Listen to global openAgentDrawer events so existing UI triggers continue to work seamlessly
   useEffect(() => {
     const handleDrawerOpenEvent = (e: Event) => {
+      if (isAgentDisabled) return;
       const detail = (e as CustomEvent<AgentDrawerOpenDetail>).detail;
       if (detail?.tab) {
         setActiveTab(detail.tab);
@@ -88,13 +119,17 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
 
     window.addEventListener(AGENT_DRAWER_OPEN_EVENT, handleDrawerOpenEvent);
     return () => window.removeEventListener(AGENT_DRAWER_OPEN_EVENT, handleDrawerOpenEvent);
-  }, [setDrawerOpen]);
+  }, [isAgentDisabled, setDrawerOpen]);
 
   // Context hint for floating button (e.g. "Shuffle Incidents MCP")
   const contextHint =
     currentContext?.apps && currentContext.apps.length > 0
       ? currentContext.apps.map((a) => a.name.replace(/^shuffle_/, '').replace(/_/g, ' ')).join(', ')
       : undefined;
+
+  if (isAgentDisabled) {
+    return null;
+  }
 
   return (
     <>
@@ -105,22 +140,38 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
           isOpen={isDrawerOpen}
           isSupport={isSupport}
           requireSupport={requireSupport}
+          pathname={pathname}
           contextHint={contextHint}
           {...buttonProps}
         />
       )}
 
-      {/* Context-aware Agent Run Drawer */}
-      <AskAiDrawer
-        {...drawerProps}
-        open={isDrawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        initialTab={activeTab}
-        pathname={pathname}
-        search={search}
-        rules={rules}
-        onContextResolved={handleContextResolved}
-      />
+      {/* Render persistent sideshifting panel by default, or modal drawer if requested */}
+      {mode === 'drawer' ? (
+        <AskAiDrawer
+          open={isDrawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          initialTab={activeTab}
+          pathname={pathname}
+          search={search}
+          rules={rules}
+          permissionsSlot={permissionsSlot}
+          localLLMSlot={localLLMSlot}
+          onContextResolved={handleContextResolved}
+          {...panelProps}
+        />
+      ) : (
+        <AskAiSidePanel
+          open={isDrawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          pathname={pathname}
+          search={search}
+          rules={rules}
+          isSupport={isSupport}
+          onContextResolved={handleContextResolved}
+          {...panelProps}
+        />
+      )}
     </>
   );
 };

@@ -339,6 +339,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Reset region URL and theme immediately — the new org may have different settings
       resetRegionUrl();
       localStorage.removeItem('shuffle-theme');
+      localStorage.removeItem('shuffle-theme-explicit');
 
       const response = await fetch(getApiUrl('/api/v1/orgs/' + orgId + '/change'), {
         method: 'POST',

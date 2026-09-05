@@ -132,6 +132,10 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
               sm: `${(sidebarCollapsed ? collapsedWidth : drawerWidth) + 16}px`,
               md: `${(sidebarCollapsed ? collapsedWidth : drawerWidth) + 20}px`,
             },
+            marginRight: {
+              xs: 0,
+              md: 'var(--ask-ai-panel-width, 0px)',
+            },
             overflowY: 'auto',
             overflowX: 'hidden',
             pl: 'env(safe-area-inset-left, 0px)',

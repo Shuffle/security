@@ -5,7 +5,7 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* Tailwind v4 token mapping — ported verbatim from the old tailwind.config.ts
    theme.extend so all existing utility classes keep resolving. */
