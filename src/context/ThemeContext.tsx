@@ -36,9 +36,17 @@ export const resolveTheme = (mode: ThemeMode): 'light' | 'dark' => {
 export const applyDomTheme = (resolved: 'light' | 'dark') => {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
+  const body = document.body;
   root.classList.remove('light', 'dark');
   root.classList.add(resolved);
   root.style.colorScheme = resolved;
+  root.setAttribute('data-theme', resolved);
+  if (body) {
+    body.classList.remove('light', 'dark');
+    body.classList.add(resolved);
+    body.style.colorScheme = resolved;
+    body.setAttribute('data-theme', resolved);
+  }
 };
 
 const persistThemeToBackend = async (theme: ThemeMode) => {
@@ -281,10 +289,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         const brandingTheme = activeOrg?.branding?.theme;
         const dataTheme = data.theme;
 
-        // Check if user has an explicit preference for THIS specific tenant
+        // Check if user has an explicit preference for THIS specific tenant, or globally
         const isOrgExplicit = orgId
           ? (typeof localStorage !== 'undefined' && localStorage.getItem(getOrgExplicitKey(orgId)) === 'true')
           : false;
+        const isGlobalExplicit = typeof localStorage !== 'undefined' && localStorage.getItem(USER_EXPLICIT_KEY) === 'true';
 
         if (isOrgExplicit && orgId) {
           // Frontend user choice in this tenant takes precedence!
@@ -297,7 +306,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             } catch {}
           }
         } else if (isValidTheme(brandingTheme)) {
-          // Priority: Tenant branding theme overrides theme for this tenant when user hasn't explicitly set one
+          // Priority: Tenant branding theme overrides theme for this tenant when user hasn't explicitly set one for this org
           setThemeState(brandingTheme);
           applyDomTheme(resolveTheme(brandingTheme));
           try {
@@ -306,16 +315,33 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           } catch {}
         } else {
           // No tenant branding theme (unbranded / missing per-org config):
-          // Check if there was a per-org saved theme, or fallback to user's account theme (data.theme),
-          // or existing active theme.
+          // Check if there was a per-org saved theme, or global explicit user choice, or fallback to user's account theme (data.theme)
           const savedOrgTheme = orgId ? (localStorage.getItem(getOrgThemeKey(orgId)) as ThemeMode | null) : null;
+          const globalTheme = (typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_GLOBAL_KEY) : null) as ThemeMode | null;
+          const activeStoredTheme = (typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_STORAGE_KEY) : null) as ThemeMode | null;
+
           if (isValidTheme(savedOrgTheme)) {
             setThemeState(savedOrgTheme);
             applyDomTheme(resolveTheme(savedOrgTheme));
             try {
               localStorage.setItem(THEME_STORAGE_KEY, savedOrgTheme);
             } catch {}
+          } else if (isGlobalExplicit && isValidTheme(globalTheme)) {
+            // User explicitly chose a global theme (Light / Dark / System) - DO NOT CLOBBER WITH SERVER DEFAULT "dark"!
+            setThemeState(globalTheme);
+            applyDomTheme(resolveTheme(globalTheme));
+            try {
+              localStorage.setItem(THEME_STORAGE_KEY, globalTheme);
+              if (orgId) localStorage.setItem(getOrgThemeKey(orgId), globalTheme);
+            } catch {}
+          } else if (isGlobalExplicit && isValidTheme(activeStoredTheme)) {
+            setThemeState(activeStoredTheme);
+            applyDomTheme(resolveTheme(activeStoredTheme));
+            try {
+              if (orgId) localStorage.setItem(getOrgThemeKey(orgId), activeStoredTheme);
+            } catch {}
           } else if (isValidTheme(dataTheme)) {
+            // Only fallback to dataTheme if the user never explicitly picked a theme
             setThemeState(dataTheme);
             applyDomTheme(resolveTheme(dataTheme));
             try {

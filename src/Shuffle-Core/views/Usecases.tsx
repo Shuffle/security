@@ -408,6 +408,8 @@ export interface ApiUsecase {
 export interface ApiUsecaseCategory {
   name: string;       // e.g. "1. Collect", "2. Enrich"
   color?: string;
+  phase?: FlowPhase;
+  step?: number;
   list: ApiUsecase[];
 }
 
@@ -689,6 +691,8 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Ingest vulnerability findings (CVEs, misconfigurations, missing patches) from your scanners into a unified inventory so they can be correlated with assets and incidents.',
     agenticDescription: 'An agent normalizes scanner output across vendors, deduplicates findings per asset, enriches each CVE with exploitability and threat intel, and keeps the vulnerability inventory continuously up to date.',
     automationArea: 'automatic_ingestion',
+    automationLabel: 'Ingest Vulnerabilities',
+    automationCategory: 'vulnerabilities',
     customAction: {
       label: 'Configure Vulnerabilities',
       href: '/vulnerabilities',
@@ -1157,6 +1161,8 @@ interface UsecasesPageConfig {
     open: boolean;
     onClose: () => void;
   }) => React.ReactNode;
+  /** Optional callback fired when a usecase automation is enabled or disabled. */
+  onToggled?: (label: string, enabled: boolean) => void;
   /** Scope class to apply to portaled MUI surfaces (Drawer paper, etc.) so
    *  the scoped HSL tokens resolve correctly even outside the page wrapper. */
   scopeClassName?: string;
@@ -1174,6 +1180,7 @@ const DEFAULT_CONFIG: UsecasesPageConfig = {
   renderEndpointSlot: undefined,
   renderUsecaseDetailSlot: undefined,
   renderUsecaseActionModal: undefined,
+  onToggled: undefined,
   scopeClassName: 'shuffle-usecases-scope',
 };
 
@@ -1193,13 +1200,6 @@ const STYLE_TAG_ID = 'shuffle-usecases-scope-style';
 
 const SCOPED_CSS = `
 .${SCOPE_CLASS} {
-  /* Light theme defaults */
-  --background: 0 0% 98%;
-  --foreground: 0 0% 9%;
-  --card: 0 0% 100%;
-  --muted-foreground: 0 0% 45%;
-  --border: 0 0% 89%;
-
   --primary: 24 100% 50%;
   --primary-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
@@ -1232,10 +1232,7 @@ const SCOPED_CSS = `
    * and blends into whichever app embeds it instead of painting its own surface. */
 }
 
-/* MUI Card / Paper border-radius fallback for hosts that don't provide our MUI theme.
- * MUI's theme.shape.borderRadius drives outlined Cards; without our ThemeProvider
- * the cards render with sharp corners. Force the radius here so it matches in
- * standalone embedding too. */
+/* MUI Card / Paper border-radius fallback for hosts that don't provide our MUI theme. */
 .${SCOPE_CLASS} .MuiCard-root,
 .${SCOPE_CLASS} .MuiPaper-rounded {
   border-radius: 8px;
@@ -1244,12 +1241,25 @@ const SCOPED_CSS = `
   border-radius: inherit;
 }
 
+/* Light theme rules.
+ * Applies when the scope itself has .light, OR when host is not dark and scope is not pinned to .dark. */
+:root:not(.dark) .${SCOPE_CLASS}:not(.dark),
+html:not(.dark) .${SCOPE_CLASS}:not(.dark),
+body:not(.dark) .${SCOPE_CLASS}:not(.dark),
+.${SCOPE_CLASS}.light {
+  --background: 0 0% 98%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --muted-foreground: 0 0% 45%;
+  --border: 0 0% 89%;
+}
+
 /* Dark theme rules.
  * Applies when the scope itself has .dark (forced via theme=dark), OR when an
  * ancestor has .dark AND the scope was not forced to .light. The :not(.light)
  * guard lets theme=light override an ambient .dark host. */
-.${SCOPE_CLASS}.dark,
-.dark .${SCOPE_CLASS}:not(.light) {
+.dark .${SCOPE_CLASS}:not(.light),
+.${SCOPE_CLASS}.dark {
   --background: 0 0% 10%;
   --foreground: 0 0% 100%;
   --card: 0 0% 13%;
@@ -1469,6 +1479,12 @@ function useWorkflowsLite() {
     }
   }, [apiUrl, authHeader]);
   useEffect(() => { fetchOnce(); }, [fetchOnce]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleWorkflowsUpdated = () => { fetchOnce(); };
+    window.addEventListener('shuffle-workflows-updated', handleWorkflowsUpdated);
+    return () => window.removeEventListener('shuffle-workflows-updated', handleWorkflowsUpdated);
+  }, [fetchOnce]);
   return { data, refetch: fetchOnce };
 }
 
@@ -1585,6 +1601,10 @@ const LOCAL_ROUTE_MAP = (() => {
 })();
 
 function getMatchingLocal(api: ApiUsecase, matched: Set<string>): Usecase | undefined {
+  if ((api as any).id) {
+    const byId = DEFAULT_USECASES.find((l) => !matched.has(l.id) && l.id === (api as any).id);
+    if (byId) return byId;
+  }
   const candidates = [getApiSource(api), ...(ROUTE_ALIASES[getApiSource(api)] || [])];
   const apiNameSlug = slugify(api.name || '');
   // Prefer a label-exact match first so multiple locals sharing the same
@@ -1613,14 +1633,17 @@ function getMatchingLocal(api: ApiUsecase, matched: Set<string>): Usecase | unde
 }
 
 function mapApiToFrontend(cat: ApiUsecaseCategory, api: ApiUsecase, local?: Usecase): Usecase {
+  const resolvedPhase = (cat.phase && (cat.phase === 'ingest' || cat.phase === 'correlation' || cat.phase === 'response'))
+    ? cat.phase
+    : apiCategoryToPhase(cat.name);
   return {
-    id: local?.id || buildApiOnlyId(api),
+    id: local?.id || (api as any).id || buildApiOnlyId(api),
     source: getApiSource(api),
     target: getApiTarget(api),
     label: api.name || local?.label || 'Untitled usecase',
     description: api.description || local?.description || '',
     agenticDescription: local?.agenticDescription || api.agentic_description || api.description || '',
-    phase: apiCategoryToPhase(cat.name),
+    phase: resolvedPhase,
     tags: api.tags || local?.tags || [],
     animated: typeof api.disabled === 'boolean' ? !api.disabled : (local ? local.animated : true),
     automationLabel: api.automation_label || local?.automationLabel,
@@ -2547,6 +2570,7 @@ const ACTIVE_USECASE_IDS = [
   'case_management_asset_management_monitors_1',
   'case_management_assign_escalate_1',
   'asset_management_case_management_vuln_1',
+  'vulnerability_ingestion_1',
   'threat_intel_network_1',
   'threat_intel_edr_1',
   'threat_intel_cloud_1',
@@ -3331,7 +3355,8 @@ function UsecaseDetailContent({
     // validate. Skip the hard-block for these flows.
     const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
       || flow.id === 'case_management_communication_1'
-      || flow.id === 'asset_management_case_management_vuln_1';
+      || flow.id === 'asset_management_case_management_vuln_1'
+      || flow.id === 'vulnerability_ingestion_1';
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
       // Hard-block the enable. The /workflows/generate endpoint may return
       // success: true and then quietly skip creating the workflow when no
@@ -3923,7 +3948,9 @@ function UsecaseDetailContent({
         // tool. What they DO need is at least one external destination tool
         // to push to. Point the hint at the Destination side.
         const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
-          || flow.id === 'case_management_communication_1';
+          || flow.id === 'case_management_communication_1'
+          || flow.id === 'asset_management_case_management_vuln_1'
+          || flow.id === 'vulnerability_ingestion_1';
         const needsSource = !!flow.source && !selfContained && !isShuffleSourcedFlow;
         const sourceLabel = flow.source ? categoryLabel(flow.source) : 'source';
         // Detect if a source-side app is ALREADY wired into the usecase's
@@ -4938,6 +4965,10 @@ export interface UsecasesPageProps {
     open: boolean;
     onClose: () => void;
   }) => React.ReactNode;
+  /**
+   * Optional host callback fired whenever a usecase automation is toggled on/off.
+   */
+  onToggled?: (label: string, enabled: boolean) => void;
 }
 
 function UsecasesPageInner() {
@@ -4954,7 +4985,7 @@ function UsecasesPageInner() {
 
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
-  const { scopeClassName: cfgScopeClassName } = useUsecasesConfig();
+  const { scopeClassName: cfgScopeClassName, onToggled: cfgOnToggled } = useUsecasesConfig();
   const { usecases, apiLoaded, getDrift } = useUsecasesLite();
   const { userInfo, isAuthenticated, refetch: refetchAuth } = useAuthLite();
   const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
@@ -5025,11 +5056,16 @@ function UsecasesPageInner() {
     const next = new URLSearchParams(searchParams);
     next.delete('selected_object');
     const qs = next.toString();
-    navigate(
-      { pathname: `/usecases/${slug}`, search: qs ? `?${qs}` : '' },
-      { replace: true },
-    );
-  }, [routeParams.flowId, searchParams, navigate]);
+    const match =
+      usecases.find((u) => u.label && slugify(u.label) === slug) ||
+      usecases.find((u) => u.id && slugify(u.id) === slug);
+    if (match) {
+      setDrawerFlowIdState(match.id);
+    }
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/usecases/${slug}${qs ? `?${qs}` : ''}`);
+    }
+  }, [routeParams.flowId, searchParams, usecases]);
 
   useEffect(() => {
     if (!drawerLabel) {
@@ -5050,10 +5086,57 @@ function UsecasesPageInner() {
     }
   }, [drawerLabel, usecases]);
 
+  // Handle browser back/forward buttons smoothly without unmounting the page
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/usecases' || path === '/usecases/') {
+        setDrawerFlowIdState(null);
+        return;
+      }
+      const match = path.match(/^\/usecases\/([^/]+)/);
+      if (match && match[1]) {
+        const target = slugify(decodeURIComponent(match[1]));
+        const flow =
+          usecases.find((u) => u.label && slugify(u.label) === target) ||
+          usecases.find((u) => u.id && slugify(u.id) === target) ||
+          usecases.find((u) => u.label && slugify(u.label).includes(target)) ||
+          usecases.find((u) => u.label && target.includes(slugify(u.label)));
+        if (flow) {
+          setDrawerFlowIdState(flow.id);
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [usecases]);
+
+  // Synchronize workflow enable/disable state across the application
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleWorkflowToggled = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (!detail?.label) return;
+      setTrustedWorkflowStates((prev) => ({
+        ...prev,
+        [detail.label]: !!detail.enabled,
+      }));
+    };
+    window.addEventListener('shuffle-workflow-toggled', handleWorkflowToggled);
+    return () => window.removeEventListener('shuffle-workflow-toggled', handleWorkflowToggled);
+  }, []);
+
   const setDrawerFlowId = (id: string | null) => {
     setDrawerFlowIdState(id);
+    const search = searchParams.toString() ? `?${searchParams.toString()}` : '';
     if (!id) {
-      navigate({ pathname: '/usecases', search: searchParams.toString() ? `?${searchParams.toString()}` : '' });
+      if (typeof window !== 'undefined') {
+        const target = `/usecases${search}`;
+        if (window.location.pathname + window.location.search !== target) {
+          window.history.pushState(null, '', target);
+        }
+      }
       return;
     }
     const flow = usecases.find(u => u.id === id);
@@ -5081,14 +5164,15 @@ function UsecasesPageInner() {
       fetch(apiUrl(`/api/v1/workflows/usecases/${encodeURIComponent(name)}`), {
         credentials: 'include',
         headers: { ...authHeader() },
-      })
-        .then(() => { refetchAuth(); })
-        .catch(() => { /* ignore */ });
+      }).catch(() => { /* ignore */ });
     } catch { /* ignore */ }
-    navigate({
-      pathname: `/usecases/${slug}`,
-      search: searchParams.toString() ? `?${searchParams.toString()}` : '',
-    });
+    // Update browser URL without triggering TanStack route unmount / remount
+    if (typeof window !== 'undefined') {
+      const target = `/usecases/${slug}${search}`;
+      if (window.location.pathname + window.location.search !== target) {
+        window.history.pushState(null, '', target);
+      }
+    }
   };
 
   // Map: automationLabel -> whether at least one workflow exists for it.
@@ -5187,11 +5271,11 @@ function UsecasesPageInner() {
     const next = new URLSearchParams(searchParams);
     next.delete('name');
     const qs = next.toString();
-    navigate(
-      { pathname: `/usecases/${slug}`, search: qs ? `?${qs}` : '' },
-      { replace: true },
-    );
-  }, [routeParams.flowId, searchParams, usecases, workflows, enabledLabels, navigate]);
+    setDrawerFlowIdState(pick.id);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/usecases/${slug}${qs ? `?${qs}` : ''}`);
+    }
+  }, [routeParams.flowId, searchParams, usecases, workflows, enabledLabels]);
 
   // Page-level outcomes bundle — used to drive presence-based enable signals
   // (e.g. "Add Host-Monitors" lights up as Enabled when ≥2 host monitors are
@@ -5356,9 +5440,12 @@ function UsecasesPageInner() {
       if (flow.id === 'case_management_cases_forward_1') {
         return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
       }
-      // Vulnerability Correlation is self-contained — driven solely by whether the
-      // "Vulnerability Correlation" workflow exists, operating on internal host/package data.
-      if (flow.id === 'asset_management_case_management_vuln_1') {
+      // Vulnerability Correlation and Vulnerability Ingestion are self-contained / schedule-driven —
+      // driven solely by whether their workflows exist.
+      if (
+        flow.id === 'asset_management_case_management_vuln_1' ||
+        flow.id === 'vulnerability_ingestion_1'
+      ) {
         return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
       }
       // Threat-intel usecases are presence-driven: they "work" as soon as the
@@ -5397,9 +5484,16 @@ function UsecasesPageInner() {
 
   const handleUsecaseWorkflowGenerated = React.useCallback((label: string, enabled: boolean) => {
     setTrustedWorkflowStates((prev) => ({ ...prev, [label]: enabled }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('shuffle-workflow-toggled', { detail: { label, enabled } })
+      );
+      window.dispatchEvent(new CustomEvent('shuffle-workflows-updated'));
+    }
+    cfgOnToggled?.(label, enabled);
     window.setTimeout(() => { refetchWorkflows(); }, 3000);
     window.setTimeout(() => { refetchWorkflows(); }, 8000);
-  }, [refetchWorkflows]);
+  }, [refetchWorkflows, cfgOnToggled]);
 
   // Set of usecase names the user has shown interest in. Sourced from both
   // /getinfo `.interests` (server-side, multi-device) and localStorage
@@ -5515,7 +5609,7 @@ function UsecasesPageInner() {
     const detailCanToggle = isAuthenticated && !!detailFlow?.automationLabel;
     const detailHasValidatedSource = detailFlow ? validatedCategories.has(detailFlow.source) : true;
     return (
-      <Box sx={{ px: { xs: 2, md: 4 }, py: 4, maxWidth: 1200, width: '100%', mx: 'auto' }}>
+      <Box sx={{ px: { xs: 2, md: 4 }, py: 4, maxWidth: 1200, width: '100%', mx: 'auto', color: 'hsl(var(--foreground))' }}>
         <UsecaseDetailContent
           flowId={drawerFlowId ?? undefined}
           showConnectionPath
@@ -5540,7 +5634,7 @@ function UsecasesPageInner() {
 
 
   return (
-    <Box sx={{ px: { xs: 2, md: 4 }, py: 4, maxWidth: 1200, width: '100%', mx: 'auto' }}>
+    <Box sx={{ px: { xs: 2, md: 4 }, py: 4, maxWidth: 1200, width: '100%', mx: 'auto', color: 'hsl(var(--foreground))' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
@@ -5827,6 +5921,9 @@ function UsecasesPageInner() {
         anchor="right"
         open={drawerFlowId !== null}
         onClose={() => setDrawerFlowId(null)}
+        ModalProps={{
+          disableScrollLock: true,
+        }}
         PaperProps={{
           className: cfgScopeClassName,
           sx: {
@@ -6344,7 +6441,7 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
     url: '/usecases',
   });
   useInjectScopedStyles();
-  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal } = props;
+  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled } = props;
   // Sync host-injected `globalUrl` into the Shuffle-Core api.ts runtime so
   // every internal `getApiUrl()` call (hooks, helpers, etc.) targets the host
   // backend instead of the bundled default.
@@ -6391,9 +6488,10 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
       renderEndpointSlot,
       renderUsecaseDetailSlot,
       renderUsecaseActionModal,
+      onToggled,
       scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, themeClass]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled, themeClass]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>
@@ -6504,6 +6602,9 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
       anchor="right"
       open={open}
       onClose={onClose}
+      ModalProps={{
+        disableScrollLock: true,
+      }}
       PaperProps={{
         className: cfgScopeClassName,
         sx: {
@@ -6588,6 +6689,7 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
     renderEndpointSlot,
     renderUsecaseDetailSlot,
     renderUsecaseActionModal,
+    onToggled,
   } = props;
   useSyncHostBaseUrl(globalUrl);
 
@@ -6619,9 +6721,10 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
       renderEndpointSlot,
       renderUsecaseDetailSlot,
       renderUsecaseActionModal,
+      onToggled,
       scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, themeClass]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled, themeClass]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>

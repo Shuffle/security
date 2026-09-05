@@ -268,10 +268,8 @@ const AuthenticatedVulnerabilitiesView = () => {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Vulnerability Automation — support only */}
-      {isSupport && (
-        <VulnerabilityAutomationBanner />
-      )}
+      {/* Vulnerability Automation */}
+      <VulnerabilityAutomationBanner />
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -408,7 +406,7 @@ const AuthenticatedVulnerabilitiesView = () => {
           dateTo={dateTo}
           onDateFromChange={setDateFrom}
           onDateToChange={setDateTo}
-          readiness={isSupport ? <VulnerabilityReadinessBanner /> : undefined}
+          readiness={<VulnerabilityReadinessBanner />}
         />
 
       </Box>

@@ -75,7 +75,9 @@
 /* Scoped theme overrides for <ShuffleCoreThemeProvider mode="light|dark">.
  * Stamped on the wrapper div and portaled MUI paper. Light values mirror
  * Shuffle Security's :root; dark values mirror the defaults above. */
-.shuffle-core-scope:not(.dark),
+:root:not(.dark) .shuffle-core-scope:not(.dark),
+html:not(.dark) .shuffle-core-scope:not(.dark),
+body:not(.dark) .shuffle-core-scope:not(.dark),
 .shuffle-core-scope.light {
   --background: 0 0% 98%;
   --background-elevated: 0 0% 100%;
@@ -110,6 +112,7 @@
   --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
 }
 
+.dark .shuffle-core-scope:not(.light),
 .shuffle-core-scope.dark {
   --background: 0 0% 10%;
   --background-elevated: 0 0% 13%;

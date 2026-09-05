@@ -61,7 +61,9 @@
  * mirror the :where(:root) defaults above and are repeated here so they win
  * over any host-defined light tokens when a subtree is pinned to dark.
  * ============================================================================ */
-.shuffle-mcp-scope:not(.dark),
+:root:not(.dark) .shuffle-mcp-scope:not(.dark),
+html:not(.dark) .shuffle-mcp-scope:not(.dark),
+body:not(.dark) .shuffle-mcp-scope:not(.dark),
 .shuffle-mcp-scope.light {
   --background: 0 0% 98%;
   --background-elevated: 0 0% 100%;
@@ -83,6 +85,7 @@
   --input: 0 0% 94%;
 }
 
+.dark .shuffle-mcp-scope:not(.light),
 .shuffle-mcp-scope.dark {
   --background: 0 0% 10%;
   --background-elevated: 0 0% 13%;

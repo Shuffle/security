@@ -105,6 +105,7 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
           display: 'flex',
           height: '100dvh',
           backgroundColor: 'hsl(var(--background))',
+          color: 'hsl(var(--foreground))',
           width: '100%',
           maxWidth: '100vw',
           overflowX: 'hidden',
@@ -126,6 +127,8 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
             width: '100%',
             maxWidth: '100%',
             boxSizing: 'border-box',
+            backgroundColor: 'hsl(var(--background))',
+            color: 'hsl(var(--foreground))',
             transition: 'margin 0.2s ease',
             marginLeft: { 
               xs: 0, 

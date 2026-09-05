@@ -86,13 +86,28 @@ const buildLocalRouteMap = () => {
 const LOCAL_ROUTE_MAP = buildLocalRouteMap();
 
 function getMatchingLocalUsecase(apiUsecase: ApiUsecase, matchedLocalIds: Set<string>): Usecase | undefined {
+  if ((apiUsecase as any).id) {
+    const byId = DEFAULT_USECASES.find((l) => !matchedLocalIds.has(l.id) && l.id === (apiUsecase as any).id);
+    if (byId) return byId;
+  }
   const source = getApiSource(apiUsecase);
   const target = getApiTarget(apiUsecase);
   const candidateSources = [source, ...(ROUTE_ALIASES[source] || [])];
+  const apiNameSlug = slugify(apiUsecase.name || '');
+
+  if (apiNameSlug) {
+    for (const candidateSource of candidateSources) {
+      const locals = LOCAL_ROUTE_MAP.get(`${candidateSource}→${target}`) || [];
+      const byLabel = locals.find(
+        (local) => !matchedLocalIds.has(local.id) && slugify(local.label) === apiNameSlug
+      );
+      if (byLabel) return byLabel;
+    }
+  }
 
   for (const candidateSource of candidateSources) {
     const locals = LOCAL_ROUTE_MAP.get(`${candidateSource}→${target}`) || [];
-    const unmatched = locals.find((local) => !matchedLocalIds.has(local.id));
+    const unmatched = locals.find((local) => !matchedLocalIds.has(local.id) && !local.customAction);
     if (unmatched) return unmatched;
   }
 
@@ -100,14 +115,17 @@ function getMatchingLocalUsecase(apiUsecase: ApiUsecase, matchedLocalIds: Set<st
 }
 
 function mapApiUsecaseToFrontend(apiCategory: ApiUsecaseCategory, apiUsecase: ApiUsecase, localUsecase?: Usecase): Usecase {
+  const resolvedPhase = (apiCategory.phase && (apiCategory.phase === 'ingest' || apiCategory.phase === 'correlation' || apiCategory.phase === 'response'))
+    ? apiCategory.phase
+    : apiCategoryToPhase(apiCategory.name);
   return {
-    id: localUsecase?.id || buildApiOnlyId(apiUsecase),
+    id: localUsecase?.id || (apiUsecase as any).id || buildApiOnlyId(apiUsecase),
     source: getApiSource(apiUsecase),
     target: getApiTarget(apiUsecase),
     label: apiUsecase.name || localUsecase?.label || 'Untitled usecase',
     description: apiUsecase.description || localUsecase?.description || '',
     agenticDescription: localUsecase?.agenticDescription || apiUsecase.agentic_description || apiUsecase.description || '',
-    phase: apiCategoryToPhase(apiCategory.name),
+    phase: resolvedPhase,
     tags: apiUsecase.tags || localUsecase?.tags || [],
     // Backend is the source of truth — anything returned by the API counts as
     // active/animated unless the local override explicitly says otherwise.

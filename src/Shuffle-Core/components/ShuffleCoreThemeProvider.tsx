@@ -26,7 +26,10 @@ export type ShuffleColorMode = "light" | "dark" | "auto";
 
 const readHtmlDarkClass = (): boolean => {
   if (typeof document === "undefined") return false;
-  return document.documentElement.classList.contains("dark");
+  return (
+    document.documentElement.classList.contains("dark") ||
+    (Boolean(document.body) && document.body.classList.contains("dark"))
+  );
 };
 
 /**
@@ -60,13 +63,20 @@ const useAutoDarkClass = (enabled: boolean, anchorRef: React.RefObject<HTMLEleme
     recompute();
     const observer = new MutationObserver(recompute);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    if (document.body) {
+      observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    }
     const ownRoot = anchorRef.current?.closest('[data-shuffle-core-root], [data-shuffle-mcp-root]');
     let node: HTMLElement | null = ownRoot ? ownRoot.parentElement : anchorRef.current?.parentElement ?? null;
     while (node) {
       observer.observe(node, { attributes: true, attributeFilter: ["class", "data-shuffle-mode"] });
       node = node.parentElement;
     }
-    return () => observer.disconnect();
+    window.addEventListener("shuffle:theme-change", recompute);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("shuffle:theme-change", recompute);
+    };
   }, [enabled, anchorRef]);
   return isDark;
 };

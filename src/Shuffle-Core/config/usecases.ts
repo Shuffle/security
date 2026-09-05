@@ -379,6 +379,8 @@ export interface ApiUsecase {
 export interface ApiUsecaseCategory {
   name: string;       // e.g. "1. Collect", "2. Enrich"
   color?: string;
+  phase?: FlowPhase;
+  step?: number;
   list: ApiUsecase[];
 }
 
@@ -592,6 +594,8 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Ingest vulnerability findings (CVEs, misconfigurations, missing patches) from your scanners into a unified inventory so they can be correlated with assets and incidents.',
     agenticDescription: 'An agent normalizes scanner output across vendors, deduplicates findings per asset, enriches each CVE with exploitability and threat intel, and keeps the vulnerability inventory continuously up to date.',
     automationArea: 'automatic_ingestion',
+    automationLabel: 'Ingest Vulnerabilities',
+    automationCategory: 'vulnerabilities',
     customAction: {
       label: 'Configure Vulnerabilities',
       href: '/vulnerabilities',

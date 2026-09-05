@@ -53,6 +53,10 @@ const UsecasesPage = (props: UsecasesPageProps = {}) => {
       userdata={userInfo as any}
       isLoaded={true}
       isLoggedIn={!!userInfo}
+      onToggled={() => {
+        vulnAutomation.refresh();
+        refetch();
+      }}
       {...props}
       renderEndpointSlot={({ flowId, side }) => {
         if (side !== 'source') return null;
