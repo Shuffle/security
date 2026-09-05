@@ -15,6 +15,8 @@ import { IncidentRoutingEditor } from '@/components/settings/IncidentRoutingEdit
 import MonitorsView from '@/Shuffle-Core/views/monitors/MonitorsView';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from '@/lib/router-compat';
+import { PhoneNotificationSetupWizard } from '@/components/usecases/PhoneNotificationSetupWizard';
 
 const WEBHOOK_FLOW_IDS = new Set(['siem_case_management_1', 'edr_case_management_1']);
 
@@ -38,6 +40,7 @@ const UsecasesPage = (props: UsecasesPageProps = {}) => {
   const { refetch } = useWorkflows();
   const { resolvedTheme } = useTheme();
   const { userInfo } = useAuth();
+  const navigate = useNavigate();
 
   const info: WebhookIngestionInfo = {
     url: webhook.url,
@@ -89,10 +92,19 @@ const UsecasesPage = (props: UsecasesPageProps = {}) => {
           // Exact same readiness checker as /vulnerabilities.
           return <VulnerabilityReadinessBanner status={vulnAutomation} />;
         }
-        if (flowId !== 'case_management_incident_routing_1') return null;
-        // Same component used on /preferences — single source of truth so
-        // changes apply in both places.
-        return <IncidentRoutingEditor forceShow />;
+        if (flowId === 'case_management_incident_routing_1') {
+          // Same component used on /preferences — single source of truth so
+          // changes apply in both places.
+          return <IncidentRoutingEditor forceShow />;
+        }
+        if (flowId === 'case_management_schedules_notifications_1') {
+          return (
+            <PhoneNotificationSetupWizard
+              onWorkflowNavigate={(wfId) => navigate(`/workflows/${wfId}`)}
+            />
+          );
+        }
+        return null;
       }}
       renderUsecaseActionModal={({ modal, open, onClose }) => {
         // Embed the same Add Host dialog from /monitors directly in the

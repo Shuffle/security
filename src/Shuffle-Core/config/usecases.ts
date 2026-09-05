@@ -307,7 +307,7 @@ export interface Usecase {
   /** Category sent with the generate call */
   automationCategory?: string;
   /** Onboarding area this usecase belongs to */
-  automationArea?: 'automatic_ingestion' | 'forward_updates' | 'threat_intel' | 'notifications' | 'response' | 'correlation' | 'assign_escalate';
+  automationArea?: 'automatic_ingestion' | 'forward_updates' | 'threat_intel' | 'notifications' | 'response' | 'correlation' | 'assign_escalate' | 'schedules_notifications';
   /** Runtime status (filled by API / hook) */
   status?: 'enabled' | 'disabled' | 'misconfigured';
   /** True if this flow requires manual verification (e.g. log forwarding can't be auto-detected) */

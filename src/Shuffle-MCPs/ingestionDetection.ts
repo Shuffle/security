@@ -8,10 +8,10 @@ import { AuthAppEntry, deduplicateAuthApps } from '@/Shuffle-MCPs/auth-utils';
 // ============================================================================
 // Category patterns
 // ============================================================================
-export const EMAIL_APP_PATTERNS = ['gmail', 'outlook', 'email', 'microsoft_graph', 'office365', 'exchange', 'imap', 'smtp'];
+export const EMAIL_APP_PATTERNS = ['gmail', 'outlook', 'email', 'microsoft_graph', 'office365', 'exchange', 'imap', 'smtp', 'proofpoint', 'mimecast', 'phishing'];
 export const CASES_PATTERNS = ['jira', 'servicenow', 'zendesk', 'freshdesk', 'pagerduty', 'opsgenie', 'ticket', 'itsm', 'salesforce', 'thehive', 'cortex'];
-export const EDR_PATTERNS = ['crowdstrike', 'sentinelone', 'carbon black', 'defender', 'cylance', 'sophos', 'trellix', 'vmware', 'tanium', 'falcon', 'edr'];
-export const SIEM_PATTERNS = ['splunk', 'elastic', 'qradar', 'sentinel', 'chronicle', 'logrhythm', 'sumo logic', 'graylog', 'wazuh', 'siem', 'arcsight'];
+export const EDR_PATTERNS = ['crowdstrike', 'sentinelone', 'carbon black', 'cybereason', 'microsoft defender', 'defender for endpoint', 'defender', 'cylance', 'sophos', 'trellix', 'tanium', 'crowdstrike falcon', 'falcon', 'vmware', 'edr', 'xdr'];
+export const SIEM_PATTERNS = ['splunk', 'elastic', 'qradar', 'microsoft sentinel', 'azure sentinel', 'sentinel', 'chronicle', 'logrhythm', 'sumo logic', 'graylog', 'wazuh', 'siem', 'arcsight'];
 export const THREAT_INTEL_PATTERNS = ['virustotal', 'shodan', 'alienvault', 'otx', 'threatcrowd', 'urlscan', 'hybrid-analysis', 'abuseipdb', 'greynoise', 'urlhaus', 'malwarebazaar', 'threatfox', 'misp', 'opencti', 'recorded future', 'mandiant', 'crowdstrike intel', 'intel471', 'flashpoint', 'domaintools'];
 export const COMMUNICATION_PATTERNS_NAMES = ['slack', 'teams', 'discord', 'mattermost', 'telegram', 'webhook'];
 export const VULN_SCANNER_PATTERNS = ['qualys', 'tenable', 'nessus', 'rapid7', 'nexpose', 'snyk', 'sonarqube', 'trivy', 'grype', 'anchore', 'dependabot', 'aws_inspector', 'azure_defender', 'gcp_scc', 'scout', 'prowler', 'checkov', 'wiz', 'orca', 'lacework', 'prisma'];
