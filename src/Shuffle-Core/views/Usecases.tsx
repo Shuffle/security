@@ -672,12 +672,14 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationCategory: 'cases',
   },
   {
-    id: 'asset_management_case_management_vuln_1', phase: 'ingest', source: 'asset_management', target: 'case_management',
+    id: 'asset_management_case_management_vuln_1', phase: 'correlation', source: 'asset_management', target: 'case_management',
     label: 'Vulnerability Correlation',
     tags: ['Context', 'Correlation', 'Vulnerability'],
     description: 'Correlate known vulnerabilities (CVEs, misconfigurations, missing patches) on affected assets with active incidents — surfacing exploitable weaknesses that elevate risk and guide containment priorities.',
     agenticDescription: 'An agent matches observables and affected hosts in a case against the vulnerability inventory, identifies exploitable CVEs aligned with the attack technique, recalculates incident severity, and recommends remediation or compensating controls.',
     automationArea: 'correlation',
+    automationLabel: 'Vulnerability Correlation',
+    automationCategory: 'cases',
     customAction: {
       label: 'Configure Vulnerabilities',
       href: '/vulnerabilities',

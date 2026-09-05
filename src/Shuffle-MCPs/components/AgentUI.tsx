@@ -702,6 +702,8 @@ export interface AgentUIProps {
   maxWidth?: number;
   /** Compact mode: hides the hero icon, shrinks padding. */
   compact?: boolean;
+  /** Force the mobile/compact layout for narrow containers (e.g. side panels, split panes). Replaces the floating in-field skill badge with the compact `+` / skill icon menu button, removes the wide first-line indent, and sizes tool chips down to icons. */
+  mobileView?: boolean;
   /** Hide the "Select Apps" chip row entirely. */
   hideAppPicker?: boolean;
   /** Hide the paperclip image-attachment button. */
@@ -2032,6 +2034,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   heroIconSize = 84,
   maxWidth = 850,
   compact = false,
+  mobileView,
   hideAppPicker = false,
   hideAttach = false,
   disableStartTab = false,
@@ -2088,7 +2091,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const hasApiKey = !!apiKey || !!API_CONFIG.apiKey;
   // Phone-sized viewports get a condensed starter block: no hero icon,
   // smaller title, tighter vertical rhythm. Desktop is unchanged.
-  const isPhone = useMediaQuery('(max-width:600px)', { noSsr: true });
+  // When mobileView is explicitly provided, it overrides the viewport check.
+  const isPhoneScreen = useMediaQuery('(max-width:600px)', { noSsr: true });
+  const isPhone = mobileView !== undefined ? mobileView : isPhoneScreen;
   const navigate = useNavigate();
   const [actionInput, setActionInput] = useState(defaultInput);
   // Editable per-user prompt prefix rendered as a chip at the start of the
@@ -5330,23 +5335,28 @@ const AgentUI: React.FC<AgentUIProps> = ({
     && (actionInput || '').trim().length >= 1;
 
   const mobilePlusButton = isPhone ? (
-    <IconButton
-      type="button"
-      aria-label="Skills, schedule and attachments"
-      onClick={(e) => setMobilePlusAnchor(e.currentTarget)}
-      sx={{
-        width: 32,
-        height: 32,
-        flexShrink: 0,
-        alignSelf: 'flex-start',
-        border: '1px solid hsl(var(--border))',
-        color: selectedPreset ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-        bgcolor: selectedPreset ? 'hsl(var(--muted))' : 'transparent',
-        '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
-      }}
+    <Tooltip
+      title={selectedPreset ? `Skill: ${selectedPreset.label} (click to change)` : 'Add skill, schedule, or attachments'}
+      arrow
     >
-      {selectedPreset?.icon ?? <PlusIcon size={16} />}
-    </IconButton>
+      <IconButton
+        type="button"
+        aria-label="Skills, schedule and attachments"
+        onClick={(e) => setMobilePlusAnchor(e.currentTarget)}
+        sx={{
+          width: 32,
+          height: 32,
+          flexShrink: 0,
+          alignSelf: 'center',
+          border: '1px solid hsl(var(--border))',
+          color: selectedPreset ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+          bgcolor: selectedPreset ? 'hsl(var(--muted))' : 'transparent',
+          '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
+        }}
+      >
+        {selectedPreset?.icon ?? <PlusIcon size={16} />}
+      </IconButton>
+    </Tooltip>
   ) : null;
 
   const mobilePlusMenu = isPhone ? (
@@ -5394,18 +5404,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
             Remove skill
           </MenuItem>
         )}
-        <MenuItem
-          disabled={!mobilePlusCanSchedule || agentRequestLoading}
-          onClick={() => {
-            const el = mobilePlusAnchor;
-            setMobilePlusAnchor(null);
-            if (el) setScheduleAnchor(el);
-          }}
-          sx={{ gap: 1.25, py: 1, fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}
-        >
-          <ScheduleIcon size={16} />
-          Schedule this prompt
-        </MenuItem>
+        {!disableSchedule && (
+          <MenuItem
+            disabled={!mobilePlusCanSchedule || agentRequestLoading}
+            onClick={() => {
+              const el = mobilePlusAnchor;
+              setMobilePlusAnchor(null);
+              if (el) setScheduleAnchor(el);
+            }}
+            sx={{ gap: 1.25, py: 1, fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}
+          >
+            <ScheduleIcon size={16} />
+            Schedule this prompt
+          </MenuItem>
+        )}
         {!hideAttach && (
           <MenuItem
             disabled={agentRequestLoading || attachedImages.length >= 3}
@@ -5435,7 +5447,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           display: 'flex',
           justifyContent: 'center',
           pb: isPhone ? 1 : 4,
-          ...(isPhone && showStarter ? { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' } : {}),
+          ...(isPhone && showStarter && !compact ? { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
@@ -5448,7 +5460,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             display: 'flex',
             flexDirection: 'column',
             gap: isPhone ? 1.5 : 3,
-            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'center' } : {}),
+            ...(isPhone && showStarter && !compact ? { flex: 1, justifyContent: 'center' } : {}),
           },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
@@ -5467,7 +5479,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: isPhone ? 1.5 : (compact ? 2 : 3),
               py: isPhone ? 1 : (compact ? 2 : 4),
               width: '100%',
-              ...(isPhone ? { flex: 1, justifyContent: 'center', marginTop: '-50px' } : {}),
+              ...(isPhone && !compact ? { flex: 1, justifyContent: 'center', marginTop: '-50px' } : {}),
             }}
           >
             {!hideHeroIcon && !compact && !isPhone && (
@@ -5481,15 +5493,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 {heroIcon ?? <AgentIcon size={Math.round(heroIconSize * 0.67)} />}
               </Box>
             )}
-            <Typography component="h1" sx={{
-              fontSize: compact ? { xs: '1.1rem', md: '1.5rem' } : { xs: '1.35rem', md: '2.25rem' },
-              fontWeight: 600,
-              color: 'hsl(var(--foreground))',
-              textAlign: 'center',
-              letterSpacing: '-0.01em',
-            }}>
-              {title}
-            </Typography>
+            {title ? (
+              <Typography component="h1" sx={{
+                fontSize: compact ? { xs: '1.1rem', md: '1.5rem' } : { xs: '1.35rem', md: '2.25rem' },
+                fontWeight: 600,
+                color: 'hsl(var(--foreground))',
+                textAlign: 'center',
+                letterSpacing: '-0.01em',
+              }}>
+                {title}
+              </Typography>
+            ) : null}
             {subtitle && (
               <Typography sx={{
                 fontSize: { xs: '0.8rem', sm: '0.95rem' },

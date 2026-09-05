@@ -424,6 +424,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
           <AgentUI
             key={`${context.storageKey}-${resetKey}`}
             compact={true}
+            mobileView={true}
             hideHeroIcon={true}
             title=""
             subtitle={null}
