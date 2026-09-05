@@ -1229,9 +1229,9 @@ Use case: ${aiPrompt}`,
                         }}
                         sx={{
                           border: deployedAndRunning
-                            ? '1px solid rgba(34, 197, 94, 0.4)'
+                            ? '2px solid hsl(var(--severity-low))'
                             : dp.recommended
-                              ? '1px solid rgba(255, 102, 0, 0.35)'
+                              ? '1.5px solid hsl(var(--primary) / 0.6)'
                               : '1px solid hsl(var(--border))',
                           borderRadius: 1.5,
                           px: 1.5,
@@ -1242,17 +1242,32 @@ Use case: ${aiPrompt}`,
                           cursor: 'pointer',
                           transition: 'all 0.15s',
                           bgcolor: deployedAndRunning
-                            ? 'rgba(34, 197, 94, 0.08)'
+                            ? 'hsl(var(--severity-low) / 0.08)'
                             : 'transparent',
-                          '&:hover': { borderColor: deployedAndRunning ? 'rgba(34, 197, 94, 0.6)' : 'rgba(255, 102, 0, 0.5)', backgroundColor: deployedAndRunning ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 102, 0, 0.08)' },
+                          '&:hover': {
+                            borderColor: deployedAndRunning ? 'hsl(var(--severity-low))' : 'hsl(var(--primary))',
+                            backgroundColor: deployedAndRunning ? 'hsl(var(--severity-low) / 0.14)' : 'hsl(var(--primary) / 0.08)',
+                          },
                         }}
                       >
-                        <RocketLaunchIcon size={14} style={{ color: deployedAndRunning ? '#22c55e' : dp.recommended ? 'rgb(255, 102, 0)' : 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+                        <RocketLaunchIcon size={14} style={{ color: deployedAndRunning ? 'hsl(var(--severity-low))' : dp.recommended ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
                         <Typography sx={{ color: 'hsl(var(--foreground))', fontSize: '0.8rem', fontWeight: (dp.recommended || deployedAndRunning) ? 600 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {dp.label}
                         </Typography>
                         {deployedAndRunning && (
-                          <Chip label="Running" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', '& .MuiChip-label': { px: 0.75 } }} />
+                          <Chip
+                            label="Running"
+                            size="small"
+                            sx={{
+                              height: 18,
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              bgcolor: 'hsl(var(--severity-low) / 0.14)',
+                              color: 'hsl(var(--severity-low))',
+                              border: '1px solid hsl(var(--severity-low) / 0.4)',
+                              '& .MuiChip-label': { px: 0.75 },
+                            }}
+                          />
                         )}
                       </Box>
                     );

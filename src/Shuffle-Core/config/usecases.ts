@@ -843,6 +843,10 @@ export function getUsecaseWorkflowLabels(usecase: Pick<Usecase, 'automationLabel
   if (usecase.automationArea === 'automatic_ingestion') {
     out.push(`${usecase.automationLabel}_webhook`);
   }
+  const lower = usecase.automationLabel.toLowerCase();
+  if (lower.includes('incident routing')) {
+    out.push('incident routing', 'incident_routing', 'incident_routing_rules');
+  }
   return out;
 }
 
@@ -863,8 +867,8 @@ export function findWorkflowsForUsecase(
   const seen = new Set<string>();
   for (const wf of workflows) {
     const name = (wf?.name || '').toLowerCase();
-    if (!name) continue;
-    if (labels.some((label) => name.includes(label))) {
+    const tags = Array.isArray(wf?.tags) ? wf.tags.map((t: any) => String(t).toLowerCase()) : [];
+    if (labels.some((label) => name.includes(label) || tags.some((t: string) => t === label || t.includes(label)))) {
       if (wf.id && seen.has(wf.id)) continue;
       if (wf.id) seen.add(wf.id);
       matched.push(wf);

@@ -49,7 +49,7 @@ export const AskAiDrawer: React.FC<AskAiDrawerProps> = ({
   search: propSearch,
   rules,
   onContextResolved,
-  hideResetAction = false,
+  hideResetAction = true,
   agentUIProps,
   ...drawerProps
 }) => {

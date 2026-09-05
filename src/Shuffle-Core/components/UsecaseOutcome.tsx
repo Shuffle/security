@@ -186,11 +186,13 @@ export interface UsecaseOutcomeSectionProps {
   loading?: boolean;
 }
 
+export type OutcomeCta = { href?: string; label: string; external?: boolean; onClick?: () => void };
+
 /** Derive a default CTA for an outcome when the caller didn't supply one. */
 function deriveCta(
   outcome: UsecaseOutcome,
   sourceId?: string,
-): { href: string; label: string; external?: boolean } | null {
+): OutcomeCta | null {
   const isDisabled = outcome.emptyReason === 'not_enabled';
   switch (outcome.kind) {
     case 'incidents_ingested': {
@@ -227,10 +229,10 @@ function deriveCta(
       };
     case 'comms_sent':
       return {
-        // No notifications page exists; point at the incidents list which is
-        // where outbound notification activity is logged today.
-        href: '/incidents',
-        label: isDisabled ? 'See where notifications will appear' : 'View incidents with notifications',
+        label: 'View notifications',
+        onClick: () => {
+          window.dispatchEvent(new CustomEvent('notifications:open'));
+        },
       };
     default:
       return null;
@@ -455,7 +457,7 @@ export function UsecaseOutcomeSection({
       )}
 
       {!loading && (() => {
-        const explicit = nextActionHref && nextActionLabel
+        const explicit: OutcomeCta | null = nextActionHref && nextActionLabel
           ? { href: nextActionHref, label: nextActionLabel, external: /^https?:/i.test(nextActionHref) }
           : null;
         const cta = explicit || deriveCta(outcome, sourceId);
@@ -465,7 +467,7 @@ export function UsecaseOutcomeSection({
               ? 'Enable this automation to start populating data here. In the meantime:'
               : 'Nothing here yet — once data arrives it will show up. In the meantime:')
           : 'What to do next';
-        const audit = auditCtaPath(cta.href);
+        const audit = cta.onClick ? 'ok' : auditCtaPath(cta.href || '');
         const auditMeta = {
           ok: { label: 'Route OK', color: 'hsl(142 70% 45%)', bg: 'hsl(142 70% 45% / 0.12)', desc: 'Resolves to a real frontend route in this app.' },
           broken: { label: 'BROKEN — no such route', color: 'hsl(0 75% 60%)', bg: 'hsl(0 75% 60% / 0.12)', desc: 'This path is not registered in src/App.tsx. The link will land on the NotFound page.' },
@@ -477,10 +479,21 @@ export function UsecaseOutcomeSection({
               {helper}
             </Typography>
             <Box
-              component="a"
-              href={cta.href}
+              component={cta.onClick ? 'button' : 'a'}
+              {...(!cta.onClick ? { href: cta.href } : {})}
+              onClick={cta.onClick ? (e: React.MouseEvent) => {
+                e.preventDefault();
+                cta.onClick?.();
+              } : undefined}
               {...(cta.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               sx={{
+                background: 'none',
+                border: 'none',
+                p: 0,
+                cursor: 'pointer',
+                font: 'inherit',
+                textAlign: 'left',
+                display: 'inline-block',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 color: primaryColor,

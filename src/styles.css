@@ -118,7 +118,7 @@
     --secondary-foreground: 0 0% 9%;
 
     --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45%;
+    --muted-foreground: 0 0% 40%;
 
     /* Accent = subtle hover surface (NOT orange). Orange lives in --primary.
        Keeping accent neutral prevents statically-colored text/icons from
@@ -126,12 +126,12 @@
     --accent: 0 0% 92%;
     --accent-foreground: 0 0% 9%;
 
-    /* Severity colors */
-    --severity-critical: 0 84% 60%;
-    --severity-high: 25 95% 53%;
-    --severity-medium: 45 93% 47%;
-    --severity-low: 142 71% 45%;
-    --severity-info: 210 100% 56%;
+    /* Severity colors - tuned for light mode contrast (>=4.5:1 on white) */
+    --severity-critical: 0 72% 51%;
+    --severity-high: 25 95% 48%;
+    --severity-medium: 38 92% 33%;
+    --severity-low: 142 72% 31%;
+    --severity-info: 215 90% 45%;
     --agent-gradient: linear-gradient(135deg, #FF8544, #EC517C, #9C5AF2);
     --agent-gradient-subtle: linear-gradient(135deg, rgba(255,133,68,0.12), rgba(236,81,124,0.12), rgba(156,90,242,0.12));
     --agent-gradient-border: linear-gradient(135deg, rgba(255,133,68,0.35), rgba(236,81,124,0.35), rgba(156,90,242,0.35));
@@ -141,26 +141,26 @@
 
     /* Infrastructure category colors */
     --infra-case-mgmt: 24 90% 55%;
-    --infra-siem: 45 93% 47%;
-    --infra-network: 210 100% 56%;
-    --infra-edr: 0 84% 60%;
-    --infra-communication: 142 71% 45%;
-    --infra-email: 280 70% 60%;
-    --infra-threat-intel: 190 80% 50%;
-    --infra-asset-mgmt: 25 95% 53%;
-    --infra-iam: 330 75% 55%;
-    --infra-cloud: 200 75% 50%;
+    --infra-siem: 38 92% 33%;
+    --infra-network: 215 90% 45%;
+    --infra-edr: 0 72% 51%;
+    --infra-communication: 142 72% 31%;
+    --infra-email: 280 70% 50%;
+    --infra-threat-intel: 190 85% 40%;
+    --infra-asset-mgmt: 25 95% 48%;
+    --infra-iam: 330 75% 50%;
+    --infra-cloud: 200 75% 45%;
 
     /* Status colors */
     --status-open: 24 100% 50%;
-    --status-in-progress: 45 93% 47%;
-    --status-resolved: 142 71% 45%;
-    --status-closed: 0 0% 50%;
+    --status-in-progress: 38 92% 33%;
+    --status-resolved: 142 72% 31%;
+    --status-closed: 0 0% 45%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 80%;
+    --border: 0 0% 78%;
     --border-subtle: 0 0% 86%;
     --input: 0 0% 94%;
     --ring: 24 100% 50%;

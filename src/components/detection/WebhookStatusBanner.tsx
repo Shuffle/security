@@ -14,16 +14,16 @@ export const WebhookActiveChip = () => {
 
   return (
     <Chip
-      icon={<WebhookIcon style={{ fontSize: '14px !important', color: '#22c55e !important' }} />}
+      icon={<WebhookIcon style={{ fontSize: '14px !important', color: 'hsl(var(--severity-low)) !important' }} />}
       label="Webhook Active"
       size="small"
       sx={{
         height: 22,
         fontSize: '0.65rem',
-        fontWeight: 600,
-        bgcolor: 'rgba(34, 197, 94, 0.10)',
-        color: '#22c55e',
-        border: '1px solid rgba(34, 197, 94, 0.25)',
+        fontWeight: 700,
+        bgcolor: 'hsl(var(--severity-low) / 0.12)',
+        color: 'hsl(var(--severity-low))',
+        border: '1.5px solid hsl(var(--severity-low) / 0.45)',
         '& .MuiChip-label': { px: 0.75 },
       }}
     />

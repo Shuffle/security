@@ -30,6 +30,8 @@ import {
   CASES_PATTERNS,
   EDR_PATTERNS,
   EMAIL_APP_PATTERNS,
+  VULN_SCANNER_PATTERNS,
+  COMMUNICATION_PATTERNS_NAMES,
   findIngestTicketsWorkflow,
   findForwardTicketsWorkflow,
   extractWorkflowAppNames,
@@ -65,6 +67,11 @@ export interface UsecaseAlluvialDiagramProps extends ShuffleCoreHostProps {
    */
   highlightCategory?: string;
   /**
+   * If true, the source cannot be modified (no '+' button on left, no removing source apps).
+   * Used for flows where Shuffle/Cases is the fixed source (e.g. Notifications).
+   */
+  lockSource?: boolean;
+  /**
    * Host-side handoff for clicking an app bubble. Return `true` to suppress
    * the diagram's built-in Visit/Enable Sync/Remove popover and let the host
    * render its own (mirrors the default Source/Destination tile popover in
@@ -81,11 +88,23 @@ export interface UsecaseAlluvialDiagramProps extends ShuffleCoreHostProps {
 
 // ── Pattern matchers ───────────────────────────────────────────────────────────
 
+const COMMUNICATION_PATTERNS = [
+  ...COMMUNICATION_PATTERNS_NAMES,
+  'email', 'gmail', 'outlook', 'pagerduty', 'sms', 'twilio',
+];
+const ASSET_VULN_PATTERNS = [
+  ...VULN_SCANNER_PATTERNS,
+  'asset', 'cmdb', 'inventory', 'snipe', 'vulnerability', 'qualys', 'tenable', 'snyk',
+];
+
 const CATEGORY_PATTERNS: Record<string, string[]> = {
   siem: SIEM_PATTERNS,
   case_management: CASES_PATTERNS,
   edr: EDR_PATTERNS,
   email: EMAIL_APP_PATTERNS,
+  communication: COMMUNICATION_PATTERNS,
+  asset_management: ASSET_VULN_PATTERNS,
+  vulnerabilities: ASSET_VULN_PATTERNS,
 };
 
 function matchesCategory(appName: string, categoryId: string): boolean {
@@ -124,6 +143,21 @@ const SAMPLE_APPS: Record<string, { name: string; icon: string }[]> = {
     { name: 'Jira', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Jira_eb0c5e572e14ac1140a8355ba93c0d76.png' },
     { name: 'ServiceNow', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Servicenow_b9c2feaf99b6309dabaeaa8518c61d3d.png' },
     { name: 'TheHive', icon: 'https://storage.googleapis.com/shuffle_public/app_images/TheHive_7b0b20f198b28bcd6e7e3d2e7c1d84af.png' },
+  ],
+  communication: [
+    { name: 'Slack', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Slack_9a528623b378c8d8b9ba582e6ef92be1.png' },
+    { name: 'Microsoft Teams', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Microsoft_Teams_59ba339ee8397a612301c37905156a5c.png' },
+    { name: 'PagerDuty', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Pagerduty_7a37a91176bc5ee845a7ee46d03dcbbe.png' },
+  ],
+  asset_management: [
+    { name: 'Qualys', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Qualys_792dbba1bb886bfe2cb08a798544d673.png' },
+    { name: 'Tenable', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Tenable_io_771804f54e195725da95ce70e0f2f01f.png' },
+    { name: 'Snyk', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Snyk_29227f6a73c09b69b3f36a8d052a5127.png' },
+  ],
+  vulnerabilities: [
+    { name: 'Qualys', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Qualys_792dbba1bb886bfe2cb08a798544d673.png' },
+    { name: 'Tenable', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Tenable_io_771804f54e195725da95ce70e0f2f01f.png' },
+    { name: 'Snyk', icon: 'https://storage.googleapis.com/shuffle_public/app_images/Snyk_29227f6a73c09b69b3f36a8d052a5127.png' },
   ],
 };
 
@@ -626,6 +660,7 @@ export default function UsecaseAlluvialDiagram({
   sourceCategory,
   targetCategory,
   highlightCategory,
+  lockSource = false,
   isLoggedIn = false,
   onBubbleClick,
   onAddTool,
@@ -923,8 +958,7 @@ export default function UsecaseAlluvialDiagram({
     const currentSet = new Set(forwardAppNames || []);
     if (enabled) currentSet.add(normalized); else currentSet.delete(normalized);
 
-    // Resolve normalized names back to display names (prefer allApps lookup,
-    // fall back to the raw input name for the toggled app).
+    // Resolve normalized names back to display names
     const desiredAppNames: string[] = [];
     currentSet.forEach(norm => {
       const match = allApps.find(a => normalizeAppName(a.name) === norm);
@@ -1011,10 +1045,40 @@ export default function UsecaseAlluvialDiagram({
             if (ingestWf) {
               setIngestAppNames(extractWorkflowAppNames(ingestWf));
             }
+            // Check for vulnerability workflows if relevant
+            const vulnWf = workflows.find((w: any) => {
+              const n = (w.name || '').toLowerCase();
+              const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase()) : [];
+              return n.includes('vulnerabilit') || tags.some((t: string) => t.includes('vulnerabilit'));
+            });
+            if (vulnWf) {
+              const vulnApps = extractWorkflowAppNames(vulnWf);
+              setIngestAppNames(prev => {
+                const combined = new Set(prev || []);
+                vulnApps.forEach(a => combined.add(a));
+                return combined;
+              });
+            }
+
             const forwardWf = findForwardTicketsWorkflow(workflows);
             if (forwardWf) {
               setForwardAppNames(extractWorkflowAppNames(forwardWf));
             }
+            // Check for notification workflow (defaults.notification_workflow or tags/name)
+            const notifWf = workflows.find((w: any) => {
+              const n = (w.name || '').toLowerCase();
+              const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase()) : [];
+              return n.includes('notification') || tags.some((t: string) => t.includes('notification'));
+            });
+            if (notifWf) {
+              const notifApps = extractWorkflowAppNames(notifWf);
+              setForwardAppNames(prev => {
+                const combined = new Set(prev || []);
+                notifApps.forEach(a => combined.add(a));
+                return combined;
+              });
+            }
+
             // Detect webhook workflow
             const webhookWorkflow = workflows.find((w: any) => w.name === 'Ingestion Webhook');
             if (webhookWorkflow) {
@@ -1045,7 +1109,7 @@ export default function UsecaseAlluvialDiagram({
     })();
   }, []);
 
-  // Permanent webhook node shown at the top of every source column
+  // Permanent webhook node shown at the top of source column when applicable
   const webhookNode: AppNode = useMemo(() => ({
     id: 'webhook-ingestion',
     name: 'Webhook',
@@ -1054,11 +1118,34 @@ export default function UsecaseAlluvialDiagram({
     isActiveOnly: false,
     isHighlighted: true,
     isEnabled: !isLoggedIn || webhookInfo.enabled || webhookInfo.exists,
-  }), [webhookInfo]);
+  }), [webhookInfo, isLoggedIn]);
 
-  // Source apps: if highlightCategory is set, show all ingest workflow apps
-  // Otherwise fall back to category-based filtering
+  // Source apps:
+  // If lockSource is true, Shuffle/Cases is fixed as the only source node (cannot be changed).
+  // Otherwise if highlightCategory is set, show ingest workflow apps with highlighting.
   const sourceApps = useMemo(() => {
+    if (lockSource) {
+      const defaultCasesNode: AppNode = {
+        id: 'shuffle-cases',
+        name: 'Cases',
+        icon: shuffleIcon,
+        hasValidAuth: true,
+        isActiveOnly: false,
+        isHighlighted: true,
+        isEnabled: true,
+      };
+      if (!isLoggedIn) {
+        return [defaultCasesNode];
+      }
+      const caseApps = allApps.filter(
+        a => !isShuffleInternalApp(a.name) && matchesCategory(a.name, 'case_management')
+      );
+      if (caseApps.length > 0) {
+        return caseApps.map(a => ({ ...a, isHighlighted: true, isEnabled: true }));
+      }
+      return [defaultCasesNode];
+    }
+
     const prependWebhook = (apps: AppNode[]) => [webhookNode, ...apps];
 
     if (!isLoggedIn) {
@@ -1114,9 +1201,9 @@ export default function UsecaseAlluvialDiagram({
     return prependWebhook(
       allApps.filter(a => matchesCategory(a.name, sourceCategory) && !hiddenApps.has(a.name.toLowerCase())).map(a => ({ ...a, isEnabled: true }))
     );
-  }, [allApps, sourceCategory, highlightCategory, ingestAppNames, isLoggedIn, guestSourceNames, guestAppIcons, hiddenApps, webhookNode]);
+  }, [allApps, sourceCategory, highlightCategory, ingestAppNames, isLoggedIn, guestSourceNames, guestAppIcons, hiddenApps, webhookNode, lockSource]);
 
-  // Target/destination apps: use Forward Tickets workflow as source of truth when available
+  // Target/destination apps: user-selectable
   const targetApps = useMemo(() => {
     if (!isLoggedIn) {
       const samples = getSampleApps(targetCategory);
@@ -1132,37 +1219,47 @@ export default function UsecaseAlluvialDiagram({
         }));
       return [...samples, ...guestNodes].filter(a => !hiddenApps.has(a.name.toLowerCase()));
     }
-    if (highlightCategory) {
-      // Show only user's apps that match the target category (+ manually added ones)
-      const caseMgmtApps = allApps.filter(a =>
-        !isShuffleInternalApp(a.name) && (matchesCategory(a.name, targetCategory) || manualDestApps.has(normalizeAppName(a.name))) && !hiddenApps.has(a.name.toLowerCase())
-      );
+    const matched = allApps.filter(a =>
+      !isShuffleInternalApp(a.name) &&
+      (matchesCategory(a.name, targetCategory) || manualDestApps.has(normalizeAppName(a.name))) &&
+      !hiddenApps.has(a.name.toLowerCase())
+    );
 
-      // If user has no matching apps, fall back to samples
-      if (caseMgmtApps.length === 0) {
-        const samples = getSampleApps(targetCategory);
-        return samples.filter(a => !hiddenApps.has(a.name.toLowerCase()));
-      }
-
-      if (forwardAppNames && forwardAppNames.size > 0) {
-        const enabledApps = caseMgmtApps
-          .filter(a => forwardAppNames.has(normalizeAppName(a.name)))
-          .map(a => ({ ...a, isEnabled: true }));
-        const disabledApps = caseMgmtApps
-          .filter(a => !forwardAppNames.has(normalizeAppName(a.name)))
-          .map(a => ({ ...a, isEnabled: false }));
-        return [...enabledApps, ...disabledApps];
-      }
-      return caseMgmtApps;
+    // If user has no matching apps, fall back to samples
+    if (matched.length === 0) {
+      const samples = getSampleApps(targetCategory);
+      return samples.filter(a => !hiddenApps.has(a.name.toLowerCase()));
     }
-    return allApps.filter(a => (matchesCategory(a.name, targetCategory) || manualDestApps.has(normalizeAppName(a.name))) && !hiddenApps.has(a.name.toLowerCase()));
-  }, [allApps, targetCategory, highlightCategory, forwardAppNames, isLoggedIn, guestDestNames, guestAppIcons, hiddenApps, manualDestApps]);
+
+    if (forwardAppNames && forwardAppNames.size > 0) {
+      const enabledApps = matched
+        .filter(a => forwardAppNames.has(normalizeAppName(a.name)))
+        .map(a => ({ ...a, isEnabled: true }));
+      const disabledApps = matched
+        .filter(a => !forwardAppNames.has(normalizeAppName(a.name)))
+        .map(a => ({ ...a, isEnabled: false }));
+      return [...enabledApps, ...disabledApps];
+    }
+    return matched;
+  }, [allApps, targetCategory, forwardAppNames, isLoggedIn, guestDestNames, guestAppIcons, hiddenApps, manualDestApps]);
 
   const sourceMeta = TOOL_CATEGORIES.find(c => c.id === sourceCategory);
   const targetMeta = TOOL_CATEGORIES.find(c => c.id === targetCategory);
 
   // Source label: when showing ingest apps, label as "Ingestion Sources"
-  const sourceLabel = highlightCategory ? 'Ingestion Sources' : (sourceMeta?.label || sourceCategory);
+  const sourceLabel = lockSource && sourceCategory === 'case_management'
+    ? 'Cases'
+    : (sourceCategory === 'asset_management' || sourceCategory === 'vulnerabilities')
+      ? 'Vulnerability Scanners'
+      : highlightCategory
+        ? 'Ingestion Sources'
+        : (sourceMeta?.label || sourceCategory);
+
+  const targetLabel = targetCategory === 'communication'
+    ? 'Notifications'
+    : targetCategory === 'case_management'
+      ? 'Cases (optional)'
+      : (targetMeta?.label || targetCategory);
 
   // SVG dimensions
   const nodeSize = 40;
@@ -1366,7 +1463,7 @@ export default function UsecaseAlluvialDiagram({
             Shuffle
           </text>
           <text x={rightX} y={svgHeight + 16} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="11" fontWeight="600">
-            {targetCategory === 'case_management' ? 'Cases (optional)' : (targetMeta?.label || targetCategory)}
+            {targetLabel}
           </text>
         </svg>
 
@@ -1384,7 +1481,7 @@ export default function UsecaseAlluvialDiagram({
                   pointerEvents: 'auto',
                 }}
               >
-                <AppBubble app={app} size={nodeSize} highlighted={!!app.isHighlighted} isSample={!isLoggedIn} disabled={app.isEnabled === false} onRemoveApp={handleRemoveApp} onToggleSync={isLoggedIn && highlightCategory ? handleToggleSync : undefined} onVisitApp={handleVisitApp} onPrimaryClick={onBubbleClick ? (name, el, s) => !!onBubbleClick({ appName: name, side: s, anchorEl: el }) : undefined} webhookInfo={app.id === 'webhook-ingestion' ? webhookInfo : undefined} onWebhookToggled={handleWebhookToggled} />
+                <AppBubble app={app} size={nodeSize} highlighted={!!app.isHighlighted} isSample={!isLoggedIn} disabled={app.isEnabled === false} onRemoveApp={lockSource ? undefined : handleRemoveApp} onToggleSync={isLoggedIn && highlightCategory ? handleToggleSync : undefined} onVisitApp={handleVisitApp} onPrimaryClick={onBubbleClick ? (name, el, s) => !!onBubbleClick({ appName: name, side: s, anchorEl: el }) : undefined} webhookInfo={app.id === 'webhook-ingestion' ? webhookInfo : undefined} onWebhookToggled={handleWebhookToggled} />
               </Box>
             );
           })}
@@ -1441,65 +1538,67 @@ export default function UsecaseAlluvialDiagram({
           })}
 
           {/* Show source tools button */}
-          <Box
-            sx={{
-              position: 'absolute',
-              left: sourceApps.length === 0 ? leftX - 20 : leftX - 16,
-              top: getAddButtonY(sourceApps.length),
-              pointerEvents: 'auto',
-            }}
-          >
-            {sourceApps.length === 0 ? (
-              <Tooltip title="Browse and add source tools" placement="bottom" arrow>
-                <Box
-                  onClick={() => { if (onAddTool && onAddTool('left')) return; setSearchOpen('left'); }}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: '8px',
-                    border: '1px dashed hsla(var(--muted-foreground) / 0.3)',
-                    color: 'hsl(var(--muted-foreground))',
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    whiteSpace: 'nowrap',
-                    '&:hover': {
-                      borderColor: 'hsl(var(--primary))',
-                      color: 'hsl(var(--primary))',
-                      bgcolor: 'hsla(var(--primary) / 0.08)',
-                    },
-                  }}
-                >
-                  <Plus size={12} />
-                  Show source tools
-                </Box>
-              </Tooltip>
-            ) : (
-              <Tooltip title="Add source tools" placement="bottom" arrow>
-                <IconButton
-                  onClick={() => { if (onAddTool && onAddTool('left')) return; setSearchOpen('left'); }}
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    border: '2px dashed hsla(var(--muted-foreground) / 0.3)',
-                    color: 'hsl(var(--muted-foreground))',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      borderColor: 'hsl(var(--primary))',
-                      color: 'hsl(var(--primary))',
-                      bgcolor: 'hsla(var(--primary) / 0.08)',
-                    },
-                  }}
-                >
-                  <Plus size={16} />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
+          {!lockSource && (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: sourceApps.length === 0 ? leftX - 20 : leftX - 16,
+                top: getAddButtonY(sourceApps.length),
+                pointerEvents: 'auto',
+              }}
+            >
+              {sourceApps.length === 0 ? (
+                <Tooltip title="Browse and add source tools" placement="bottom" arrow>
+                  <Box
+                    onClick={() => { if (onAddTool && onAddTool('left')) return; setSearchOpen('left'); }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: '8px',
+                      border: '1px dashed hsla(var(--muted-foreground) / 0.3)',
+                      color: 'hsl(var(--muted-foreground))',
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      whiteSpace: 'nowrap',
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary))',
+                        bgcolor: 'hsla(var(--primary) / 0.08)',
+                      },
+                    }}
+                  >
+                    <Plus size={12} />
+                    Show source tools
+                  </Box>
+                </Tooltip>
+              ) : (
+                <Tooltip title="Add source tools" placement="bottom" arrow>
+                  <IconButton
+                    onClick={() => { if (onAddTool && onAddTool('left')) return; setSearchOpen('left'); }}
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      border: '2px dashed hsla(var(--muted-foreground) / 0.3)',
+                      color: 'hsl(var(--muted-foreground))',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary))',
+                        bgcolor: 'hsla(var(--primary) / 0.08)',
+                      },
+                    }}
+                  >
+                    <Plus size={16} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+          )}
 
           {/* Add destination tool button */}
           <Box

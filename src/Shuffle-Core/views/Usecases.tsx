@@ -1250,8 +1250,13 @@ body:not(.dark) .${SCOPE_CLASS}:not(.dark),
   --background: 0 0% 98%;
   --foreground: 0 0% 9%;
   --card: 0 0% 100%;
-  --muted-foreground: 0 0% 45%;
-  --border: 0 0% 89%;
+  --muted-foreground: 0 0% 40%;
+  --border: 0 0% 78%;
+  --severity-low: 142 72% 31%;
+  --severity-medium: 38 92% 33%;
+  --severity-high: 25 95% 48%;
+  --severity-critical: 0 72% 51%;
+  --severity-info: 215 90% 45%;
 }
 
 /* Dark theme rules.
@@ -2048,20 +2053,20 @@ function IntegrationStatusLite({
     // - validated  → green (#22c55e)
     // - active     → amber (#f59e0b)
     // - otherwise  → muted, slightly faded
-    const GREEN = '#22c55e';
-    const AMBER = '#f59e0b';
+    const GREEN = 'hsl(var(--severity-low))';
+    const AMBER = 'hsl(var(--severity-medium))';
     const isShuffleSecurity = integration.id === 'shuffle-security';
     const effectiveValidated = integration.validated || isShuffleSecurity;
     const dotColor = effectiveValidated ? GREEN : integration.active ? AMBER : null;
     const borderColor = effectiveValidated
-      ? 'rgba(34, 197, 94, 0.45)'
+      ? 'hsl(var(--severity-low))'
       : integration.active
-        ? 'rgba(245, 158, 11, 0.45)'
+        ? 'hsl(var(--severity-medium))'
         : 'hsl(var(--border))';
     const bgColor = effectiveValidated
-      ? 'rgba(34, 197, 94, 0.10)'
+      ? 'hsl(var(--severity-low) / 0.12)'
       : integration.active
-        ? 'rgba(245, 158, 11, 0.10)'
+        ? 'hsl(var(--severity-medium) / 0.12)'
         : 'hsl(var(--card))';
     const isReady = effectiveValidated || integration.active;
 
@@ -2093,7 +2098,7 @@ function IntegrationStatusLite({
             height: 32,
             flexShrink: 0,
             borderRadius: '50% !important',
-            border: `${selectedId === integration.id ? '2px' : '1px'} solid ${selectedId === integration.id ? 'hsl(var(--primary))' : borderColor}`,
+            border: `${selectedId === integration.id || effectiveValidated ? '2px' : '1px'} solid ${selectedId === integration.id ? 'hsl(var(--primary))' : borderColor}`,
             // overflow visible so the status dot can sit outside the circle
             overflow: 'visible',
             bgcolor: bgColor,
@@ -2574,6 +2579,7 @@ const ACTIVE_USECASE_IDS = [
   'threat_intel_network_1',
   'threat_intel_edr_1',
   'threat_intel_cloud_1',
+  'case_management_incident_routing_1',
 ];
 
 // Small wrapper so UsecaseDetailContent can render an Outcome block without
@@ -3218,19 +3224,44 @@ function UsecaseDetailContent({
   // tried to enable this usecase — never as a default banner.
   const [enableAttempted, setEnableAttempted] = useState(false);
 
+  const ALLUVIAL_ELIGIBLE_FLOW_IDS = useMemo(() => new Set([
+    'siem_case_management_1',
+    'edr_case_management_1',
+    'email_case_management_1',
+    'vulnerability_ingestion_1',
+    'asset_management_case_management_vuln_1',
+    'case_management_communication_1',
+  ]), []);
+
   // Connection-path view mode: 'source_destination' (alluvial) or 'line' (tools strip).
-  // Persisted per-user so the choice survives reloads. Defaults to source-destination.
-  const VIEW_MODE_STORAGE_KEY = 'shuffle-usecase-connection-view';
-  const [connectionViewMode, setConnectionViewModeState] = useState<'source_destination' | 'line'>(() => {
-    if (typeof window === 'undefined') return 'source_destination';
+  // Persisted per-flow so choices survive reloads.
+  // Defaults to 'source_destination' for alluvial-eligible flows (ingest, vuln, notifications)
+  // until the user swaps it themselves with the button.
+  const [connectionViewMode, setConnectionViewModeState] = useState<'source_destination' | 'line'>('source_destination');
+
+  useEffect(() => {
+    if (!flow?.id || typeof window === 'undefined') return;
     try {
-      const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-      return stored === 'line' ? 'line' : 'source_destination';
-    } catch { return 'source_destination'; }
-  });
+      const stored = window.localStorage.getItem(`shuffle-usecase-connection-view-${flow.id}`);
+      if (stored === 'line') {
+        setConnectionViewModeState('line');
+      } else if (stored === 'source_destination') {
+        setConnectionViewModeState('source_destination');
+      } else {
+        setConnectionViewModeState(ALLUVIAL_ELIGIBLE_FLOW_IDS.has(flow.id) ? 'source_destination' : 'line');
+      }
+    } catch {
+      setConnectionViewModeState(ALLUVIAL_ELIGIBLE_FLOW_IDS.has(flow.id) ? 'source_destination' : 'line');
+    }
+  }, [flow?.id, ALLUVIAL_ELIGIBLE_FLOW_IDS]);
+
   const setConnectionViewMode = (mode: 'source_destination' | 'line') => {
     setConnectionViewModeState(mode);
-    try { window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode); } catch { }
+    if (flow?.id && typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(`shuffle-usecase-connection-view-${flow.id}`, mode);
+      } catch { }
+    }
   };
 
   const effectiveEnabled = optimisticEnabled !== null ? optimisticEnabled : isEnabled;
@@ -3280,6 +3311,8 @@ function UsecaseDetailContent({
   // findWorkflowsForUsecase() never picks it up. Fetch it explicitly so we
   // can surface it in the Linked Workflows list below.
   const [notificationWorkflow, setNotificationWorkflow] = useState<WorkflowSummary | null>(null);
+  const [orgDefaults, setOrgDefaults] = useState<Record<string, any>>({});
+  const [savingNotificationWf, setSavingNotificationWf] = useState(false);
   useEffect(() => {
     if (flow?.id !== 'case_management_communication_1') {
       setNotificationWorkflow(null);
@@ -3296,8 +3329,12 @@ function UsecaseDetailContent({
         });
         if (!orgRes.ok) return;
         const orgData = await orgRes.json();
+        if (!cancelled && orgData?.defaults) setOrgDefaults(orgData.defaults);
         const wfId = orgData?.defaults?.notification_workflow;
-        if (!wfId || typeof wfId !== 'string') return;
+        if (!wfId || typeof wfId !== 'string') {
+          if (!cancelled) setNotificationWorkflow(null);
+          return;
+        }
         const existing = workflows.find((w) => w.id === wfId);
         if (existing) { if (!cancelled) setNotificationWorkflow(existing); return; }
         const wfRes = await fetch(apiUrl(`/api/v1/workflows/${wfId}`), {
@@ -3310,6 +3347,33 @@ function UsecaseDetailContent({
     })();
     return () => { cancelled = true; };
   }, [flow?.id, apiUrl, authHeader, workflows]);
+
+  const handleSelectNotificationWorkflow = async (workflowIdValue: string) => {
+    try {
+      const info = localStorage.getItem('shuffle_user_info');
+      const orgId = info ? JSON.parse(info)?.active_org?.id : null;
+      if (!orgId) return;
+      setSavingNotificationWf(true);
+      const resp = await fetch(apiUrl(`/api/v1/orgs/${orgId}`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({
+          org_id: orgId,
+          defaults: { ...orgDefaults, notification_workflow: workflowIdValue },
+        }),
+      });
+      if (!resp.ok) throw new Error(`Save failed (${resp.status})`);
+      setOrgDefaults((prev: any) => ({ ...prev, notification_workflow: workflowIdValue }));
+      const selectedWf = workflows.find((w) => w.id === workflowIdValue) || null;
+      setNotificationWorkflow(selectedWf);
+      toast.success(workflowIdValue ? 'Notification workflow updated' : 'Notification workflow removed');
+    } catch {
+      toast.error('Failed to update notification workflow');
+    } finally {
+      setSavingNotificationWf(false);
+    }
+  };
 
 
   const handleToggle = async () => {
@@ -3355,6 +3419,7 @@ function UsecaseDetailContent({
     // validate. Skip the hard-block for these flows.
     const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
       || flow.id === 'case_management_communication_1'
+      || flow.id === 'case_management_incident_routing_1'
       || flow.id === 'asset_management_case_management_vuln_1'
       || flow.id === 'vulnerability_ingestion_1';
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
@@ -3828,13 +3893,43 @@ function UsecaseDetailContent({
         </Box>
       )}
 
-      <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
+      <Box sx={{
+        p: 3,
+        borderRadius: 2,
+        border: effectiveEnabled ? '2px solid hsl(var(--severity-low))' : CARD_BORDER,
+        bgcolor: effectiveEnabled ? 'hsl(var(--severity-low) / 0.04)' : CARD_BG,
+        boxShadow: effectiveEnabled ? '0 0 0 1px hsl(var(--severity-low) / 0.2), 0 2px 8px hsl(var(--severity-low) / 0.08)' : 'none',
+        mb: 3,
+      }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
               <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: FG, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
                 {flow.label}
               </Typography>
+              {effectiveEnabled && (
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    py: 0.5,
+                    px: 1.2,
+                    borderRadius: 1,
+                    bgcolor: 'hsl(var(--severity-low) / 0.12)',
+                    color: 'hsl(var(--severity-low))',
+                    border: '1px solid hsl(var(--severity-low) / 0.4)',
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  <Power size={13} style={{ color: 'inherit' }} />
+                  Active
+                </Box>
+              )}
               {isComingSoon ? (
                 <Box
                   sx={{
@@ -3848,9 +3943,9 @@ function UsecaseDetailContent({
                     py: 0.6,
                     px: 1.25,
                     borderRadius: 1,
-                    bgcolor: 'hsl(var(--card))',
-                    color: 'hsl(45 93% 47%)',
-                    border: '1px solid hsl(45 93% 47% / 0.4)',
+                    bgcolor: 'hsl(var(--severity-medium) / 0.08)',
+                    color: 'hsl(var(--severity-medium))',
+                    border: '1px solid hsl(var(--severity-medium) / 0.4)',
                   }}
                 >
                   <Clock size={14} />
@@ -3887,15 +3982,15 @@ function UsecaseDetailContent({
                       ? primaryColor
                       : 'hsl(var(--primary-foreground, 0 0% 100%))',
                     border: effectiveEnabled
-                      ? `1px solid ${primaryColor}`
-                      : '1px solid transparent',
+                      ? `1.5px solid ${primaryColor}`
+                      : '1.5px solid transparent',
                     boxShadow: 'none',
                     '&:hover': {
                       bgcolor: effectiveEnabled
                         ? `${primaryColor}14`
                         : primaryColor,
                       opacity: 0.9,
-                      borderColor: effectiveEnabled ? primaryColor : 'transparent',
+                      borderColor: primaryColor,
                       boxShadow: 'none',
                     },
                   }}
@@ -3905,11 +4000,11 @@ function UsecaseDetailContent({
               )}
             </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.25 }}>
-              <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, px: 1, py: 0.35, borderRadius: 1, bgcolor: 'hsla(0, 0%, 60%, 0.08)', color: MUTED, border: '1px solid hsla(0, 0%, 60%, 0.18)' }}>
+              <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, px: 1, py: 0.35, borderRadius: 1, bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))', border: '1px solid hsl(var(--border))' }}>
                 Step {phaseInfo.step}: {phaseInfo.label}
               </Typography>
               {flow.manualVerification && (
-                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, px: 1, py: 0.35, borderRadius: 1, bgcolor: 'hsla(45, 93%, 47%, 0.1)', color: 'hsl(45, 93%, 47%)', border: '1px solid hsla(45, 93%, 47%, 0.25)' }}>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, px: 1, py: 0.35, borderRadius: 1, bgcolor: 'hsl(var(--severity-medium) / 0.1)', color: 'hsl(var(--severity-medium))', border: '1px solid hsl(var(--severity-medium) / 0.35)' }}>
                   Manual Verification
                 </Typography>
               )}
@@ -3949,6 +4044,7 @@ function UsecaseDetailContent({
         // to push to. Point the hint at the Destination side.
         const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
           || flow.id === 'case_management_communication_1'
+          || flow.id === 'case_management_incident_routing_1'
           || flow.id === 'asset_management_case_management_vuln_1'
           || flow.id === 'vulnerability_ingestion_1';
         const needsSource = !!flow.source && !selfContained && !isShuffleSourcedFlow;
@@ -3971,6 +4067,8 @@ function UsecaseDetailContent({
         let message: string | null = null;
         if (!isAuthenticated) {
           message = 'Sign in to enable this usecase.';
+        } else if (flow.id === 'case_management_incident_routing_1') {
+          message = `Configure at least one routing rule below to enable ${flow.label}.`;
         } else if (isShuffleSourcedFlow) {
           message = `Add a destination tool with a validated (green) authentication to enable ${flow.label}.`;
         } else if (needsSource && !hasValidatedSource && existingSourceAppName) {
@@ -4072,8 +4170,8 @@ function UsecaseDetailContent({
 
 
 
-      {showConnectionPath && (() => {
-        const alluvialEligible = useAlluvialDiagram && ['siem_case_management_1', 'edr_case_management_1', 'email_case_management_1'].includes(flow.id);
+      {showConnectionPath && flow.id !== 'case_management_incident_routing_1' && (() => {
+        const alluvialEligible = useAlluvialDiagram && ALLUVIAL_ELIGIBLE_FLOW_IDS.has(flow.id);
         const showAlluvial = alluvialEligible && connectionViewMode === 'source_destination';
         return (
       <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3, position: 'relative' }}>
@@ -4115,7 +4213,8 @@ function UsecaseDetailContent({
           <UsecaseAlluvialDiagram
             sourceCategory={flow.source}
             targetCategory={flow.target}
-            highlightCategory={flow.source}
+            highlightCategory={['case_management_communication_1', 'vulnerability_ingestion_1', 'asset_management_case_management_vuln_1'].includes(flow.id) ? undefined : flow.source}
+            lockSource={flow.id === 'case_management_communication_1'}
             isLoggedIn={isAuthenticated}
             // Keep the AppBubble's built-in mini popover (Visit / Enable Sync
             // / Remove). Only the "+" Add buttons delegate to the host below.
@@ -4510,22 +4609,62 @@ function UsecaseDetailContent({
         );
       })()}
 
-      {flow.automationArea === 'notifications'
-        ? <NotificationsOutcomeBlock />
-        : flow.label === 'IOC feeds'
-          ? <IocFeedsOutcomeBlock />
-          : flow.id === 'case_management_assign_escalate_1'
-            ? <AssignEscalateOutcomeBlock flow={flow} workflows={workflows} />
-            : flow.id === 'case_management_agent_ai_incident_handling_1'
-              ? <AssignEscalateOutcomeBlock
-                flow={{ ...flow, automationLabel: 'Assign & Escalate', automationCategory: 'cases', automationArea: 'assign_escalate' }}
-                workflows={workflows}
-              />
-              : (flow.id === 'siem_case_management_1' || flow.id === 'edr_case_management_1' || flow.id === 'email_case_management_1' || flow.id === 'case_management_cases_forward_1')
-                ? <WebhookExecutionsOutcomeBlock flow={flow} workflows={workflows} sourceCategoryLabel={sourceCat?.label} />
-                : resolveOutcomeKind(flow) === 'enrichments_run'
-                  ? <EnrichmentsOutcomeBlock flow={flow} />
-                  : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />}
+      {flow.id !== 'case_management_incident_routing_1' && (
+        flow.automationArea === 'notifications'
+          ? <NotificationsOutcomeBlock />
+          : flow.label === 'IOC feeds'
+            ? <IocFeedsOutcomeBlock />
+            : flow.id === 'case_management_assign_escalate_1'
+              ? <AssignEscalateOutcomeBlock flow={flow} workflows={workflows} />
+              : flow.id === 'case_management_agent_ai_incident_handling_1'
+                ? <AssignEscalateOutcomeBlock
+                  flow={{ ...flow, automationLabel: 'Assign & Escalate', automationCategory: 'cases', automationArea: 'assign_escalate' }}
+                  workflows={workflows}
+                />
+                : (flow.id === 'siem_case_management_1' || flow.id === 'edr_case_management_1' || flow.id === 'email_case_management_1' || flow.id === 'case_management_cases_forward_1')
+                  ? <WebhookExecutionsOutcomeBlock flow={flow} workflows={workflows} sourceCategoryLabel={sourceCat?.label} />
+                  : resolveOutcomeKind(flow) === 'enrichments_run'
+                    ? <EnrichmentsOutcomeBlock flow={flow} />
+                    : <FlowOutcomeBlock flow={flow} sourceCategoryLabel={sourceCat?.label} />
+      )}
+
+      {flow.id === 'case_management_communication_1' && (
+        <Box sx={{ p: 2.5, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, gap: 2, flexWrap: 'wrap' }}>
+            <Box>
+              <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: FG }}>
+                Notification Workflow
+              </Typography>
+              <Typography sx={{ fontSize: '0.75rem', color: MUTED, mt: 0.25 }}>
+                Select which workflow handles sending notifications for incidents.
+              </Typography>
+            </Box>
+          </Box>
+          <FormControl fullWidth size="small">
+            <MuiSelect
+              value={notificationWorkflow?.id || ''}
+              onChange={(e) => handleSelectNotificationWorkflow(e.target.value as string)}
+              disabled={savingNotificationWf}
+              displayEmpty
+              sx={{
+                bgcolor: 'hsla(0, 0%, 60%, 0.05)',
+                fontSize: '0.82rem',
+                color: FG,
+                '& .MuiSelect-select': { py: 1, px: 1.5 },
+              }}
+            >
+              <MenuItem value="">
+                <em>None (Default system notification)</em>
+              </MenuItem>
+              {workflows.map((wf) => (
+                <MenuItem key={wf.id} value={wf.id} sx={{ fontSize: '0.82rem' }}>
+                  {wf.name || 'Untitled workflow'}
+                </MenuItem>
+              ))}
+            </MuiSelect>
+          </FormControl>
+        </Box>
+      )}
 
 
 
@@ -5185,7 +5324,11 @@ function UsecasesPageInner() {
       for (const uc of usecases) {
         if (!uc.automationLabel) continue;
         const lbl = uc.automationLabel.toLowerCase();
-        if (name === lbl || name.includes(lbl) || tags.includes(lbl) || tags.some(t => t.includes(lbl))) {
+        const aliases = [lbl];
+        if (lbl.includes('incident routing')) {
+          aliases.push('incident routing', 'incident_routing', 'incident_routing_rules');
+        }
+        if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
           set.add(uc.automationLabel);
         }
       }
@@ -5438,6 +5581,11 @@ function UsecasesPageInner() {
       // there is no third-party source auth to validate. As long as the
       // "Forward Tickets" workflow exists, treat it as enabled.
       if (flow.id === 'case_management_cases_forward_1') {
+        return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
+      }
+      // Incident Routing Rules is Cases-sourced / rule-driven:
+      // driven solely by whether its workflow exists.
+      if (flow.id === 'case_management_incident_routing_1') {
         return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
       }
       // Vulnerability Correlation and Vulnerability Ingestion are self-contained / schedule-driven —
@@ -6172,11 +6320,16 @@ function UsecaseCard({
       variant="outlined"
       sx={{
         position: 'relative',
-        bgcolor: 'hsl(var(--card))',
-        borderColor: showDrift
-          ? `${driftColor.replace(')', ' / 0.5)')}`
-          : effectiveEnabled ? 'hsl(var(--severity-low) / 0.4)' : 'hsl(var(--border))',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
+        bgcolor: effectiveEnabled ? 'hsl(var(--severity-low) / 0.05)' : 'hsl(var(--card))',
+        border: effectiveEnabled
+          ? '2px solid hsl(var(--severity-low))'
+          : showDrift
+            ? `1px solid ${driftColor.replace(')', ' / 0.5)')}`
+            : '1px solid hsl(var(--border))',
+        boxShadow: effectiveEnabled
+          ? '0 0 0 1px hsl(var(--severity-low) / 0.2), 0 2px 8px hsl(var(--severity-low) / 0.12)'
+          : undefined,
+        transition: 'border-color 0.15s, box-shadow 0.15s, background-color 0.15s',
         '&:hover': {
           borderColor: 'hsl(var(--primary) / 0.4)',
           boxShadow: '0 2px 12px hsl(var(--primary) / 0.08)',
@@ -6243,15 +6396,34 @@ function UsecaseCard({
           )}
           {effectiveEnabled && (
             <Tooltip title="Automation enabled" placement="top" arrow>
-              <Box sx={{ display: 'inline-flex' }}>
-                <Power size={13} style={{ color: 'hsl(var(--severity-low))' }} />
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.4,
+                  px: 0.65,
+                  py: 0.1,
+                  borderRadius: 0.75,
+                  bgcolor: 'hsl(var(--severity-low) / 0.12)',
+                  border: '1px solid hsl(var(--severity-low) / 0.4)',
+                  color: 'hsl(var(--severity-low))',
+                  fontSize: '0.62rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.3,
+                  lineHeight: 1.4,
+                  flexShrink: 0,
+                }}
+              >
+                <Power size={11} style={{ color: 'inherit' }} />
+                Active
               </Box>
             </Tooltip>
           )}
           {isComingSoon && (
             <Tooltip title="Coming soon" placement="top" arrow>
               <Box sx={{ display: 'inline-flex' }}>
-                <Clock size={13} style={{ color: 'hsl(45 93% 47%)' }} />
+                <Clock size={13} style={{ color: 'hsl(var(--severity-medium))' }} />
               </Box>
             </Tooltip>
           )}
@@ -6301,7 +6473,7 @@ function UsecaseCard({
                 py: 0.4,
                 px: 1,
                 bgcolor: primaryColor,
-                color: '#FFFFF',
+                color: '#FFFFFF',
                 '&:hover': { bgcolor: primaryColor },
               }}
             >
@@ -6326,11 +6498,12 @@ function UsecaseCard({
                 py: 0.4,
                 px: 1,
                 bgcolor: 'hsl(var(--card))',
-                color: 'hsl(45 93% 47%)',
-                border: '1px solid hsl(45 93% 47% / 0.4)',
+                color: 'hsl(var(--severity-medium))',
+                border: '1px solid hsl(var(--severity-medium) / 0.4)',
                 '&.Mui-disabled': {
-                  color: 'hsl(45 93% 47% / 0.6)',
-                  borderColor: 'hsl(45 93% 47% / 0.3)',
+                  color: 'hsl(var(--severity-medium))',
+                  opacity: 0.85,
+                  borderColor: 'hsl(var(--severity-medium) / 0.3)',
                 },
               }}
             >
@@ -6373,16 +6546,17 @@ function UsecaseCard({
                     minHeight: 0,
                     py: 0.4,
                     px: 1,
-                    bgcolor: primaryColor,
-                    color: "#FFFFFF",
+                    bgcolor: effectiveEnabled ? 'transparent' : primaryColor,
+                    color: effectiveEnabled ? primaryColor : "#FFFFFF",
                     borderColor: primaryColor,
+                    borderWidth: '1.5px',
                     borderStyle: 'solid',
                     boxShadow: 'none',
                     '&:hover': {
                       bgcolor: effectiveEnabled
-                        ? 'transparent'
+                        ? `${primaryColor}14`
                         : primaryColor,
-                      borderColor: effectiveEnabled ? primaryColor : 'transparent',
+                      borderColor: primaryColor,
                       boxShadow: 'none',
                     },
                   }}
@@ -6544,7 +6718,11 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
       for (const uc of usecases) {
         if (!uc.automationLabel) continue;
         const lbl = uc.automationLabel.toLowerCase();
-        if (name === lbl || name.includes(lbl) || tags.includes(lbl) || tags.some(t => t.includes(lbl))) {
+        const aliases = [lbl];
+        if (lbl.includes('incident routing')) {
+          aliases.push('incident routing', 'incident_routing', 'incident_routing_rules');
+        }
+        if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
           set.add(uc.automationLabel);
         }
       }

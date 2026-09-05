@@ -2518,6 +2518,36 @@ const AgentUI: React.FC<AgentUIProps> = ({
     [agentData],
   );
   const [showStarter, setShowStarter] = useState(true);
+
+  const handleRemovePreset = useCallback(() => {
+    try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
+    setSelectedPreset(null);
+  }, []);
+
+  const handleSelectPresetInternal = useCallback((preset: AgentPreset) => {
+    try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
+    const override = readPresetAppsOverride(preset.id);
+    if (override && override.length > 0) {
+      setChosenApps(override);
+    } else if (preset.defaultApps && preset.defaultApps.length > 0) {
+      setChosenApps(preset.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
+    } else {
+      setChosenApps([]);
+    }
+    seededPresetIdRef.current = preset.id;
+
+    if (onSelectPreset) {
+      onSelectPreset(preset);
+      return;
+    }
+    setSelectedPreset(preset);
+
+    setTimeout(() => {
+      const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
+      try { el?.focus(); } catch { /* ignore */ }
+    }, 0);
+  }, [onSelectPreset]);
+
   const [scheduleAnchor, setScheduleAnchor] = useState<HTMLElement | null>(null);
   // Mobile-only "+" menu that groups Skills / Schedule / Attach into one control.
   const [mobilePlusAnchor, setMobilePlusAnchor] = useState<HTMLElement | null>(null);
@@ -2989,9 +3019,26 @@ const AgentUI: React.FC<AgentUIProps> = ({
         });
       }
       if (signal?.cancelled) return;
-      // Always update — even an empty list — so revoked auth re-enables the
-      // "requires authentication" banner instead of being stuck on stale state.
       setAvailableApps(loaded);
+      setChosenApps((prev) => {
+        let changed = false;
+        const updated = prev.map((app) => {
+          if (app.icon && app.id) return app;
+          const slug = normalizeAgentAppName(app.name || '');
+          const match = loaded.find((a) => normalizeAgentAppName(a.name || '') === slug);
+          if (!match) return app;
+          if ((!app.icon && match.icon) || (!app.id && match.id)) {
+            changed = true;
+            return {
+              ...app,
+              id: app.id || match.id,
+              icon: app.icon || match.icon,
+            };
+          }
+          return app;
+        });
+        return changed ? updated : prev;
+      });
       // Shared resolver — the exact same logic the LocalLLM sidebar uses, so
       // the chip and the sidebar can never disagree. Runs on the RAW list
       // (validation state must not hide an active provider).
@@ -5447,7 +5494,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           display: 'flex',
           justifyContent: 'center',
           pb: isPhone ? 1 : 4,
-          ...(isPhone && showStarter && !compact ? { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' } : {}),
+          ...(isPhone && showStarter ? { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
@@ -5460,7 +5507,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             display: 'flex',
             flexDirection: 'column',
             gap: isPhone ? 1.5 : 3,
-            ...(isPhone && showStarter && !compact ? { flex: 1, justifyContent: 'center' } : {}),
+            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'center' } : {}),
           },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
@@ -5479,7 +5526,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: isPhone ? 1.5 : (compact ? 2 : 3),
               py: isPhone ? 1 : (compact ? 2 : 4),
               width: '100%',
-              ...(isPhone && !compact ? { flex: 1, justifyContent: 'center', marginTop: '-50px' } : {}),
+              ...(isPhone ? { flex: 1, justifyContent: 'center', marginTop: compact ? '-16px' : '-50px' } : {}),
             }}
           >
             {!hideHeroIcon && !compact && !isPhone && (
@@ -5733,46 +5780,17 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   }}
 
                 >
-                  <AgentPresets
-                    variant="floating"
-                    chipRef={presetsChipRef}
-                    presets={presets}
-                    isSupport={isSupport}
-                    selectedPreset={selectedPreset}
-                    onRemoveSelected={() => {
-
-                      try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
-                      setSelectedPreset(null);
-                    }}
-                    onSelectPreset={(preset) => {
-                      try { localStorage.setItem(LAST_PRESET_STORAGE_KEY, preset.id); } catch { /* ignore */ }
-                      // Seed the tool set from the template — unless the user has
-                      // previously customised the tools for this template, in
-                      // which case their own selection wins.
-                      const override = readPresetAppsOverride(preset.id);
-                      if (override && override.length > 0) {
-                        setChosenApps(override);
-                      } else if (preset.defaultApps && preset.defaultApps.length > 0) {
-                        setChosenApps(preset.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
-                      } else {
-                        setChosenApps([]);
-                      }
-                      seededPresetIdRef.current = preset.id;
-
-                      if (onSelectPreset) {
-                        onSelectPreset(preset);
-                        return;
-                      }
-                      // The template is only tracked locally so its ID can be sent
-                      // to the backend. Prompt seeding is handled server-side.
-                      setSelectedPreset(preset);
-
-                      setTimeout(() => {
-                        const el = inputRef.current as HTMLTextAreaElement | HTMLInputElement | null;
-                        try { el?.focus(); } catch { /* ignore */ }
-                      }, 0);
-                    }}
-                  />
+                  {(!isPhone || !selectedPreset) && (
+                    <AgentPresets
+                      variant="floating"
+                      chipRef={(!isPhone || !selectedPreset) ? presetsChipRef : undefined}
+                      presets={presets}
+                      isSupport={isSupport}
+                      selectedPreset={selectedPreset}
+                      onRemoveSelected={handleRemovePreset}
+                      onSelectPreset={handleSelectPresetInternal}
+                    />
+                  )}
                 </Box>
               )}
 
@@ -6229,6 +6247,44 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     }}
                   />
                 )}
+                {isPhone && selectedPreset && !hidePresets && (
+                  <>
+                    <AgentPresets
+                      variant="floating"
+                      chipRef={presetsChipRef}
+                      presets={presets}
+                      isSupport={isSupport}
+                      selectedPreset={selectedPreset}
+                      onRemoveSelected={handleRemovePreset}
+                      onSelectPreset={handleSelectPresetInternal}
+                      sx={{
+                        height: 26,
+                        px: 1,
+                        py: 0,
+                        fontSize: '0.78rem',
+                        bgcolor: 'hsl(var(--muted) / 0.6)',
+                        border: '1px solid hsl(var(--border))',
+                        color: 'hsl(var(--foreground))',
+                        '&:hover': {
+                          bgcolor: 'hsl(var(--muted) / 0.9)',
+                          borderColor: 'hsl(var(--muted-foreground) / 0.4)',
+                        },
+                      }}
+                    />
+                    <Box
+                      component="span"
+                      aria-hidden
+                      sx={{
+                        width: '1px',
+                        height: 16,
+                        bgcolor: 'hsl(var(--border))',
+                        mx: 0.5,
+                        alignSelf: 'center',
+                        flexShrink: 0,
+                      }}
+                    />
+                  </>
+                )}
                 <Tooltip title={agentRequestLoading ? 'Locked while the agent is running' : ''}>
                   <Box
                     component="button"
@@ -6285,12 +6341,22 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       '&:hover': !agentRequestLoading ? { bgcolor: needsAuth ? 'hsl(var(--severity-medium) / 0.18)' : 'hsl(var(--muted) / 0.9)' } : {},
                     }}
                   >
-                    <Avatar
-                      src={app.icon || undefined}
-                      alt={app.name}
-                      variant="rounded"
-                      sx={{ width: 18, height: 18, bgcolor: 'transparent' }}
-                    />
+                    {(() => {
+                      const appIcon =
+                        app.icon ||
+                        availableApps.find((a) => normalizeAgentAppName(a.name || '') === slug)?.icon ||
+                        resolvedToolApps[slug]?.icon;
+                      return (
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, flexShrink: 0 }}>
+                          <AppFallbackIcon
+                            name={app.name}
+                            imageUrl={appIcon}
+                            size={18}
+                            style={{ borderRadius: 3, objectFit: 'contain' }}
+                          />
+                        </Box>
+                      );
+                    })()}
                     {!isPhone && (
                       <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
                         {app.name.replace(/_/g, ' ')}
@@ -6451,22 +6517,40 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     && ((agentData as any).allowed_actions as unknown[]).length > 0;
                   const list = hasAllowed ? executionApps : chosenApps;
                   return list;
-                })().map((app, i) => (
-                  <Tooltip key={i} title={(app.name || '').replace(/_/g, ' ')}>
-                    <Avatar
-                      src={app.icon || undefined}
-                      alt={app.name}
-                      variant="rounded"
-                      onClick={() => setAuthDrawerApp({ name: app.name, id: (app as any).id || null })}
-                      sx={{
-                        bgcolor: 'hsl(var(--muted))',
-                        cursor: 'pointer',
-                        transition: 'transform 0.15s ease, border-color 0.15s ease',
-                        '&:hover': { transform: 'scale(1.08)', borderColor: 'hsl(var(--primary)) !important' },
-                      }}
-                    />
-                  </Tooltip>
-                ))}
+                })().map((app, i) => {
+                  const slug = normalizeAgentAppName(app.name || '');
+                  const appIcon =
+                    app.icon ||
+                    availableApps.find((a) => normalizeAgentAppName(a.name || '') === slug)?.icon ||
+                    resolvedToolApps[slug]?.icon;
+                  return (
+                    <Tooltip key={i} title={(app.name || '').replace(/_/g, ' ')}>
+                      <Box
+                        onClick={() => setAuthDrawerApp({ name: app.name, id: (app as any).id || null })}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 24,
+                          height: 24,
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          bgcolor: 'hsl(var(--muted))',
+                          cursor: 'pointer',
+                          transition: 'transform 0.15s ease, border-color 0.15s ease',
+                          '&:hover': { transform: 'scale(1.08)', borderColor: 'hsl(var(--primary)) !important' },
+                        }}
+                      >
+                        <AppFallbackIcon
+                          name={app.name}
+                          imageUrl={appIcon}
+                          size={24}
+                          style={{ borderRadius: 6, objectFit: 'contain' }}
+                        />
+                      </Box>
+                    </Tooltip>
+                  );
+                })}
               </AvatarGroup>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

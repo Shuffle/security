@@ -174,7 +174,7 @@ const AgentRunStatusBadge = ({ run, skip, statusCfg, compact = false, maxWidth =
             alignItems: 'center',
             gap: 0.5,
             flexShrink: 0,
-            border: '1px solid hsl(var(--severity-medium) / 0.5)',
+            border: '1.5px solid hsl(var(--severity-medium) / 0.6)',
             bgcolor: 'hsl(var(--severity-medium) / 0.12)',
             borderRadius: 999,
             px,

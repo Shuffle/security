@@ -301,16 +301,20 @@ export const AutomationReadinessBanner = ({ onEmptyChange, atTop }: AutomationRe
         mb: atTop ? 2 : 0,
         p: 1.5,
         borderRadius: 2,
-        bgcolor: 'transparent',
-        border: '1px solid',
-        borderColor: atTop ? 'hsl(var(--primary) / 0.5)' : 'hsl(var(--border))',
+        bgcolor: allActive ? 'hsl(var(--severity-low) / 0.04)' : 'transparent',
+        border: allActive
+          ? '2px solid hsl(var(--severity-low))'
+          : atTop
+            ? '1px solid hsl(var(--primary) / 0.5)'
+            : '1px solid hsl(var(--border))',
+        boxShadow: allActive ? '0 0 0 1px hsl(var(--severity-low) / 0.15)' : 'none',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
         <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.68rem' }}>
           Automation Readiness
         </Typography>
-        <Typography variant="caption" sx={{ fontSize: '0.68rem', color: allActive ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))' }}>
+        <Typography variant="caption" sx={{ fontSize: '0.68rem', fontWeight: allActive ? 700 : 500, color: allActive ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))' }}>
           {enabledCount}/4 active
         </Typography>
       </Box>

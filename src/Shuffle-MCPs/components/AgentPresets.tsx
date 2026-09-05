@@ -11,7 +11,7 @@
  * presets render with a "coming soon" chip and are not clickable.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography, SxProps, Theme } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 import { AppFallbackIcon } from './AppFallbackIcon';
 
@@ -182,10 +182,12 @@ export interface AgentPresetsProps {
   chipRef?: React.Ref<HTMLButtonElement>;
   /** Authoritative support flag from the host's getinfo payload. */
   isSupport?: boolean;
+  /** Optional style overrides for the trigger button */
+  sx?: SxProps<Theme>;
 }
 
 
-export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport }: AgentPresetsProps) => {
+export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport, sx }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   // Support status hydrates asynchronously (/getinfo), so re-read it when the
@@ -204,8 +206,9 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
 
 
   const MAX_LABEL_CHARS = 18;
+  const cleanLabel = selectedPreset?.label?.replace(/\s+Agent$/i, '') || '';
   const displayLabel = selectedPreset
-    ? (selectedPreset.label.length > MAX_LABEL_CHARS ? `${selectedPreset.label.slice(0, MAX_LABEL_CHARS - 1).trimEnd()}…` : selectedPreset.label)
+    ? (cleanLabel.length > MAX_LABEL_CHARS ? `${cleanLabel.slice(0, MAX_LABEL_CHARS - 1).trimEnd()}…` : cleanLabel)
     : 'Skills';
 
   const trigger = (
@@ -228,26 +231,29 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
           </Box>
         ) : undefined
       }
-      sx={{
-        textTransform: 'none',
-        fontSize: variant === 'floating' ? '0.72rem' : '0.78rem',
-        fontWeight: 500,
-        height: variant === 'floating' ? 30 : variant === 'inline' ? 38 : 36,
-        px: variant === 'floating' ? 1.25 : 1.625,
-        py: 0.375,
-        borderRadius: 999,
-        border: '1px solid hsl(var(--border))',
-        color: selectedPreset ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-        bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.6)' : 'transparent',
-        flexShrink: 0,
-        transition: 'background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
-        '&:hover': {
-          bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.85)' : 'hsl(var(--muted))',
-          color: 'hsl(var(--foreground))',
-          borderColor: selectedPreset ? 'hsl(var(--muted-foreground) / 0.35)' : 'hsl(var(--border))',
-          boxShadow: selectedPreset ? '0 1px 4px hsl(var(--background) / 0.35)' : 'none',
+      sx={[
+        {
+          textTransform: 'none',
+          fontSize: variant === 'floating' ? '0.72rem' : '0.78rem',
+          fontWeight: 500,
+          height: variant === 'floating' ? 30 : variant === 'inline' ? 38 : 36,
+          px: variant === 'floating' ? 1.25 : 1.625,
+          py: 0.375,
+          borderRadius: 999,
+          border: '1px solid hsl(var(--border))',
+          color: selectedPreset ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+          bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.6)' : 'transparent',
+          flexShrink: 0,
+          transition: 'background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
+          '&:hover': {
+            bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.85)' : 'hsl(var(--muted))',
+            color: 'hsl(var(--foreground))',
+            borderColor: selectedPreset ? 'hsl(var(--muted-foreground) / 0.35)' : 'hsl(var(--border))',
+            boxShadow: selectedPreset ? '0 1px 4px hsl(var(--background) / 0.35)' : 'none',
+          },
         },
-      }}
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
     >
       {displayLabel}
     </Button>

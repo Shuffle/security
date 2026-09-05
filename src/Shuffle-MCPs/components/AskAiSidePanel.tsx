@@ -27,7 +27,6 @@ import {
 import type { SxProps, Theme } from '@mui/material';
 import {
   AlertTriangle,
-  RotateCcw,
   X as CloseIcon,
 } from 'lucide-react';
 
@@ -132,20 +131,11 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     }
   }, [isAgentDisabled, open, onClose]);
 
-  // Track reset key to force re-resolving and resetting AgentUI
-  const [resetKey, setResetKey] = useState<number>(0);
-
   // Resolve context awareness for the active page
   const context = React.useMemo<AgentResolvedContext>(
     () => resolveAgentContext(currentPathname, currentSearch, rules),
-    [currentPathname, currentSearch, rules, resetKey],
+    [currentPathname, currentSearch, rules],
   );
-
-  const [isOverridden, setIsOverridden] = useState<boolean>(context.isOverridden);
-
-  useEffect(() => {
-    setIsOverridden(context.isOverridden);
-  }, [context.isOverridden, context.storageKey]);
 
   useEffect(() => {
     onContextResolved?.(context);
@@ -166,18 +156,11 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     };
   }, [open, isAgentDisabled, width]);
 
-  const handleReset = useCallback(() => {
-    clearPageContextChoice(context.storageKey);
-    setIsOverridden(false);
-    setResetKey((c) => c + 1);
-  }, [context.storageKey]);
-
   const handleAppsChange = useCallback<NonNullable<AgentUIProps['onAppsChange']>>(
     (nextApps) => {
       setPageContextChoice(context.storageKey, {
         apps: nextApps.map((a) => ({ name: a.name, id: a.id, icon: a.icon })),
       });
-      setIsOverridden(true);
       agentUIProps?.onAppsChange?.(nextApps);
     },
     [context.storageKey, agentUIProps],
@@ -188,7 +171,6 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
       setPageContextChoice(context.storageKey, {
         presetId: preset?.id ?? null,
       });
-      setIsOverridden(true);
     },
     [context.storageKey],
   );
@@ -308,31 +290,6 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
 
           {/* Header Action Controls */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            {isOverridden && (
-              <Tooltip title="Reset to page default MCP tools & skill" arrow>
-                <ButtonBase
-                  onClick={handleReset}
-                  sx={{
-                    fontSize: '0.72rem',
-                    color: 'hsl(var(--muted-foreground))',
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    '&:hover': {
-                      color: 'hsl(var(--foreground))',
-                      bgcolor: 'hsl(var(--muted) / 0.6)',
-                    },
-                  }}
-                >
-                  <RotateCcw size={12} />
-                  Reset
-                </ButtonBase>
-              </Tooltip>
-            )}
-
             <IconButton
               onClick={onClose}
               size="small"
@@ -408,7 +365,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
           }}
         >
           <AgentUI
-            key={`${context.storageKey}-${resetKey}`}
+            key={context.storageKey}
             compact={true}
             mobileView={true}
             hideHeroIcon={true}
@@ -420,7 +377,6 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             maxWidth={width - 32}
             defaultApps={context.apps}
             initialPresetId={context.presetId}
-            defaultInput={context.defaultPrompt}
             placeholder={context.placeholder}
             onAppsChange={handleAppsChange}
             onSelectPreset={handleSelectPreset}
@@ -428,8 +384,12 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             theme={effectiveTheme}
             {...agentUIProps}
             sx={{
-              minHeight: 'auto',
-              pt: 2,
+              flex: 1,
+              minHeight: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              pt: 0,
               pb: 2,
               ...(agentUIProps?.sx ? (Array.isArray(agentUIProps.sx) ? {} : agentUIProps.sx) : {}),
             }}

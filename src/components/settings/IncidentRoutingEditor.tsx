@@ -53,6 +53,7 @@ import {
   DialogActions,
 } from '@mui/material';
 import { toast } from '@/lib/toast';
+import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { useDatastore } from '@/hooks/useDatastore';
 import { useSubOrgs } from '@/hooks/useSubOrgs';
 import { useAuth } from '@/context/AuthContext';
@@ -419,6 +420,25 @@ export const IncidentRoutingEditor = ({ forceShow = false }: IncidentRoutingEdit
       const ok = await addItem(rule.id, JSON.stringify(payload), false);
       if (ok) {
         toast.success('Routing rule saved');
+        if (items.length === 0) {
+          try {
+            await fetch(getApiUrl('/api/v2/workflows/generate'), {
+              method: 'POST',
+              credentials: 'include',
+              headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                label: 'Incident Routing Rules',
+                category: 'cases',
+              }),
+            });
+            window.dispatchEvent(new CustomEvent('shuffle-workflow-toggled', {
+              detail: { label: 'Incident Routing Rules', enabled: true },
+            }));
+            window.dispatchEvent(new CustomEvent('shuffle-workflows-updated'));
+          } catch (e) {
+            console.warn('Auto-enable routing workflow failed:', e);
+          }
+        }
         // Update local draft in place — no full reload of the area.
         setDrafts((prev) => ({ ...prev, [rule.id]: payload }));
         // Promote local-only rule to "persisted".

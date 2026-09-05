@@ -781,18 +781,28 @@ const IOCTypesPage = () => {
                   />
                   {dialogTestResult === true && (
                     <Chip 
-                      icon={<CheckCircleIcon size={16} />} 
+                      icon={<CheckCircleIcon size={16} style={{ color: 'inherit' }} />} 
                       label="Match" 
                       size="small"
-                      sx={{ bgcolor: 'rgba(34, 197, 94, 0.15)', color: '#22c55e' }}
+                      sx={{
+                        bgcolor: 'hsl(var(--severity-low) / 0.14)',
+                        color: 'hsl(var(--severity-low))',
+                        border: '1px solid hsl(var(--severity-low) / 0.4)',
+                        fontWeight: 700,
+                      }}
                     />
                   )}
                   {dialogTestResult === false && (
                     <Chip 
-                      icon={<CancelIcon size={16} />} 
+                      icon={<CancelIcon size={16} style={{ color: 'inherit' }} />} 
                       label="No match" 
                       size="small"
-                      sx={{ bgcolor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}
+                      sx={{
+                        bgcolor: 'hsl(var(--severity-critical) / 0.14)',
+                        color: 'hsl(var(--severity-critical))',
+                        border: '1px solid hsl(var(--severity-critical) / 0.4)',
+                        fontWeight: 700,
+                      }}
                     />
                   )}
                 </Box>

@@ -426,7 +426,6 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) =>
       pathname === '/workflows' ||
       pathname.startsWith('/workflows') ||
-      pathname.startsWith('/usecases') ||
       pathname.startsWith('/infrastructure/flows'),
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
     defaultPresetId: 'edit-workflow',

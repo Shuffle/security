@@ -587,9 +587,10 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 );
 
 const statusChipSx = (token: string) => ({
-  height: 20, fontSize: '0.68rem', fontWeight: 600,
+  height: 20, fontSize: '0.68rem', fontWeight: 700,
   backgroundColor: `hsl(var(${token}) / 0.12)`,
   color: `hsl(var(${token}))`,
+  border: `1px solid hsl(var(${token}) / 0.35)`,
   '& .MuiChip-icon': { color: 'inherit' },
 });
 

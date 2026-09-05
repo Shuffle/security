@@ -147,21 +147,20 @@ export const WebhookIngestionButton = ({ webhook, onToggled, workflowLabel = 'In
           sx={{
             width: 30,
             height: 30,
-            border: '1px solid',
-            borderColor: isEnabled ? 'rgba(34, 197, 94, 0.5)' : 'divider',
-            bgcolor: isEnabled ? 'rgba(34, 197, 94, 0.12)' : 'background.paper',
+            border: isEnabled ? '2px solid hsl(var(--severity-low))' : '1px solid hsl(var(--border))',
+            bgcolor: isEnabled ? 'hsl(var(--severity-low) / 0.14)' : 'hsl(var(--card))',
             borderRadius: 1,
-            opacity: isEnabled ? 1 : 0.35,
+            opacity: isEnabled ? 1 : 0.45,
             filter: isEnabled ? 'none' : 'grayscale(1)',
             transition: 'opacity 0.15s ease, filter 0.15s ease',
             '&:hover': {
-              bgcolor: isEnabled ? 'rgba(34, 197, 94, 0.18)' : 'action.hover',
-              opacity: isEnabled ? 1 : 0.7,
+              bgcolor: isEnabled ? 'hsl(var(--severity-low) / 0.22)' : 'hsl(var(--accent))',
+              opacity: 1,
               filter: 'none',
             },
           }}
         >
-          <WebhookIcon size={16} style={{ color: isEnabled ? '#22c55e' : 'text.disabled' }} />
+          <WebhookIcon size={16} style={{ color: isEnabled ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))' }} />
         </IconButton>
       </Tooltip>
       <Popover
