@@ -93,7 +93,7 @@
 }
 
 @layer base {
-  :root {
+  :root, .light {
     /* Core backgrounds - Light theme (default) */
     --background: 0 0% 98%;
     --background-elevated: 0 0% 100%;

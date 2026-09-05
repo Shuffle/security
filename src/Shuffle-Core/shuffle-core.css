@@ -75,7 +75,8 @@
 /* Scoped theme overrides for <ShuffleCoreThemeProvider mode="light|dark">.
  * Stamped on the wrapper div and portaled MUI paper. Light values mirror
  * Shuffle Security's :root; dark values mirror the defaults above. */
-.shuffle-core-scope:not(.dark) {
+.shuffle-core-scope:not(.dark),
+.shuffle-core-scope.light {
   --background: 0 0% 98%;
   --background-elevated: 0 0% 100%;
   --background-surface: 0 0% 96%;
@@ -91,8 +92,8 @@
   --secondary-foreground: 0 0% 9%;
   --muted: 0 0% 94%;
   --muted-foreground: 0 0% 45%;
-  --accent: 24 100% 50%;
-  --accent-foreground: 0 0% 100%;
+  --accent: 0 0% 92%;
+  --accent-foreground: 0 0% 9%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   --border: 0 0% 80%;

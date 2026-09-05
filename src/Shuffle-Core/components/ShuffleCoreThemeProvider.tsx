@@ -308,7 +308,7 @@ export const ShuffleCoreThemeProvider: React.FC<ShuffleCoreThemeProviderProps> =
   const sameAsParent =
     parentCtx !== null && parentCtx.isDark === effectiveDark;
 
-  const scopeClassName = effectiveDark ? "shuffle-core-scope dark" : "shuffle-core-scope";
+  const scopeClassName = effectiveDark ? "shuffle-core-scope dark" : "shuffle-core-scope light";
   const resolvedModeAttr = effectiveDark ? "dark" : "light";
   const scopeStyle = effectiveDark ? darkTokenStyle : lightTokenStyle;
 

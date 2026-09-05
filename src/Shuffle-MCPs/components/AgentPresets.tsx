@@ -113,7 +113,12 @@ export const AGENT_PRESETS: AgentPreset[] = [
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
     icon: <Bug size={16} />,
     enabled: true,
-    defaultApps: [{ name: 'shuffle_vulnerabilities' }],
+    defaultApps: [
+      { name: 'shuffle_vulnerabilities' },
+      { name: 'shuffle_assets' },
+      { name: 'shuffle_software' },
+      { name: 'shuffle_packages' },
+    ],
   },
   {
     id: 'detection',

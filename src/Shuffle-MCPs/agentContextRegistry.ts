@@ -127,7 +127,7 @@ export const getActivePageEntityName = (): string | undefined => {
   if (typeof document === 'undefined') return undefined;
   try {
     const titleInput = document.querySelector(
-      '[data-incident-field="title"] input, [data-case-field="title"] input, [data-ticket-field="title"] input, [data-alert-field="title"] input, [data-host-field="name"] input, [data-monitor-field="name"] input'
+      '[data-incident-field="title"] input, [data-case-field="title"] input, [data-ticket-field="title"] input, [data-alert-field="title"] input, [data-host-field="name"] input, [data-monitor-field="name"] input, [data-asset-field="name"] input, [data-software-field="name"] input, [data-package-field="name"] input'
     ) as HTMLInputElement | null;
     if (titleInput?.value && titleInput.value.trim().length > 0) {
       return titleInput.value.trim();
@@ -284,36 +284,46 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   },
 
   // ==========================================
-  // 2. Vulnerabilities (shuffle_vulnerabilities)
+  // 2. Vulnerabilities (shuffle_vulnerabilities, shuffle_assets, shuffle_software, shuffle_packages)
   // ==========================================
   // Specific Vulnerability Detail
   {
     id: 'vulnerability-detail',
     match: '/vulnerabilities/:id',
-    defaultApps: [{ name: 'shuffle_vulnerabilities' }],
+    defaultApps: [
+      { name: 'shuffle_vulnerabilities' },
+      { name: 'shuffle_assets' },
+      { name: 'shuffle_software' },
+      { name: 'shuffle_packages' },
+    ],
     defaultPresetId: 'vulnerability',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help with ${entity}?` : `How can we help with vulnerability ${params.id}?`;
     },
-    subtitle: () => 'Shuffle Vulnerabilities MCP',
+    subtitle: () => 'Shuffle Vulnerabilities, Assets, Software & Packages',
     defaultPrompt: (params) => `Review vulnerability ${params.id} and draft remediation plan: `,
     placeholder: 'Analyze this CVE, check affected hosts, and draft remediation...',
     getStorageKey: (params) => `vulnerability_${params.id}`,
-    description: 'Focused on the selected vulnerability with Shuffle Vulnerabilities MCP',
+    description: 'Focused on the selected vulnerability with Shuffle Vulnerabilities, Assets, Software & Packages',
   },
   // Vulnerabilities List & Subpages
   {
     id: 'vulnerabilities-list',
     match: (pathname) => pathname.startsWith('/vulnerabilities'),
-    defaultApps: [{ name: 'shuffle_vulnerabilities' }],
+    defaultApps: [
+      { name: 'shuffle_vulnerabilities' },
+      { name: 'shuffle_assets' },
+      { name: 'shuffle_software' },
+      { name: 'shuffle_packages' },
+    ],
     defaultPresetId: 'vulnerability',
     title: 'How can we help review vulnerabilities?',
-    subtitle: 'Shuffle Vulnerabilities MCP',
+    subtitle: () => 'Shuffle Vulnerabilities, Assets, Software & Packages',
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
     placeholder: 'Review CVEs, prioritize by exploitability, or draft patch workflows...',
     getStorageKey: () => 'vulnerabilities_list',
-    description: 'Vulnerabilities overview with Shuffle Vulnerabilities MCP',
+    description: 'Vulnerabilities overview with Shuffle Vulnerabilities, Assets, Software & Packages',
   },
 
   // ==========================================
@@ -429,7 +439,74 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   },
 
   // ==========================================
-  // 5. Detection & Sigma
+  // 5. Assets, Software & Packages
+  // ==========================================
+  // Specific Asset Tab (/assets/:tab)
+  {
+    id: 'assets-tab',
+    match: '/assets/:tab',
+    defaultApps: [{ name: 'shuffle_assets' }, { name: 'shuffle_vulnerabilities' }],
+    defaultPresetId: 'vulnerability',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      if (entity) return `How can we help with "${entity}"?`;
+      const tabName = (params.tab || 'assets').replace(/[-_]+/g, ' ');
+      return `How can we help with ${tabName}?`;
+    },
+    subtitle: () => 'Shuffle Assets & Shuffle Vulnerabilities',
+    defaultPrompt: (params) => `Inspect ${params.tab || 'assets'} and review vulnerabilities: `,
+    placeholder: 'Search assets, inspect hosts, or check security posture...',
+    getStorageKey: (params) => `assets_tab_${params.tab}`,
+    description: 'Assets tab view with Shuffle Assets and Shuffle Vulnerabilities MCPs',
+  },
+  // Assets Overview (/assets, /assets/*)
+  {
+    id: 'assets-overview',
+    match: (pathname) => pathname === '/assets' || pathname.startsWith('/assets'),
+    defaultApps: [{ name: 'shuffle_assets' }, { name: 'shuffle_vulnerabilities' }],
+    defaultPresetId: 'vulnerability',
+    title: 'How can we help with assets?',
+    subtitle: 'Shuffle Assets & Shuffle Vulnerabilities',
+    defaultPrompt: 'Audit assets and review vulnerabilities for ',
+    placeholder: 'Search assets, inspect hosts, or check security posture...',
+    getStorageKey: () => 'assets_overview',
+    description: 'Assets overview with Shuffle Assets and Shuffle Vulnerabilities MCPs',
+  },
+  // Software Inventory (/software, /software/*)
+  {
+    id: 'software-inventory',
+    match: (pathname) => pathname === '/software' || pathname.startsWith('/software'),
+    defaultApps: [{ name: 'shuffle_software' }, { name: 'shuffle_vulnerabilities' }],
+    defaultPresetId: 'vulnerability',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help with "${entity}"?` : 'How can we help with software inventory?';
+    },
+    subtitle: () => 'Shuffle Software & Shuffle Vulnerabilities',
+    defaultPrompt: 'Inspect software inventory and check for vulnerabilities in ',
+    placeholder: 'Search installed software, verify versions, or scan for CVEs...',
+    getStorageKey: () => 'software_inventory',
+    description: 'Software inventory with Shuffle Software and Shuffle Vulnerabilities MCPs',
+  },
+  // Packages Inventory (/packages, /packages/*)
+  {
+    id: 'packages-inventory',
+    match: (pathname) => pathname === '/packages' || pathname.startsWith('/packages'),
+    defaultApps: [{ name: 'shuffle_packages' }, { name: 'shuffle_vulnerabilities' }],
+    defaultPresetId: 'vulnerability',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help with "${entity}"?` : 'How can we help with packages?';
+    },
+    subtitle: () => 'Shuffle Packages & Shuffle Vulnerabilities',
+    defaultPrompt: 'Analyze package dependencies and known vulnerabilities for ',
+    placeholder: 'Search package dependencies, verify licenses, or check CVEs...',
+    getStorageKey: () => 'packages_inventory',
+    description: 'Package dependencies with Shuffle Packages and Shuffle Vulnerabilities MCPs',
+  },
+
+  // ==========================================
+  // 6. Detection & Sigma
   // ==========================================
   {
     id: 'detection',
@@ -445,7 +522,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   },
 
   // ==========================================
-  // 6. Default Fallback (Support)
+  // 7. Default Fallback (Support)
   // ==========================================
   {
     id: 'default',
