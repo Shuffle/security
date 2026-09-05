@@ -54,7 +54,7 @@ import { resolveOutcomeKind } from '../lib/outcomes';
 import { useWorkflowExecutionStats } from '../hooks/useWorkflowExecutionStats';
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
-export type FlowPhase = 'ingest' | 'response' | 'correlation';
+export type FlowPhase = 'ingest' | 'correlation' | 'response';
 
 export const FLOW_PHASES: {
   id: FlowPhase;
@@ -71,18 +71,18 @@ export const FLOW_PHASES: {
       color: '--infra-siem',
     },
     {
-      id: 'response',
-      step: 2,
-      label: 'Agents & Response Actions',
-      subtitle: 'Automate containment, notifications, and remediation.',
-      color: '--infra-edr',
-    },
-    {
       id: 'correlation',
-      step: 3,
+      step: 2,
       label: 'Context & Correlation',
       subtitle: 'Enrich alerts with intelligence, assets, and identity data.',
       color: '--infra-threat-intel',
+    },
+    {
+      id: 'response',
+      step: 3,
+      label: 'Agents & Response Actions',
+      subtitle: 'Automate containment, notifications, and remediation.',
+      color: '--infra-edr',
     },
   ];
 
@@ -418,6 +418,7 @@ export interface ApiUsecaseCategory {
 export function apiCategoryToPhase(categoryName: string): FlowPhase {
   const lower = categoryName.toLowerCase();
   if (lower.includes('collect') || lower.includes('ingest') || lower.includes('1.')) return 'ingest';
+  if (lower.includes('correlat') || lower.includes('enrich') || lower.includes('context') || lower.includes('2.')) return 'correlation';
   if (lower.includes('respond') || lower.includes('response') || lower.includes('action') || lower.includes('3.')) return 'response';
   // Default: correlation/enrich
   return 'correlation';
@@ -680,11 +681,6 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationArea: 'correlation',
     automationLabel: 'Vulnerability Correlation',
     automationCategory: 'cases',
-    customAction: {
-      label: 'Configure Vulnerabilities',
-      href: '/vulnerabilities',
-      description: 'Open the vulnerability inventory to ingest CVEs from your scanners.',
-    },
   },
   {
     id: 'vulnerability_ingestion_1', phase: 'ingest', source: 'asset_management', target: 'case_management',
@@ -2550,6 +2546,7 @@ const ACTIVE_USECASE_IDS = [
   'case_management_communication_1',
   'case_management_asset_management_monitors_1',
   'case_management_assign_escalate_1',
+  'asset_management_case_management_vuln_1',
   'threat_intel_network_1',
   'threat_intel_edr_1',
   'threat_intel_cloud_1',
@@ -3329,11 +3326,12 @@ function UsecaseDetailContent({
       return;
     }
 
-    // Forward Tickets and Notifications are Cases/Shuffle-sourced — Shuffle
-    // itself IS the source, so there is no third-party source auth to
+    // Forward Tickets, Notifications, and Vulnerability Correlation are Cases/Shuffle/internal-sourced —
+    // Shuffle itself IS the source, so there is no third-party source auth to
     // validate. Skip the hard-block for these flows.
     const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
-      || flow.id === 'case_management_communication_1';
+      || flow.id === 'case_management_communication_1'
+      || flow.id === 'asset_management_case_management_vuln_1';
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
       // Hard-block the enable. The /workflows/generate endpoint may return
       // success: true and then quietly skip creating the workflow when no
@@ -3396,7 +3394,7 @@ function UsecaseDetailContent({
           }
         } catch { /* fall through — handled below */ }
 
-        if (validatedSourceAppNames.length === 0) {
+        if (validatedSourceAppNames.length === 0 && !isShuffleSourcedFlow) {
           setOptimisticEnabled(null);
           setToggling(false);
           toast.error(`No validated ${sourceName} tool found`, {
@@ -3411,35 +3409,41 @@ function UsecaseDetailContent({
           });
           return;
         }
-        requestBody.app_name = validatedSourceAppNames.join(',');
+        if (validatedSourceAppNames.length > 0) {
+          requestBody.app_name = validatedSourceAppNames.join(',');
+        }
       } else {
-        // When disabling, the same workflow (e.g. "Ingest Tickets") may also be
-        // powering sibling usecases that share a category (SIEM / EDR / Email
-        // all generate the same ingestion workflow). A blind action_name=remove
-        // would nuke the workflow for those siblings too. Instead, strip only
-        // the apps belonging to THIS usecase's source category and re-post the
-        // remaining list. If nothing is left, fall back to remove.
-        const thisCat = sourceToIngest[flow.source];
-        const linkedForApps = findWorkflowsForUsecase(flow, workflows);
-        const currentNames: string[] = [];
-        const seenAll = new Set<string>();
-        for (const wf of linkedForApps) {
-          for (const action of (wf.actions || [])) {
-            for (const n of extractActionAppNames(action)) {
-              const k = normalizeAppName(n);
-              if (!seenAll.has(k)) { currentNames.push(n); seenAll.add(k); }
+        if (isShuffleSourcedFlow) {
+          requestBody.action_name = 'remove';
+        } else {
+          // When disabling, the same workflow (e.g. "Ingest Tickets") may also be
+          // powering sibling usecases that share a category (SIEM / EDR / Email
+          // all generate the same ingestion workflow). A blind action_name=remove
+          // would nuke the workflow for those siblings too. Instead, strip only
+          // the apps belonging to THIS usecase's source category and re-post the
+          // remaining list. If nothing is left, fall back to remove.
+          const thisCat = sourceToIngest[flow.source];
+          const linkedForApps = findWorkflowsForUsecase(flow, workflows);
+          const currentNames: string[] = [];
+          const seenAll = new Set<string>();
+          for (const wf of linkedForApps) {
+            for (const action of (wf.actions || [])) {
+              for (const n of extractActionAppNames(action)) {
+                const k = normalizeAppName(n);
+                if (!seenAll.has(k)) { currentNames.push(n); seenAll.add(k); }
+              }
             }
           }
-        }
-        const remainingNames = currentNames.filter((n) => {
-          const cat = getIngestionCategory(n);
-          if (!cat || cat === 'other' || cat === 'cases') return false;
-          return cat !== thisCat;
-        });
-        if (remainingNames.length > 0) {
-          requestBody.app_name = remainingNames.join(',');
-        } else {
-          requestBody.action_name = 'remove';
+          const remainingNames = currentNames.filter((n) => {
+            const cat = getIngestionCategory(n);
+            if (!cat || cat === 'other' || cat === 'cases') return false;
+            return cat !== thisCat;
+          });
+          if (remainingNames.length > 0) {
+            requestBody.app_name = remainingNames.join(',');
+          } else {
+            requestBody.action_name = 'remove';
+          }
         }
       }
 
@@ -5350,6 +5354,11 @@ function UsecasesPageInner() {
       // there is no third-party source auth to validate. As long as the
       // "Forward Tickets" workflow exists, treat it as enabled.
       if (flow.id === 'case_management_cases_forward_1') {
+        return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
+      }
+      // Vulnerability Correlation is self-contained — driven solely by whether the
+      // "Vulnerability Correlation" workflow exists, operating on internal host/package data.
+      if (flow.id === 'asset_management_case_management_vuln_1') {
         return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
       }
       // Threat-intel usecases are presence-driven: they "work" as soon as the

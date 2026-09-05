@@ -26,7 +26,7 @@ import {
 
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
-export type FlowPhase = 'ingest' | 'response' | 'correlation';
+export type FlowPhase = 'ingest' | 'correlation' | 'response';
 
 export const FLOW_PHASES: {
   id: FlowPhase;
@@ -43,18 +43,18 @@ export const FLOW_PHASES: {
     color: '--infra-siem',
   },
   {
-    id: 'response',
-    step: 2,
-    label: 'Agents & Response Actions',
-    subtitle: 'Automate containment, notifications, and remediation.',
-    color: '--infra-edr',
-  },
-  {
     id: 'correlation',
-    step: 3,
+    step: 2,
     label: 'Context & Correlation',
     subtitle: 'Enrich alerts with intelligence, assets, and identity data.',
     color: '--infra-threat-intel',
+  },
+  {
+    id: 'response',
+    step: 3,
+    label: 'Agents & Response Actions',
+    subtitle: 'Automate containment, notifications, and remediation.',
+    color: '--infra-edr',
   },
 ];
 
@@ -389,6 +389,7 @@ export interface ApiUsecaseCategory {
 export function apiCategoryToPhase(categoryName: string): FlowPhase {
   const lower = categoryName.toLowerCase();
   if (lower.includes('collect') || lower.includes('ingest') || lower.includes('1.')) return 'ingest';
+  if (lower.includes('correlat') || lower.includes('enrich') || lower.includes('context') || lower.includes('2.')) return 'correlation';
   if (lower.includes('respond') || lower.includes('response') || lower.includes('action') || lower.includes('3.')) return 'response';
   // Default: correlation/enrich
   return 'correlation';
@@ -583,11 +584,6 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationArea: 'correlation',
     automationLabel: 'Vulnerability Correlation',
     automationCategory: 'cases',
-    customAction: {
-      label: 'Configure Vulnerabilities',
-      href: '/vulnerabilities',
-      description: 'Open the vulnerability inventory to ingest CVEs from your scanners.',
-    },
   },
   {
     id: 'vulnerability_ingestion_1', phase: 'ingest', source: 'asset_management', target: 'case_management',

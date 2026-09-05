@@ -352,27 +352,13 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
           </Box>
         </Box>
 
-        {/* Task-Focused Title */}
-        <Box sx={{ px: 2, pt: 1.75, pb: 1, flexShrink: 0 }}>
-          <Typography
-            sx={{
-              fontSize: '1.02rem',
-              fontWeight: 650,
-              lineHeight: 1.32,
-              color: 'hsl(var(--foreground))',
-              letterSpacing: '-0.015em',
-            }}
-          >
-            {context.title}
-          </Typography>
-        </Box>
-
         {/* Missing Config Banner for Support Users */}
         {context.missingConfig && (
           <Box
             sx={{
               mx: 2,
-              mb: 1.5,
+              mt: 1.5,
+              mb: 0.5,
               p: 1.25,
               borderRadius: 1.5,
               bgcolor: 'hsl(var(--warning) / 0.1)',
@@ -408,7 +394,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
           </Box>
         )}
 
-        {/* Scrollable Agent Run Body (Fluff-free: Textfield with skill -> tools -> execution) */}
+        {/* Scrollable Agent Run Body (Mobile UI layout matching /agents) */}
         <Box
           sx={{
             flex: 1,
@@ -426,9 +412,9 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             compact={true}
             mobileView={true}
             hideHeroIcon={true}
-            title=""
+            title={context.title || 'How can we help on this page?'}
             subtitle={null}
-            hideChooseLLM={true}
+            hideChooseLLM={false}
             disableSchedule={true}
             hideAttach={false}
             maxWidth={width - 32}
@@ -443,7 +429,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             {...agentUIProps}
             sx={{
               minHeight: 'auto',
-              pt: 0,
+              pt: 2,
               pb: 2,
               ...(agentUIProps?.sx ? (Array.isArray(agentUIProps.sx) ? {} : agentUIProps.sx) : {}),
             }}

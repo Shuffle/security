@@ -5354,7 +5354,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
           '&:hover': { bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' },
         }}
       >
-        {selectedPreset?.icon ?? <PlusIcon size={16} />}
+        <PlusIcon size={16} />
       </IconButton>
     </Tooltip>
   ) : null;
@@ -5495,7 +5495,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             )}
             {title ? (
               <Typography component="h1" sx={{
-                fontSize: compact ? { xs: '1.1rem', md: '1.5rem' } : { xs: '1.35rem', md: '2.25rem' },
+                fontSize: isPhone ? '1.35rem' : compact ? { xs: '1.1rem', md: '1.5rem' } : { xs: '1.35rem', md: '2.25rem' },
                 fontWeight: 600,
                 color: 'hsl(var(--foreground))',
                 textAlign: 'center',
@@ -6215,18 +6215,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   </Box>
                 </Tooltip>
                 )}
-                <Box
-                  component="span"
-                  aria-hidden
-                  sx={{
-                    width: '1px',
-                    height: 16,
-                    bgcolor: 'hsl(var(--border))',
-                    mx: 0.5,
-                    alignSelf: 'center',
-                    flexShrink: 0,
-                  }}
-                />
+                {!hideChooseLLM && (
+                  <Box
+                    component="span"
+                    aria-hidden
+                    sx={{
+                      width: '1px',
+                      height: 16,
+                      bgcolor: 'hsl(var(--border))',
+                      mx: 0.5,
+                      alignSelf: 'center',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
                 <Tooltip title={agentRequestLoading ? 'Locked while the agent is running' : ''}>
                   <Box
                     component="button"
