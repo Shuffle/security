@@ -793,6 +793,16 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationArea: 'assign_escalate',
   },
   {
+    id: 'case_management_schedules_notifications_1', phase: 'response', source: 'case_management', target: 'communication',
+    label: 'Schedules & Phone Notifications', animated: true,
+    tags: ['Response', 'On-Call', 'Mobile', 'Escalation', 'Paging'],
+    description: 'Trigger phone notifications and emergency paging via the Shuffle Mobile App based on on-call team schedules, with automatic escalations across response tiers.',
+    agenticDescription: 'An agent monitors incoming critical incidents, determines the active on-call responder for the current shift, dispatches mobile app phone notifications and siren paging, and automatically escalates to higher tiers if unacknowledged.',
+    automationLabel: 'Schedules & Phone Notifications',
+    automationCategory: 'cases',
+    automationArea: 'schedules_notifications',
+  },
+  {
     id: 'case_management_asset_management_monitors_1', phase: 'response', source: 'case_management', target: 'asset_management',
     label: 'Add Host-Monitors', animated: true,
     tags: ['Response', 'Monitoring', 'Endpoint'],
@@ -2580,6 +2590,7 @@ const ACTIVE_USECASE_IDS = [
   'threat_intel_edr_1',
   'threat_intel_cloud_1',
   'case_management_incident_routing_1',
+  'case_management_schedules_notifications_1',
 ];
 
 // Small wrapper so UsecaseDetailContent can render an Outcome block without
@@ -3420,6 +3431,7 @@ function UsecaseDetailContent({
     const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
       || flow.id === 'case_management_communication_1'
       || flow.id === 'case_management_incident_routing_1'
+      || flow.id === 'case_management_schedules_notifications_1'
       || flow.id === 'asset_management_case_management_vuln_1'
       || flow.id === 'vulnerability_ingestion_1';
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
@@ -4045,6 +4057,7 @@ function UsecaseDetailContent({
         const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
           || flow.id === 'case_management_communication_1'
           || flow.id === 'case_management_incident_routing_1'
+          || flow.id === 'case_management_schedules_notifications_1'
           || flow.id === 'asset_management_case_management_vuln_1'
           || flow.id === 'vulnerability_ingestion_1';
         const needsSource = !!flow.source && !selfContained && !isShuffleSourcedFlow;
@@ -4069,6 +4082,8 @@ function UsecaseDetailContent({
           message = 'Sign in to enable this usecase.';
         } else if (flow.id === 'case_management_incident_routing_1') {
           message = `Configure at least one routing rule below to enable ${flow.label}.`;
+        } else if (flow.id === 'case_management_schedules_notifications_1') {
+          message = `Click Enable to generate the Schedules & Phone Notifications workflow.`;
         } else if (isShuffleSourcedFlow) {
           message = `Add a destination tool with a validated (green) authentication to enable ${flow.label}.`;
         } else if (needsSource && !hasValidatedSource && existingSourceAppName) {
@@ -4170,7 +4185,7 @@ function UsecaseDetailContent({
 
 
 
-      {showConnectionPath && flow.id !== 'case_management_incident_routing_1' && (() => {
+      {showConnectionPath && flow.id !== 'case_management_incident_routing_1' && flow.id !== 'case_management_schedules_notifications_1' && (() => {
         const alluvialEligible = useAlluvialDiagram && ALLUVIAL_ELIGIBLE_FLOW_IDS.has(flow.id);
         const showAlluvial = alluvialEligible && connectionViewMode === 'source_destination';
         return (
@@ -4609,7 +4624,7 @@ function UsecaseDetailContent({
         );
       })()}
 
-      {flow.id !== 'case_management_incident_routing_1' && (
+      {flow.id !== 'case_management_incident_routing_1' && flow.id !== 'case_management_schedules_notifications_1' && (
         flow.automationArea === 'notifications'
           ? <NotificationsOutcomeBlock />
           : flow.label === 'IOC feeds'
@@ -5328,6 +5343,9 @@ function UsecasesPageInner() {
         if (lbl.includes('incident routing')) {
           aliases.push('incident routing', 'incident_routing', 'incident_routing_rules');
         }
+        if (lbl.includes('schedules & phone') || lbl.includes('schedules_notifications') || lbl.includes('phone notification')) {
+          aliases.push('schedules & phone notifications', 'schedules_&_phone_notifications', 'schedules_notifications', 'phone_notifications', 'assign & escalate', 'assign_&_escalate');
+        }
         if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
           set.add(uc.automationLabel);
         }
@@ -5586,6 +5604,11 @@ function UsecasesPageInner() {
       // Incident Routing Rules is Cases-sourced / rule-driven:
       // driven solely by whether its workflow exists.
       if (flow.id === 'case_management_incident_routing_1') {
+        return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
+      }
+      // Schedules & Phone Notifications is Cases-sourced / schedule-driven:
+      // driven solely by whether its workflow exists.
+      if (flow.id === 'case_management_schedules_notifications_1') {
         return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
       }
       // Vulnerability Correlation and Vulnerability Ingestion are self-contained / schedule-driven —
@@ -6721,6 +6744,9 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
         const aliases = [lbl];
         if (lbl.includes('incident routing')) {
           aliases.push('incident routing', 'incident_routing', 'incident_routing_rules');
+        }
+        if (lbl.includes('schedules & phone') || lbl.includes('schedules_notifications') || lbl.includes('phone notification')) {
+          aliases.push('schedules & phone notifications', 'schedules_&_phone_notifications', 'schedules_notifications', 'phone_notifications', 'assign & escalate', 'assign_&_escalate');
         }
         if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
           set.add(uc.automationLabel);

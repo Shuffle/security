@@ -696,6 +696,16 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationArea: 'assign_escalate',
   },
   {
+    id: 'case_management_schedules_notifications_1', phase: 'response', source: 'case_management', target: 'communication',
+    label: 'Schedules & Phone Notifications', animated: true,
+    tags: ['Response', 'On-Call', 'Mobile', 'Escalation', 'Paging'],
+    description: 'Trigger phone notifications and emergency paging via the Shuffle Mobile App based on on-call team schedules, with automatic escalations across response tiers.',
+    agenticDescription: 'An agent monitors incoming critical incidents, determines the active on-call responder for the current shift, dispatches mobile app phone notifications and siren paging, and automatically escalates to higher tiers if unacknowledged.',
+    automationLabel: 'Schedules & Phone Notifications',
+    automationCategory: 'cases',
+    automationArea: 'schedules_notifications',
+  },
+  {
     id: 'case_management_ai_agents_1', phase: 'response', source: 'case_management', target: 'case_management',
     label: 'AI Agents', animated: true,
     tags: ['Response', 'AI', 'Agent', 'Any Tool'],
@@ -846,6 +856,9 @@ export function getUsecaseWorkflowLabels(usecase: Pick<Usecase, 'automationLabel
   const lower = usecase.automationLabel.toLowerCase();
   if (lower.includes('incident routing')) {
     out.push('incident routing', 'incident_routing', 'incident_routing_rules');
+  }
+  if (lower.includes('schedules & phone') || lower.includes('schedules_notifications') || lower.includes('phone notification')) {
+    out.push('schedules & phone notifications', 'schedules_&_phone_notifications', 'schedules_notifications', 'phone_notifications', 'assign & escalate', 'assign_&_escalate');
   }
   return out;
 }
