@@ -37,7 +37,10 @@ const readHtmlDarkClass = (): boolean => {
  */
 const readAncestorDark = (anchor: Element | null): boolean | null => {
   if (!anchor || typeof document === "undefined") return null;
-  const start = anchor.parentElement;
+  // anchorRef is placed inside this provider's own root element ([data-shuffle-core-root] / [data-shuffle-mcp-root]).
+  // We must skip this provider's own element and inspect true ancestors strictly above it.
+  const ownRoot = anchor.closest('[data-shuffle-core-root], [data-shuffle-mcp-root]');
+  const start = ownRoot ? ownRoot.parentElement : anchor.parentElement;
   if (!start) return null;
   const scoped = start.closest('[data-shuffle-mode="dark"], [data-shuffle-mode="light"]');
   if (scoped) return scoped.getAttribute("data-shuffle-mode") === "dark";
@@ -57,7 +60,8 @@ const useAutoDarkClass = (enabled: boolean, anchorRef: React.RefObject<HTMLEleme
     recompute();
     const observer = new MutationObserver(recompute);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    let node: HTMLElement | null = anchorRef.current?.parentElement ?? null;
+    const ownRoot = anchorRef.current?.closest('[data-shuffle-core-root], [data-shuffle-mcp-root]');
+    let node: HTMLElement | null = ownRoot ? ownRoot.parentElement : anchorRef.current?.parentElement ?? null;
     while (node) {
       observer.observe(node, { attributes: true, attributeFilter: ["class", "data-shuffle-mode"] });
       node = node.parentElement;

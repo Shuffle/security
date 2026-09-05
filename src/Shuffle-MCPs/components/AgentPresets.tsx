@@ -59,6 +59,16 @@ const prettyAppName = (name: string) =>
 
 export const AGENT_PRESETS: AgentPreset[] = [
   {
+    id: 'edit-workflow',
+    label: 'Edit Workflow',
+    description: 'Designs and edits Shuffle workflows for you — pick apps, wire actions, and iterate on automations from a description.',
+    defaultPrompt: 'Edit this Shuffle workflow to ',
+    icon: <Workflow size={16} />,
+    enabled: true,
+    defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
+    requiredApps: ['shuffle_workflows_builder', 'shuffle_apps'],
+  },
+  {
     id: 'build-workflows',
     label: 'Build Workflows',
     description: 'Designs and edits Shuffle workflows for you — pick apps, wire actions, and iterate on automations from a description.',
@@ -103,7 +113,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
     icon: <Bug size={16} />,
     enabled: true,
-    defaultApps: [{ name: 'vulnerabilities' }],
+    defaultApps: [{ name: 'shuffle_vulnerabilities' }],
   },
   {
     id: 'detection',

@@ -122,11 +122,13 @@ export const isAgentRoute = (pathname: string): boolean => {
   return norm === '/agents' || norm === '/agent' || norm.startsWith('/agents/') || norm.startsWith('/agent/');
 };
 
-/** Attempts to discover the primary entity name/title from the active DOM (e.g. incident title input) */
+/** Attempts to discover the primary entity name/title from the active DOM (e.g. incident/case/alert title input) */
 export const getActivePageEntityName = (): string | undefined => {
   if (typeof document === 'undefined') return undefined;
   try {
-    const titleInput = document.querySelector('[data-incident-field="title"] input') as HTMLInputElement | null;
+    const titleInput = document.querySelector(
+      '[data-incident-field="title"] input, [data-case-field="title"] input, [data-ticket-field="title"] input, [data-alert-field="title"] input, [data-host-field="name"] input, [data-monitor-field="name"] input'
+    ) as HTMLInputElement | null;
     if (titleInput?.value && titleInput.value.trim().length > 0) {
       return titleInput.value.trim();
     }
@@ -145,7 +147,10 @@ export const getActivePageEntityName = (): string | undefined => {
  * Most specific rules are defined first.
  */
 export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
-  // 1. Specific Incident Detail
+  // ==========================================
+  // 1. Incidents, Cases, Tickets, Alerts (Grouped)
+  // ==========================================
+  // Specific Incident Detail
   {
     id: 'incident-detail',
     match: '/incidents/:id',
@@ -161,7 +166,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     getStorageKey: (params) => `incident_${params.id}`,
     description: 'Focused on the currently viewed incident with Shuffle Incidents MCP',
   },
-  // 1b. Simplified Incident Detail
+  // Simplified Incident Detail
   {
     id: 'incident-simple-detail',
     match: '/incidents-simple/:id',
@@ -177,10 +182,58 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     getStorageKey: (params) => `incident_${params.id}`,
     description: 'Focused on the currently viewed incident with Shuffle Incidents MCP',
   },
-  // 2. Incidents List
+  // Specific Case Detail
   {
-    id: 'incidents-list',
-    match: '/incidents',
+    id: 'case-detail',
+    match: '/cases/:id',
+    defaultApps: [{ name: 'shuffle_incidents' }],
+    defaultPresetId: 'incident-response',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help handle case "${entity}"?` : `How can we help handle case #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Incidents MCP',
+    defaultPrompt: (params) => `Investigate case ${params.id} and recommend next steps: `,
+    placeholder: 'Review case evidence, correlate events, or recommend response actions...',
+    getStorageKey: (params) => `case_${params.id}`,
+    description: 'Focused on the currently viewed case with Shuffle Incidents MCP',
+  },
+  // Specific Ticket Detail
+  {
+    id: 'ticket-detail',
+    match: '/tickets/:id',
+    defaultApps: [{ name: 'shuffle_incidents' }],
+    defaultPresetId: 'incident-response',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help handle ticket "${entity}"?` : `How can we help handle ticket #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Incidents MCP',
+    defaultPrompt: (params) => `Investigate ticket ${params.id} and recommend next steps: `,
+    placeholder: 'Investigate ticket, draft reply, or correlate related incidents...',
+    getStorageKey: (params) => `ticket_${params.id}`,
+    description: 'Focused on the currently viewed ticket with Shuffle Incidents MCP',
+  },
+  // Specific Alert Detail
+  {
+    id: 'alert-detail',
+    match: '/alerts/:id',
+    defaultApps: [{ name: 'shuffle_incidents' }],
+    defaultPresetId: 'incident-response',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help handle alert "${entity}"?` : `How can we help handle alert #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Incidents MCP',
+    defaultPrompt: (params) => `Investigate alert ${params.id} and recommend next steps: `,
+    placeholder: 'Analyze alert telemetry, assess false positive probability, or escalate...',
+    getStorageKey: (params) => `alert_${params.id}`,
+    description: 'Focused on the currently viewed alert with Shuffle Incidents MCP',
+  },
+  // Incidents Overview & Subpages (/incidents/*)
+  {
+    id: 'incidents-group',
+    match: (pathname) => pathname.startsWith('/incidents') || pathname.startsWith('/incidents-simple'),
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     title: 'How can we help handle incidents?',
@@ -190,75 +243,194 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     getStorageKey: () => 'incidents_list',
     description: 'Incidents overview with Shuffle Incidents MCP',
   },
+  // Cases Overview & Subpages (/cases/*)
   {
-    id: 'incidents-simple-list',
-    match: '/incidents-simple',
+    id: 'cases-group',
+    match: (pathname) => pathname.startsWith('/cases'),
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
-    title: 'How can we help handle incidents?',
+    title: 'How can we help handle cases?',
     subtitle: 'Shuffle Incidents MCP',
-    defaultPrompt: 'Investigate this incident and recommend next steps: ',
-    placeholder: 'Triage incidents, correlate alerts, or search threat intelligence...',
-    getStorageKey: () => 'incidents_list',
-    description: 'Incidents overview with Shuffle Incidents MCP',
+    defaultPrompt: 'Investigate this case and recommend next steps: ',
+    placeholder: 'Review active cases, correlate investigations, or log evidence...',
+    getStorageKey: () => 'cases_list',
+    description: 'Cases overview with Shuffle Incidents MCP',
   },
-  // 3. Specific Vulnerability Detail
+  // Tickets Overview & Subpages (/tickets/*)
+  {
+    id: 'tickets-group',
+    match: (pathname) => pathname.startsWith('/tickets'),
+    defaultApps: [{ name: 'shuffle_incidents' }],
+    defaultPresetId: 'incident-response',
+    title: 'How can we help handle tickets?',
+    subtitle: 'Shuffle Incidents MCP',
+    defaultPrompt: 'Investigate this ticket and recommend next steps: ',
+    placeholder: 'Triage incoming tickets, automate assignments, or resolve issues...',
+    getStorageKey: () => 'tickets_list',
+    description: 'Tickets overview with Shuffle Incidents MCP',
+  },
+  // Alerts Overview & Subpages (/alerts/*, /notifications/*)
+  {
+    id: 'alerts-group',
+    match: (pathname) => pathname.startsWith('/alerts') || pathname.startsWith('/notifications'),
+    defaultApps: [{ name: 'shuffle_incidents' }],
+    defaultPresetId: 'incident-response',
+    title: 'How can we help handle alerts?',
+    subtitle: 'Shuffle Incidents MCP',
+    defaultPrompt: 'Investigate this alert and recommend next steps: ',
+    placeholder: 'Triage incoming security alerts, filter noise, or escalate to incident...',
+    getStorageKey: () => 'alerts_list',
+    description: 'Alert and notification triage with Shuffle Incidents MCP',
+  },
+
+  // ==========================================
+  // 2. Vulnerabilities (shuffle_vulnerabilities)
+  // ==========================================
+  // Specific Vulnerability Detail
   {
     id: 'vulnerability-detail',
     match: '/vulnerabilities/:id',
-    defaultApps: [{ name: 'vulnerabilities' }],
+    defaultApps: [{ name: 'shuffle_vulnerabilities' }],
     defaultPresetId: 'vulnerability',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help with ${entity}?` : `How can we help with vulnerability ${params.id}?`;
     },
-    subtitle: () => 'Vulnerabilities MCP',
+    subtitle: () => 'Shuffle Vulnerabilities MCP',
     defaultPrompt: (params) => `Review vulnerability ${params.id} and draft remediation plan: `,
     placeholder: 'Analyze this CVE, check affected hosts, and draft remediation...',
     getStorageKey: (params) => `vulnerability_${params.id}`,
-    description: 'Focused on the selected vulnerability with Vulnerabilities MCP',
+    description: 'Focused on the selected vulnerability with Shuffle Vulnerabilities MCP',
   },
-  // 4. Vulnerabilities List
+  // Vulnerabilities List & Subpages
   {
     id: 'vulnerabilities-list',
-    match: '/vulnerabilities',
-    defaultApps: [{ name: 'vulnerabilities' }],
+    match: (pathname) => pathname.startsWith('/vulnerabilities'),
+    defaultApps: [{ name: 'shuffle_vulnerabilities' }],
     defaultPresetId: 'vulnerability',
     title: 'How can we help review vulnerabilities?',
-    subtitle: 'Vulnerabilities MCP',
+    subtitle: 'Shuffle Vulnerabilities MCP',
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
     placeholder: 'Review CVEs, prioritize by exploitability, or draft patch workflows...',
     getStorageKey: () => 'vulnerabilities_list',
-    description: 'Vulnerabilities overview with Vulnerabilities MCP',
+    description: 'Vulnerabilities overview with Shuffle Vulnerabilities MCP',
   },
-  // 5. Workflows / Automations
+
+  // ==========================================
+  // 3. Monitors & Computer Use (shuffle_host_monitors for all)
+  // ==========================================
+  // Specific Host Terminal (/monitors/:id/terminal)
   {
-    id: 'workflows-builder',
-    match: (pathname) =>
-      pathname.startsWith('/workflows') || pathname.startsWith('/usecases') || pathname.startsWith('/infrastructure/flows'),
-    defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
-    defaultPresetId: 'build-workflows',
-    title: 'How can we help build workflows?',
-    subtitle: 'Workflow Builder & Apps MCP',
-    defaultPrompt: 'Build a Shuffle workflow that ',
-    placeholder: 'Describe the automation you want to build or edit...',
-    getStorageKey: () => 'workflows_builder',
-    description: 'Workflow builder with Workflow Builder & Shuffle Apps MCPs',
+    id: 'monitor-terminal-detail',
+    match: '/monitors/:id/terminal',
+    defaultApps: [{ name: 'shuffle_host_monitors' }],
+    defaultPresetId: 'host-monitor-control',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help in terminal for "${entity}"?` : `How can we help in terminal on host #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Host Monitors MCP',
+    defaultPrompt: (params) => `Run commands on host ${params.id} to `,
+    placeholder: 'Ask the agent to execute shell commands, inspect logs, or debug...',
+    getStorageKey: (params) => `monitor_terminal_${params.id}`,
+    description: 'Interactive terminal control with Shuffle Host Monitors MCP',
   },
-  // 6. Computer Use / Host Monitors
+  // General Host Terminal (/monitors/terminal)
   {
-    id: 'host-monitors',
+    id: 'monitor-terminal',
+    match: '/monitors/terminal',
+    defaultApps: [{ name: 'shuffle_host_monitors' }],
+    defaultPresetId: 'host-monitor-control',
+    title: 'How can we help in the host terminal?',
+    subtitle: 'Shuffle Host Monitors MCP',
+    defaultPrompt: 'Run terminal commands on this host to ',
+    placeholder: 'Ask the agent to execute shell commands, inspect files, or debug...',
+    getStorageKey: () => 'monitors_terminal',
+    description: 'Interactive terminal control with Shuffle Host Monitors MCP',
+  },
+  // Host Response Actions (/monitors/response)
+  {
+    id: 'monitor-response',
+    match: '/monitors/response',
+    defaultApps: [{ name: 'shuffle_host_monitors' }],
+    defaultPresetId: 'host-monitor-control',
+    title: 'How can we help with host response?',
+    subtitle: 'Shuffle Host Monitors MCP',
+    defaultPrompt: 'Take response actions on this host to ',
+    placeholder: 'Isolate host, terminate suspicious processes, or run remediation...',
+    getStorageKey: () => 'monitors_response',
+    description: 'Host response actions with Shuffle Host Monitors MCP',
+  },
+  // Specific Host Overview (/monitors/:id)
+  {
+    id: 'monitor-detail',
+    match: '/monitors/:id',
+    defaultApps: [{ name: 'shuffle_host_monitors' }],
+    defaultPresetId: 'host-monitor-control',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help with host "${entity}"?` : `How can we help with host #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Host Monitors MCP',
+    defaultPrompt: (params) => `Take control of host ${params.id} and help me with: `,
+    placeholder: 'Inspect host telemetry, running processes, network connections, or remediate...',
+    getStorageKey: (params) => `monitor_${params.id}`,
+    description: 'Host detail view with Shuffle Host Monitors MCP',
+  },
+  // Monitors Fleet Overview & Subpages (/monitors, /monitors/*)
+  {
+    id: 'host-monitors-group',
     match: (pathname) => pathname.startsWith('/monitors'),
     defaultApps: [{ name: 'shuffle_host_monitors' }],
     defaultPresetId: 'host-monitor-control',
     title: 'How can we help with host monitors?',
-    subtitle: 'Host Monitors MCP',
+    subtitle: 'Shuffle Host Monitors MCP',
     defaultPrompt: 'Take control of this host and help me with: ',
     placeholder: 'Ask the agent to run terminal commands, inspect files, or remediate...',
     getStorageKey: () => 'host_monitors',
-    description: 'Computer use and host monitors control',
+    description: 'Computer use and host monitors control with Shuffle Host Monitors MCP',
   },
-  // 7. Detection & Sigma
+
+  // ==========================================
+  // 4. Workflows & Automations
+  // ==========================================
+  // Specific Workflow Detail (/workflows/:id)
+  {
+    id: 'workflow-detail',
+    match: '/workflows/:id',
+    defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
+    defaultPresetId: 'edit-workflow',
+    title: (params) => {
+      const entity = getActivePageEntityName();
+      return entity ? `How can we help edit "${entity}"?` : `How can we help edit workflow #${params.id}?`;
+    },
+    subtitle: () => 'Shuffle Workflows Builder & Shuffle Apps',
+    defaultPrompt: (params) => `Edit workflow ${params.id} to `,
+    placeholder: 'Describe the changes, new actions, or logic to add...',
+    getStorageKey: (params) => `workflow_${params.id}`,
+    description: 'Focused on editing the selected workflow with Shuffle Workflows Builder and Shuffle Apps',
+  },
+  // Workflows Overview & Subpages (/workflows, /workflows/*)
+  {
+    id: 'workflows-group',
+    match: (pathname) =>
+      pathname === '/workflows' ||
+      pathname.startsWith('/workflows') ||
+      pathname.startsWith('/usecases') ||
+      pathname.startsWith('/infrastructure/flows'),
+    defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
+    defaultPresetId: 'edit-workflow',
+    title: 'How can we help edit workflows?',
+    subtitle: 'Shuffle Workflows Builder & Shuffle Apps',
+    defaultPrompt: 'Edit this Shuffle workflow to ',
+    placeholder: 'Describe the workflow you want to build or edit...',
+    getStorageKey: () => 'workflows_builder',
+    description: 'Workflow builder with Shuffle Workflows Builder and Shuffle Apps',
+  },
+
+  // ==========================================
+  // 5. Detection & Sigma
+  // ==========================================
   {
     id: 'detection',
     match: (pathname) => pathname.startsWith('/detection'),
@@ -271,20 +443,10 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     getStorageKey: () => 'detection',
     description: 'Detection engineering with Shuffle Detection MCP',
   },
-  // 8. Alerts & Notifications
-  {
-    id: 'alerts',
-    match: (pathname) => pathname.startsWith('/alerts') || pathname.startsWith('/notifications'),
-    defaultApps: [{ name: 'shuffle_incidents' }],
-    defaultPresetId: 'handle-notifications',
-    title: 'How can we help triage alerts?',
-    subtitle: 'Incident & Notification MCP',
-    defaultPrompt: 'Automatically handle incoming incidents by ',
-    placeholder: 'Define triage rules or correlate incoming security alerts...',
-    getStorageKey: () => 'alerts',
-    description: 'Alert and notification triage',
-  },
-  // 9. Default Fallback
+
+  // ==========================================
+  // 6. Default Fallback (Support)
+  // ==========================================
   {
     id: 'default',
     match: () => true,

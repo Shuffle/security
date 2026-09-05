@@ -2160,7 +2160,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // existing run) — that prompt is already complete and must not be
   // silently wrapped in an unrelated template.
   useEffect(() => {
-    if (defaultInput && defaultInput.trim().length > 0) {
+    if (!initialPresetId && defaultInput && defaultInput.trim().length > 0) {
       setSelectedPreset(null);
       return;
     }
