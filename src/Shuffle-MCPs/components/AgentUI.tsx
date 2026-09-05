@@ -656,6 +656,8 @@ export interface AgentUIApp {
 }
 
 export interface AgentUIProps {
+  /** Optional React key to force re-mounting when context changes */
+  key?: React.Key;
   /** Controlled list of apps. When provided, overrides defaultApps and disables auto-load. */
   apps?: AgentUIApp[];
   /** Initial chip set under the prompt. Used only when `apps` is not provided. */
@@ -820,6 +822,8 @@ export interface AgentUIProps {
   hidePresets?: boolean;
   /** Override the built-in template list surfaced by the "+ Templates" trigger. */
   presets?: AgentPreset[];
+  /** Preset/template to activate on mount. When omitted, restores from localStorage. */
+  initialPresetId?: string | null;
   /** Called when the user picks a preset. Overrides the built-in seed behavior. */
   onSelectPreset?: (preset: AgentPreset) => void;
 }
@@ -2062,6 +2066,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   userId,
   hidePresets = false,
   presets,
+  initialPresetId,
   onSelectPreset,
   isSupport,
   presetCtas,
@@ -2160,27 +2165,30 @@ const AgentUI: React.FC<AgentUIProps> = ({
       return;
     }
     try {
-      const lastId = localStorage.getItem(LAST_PRESET_STORAGE_KEY);
-      if (!lastId) return;
+      const lastId = initialPresetId !== undefined ? initialPresetId : localStorage.getItem(LAST_PRESET_STORAGE_KEY);
+      if (!lastId) {
+        if (initialPresetId === null) setSelectedPreset(null);
+        return;
+      }
       const list = filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS, isSupport);
       const match = list.find((p) => p.id === lastId);
       if (!match || match.enabled === false) return;
       setSelectedPreset(match);
-      // Restoring a template must also restore ITS tools — otherwise whatever
-      // tools were left over from another template stay selected (and get
-      // written back as this template's override).
-      const override = readPresetAppsOverride(match.id);
-      if (override) {
-        // An empty override is a real choice ("I removed every tool") — honor it.
-        setChosenApps(override);
-      } else if (match.defaultApps && match.defaultApps.length > 0) {
-        setChosenApps(match.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
+      // Restoring a template must also restore ITS tools — unless custom tools were already provided
+      if (!defaultApps && !apps) {
+        const override = readPresetAppsOverride(match.id);
+        if (override) {
+          // An empty override is a real choice ("I removed every tool") — honor it.
+          setChosenApps(override);
+        } else if (match.defaultApps && match.defaultApps.length > 0) {
+          setChosenApps(match.defaultApps.map((app) => ({ name: app.name, id: app.id, icon: app.icon })));
+        }
       }
       seededPresetIdRef.current = match.id;
     } catch {
       /* ignore storage errors */
     }
-  }, [presets, defaultInput, isSupport]);
+  }, [presets, defaultInput, isSupport, initialPresetId, defaultApps, apps]);
 
 
 

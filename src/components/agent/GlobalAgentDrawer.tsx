@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from '@/lib/router-compat';
-import { AgentRunDrawer, API_CONFIG, type AgentRunDrawerTab, type AgentUIProps } from '@/Shuffle-MCPs';
+import { AskAiWidget, API_CONFIG, type AgentRunDrawerTab, type AgentUIProps } from '@/Shuffle-MCPs';
 import PermissionsPanel from '@/components/agent/PermissionsPanel';
 import LocalLLMConfig from '@/components/agent/LocalLLMConfig';
 import { useTheme } from '@/context/ThemeContext';
@@ -17,6 +17,7 @@ import {
   type AgentDrawerOpenDetail,
 } from '@/lib/agentDrawer';
 import { useScheduleAgentRun } from '@/hooks/useScheduleAgentRun';
+import { useIsSupport } from '@/hooks/useIsSupport';
 
 const GlobalAgentDrawer = () => {
   const [open, setOpen] = useState(false);
@@ -24,6 +25,7 @@ const GlobalAgentDrawer = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const scheduleAgentRun = useScheduleAgentRun();
+  const isSupport = useIsSupport();
   // Pass the already-resolved theme ('light' | 'dark') rather than 'system'.
   // The MCP library's 'auto' mode re-detects via DOM ancestors and can pick
   // up an unrelated scope, which made the Choose LLM drawer render light.
@@ -93,10 +95,14 @@ const GlobalAgentDrawer = () => {
   }, [open, location.pathname, location.search, navigate]);
 
   return (
-    <AgentRunDrawer
+    <AskAiWidget
       open={open}
-      onClose={() => setOpen(false)}
+      onOpenChange={setOpen}
+      isSupport={isSupport}
+      requireSupport={true}
       initialTab={initialTab}
+      pathname={location.pathname}
+      search={location.search}
       globalUrl={API_CONFIG.baseUrl}
       theme={theme}
       permissionsSlot={open ? <PermissionsPanel compact /> : undefined}

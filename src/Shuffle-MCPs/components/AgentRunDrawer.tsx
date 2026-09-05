@@ -61,13 +61,13 @@ export interface AgentRunDrawerProps extends ShuffleHostProps {
   permissionsDisabled?: boolean;
   permissionsDisabledTooltip?: string;
   /** Forwarded to the embedded AgentUI (apiKey, apiBaseUrl, orgId, etc.). */
-  agentUIProps?: Partial<AgentUIProps>;
+  agentUIProps?: Partial<AgentUIProps> & { key?: React.Key };
   /** Drawer width override (default: 595 px on >=sm, full-width on xs). */
   width?: number;
   /** Header title. Default: "Agent". */
-  title?: string;
+  title?: React.ReactNode;
   /** Header subtitle. Default: "Run actions and manage permissions". */
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   /** Optional className forwarded to the Drawer Paper. */
   className?: string;
   /** Style overrides merged into the Drawer Paper sx. Use to override colors, padding, etc. */

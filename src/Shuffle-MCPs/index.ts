@@ -72,6 +72,9 @@ import AgentsViewRaw from '@/Shuffle-MCPs/views/AgentsView';
 import AgentRunDiagnosisBannerRaw from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
 import LocalLLMConfigRaw from '@/Shuffle-MCPs/components/LocalLLMConfig';
 import AddAppModalRaw from '@/Shuffle-MCPs/components/AddAppModal';
+import AskAiButtonRaw from '@/Shuffle-MCPs/components/AskAiButton';
+import AskAiDrawerRaw from '@/Shuffle-MCPs/components/AskAiDrawer';
+import AskAiWidgetRaw from '@/Shuffle-MCPs/components/AskAiWidget';
 
 export { ShuffleMcpThemeProvider } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
 export type { ShuffleMcpColorMode, ShuffleMcpThemeProviderProps } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
@@ -107,6 +110,29 @@ export {
 export type { UseAgentPromptPrefixOptions } from '@/Shuffle-MCPs/useAgentPromptPrefix';
 export const AgentRunDrawer = withMcpTheme(AgentRunDrawerRaw as React.ComponentType<any>, 'AgentRunDrawer');
 export type { AgentRunDrawerProps, AgentRunDrawerTab } from '@/Shuffle-MCPs/components/AgentRunDrawer';
+export const AskAiButton = withMcpTheme(AskAiButtonRaw as React.ComponentType<any>, 'AskAiButton');
+export type { AskAiButtonProps } from '@/Shuffle-MCPs/components/AskAiButton';
+export const AskAiDrawer = withMcpTheme(AskAiDrawerRaw as React.ComponentType<any>, 'AskAiDrawer');
+export type { AskAiDrawerProps } from '@/Shuffle-MCPs/components/AskAiDrawer';
+export const AskAiWidget = withMcpTheme(AskAiWidgetRaw as React.ComponentType<any>, 'AskAiWidget');
+export type { AskAiWidgetProps } from '@/Shuffle-MCPs/components/AskAiWidget';
+export { useContextAwareAgent } from '@/Shuffle-MCPs/components/AskAiWidget';
+export {
+  registerAgentContextRule,
+  getAgentContextRules,
+  resolveAgentContext,
+  getPageContextChoice,
+  setPageContextChoice,
+  clearPageContextChoice,
+  DEFAULT_AGENT_CONTEXT_RULES,
+  matchRoutePattern,
+} from '@/Shuffle-MCPs/agentContextRegistry';
+export type {
+  AgentContextRule,
+  AgentResolvedContext,
+  AgentContextApp,
+  PageContextChoice,
+} from '@/Shuffle-MCPs/agentContextRegistry';
 export const AgentActivityList = withMcpTheme(AgentActivityListRaw as React.ComponentType<any>, 'AgentActivityList');
 export type { AgentActivityListProps } from '@/Shuffle-MCPs/components/AgentActivityList';
 export const AgentExecutionDrawer = withMcpTheme(AgentExecutionDrawerRaw as React.ComponentType<any>, 'AgentExecutionDrawer');

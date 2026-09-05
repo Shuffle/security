@@ -56,7 +56,6 @@ const updateCSSVariables = (brandColor: string | null) => {
   
   document.documentElement.style.setProperty('--primary', hsl);
   document.documentElement.style.setProperty('--ring', hsl);
-  document.documentElement.style.setProperty('--accent', hsl);
   document.documentElement.style.setProperty('--sidebar-primary', hsl);
   document.documentElement.style.setProperty('--sidebar-ring', hsl);
   document.documentElement.style.setProperty('--status-open', hsl);
@@ -65,7 +64,6 @@ const updateCSSVariables = (brandColor: string | null) => {
   const lightness = parseInt(l);
   const glowLightness = Math.min(lightness + 10, 100);
   document.documentElement.style.setProperty('--primary-glow', `${h} ${s} ${glowLightness}%`);
-  
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
@@ -75,32 +73,33 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
     return 'system';
   });
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(getSystemTheme);
   const [brandColor, setBrandColor] = useState<string | null>(null);
   const [apiChecked, setApiChecked] = useState(false);
 
-  const resolvedTheme = resolveTheme(theme);
+  // Keep systemTheme reactive to OS prefers-color-scheme changes
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      setSystemTheme(e.matches ? 'dark' : 'light');
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const resolvedTheme: 'light' | 'dark' = theme === 'system' ? systemTheme : theme;
 
   useEffect(() => {
     updateCSSVariables(brandColor);
   }, [brandColor]);
+
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(resolvedTheme);
+    root.style.colorScheme = resolvedTheme;
   }, [resolvedTheme]);
-
-  // Listen for system theme changes
-  useEffect(() => {
-    if (theme !== 'system') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => {
-      const root = document.documentElement;
-      root.classList.remove('light', 'dark');
-      root.classList.add(getSystemTheme());
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [theme]);
 
   // Theme preference is sourced from the same `/api/v1/getinfo` request that
   // AuthContext already fires on mount. Listening for the broadcast event it
@@ -117,20 +116,24 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           setBrandColor(null);
         }
         
+        const isValidTheme = (val: unknown): val is ThemeMode =>
+          val === 'light' || val === 'dark' || val === 'system';
+
         const brandingTheme = data.active_org?.branding?.theme;
-        let themeToSet: ThemeMode | null = null;
-        
-        if (brandingTheme && (brandingTheme === 'light' || brandingTheme === 'dark')) {
-          themeToSet = brandingTheme !== 'dark' ? brandingTheme : 'dark';
-        } else if (data.theme === 'dark' || data.theme === 'light') {
-          themeToSet = data.theme;
+        const dataTheme = data.theme;
+
+        if (isValidTheme(brandingTheme)) {
+          // Priority: Tenant branding theme overrides theme for this tenant
+          setThemeState(brandingTheme);
+          localStorage.setItem(THEME_STORAGE_KEY, brandingTheme);
         } else {
-          themeToSet = 'dark';
-        }
-        
-        if (themeToSet) {
-          setThemeState(themeToSet);
-          localStorage.setItem(THEME_STORAGE_KEY, themeToSet);
+          // No tenant branding theme: preserve existing user preference if set,
+          // or hydrate user's account theme (data.theme) if available.
+          const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
+          if (!saved && isValidTheme(dataTheme)) {
+            setThemeState(dataTheme);
+            localStorage.setItem(THEME_STORAGE_KEY, dataTheme);
+          }
         }
       }
       setApiChecked(true);

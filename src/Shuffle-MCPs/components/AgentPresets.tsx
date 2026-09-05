@@ -93,6 +93,8 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Uses the platform on your behalf — navigates settings, runs diagnostics, and answers "how do I…" questions.',
     defaultPrompt: 'Help me with the following on the Shuffle platform: ',
     icon: <LifeBuoy size={16} />,
+    enabled: true,
+    defaultApps: [{ name: 'shuffle_tools' }],
   },
   {
     id: 'vulnerability',
@@ -100,6 +102,8 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Reviews vulnerabilities, ranks by exploitability and asset criticality, and drafts remediation plans.',
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
     icon: <Bug size={16} />,
+    enabled: true,
+    defaultApps: [{ name: 'vulnerabilities' }],
   },
   {
     id: 'detection',
@@ -107,6 +111,8 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Creates and tunes detection rules (Sigma, pipelines) — adjusts logic, filters false positives, and validates coverage.',
     defaultPrompt: 'Modify my detections to ',
     icon: <Radar size={16} />,
+    enabled: true,
+    defaultApps: [{ name: 'shuffle_detection' }],
   },
   {
     id: 'handle-notifications',
@@ -114,11 +120,13 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Automatically handles incoming incidents for you — triages, enriches, and resolves or escalates based on your rules.',
     defaultPrompt: 'Automatically handle incoming incidents by ',
     icon: <BellRing size={16} />,
+    enabled: true,
+    defaultApps: [{ name: 'shuffle_incidents' }],
   },
 ];
 
 /** True when the signed-in user is a Shuffle support user (/getinfo => support). */
-const isSupportUser = (): boolean => {
+export const isSupportUser = (): boolean => {
   try {
     const keys = ['shuffle_user_info', 'userinfo', 'user_info'];
     for (const key of keys) {
