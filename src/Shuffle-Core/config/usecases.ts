@@ -359,6 +359,7 @@ export interface ApiUsecase {
   source_id?: string;
   target_id?: string;
   disabled?: boolean;
+  support_only?: boolean;
   tags?: string[];
   agentic_description?: string;
   automation_label?: string;

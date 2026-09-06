@@ -130,6 +130,7 @@ function mapApiUsecaseToFrontend(apiCategory: ApiUsecaseCategory, apiUsecase: Ap
     // Backend is the source of truth — anything returned by the API counts as
     // active/animated unless the local override explicitly says otherwise.
     animated: typeof apiUsecase.disabled === 'boolean' ? !apiUsecase.disabled : (localUsecase ? localUsecase.animated : true),
+    supportOnly: typeof (apiUsecase as any).support_only === 'boolean' ? (apiUsecase as any).support_only : localUsecase?.supportOnly,
     automationLabel: apiUsecase.automation_label || localUsecase?.automationLabel,
     automationCategory: apiUsecase.automation_category || localUsecase?.automationCategory,
     automationArea: (apiUsecase.automation_area as Usecase['automationArea'] | undefined) || localUsecase?.automationArea,

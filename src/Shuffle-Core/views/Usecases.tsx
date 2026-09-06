@@ -77,6 +77,7 @@ import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
 import { resolveOutcomeKind } from '../lib/outcomes';
 import { useWorkflowExecutionStats } from '../hooks/useWorkflowExecutionStats';
 import { useHostMonitorCount } from '@/hooks/useHostMonitorCount';
+import { ThreatIntelReadinessBanner } from '@/components/threat-intel/ThreatIntelReadinessBanner';
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
 export type FlowPhase = 'ingest' | 'correlation' | 'response';
@@ -413,6 +414,7 @@ export interface ApiUsecase {
   source_id?: string;
   target_id?: string;
   disabled?: boolean;
+  support_only?: boolean;
   tags?: string[];
   agentic_description?: string;
   automation_label?: string;
@@ -1764,6 +1766,7 @@ function mapApiToFrontend(cat: ApiUsecaseCategory, api: ApiUsecase, local?: Usec
     phase: resolvedPhase,
     tags: api.tags || local?.tags || [],
     animated: typeof api.disabled === 'boolean' ? !api.disabled : (local ? local.animated : true),
+    supportOnly: typeof (api as any).support_only === 'boolean' ? (api as any).support_only : local?.supportOnly,
     automationLabel: api.automation_label || local?.automationLabel,
     automationCategory: api.automation_category || local?.automationCategory,
     automationArea: (api.automation_area as Usecase['automationArea'] | undefined) || local?.automationArea,
@@ -3135,210 +3138,7 @@ function IocFeedsOutcomeBlock() {
   return <UsecaseOutcomeSection outcome={outcome} loading={loading} iocCategoryByKey={iocCategoryByKey} />;
 }
 
-function ThreatIntelReadinessCard({ flow }: { flow: Usecase }) {
-  const enrichment = useEnrichmentStatus();
-  const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
-  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean } | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  const checkDefaults = useCallback(async () => {
-    try {
-      const [iocs, feeds] = await Promise.all([
-        getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS).catch(() => ({ success: false, data: [] })),
-        getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS).catch(() => ({ success: false, data: [] })),
-      ]);
-      const hasIocs = !!(iocs.success && (iocs.data?.length || 0) > 0);
-      const hasFeeds = !!(feeds.success && (feeds.data?.length || 0) > 0);
-      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds });
-      setDefaultsReady(hasIocs && hasFeeds);
-    } catch {
-      setDefaultsParts(null);
-      setDefaultsReady(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkDefaults();
-  }, [checkDefaults]);
-
-  const allActive = enrichment.active && defaultsReady === true;
-  const isLoading = enrichment.isLoading || defaultsReady === null;
-
-  const handleEnableAll = async () => {
-    setBusy(true);
-    try {
-      await Promise.allSettled([
-        seedDefaultIOCTypes(),
-        seedDefaultThreatFeeds(),
-        enrichment.enable(),
-      ]);
-      await checkDefaults();
-      toast.success('All Threat Intel automations enabled', {
-        description: 'Seeded default IOC types and feeds, and enabled threat intel workflows.',
-      });
-    } catch (err: any) {
-      toast.error('Failed to enable some automations', {
-        description: err?.message || 'Check network connection or permissions.',
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleDisableAll = async () => {
-    setBusy(true);
-    try {
-      await enrichment.disable();
-      await checkDefaults();
-      toast.success('Threat Intel automations disabled');
-    } catch (err: any) {
-      toast.error('Failed to disable automations');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const checks = [
-    {
-      label: 'Default IOC types seeded',
-      active: defaultsParts?.iocs ?? false,
-      desc: 'Standard indicator schemas (IP, Domain, Hash, URL) in datastore.',
-    },
-    {
-      label: 'Default threat feeds configured',
-      active: defaultsParts?.feeds ?? false,
-      desc: 'Curated OSINT & threat intelligence feeds in datastore.',
-    },
-    ...(enrichment.checks?.map((c) => ({
-      label: c.label,
-      active: c.active,
-      desc: c.detail,
-    })) || [
-      { label: 'Threat feeds ingestion', active: enrichment.active, desc: 'Background ingestion workflow.' },
-      { label: 'Realtime IOC extraction', active: enrichment.active, desc: 'Realtime extraction & case enrichment.' },
-    ]),
-  ];
-
-  const activeCount = checks.filter((c) => c.active).length;
-
-  return (
-    <Box
-      sx={{
-        p: 2.5,
-        borderRadius: 2,
-        border: allActive ? '2px solid hsl(var(--severity-low))' : '1px solid hsl(var(--border))',
-        bgcolor: allActive ? 'hsl(var(--severity-low) / 0.04)' : 'hsl(var(--card, 0 0% 13%))',
-        boxShadow: allActive ? '0 0 0 1px hsl(var(--severity-low) / 0.15)' : 'none',
-        mb: 3,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1.5 }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'hsl(var(--foreground))' }}>
-              Automation Readiness
-            </Typography>
-            <Chip
-              size="small"
-              label={isLoading ? 'Checking...' : allActive ? 'All Active' : `${activeCount}/${checks.length} Active`}
-              sx={{
-                height: 20,
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                bgcolor: allActive ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--warning) / 0.15)',
-                color: allActive ? 'hsl(var(--severity-low))' : 'hsl(var(--warning))',
-                border: '1px solid',
-                borderColor: allActive ? 'hsl(var(--severity-low) / 0.3)' : 'hsl(var(--warning) / 0.3)',
-              }}
-            />
-          </Box>
-          <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
-            {allActive
-              ? 'Threat intelligence ingestion, default feeds, and realtime enrichment are fully operational.'
-              : 'One-click setup enables background feed ingestion, seeds IOC catalogs, and starts case enrichment.'}
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {!allActive ? (
-            <Button
-              size="small"
-              variant="contained"
-              disabled={busy || isLoading}
-              startIcon={busy ? <CircularProgress size={14} color="inherit" /> : <Zap size={14} />}
-              onClick={handleEnableAll}
-              sx={{
-                bgcolor: 'hsl(var(--primary))',
-                color: 'hsl(var(--primary-foreground))',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                textTransform: 'none',
-                px: 2,
-                py: 0.75,
-                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
-              }}
-            >
-              {busy ? 'Enabling...' : 'Enable Threat Intel (1-Click)'}
-            </Button>
-          ) : (
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={busy || isLoading}
-              startIcon={busy ? <CircularProgress size={14} color="inherit" /> : <PowerOff size={14} />}
-              onClick={handleDisableAll}
-              sx={{
-                borderColor: 'hsl(var(--border))',
-                color: 'hsl(var(--muted-foreground))',
-                fontWeight: 500,
-                fontSize: '0.75rem',
-                textTransform: 'none',
-                '&:hover': { borderColor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive))' },
-              }}
-            >
-              Disable Automations
-            </Button>
-          )}
-        </Box>
-      </Box>
-
-      {/* Checklist items */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25, mt: 2 }}>
-        {checks.map((c, i) => (
-          <Box
-            key={i}
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1,
-              p: 1.25,
-              borderRadius: 1.5,
-              bgcolor: 'hsla(0, 0%, 50%, 0.04)',
-              border: '1px solid',
-              borderColor: c.active ? 'hsl(var(--severity-low) / 0.2)' : 'hsl(var(--border))',
-            }}
-          >
-            {c.active ? (
-              <CheckCircle2 size={16} style={{ color: 'hsl(var(--severity-low))', marginTop: 2, flexShrink: 0 }} />
-            ) : (
-              <Circle size={16} style={{ color: 'hsl(var(--muted-foreground))', marginTop: 2, flexShrink: 0 }} />
-            )}
-            <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: c.active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))' }}>
-                {c.label}
-              </Typography>
-              {c.desc && (
-                <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.3, mt: 0.25 }}>
-                  {c.desc}
-                </Typography>
-              )}
-            </Box>
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  );
-}
 
 // Assign & Escalate usecase — graphs executions of the matched workflow over
 // the last ~30 days using /api/v2/workflows/{id}/executions `timeline` field.
@@ -5004,7 +4804,7 @@ function UsecaseDetailContent({
           : (flow.id === 'threat_intel_ingest_1' || flow.id === 'threat_intel_case_management_1' || flow.label === 'IOC feeds' || flow.label === 'Enrichment')
             ? (
                 <>
-                  <ThreatIntelReadinessCard flow={flow} />
+                  <ThreatIntelReadinessBanner onOpenUsecase={onNavigateUsecase} />
                   {flow.id === 'threat_intel_ingest_1' || flow.label === 'IOC feeds'
                     ? <IocFeedsOutcomeBlock />
                     : <EnrichmentsOutcomeBlock flow={flow} />
