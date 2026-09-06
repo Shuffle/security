@@ -216,9 +216,8 @@ function deriveCta(
       };
     case 'iocs_managed':
       return {
-        href: getShuffleCoreUrl('/admin?tab=datastore'),
-        label: isDisabled ? 'Open observables datastore' : 'Manage observables',
-        external: true,
+        href: '/incidents/threat-feeds',
+        label: isDisabled ? 'Open Threat Feeds' : 'Manage Threat Feeds',
       };
     case 'responses_executed':
       return {

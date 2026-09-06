@@ -475,6 +475,11 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationLabel: 'Enable Threat feeds',
     automationCategory: 'cases',
     automationArea: 'threat_intel',
+    customAction: {
+      label: 'Threat Feeds',
+      href: '/incidents/threat-feeds',
+      description: 'IOC feeds and Threat feeds refer to the same thing — manage your configured threat feeds and IOC sources.',
+    },
   },
   {
     id: 'network_siem_1', phase: 'ingest', source: 'network', target: 'siem',
@@ -653,16 +658,6 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Cloud identity events (role changes, permission grants, federation configs) feed IAM monitoring to detect privilege escalation in cloud environments.',
     agenticDescription: 'An agent tracks excessive permission grants, detects role assumption chains indicating privilege escalation, and triggers automated least-privilege review recommendations in IAM.',
     automationArea: 'correlation',
-  },
-  {
-    id: 'threat_intel_cloud_1', phase: 'correlation', source: 'threat_intel', target: 'cloud',
-    label: 'IOC feeds',
-    tags: ['Intel', 'Correlation', 'Detection'],
-    description: 'Pushing IOC feeds to cloud-native security tools (GuardDuty, Sentinel, SCC) enables detection of known-malicious activity within cloud workloads.',
-    agenticDescription: 'An agent maps threat intel IOCs to active cloud workloads, identifies which resources are communicating with known-malicious infrastructure, and auto-creates remediation tasks in cloud security tools.',
-    automationLabel: 'Enable Threat feeds',
-    automationCategory: 'cases',
-    automationArea: 'threat_intel',
   },
   {
     id: 'case_management_cloud_1', phase: 'response', source: 'case_management', target: 'cloud',

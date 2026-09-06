@@ -611,6 +611,11 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationLabel: 'Enable Threat feeds',
     automationCategory: 'cases',
     automationArea: 'threat_intel',
+    customAction: {
+      label: 'Threat Feeds',
+      href: '/incidents/threat-feeds',
+      description: 'IOC feeds and Threat feeds refer to the same thing — manage your configured threat feeds and IOC sources.',
+    },
   },
   {
     id: 'network_siem_1', phase: 'ingest', source: 'network', target: 'siem',
@@ -776,16 +781,6 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Cloud identity events (role changes, permission grants, federation configs) feed IAM monitoring to detect privilege escalation in cloud environments.',
     agenticDescription: 'An agent tracks excessive permission grants, detects role assumption chains indicating privilege escalation, and triggers automated least-privilege review recommendations in IAM.',
     automationArea: 'correlation',
-  },
-  {
-    id: 'threat_intel_cloud_1', phase: 'correlation', source: 'threat_intel', target: 'cloud',
-    label: 'IOC feeds',
-    tags: ['Intel', 'Correlation', 'Detection'],
-    description: 'Pushing IOC feeds to cloud-native security tools (GuardDuty, Sentinel, SCC) enables detection of known-malicious activity within cloud workloads.',
-    agenticDescription: 'An agent maps threat intel IOCs to active cloud workloads, identifies which resources are communicating with known-malicious infrastructure, and auto-creates remediation tasks in cloud security tools.',
-    automationLabel: 'Enable Threat feeds',
-    automationCategory: 'cases',
-    automationArea: 'threat_intel',
   },
   {
     id: 'case_management_cloud_1', phase: 'response', source: 'case_management', target: 'cloud',
@@ -1396,10 +1391,6 @@ const SELF_CONTAINED_ENABLE: Record<
     enable: enableThreatIntelFlow,
     disable: () => disableThreatIntelAutomation(),
   },
-  threat_intel_cloud_1: {
-    enable: enableThreatIntelFlow,
-    disable: () => disableThreatIntelAutomation(),
-  },
 };
 type ToastOpts = { duration?: number; description?: string; action?: { label: string; onClick: () => void } };
 const toast = {
@@ -1786,6 +1777,8 @@ function buildBackendUsecases(cats: ApiUsecaseCategory[]) {
   const drifts: UsecaseDrift[] = [];
   for (const cat of cats) {
     for (const api of cat.list || []) {
+      if ((api as any).id === 'threat_intel_cloud_1') continue;
+      if (api.name === 'IOC feeds' && (getApiTarget(api) === 'cloud' || (cat.phase && cat.phase !== 'ingest') || apiCategoryToPhase(cat.name) !== 'ingest')) continue;
       if (!getApiSource(api) || !getApiTarget(api)) continue;
       const local = getMatchingLocal(api, matched);
       if (local) matched.add(local.id);
@@ -2704,7 +2697,6 @@ const ACTIVE_USECASE_IDS = [
   'vulnerability_ingestion_1',
   'threat_intel_network_1',
   'threat_intel_edr_1',
-  'threat_intel_cloud_1',
   'case_management_incident_routing_1',
   'case_management_schedules_notifications_1',
 ];
@@ -3137,7 +3129,15 @@ function IocFeedsOutcomeBlock() {
   };
 
   const iocCategoryByKey = Object.fromEntries(entries.map((e) => [e.name, `ioc_${e.name}`]));
-  return <UsecaseOutcomeSection outcome={outcome} loading={loading} iocCategoryByKey={iocCategoryByKey} />;
+  return (
+    <UsecaseOutcomeSection
+      outcome={outcome}
+      loading={loading}
+      iocCategoryByKey={iocCategoryByKey}
+      nextActionHref="/incidents/threat-feeds"
+      nextActionLabel="Manage Threat Feeds"
+    />
+  );
 }
 
 
@@ -4201,6 +4201,41 @@ function UsecaseDetailContent({
             <Typography sx={{ fontSize: '0.88rem', color: MUTED, lineHeight: 1.7 }}>
               {flow.description || 'No description available.'}
             </Typography>
+            {(flow.id === 'threat_intel_ingest_1' || flow.label === 'IOC feeds') && (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  mt: 1.25,
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1,
+                  bgcolor: 'hsl(var(--muted) / 0.5)',
+                  border: '1px solid hsl(var(--border))',
+                  fontSize: '0.8rem',
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+              >
+                <span>IOC feeds and Threat feeds are the same thing.</span>
+                <Box
+                  component={Link}
+                  to="/incidents/threat-feeds"
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.35,
+                    color: primaryColor,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  <span>Threat Feeds</span>
+                  <ArrowRight size={12} />
+                </Box>
+              </Box>
+            )}
             {flow.tags.length > 0 && (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.5 }}>
                 {flow.tags.map((tag) => (
@@ -5986,6 +6021,9 @@ function UsecasesPageInner() {
       list = list.filter((u) => u.animated === true && !u.supportOnly);
     }
 
+    // "IOC feeds" belongs strictly in Ingest
+    list = list.filter((u) => u.id !== 'threat_intel_cloud_1' && !(u.label === 'IOC feeds' && u.phase !== 'ingest'));
+
     // Guests have no org-level activation state, so the API's `disabled`
     // flag can't distinguish "live for this org" from "exists in catalog".
     // Restrict guests to the curated default-visible set (animated=true in
@@ -6761,7 +6799,7 @@ function UsecaseCard({
                 <span>Active</span>
               </Box>
             </Tooltip>
-          ) : flow.customAction?.href || flow.customAction?.url ? (
+          ) : (flow.customAction?.href || flow.customAction?.url) && (!canToggle || flow.id !== 'threat_intel_ingest_1') ? (
             <Box
               className="uc-card-action"
               sx={{

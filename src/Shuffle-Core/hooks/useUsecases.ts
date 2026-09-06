@@ -151,6 +151,8 @@ function buildBackendUsecases(apiCategories: ApiUsecaseCategory[]): Pick<FetchRe
 
   for (const apiCategory of apiCategories) {
     for (const apiUsecase of apiCategory.list || []) {
+      if ((apiUsecase as any).id === 'threat_intel_cloud_1') continue;
+      if (apiUsecase.name === 'IOC feeds' && (getApiTarget(apiUsecase) === 'cloud' || (apiCategory.phase && apiCategory.phase !== 'ingest') || apiCategoryToPhase(apiCategory.name) !== 'ingest')) continue;
       if (!getApiSource(apiUsecase) || !getApiTarget(apiUsecase)) continue;
 
       const localUsecase = getMatchingLocalUsecase(apiUsecase, matchedLocalIds);
