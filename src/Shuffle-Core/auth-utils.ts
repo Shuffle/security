@@ -76,12 +76,15 @@ export async function backfillAppImages(dedupedApps: DeduplicatedApp[]): Promise
     if (existingImg) {
       _imageCache.set(norm, existingImg);
     } else if (_imageCache.has(norm)) {
-      d.bestImage = _imageCache.get(norm)!;
-      d.app = { ...d.app, large_image: d.bestImage };
+      const cached = _imageCache.get(norm)!;
+      if (cached) {
+        d.bestImage = cached;
+        d.app = { ...d.app, large_image: cached };
+      }
     }
   }
 
-  const missing = dedupedApps.filter(d => !d.bestImage && !d.app.large_image);
+  const missing = dedupedApps.filter(d => !d.bestImage && !d.app.large_image && !_imageCache.has(_normalize(d.app.name)));
   if (missing.length === 0) return dedupedApps;
 
   try {
@@ -100,10 +103,11 @@ export async function backfillAppImages(dedupedApps: DeduplicatedApp[]): Promise
             const match = (result.hits as any[]).find(
               h => _normalize(h.name || '') === norm
             );
-            const url = match?.image_url || null;
-            if (url) _imageCache.set(norm, url);
+            const url = match?.image_url || '';
+            _imageCache.set(norm, url);
             return url;
           } catch {
+            _imageCache.set(norm, '');
             return null;
           } finally {
             _pendingLookups.delete(norm);

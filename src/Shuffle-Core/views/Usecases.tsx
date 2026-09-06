@@ -51,6 +51,12 @@ import { getAuthHeader, getShuffleCoreWorkflowUrl } from '../api';
 import {
   type IntegrationItem,
   fetchAppsCached,
+  fetchWorkflowsCached,
+  fetchWorkflowByIdCached,
+  fetchOrgCached,
+  fetchCategoryAutomationsCached,
+  getCachedWorkflows,
+  setCachedWorkflows,
   invalidateAppsCache,
   getCachedIntegrations,
   setCachedIntegrations,
@@ -1191,6 +1197,8 @@ interface UsecasesPageConfig {
   }) => React.ReactNode;
   /** Optional callback fired when a usecase automation is enabled or disabled. */
   onToggled?: (label: string, enabled: boolean) => void;
+  /** Preloaded workflows to eliminate duplicate /api/v1/workflows fetches */
+  preloadedWorkflows?: WorkflowSummary[];
   /** Scope class to apply to portaled MUI surfaces (Drawer paper, etc.) so
    *  the scoped HSL tokens resolve correctly even outside the page wrapper. */
   scopeClassName?: string;
@@ -1209,6 +1217,7 @@ const DEFAULT_CONFIG: UsecasesPageConfig = {
   renderUsecaseDetailSlot: undefined,
   renderUsecaseActionModal: undefined,
   onToggled: undefined,
+  preloadedWorkflows: undefined,
   scopeClassName: 'shuffle-usecases-scope',
 };
 
@@ -1317,12 +1326,15 @@ function useInjectScopedStyles() {
 /** Hook returning `apiUrl` and `authHeader` bound to the active config. */
 function useApi() {
   const cfg = useUsecasesConfig();
+  const baseUrl = cfg.baseUrl;
+  const authHeader = cfg.authHeader;
+  const apiUrl = React.useCallback((endpoint: string) => `${baseUrl}${endpoint}`, [baseUrl]);
   return React.useMemo(
     () => ({
-      apiUrl: (endpoint: string) => `${cfg.baseUrl}${endpoint}`,
-      authHeader: cfg.authHeader,
+      apiUrl,
+      authHeader,
     }),
-    [cfg.baseUrl, cfg.authHeader],
+    [apiUrl, authHeader],
   );
 }
 
@@ -1497,44 +1509,50 @@ interface WorkflowSummary {
 let workflowsLiteCache: WorkflowSummary[] | null = null;
 let workflowsLiteFetchPromise: Promise<WorkflowSummary[]> | null = null;
 
-function useWorkflowsLite() {
+function useWorkflowsLite(preloadedWorkflows?: WorkflowSummary[]) {
   const { apiUrl, authHeader } = useApi();
-  const [data, setData] = useState<WorkflowSummary[]>(workflowsLiteCache || []);
-  const fetchOnce = React.useCallback(async (force = false) => {
-    if (!force && workflowsLiteFetchPromise) {
-      try {
-        const list = await workflowsLiteFetchPromise;
-        setData(list);
-        return;
-      } catch { /* ignore */ }
-    }
-    const p = (async () => {
-      try {
-        const res = await fetch(apiUrl('/api/v1/workflows'), {
-          credentials: 'include',
-          headers: { ...authHeader() },
-        });
-        if (!res.ok) return workflowsLiteCache || [];
-        const body = await res.json();
-        const list = Array.isArray(body) ? body : (body.workflows || []);
-        workflowsLiteCache = list;
-        return list;
-      } catch {
-        return workflowsLiteCache || [];
-      } finally {
-        workflowsLiteFetchPromise = null;
-      }
-    })();
-    workflowsLiteFetchPromise = p;
-    const list = await p;
-    setData(list);
-  }, [apiUrl, authHeader]);
+  const [data, setData] = useState<WorkflowSummary[]>(() => {
+    if (preloadedWorkflows && preloadedWorkflows.length > 0) return preloadedWorkflows;
+    return getCachedWorkflows() || workflowsLiteCache || [];
+  });
 
   useEffect(() => {
-    if (!workflowsLiteCache) {
+    if (preloadedWorkflows && preloadedWorkflows.length > 0) {
+      setData(preloadedWorkflows);
+      workflowsLiteCache = preloadedWorkflows;
+      setCachedWorkflows(preloadedWorkflows);
+    }
+  }, [preloadedWorkflows]);
+
+  const fetchOnce = React.useCallback(async (force = false) => {
+    if (!force) {
+      if (preloadedWorkflows && preloadedWorkflows.length > 0) {
+        setData(preloadedWorkflows);
+        return;
+      }
+      const cached = getCachedWorkflows() || workflowsLiteCache;
+      if (cached && cached.length > 0) {
+        setData(cached);
+        return;
+      }
+    }
+    try {
+      const list = await fetchWorkflowsCached(apiUrl('/api/v1/workflows'), {
+        credentials: 'include',
+        headers: { ...authHeader() },
+      }, force);
+      workflowsLiteCache = list;
+      setData(list);
+    } catch {
+      setData(workflowsLiteCache || []);
+    }
+  }, [apiUrl, authHeader, preloadedWorkflows]);
+
+  useEffect(() => {
+    if (!preloadedWorkflows?.length && !workflowsLiteCache && !getCachedWorkflows()?.length) {
       fetchOnce();
     }
-  }, [fetchOnce]);
+  }, [fetchOnce, preloadedWorkflows]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2765,12 +2783,11 @@ function AiIncidentHandlingPromptsBlock() {
         const info = localStorage.getItem('shuffle_user_info');
         const orgId = info ? JSON.parse(info)?.active_org?.id : null;
         if (!orgId) { if (!cancelled) setLoading(false); return; }
-        const res = await fetch(
+        const data = await fetchCategoryAutomationsCached(
           getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=shuffle-security_incidents&top=1`),
           { credentials: 'include', headers: { ...getAuthHeader(orgId) } },
         );
-        if (!res.ok) { if (!cancelled) setLoading(false); return; }
-        const data = await res.json();
+        if (!data) { if (!cancelled) setLoading(false); return; }
         const automations: any[] = data?.category_config?.automations || [];
         const ai = automations.find(
           (a) => a?.enabled && (a?.type === 'ai_agent' || a?.name === 'Run AI Agent'),
@@ -3404,12 +3421,9 @@ function UsecaseDetailContent({
       try {
         const info = localStorage.getItem('shuffle_user_info');
         const orgId = info ? JSON.parse(info)?.active_org?.id : null;
-        if (!orgId) return;
-        const orgRes = await fetch(apiUrl(`/api/v1/orgs/${orgId}`), {
+        const orgData = await fetchOrgCached(apiUrl(`/api/v1/orgs/${orgId}`), {
           credentials: 'include', headers: { ...authHeader() },
         });
-        if (!orgRes.ok) return;
-        const orgData = await orgRes.json();
         if (!cancelled && orgData?.defaults) setOrgDefaults(orgData.defaults);
         const wfId = orgData?.defaults?.notification_workflow;
         if (!wfId || typeof wfId !== 'string') {
@@ -3418,11 +3432,9 @@ function UsecaseDetailContent({
         }
         const existing = workflows.find((w) => w.id === wfId);
         if (existing) { if (!cancelled) setNotificationWorkflow(existing); return; }
-        const wfRes = await fetch(apiUrl(`/api/v1/workflows/${wfId}`), {
+        const wf = await fetchWorkflowByIdCached(apiUrl(`/api/v1/workflows/${wfId}`), wfId, {
           credentials: 'include', headers: { ...authHeader() },
         });
-        if (!wfRes.ok) return;
-        const wf = await wfRes.json();
         if (!cancelled && wf?.id) setNotificationWorkflow(wf as WorkflowSummary);
       } catch { /* keep previous */ }
     })();
@@ -3763,6 +3775,16 @@ function UsecaseDetailContent({
     let cancelled = false;
 
     const fetchApps = async () => {
+      // Re-use cached category apps unless an app activation has explicitly updated (integrationsRefreshKey > 0)
+      const memCats = getCachedCategoryAppNames();
+      const memVal = getCachedValidatedAppsByCategory();
+      if (memCats && Object.keys(memCats).length > 0 && integrationsRefreshKey === 0) {
+        setCategoryAppNames(memCats);
+        if (memVal) setValidatedAppsByCategory(memVal);
+        setCategoryAppsResolved(true);
+        return;
+      }
+
       try {
         const [authRes, appsRes] = await Promise.all([
           fetchAppsCached(apiUrl('/api/v1/apps/authentication'), { credentials: 'include', headers: { ...authHeader() } }),
@@ -4050,7 +4072,14 @@ function UsecaseDetailContent({
                         toggling ? (
                           <CircularProgress size={12} sx={{ color: 'inherit' }} />
                         ) : (
-                          <Power size={13} style={{ color: 'inherit' }} />
+                          <Power
+                            size={13}
+                            style={{
+                              color: effectiveEnabled
+                                ? 'hsl(var(--severity-low))'
+                                : 'hsl(var(--destructive))',
+                            }}
+                          />
                         )
                       }
                       sx={{
@@ -4064,16 +4093,22 @@ function UsecaseDetailContent({
                         borderRadius: 1,
                         bgcolor: effectiveEnabled
                           ? 'hsl(var(--severity-low) / 0.12)'
-                          : 'transparent',
-                        color: 'hsl(var(--severity-low))',
-                        border: '1px solid hsl(var(--severity-low) / 0.4)',
+                          : 'hsl(var(--destructive) / 0.12)',
+                        color: effectiveEnabled
+                          ? 'hsl(var(--severity-low))'
+                          : 'hsl(var(--destructive))',
+                        border: effectiveEnabled
+                          ? '1px solid hsl(var(--severity-low) / 0.4)'
+                          : '1px solid hsl(var(--destructive) / 0.4)',
                         letterSpacing: 0.2,
                         boxShadow: 'none',
                         '&:hover': {
                           bgcolor: effectiveEnabled
                             ? 'hsl(var(--severity-low) / 0.22)'
-                            : 'hsl(var(--severity-low) / 0.1)',
-                          borderColor: 'hsl(var(--severity-low) / 0.7)',
+                            : 'hsl(var(--destructive) / 0.22)',
+                          borderColor: effectiveEnabled
+                            ? 'hsl(var(--severity-low) / 0.7)'
+                            : 'hsl(var(--destructive) / 0.7)',
                           boxShadow: 'none',
                         },
                       }}
@@ -4088,7 +4123,7 @@ function UsecaseDetailContent({
                   to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
                   size="small"
                   disableElevation
-                  startIcon={<Power size={13} style={{ color: 'inherit' }} />}
+                  startIcon={<Power size={13} style={{ color: 'hsl(var(--destructive))' }} />}
                   sx={{
                     flexShrink: 0,
                     textTransform: 'none',
@@ -4098,14 +4133,14 @@ function UsecaseDetailContent({
                     py: 0.5,
                     px: 1.2,
                     borderRadius: 1,
-                    bgcolor: 'transparent',
-                    color: 'hsl(var(--severity-low))',
-                    border: '1px solid hsl(var(--severity-low) / 0.4)',
+                    bgcolor: 'hsl(var(--destructive) / 0.12)',
+                    color: 'hsl(var(--destructive))',
+                    border: '1px solid hsl(var(--destructive) / 0.4)',
                     letterSpacing: 0.2,
                     boxShadow: 'none',
                     '&:hover': {
-                      bgcolor: 'hsl(var(--severity-low) / 0.1)',
-                      borderColor: 'hsl(var(--severity-low) / 0.7)',
+                      bgcolor: 'hsl(var(--destructive) / 0.22)',
+                      borderColor: 'hsl(var(--destructive) / 0.7)',
                       boxShadow: 'none',
                     },
                   }}
@@ -5249,6 +5284,11 @@ export interface UsecasesPageProps {
    * Optional host callback fired whenever a usecase automation is toggled on/off.
    */
   onToggled?: (label: string, enabled: boolean) => void;
+  /**
+   * Optional preloaded workflows array from the host page.
+   * When provided, eliminates duplicate /api/v1/workflows fetches.
+   */
+  workflows?: WorkflowSummary[];
 }
 
 const recordedInterestUsecases = new Set<string>();
@@ -5284,10 +5324,10 @@ function UsecasesPageInner() {
 
   const navigate = useNavigate();
   const { apiUrl, authHeader } = useApi();
-  const { scopeClassName: cfgScopeClassName, onToggled: cfgOnToggled } = useUsecasesConfig();
+  const { scopeClassName: cfgScopeClassName, onToggled: cfgOnToggled, preloadedWorkflows } = useUsecasesConfig();
   const { usecases, apiLoaded, getDrift } = useUsecasesLite();
   const { userInfo, isAuthenticated, refetch: refetchAuth } = useAuthLite();
-  const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
+  const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite(preloadedWorkflows);
   const isSupport = userInfo?.support === true;
   const [showAllAsSupport, setShowAllAsSupport] = useState(false);
   // Support-only toggle: render `referenceImage` previews on cards and at the
@@ -5656,12 +5696,11 @@ function UsecasesPageInner() {
         const info = localStorage.getItem('shuffle_user_info');
         const orgId = info ? JSON.parse(info)?.active_org?.id : null;
         if (!orgId) return;
-        const res = await fetch(
+        const data = await fetchCategoryAutomationsCached(
           apiUrl(`/api/v1/orgs/${orgId}/list_cache?category=shuffle-security_incidents&top=1`),
           { credentials: 'include', headers: { ...authHeader() } },
         );
-        if (!res.ok) return;
-        const data = await res.json();
+        if (!data) return;
         const automations: any[] = data?.category_config?.automations || [];
         const active = automations.some(
           (a) => a?.enabled && (a?.type === 'ai_agent' || a?.name === 'Run AI Agent'),
@@ -5687,26 +5726,24 @@ function UsecasesPageInner() {
         const info = localStorage.getItem('shuffle_user_info');
         const orgId = info ? JSON.parse(info)?.active_org?.id : null;
         if (!orgId) return;
-        const orgRes = await fetch(apiUrl(`/api/v1/orgs/${orgId}`), {
+        const orgData = await fetchOrgCached(apiUrl(`/api/v1/orgs/${orgId}`), {
           credentials: 'include',
           headers: { ...authHeader() },
         });
-        if (!orgRes.ok) return;
-        const orgData = await orgRes.json();
         const wfId = orgData?.defaults?.notification_workflow;
         if (!wfId || typeof wfId !== 'string') {
           if (!cancelled) setNotificationWorkflowReady(false);
           return;
         }
-        const wfRes = await fetch(apiUrl(`/api/v1/workflows/${wfId}`), {
+        const existing = workflows.find((w) => w.id === wfId);
+        const wf = existing || await fetchWorkflowByIdCached(apiUrl(`/api/v1/workflows/${wfId}`), wfId, {
           credentials: 'include',
           headers: { ...authHeader() },
         });
-        if (!wfRes.ok) {
+        if (!wf) {
           if (!cancelled) setNotificationWorkflowReady(false);
           return;
         }
-        const wf = await wfRes.json();
         const appNames = extractWorkflowAppNames(wf);
         const count = (appNames as any)?.size ?? (appNames as any)?.length ?? 0;
         if (!cancelled) setNotificationWorkflowReady(count > 0);
@@ -5715,7 +5752,7 @@ function UsecasesPageInner() {
       }
     })();
     return () => { cancelled = true; };
-  }, [apiUrl, authHeader]);
+  }, [apiUrl, authHeader, workflows]);
 
   // Compose the final per-flow "is enabled" predicate. A flow is shown as
   // enabled only when (a) a workflow exists for its automationLabel AND
@@ -6715,77 +6752,20 @@ function UsecaseCard({
               </Box>
             </Tooltip>
           ) : canToggle ? (
-            <Box
-              className="uc-card-action"
-              sx={{
-                opacity: 0,
-                pointerEvents: 'none',
-                transition: 'opacity 0.15s ease',
-                flexShrink: 0,
-              }}
-            >
-              <Tooltip
-                title={
-                  !hasValidatedSource
-                    ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
-                    : 'Click to activate'
-                }
-                placement="top"
-                arrow
-              >
-                <Box
-                  component="button"
-                  type="button"
-                  disabled={toggling}
-                  onClick={handleToggle}
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    px: 0.85,
-                    py: 0.25,
-                    height: 22,
-                    borderRadius: 0.75,
-                    bgcolor: 'transparent',
-                    border: '1px solid hsl(var(--severity-low) / 0.4)',
-                    color: 'hsl(var(--severity-low))',
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.02em',
-                    lineHeight: 1,
-                    cursor: toggling ? 'default' : 'pointer',
-                    outline: 'none',
-                    boxShadow: 'none',
-                    transition: 'all 0.15s ease',
-                    '&:hover': {
-                      bgcolor: 'hsl(var(--severity-low) / 0.14)',
-                      borderColor: 'hsl(var(--severity-low) / 0.7)',
-                    },
-                  }}
-                >
-                  {toggling ? (
-                    <CircularProgress size={11} sx={{ color: 'inherit' }} />
-                  ) : (
-                    <Power size={11} style={{ color: 'inherit' }} />
-                  )}
-                  <span>Activate</span>
-                </Box>
-              </Tooltip>
-            </Box>
-          ) : !isAuthenticated && flow.automationLabel ? (
-            <Box
-              className="uc-card-action"
-              sx={{
-                opacity: 0,
-                pointerEvents: 'none',
-                transition: 'opacity 0.15s ease',
-                flexShrink: 0,
-              }}
+            <Tooltip
+              title={
+                !hasValidatedSource
+                  ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
+                  : 'Click to activate'
+              }
+              placement="top"
+              arrow
             >
               <Box
-                component={Link}
-                to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                component="button"
+                type="button"
+                disabled={toggling}
+                onClick={handleToggle}
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -6794,25 +6774,64 @@ function UsecaseCard({
                   py: 0.25,
                   height: 22,
                   borderRadius: 0.75,
-                  bgcolor: 'transparent',
-                  border: '1px solid hsl(var(--severity-low) / 0.4)',
-                  color: 'hsl(var(--severity-low))',
+                  bgcolor: 'hsl(var(--destructive) / 0.12)',
+                  border: '1px solid hsl(var(--destructive) / 0.4)',
+                  color: 'hsl(var(--destructive))',
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   letterSpacing: '0.02em',
                   lineHeight: 1,
-                  textDecoration: 'none',
-                  cursor: 'pointer',
+                  cursor: toggling ? 'default' : 'pointer',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  flexShrink: 0,
                   transition: 'all 0.15s ease',
                   '&:hover': {
-                    bgcolor: 'hsl(var(--severity-low) / 0.14)',
-                    borderColor: 'hsl(var(--severity-low) / 0.7)',
+                    bgcolor: 'hsl(var(--destructive) / 0.22)',
+                    borderColor: 'hsl(var(--destructive) / 0.7)',
                   },
                 }}
               >
-                <Power size={11} style={{ color: 'inherit' }} />
+                {toggling ? (
+                  <CircularProgress size={11} sx={{ color: 'inherit' }} />
+                ) : (
+                  <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
+                )}
                 <span>Activate</span>
               </Box>
+            </Tooltip>
+          ) : !isAuthenticated && flow.automationLabel ? (
+            <Box
+              component={Link}
+              to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                px: 0.85,
+                py: 0.25,
+                height: 22,
+                borderRadius: 0.75,
+                bgcolor: 'hsl(var(--destructive) / 0.12)',
+                border: '1px solid hsl(var(--destructive) / 0.4)',
+                color: 'hsl(var(--destructive))',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+                lineHeight: 1,
+                textDecoration: 'none',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: 'hsl(var(--destructive) / 0.22)',
+                  borderColor: 'hsl(var(--destructive) / 0.7)',
+                },
+              }}
+            >
+              <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
+              <span>Activate</span>
             </Box>
           ) : null}
         </Box>
@@ -6852,7 +6871,7 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
     url: '/usecases',
   });
   useInjectScopedStyles();
-  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled } = props;
+  const { globalUrl, userdata, isLoaded, isLoggedIn, theme = 'system', renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled, workflows } = props;
   // Sync host-injected `globalUrl` into the Shuffle-Core api.ts runtime so
   // every internal `getApiUrl()` call (hooks, helpers, etc.) targets the host
   // backend instead of the bundled default.
@@ -6873,10 +6892,15 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
     isLoaded !== undefined ||
     isLoggedIn !== undefined;
 
+  const externalApiKey = userdata?.api_key || userdata?.apikey || null;
+  const stableAuthHeader = React.useCallback((): Record<string, string> => {
+    if (externalApiKey) return { Authorization: `Bearer ${externalApiKey}` };
+    return getAuthHeader();
+  }, [externalApiKey]);
+
   const config = React.useMemo<UsecasesPageConfig>(() => {
     const baseUrl = (globalUrl && globalUrl.replace(/\/+$/, '')) || DEFAULT_API_BASE_URL;
     const externalUserInfo = userdata ?? null;
-    const externalApiKey = userdata?.api_key || userdata?.apikey || null;
 
     // Auth state mirrors the host: only authenticated once getinfo finished
     // (`isLoaded === true`) AND `isLoggedIn` is true (or, if `isLoggedIn` was
@@ -6888,10 +6912,7 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
 
     return {
       baseUrl,
-      authHeader: (): Record<string, string> => {
-        if (externalApiKey) return { Authorization: `Bearer ${externalApiKey}` };
-        return getAuthHeader();
-      },
+      authHeader: stableAuthHeader,
       hasExternalAuth: hostManaged,
       externalUserInfo,
       externalIsAuthenticated,
@@ -6900,9 +6921,10 @@ export default function UsecasesPage(props: UsecasesPageProps = {}) {
       renderUsecaseDetailSlot,
       renderUsecaseActionModal,
       onToggled,
+      preloadedWorkflows: workflows,
       scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled, themeClass]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled, workflows, themeClass, stableAuthHeader]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>
@@ -6940,8 +6962,8 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
   const { apiUrl, authHeader } = useApi();
   const { usecases } = useUsecasesLite();
   const { isAuthenticated } = useAuthLite();
-  const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite();
-  const { scopeClassName: cfgScopeClassName } = useUsecasesConfig();
+  const { scopeClassName: cfgScopeClassName, preloadedWorkflows } = useUsecasesConfig();
+  const { data: workflows = [], refetch: refetchWorkflows } = useWorkflowsLite(preloadedWorkflows);
 
   // Simplified mirror of UsecasesPageInner.workflowEnabledLabels — good enough
   // for the standalone drawer (presence-based gates like agent-response /
@@ -7124,6 +7146,7 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
     renderUsecaseDetailSlot,
     renderUsecaseActionModal,
     onToggled,
+    workflows,
   } = props;
   useSyncHostBaseUrl(globalUrl);
 
@@ -7135,19 +7158,21 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
     isLoaded !== undefined ||
     isLoggedIn !== undefined;
 
+  const externalApiKey = userdata?.api_key || userdata?.apikey || null;
+  const stableAuthHeader = React.useCallback((): Record<string, string> => {
+    if (externalApiKey) return { Authorization: `Bearer ${externalApiKey}` };
+    return getAuthHeader();
+  }, [externalApiKey]);
+
   const config = React.useMemo<UsecasesPageConfig>(() => {
     const baseUrl = (globalUrl && globalUrl.replace(/\/+$/, '')) || DEFAULT_API_BASE_URL;
     const externalUserInfo = userdata ?? null;
-    const externalApiKey = userdata?.api_key || userdata?.apikey || null;
     const loaded = isLoaded !== false;
     const loggedIn = typeof isLoggedIn === 'boolean' ? isLoggedIn : !!userdata;
     const externalIsAuthenticated = hostManaged ? loaded && loggedIn : false;
     return {
       baseUrl,
-      authHeader: (): Record<string, string> => {
-        if (externalApiKey) return { Authorization: `Bearer ${externalApiKey}` };
-        return getAuthHeader();
-      },
+      authHeader: stableAuthHeader,
       hasExternalAuth: hostManaged,
       externalUserInfo,
       externalIsAuthenticated,
@@ -7156,9 +7181,10 @@ export function UsecaseDrawer(props: UsecaseDrawerProps) {
       renderUsecaseDetailSlot,
       renderUsecaseActionModal,
       onToggled,
+      preloadedWorkflows: workflows,
       scopeClassName: themeClass ? `${SCOPE_CLASS} ${themeClass}` : SCOPE_CLASS,
     };
-  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled, themeClass]);
+  }, [globalUrl, userdata, isLoaded, isLoggedIn, hostManaged, renderEndpointSlot, renderUsecaseDetailSlot, renderUsecaseActionModal, onToggled, workflows, themeClass, stableAuthHeader]);
 
   return (
     <UsecasesPageConfigContext.Provider value={config}>

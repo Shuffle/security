@@ -18,7 +18,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from '@/lib/router-compat';
 import { PhoneNotificationSetupWizard } from '@/components/usecases/PhoneNotificationSetupWizard';
 import { HostMonitoringDetailSlot } from '@/components/usecases/HostMonitoringDetailSlot';
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { setCachedWorkflows } from '@/Shuffle-Core/views/appsFetchCache';
 
 const WEBHOOK_FLOW_IDS = new Set(['siem_case_management_1', 'edr_case_management_1']);
 
@@ -39,18 +40,99 @@ interface UsecasesPageProps {
 const UsecasesPage = (props: UsecasesPageProps = {}) => {
   const webhook = useWebhookStatus();
   const vulnAutomation = useVulnerabilityAutomationStatus();
-  const { refetch } = useWorkflows();
+  const { data: workflows = [], refetch } = useWorkflows();
   const themeContext = useTheme();
   const { userInfo, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [directAddHost, setDirectAddHost] = useState(false);
 
-  const info: WebhookIngestionInfo = {
-    url: webhook.url ?? null,
-    exists: webhook.exists,
-    enabled: webhook.enabled,
-    workflowId: null,
-  };
+  useEffect(() => {
+    if (workflows && workflows.length > 0) {
+      setCachedWorkflows(workflows);
+    }
+  }, [workflows]);
+
+  const handleToggled = useCallback(() => {
+    vulnAutomation.refresh();
+    refetch();
+  }, [vulnAutomation, refetch]);
+
+  const renderEndpointSlot = useCallback(({ flowId, side }: { flowId: string; flowLabel: string; side: 'source' | 'destination' }) => {
+    if (side !== 'source') return null;
+    if (VULNERABILITY_FLOW_IDS.has(flowId)) {
+      const vulnInfo: WebhookIngestionInfo = {
+        url: vulnAutomation.webhook.url ?? null,
+        exists: vulnAutomation.webhook.exists,
+        enabled: vulnAutomation.webhook.active,
+        workflowId: null,
+      };
+      return {
+        node: (
+          <WebhookIngestionButton
+            webhook={vulnInfo}
+            workflowLabel={VULNERABILITY_WORKFLOW_LABELS.webhook}
+            onToggled={() => vulnAutomation.refresh()}
+          />
+        ),
+        enabled: vulnAutomation.webhook.active,
+      } as any;
+    }
+    if (!WEBHOOK_FLOW_IDS.has(flowId)) return null;
+    const info: WebhookIngestionInfo = {
+      url: webhook.url ?? null,
+      exists: webhook.exists,
+      enabled: webhook.enabled,
+      workflowId: null,
+    };
+    return {
+      node: <WebhookIngestionButton webhook={info} onToggled={() => refetch()} />,
+      enabled: !!webhook.enabled,
+    } as any;
+  }, [vulnAutomation, webhook, refetch]);
+
+  const renderUsecaseDetailSlot = useCallback(({ flowId, onOpenModal }: any) => {
+    if (VULNERABILITY_FLOW_IDS.has(flowId)) {
+      // Exact same readiness checker as /vulnerabilities.
+      return <VulnerabilityReadinessBanner status={vulnAutomation} />;
+    }
+    if (flowId === 'case_management_incident_routing_1') {
+      // Same component used on /preferences — single source of truth so
+      // changes apply in both places.
+      return <IncidentRoutingEditor forceShow />;
+    }
+    if (flowId === 'case_management_schedules_notifications_1') {
+      return (
+        <PhoneNotificationSetupWizard
+          onWorkflowNavigate={(wfId) => navigate(`/workflows/${wfId}`)}
+        />
+      );
+    }
+    if (flowId === 'case_management_asset_management_monitors_1') {
+      return (
+        <HostMonitoringDetailSlot
+          onDeployClick={() => {
+            if (onOpenModal) onOpenModal('add-host');
+            else setDirectAddHost(true);
+          }}
+          onManageClick={() => navigate('/monitors')}
+        />
+      );
+    }
+    return null;
+  }, [vulnAutomation, navigate]);
+
+  const renderUsecaseActionModal = useCallback(({ modal, open, onClose }: {
+    modal: string;
+    flowId: string;
+    flowLabel: string;
+    open: boolean;
+    onClose: () => void;
+  }) => {
+    // Embed the same Add Host dialog from /monitors directly in the
+    // usecase sidebar so users can deploy a monitor without navigating.
+    if (modal !== 'add-host' || !open) return null;
+    return <MonitorsView mode="add-host-dialog" onClose={onClose} />;
+  }, []);
 
   return (
     <>
@@ -60,73 +142,12 @@ const UsecasesPage = (props: UsecasesPageProps = {}) => {
         userdata={userInfo}
         isLoggedIn={isAuthenticated}
         isLoaded={!isLoading}
-        onToggled={() => {
-          vulnAutomation.refresh();
-          refetch();
-        }}
+        workflows={workflows}
+        onToggled={handleToggled}
         {...props}
-        renderEndpointSlot={({ flowId, side }) => {
-          if (side !== 'source') return null;
-          if (VULNERABILITY_FLOW_IDS.has(flowId)) {
-            const vulnInfo: WebhookIngestionInfo = {
-              url: vulnAutomation.webhook.url ?? null,
-              exists: vulnAutomation.webhook.exists,
-              enabled: vulnAutomation.webhook.active,
-              workflowId: null,
-            };
-            return {
-              node: (
-                <WebhookIngestionButton
-                  webhook={vulnInfo}
-                  workflowLabel={VULNERABILITY_WORKFLOW_LABELS.webhook}
-                  onToggled={() => vulnAutomation.refresh()}
-                />
-              ),
-              enabled: vulnAutomation.webhook.active,
-            } as any;
-          }
-          if (!WEBHOOK_FLOW_IDS.has(flowId)) return null;
-          return {
-            node: <WebhookIngestionButton webhook={info} onToggled={() => refetch()} />,
-            enabled: !!webhook.enabled,
-          } as any;
-        }}
-        renderUsecaseDetailSlot={({ flowId, onOpenModal }: any) => {
-          if (VULNERABILITY_FLOW_IDS.has(flowId)) {
-            // Exact same readiness checker as /vulnerabilities.
-            return <VulnerabilityReadinessBanner status={vulnAutomation} />;
-          }
-          if (flowId === 'case_management_incident_routing_1') {
-            // Same component used on /preferences — single source of truth so
-            // changes apply in both places.
-            return <IncidentRoutingEditor forceShow />;
-          }
-          if (flowId === 'case_management_schedules_notifications_1') {
-            return (
-              <PhoneNotificationSetupWizard
-                onWorkflowNavigate={(wfId) => navigate(`/workflows/${wfId}`)}
-              />
-            );
-          }
-          if (flowId === 'case_management_asset_management_monitors_1') {
-            return (
-              <HostMonitoringDetailSlot
-                onDeployClick={() => {
-                  if (onOpenModal) onOpenModal('add-host');
-                  else setDirectAddHost(true);
-                }}
-                onManageClick={() => navigate('/monitors')}
-              />
-            );
-          }
-          return null;
-        }}
-        renderUsecaseActionModal={({ modal, open, onClose }) => {
-          // Embed the same Add Host dialog from /monitors directly in the
-          // usecase sidebar so users can deploy a monitor without navigating.
-          if (modal !== 'add-host' || !open) return null;
-          return <MonitorsView mode="add-host-dialog" onClose={onClose} />;
-        }}
+        renderEndpointSlot={renderEndpointSlot}
+        renderUsecaseDetailSlot={renderUsecaseDetailSlot}
+        renderUsecaseActionModal={renderUsecaseActionModal}
       />
       {directAddHost && (
         <MonitorsView mode="add-host-dialog" onClose={() => setDirectAddHost(false)} />

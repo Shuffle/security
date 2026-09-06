@@ -43,6 +43,7 @@ import {
 import { TOOL_CATEGORIES } from './Usecases';
 import {
   fetchAppsCached,
+  fetchWorkflowsCached,
   getAlluvialCache,
   setAlluvialCache,
   updateAlluvialIngest,
@@ -816,14 +817,12 @@ export default function UsecaseAlluvialDiagram({
   // Re-fetch webhook status after toggle
   const handleWebhookToggled = useCallback(async () => {
     try {
-      const res = await fetch(getApiUrl('/api/v1/workflows'), {
-        credentials: 'include',
-        headers: { ...getAuthHeader() },
-      });
-      if (res.ok) {
-        const wfData = await res.json();
-        const workflows = Array.isArray(wfData) ? wfData : (wfData.workflows || []);
-        const webhookWorkflow = workflows.find((w: any) => w.name === 'Ingestion Webhook');
+      const workflows = await fetchWorkflowsCached(
+        getApiUrl('/api/v1/workflows'),
+        { credentials: 'include', headers: { ...getAuthHeader() } },
+        true,
+      );
+      const webhookWorkflow = workflows.find((w: any) => w.name === 'Ingestion Webhook');
         if (webhookWorkflow) {
           const webhookTrigger = (webhookWorkflow.triggers || []).find(
             (t: any) => t.trigger_type === 'WEBHOOK' || t.app_name === 'Webhook'
@@ -838,7 +837,6 @@ export default function UsecaseAlluvialDiagram({
         } else {
           setWebhookInfo({ url: null, exists: false, enabled: false, workflowId: null });
         }
-      }
     } catch {}
   }, []);
 
@@ -905,13 +903,11 @@ export default function UsecaseAlluvialDiagram({
    */
   const refreshForwardWorkflow = useCallback(async (): Promise<Set<string> | null> => {
     try {
-      const res = await fetch(getApiUrl('/api/v1/workflows'), {
-        credentials: 'include',
-        headers: { ...getAuthHeader() },
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const workflows = Array.isArray(data) ? data : (data.workflows || []);
+      const workflows = await fetchWorkflowsCached(
+        getApiUrl('/api/v1/workflows'),
+        { credentials: 'include', headers: { ...getAuthHeader() } },
+        true,
+      );
       const forwardWf = findForwardTicketsWorkflow(workflows);
       if (!forwardWf) {
         setForwardAppNames(new Set());
@@ -1083,18 +1079,14 @@ export default function UsecaseAlluvialDiagram({
           } catch (_) {}
         }
 
-        // Workflows: use initialWorkflows prop if provided, else fetch
+        // Workflows: use initialWorkflows prop if provided, else read from workflows cache or fetch
         let workflowsData = initialWorkflows;
         if (!workflowsData || !workflowsData.length) {
           try {
-            const workflowsRes = await fetch(getApiUrl('/api/v1/workflows'), {
+            workflowsData = await fetchWorkflowsCached(getApiUrl('/api/v1/workflows'), {
               credentials: 'include',
               headers: { ...getAuthHeader() },
             });
-            if (workflowsRes.ok) {
-              const wfData = await workflowsRes.json();
-              workflowsData = Array.isArray(wfData) ? wfData : (wfData.workflows || []);
-            }
           } catch (_) {}
         }
 

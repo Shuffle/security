@@ -23,19 +23,148 @@ export interface AlluvialCache {
 }
 
 const APPS_TTL_MS = 60_000;
-type CacheEntry = { ts: number; promise: Promise<Response> };
-const _appsFetchCache = new Map<string, CacheEntry>();
+const JSON_CACHE_TTL_MS = 120_000; // 2 minutes general
+const WORKFLOWS_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-export function fetchAppsCached(url: string, init?: RequestInit): Promise<Response> {
+const _jsonCache = new Map<string, { ts: number; data: any }>();
+const _inFlightPromises = new Map<string, Promise<any>>();
+
+/**
+ * Request-coalescing in-memory JSON fetcher.
+ * Guarantees that concurrent calls to the exact same URL join the same Promise,
+ * and subsequent calls within TTL read directly from memory with 0 network overhead.
+ */
+export async function fetchJsonCached<T = any>(
+  url: string,
+  init?: RequestInit,
+  ttlMs: number = JSON_CACHE_TTL_MS,
+  force: boolean = false,
+): Promise<T> {
   const now = Date.now();
-  const cached = _appsFetchCache.get(url);
-  if (cached && now - cached.ts < APPS_TTL_MS) {
-    // Clone so multiple consumers can each read the body.
-    return cached.promise.then((res) => res.clone());
+  if (!force) {
+    const cached = _jsonCache.get(url);
+    if (cached && now - cached.ts < ttlMs) {
+      return cached.data as T;
+    }
+    const inFlight = _inFlightPromises.get(url);
+    if (inFlight) {
+      return inFlight as Promise<T>;
+    }
   }
-  const promise = fetch(url, init);
-  _appsFetchCache.set(url, { ts: now, promise });
-  return promise.then((res) => res.clone());
+
+  const p = (async () => {
+    try {
+      const res = await fetch(url, init);
+      if (!res.ok) {
+        const prev = _jsonCache.get(url);
+        if (prev) return prev.data as T;
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      _jsonCache.set(url, { ts: Date.now(), data });
+      return data as T;
+    } finally {
+      _inFlightPromises.delete(url);
+    }
+  })();
+
+  _inFlightPromises.set(url, p);
+  return p;
+}
+
+/**
+ * Drop-in backwards compatible wrapper for fetchAppsCached that returns a safe,
+ * unconsumed Response instance populated from the cached JSON data.
+ */
+export async function fetchAppsCached(url: string, init?: RequestInit): Promise<Response> {
+  const data = await fetchJsonCached(url, init, APPS_TTL_MS);
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// Module-level workflows cache
+let _workflowsCache: any[] | null = null;
+let _workflowsCacheTs = 0;
+let _workflowsPromise: Promise<any[]> | null = null;
+
+export function getCachedWorkflows(): any[] | null {
+  if (_workflowsCache && Date.now() - _workflowsCacheTs < WORKFLOWS_TTL_MS) {
+    return _workflowsCache;
+  }
+  return _workflowsCache;
+}
+
+export function setCachedWorkflows(list: any[]) {
+  _workflowsCache = list;
+  _workflowsCacheTs = Date.now();
+}
+
+export async function fetchWorkflowsCached(
+  url: string,
+  init?: RequestInit,
+  force = false,
+): Promise<any[]> {
+  const now = Date.now();
+  if (!force && _workflowsCache && now - _workflowsCacheTs < WORKFLOWS_TTL_MS) {
+    return _workflowsCache;
+  }
+  if (!force && _workflowsPromise) {
+    return _workflowsPromise;
+  }
+
+  const p = (async () => {
+    try {
+      const res = await fetch(url, init);
+      if (!res.ok) return _workflowsCache || [];
+      const body = await res.json();
+      const list = Array.isArray(body) ? body : (body?.workflows || []);
+      _workflowsCache = list;
+      _workflowsCacheTs = Date.now();
+      return list;
+    } catch {
+      return _workflowsCache || [];
+    } finally {
+      _workflowsPromise = null;
+    }
+  })();
+
+  _workflowsPromise = p;
+  return p;
+}
+
+/**
+ * Fetch a single workflow by ID.
+ * If the workflow is already present in _workflowsCache with actions/triggers,
+ * returns it immediately with 0 network requests.
+ */
+export async function fetchWorkflowByIdCached(
+  url: string,
+  wfId: string,
+  init?: RequestInit,
+): Promise<any | null> {
+  if (_workflowsCache && _workflowsCache.length > 0) {
+    const existing = _workflowsCache.find((w: any) => w.id === wfId);
+    if (existing && (existing.actions?.length || existing.triggers?.length)) {
+      return existing;
+    }
+  }
+  return fetchJsonCached(url, init, WORKFLOWS_TTL_MS);
+}
+
+/**
+ * Cached org defaults / settings (e.g. notification workflow ID).
+ */
+export async function fetchOrgCached(url: string, init?: RequestInit): Promise<any> {
+  return fetchJsonCached(url, init, WORKFLOWS_TTL_MS);
+}
+
+/**
+ * Cached category automations (e.g. AI Agent on shuffle-security_incidents).
+ */
+export async function fetchCategoryAutomationsCached(url: string, init?: RequestInit): Promise<any> {
+  return fetchJsonCached(url, init, JSON_CACHE_TTL_MS);
 }
 
 // Module-level parsed in-memory caches
@@ -106,7 +235,10 @@ export function invalidateAlluvialCache() {
 }
 
 export function invalidateAppsCache() {
-  _appsFetchCache.clear();
+  _jsonCache.clear();
+  _inFlightPromises.clear();
+  _workflowsCache = null;
+  _workflowsPromise = null;
   _cachedIntegrations = null;
   _cachedCatalogIcons = {};
   _cachedCategoryAppNames = null;
