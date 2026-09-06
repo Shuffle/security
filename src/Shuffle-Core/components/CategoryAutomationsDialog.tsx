@@ -32,6 +32,7 @@ import { Tooltip } from '@mui/material';
 
 import { CategoryAutomation, DATASTORE_CATEGORIES, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, extractWorkflowAppNames } from '@/Shuffle-MCPs/ingestionDetection';
+import { fetchAppsCached, fetchWorkflowsCached } from '../views/appsFetchCache';
 
 // API format for automations
 interface AutomationApiFormat {
@@ -365,12 +366,12 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
   const fetchIngestionApps = async () => {
     try {
-      const [authResponse, wfResponse] = await Promise.all([
-        fetch(getApiUrl('/api/v1/apps/authentication'), {
+      const [authResponse, wfList] = await Promise.all([
+        fetchAppsCached(getApiUrl('/api/v1/apps/authentication'), {
           credentials: 'include',
           headers: { ...getAuthHeader() },
         }),
-        fetch(getApiUrl('/api/v1/workflows'), {
+        fetchWorkflowsCached(getApiUrl('/api/v1/workflows'), {
           credentials: 'include',
           headers: { ...getAuthHeader() },
         }),
@@ -379,13 +380,9 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         const result = await authResponse.json();
         const authApps = Array.isArray(result) ? result : (result.data || []);
         let workflowAppNames: Set<string> | undefined;
-        if (wfResponse.ok) {
-          const wfData = await wfResponse.json();
-          const wfList = Array.isArray(wfData) ? wfData : wfData.workflows || [];
-          const ingestWf = findIngestTicketsWorkflow(wfList);
-          if (ingestWf) {
-            workflowAppNames = extractWorkflowAppNames(ingestWf);
-          }
+        const ingestWf = findIngestTicketsWorkflow(wfList);
+        if (ingestWf) {
+          workflowAppNames = extractWorkflowAppNames(ingestWf);
         }
         setIngestionApps(extractValidatedIngestionApps(authApps, workflowAppNames));
       }
@@ -400,15 +397,12 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       const fetchWorkflows = async () => {
         setLoadingWorkflows(true);
         try {
-          const response = await fetch(getApiUrl('/api/v1/workflows'), {
+          const workflowList = await fetchWorkflowsCached(getApiUrl('/api/v1/workflows'), {
             credentials: 'include',
             headers: {
               ...getAuthHeader(),
             },
           });
-          if (response.ok) {
-            const data = await response.json();
-            const workflowList = Array.isArray(data) ? data : data.workflows || [];
             // Pre-collect already-selected workflow IDs from the existing config so
             // background_processing workflows that are already in use stay visible
             // (otherwise the picker would show their raw ID instead of the name).
@@ -423,7 +417,6 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                 .filter((w: any) => !w.background_processing || preselectedIds.has(w.id))
                 .map((w: any) => ({ id: w.id, name: w.name || w.id })),
             );
-          }
         } catch (error) {
           console.error('Failed to fetch workflows:', error);
         } finally {

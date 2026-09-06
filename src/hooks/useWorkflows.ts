@@ -1,5 +1,6 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { getApiUrl, getAuthHeader, hasShuffleAuth } from '@/Shuffle-MCPs/api';
+import { fetchWorkflowsCached } from '@/Shuffle-Core/views/appsFetchCache';
 
 export interface WorkflowSummary {
   id: string;
@@ -16,14 +17,10 @@ export interface WorkflowSummary {
 const fetchWorkflows = async (orgId?: string): Promise<WorkflowSummary[]> => {
   const headers: Record<string, string> = { ...getAuthHeader() };
   if (orgId) headers['Org-Id'] = orgId;
-  const res = await fetch(getApiUrl('/api/v1/workflows'), {
+  return fetchWorkflowsCached(getApiUrl('/api/v1/workflows'), {
     credentials: 'include',
     headers,
   });
-  if (!res.ok) return [];
-  const data = await res.json();
-  const list = Array.isArray(data) ? data : (data.workflows || []);
-  return list;
 };
 
 export const useWorkflows = (orgId?: string) => {

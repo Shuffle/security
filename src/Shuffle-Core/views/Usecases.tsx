@@ -5,7 +5,7 @@
  * auth/workflow fetching, and page-specific UI logic so it can be moved as one file.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSyncHostBaseUrl } from '../useSyncHostBaseUrl';
 import { useNavigate, Link, useSearchParams, useParams, useLocation } from '@/lib/router-compat';
 
@@ -45,6 +45,7 @@ import {
   shuffleFetch,
   getApiUrl,
   getDatastoreByCategory,
+  DATASTORE_CATEGORIES,
   resolveApp,
 } from '@shuffleio/shuffle-mcps';
 import { getAuthHeader, getShuffleCoreWorkflowUrl } from '../api';
@@ -354,6 +355,8 @@ export interface Usecase {
   phase: FlowPhase;
   tags: string[];
   animated?: boolean;
+  /** When true, this usecase is only visible to support users */
+  supportOnly?: boolean;
   /** Label sent to POST /api/v2/workflows/generate */
   automationLabel?: string;
   /** Category sent with the generate call */
@@ -598,6 +601,16 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationArea: 'automatic_ingestion',
   },
   {
+    id: 'threat_intel_ingest_1', phase: 'ingest', source: 'threat_intel', target: 'case_management',
+    label: 'IOC feeds', animated: true,
+    tags: ['Ingest', 'Threat Intel', 'Feeds', 'IOCs'],
+    description: 'Ingest indicator of compromise (IOC) feeds from open-source intelligence (OSINT), commercial threat feeds, and ISACs into Shuffle to detect malicious IPs, domains, hashes, and URLs.',
+    agenticDescription: 'An agent continuously ingests and deduplicates threat feeds, normalizes indicators, tracks source confidence, and stages them for real-time incident matching.',
+    automationLabel: 'Enable Threat feeds',
+    automationCategory: 'cases',
+    automationArea: 'threat_intel',
+  },
+  {
     id: 'network_siem_1', phase: 'ingest', source: 'network', target: 'siem',
     label: 'Flow logs',
     tags: ['Logs', 'Detection'],
@@ -725,7 +738,7 @@ export const DEFAULT_USECASES: Usecase[] = [
   },
   {
     id: 'asset_management_case_management_vuln_response_1', phase: 'response', source: 'asset_management', target: 'case_management',
-    label: 'Vulnerability Response', animated: true,
+    label: 'Vulnerability Response', animated: false, supportOnly: true,
     tags: ['Response', 'Vulnerability', 'Remediation'],
     description: 'Automatically open remediation tasks, patch tickets, or compensating-control workflows for vulnerabilities discovered during incident investigation — closing the loop between detection and fix.',
     agenticDescription: 'An agent triages each confirmed exploitable CVE on an affected host, opens a remediation ticket with owner and SLA, applies a compensating control where possible, and tracks the fix back to the originating incident.',
@@ -1344,39 +1357,45 @@ import { toast as sonnerToast } from '../toast';
 import { fetchIocEntries, sumIocEntries } from '../utils/iocFeedTotals';
 import { usePageMeta } from '../usePageMeta';
 import { seedDefaultThreatFeeds } from '../hooks/useThreatFeeds';
-import { enableThreatIntelAutomation, disableThreatIntelAutomation } from '../hooks/useEnrichmentStatus';
+import { seedDefaultIOCTypes } from '@/hooks/useIOCTypes';
+import { useEnrichmentStatus, enableThreatIntelAutomation, disableThreatIntelAutomation } from '../hooks/useEnrichmentStatus';
 
 // Usecases that enable themselves end-to-end without needing the user to
 // connect a source-category app first. Clicking Enable on these runs a
 // dedicated, self-contained setup path (seeding defaults, generating
 // background workflows, etc.) instead of the generic /workflows/generate
 // flow that hard-requires a validated source tool.
+const enableThreatIntelFlow = async () => {
+  const [a, b, c] = await Promise.all([
+    seedDefaultThreatFeeds(),
+    seedDefaultIOCTypes(),
+    enableThreatIntelAutomation(),
+  ]);
+  return a && b && c;
+};
+
 const SELF_CONTAINED_ENABLE: Record<
   string,
   { enable: () => Promise<boolean>; disable: () => Promise<boolean> }
 > = {
+  threat_intel_ingest_1: {
+    enable: enableThreatIntelFlow,
+    disable: () => disableThreatIntelAutomation(),
+  },
+  threat_intel_case_management_1: {
+    enable: enableThreatIntelFlow,
+    disable: () => disableThreatIntelAutomation(),
+  },
   threat_intel_network_1: {
-    enable: async () => {
-      const a = await seedDefaultThreatFeeds();
-      const b = await enableThreatIntelAutomation();
-      return a && b;
-    },
+    enable: enableThreatIntelFlow,
     disable: () => disableThreatIntelAutomation(),
   },
   threat_intel_edr_1: {
-    enable: async () => {
-      const a = await seedDefaultThreatFeeds();
-      const b = await enableThreatIntelAutomation();
-      return a && b;
-    },
+    enable: enableThreatIntelFlow,
     disable: () => disableThreatIntelAutomation(),
   },
   threat_intel_cloud_1: {
-    enable: async () => {
-      const a = await seedDefaultThreatFeeds();
-      const b = await enableThreatIntelAutomation();
-      return a && b;
-    },
+    enable: enableThreatIntelFlow,
     disable: () => disableThreatIntelAutomation(),
   },
 };
@@ -1599,6 +1618,9 @@ function findWorkflowsForUsecase(
       'assign & escalate',
       'assign_&_escalate',
     );
+  }
+  if (lower.includes('threat feeds') || lower.includes('ioc extraction')) {
+    labels.push('enable threat feeds', 'enable threat feeds_webhook', 'realtime ioc extraction', 'threat intel');
   }
   // The "Ingestion Webhook" workflow is the canonical webhook entrypoint for
   // every automatic_ingestion usecase (SIEM/EDR/Email alerts). It is created
@@ -2667,6 +2689,7 @@ const ACTIVE_USECASE_IDS = [
   'siem_case_management_1',
   'edr_case_management_1',
   'email_case_management_1',
+  'threat_intel_ingest_1',
   'threat_intel_case_management_1',
   'case_management_cases_forward_1',
   'case_management_communication_1',
@@ -3112,6 +3135,211 @@ function IocFeedsOutcomeBlock() {
   return <UsecaseOutcomeSection outcome={outcome} loading={loading} iocCategoryByKey={iocCategoryByKey} />;
 }
 
+function ThreatIntelReadinessCard({ flow }: { flow: Usecase }) {
+  const enrichment = useEnrichmentStatus();
+  const [defaultsReady, setDefaultsReady] = useState<boolean | null>(null);
+  const [defaultsParts, setDefaultsParts] = useState<{ iocs: boolean; feeds: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const checkDefaults = useCallback(async () => {
+    try {
+      const [iocs, feeds] = await Promise.all([
+        getDatastoreByCategory(DATASTORE_CATEGORIES.IOCS).catch(() => ({ success: false, data: [] })),
+        getDatastoreByCategory(DATASTORE_CATEGORIES.THREAT_FEEDS).catch(() => ({ success: false, data: [] })),
+      ]);
+      const hasIocs = !!(iocs.success && (iocs.data?.length || 0) > 0);
+      const hasFeeds = !!(feeds.success && (feeds.data?.length || 0) > 0);
+      setDefaultsParts({ iocs: hasIocs, feeds: hasFeeds });
+      setDefaultsReady(hasIocs && hasFeeds);
+    } catch {
+      setDefaultsParts(null);
+      setDefaultsReady(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkDefaults();
+  }, [checkDefaults]);
+
+  const allActive = enrichment.active && defaultsReady === true;
+  const isLoading = enrichment.isLoading || defaultsReady === null;
+
+  const handleEnableAll = async () => {
+    setBusy(true);
+    try {
+      await Promise.allSettled([
+        seedDefaultIOCTypes(),
+        seedDefaultThreatFeeds(),
+        enrichment.enable(),
+      ]);
+      await checkDefaults();
+      toast.success('All Threat Intel automations enabled', {
+        description: 'Seeded default IOC types and feeds, and enabled threat intel workflows.',
+      });
+    } catch (err: any) {
+      toast.error('Failed to enable some automations', {
+        description: err?.message || 'Check network connection or permissions.',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDisableAll = async () => {
+    setBusy(true);
+    try {
+      await enrichment.disable();
+      await checkDefaults();
+      toast.success('Threat Intel automations disabled');
+    } catch (err: any) {
+      toast.error('Failed to disable automations');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const checks = [
+    {
+      label: 'Default IOC types seeded',
+      active: defaultsParts?.iocs ?? false,
+      desc: 'Standard indicator schemas (IP, Domain, Hash, URL) in datastore.',
+    },
+    {
+      label: 'Default threat feeds configured',
+      active: defaultsParts?.feeds ?? false,
+      desc: 'Curated OSINT & threat intelligence feeds in datastore.',
+    },
+    ...(enrichment.checks?.map((c) => ({
+      label: c.label,
+      active: c.active,
+      desc: c.detail,
+    })) || [
+      { label: 'Threat feeds ingestion', active: enrichment.active, desc: 'Background ingestion workflow.' },
+      { label: 'Realtime IOC extraction', active: enrichment.active, desc: 'Realtime extraction & case enrichment.' },
+    ]),
+  ];
+
+  const activeCount = checks.filter((c) => c.active).length;
+
+  return (
+    <Box
+      sx={{
+        p: 2.5,
+        borderRadius: 2,
+        border: allActive ? '2px solid hsl(var(--severity-low))' : '1px solid hsl(var(--border))',
+        bgcolor: allActive ? 'hsl(var(--severity-low) / 0.04)' : 'hsl(var(--card, 0 0% 13%))',
+        boxShadow: allActive ? '0 0 0 1px hsl(var(--severity-low) / 0.15)' : 'none',
+        mb: 3,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1.5 }}>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+              Automation Readiness
+            </Typography>
+            <Chip
+              size="small"
+              label={isLoading ? 'Checking...' : allActive ? 'All Active' : `${activeCount}/${checks.length} Active`}
+              sx={{
+                height: 20,
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                bgcolor: allActive ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--warning) / 0.15)',
+                color: allActive ? 'hsl(var(--severity-low))' : 'hsl(var(--warning))',
+                border: '1px solid',
+                borderColor: allActive ? 'hsl(var(--severity-low) / 0.3)' : 'hsl(var(--warning) / 0.3)',
+              }}
+            />
+          </Box>
+          <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mt: 0.25 }}>
+            {allActive
+              ? 'Threat intelligence ingestion, default feeds, and realtime enrichment are fully operational.'
+              : 'One-click setup enables background feed ingestion, seeds IOC catalogs, and starts case enrichment.'}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {!allActive ? (
+            <Button
+              size="small"
+              variant="contained"
+              disabled={busy || isLoading}
+              startIcon={busy ? <CircularProgress size={14} color="inherit" /> : <Zap size={14} />}
+              onClick={handleEnableAll}
+              sx={{
+                bgcolor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                fontWeight: 600,
+                fontSize: '0.78rem',
+                textTransform: 'none',
+                px: 2,
+                py: 0.75,
+                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+              }}
+            >
+              {busy ? 'Enabling...' : 'Enable Threat Intel (1-Click)'}
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={busy || isLoading}
+              startIcon={busy ? <CircularProgress size={14} color="inherit" /> : <PowerOff size={14} />}
+              onClick={handleDisableAll}
+              sx={{
+                borderColor: 'hsl(var(--border))',
+                color: 'hsl(var(--muted-foreground))',
+                fontWeight: 500,
+                fontSize: '0.75rem',
+                textTransform: 'none',
+                '&:hover': { borderColor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive))' },
+              }}
+            >
+              Disable Automations
+            </Button>
+          )}
+        </Box>
+      </Box>
+
+      {/* Checklist items */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25, mt: 2 }}>
+        {checks.map((c, i) => (
+          <Box
+            key={i}
+            sx={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 1,
+              p: 1.25,
+              borderRadius: 1.5,
+              bgcolor: 'hsla(0, 0%, 50%, 0.04)',
+              border: '1px solid',
+              borderColor: c.active ? 'hsl(var(--severity-low) / 0.2)' : 'hsl(var(--border))',
+            }}
+          >
+            {c.active ? (
+              <CheckCircle2 size={16} style={{ color: 'hsl(var(--severity-low))', marginTop: 2, flexShrink: 0 }} />
+            ) : (
+              <Circle size={16} style={{ color: 'hsl(var(--muted-foreground))', marginTop: 2, flexShrink: 0 }} />
+            )}
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: c.active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))' }}>
+                {c.label}
+              </Typography>
+              {c.desc && (
+                <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.3, mt: 0.25 }}>
+                  {c.desc}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
 // Assign & Escalate usecase — graphs executions of the matched workflow over
 // the last ~30 days using /api/v2/workflows/{id}/executions `timeline` field.
 function AssignEscalateOutcomeBlock({ flow, workflows }: { flow: Usecase; workflows: WorkflowSummary[] }) {
@@ -3531,7 +3759,10 @@ function UsecaseDetailContent({
       || flow.id === 'case_management_incident_routing_1'
       || flow.id === 'case_management_schedules_notifications_1'
       || flow.id === 'asset_management_case_management_vuln_1'
-      || flow.id === 'vulnerability_ingestion_1';
+      || flow.id === 'vulnerability_ingestion_1'
+      || flow.id === 'threat_intel_ingest_1'
+      || flow.id === 'threat_intel_case_management_1'
+      || flow.source === 'threat_intel';
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
       // Hard-block the enable. The /workflows/generate endpoint may return
       // success: true and then quietly skip creating the workflow when no
@@ -3572,7 +3803,7 @@ function UsecaseDetailContent({
         // the backend may generate a shell workflow with no source app wired
         // in, which the UI then correctly flips back to "Disabled".
         try {
-          const authRes = await fetch(apiUrl('/api/v1/apps/authentication'), {
+          const authRes = await fetchAppsCached(apiUrl('/api/v1/apps/authentication'), {
             credentials: 'include',
             headers: { ...authHeader() },
           });
@@ -4770,8 +5001,16 @@ function UsecaseDetailContent({
       {flow.id !== 'case_management_incident_routing_1' && flow.id !== 'case_management_schedules_notifications_1' && flow.id !== 'case_management_asset_management_monitors_1' && (
         flow.automationArea === 'notifications'
           ? <NotificationsOutcomeBlock />
-          : flow.label === 'IOC feeds'
-            ? <IocFeedsOutcomeBlock />
+          : (flow.id === 'threat_intel_ingest_1' || flow.id === 'threat_intel_case_management_1' || flow.label === 'IOC feeds' || flow.label === 'Enrichment')
+            ? (
+                <>
+                  <ThreatIntelReadinessCard flow={flow} />
+                  {flow.id === 'threat_intel_ingest_1' || flow.label === 'IOC feeds'
+                    ? <IocFeedsOutcomeBlock />
+                    : <EnrichmentsOutcomeBlock flow={flow} />
+                  }
+                </>
+              )
             : flow.id === 'case_management_assign_escalate_1'
               ? <AssignEscalateOutcomeBlock flow={flow} workflows={workflows} />
               : flow.id === 'case_management_agent_ai_incident_handling_1'
@@ -5526,6 +5765,9 @@ function UsecasesPageInner() {
         if (lbl.includes('schedules & phone') || lbl.includes('schedules_notifications') || lbl.includes('phone notification')) {
           aliases.push('schedules & phone notifications', 'schedules_&_phone_notifications', 'schedules_notifications', 'phone_notifications', 'assign & escalate', 'assign_&_escalate');
         }
+        if (lbl.includes('threat feeds') || lbl.includes('ioc extraction')) {
+          aliases.push('enable threat feeds', 'enable threat feeds_webhook', 'realtime ioc extraction', 'threat intel');
+        }
         if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
           set.add(uc.automationLabel);
         }
@@ -5670,7 +5912,10 @@ function UsecasesPageInner() {
       }
     };
 
-    fetchValidatedCats();
+    const cached = getCachedValidatedCategories();
+    if (!cached || cached.size === 0) {
+      fetchValidatedCats();
+    }
 
     const handleInvalidate = () => {
       fetchValidatedCats();
@@ -5927,11 +6172,17 @@ function UsecasesPageInner() {
   const filtered = useMemo(() => {
     let list = usecases;
 
+    // Support-only usecases (e.g. Vulnerability Response) are strictly hidden for non-support users
+    if (!isSupport) {
+      list = list.filter((u) => !u.supportOnly);
+    }
+
     // Only Support users with the "show all" toggle see inactive usecases.
     // Everyone else — guests and regular authenticated users — sees only
     // the activated (animated) ones, so the catalog reflects what's live.
+    // For support users, supportOnly usecases are also visible.
     if (!(isSupport && showAllAsSupport)) {
-      list = list.filter((u) => u.animated === true);
+      list = list.filter((u) => u.animated === true || (isSupport && u.supportOnly));
     }
 
     // Guests have no org-level activation state, so the API's `disabled`
@@ -5941,7 +6192,7 @@ function UsecasesPageInner() {
     if (!isAuthenticated && !(isSupport && showAllAsSupport)) {
       const allowedLabels = new Set(
         DEFAULT_USECASES
-          .filter((u) => u.animated === true)
+          .filter((u) => u.animated === true && !u.supportOnly)
           .map((u) => u.label.toLowerCase())
       );
       list = list.filter((u) => allowedLabels.has(u.label.toLowerCase()));
@@ -6465,6 +6716,23 @@ function UsecaseCard({
       onEnable();
       return;
     }
+    const selfContained = flow ? SELF_CONTAINED_ENABLE[flow.id] : undefined;
+    if (selfContained) {
+      setToggling(true);
+      setOptimisticEnabled(willBeEnabled);
+      try {
+        const ok = willBeEnabled ? await selfContained.enable() : await selfContained.disable();
+        if (!ok) throw new Error('Backend rejected the request');
+        toast.success(willBeEnabled ? `${flow.label} enabled` : `${flow.label} disabled`);
+        onToggled?.(flow.automationLabel, willBeEnabled);
+      } catch (err: any) {
+        setOptimisticEnabled(null);
+        toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`);
+      } finally {
+        setToggling(false);
+      }
+      return;
+    }
     if (willBeEnabled && !hasValidatedSource) {
       // Hard-block — see UsecaseDetailContent.handleToggle for rationale.
       toast.error(`Authenticate a ${sourceCat} tool first`, {
@@ -6640,6 +6908,29 @@ function UsecaseCard({
               </Box>
             </Tooltip>
           )}
+          {flow.supportOnly && isSupport && (
+            <Tooltip title="Visible to support users only" placement="top" arrow>
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 0.6,
+                  py: 0.1,
+                  borderRadius: 0.75,
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  letterSpacing: 0.2,
+                  textTransform: 'uppercase',
+                  color: 'hsl(var(--muted-foreground))',
+                  bgcolor: 'hsl(var(--muted) / 0.5)',
+                  border: '1px solid hsl(var(--border))',
+                  lineHeight: 1.4,
+                }}
+              >
+                Support only
+              </Box>
+            </Tooltip>
+          )}
 
           {/* Unified Action / Status Chip-Button */}
           {effectiveEnabled ? (
@@ -6752,20 +7043,77 @@ function UsecaseCard({
               </Box>
             </Tooltip>
           ) : canToggle ? (
-            <Tooltip
-              title={
-                !hasValidatedSource
-                  ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
-                  : 'Click to activate'
-              }
-              placement="top"
-              arrow
+            <Box
+              className="uc-card-action"
+              sx={{
+                opacity: 0,
+                pointerEvents: 'none',
+                transition: 'opacity 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              <Tooltip
+                title={
+                  !hasValidatedSource
+                    ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
+                    : 'Click to activate'
+                }
+                placement="top"
+                arrow
+              >
+                <Box
+                  component="button"
+                  type="button"
+                  disabled={toggling}
+                  onClick={handleToggle}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 0.85,
+                    py: 0.25,
+                    height: 22,
+                    borderRadius: 0.75,
+                    bgcolor: 'hsl(var(--destructive) / 0.12)',
+                    border: '1px solid hsl(var(--destructive) / 0.4)',
+                    color: 'hsl(var(--destructive))',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    lineHeight: 1,
+                    cursor: toggling ? 'default' : 'pointer',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      bgcolor: 'hsl(var(--destructive) / 0.22)',
+                      borderColor: 'hsl(var(--destructive) / 0.7)',
+                    },
+                  }}
+                >
+                  {toggling ? (
+                    <CircularProgress size={11} sx={{ color: 'inherit' }} />
+                  ) : (
+                    <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
+                  )}
+                  <span>Activate</span>
+                </Box>
+              </Tooltip>
+            </Box>
+          ) : !isAuthenticated && flow.automationLabel ? (
+            <Box
+              className="uc-card-action"
+              sx={{
+                opacity: 0,
+                pointerEvents: 'none',
+                transition: 'opacity 0.15s ease',
+                flexShrink: 0,
+              }}
             >
               <Box
-                component="button"
-                type="button"
-                disabled={toggling}
-                onClick={handleToggle}
+                component={Link}
+                to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -6781,10 +7129,8 @@ function UsecaseCard({
                   fontWeight: 700,
                   letterSpacing: '0.02em',
                   lineHeight: 1,
-                  cursor: toggling ? 'default' : 'pointer',
-                  outline: 'none',
-                  boxShadow: 'none',
-                  flexShrink: 0,
+                  textDecoration: 'none',
+                  cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   '&:hover': {
                     bgcolor: 'hsl(var(--destructive) / 0.22)',
@@ -6792,46 +7138,9 @@ function UsecaseCard({
                   },
                 }}
               >
-                {toggling ? (
-                  <CircularProgress size={11} sx={{ color: 'inherit' }} />
-                ) : (
-                  <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
-                )}
+                <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
                 <span>Activate</span>
               </Box>
-            </Tooltip>
-          ) : !isAuthenticated && flow.automationLabel ? (
-            <Box
-              component={Link}
-              to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.5,
-                px: 0.85,
-                py: 0.25,
-                height: 22,
-                borderRadius: 0.75,
-                bgcolor: 'hsl(var(--destructive) / 0.12)',
-                border: '1px solid hsl(var(--destructive) / 0.4)',
-                color: 'hsl(var(--destructive))',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                lineHeight: 1,
-                textDecoration: 'none',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: 'hsl(var(--destructive) / 0.22)',
-                  borderColor: 'hsl(var(--destructive) / 0.7)',
-                },
-              }}
-            >
-              <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
-              <span>Activate</span>
             </Box>
           ) : null}
         </Box>
@@ -6984,6 +7293,9 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
         if (lbl.includes('schedules & phone') || lbl.includes('schedules_notifications') || lbl.includes('phone notification')) {
           aliases.push('schedules & phone notifications', 'schedules_&_phone_notifications', 'schedules_notifications', 'phone_notifications', 'assign & escalate', 'assign_&_escalate');
         }
+        if (lbl.includes('threat feeds') || lbl.includes('ioc extraction')) {
+          aliases.push('enable threat feeds', 'enable threat feeds_webhook', 'realtime ioc extraction', 'threat intel');
+        }
         if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
           set.add(uc.automationLabel);
         }
@@ -7023,7 +7335,10 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
       } catch { /* keep previous */ }
     };
 
-    fetchValidatedCats();
+    const cached = getCachedValidatedCategories();
+    if (!cached || cached.size === 0) {
+      fetchValidatedCats();
+    }
     const handleInvalidate = () => {
       fetchValidatedCats();
     };

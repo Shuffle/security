@@ -29,6 +29,7 @@ import {
 import type { SxProps, Theme } from '@mui/material';
 import {
   AlertTriangle,
+  ArrowLeft,
   Play,
   Server,
   ShieldCheck,
@@ -255,21 +256,22 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
       />
     );
 
-  const TAB_ORDER: AgentRunDrawerTab[] = ['run', 'permissions', 'localLLM'];
+  // The Ask AI sidebar is dedicated to page help, so we don't display a persistent
+  // tab strip. Permissions tab is hidden in this helper view. If the user invokes
+  // "Configure LLM", the panel temporarily switches to the 'localLLM' view.
+  const TAB_ORDER: AgentRunDrawerTab[] = ['run', 'localLLM'];
   const visibleTabs = TAB_ORDER.filter((t) => {
     if (t === 'run') return true;
-    if (t === 'permissions') return !!permissionsSlot;
     if (t === 'localLLM') return !!effectiveLocalLLMSlot;
     return false;
   });
-  const showTabs = visibleTabs.length > 1;
 
   const safeActiveTab: AgentRunDrawerTab = visibleTabs.includes(currentTab)
     ? currentTab
     : 'run';
 
   const effectiveWidth =
-    safeActiveTab === 'permissions' || safeActiveTab === 'localLLM'
+    safeActiveTab === 'localLLM'
       ? Math.max(width, 520)
       : width;
 
@@ -455,119 +457,78 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
           </Box>
         </Box>
 
-        {/* Tab Navigation Strip (Run, Permissions, Local LLM) */}
-        {showTabs && (
-          <Box
-            sx={{
-              borderBottom: '1px solid hsl(var(--border) / 0.6)',
-              bgcolor: 'hsl(var(--card))',
-              flexShrink: 0,
-            }}
-          >
-            <Tabs
-              value={safeActiveTab}
-              onChange={(_, v) => handleTabChange(v as AgentRunDrawerTab)}
-              sx={{
-                minHeight: 40,
-                px: 1,
-                '& .MuiTab-root': {
-                  minHeight: 40,
-                  textTransform: 'none',
-                  fontSize: '0.82rem',
-                  fontWeight: 500,
-                  color: 'hsl(var(--muted-foreground))',
-                  py: 0.5,
-                  '&.Mui-selected': {
-                    color: 'hsl(var(--primary))',
-                  },
-                },
-                '& .MuiTabs-indicator': {
-                  bgcolor: 'hsl(var(--primary))',
-                },
-              }}
-            >
-              {visibleTabs.includes('run') && (
-                <Tab
-                  value="run"
-                  label="Run"
-                  icon={<Play size={13} />}
-                  iconPosition="start"
-                  sx={{ gap: 0.5, minHeight: 40, px: 1.5 }}
-                />
-              )}
-              {visibleTabs.includes('permissions') && (
-                <Tab
-                  value="permissions"
-                  label={
-                    permissionsDisabled ? (
-                      <Tooltip
-                        title={permissionsDisabledTooltip || 'Coming soon'}
-                        arrow
-                      >
-                        <Box
-                          component="span"
-                          sx={{ display: 'inline-flex', alignItems: 'center' }}
-                        >
-                          Permissions
-                        </Box>
-                      </Tooltip>
-                    ) : (
-                      'Permissions'
-                    )
-                  }
-                  icon={<ShieldCheck size={13} />}
-                  iconPosition="start"
-                  disabled={permissionsDisabled}
-                  sx={{ gap: 0.5, minHeight: 40, px: 1.5 }}
-                />
-              )}
-              {visibleTabs.includes('localLLM') && (
-                <Tab
-                  value="localLLM"
-                  label={
-                    <Box
-                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                    >
-                      Local LLM
-                      {localLLMTabBadge}
-                    </Box>
-                  }
-                  icon={<Server size={13} />}
-                  iconPosition="start"
-                  sx={{ gap: 0.5, minHeight: 40, px: 1.5 }}
-                />
-              )}
-            </Tabs>
-          </Box>
-        )}
-
-        {/* Tab Panel: Permissions */}
-        {safeActiveTab === 'permissions' && permissionsSlot && (
-          <Box
-            sx={{
-              flex: 1,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              p: 2,
-              minHeight: 0,
-            }}
-          >
-            {permissionsSlot}
-          </Box>
-        )}
-
-        {/* Tab Panel: Local LLM */}
+        {/* Tab Panel: Local LLM (shown when user clicks "Configure LLM") */}
         {safeActiveTab === 'localLLM' && effectiveLocalLLMSlot && (
           <Box
             sx={{
               flex: 1,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
               minHeight: 0,
+              overflow: 'hidden',
             }}
           >
-            {effectiveLocalLLMSlot}
+            {/* Top Navigation Bar: Back to Chat + Local LLM title */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 2,
+                py: 1.25,
+                borderBottom: '1px solid hsl(var(--border) / 0.6)',
+                bgcolor: 'hsl(var(--card))',
+                flexShrink: 0,
+              }}
+            >
+              <ButtonBase
+                onClick={() => handleTabChange('run')}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: 'hsl(var(--primary))',
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: 1,
+                  transition: 'background-color 120ms ease',
+                  '&:hover': {
+                    bgcolor: 'hsl(var(--muted))',
+                  },
+                }}
+              >
+                <ArrowLeft size={14} />
+                Back to chat
+              </ButtonBase>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  fontSize: '0.78rem',
+                  color: 'hsl(var(--muted-foreground))',
+                  fontWeight: 500,
+                }}
+              >
+                <Server size={13} />
+                Local LLM
+                {localLLMTabBadge}
+              </Box>
+            </Box>
+
+            <Box
+              sx={{
+                flex: 1,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                p: 2,
+                minHeight: 0,
+              }}
+            >
+              {effectiveLocalLLMSlot}
+            </Box>
           </Box>
         )}
 

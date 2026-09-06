@@ -11,6 +11,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { fetchJsonCached } from './views/appsFetchCache';
 
 export interface AuthenticatedApp {
   id?: string;
@@ -35,14 +36,16 @@ const fetchAuthenticatedApps = async (crossOrgId?: string | null): Promise<Authe
     ...getAuthHeader(),
     ...(crossOrgId ? { 'Org-Id': crossOrgId } : {}),
   };
-  const response = await fetch(getApiUrl('/api/v1/apps/authentication'), {
-    credentials: 'include',
-    headers,
-  });
-  if (!response.ok) return [];
-  const result = await response.json();
-  const data = result?.data || result;
-  return Array.isArray(data) ? data : [];
+  try {
+    const result = await fetchJsonCached(getApiUrl('/api/v1/apps/authentication'), {
+      credentials: 'include',
+      headers,
+    });
+    const data = result?.data || result;
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 };
 
 export const useAuthenticatedApps = (crossOrgId?: string | null) => {

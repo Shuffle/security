@@ -36,7 +36,8 @@ import {
   Refresh as RefreshIcon,
   WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
-import { getApiUrl, getAuthHeader } from '../api';
+import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { fetchWorkflowsCached, fetchOrgCached } from '../views/appsFetchCache';
 import { SegmentedControl } from './ui/segmented-control';
 
 export const NOTIFICATIONS_OPEN_EVENT = 'notifications:open';
@@ -162,19 +163,16 @@ const NotificationsDrawer = ({
         if (!activeOrg || cancelled) return;
         setOrgId(activeOrg);
 
-        const [orgResp, wfResp] = await Promise.all([
-          fetch(getApiUrl(`/api/v1/orgs/${activeOrg}`), { credentials: 'include', headers }),
-          fetch(getApiUrl('/api/v1/workflows'), { credentials: 'include', headers }),
+        const [org, list] = await Promise.all([
+          fetchOrgCached(getApiUrl(`/api/v1/orgs/${activeOrg}`), { credentials: 'include', headers }),
+          fetchWorkflowsCached(getApiUrl('/api/v1/workflows'), { credentials: 'include', headers }),
         ]);
-        if (orgResp.ok && !cancelled) {
-          const org = await orgResp.json();
+        if (org && !cancelled) {
           const defaults = (org?.defaults || org?.org?.defaults || {}) as Record<string, any>;
           setOrgDefaults(defaults);
           setNotificationWorkflow(String(defaults?.notification_workflow || ''));
         }
-        if (wfResp.ok && !cancelled) {
-          const data = await wfResp.json();
-          const list = Array.isArray(data) ? data : (data?.workflows || []);
+        if (Array.isArray(list) && !cancelled) {
           setWorkflows(
             list
               .filter((w: any) => w?.id)

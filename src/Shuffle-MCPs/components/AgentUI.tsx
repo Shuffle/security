@@ -5499,29 +5499,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       placement="bottom-start"
       sx={{
         height: 32,
-        px: 1.25,
-        fontSize: '0.78rem',
-        fontWeight: 500,
-        borderRadius: 999,
-        border: '1px solid hsl(var(--border))',
-        bgcolor: 'hsl(var(--muted) / 0.65)',
-        color: 'hsl(var(--foreground))',
-        flexShrink: 0,
-        maxWidth: 'calc(100% - 90px)',
         alignSelf: 'center',
-        '& .MuiButton-startIcon': {
-          mr: 0.75,
-          ml: -0.25,
-          color: 'hsl(var(--primary))',
-        },
-        '& .MuiButton-endIcon': {
-          ml: 0.5,
-          mr: -0.25,
-        },
-        '&:hover': {
-          bgcolor: 'hsl(var(--muted))',
-          borderColor: 'hsl(var(--border))',
-        },
       }}
     />
   ) : null;
@@ -5733,7 +5711,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               }}>
 
               {isPhone && !promptMultiline && (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                   {mobilePlusButton}
                   {mobileSkillChip}
                 </Box>
@@ -5952,7 +5930,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
 
               {isPhone && promptMultiline && (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexShrink: 0, minWidth: 0, maxWidth: 'calc(100% - 60px)' }}>
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexShrink: 0, minWidth: 0, maxWidth: 'calc(100% - 60px)' }}>
                   {mobilePlusButton}
                   {mobileSkillChip}
                 </Box>

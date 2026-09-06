@@ -302,6 +302,8 @@ export interface Usecase {
   phase: FlowPhase;
   tags: string[];
   animated?: boolean;
+  /** When true, this usecase is only visible to support users */
+  supportOnly?: boolean;
   /** Label sent to POST /api/v2/workflows/generate */
   automationLabel?: string;
   /** Category sent with the generate call */
@@ -464,6 +466,16 @@ export const DEFAULT_USECASES: Usecase[] = [
     automationArea: 'automatic_ingestion',
   },
   {
+    id: 'threat_intel_ingest_1', phase: 'ingest', source: 'threat_intel', target: 'case_management',
+    label: 'IOC feeds', animated: true,
+    tags: ['Ingest', 'Threat Intel', 'Feeds', 'IOCs'],
+    description: 'Ingest indicator of compromise (IOC) feeds from open-source intelligence (OSINT), commercial threat feeds, and ISACs into Shuffle to detect malicious IPs, domains, hashes, and URLs.',
+    agenticDescription: 'An agent continuously ingests and deduplicates threat feeds, normalizes indicators, tracks source confidence, and stages them for real-time incident matching.',
+    automationLabel: 'Enable Threat feeds',
+    automationCategory: 'cases',
+    automationArea: 'threat_intel',
+  },
+  {
     id: 'network_siem_1', phase: 'ingest', source: 'network', target: 'siem',
     label: 'Flow logs',
     tags: ['Logs', 'Detection'],
@@ -604,7 +616,7 @@ export const DEFAULT_USECASES: Usecase[] = [
   },
   {
     id: 'asset_management_case_management_vuln_response_1', phase: 'response', source: 'asset_management', target: 'case_management',
-    label: 'Vulnerability Response', animated: true,
+    label: 'Vulnerability Response', animated: false, supportOnly: true,
     tags: ['Response', 'Vulnerability', 'Remediation'],
     description: 'Automatically open remediation tasks, patch tickets, or compensating-control workflows for vulnerabilities discovered during incident investigation — closing the loop between detection and fix.',
     agenticDescription: 'An agent triages each confirmed exploitable CVE on an affected host, opens a remediation ticket with owner and SLA, applies a compensating control where possible, and tracks the fix back to the originating incident.',
@@ -859,6 +871,9 @@ export function getUsecaseWorkflowLabels(usecase: Pick<Usecase, 'automationLabel
   }
   if (lower.includes('schedules & phone') || lower.includes('schedules_notifications') || lower.includes('phone notification')) {
     out.push('schedules & phone notifications', 'schedules_&_phone_notifications', 'schedules_notifications', 'phone_notifications', 'assign & escalate', 'assign_&_escalate');
+  }
+  if (lower.includes('threat feeds') || lower.includes('ioc extraction')) {
+    out.push('enable threat feeds', 'enable threat feeds_webhook', 'realtime ioc extraction', 'threat intel');
   }
   return out;
 }

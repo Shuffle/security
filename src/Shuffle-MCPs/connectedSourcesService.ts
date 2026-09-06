@@ -18,7 +18,7 @@ import {
   EDR_PATTERNS,
   EMAIL_APP_PATTERNS,
   VULN_SCANNER_PATTERNS,
-} from './ingestionDetection';
+} from './ingestionDetection.ts';
 
 export interface ConnectedToolApp {
   name: string;

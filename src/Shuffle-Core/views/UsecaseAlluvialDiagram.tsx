@@ -1022,6 +1022,10 @@ export default function UsecaseAlluvialDiagram({
         // If we don't have any cached data at all, indicate loading
         if (!mem) {
           setLoading(true);
+        } else if (Date.now() - mem.ts < 60_000) {
+          // Fresh in-memory cache hit — skip duplicate fetch on drawer open
+          setLoading(false);
+          return;
         }
 
         // Parallel fetch: auth apps and active apps using request-coalescing cached fetcher
@@ -1952,7 +1956,7 @@ export default function UsecaseAlluvialDiagram({
         onDetailClose={isLoggedIn ? async (appName: string) => {
           // After authenticating, re-check if app is now valid and auto-add
           try {
-            const res = await fetch(getApiUrl('/api/v1/apps/authentication'), {
+            const res = await fetchAppsCached(getApiUrl('/api/v1/apps/authentication'), {
               credentials: 'include',
               headers: getAuthHeader(),
             });

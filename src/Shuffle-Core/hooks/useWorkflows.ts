@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getApiUrl, getAuthHeader } from '../api';
+import { fetchWorkflowsCached } from '../views/appsFetchCache';
 
 export interface WorkflowSummary {
   id: string;
@@ -14,14 +15,10 @@ export interface WorkflowSummary {
 }
 
 const fetchWorkflows = async (): Promise<WorkflowSummary[]> => {
-  const res = await fetch(getApiUrl('/api/v1/workflows'), {
+  return fetchWorkflowsCached(getApiUrl('/api/v1/workflows'), {
     credentials: 'include',
     headers: { ...getAuthHeader() },
   });
-  if (!res.ok) return [];
-  const data = await res.json();
-  const list = Array.isArray(data) ? data : (data.workflows || []);
-  return list;
 };
 
 export const useWorkflows = () => {

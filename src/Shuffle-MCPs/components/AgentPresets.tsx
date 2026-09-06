@@ -11,7 +11,7 @@
  * presets render with a "coming soon" chip and are not clickable.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, ClickAwayListener, Paper, Popper, type PopperProps, TextField, Tooltip, Typography, SxProps, Theme } from '@mui/material';
+import { Box, Button, ButtonBase, ClickAwayListener, Paper, Popper, type PopperProps, TextField, Tooltip, Typography, SxProps, Theme } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 import { AppFallbackIcon } from './AppFallbackIcon';
 
@@ -204,58 +204,30 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     : 'Skills';
 
   const trigger = (
-    <Button
+    <ButtonBase
       ref={chipRef}
-      size="small"
       onClick={(e) => setAnchorEl(e.currentTarget)}
-      startIcon={selectedPreset ? (selectedPreset.icon ?? undefined) : <Plus size={variant === 'floating' ? 12 : 14} />}
-      endIcon={
-        selectedPreset ? (
-          <Box
-            component="span"
-            role="button"
-            aria-label="Remove skill"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemoveSelected?.();
-            }}
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              ml: 0.5,
-              p: '2px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              color: 'hsl(var(--muted-foreground))',
-              transition: 'background-color 120ms ease, color 120ms ease',
-              '&:hover': {
-                bgcolor: 'hsl(var(--foreground) / 0.12)',
-                color: 'hsl(var(--foreground))',
-              },
-            }}
-          >
-            <CloseIcon size={variant === 'floating' ? 12 : 13} />
-          </Box>
-        ) : undefined
-      }
+      aria-label={selectedPreset ? `Skill: ${selectedPreset.label}` : 'Select skill'}
       sx={[
         {
-          textTransform: 'none',
-          fontSize: variant === 'floating' ? '0.72rem' : '0.78rem',
-          fontWeight: 500,
-          height: variant === 'floating' ? 30 : variant === 'inline' ? 38 : 36,
-          px: variant === 'floating' ? 1.25 : 1.625,
-          py: 0.375,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '5px',
+          height: variant === 'floating' ? 30 : variant === 'inline' ? 38 : 32,
+          px: variant === 'floating' ? '9px' : '12px',
+          py: 0,
           borderRadius: 999,
           border: '1px solid hsl(var(--border))',
           color: selectedPreset ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-          bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.6)' : 'transparent',
+          bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.7)' : 'transparent',
+          fontSize: variant === 'floating' ? '0.75rem' : '0.78rem',
+          fontWeight: 500,
           flexShrink: 0,
+          boxSizing: 'border-box',
+          cursor: 'pointer',
           transition: 'background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
           '&:hover': {
-            bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.85)' : 'hsl(var(--muted))',
-            color: 'hsl(var(--foreground))',
+            bgcolor: selectedPreset ? 'hsl(var(--muted) / 0.9)' : 'hsl(var(--muted) / 0.5)',
             borderColor: selectedPreset ? 'hsl(var(--muted-foreground) / 0.35)' : 'hsl(var(--border))',
             boxShadow: selectedPreset ? '0 1px 4px hsl(var(--background) / 0.35)' : 'none',
           },
@@ -263,8 +235,69 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
-      {displayLabel}
-    </Button>
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          color: selectedPreset ? 'hsl(var(--primary))' : 'inherit',
+          '& svg': {
+            width: variant === 'floating' ? 14 : 16,
+            height: variant === 'floating' ? 14 : 16,
+          },
+        }}
+      >
+        {selectedPreset ? (selectedPreset.icon ?? undefined) : <Plus size={variant === 'floating' ? 12 : 14} />}
+      </Box>
+
+      <Typography
+        component="span"
+        sx={{
+          fontSize: 'inherit',
+          fontWeight: 'inherit',
+          color: 'inherit',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: 150,
+        }}
+      >
+        {displayLabel}
+      </Typography>
+
+      {selectedPreset && (
+        <Box
+          component="span"
+          role="button"
+          aria-label="Remove skill"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveSelected?.();
+          }}
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            ml: '1px',
+            p: '2px',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            flexShrink: 0,
+            color: 'hsl(var(--muted-foreground))',
+            transition: 'background-color 120ms ease, color 120ms ease',
+            '&:hover': {
+              bgcolor: 'hsl(var(--foreground) / 0.12)',
+              color: 'hsl(var(--foreground))',
+            },
+          }}
+        >
+          <CloseIcon size={variant === 'floating' ? 11 : 12} />
+        </Box>
+      )}
+    </ButtonBase>
   );
 
 
@@ -528,20 +561,11 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
   ) : null;
 
 
-  if (variant === 'inline') {
-    return (
-      <>
-        {trigger}
-        {menu}
-      </>
-    );
-  }
-
   return (
-    <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+    <>
       {trigger}
       {menu}
-    </Box>
+    </>
   );
 };
 

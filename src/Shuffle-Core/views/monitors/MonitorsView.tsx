@@ -33,6 +33,7 @@ import { MonitorHostTable } from './MonitorHostTable';
 import { trackPredefinedEvent, GA_EVENTS } from '@/lib/analytics';
 import { isDemoActive } from '@/services/demoMode';
 import { DEMO_HOST_HOSTNAME } from '@/services/demoLiveEnvironment';
+import { fetchEnvironmentsCached } from '../appsFetchCache';
 
 const OsIcon = ({ os, size = 14, className = '' }: { os: string; size?: number; className?: string }) => {
   const lower = (os || '').toLowerCase();
@@ -149,12 +150,10 @@ interface MonitoringGroup {
 /** Fetch environments from the API and supplement hosts from datastore (sensors > assets > env). */
 const fetchSensorGroups = async (): Promise<{ groups: MonitoringGroup[]; allEnvs: OrbEnvironment[]; error?: string }> => {
   try {
-    const res = await fetch(getApiUrl('/api/v1/getenvironments'), {
+    const data = await fetchEnvironmentsCached(getApiUrl('/api/v1/getenvironments'), {
       credentials: 'include',
       headers: { ...getAuthHeader() },
     });
-    if (!res.ok) return { groups: [], allEnvs: [], error: `Failed to load monitors (HTTP ${res.status})` };
-    const data = await res.json();
     const envs: OrbEnvironment[] = Array.isArray(data) ? data.filter((e: OrbEnvironment) => !e.archived) : [];
 
     // Cross-load sensor + asset datastores once for the whole set of groups.

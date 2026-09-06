@@ -24,15 +24,46 @@ export interface AlluvialCache {
 
 const APPS_TTL_MS = 60_000;
 const JSON_CACHE_TTL_MS = 120_000; // 2 minutes general
+const ENVIRONMENTS_TTL_MS = 120_000; // 2 minutes
 const WORKFLOWS_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 const _jsonCache = new Map<string, { ts: number; data: any }>();
 const _inFlightPromises = new Map<string, Promise<any>>();
 
 /**
+ * Normalizes URL and Org-Id header into a uniform cache key so relative,
+ * absolute, and host-differing URLs (e.g. apiUrl vs getApiUrl) share the
+ * exact same in-flight Promise and in-memory cache.
+ */
+export function normalizeEndpointKey(url: string, init?: RequestInit): string {
+  let pathname = url;
+  let search = '';
+  try {
+    const parsed = new URL(url, 'https://shuffle.internal');
+    pathname = parsed.pathname;
+    search = parsed.search;
+  } catch {
+    // keep raw url if parse fails
+  }
+  let orgId = '';
+  if (init?.headers) {
+    if (init.headers instanceof Headers) {
+      orgId = init.headers.get('Org-Id') || '';
+    } else if (Array.isArray(init.headers)) {
+      const match = init.headers.find(([k]) => k.toLowerCase() === 'org-id');
+      if (match) orgId = match[1];
+    } else if (typeof init.headers === 'object') {
+      orgId = (init.headers as any)['Org-Id'] || (init.headers as any)['org-id'] || '';
+    }
+  }
+  return `${pathname}${search}${orgId ? `::org:${orgId}` : ''}`;
+}
+
+/**
  * Request-coalescing in-memory JSON fetcher.
- * Guarantees that concurrent calls to the exact same URL join the same Promise,
- * and subsequent calls within TTL read directly from memory with 0 network overhead.
+ * Guarantees that concurrent calls to the exact same normalized endpoint
+ * join the same Promise, and subsequent calls within TTL read directly
+ * from memory with 0 network overhead.
  */
 export async function fetchJsonCached<T = any>(
   url: string,
@@ -40,13 +71,14 @@ export async function fetchJsonCached<T = any>(
   ttlMs: number = JSON_CACHE_TTL_MS,
   force: boolean = false,
 ): Promise<T> {
+  const cacheKey = normalizeEndpointKey(url, init);
   const now = Date.now();
   if (!force) {
-    const cached = _jsonCache.get(url);
+    const cached = _jsonCache.get(cacheKey);
     if (cached && now - cached.ts < ttlMs) {
       return cached.data as T;
     }
-    const inFlight = _inFlightPromises.get(url);
+    const inFlight = _inFlightPromises.get(cacheKey);
     if (inFlight) {
       return inFlight as Promise<T>;
     }
@@ -56,19 +88,19 @@ export async function fetchJsonCached<T = any>(
     try {
       const res = await fetch(url, init);
       if (!res.ok) {
-        const prev = _jsonCache.get(url);
+        const prev = _jsonCache.get(cacheKey);
         if (prev) return prev.data as T;
         throw new Error(`HTTP ${res.status}`);
       }
       const data = await res.json();
-      _jsonCache.set(url, { ts: Date.now(), data });
+      _jsonCache.set(cacheKey, { ts: Date.now(), data });
       return data as T;
     } finally {
-      _inFlightPromises.delete(url);
+      _inFlightPromises.delete(cacheKey);
     }
   })();
 
-  _inFlightPromises.set(url, p);
+  _inFlightPromises.set(cacheKey, p);
   return p;
 }
 
@@ -84,10 +116,20 @@ export async function fetchAppsCached(url: string, init?: RequestInit): Promise<
   });
 }
 
+/**
+ * Cached environments fetcher with request coalescing and 2-minute memory cache.
+ */
+export async function fetchEnvironmentsCached(
+  url: string,
+  init?: RequestInit,
+  force = false,
+): Promise<any> {
+  return fetchJsonCached(url, init, ENVIRONMENTS_TTL_MS, force);
+}
+
 // Module-level workflows cache
 let _workflowsCache: any[] | null = null;
 let _workflowsCacheTs = 0;
-let _workflowsPromise: Promise<any[]> | null = null;
 
 export function getCachedWorkflows(): any[] | null {
   if (_workflowsCache && Date.now() - _workflowsCacheTs < WORKFLOWS_TTL_MS) {
@@ -106,32 +148,15 @@ export async function fetchWorkflowsCached(
   init?: RequestInit,
   force = false,
 ): Promise<any[]> {
-  const now = Date.now();
-  if (!force && _workflowsCache && now - _workflowsCacheTs < WORKFLOWS_TTL_MS) {
-    return _workflowsCache;
+  try {
+    const data = await fetchJsonCached(url, init, WORKFLOWS_TTL_MS, force);
+    const list = Array.isArray(data) ? data : (data?.workflows || []);
+    _workflowsCache = list;
+    _workflowsCacheTs = Date.now();
+    return list;
+  } catch {
+    return _workflowsCache || [];
   }
-  if (!force && _workflowsPromise) {
-    return _workflowsPromise;
-  }
-
-  const p = (async () => {
-    try {
-      const res = await fetch(url, init);
-      if (!res.ok) return _workflowsCache || [];
-      const body = await res.json();
-      const list = Array.isArray(body) ? body : (body?.workflows || []);
-      _workflowsCache = list;
-      _workflowsCacheTs = Date.now();
-      return list;
-    } catch {
-      return _workflowsCache || [];
-    } finally {
-      _workflowsPromise = null;
-    }
-  })();
-
-  _workflowsPromise = p;
-  return p;
 }
 
 /**
@@ -238,7 +263,6 @@ export function invalidateAppsCache() {
   _jsonCache.clear();
   _inFlightPromises.clear();
   _workflowsCache = null;
-  _workflowsPromise = null;
   _cachedIntegrations = null;
   _cachedCatalogIcons = {};
   _cachedCategoryAppNames = null;
