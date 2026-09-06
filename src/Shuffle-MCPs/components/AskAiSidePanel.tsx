@@ -16,22 +16,31 @@
  *  - Choice persistence: remembers tool and skill modifications per page.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   ButtonBase,
   IconButton,
+  Tab,
+  Tabs,
   Tooltip,
   Typography,
 } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import {
   AlertTriangle,
+  Play,
+  Server,
+  ShieldCheck,
   X as CloseIcon,
 } from 'lucide-react';
 
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import AgentUI, { type AgentUIProps } from '@/Shuffle-MCPs/components/AgentUI';
+import { type AgentRunDrawerTab } from '@/Shuffle-MCPs/components/AgentRunDrawer';
+import LocalLLMConfig from '@/Shuffle-MCPs/components/LocalLLMConfig';
+import { type ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 import {
   isAgentRoute,
   resolveAgentContext,
@@ -42,11 +51,31 @@ import {
 } from '@/Shuffle-MCPs/agentContextRegistry';
 import { useShuffleMcpTheme } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
 
-export interface AskAiSidePanelProps {
+export const AGENT_DRAWER_OPEN_EVENT = 'agent-drawer-open';
+export interface AgentDrawerOpenDetail {
+  tab?: AgentRunDrawerTab;
+}
+
+export interface AskAiSidePanelProps extends ShuffleHostProps {
   /** Whether the side panel is open */
   open: boolean;
   /** Callback to close the side panel */
   onClose: () => void;
+  /** Initial tab or active tab to display. Default: 'run' */
+  initialTab?: AgentRunDrawerTab;
+  /** Controlled active tab */
+  activeTab?: AgentRunDrawerTab;
+  /** Tab change callback */
+  onTabChange?: (tab: AgentRunDrawerTab) => void;
+  /** Render content for the Permissions tab. Tab is hidden when omitted. */
+  permissionsSlot?: React.ReactNode;
+  /** Render content for the Local LLM tab. Defaults to bundled Local LLM configuration UI. */
+  localLLMSlot?: React.ReactNode;
+  /** Custom badge node next to the Local LLM tab label. */
+  localLLMTabBadge?: React.ReactNode;
+  /** Tooltip shown when the Permissions tab is rendered but disabled. */
+  permissionsDisabled?: boolean;
+  permissionsDisabledTooltip?: string;
   /** Current URL pathname. Falls back to window.location.pathname when omitted. */
   pathname?: string;
   /** Current URL search params string. */
@@ -72,6 +101,14 @@ export interface AskAiSidePanelProps {
 export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   open,
   onClose,
+  initialTab = 'run',
+  activeTab: propActiveTab,
+  onTabChange,
+  permissionsSlot,
+  localLLMSlot,
+  localLLMTabBadge,
+  permissionsDisabled = false,
+  permissionsDisabledTooltip,
   pathname,
   search,
   rules,
@@ -81,6 +118,11 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   globalUrl,
   agentUIProps,
   onContextResolved,
+  userdata,
+  isLoaded,
+  isLoggedIn,
+  serverside,
+  colorMode,
   sx,
 }) => {
   const themeScope = useShuffleMcpTheme();
@@ -141,12 +183,105 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     onContextResolved?.(context);
   }, [context, onContextResolved]);
 
+  useSyncHostBaseUrl(globalUrl);
+
+  const [internalTab, setInternalTab] = useState<AgentRunDrawerTab>(initialTab);
+  const currentTab = propActiveTab !== undefined ? propActiveTab : internalTab;
+
+  const handleTabChange = useCallback(
+    (nextTab: AgentRunDrawerTab) => {
+      setInternalTab(nextTab);
+      onTabChange?.(nextTab);
+    },
+    [onTabChange],
+  );
+
+  // Sync initialTab prop changes
+  useEffect(() => {
+    if (initialTab) {
+      setInternalTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Reset tab whenever the side panel transitions from closed -> open
+  const prevOpenRef = useRef(open);
+  useEffect(() => {
+    if (open && !prevOpenRef.current && initialTab) {
+      setInternalTab(initialTab);
+      onTabChange?.(initialTab);
+    }
+    prevOpenRef.current = open;
+  }, [open, initialTab, onTabChange]);
+
+  // Broadcast mounted status so AgentUI knows a drawer/panel is present
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    (window as any).__shuffleAgentDrawerMounted =
+      ((window as any).__shuffleAgentDrawerMounted || 0) + 1;
+    return () => {
+      (window as any).__shuffleAgentDrawerMounted = Math.max(
+        0,
+        ((window as any).__shuffleAgentDrawerMounted || 1) - 1,
+      );
+    };
+  }, []);
+
+  // Listen for global open events requesting specific tabs
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOpen = (event: Event) => {
+      const tab = (event as CustomEvent<AgentDrawerOpenDetail>).detail?.tab;
+      if (tab) {
+        handleTabChange(tab as AgentRunDrawerTab);
+      }
+    };
+    window.addEventListener(AGENT_DRAWER_OPEN_EVENT, onOpen as EventListener);
+    return () => {
+      window.removeEventListener(AGENT_DRAWER_OPEN_EVENT, onOpen as EventListener);
+    };
+  }, [handleTabChange]);
+
+  const effectiveLocalLLMSlot =
+    localLLMSlot ?? (
+      <LocalLLMConfig
+        open={open}
+        globalUrl={globalUrl}
+        userdata={userdata}
+        isLoaded={isLoaded}
+        isLoggedIn={isLoggedIn}
+        serverside={serverside}
+        theme={effectiveTheme}
+        colorMode={colorMode}
+      />
+    );
+
+  const TAB_ORDER: AgentRunDrawerTab[] = ['run', 'permissions', 'localLLM'];
+  const visibleTabs = TAB_ORDER.filter((t) => {
+    if (t === 'run') return true;
+    if (t === 'permissions') return !!permissionsSlot;
+    if (t === 'localLLM') return !!effectiveLocalLLMSlot;
+    return false;
+  });
+  const showTabs = visibleTabs.length > 1;
+
+  const safeActiveTab: AgentRunDrawerTab = visibleTabs.includes(currentTab)
+    ? currentTab
+    : 'run';
+
+  const effectiveWidth =
+    safeActiveTab === 'permissions' || safeActiveTab === 'localLLM'
+      ? Math.max(width, 520)
+      : width;
+
   // Manage UI sideshifting via CSS variable `--ask-ai-panel-width`
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
     if (open && !isAgentDisabled) {
-      document.documentElement.style.setProperty('--ask-ai-panel-width', `${width}px`);
+      document.documentElement.style.setProperty(
+        '--ask-ai-panel-width',
+        `${effectiveWidth}px`,
+      );
     } else {
       document.documentElement.style.setProperty('--ask-ai-panel-width', '0px');
     }
@@ -154,7 +289,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     return () => {
       document.documentElement.style.setProperty('--ask-ai-panel-width', '0px');
     };
-  }, [open, isAgentDisabled, width]);
+  }, [open, isAgentDisabled, effectiveWidth]);
 
   const handleAppsChange = useCallback<NonNullable<AgentUIProps['onAppsChange']>>(
     (nextApps) => {
@@ -210,7 +345,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             top: 0,
             right: 0,
             bottom: 0,
-            width: { xs: '100%', sm: width },
+            width: { xs: '100%', sm: effectiveWidth },
             maxWidth: '100vw',
             height: '100dvh',
             bgcolor: 'hsl(var(--card))',
@@ -220,7 +355,8 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             display: 'flex',
             flexDirection: 'column',
             transform: isVisible ? 'translateX(0)' : 'translateX(100%)',
-            transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            transition:
+              'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s ease',
             pointerEvents: isVisible ? 'auto' : 'none',
             visibility: isVisible ? 'visible' : 'hidden',
             boxSizing: 'border-box',
@@ -242,7 +378,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             flexShrink: 0,
           }}
         >
-          {/* Logo & Support Tag */}
+          {/* Logo & Tab/Panel Title */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box
               sx={{
@@ -258,7 +394,13 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 flexShrink: 0,
               }}
             >
-              <AgentIcon size={14} />
+              {safeActiveTab === 'permissions' ? (
+                <ShieldCheck size={14} />
+              ) : safeActiveTab === 'localLLM' ? (
+                <Server size={14} />
+              ) : (
+                <AgentIcon size={14} />
+              )}
             </Box>
             <Typography
               sx={{
@@ -268,7 +410,11 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 letterSpacing: '-0.01em',
               }}
             >
-              Ask AI
+              {safeActiveTab === 'permissions'
+                ? 'Agent Permissions'
+                : safeActiveTab === 'localLLM'
+                  ? 'Local LLM Settings'
+                  : 'Ask AI'}
             </Typography>
             <Box
               sx={{
@@ -309,94 +455,224 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
           </Box>
         </Box>
 
-        {/* Missing Config Banner for Support Users */}
-        {context.missingConfig && (
+        {/* Tab Navigation Strip (Run, Permissions, Local LLM) */}
+        {showTabs && (
           <Box
             sx={{
-              mx: 2,
-              mt: 1.5,
-              mb: 0.5,
-              p: 1.25,
-              borderRadius: 1.5,
-              bgcolor: 'hsl(var(--warning) / 0.1)',
-              border: '1px solid hsl(var(--warning) / 0.3)',
-              color: 'hsl(var(--warning))',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 0.5,
+              borderBottom: '1px solid hsl(var(--border) / 0.6)',
+              bgcolor: 'hsl(var(--card))',
               flexShrink: 0,
             }}
           >
-            <Box
+            <Tabs
+              value={safeActiveTab}
+              onChange={(_, v) => handleTabChange(v as AgentRunDrawerTab)}
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.75,
-                fontWeight: 600,
-                fontSize: '0.78rem',
+                minHeight: 40,
+                px: 1,
+                '& .MuiTab-root': {
+                  minHeight: 40,
+                  textTransform: 'none',
+                  fontSize: '0.82rem',
+                  fontWeight: 500,
+                  color: 'hsl(var(--muted-foreground))',
+                  py: 0.5,
+                  '&.Mui-selected': {
+                    color: 'hsl(var(--primary))',
+                  },
+                },
+                '& .MuiTabs-indicator': {
+                  bgcolor: 'hsl(var(--primary))',
+                },
               }}
             >
-              <AlertTriangle size={14} />
-              Missing page configuration
-            </Box>
-            <Typography
-              sx={{
-                fontSize: '0.72rem',
-                color: 'hsl(var(--muted-foreground))',
-                lineHeight: 1.35,
-              }}
-            >
-              No specific MCP apps or skills mapped for <code>{currentPathname}</code>. Using default platform tools. Support users: add a route mapping in <code>agentContextRegistry.ts</code> or manually choose tools below.
-            </Typography>
+              {visibleTabs.includes('run') && (
+                <Tab
+                  value="run"
+                  label="Run"
+                  icon={<Play size={13} />}
+                  iconPosition="start"
+                  sx={{ gap: 0.5, minHeight: 40, px: 1.5 }}
+                />
+              )}
+              {visibleTabs.includes('permissions') && (
+                <Tab
+                  value="permissions"
+                  label={
+                    permissionsDisabled ? (
+                      <Tooltip
+                        title={permissionsDisabledTooltip || 'Coming soon'}
+                        arrow
+                      >
+                        <Box
+                          component="span"
+                          sx={{ display: 'inline-flex', alignItems: 'center' }}
+                        >
+                          Permissions
+                        </Box>
+                      </Tooltip>
+                    ) : (
+                      'Permissions'
+                    )
+                  }
+                  icon={<ShieldCheck size={13} />}
+                  iconPosition="start"
+                  disabled={permissionsDisabled}
+                  sx={{ gap: 0.5, minHeight: 40, px: 1.5 }}
+                />
+              )}
+              {visibleTabs.includes('localLLM') && (
+                <Tab
+                  value="localLLM"
+                  label={
+                    <Box
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                    >
+                      Local LLM
+                      {localLLMTabBadge}
+                    </Box>
+                  }
+                  icon={<Server size={13} />}
+                  iconPosition="start"
+                  sx={{ gap: 0.5, minHeight: 40, px: 1.5 }}
+                />
+              )}
+            </Tabs>
           </Box>
         )}
 
-        {/* Scrollable Agent Run Body (Mobile UI layout matching /agents) */}
-        <Box
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            px: 1.5,
-            pb: 2,
-            minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <AgentUI
-            key={context.storageKey}
-            compact={true}
-            mobileView={true}
-            hideHeroIcon={true}
-            title={context.title || 'How can we help on this page?'}
-            subtitle={null}
-            hideChooseLLM={false}
-            disableSchedule={true}
-            hideAttach={false}
-            maxWidth={width - 32}
-            defaultApps={context.apps}
-            initialPresetId={context.presetId}
-            placeholder={context.placeholder}
-            contextCategory={context.sourceCategory}
-            contextStorageKey={context.storageKey}
-            onAppsChange={handleAppsChange}
-            onSelectPreset={handleSelectPreset}
-            apiBaseUrl={globalUrl || agentUIProps?.apiBaseUrl}
-            theme={effectiveTheme}
-            {...agentUIProps}
+        {/* Tab Panel: Permissions */}
+        {safeActiveTab === 'permissions' && permissionsSlot && (
+          <Box
             sx={{
               flex: 1,
-              minHeight: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              pt: 0,
-              pb: 2,
-              ...(agentUIProps?.sx ? (Array.isArray(agentUIProps.sx) ? {} : agentUIProps.sx) : {}),
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              p: 2,
+              minHeight: 0,
             }}
-          />
-        </Box>
+          >
+            {permissionsSlot}
+          </Box>
+        )}
+
+        {/* Tab Panel: Local LLM */}
+        {safeActiveTab === 'localLLM' && effectiveLocalLLMSlot && (
+          <Box
+            sx={{
+              flex: 1,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              p: 2,
+              minHeight: 0,
+            }}
+          >
+            {effectiveLocalLLMSlot}
+          </Box>
+        )}
+
+        {/* Tab Panel: Run (AgentUI) */}
+        {safeActiveTab === 'run' && (
+          <>
+            {/* Missing Config Banner for Support Users */}
+            {context.missingConfig && (
+              <Box
+                sx={{
+                  mx: 2,
+                  mt: 1.5,
+                  mb: 0.5,
+                  p: 1.25,
+                  borderRadius: 1.5,
+                  bgcolor: 'hsl(var(--warning) / 0.1)',
+                  border: '1px solid hsl(var(--warning) / 0.3)',
+                  color: 'hsl(var(--warning))',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                  flexShrink: 0,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                  }}
+                >
+                  <AlertTriangle size={14} />
+                  Missing page configuration
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.72rem',
+                    color: 'hsl(var(--muted-foreground))',
+                    lineHeight: 1.35,
+                  }}
+                >
+                  No specific MCP apps or skills mapped for{' '}
+                  <code>{currentPathname}</code>. Using default platform tools.
+                  Support users: add a route mapping in{' '}
+                  <code>agentContextRegistry.ts</code> or manually choose tools
+                  below.
+                </Typography>
+              </Box>
+            )}
+
+            {/* Scrollable Agent Run Body */}
+            <Box
+              sx={{
+                flex: 1,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                px: 1.5,
+                pb: 2,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <AgentUI
+                key={context.storageKey}
+                compact={true}
+                mobileView={true}
+                hideHeroIcon={true}
+                title={context.title || 'How can we help on this page?'}
+                subtitle={null}
+                hideChooseLLM={false}
+                disableSchedule={true}
+                hideAttach={false}
+                maxWidth={effectiveWidth - 32}
+                defaultApps={context.apps}
+                initialPresetId={context.presetId}
+                placeholder={context.placeholder}
+                contextCategory={context.sourceCategory}
+                contextStorageKey={context.storageKey}
+                onAppsChange={handleAppsChange}
+                onSelectPreset={handleSelectPreset}
+                onChooseLLM={() => handleTabChange('localLLM')}
+                apiBaseUrl={globalUrl || agentUIProps?.apiBaseUrl}
+                theme={effectiveTheme}
+                {...agentUIProps}
+                sx={{
+                  flex: 1,
+                  minHeight: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  pt: 0,
+                  pb: 2,
+                  ...(agentUIProps?.sx
+                    ? Array.isArray(agentUIProps.sx)
+                      ? {}
+                      : agentUIProps.sx
+                    : {}),
+                }}
+              />
+            </Box>
+          </>
+        )}
       </Box>
     </>
   );

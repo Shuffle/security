@@ -83,7 +83,12 @@ const GlobalAgentDrawer = () => {
   return (
     <AskAiWidget
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(nextOpen: boolean) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setInitialTab('run');
+        }
+      }}
       isSupport={isSupport}
       requireSupport={true}
       initialTab={initialTab}

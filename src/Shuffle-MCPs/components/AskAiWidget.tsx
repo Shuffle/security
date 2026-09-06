@@ -121,6 +121,13 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
     return () => window.removeEventListener(AGENT_DRAWER_OPEN_EVENT, handleDrawerOpenEvent);
   }, [isAgentDisabled, setDrawerOpen]);
 
+  // Sync activeTab whenever propInitialTab changes
+  useEffect(() => {
+    if (propInitialTab) {
+      setActiveTab(propInitialTab);
+    }
+  }, [propInitialTab]);
+
   // Context hint for floating button (e.g. "Shuffle Incidents MCP")
   const contextHint =
     currentContext?.apps && currentContext.apps.length > 0
@@ -164,6 +171,11 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
         <AskAiSidePanel
           open={isDrawerOpen}
           onClose={() => setDrawerOpen(false)}
+          initialTab={activeTab}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          permissionsSlot={permissionsSlot}
+          localLLMSlot={localLLMSlot}
           pathname={pathname}
           search={search}
           rules={rules}

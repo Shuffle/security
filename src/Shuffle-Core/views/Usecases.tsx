@@ -3502,9 +3502,9 @@ function UsecaseDetailContent({
     // Host Monitoring is presence-driven: "activating" means deploying a host monitor
     if (flow.id === 'case_management_asset_management_monitors_1') {
       if (willBeEnabled) {
-        setActionModal('add-host');
+        setActionModalOpen(true);
       } else {
-        toast.info('Host Monitoring is active on your endpoints', {
+        toast.warning('Host Monitoring is active on your endpoints', {
           description: 'To unregister monitors or adjust monitoring groups, manage them in the Monitors view.',
           action: {
             label: 'Open Monitors',
@@ -6362,6 +6362,7 @@ function UsecaseCard({
 
   const theme = useTheme()
   const primaryColor = theme.palette.primary.main
+  const navigate = useNavigate();
   // Clear optimistic state only once the server has caught up. Otherwise a
   // refetch that lands before the backend finished the mutation will briefly
   // flip the button back to its previous state.
@@ -6376,6 +6377,24 @@ function UsecaseCard({
     e.preventDefault();
     if (!flow.automationLabel || toggling) return;
     const willBeEnabled = !effectiveEnabled;
+
+    // Host Monitoring is presence-driven: "activating" means deploying a host monitor
+    if (flow.id === 'case_management_asset_management_monitors_1') {
+      if (willBeEnabled) {
+        if (onEnable) onEnable();
+        else onClick();
+      } else {
+        toast.warning('Host Monitoring is active on your endpoints', {
+          description: 'To unregister monitors or adjust monitoring groups, manage them in the Monitors view.',
+          action: {
+            label: 'Open Monitors',
+            onClick: () => navigate('/monitors'),
+          },
+        });
+      }
+      return;
+    }
+
     // When enabling from the list, hand off to the parent so the detail
     // drawer opens and the user can watch the workflow materialize.
     if (willBeEnabled && onEnable) {
@@ -6497,13 +6516,13 @@ function UsecaseCard({
           borderColor: 'hsl(var(--primary) / 0.4)',
           boxShadow: '0 2px 12px hsl(var(--primary) / 0.08)',
         },
-        '&:hover .uc-toggle-btn': {
+        '&:hover .uc-card-action': {
           opacity: 1,
           pointerEvents: 'auto',
         },
       }}
     >
-      <CardActionArea onClick={onClick} sx={{ px: 2, py: '14.5px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+      <CardActionArea component="div" onClick={onClick} sx={{ px: 2, py: '14.5px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', cursor: 'pointer' }}>
         {showImage && flow.referenceImage && (
           <Box
             component="img"
@@ -6523,7 +6542,7 @@ function UsecaseCard({
           />
         )}
         {/* Label + sync icon */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%', minHeight: 22 }}>
           <Typography variant="body2" title={flow.label} sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', flexGrow: 1, fontSize: '0.82rem', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {flow.label}
           </Typography>
@@ -6552,46 +6571,224 @@ function UsecaseCard({
           )}
           {hasInterest && (
             <Tooltip title="Interest shown (support only)" placement="top" arrow>
-              <Box sx={{ display: 'inline-flex' }}>
+              <Box sx={{ display: 'inline-flex', flexShrink: 0 }}>
                 <Sparkles size={13} style={{ color: 'hsl(var(--primary))' }} />
               </Box>
             </Tooltip>
           )}
-          {effectiveEnabled && (
-            <Tooltip title="Automation enabled" placement="top" arrow>
+
+          {/* Unified Action / Status Chip-Button */}
+          {effectiveEnabled ? (
+            <Tooltip
+              title={
+                canToggle
+                  ? 'Automation active · Click to disable'
+                  : 'Automation active'
+              }
+              placement="top"
+              arrow
+            >
+              <Box
+                component="button"
+                type="button"
+                disabled={toggling}
+                onClick={handleToggle}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 0.85,
+                  py: 0.2,
+                  height: 22,
+                  borderRadius: 0.75,
+                  bgcolor: 'hsl(var(--severity-low) / 0.12)',
+                  border: '1px solid hsl(var(--severity-low) / 0.4)',
+                  color: 'hsl(var(--severity-low))',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1,
+                  cursor: toggling ? 'default' : 'pointer',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: 'hsl(var(--severity-low) / 0.22)',
+                    borderColor: 'hsl(var(--severity-low) / 0.7)',
+                  },
+                }}
+              >
+                {toggling ? (
+                  <CircularProgress size={11} sx={{ color: 'inherit' }} />
+                ) : (
+                  <Power size={11} style={{ color: 'inherit' }} />
+                )}
+                <span>Active</span>
+              </Box>
+            </Tooltip>
+          ) : flow.customAction?.href || flow.customAction?.url ? (
+            <Box
+              className="uc-card-action"
+              sx={{
+                opacity: 0,
+                pointerEvents: 'none',
+                transition: 'opacity 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              <Button
+                {...(flow.customAction.url
+                  ? { component: 'a' as const, href: flow.customAction.url, target: '_blank', rel: 'noopener noreferrer' }
+                  : { component: Link, to: flow.customAction.href! })}
+                size="small"
+                variant="contained"
+                disableElevation
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                startIcon={<ArrowRight size={11} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  minHeight: 0,
+                  height: 22,
+                  py: 0,
+                  px: 0.85,
+                  borderRadius: 0.75,
+                  bgcolor: primaryColor,
+                  color: '#FFFFFF',
+                  '&:hover': { bgcolor: primaryColor },
+                }}
+              >
+                {flow.customAction.label || 'Configure'}
+              </Button>
+            </Box>
+          ) : isComingSoon ? (
+            <Tooltip title="Coming soon" placement="top" arrow>
               <Box
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 0.4,
-                  px: 0.65,
-                  py: 0.1,
+                  px: 0.7,
+                  py: 0.15,
+                  height: 22,
                   borderRadius: 0.75,
-                  bgcolor: 'hsl(var(--severity-low) / 0.12)',
-                  border: '1px solid hsl(var(--severity-low) / 0.4)',
-                  color: 'hsl(var(--severity-low))',
+                  bgcolor: 'hsl(var(--severity-medium) / 0.08)',
+                  border: '1px solid hsl(var(--severity-medium) / 0.35)',
+                  color: 'hsl(var(--severity-medium))',
                   fontSize: '0.62rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.3,
-                  lineHeight: 1.4,
+                  fontWeight: 600,
+                  cursor: 'default',
                   flexShrink: 0,
                 }}
               >
+                <Clock size={11} style={{ color: 'inherit' }} />
+                <span>Coming soon</span>
+              </Box>
+            </Tooltip>
+          ) : canToggle ? (
+            <Box
+              className="uc-card-action"
+              sx={{
+                opacity: 0,
+                pointerEvents: 'none',
+                transition: 'opacity 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              <Tooltip
+                title={
+                  !hasValidatedSource
+                    ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
+                    : 'Click to activate'
+                }
+                placement="top"
+                arrow
+              >
+                <Box
+                  component="button"
+                  type="button"
+                  disabled={toggling}
+                  onClick={handleToggle}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 0.85,
+                    py: 0.25,
+                    height: 22,
+                    borderRadius: 0.75,
+                    bgcolor: 'transparent',
+                    border: '1px solid hsl(var(--severity-low) / 0.4)',
+                    color: 'hsl(var(--severity-low))',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    lineHeight: 1,
+                    cursor: toggling ? 'default' : 'pointer',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      bgcolor: 'hsl(var(--severity-low) / 0.14)',
+                      borderColor: 'hsl(var(--severity-low) / 0.7)',
+                    },
+                  }}
+                >
+                  {toggling ? (
+                    <CircularProgress size={11} sx={{ color: 'inherit' }} />
+                  ) : (
+                    <Power size={11} style={{ color: 'inherit' }} />
+                  )}
+                  <span>Activate</span>
+                </Box>
+              </Tooltip>
+            </Box>
+          ) : !isAuthenticated && flow.automationLabel ? (
+            <Box
+              className="uc-card-action"
+              sx={{
+                opacity: 0,
+                pointerEvents: 'none',
+                transition: 'opacity 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              <Box
+                component={Link}
+                to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 0.85,
+                  py: 0.25,
+                  height: 22,
+                  borderRadius: 0.75,
+                  bgcolor: 'transparent',
+                  border: '1px solid hsl(var(--severity-low) / 0.4)',
+                  color: 'hsl(var(--severity-low))',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1,
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: 'hsl(var(--severity-low) / 0.14)',
+                    borderColor: 'hsl(var(--severity-low) / 0.7)',
+                  },
+                }}
+              >
                 <Power size={11} style={{ color: 'inherit' }} />
-                Active
+                <span>Activate</span>
               </Box>
-            </Tooltip>
-          )}
-          {isComingSoon && (
-            <Tooltip title="Coming soon" placement="top" arrow>
-              <Box sx={{ display: 'inline-flex' }}>
-                <Clock size={13} style={{ color: 'hsl(var(--severity-medium))' }} />
-              </Box>
-            </Tooltip>
-          )}
+            </Box>
+          ) : null}
         </Box>
-
 
         {/* Source → Target */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -6604,157 +6801,6 @@ function UsecaseCard({
           </Typography>
         </Box>
       </CardActionArea>
-
-      {/* Hover-revealed Custom-action / Enable / Notify-me / Sign-up CTA */}
-      {(flow.customAction?.href || flow.customAction?.url || isComingSoon || canToggle || (!isAuthenticated && flow.automationLabel)) && (
-        <Box
-          className="uc-toggle-btn"
-          sx={{
-            position: 'absolute',
-            bottom: 6,
-            right: 6,
-            opacity: 0,
-            pointerEvents: 'none',
-            transition: 'opacity 0.15s ease',
-          }}
-        >
-          {flow.customAction?.href || flow.customAction?.url ? (
-            <Button
-              {...(flow.customAction.url
-                ? { component: 'a' as const, href: flow.customAction.url, target: '_blank', rel: 'noopener noreferrer' }
-                : { component: Link, to: flow.customAction.href! })}
-              size="small"
-              variant="contained"
-              disableElevation
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              startIcon={<ArrowRight size={12} />}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                minHeight: 0,
-                py: 0.4,
-                px: 1,
-                bgcolor: primaryColor,
-                color: '#FFFFFF',
-                '&:hover': { bgcolor: primaryColor },
-              }}
-            >
-              {flow.customAction.label || 'Configure'}
-            </Button>
-          ) : isComingSoon ? (
-            <Button
-              size="small"
-              variant="contained"
-              disableElevation
-              disabled
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-              startIcon={<Sparkles size={12} />}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                minHeight: 0,
-                py: 0.4,
-                px: 1,
-                bgcolor: 'hsl(var(--card))',
-                color: 'hsl(var(--severity-medium))',
-                border: '1px solid hsl(var(--severity-medium) / 0.4)',
-                '&.Mui-disabled': {
-                  color: 'hsl(var(--severity-medium))',
-                  opacity: 0.85,
-                  borderColor: 'hsl(var(--severity-medium) / 0.3)',
-                },
-              }}
-            >
-              Coming soon
-            </Button>
-
-          ) : canToggle ? (
-            <Tooltip
-              title={
-                !effectiveEnabled && !hasValidatedSource
-                  ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
-                  : effectiveEnabled
-                    ? 'Click to disable'
-                    : 'Click to activate'
-              }
-              placement="top"
-              arrow
-            >
-              <span onClick={(e) => e.stopPropagation()}>
-                <Button
-                  size="small"
-                  disableElevation
-                  onClick={handleToggle}
-                  disabled={toggling}
-                  startIcon={
-                    toggling ? (
-                      <CircularProgress size={12} sx={{ color: 'inherit' }} />
-                    ) : (
-                      <Power size={12} style={{ color: 'inherit' }} />
-                    )
-                  }
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    minHeight: 0,
-                    py: 0.4,
-                    px: 1,
-                    borderRadius: 1,
-                    bgcolor: effectiveEnabled ? 'hsl(var(--severity-low) / 0.12)' : 'transparent',
-                    color: 'hsl(var(--severity-low))',
-                    border: '1px solid hsl(var(--severity-low) / 0.4)',
-                    boxShadow: 'none',
-                    '&:hover': {
-                      bgcolor: effectiveEnabled
-                        ? 'hsl(var(--severity-low) / 0.22)'
-                        : 'hsl(var(--severity-low) / 0.1)',
-                      borderColor: 'hsl(var(--severity-low) / 0.7)',
-                      boxShadow: 'none',
-                    },
-                  }}
-                >
-                  {effectiveEnabled ? 'Active' : 'Activate'}
-                </Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Button
-              component={Link}
-              to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
-              size="small"
-              disableElevation
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              startIcon={<Power size={12} style={{ color: 'inherit' }} />}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                minHeight: 0,
-                py: 0.4,
-                px: 1,
-                borderRadius: 1,
-                bgcolor: 'transparent',
-                color: 'hsl(var(--severity-low))',
-                border: '1px solid hsl(var(--severity-low) / 0.4)',
-                boxShadow: 'none',
-                '&:hover': {
-                  bgcolor: 'hsl(var(--severity-low) / 0.1)',
-                  borderColor: 'hsl(var(--severity-low) / 0.7)',
-                  boxShadow: 'none',
-                },
-              }}
-            >
-              Activate
-            </Button>
-          )}
-        </Box>
-      )}
     </Card>
   );
 }

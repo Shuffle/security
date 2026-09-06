@@ -41,7 +41,7 @@ const UsecasesPage = (props: UsecasesPageProps = {}) => {
   const vulnAutomation = useVulnerabilityAutomationStatus();
   const { refetch } = useWorkflows();
   const themeContext = useTheme();
-  const { userdata, isLoggedIn, isLoaded } = useAuth();
+  const { userInfo, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [directAddHost, setDirectAddHost] = useState(false);
 
@@ -49,17 +49,17 @@ const UsecasesPage = (props: UsecasesPageProps = {}) => {
     url: webhook.url ?? null,
     exists: webhook.exists,
     enabled: webhook.enabled,
-    workflowId: webhook.workflowId,
+    workflowId: null,
   };
 
   return (
     <>
       <Usecases
         theme={themeContext.theme}
-        globalUrl={API_CONFIG.BASE_URL}
-        userdata={userdata}
-        isLoggedIn={isLoggedIn}
-        isLoaded={isLoaded}
+        globalUrl={API_CONFIG.baseUrl}
+        userdata={userInfo}
+        isLoggedIn={isAuthenticated}
+        isLoaded={!isLoading}
         onToggled={() => {
           vulnAutomation.refresh();
           refetch();
