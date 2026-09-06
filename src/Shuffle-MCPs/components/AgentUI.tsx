@@ -129,17 +129,27 @@ const PRESET_APPS_STORAGE_KEY = 'agent_preset_apps_overrides';
 /** Storage bucket used when no template is selected. */
 const NO_PRESET_KEY = '__none__';
 
-/**
- * Maps a skill id to the `template` slug the backend reports on agent output
- * (mirrors PRESET_PATHS in agentRun.ts). Used to restore the skill on rerun.
- */
 const PRESET_TEMPLATE_SLUGS: Record<string, string> = {
-  'build-workflows': 'workflow-edit',
+  'build-workflows': 'edit-workflow',
   'handle-notifications': 'handle-notifications',
-  'incident-response': 'incident-response',
+  'incident-response': 'incident-handler',
   'host-monitor-control': 'computer-use',
   support: 'support',
   vulnerability: 'vulnerability',
+  detection: 'detection',
+};
+
+const TEMPLATE_SLUG_TO_PRESET_ID: Record<string, string> = {
+  'workflow-edit': 'build-workflows',
+  'edit-workflow': 'build-workflows',
+  'build-workflows': 'build-workflows',
+  'incident-response': 'incident-response',
+  'incident-handler': 'incident-response',
+  'vulnerability': 'vulnerability',
+  'vulnerability-management': 'vulnerability',
+  'computer-use': 'host-monitor-control',
+  support: 'support',
+  'handle-notifications': 'handle-notifications',
   detection: 'detection',
 };
 
@@ -642,6 +652,13 @@ import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
 import AgentAttachmentsButton from '@/Shuffle-MCPs/components/AgentAttachmentsButton';
 import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
+import {
+  resolveConnectedTools,
+  mergeConnectedTools,
+  setCachedConnectedTools,
+  type ConnectedToolApp,
+} from '@/Shuffle-MCPs/connectedSourcesService';
+import { getPageContextChoice } from '@/Shuffle-MCPs/agentContextRegistry';
 
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -828,6 +845,10 @@ export interface AgentUIProps {
   initialPresetId?: string | null;
   /** Called when the user picks a preset. Overrides the built-in seed behavior. */
   onSelectPreset?: (preset: AgentPreset) => void;
+  /** Category used to auto-discover and connect tenant sources & destinations (e.g. 'incidents' or 'vulnerabilities') */
+  contextCategory?: 'incidents' | 'vulnerabilities' | string;
+  /** Storage key of the active page context to detect user overrides */
+  contextStorageKey?: string;
 }
 
 interface ExecutionData {
@@ -2071,6 +2092,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   presets,
   initialPresetId,
   onSelectPreset,
+  contextCategory,
+  contextStorageKey,
   isSupport,
   presetCtas,
 }) => {
@@ -2650,7 +2673,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [previewImage, setPreviewImage] = useState<{ dataUrl: string; name: string } | null>(null);
   // Attachments always force the multiline layout so the attachment chips can
   // live on the bottom bar next to the Skills chip.
-  const promptMultiline = promptMultilineBase || attachedImages.length > 0;
+  // On mobile/sidebar, having a skill selected expands the text-field by default
+  // so the prompt area has comfortable space and the skill chip sits cleanly
+  // next to the '+' button on the bottom row.
+  const promptMultiline = promptMultilineBase || attachedImages.length > 0 || (isPhone && Boolean(selectedPreset));
   const promptSingleLineLocked = !promptMultiline;
 
   const [nowTick, setNowTick] = useState(() => Math.floor(Date.now() / 1000));
@@ -2986,16 +3012,25 @@ const AgentUI: React.FC<AgentUIProps> = ({
   }, [chosenApps, availableApps, resolveUrl, resolveHeaders]);
 
   // Auto-load the caller's authenticated apps whenever an API token is
-  // configured. This stays independent from selected/default apps because
-  // the auth banners need the live credential list for revalidation.
+  // configured. Also fetches workflows to discover and connect tenant
+  // incident sources/destinations (e.g. Elastic Security, Jira) or vulnerability
+  // scanners (e.g. Qualys).
   const loadAuthenticatedApps = useCallback(async (signal?: { cancelled: boolean }) => {
     setAuthAppsLoading(true);
     try {
-      const resp = await fetch(resolveUrl('/api/v1/apps/authentication'), {
-        credentials: 'include',
-        headers: { ...resolveHeaders() },
-      });
-      if (!resp.ok) {
+      const [authRes, wfRes] = await Promise.allSettled([
+        fetch(resolveUrl('/api/v1/apps/authentication'), {
+          credentials: 'include',
+          headers: { ...resolveHeaders() },
+        }),
+        fetch(resolveUrl('/api/v1/workflows'), {
+          credentials: 'include',
+          headers: { ...resolveHeaders() },
+        }),
+      ]);
+
+      const resp = authRes.status === 'fulfilled' ? authRes.value : null;
+      if (!resp || !resp.ok) {
         if (!signal?.cancelled) setAvailableApps([]);
         return;
       }
@@ -3020,9 +3055,45 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
       if (signal?.cancelled) return;
       setAvailableApps(loaded);
+
+      // Extract workflows for connected ingestion sources and forward destinations
+      const wfResp = wfRes.status === 'fulfilled' ? wfRes.value : null;
+      const wfResult = wfResp && wfResp.ok ? await wfResp.json() : [];
+
+      // Determine category (explicit prop or inferred from default/chosen apps)
+      const effectiveCategory = contextCategory || (
+        (defaultApps || chosenApps).some((a) => normalizeAgentAppName(a.name || '').includes('incident'))
+          ? 'incidents'
+          : (defaultApps || chosenApps).some((a) => normalizeAgentAppName(a.name || '').includes('vulnerabilit'))
+            ? 'vulnerabilities'
+            : undefined
+      );
+
+      let connectedTools: ConnectedToolApp[] = [];
+      if (effectiveCategory) {
+        connectedTools = resolveConnectedTools(effectiveCategory, list, wfResult);
+        if (connectedTools.length > 0) {
+          setCachedConnectedTools(effectiveCategory, connectedTools);
+        }
+      }
+
       setChosenApps((prev) => {
         let changed = false;
-        const updated = prev.map((app) => {
+
+        // Check if user has explicit saved customization for this page
+        const savedChoice = contextStorageKey ? getPageContextChoice(contextStorageKey) : null;
+        let baseList = prev;
+
+        // If user hasn't explicitly customized apps on this page, merge connected tools
+        if (!savedChoice?.apps && connectedTools.length > 0) {
+          const merged = mergeConnectedTools(prev, connectedTools);
+          if (merged.length !== prev.length || merged.some((m, idx) => prev[idx]?.name !== m.name)) {
+            baseList = merged;
+            changed = true;
+          }
+        }
+
+        const updated = baseList.map((app) => {
           if (app.icon && app.id) return app;
           const slug = normalizeAgentAppName(app.name || '');
           const match = loaded.find((a) => normalizeAgentAppName(a.name || '') === slug);
@@ -3037,8 +3108,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
           }
           return app;
         });
+
+        if (changed && onAppsChange) {
+          onAppsChange(updated);
+        }
         return changed ? updated : prev;
       });
+
       // Shared resolver — the exact same logic the LocalLLM sidebar uses, so
       // the chip and the sidebar can never disagree. Runs on the RAW list
       // (validation state must not hide an active provider).
@@ -3048,7 +3124,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     } finally {
       if (!signal?.cancelled) setAuthAppsLoading(false);
     }
-  }, [resolveUrl, resolveHeaders]);
+  }, [resolveUrl, resolveHeaders, contextCategory, contextStorageKey, defaultApps, onAppsChange]);
 
   useEffect(() => {
     if (!autoLoadApps) return;
@@ -3825,7 +3901,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
     const slug = String(raw).trim().toLowerCase();
     const list = presets && presets.length > 0 ? presets : AGENT_PRESETS;
     return (
-      list.find((p) => p.id === slug || PRESET_TEMPLATE_SLUGS[p.id] === slug) ?? null
+      list.find(
+        (p) =>
+          p.id === slug ||
+          PRESET_TEMPLATE_SLUGS[p.id] === slug ||
+          TEMPLATE_SLUG_TO_PRESET_ID[slug] === p.id,
+      ) ?? null
     );
   }, [agentData, agentActionResult, execution, presets]);
 
@@ -5406,6 +5487,45 @@ const AgentUI: React.FC<AgentUIProps> = ({
     </Tooltip>
   ) : null;
 
+  const mobileSkillChip = isPhone && selectedPreset && !hidePresets ? (
+    <AgentPresets
+      variant="floating"
+      chipRef={presetsChipRef}
+      presets={presets}
+      isSupport={isSupport}
+      selectedPreset={selectedPreset}
+      onRemoveSelected={handleRemovePreset}
+      onSelectPreset={handleSelectPresetInternal}
+      placement="bottom-start"
+      sx={{
+        height: 32,
+        px: 1.25,
+        fontSize: '0.78rem',
+        fontWeight: 500,
+        borderRadius: 999,
+        border: '1px solid hsl(var(--border))',
+        bgcolor: 'hsl(var(--muted) / 0.65)',
+        color: 'hsl(var(--foreground))',
+        flexShrink: 0,
+        maxWidth: 'calc(100% - 90px)',
+        alignSelf: 'center',
+        '& .MuiButton-startIcon': {
+          mr: 0.75,
+          ml: -0.25,
+          color: 'hsl(var(--primary))',
+        },
+        '& .MuiButton-endIcon': {
+          ml: 0.5,
+          mr: -0.25,
+        },
+        '&:hover': {
+          bgcolor: 'hsl(var(--muted))',
+          borderColor: 'hsl(var(--border))',
+        },
+      }}
+    />
+  ) : null;
+
   const mobilePlusMenu = isPhone ? (
     <Popover
       open={Boolean(mobilePlusAnchor)}
@@ -5570,11 +5690,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: 0.5,
               // Keep the same radius in both states so growing to multiple
               // lines does not visually snap from a pill to a boxy card.
-              borderRadius: '28px',
+              borderRadius: isPhone ? (promptMultiline ? '20px' : '28px') : '28px',
               border: '1.5px solid hsl(var(--border))',
               bgcolor: 'hsl(var(--card))',
-              px: isPhone ? 1 : 2.25,
-              py: 1,
+              px: isPhone ? 1.5 : 2.25,
+              py: isPhone ? (promptMultiline ? 1.25 : 1) : 1,
               boxSizing: 'border-box',
 
 
@@ -5612,7 +5732,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 } : {}),
               }}>
 
-              {isPhone && !promptMultiline && mobilePlusButton}
+              {isPhone && !promptMultiline && (
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                  {mobilePlusButton}
+                  {mobileSkillChip}
+                </Box>
+              )}
 
               <InputBase
                 inputRef={inputRef}
@@ -5728,9 +5853,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   ref={chipOverlayRef}
                   data-static={promptMultiline ? '1' : '0'}
                   sx={isPhone ? {
-                    // Mobile: the skill chip lives inside the "+" menu. The
-                    // trigger stays mounted (invisible) so the menu can still
-                    // be opened programmatically and anchored correctly.
+                    // Mobile: when no preset is selected, keep an invisible trigger mounted
+                    // so the "+" menu can programmatically open the skills picker.
                     position: 'absolute',
                     left: 0,
                     bottom: 0,
@@ -5827,7 +5951,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
               )}
 
 
-              {isPhone && promptMultiline && mobilePlusButton}
+              {isPhone && promptMultiline && (
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexShrink: 0, minWidth: 0, maxWidth: 'calc(100% - 60px)' }}>
+                  {mobilePlusButton}
+                  {mobileSkillChip}
+                </Box>
+              )}
 
               <Box sx={{
                 display: 'flex',
@@ -6246,44 +6375,6 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       flexShrink: 0,
                     }}
                   />
-                )}
-                {isPhone && selectedPreset && !hidePresets && (
-                  <>
-                    <AgentPresets
-                      variant="floating"
-                      chipRef={presetsChipRef}
-                      presets={presets}
-                      isSupport={isSupport}
-                      selectedPreset={selectedPreset}
-                      onRemoveSelected={handleRemovePreset}
-                      onSelectPreset={handleSelectPresetInternal}
-                      sx={{
-                        height: 26,
-                        px: 1,
-                        py: 0,
-                        fontSize: '0.78rem',
-                        bgcolor: 'hsl(var(--muted) / 0.6)',
-                        border: '1px solid hsl(var(--border))',
-                        color: 'hsl(var(--foreground))',
-                        '&:hover': {
-                          bgcolor: 'hsl(var(--muted) / 0.9)',
-                          borderColor: 'hsl(var(--muted-foreground) / 0.4)',
-                        },
-                      }}
-                    />
-                    <Box
-                      component="span"
-                      aria-hidden
-                      sx={{
-                        width: '1px',
-                        height: 16,
-                        bgcolor: 'hsl(var(--border))',
-                        mx: 0.5,
-                        alignSelf: 'center',
-                        flexShrink: 0,
-                      }}
-                    />
-                  </>
                 )}
                 <Tooltip title={agentRequestLoading ? 'Locked while the agent is running' : ''}>
                   <Box

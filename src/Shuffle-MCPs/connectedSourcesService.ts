@@ -32,8 +32,9 @@ const CACHE_PREFIX = 'shuffle:connected_tools:';
  * Retrieve cached connected tools from localStorage for immediate synchronous render.
  */
 export function getCachedConnectedTools(category?: string): ConnectedToolApp[] {
-  if (!category || typeof window === 'undefined') return [];
+  if (!category) return [];
   try {
+    if (typeof localStorage === 'undefined') return [];
     const raw = localStorage.getItem(`${CACHE_PREFIX}${category}`);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
@@ -47,8 +48,9 @@ export function getCachedConnectedTools(category?: string): ConnectedToolApp[] {
  * Save discovered connected tools to localStorage cache.
  */
 export function setCachedConnectedTools(category: string, tools: ConnectedToolApp[]): void {
-  if (!category || typeof window === 'undefined') return;
+  if (!category) return;
   try {
+    if (typeof localStorage === 'undefined') return;
     localStorage.setItem(`${CACHE_PREFIX}${category}`, JSON.stringify(tools));
   } catch {
     /* ignore storage write errors */

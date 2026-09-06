@@ -3,7 +3,7 @@
  * Used by onboarding (AutomationConfig) and incident automations (CategoryAutomationsDialog).
  */
 
-import { AuthAppEntry, deduplicateAuthApps } from '@/Shuffle-MCPs/auth-utils';
+import { AuthAppEntry, deduplicateAuthApps } from './auth-utils';
 
 // ============================================================================
 // Category patterns

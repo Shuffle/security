@@ -319,12 +319,15 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
   // Every template maps to its own dedicated agent path (/api/v1/agent/{name}).
   // For those, we encode the template in the URL and skip the body field.
   const PRESET_PATHS: Record<string, string> = {
-    'build-workflows': 'workflow-edit',
+    'build-workflows': 'edit-workflow',
+    'edit-workflow': 'edit-workflow',
     'handle-notifications': 'handle-notifications',
-    'incident-response': 'incident-response',
+    'incident-response': 'incident-handler',
+    'incident-handler': 'incident-handler',
     'host-monitor-control': 'computer-use',
     support: 'support',
     vulnerability: 'vulnerability',
+    'vulnerability-management': 'vulnerability',
     detection: 'detection',
   };
   const presetSlug = request.presetId ? PRESET_PATHS[request.presetId] : undefined;

@@ -8,6 +8,8 @@
  * Self-contained: No host-app `@/` imports.
  */
 
+import { getCachedConnectedTools, mergeConnectedTools } from './connectedSourcesService';
+
 export interface AgentContextApp {
   name: string;
   id?: string;
@@ -41,6 +43,8 @@ export interface AgentContextRule {
   getStorageKey?: (params: Record<string, string>, pathname: string) => string;
   /** Human-readable description of what this context provides */
   description?: string;
+  /** Category used to automatically connect tenant sources and destinations (e.g. 'incidents' or 'vulnerabilities') */
+  sourceCategory?: 'incidents' | 'vulnerabilities' | string;
   /** Explicit flag indicating this route lacks a dedicated MCP mapping */
   missingConfig?: boolean;
 }
@@ -56,6 +60,8 @@ export interface AgentResolvedContext {
   storageKey: string;
   params: Record<string, string>;
   pathname: string;
+  /** Category used to automatically connect tenant sources and destinations */
+  sourceCategory?: 'incidents' | 'vulnerabilities' | string;
   /** True when the active apps or preset come from the user's saved overrides rather than rule defaults */
   isOverridden: boolean;
   /** The default apps before any user customization */
@@ -156,6 +162,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/incidents/:id',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${params.id}?`;
@@ -172,6 +179,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/incidents-simple/:id',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${params.id}?`;
@@ -188,6 +196,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/cases/:id',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help handle case "${entity}"?` : `How can we help handle case #${params.id}?`;
@@ -204,6 +213,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/tickets/:id',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help handle ticket "${entity}"?` : `How can we help handle ticket #${params.id}?`;
@@ -220,6 +230,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/alerts/:id',
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help handle alert "${entity}"?` : `How can we help handle alert #${params.id}?`;
@@ -236,6 +247,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/incidents') || pathname.startsWith('/incidents-simple'),
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: 'How can we help handle incidents?',
     subtitle: 'Shuffle Incidents MCP',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
@@ -249,6 +261,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/cases'),
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: 'How can we help handle cases?',
     subtitle: 'Shuffle Incidents MCP',
     defaultPrompt: 'Investigate this case and recommend next steps: ',
@@ -262,6 +275,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/tickets'),
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: 'How can we help handle tickets?',
     subtitle: 'Shuffle Incidents MCP',
     defaultPrompt: 'Investigate this ticket and recommend next steps: ',
@@ -275,6 +289,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/alerts') || pathname.startsWith('/notifications'),
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
     title: 'How can we help handle alerts?',
     subtitle: 'Shuffle Incidents MCP',
     defaultPrompt: 'Investigate this alert and recommend next steps: ',
@@ -297,6 +312,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
       { name: 'shuffle_packages' },
     ],
     defaultPresetId: 'vulnerability',
+    sourceCategory: 'vulnerabilities',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help with ${entity}?` : `How can we help with vulnerability ${params.id}?`;
@@ -318,6 +334,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
       { name: 'shuffle_packages' },
     ],
     defaultPresetId: 'vulnerability',
+    sourceCategory: 'vulnerabilities',
     title: 'How can we help review vulnerabilities?',
     subtitle: () => 'Shuffle Vulnerabilities, Assets, Software & Packages',
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
@@ -409,7 +426,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     id: 'workflow-detail',
     match: '/workflows/:id',
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
-    defaultPresetId: 'edit-workflow',
+    defaultPresetId: 'build-workflows',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help edit "${entity}"?` : `How can we help edit workflow #${params.id}?`;
@@ -428,7 +445,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
       pathname.startsWith('/workflows') ||
       pathname.startsWith('/infrastructure/flows'),
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
-    defaultPresetId: 'edit-workflow',
+    defaultPresetId: 'build-workflows',
     title: 'How can we help edit workflows?',
     subtitle: 'Shuffle Workflows Builder & Shuffle Apps',
     defaultPrompt: 'Edit this Shuffle workflow to ',
@@ -446,6 +463,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/assets/:tab',
     defaultApps: [{ name: 'shuffle_assets' }, { name: 'shuffle_vulnerabilities' }],
     defaultPresetId: 'vulnerability',
+    sourceCategory: 'vulnerabilities',
     title: (params) => {
       const entity = getActivePageEntityName();
       if (entity) return `How can we help with "${entity}"?`;
@@ -464,6 +482,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname === '/assets' || pathname.startsWith('/assets'),
     defaultApps: [{ name: 'shuffle_assets' }, { name: 'shuffle_vulnerabilities' }],
     defaultPresetId: 'vulnerability',
+    sourceCategory: 'vulnerabilities',
     title: 'How can we help with assets?',
     subtitle: 'Shuffle Assets & Shuffle Vulnerabilities',
     defaultPrompt: 'Audit assets and review vulnerabilities for ',
@@ -477,6 +496,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname === '/software' || pathname.startsWith('/software'),
     defaultApps: [{ name: 'shuffle_software' }, { name: 'shuffle_vulnerabilities' }],
     defaultPresetId: 'vulnerability',
+    sourceCategory: 'vulnerabilities',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help with "${entity}"?` : 'How can we help with software inventory?';
@@ -493,6 +513,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname === '/packages' || pathname.startsWith('/packages'),
     defaultApps: [{ name: 'shuffle_packages' }, { name: 'shuffle_vulnerabilities' }],
     defaultPresetId: 'vulnerability',
+    sourceCategory: 'vulnerabilities',
     title: (params) => {
       const entity = getActivePageEntityName();
       return entity ? `How can we help with "${entity}"?` : 'How can we help with packages?';
@@ -651,7 +672,14 @@ export const resolveAgentContext = (
   const savedChoice = getPageContextChoice(storageKey);
   const isOverridden = !!savedChoice && (savedChoice.apps !== undefined || savedChoice.presetId !== undefined);
 
-  const effectiveApps = savedChoice?.apps ?? matchedRule.defaultApps;
+  // If the user has not manually customized apps on this page, merge cached connected tools
+  // for the context category (e.g. Elastic Security for incidents, Qualys for vulnerabilities).
+  const cachedConnected = matchedRule.sourceCategory
+    ? getCachedConnectedTools(matchedRule.sourceCategory)
+    : [];
+  const baseDefaultApps = mergeConnectedTools(matchedRule.defaultApps, cachedConnected);
+
+  const effectiveApps = savedChoice?.apps ?? baseDefaultApps;
   const effectivePresetId = savedChoice?.presetId !== undefined
     ? (savedChoice.presetId ?? undefined)
     : matchedRule.defaultPresetId;
@@ -681,8 +709,9 @@ export const resolveAgentContext = (
     storageKey,
     params: matchedParams,
     pathname: normPath,
+    sourceCategory: matchedRule.sourceCategory,
     isOverridden,
-    originalDefaultApps: matchedRule.defaultApps,
+    originalDefaultApps: baseDefaultApps,
     originalDefaultPresetId: matchedRule.defaultPresetId,
     missingConfig,
   };

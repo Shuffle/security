@@ -52,14 +52,14 @@ export const useUsecaseAgentFilters = (): AgentUsecaseFilter[] => {
     if (hasAiAgent(incidents.data)) {
       filters.push({
         id: 'incident-response',
-        label: 'Incident Response Agent',
+        label: 'Incident Handler',
         matchTokens: ['incident', 'alert', 'cases', 'shuffle-security_incidents'],
       });
     }
     if (hasAiAgent(vulnerabilities.data)) {
       filters.push({
         id: 'vulnerability-response',
-        label: 'Vulnerability Response Agent',
+        label: 'Vulnerability Management',
         matchTokens: ['vulnerab', 'shuffle-security_vulnerabilities'],
       });
     }

@@ -870,7 +870,7 @@ const STATUS_FILTERS = [
 export interface AgentUsecaseFilter {
   /** Unique id (used as the menu value). */
   id: string;
-  /** Menu label, e.g. "Incident Response Agent". */
+  /** Menu label, e.g. "Incident Handler". */
   label: string;
   /** Case-insensitive substrings matched against run source/workflow metadata. */
   matchTokens: string[];

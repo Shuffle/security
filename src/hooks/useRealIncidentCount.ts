@@ -13,7 +13,7 @@ const isDemoIncident = (item: DatastoreItem): boolean => {
 
 /**
  * Counts real (non-demo) incidents in the current org. Used to decide whether
- * the Incident Response agent skill should show an "ingest incidents" CTA.
+ * the Incident Handler skill should show an "ingest incidents" CTA.
  * Returns null while loading or when the lookup failed.
  */
 export const useRealIncidentCount = () => {

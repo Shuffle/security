@@ -11,7 +11,7 @@
  * presets render with a "coming soon" chip and are not clickable.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, ClickAwayListener, Paper, Popper, TextField, Tooltip, Typography, SxProps, Theme } from '@mui/material';
+import { Box, Button, ClickAwayListener, Paper, Popper, type PopperProps, TextField, Tooltip, Typography, SxProps, Theme } from '@mui/material';
 import { Workflow, ShieldAlert, LifeBuoy, Bug, Radar, Monitor, Plus, X as CloseIcon, BellRing } from 'lucide-react';
 import { AppFallbackIcon } from './AppFallbackIcon';
 
@@ -59,19 +59,9 @@ const prettyAppName = (name: string) =>
 
 export const AGENT_PRESETS: AgentPreset[] = [
   {
-    id: 'edit-workflow',
-    label: 'Edit Workflow',
-    description: 'Designs and edits Shuffle workflows for you — pick apps, wire actions, and iterate on automations from a description.',
-    defaultPrompt: 'Edit this Shuffle workflow to ',
-    icon: <Workflow size={16} />,
-    enabled: true,
-    defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
-    requiredApps: ['shuffle_workflows_builder', 'shuffle_apps'],
-  },
-  {
     id: 'build-workflows',
-    label: 'Build Workflows',
-    description: 'Designs and edits Shuffle workflows for you — pick apps, wire actions, and iterate on automations from a description.',
+    label: 'Build Workflow',
+    description: 'Designs and builds Shuffle workflows for you — pick apps, wire actions, and iterate on automations from a description.',
     defaultPrompt: 'Build a Shuffle workflow that ',
     icon: <Workflow size={16} />,
     enabled: true,
@@ -80,8 +70,8 @@ export const AGENT_PRESETS: AgentPreset[] = [
   },
   {
     id: 'incident-response',
-    label: 'Incident Response Agent',
-    description: 'Triages incidents: enriches observables, correlates related cases, and proposes next actions with rationale.',
+    label: 'Incident Handler',
+    description: 'Supports your incident investigation — extracts observables, correlates related alerts, analyzes attack scope, and proposes tiered containment options with human confirmation.',
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     icon: <ShieldAlert size={16} />,
     enabled: true,
@@ -108,9 +98,9 @@ export const AGENT_PRESETS: AgentPreset[] = [
   },
   {
     id: 'vulnerability',
-    label: 'Vulnerability Agent',
-    description: 'Reviews vulnerabilities, ranks by exploitability and asset criticality, and drafts remediation plans.',
-    defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
+    label: 'Vulnerability Management',
+    description: 'Helps you solve vulnerabilities — demystifies CVEs in plain language, analyzes realistic exploitability (EPSS/KEV), and guides you through exact remediation steps and fixes.',
+    defaultPrompt: 'Help me review and solve this vulnerability: ',
     icon: <Bug size={16} />,
     enabled: true,
     defaultApps: [
@@ -184,10 +174,12 @@ export interface AgentPresetsProps {
   isSupport?: boolean;
   /** Optional style overrides for the trigger button */
   sx?: SxProps<Theme>;
+  /** Popper placement override (defaults to 'bottom-start') */
+  placement?: PopperProps['placement'];
 }
 
 
-export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport, sx }: AgentPresetsProps) => {
+export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPreset, onRemoveSelected, presets, chipRef, isSupport, sx, placement }: AgentPresetsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   // Support status hydrates asynchronously (/getinfo), so re-read it when the
@@ -221,13 +213,29 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
         selectedPreset ? (
           <Box
             component="span"
+            role="button"
+            aria-label="Remove skill"
             onClick={(e) => {
               e.stopPropagation();
               onRemoveSelected?.();
             }}
-            sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ml: 0.25 }}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              ml: 0.5,
+              p: '2px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              color: 'hsl(var(--muted-foreground))',
+              transition: 'background-color 120ms ease, color 120ms ease',
+              '&:hover': {
+                bgcolor: 'hsl(var(--foreground) / 0.12)',
+                color: 'hsl(var(--foreground))',
+              },
+            }}
           >
-            <CloseIcon size={variant === 'floating' ? 12 : 14} />
+            <CloseIcon size={variant === 'floating' ? 12 : 13} />
           </Box>
         ) : undefined
       }
@@ -273,9 +281,12 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     <Popper
       open={open}
       anchorEl={anchorEl}
-      placement="bottom-end"
+      placement={placement || 'bottom-start'}
       style={{ zIndex: 1400 }}
-      modifiers={[{ name: 'offset', options: { offset: [0, 6] } }]}
+      modifiers={[
+        { name: 'offset', options: { offset: [0, 6] } },
+        { name: 'preventOverflow', options: { padding: 8 } },
+      ]}
     >
       <ClickAwayListener onClickAway={() => { setAnchorEl(null); setQuery(''); }}>
         <Paper

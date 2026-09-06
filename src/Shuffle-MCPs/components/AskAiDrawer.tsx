@@ -173,6 +173,8 @@ export const AskAiDrawer: React.FC<AskAiDrawerProps> = ({
         initialPresetId: resolvedContext.presetId,
         defaultInput: agentUIProps?.defaultInput ?? resolvedContext.defaultPrompt,
         placeholder: agentUIProps?.placeholder ?? resolvedContext.placeholder,
+        contextCategory: resolvedContext.sourceCategory,
+        contextStorageKey: resolvedContext.storageKey,
         onAppsChange: (apps) => {
           handleAppsChange(apps);
           agentUIProps?.onAppsChange?.(apps);
