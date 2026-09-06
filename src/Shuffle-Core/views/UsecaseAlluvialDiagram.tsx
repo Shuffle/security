@@ -41,6 +41,13 @@ import {
   normalizeAppName,
 } from '../ingestionDetection';
 import { TOOL_CATEGORIES } from './Usecases';
+import {
+  fetchAppsCached,
+  getAlluvialCache,
+  setAlluvialCache,
+  updateAlluvialIngest,
+  updateAlluvialForward,
+} from './appsFetchCache';
 import shuffleInfraLogo from '../assets/shuffle-infrastructure-logo.png';
 import shuffleIcon from '../assets/shuffle-icon.png';
 import singulAgentIcon from '../assets/singul-agent-icon.png';
@@ -87,6 +94,8 @@ export interface UsecaseAlluvialDiagramProps extends ShuffleCoreHostProps {
    * its own (mirrors `setAddToolFor` in `UsecaseDetailContent`).
    */
   onAddTool?: (side: 'left' | 'right') => boolean;
+  /** Optional pre-fetched workflows list to avoid redundant API round-trips */
+  workflows?: any[];
 }
 
 // ── Pattern matchers ───────────────────────────────────────────────────────────
@@ -691,6 +700,7 @@ export default function UsecaseAlluvialDiagram({
   isLoggedIn = false,
   onBubbleClick,
   onAddTool,
+  workflows: initialWorkflows,
 }: UsecaseAlluvialDiagramProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   // isLoggedIn comes from props (host injects); defaults to false.
@@ -698,11 +708,15 @@ export default function UsecaseAlluvialDiagram({
   const handleVisitApp = useCallback((appName: string) => {
     appDetailCtx?.openApp(appName);
   }, [appDetailCtx]);
-  const [allApps, setAllApps] = useState<AppNode[]>([]);
-  const [ingestAppNames, setIngestAppNames] = useState<Set<string> | null>(null);
-  const [forwardAppNames, setForwardAppNames] = useState<Set<string> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [webhookInfo, setWebhookInfo] = useState<{ url: string | null; exists: boolean; enabled: boolean; workflowId: string | null }>({ url: null, exists: false, enabled: false, workflowId: null });
+
+  const cached = getAlluvialCache();
+  const [allApps, setAllApps] = useState<AppNode[]>(() => cached?.allApps || []);
+  const [ingestAppNames, setIngestAppNames] = useState<Set<string> | null>(() => cached?.ingestAppNames || null);
+  const [forwardAppNames, setForwardAppNames] = useState<Set<string> | null>(() => cached?.forwardAppNames || null);
+  const [loading, setLoading] = useState(() => !cached);
+  const [webhookInfo, setWebhookInfo] = useState<{ url: string | null; exists: boolean; enabled: boolean; workflowId: string | null }>(
+    () => cached?.webhookInfo || { url: null, exists: false, enabled: false, workflowId: null }
+  );
   const [searchOpen, setSearchOpen] = useState<'left' | 'right' | null>(null);
   // Track apps manually added to the destination via "+ Add" (bypasses category matching)
   const [manualDestApps, setManualDestApps] = useState<Set<string>>(new Set());
@@ -842,6 +856,7 @@ export default function UsecaseAlluvialDiagram({
       }
       return next;
     });
+    updateAlluvialIngest(appName, enabled, normalizeAppName);
 
     pendingTogglesRef.current.set(appName, enabled);
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -993,6 +1008,7 @@ export default function UsecaseAlluvialDiagram({
       else if (norm === normalized) desiredAppNames.push(appName);
     });
 
+    updateAlluvialForward(desiredAppNames, normalizeAppName);
     pushForwardWorkflow(desiredAppNames, {
       action: enabled ? 'add' : 'remove',
       appName,
@@ -1002,19 +1018,23 @@ export default function UsecaseAlluvialDiagram({
   useEffect(() => {
     if (!isLoggedIn) { setLoading(false); return; }
 
-    (async () => {
+    let cancelled = false;
+
+    const runFetch = async () => {
       try {
-        // Parallel fetch: auth apps, active apps, workflows
-        const [authRes, appsRes, workflowsRes] = await Promise.all([
-          fetch(getApiUrl('/api/v1/apps/authentication'), {
+        const mem = getAlluvialCache();
+        // If we don't have any cached data at all, indicate loading
+        if (!mem) {
+          setLoading(true);
+        }
+
+        // Parallel fetch: auth apps and active apps using request-coalescing cached fetcher
+        const [authRes, appsRes] = await Promise.all([
+          fetchAppsCached(getApiUrl('/api/v1/apps/authentication'), {
             credentials: 'include',
             headers: { ...getAuthHeader() },
           }),
-          fetch(getApiUrl('/api/v1/apps'), {
-            credentials: 'include',
-            headers: { ...getAuthHeader() },
-          }),
-          fetch(getApiUrl('/api/v1/workflows'), {
+          fetchAppsCached(getApiUrl('/api/v1/apps'), {
             credentials: 'include',
             headers: { ...getAuthHeader() },
           }),
@@ -1063,78 +1083,106 @@ export default function UsecaseAlluvialDiagram({
           } catch (_) {}
         }
 
-        // Parse ingest & forward workflows + webhook status
-        if (workflowsRes.ok) {
+        // Workflows: use initialWorkflows prop if provided, else fetch
+        let workflowsData = initialWorkflows;
+        if (!workflowsData || !workflowsData.length) {
           try {
-            const wfData = await workflowsRes.json();
-            const workflows = Array.isArray(wfData) ? wfData : (wfData.workflows || []);
-            const ingestWf = findIngestTicketsWorkflow(workflows);
-            if (ingestWf) {
-              setIngestAppNames(extractWorkflowAppNames(ingestWf));
-            }
-            // Check for vulnerability workflows if relevant
-            const vulnWf = workflows.find((w: any) => {
-              const n = (w.name || '').toLowerCase();
-              const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase()) : [];
-              return n.includes('vulnerabilit') || tags.some((t: string) => t.includes('vulnerabilit'));
+            const workflowsRes = await fetch(getApiUrl('/api/v1/workflows'), {
+              credentials: 'include',
+              headers: { ...getAuthHeader() },
             });
-            if (vulnWf) {
-              const vulnApps = extractWorkflowAppNames(vulnWf);
-              setIngestAppNames(prev => {
-                const combined = new Set(prev || []);
-                vulnApps.forEach(a => combined.add(a));
-                return combined;
-              });
-            }
-
-            const forwardWf = findForwardTicketsWorkflow(workflows);
-            if (forwardWf) {
-              setForwardAppNames(extractWorkflowAppNames(forwardWf));
-            }
-            // Check for notification workflow (defaults.notification_workflow or tags/name)
-            const notifWf = workflows.find((w: any) => {
-              const n = (w.name || '').toLowerCase();
-              const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase()) : [];
-              return n.includes('notification') || tags.some((t: string) => t.includes('notification'));
-            });
-            if (notifWf) {
-              const notifApps = extractWorkflowAppNames(notifWf);
-              setForwardAppNames(prev => {
-                const combined = new Set(prev || []);
-                notifApps.forEach(a => combined.add(a));
-                return combined;
-              });
-            }
-
-            // Detect webhook workflow
-            const webhookWorkflow = workflows.find((w: any) => w.name === 'Ingestion Webhook');
-            if (webhookWorkflow) {
-              const webhookTrigger = (webhookWorkflow.triggers || []).find(
-                (t: any) => t.trigger_type === 'WEBHOOK' || t.app_name === 'Webhook'
-              );
-              let webhookUrl: string | null = null;
-              if (webhookTrigger) {
-                const webhookId = webhookTrigger.id || webhookTrigger.trigger_id;
-                if (webhookId) {
-                  webhookUrl = getApiUrl(`/api/v1/hooks/webhook_${webhookId}`);
-                }
-              }
-              const triggerStopped = !webhookTrigger || (webhookTrigger.status || '').toLowerCase() === 'stopped';
-              setWebhookInfo({ url: webhookUrl, exists: true, enabled: !triggerStopped, workflowId: webhookWorkflow.id });
-            } else {
-              setWebhookInfo({ url: null, exists: false, enabled: false, workflowId: null });
+            if (workflowsRes.ok) {
+              const wfData = await workflowsRes.json();
+              workflowsData = Array.isArray(wfData) ? wfData : (wfData.workflows || []);
             }
           } catch (_) {}
         }
 
-        setAllApps(nodes);
+        let nextIngest = new Set<string>();
+        let nextForward = new Set<string>();
+        let nextWebhook = { url: null as string | null, exists: false, enabled: false, workflowId: null as string | null };
+
+        if (Array.isArray(workflowsData)) {
+          const ingestWf = findIngestTicketsWorkflow(workflowsData);
+          if (ingestWf) {
+            nextIngest = extractWorkflowAppNames(ingestWf);
+          }
+          const vulnWf = workflowsData.find((w: any) => {
+            const n = (w.name || '').toLowerCase();
+            const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase()) : [];
+            return n.includes('vulnerabilit') || tags.some((t: string) => t.includes('vulnerabilit'));
+          });
+          if (vulnWf) {
+            const vulnApps = extractWorkflowAppNames(vulnWf);
+            vulnApps.forEach(a => nextIngest.add(a));
+          }
+
+          const forwardWf = findForwardTicketsWorkflow(workflowsData);
+          if (forwardWf) {
+            nextForward = extractWorkflowAppNames(forwardWf);
+          }
+          const notifWf = workflowsData.find((w: any) => {
+            const n = (w.name || '').toLowerCase();
+            const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase()) : [];
+            return n.includes('notification') || tags.some((t: string) => t.includes('notification'));
+          });
+          if (notifWf) {
+            const notifApps = extractWorkflowAppNames(notifWf);
+            notifApps.forEach(a => nextForward.add(a));
+          }
+
+          const webhookWorkflow = workflowsData.find((w: any) => w.name === 'Ingestion Webhook');
+          if (webhookWorkflow) {
+            const webhookTrigger = (webhookWorkflow.triggers || []).find(
+              (t: any) => t.trigger_type === 'WEBHOOK' || t.app_name === 'Webhook'
+            );
+            let webhookUrl: string | null = null;
+            if (webhookTrigger) {
+              const webhookId = webhookTrigger.id || webhookTrigger.trigger_id;
+              if (webhookId) {
+                webhookUrl = getApiUrl(`/api/v1/hooks/webhook_${webhookId}`);
+              }
+            }
+            const triggerStopped = !webhookTrigger || (webhookTrigger.status || '').toLowerCase() === 'stopped';
+            nextWebhook = { url: webhookUrl, exists: true, enabled: !triggerStopped, workflowId: webhookWorkflow.id };
+          }
+        }
+
+        if (!cancelled) {
+          setAllApps(nodes);
+          setIngestAppNames(nextIngest);
+          setForwardAppNames(nextForward);
+          setWebhookInfo(nextWebhook);
+          setAlluvialCache({
+            allApps: nodes,
+            ingestAppNames: nextIngest,
+            forwardAppNames: nextForward,
+            webhookInfo: nextWebhook,
+            ts: Date.now(),
+          });
+        }
       } catch (err) {
         console.error('[AlluvialDiagram] fetch error:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    })();
-  }, []);
+    };
+
+    runFetch();
+
+    const handleInvalidate = () => {
+      runFetch();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('shuffle-apps-invalidated', handleInvalidate);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('shuffle-apps-invalidated', handleInvalidate);
+      }
+    };
+  }, [isLoggedIn, initialWorkflows]);
 
   // Permanent webhook node shown at the top of source column when applicable
   const webhookNode: AppNode = useMemo(() => ({

@@ -48,6 +48,23 @@ import {
   resolveApp,
 } from '@shuffleio/shuffle-mcps';
 import { getAuthHeader, getShuffleCoreWorkflowUrl } from '../api';
+import {
+  type IntegrationItem,
+  fetchAppsCached,
+  invalidateAppsCache,
+  getCachedIntegrations,
+  setCachedIntegrations,
+  getCachedCatalogIcons,
+  updateCachedCatalogIcons,
+  getCachedCategoryAppNames,
+  setCachedCategoryAppNames,
+  getCachedValidatedAppsByCategory,
+  setCachedValidatedAppsByCategory,
+  getCachedValidatedCategories,
+  setCachedValidatedCategories,
+  _algoliaIconCache,
+} from './appsFetchCache';
+export { invalidateAppsCache };
 import { useUsecaseOutcomes } from '../hooks/useUsecaseOutcomes';
 import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
 import { resolveOutcomeKind } from '../lib/outcomes';
@@ -1833,45 +1850,7 @@ const getToolCategoryMeta = (categoryId: string): { color: string; icon: React.R
   return { color: cat.color, icon: cat.icon, label: cat.label };
 };
 
-interface IntegrationItem {
-  id: string;
-  name: string;
-  icon: string;
-  /** Validated (tested) — highest priority */
-  validated: boolean;
-  /** Active auth entry */
-  active: boolean;
-}
-
-// Module-level shared cache so the multiple IntegrationStatusLite instances
-// rendered per page (Source + Destination per usecase, plus sidebars) reuse
-// a single in-flight fetch for /api/v1/apps and /api/v1/apps/authentication
-// instead of each firing their own. TTL is short so a manual refresh
-// (integrationsRefreshKey bump) still gets fresh data within ~5s, but a
-// burst of mounts within that window collapses to one network request.
-// Long enough that navigating from /usecases to /usecases/:id reuses the
-// in-flight or already-resolved response instead of refetching apps from
-// scratch. Mutations (enable/disable, add tool) call invalidateAppsCache()
-// explicitly, so a longer TTL never serves stale data after a user action.
-const APPS_TTL_MS = 60_000;
-type CacheEntry = { ts: number; promise: Promise<Response> };
-const _appsFetchCache = new Map<string, CacheEntry>();
-function fetchAppsCached(url: string, init: RequestInit): Promise<Response> {
-  const now = Date.now();
-  const cached = _appsFetchCache.get(url);
-  if (cached && now - cached.ts < APPS_TTL_MS) {
-    // Clone so multiple consumers can each read the body.
-    return cached.promise.then((res) => res.clone());
-  }
-  const promise = fetch(url, init);
-  _appsFetchCache.set(url, { ts: now, promise });
-  return promise.then((res) => res.clone());
-}
-export function invalidateAppsCache() {
-  _appsFetchCache.clear();
-}
-
-function IntegrationStatusLite({
+const IntegrationStatusLite = React.memo(function IntegrationStatusLite({
   filterApps,
   singleLine = false,
   isResolving = false,
@@ -1935,9 +1914,9 @@ function IntegrationStatusLite({
 }) {
   const { apiUrl, authHeader } = useApi();
   const appDetail = useAppDetailOptional();
-  const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
-  const [catalogIcons, setCatalogIcons] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [integrations, setIntegrations] = useState<IntegrationItem[]>(() => getCachedIntegrations() || []);
+  const [catalogIcons, setCatalogIcons] = useState<Record<string, string>>(() => getCachedCatalogIcons());
+  const [isLoading, setIsLoading] = useState(() => !getCachedIntegrations());
   const [popoverFor, setPopoverFor] = useState<{ el: HTMLElement; item: IntegrationItem } | null>(null);
   const [togglingName, setTogglingName] = useState<string | null>(null);
   const [showHiddenEnabled, setShowHiddenEnabled] = useState(false);
@@ -1978,7 +1957,8 @@ function IntegrationStatusLite({
             obj[k] = v;
             obj[normalizeAppName(k)] = v;
           });
-          setCatalogIcons(obj);
+          updateCachedCatalogIcons(obj);
+          setCatalogIcons((prev) => ({ ...prev, ...obj }));
         }
 
         const items = new Map<string, IntegrationItem>();
@@ -2018,7 +1998,10 @@ function IntegrationStatusLite({
           return a.name.localeCompare(b.name);
         });
 
-        if (!cancelled) setIntegrations(sorted);
+        if (!cancelled) {
+          setCachedIntegrations(sorted);
+          setIntegrations(sorted);
+        }
       } catch {
         /* keep [] */
       } finally {
@@ -2026,7 +2009,12 @@ function IntegrationStatusLite({
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [apiUrl, authHeader]);
+
+  const workflowAppNamesKey = useMemo(
+    () => (workflowAppNames || []).slice().sort().join(','),
+    [workflowAppNames]
+  );
 
   // For workflow-derived app names that the local catalog/auth list doesn't
   // know about (e.g. Wazuh referenced inside a Singul wrapper but not yet
@@ -2036,6 +2024,7 @@ function IntegrationStatusLite({
     const needed = (workflowAppNames || []).filter((name) => {
       const key = normalizeAppName(name);
       if (!key) return false;
+      if (_algoliaIconCache.has(key)) return false;
       if (catalogIcons[key]) return false;
       if (integrations.some((i) => normalizeAppName(i.name) === key)) return false;
       return true;
@@ -2060,16 +2049,23 @@ function IntegrationStatusLite({
           const icon = hit?.image_url || '';
           if (!icon) return;
           const requested = needed[idx];
-          next[normalizeAppName(requested)] = icon;
-          if (hit?.name) next[normalizeAppName(hit.name)] = icon;
+          const k1 = normalizeAppName(requested);
+          next[k1] = icon;
+          _algoliaIconCache.set(k1, icon);
+          if (hit?.name) {
+            const k2 = normalizeAppName(hit.name);
+            next[k2] = icon;
+            _algoliaIconCache.set(k2, icon);
+          }
         });
         if (Object.keys(next).length) {
+          updateCachedCatalogIcons(next);
           setCatalogIcons((prev) => ({ ...prev, ...next }));
         }
       } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
-  }, [workflowAppNames, integrations, catalogIcons]);
+  }, [workflowAppNamesKey, integrations.length]);
 
   // Merge synthetic platform entries (e.g. "Shuffle Security") into the
   // installed-app list so they participate in filtering and ordering. Real
@@ -2643,7 +2639,7 @@ function IntegrationStatusLite({
       {renderPopover()}
     </Box>
   );
-}
+});
 
 // IDs of usecases whose backend automation is fully wired. Anything not in
 // this list renders a "Coming soon" affordance instead of a live Enable
@@ -3293,16 +3289,16 @@ function UsecaseDetailContent({
   // mini Visit/Enable Sync popover.
   const appDetail = useAppDetailOptional();
   const flow = usecases.find((item) => item.id === flowId);
-  const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>({});
+  const [categoryAppNames, setCategoryAppNames] = useState<Record<string, string[]>>(() => getCachedCategoryAppNames() || {});
   // Apps with a *validated* authentication, grouped by category. Powers the
   // "In this usecase" row inside the Add-Tool drawer so users immediately see
   // what they have already connected (e.g. Wazuh under SIEM).
-  const [validatedAppsByCategory, setValidatedAppsByCategory] = useState<Record<string, Array<{ name: string; icon: string }>>>({});
+  const [validatedAppsByCategory, setValidatedAppsByCategory] = useState<Record<string, Array<{ name: string; icon: string }>>>(() => getCachedValidatedAppsByCategory() || {});
   // Tracks whether the apps→category resolution has completed at least once.
   // While false, the popup's per-endpoint tools section shows a loader so the
   // user does not see a flash of "all apps" or "No apps selected" before the
   // filtered list narrows down.
-  const [categoryAppsResolved, setCategoryAppsResolved] = useState(false);
+  const [categoryAppsResolved, setCategoryAppsResolved] = useState(() => !!getCachedCategoryAppNames());
   const [toggling, setToggling] = useState(false);
   const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null);
   // Only surface the "what to fix" inline hint AFTER the user has actually
@@ -3813,17 +3809,19 @@ function UsecaseDetailContent({
         }
 
         if (!cancelled) {
-          setCategoryAppNames(
-            Object.fromEntries(Object.entries(mapped).map(([key, value]) => [key, Array.from(value).sort()]))
+          const nextCategoryApps = Object.fromEntries(
+            Object.entries(mapped).map(([key, value]) => [key, Array.from(value).sort()])
           );
-          setValidatedAppsByCategory(
-            Object.fromEntries(
-              Object.entries(validated).map(([key, m]) => [
-                key,
-                Array.from(m.entries()).map(([name, icon]) => ({ name, icon })),
-              ])
-            )
+          const nextValidatedApps = Object.fromEntries(
+            Object.entries(validated).map(([key, m]) => [
+              key,
+              Array.from(m.entries()).map(([name, icon]) => ({ name, icon })),
+            ])
           );
+          setCachedCategoryAppNames(nextCategoryApps);
+          setCachedValidatedAppsByCategory(nextValidatedApps);
+          setCategoryAppNames(nextCategoryApps);
+          setValidatedAppsByCategory(nextValidatedApps);
         }
       } catch {
         if (!cancelled) setCategoryAppNames({});
@@ -4340,6 +4338,7 @@ function UsecaseDetailContent({
             highlightCategory={['case_management_communication_1', 'vulnerability_ingestion_1', 'asset_management_case_management_vuln_1'].includes(flow.id) ? undefined : flow.source}
             lockSource={flow.id === 'case_management_communication_1'}
             isLoggedIn={isAuthenticated}
+            workflows={workflows}
             // Keep the AppBubble's built-in mini popover (Visit / Enable Sync
             // / Remove). Only the "+" Add buttons delegate to the host below.
             // Reuse the same AppSearchDrawer wiring (setAddToolFor) the
@@ -5338,6 +5337,10 @@ function UsecasesPageInner() {
   // We still accept legacy URL-encoded labels ("SIEM%20alerts") for back-compat.
   const drawerLabel = routeParams.flowId ? decodeURIComponent(routeParams.flowId) : null;
   const [drawerFlowId, setDrawerFlowIdState] = useState<string | null>(null);
+  const [displayedDrawerFlowId, setDisplayedDrawerFlowId] = useState<string | null>(null);
+  useEffect(() => {
+    if (drawerFlowId) setDisplayedDrawerFlowId(drawerFlowId);
+  }, [drawerFlowId]);
   // When set, the drawer auto-fires Enable for this flow id once it mounts.
   const [autoEnableFlowId, setAutoEnableFlowId] = useState<string | null>(null);
 
@@ -5594,10 +5597,10 @@ function UsecasesPageInner() {
   // side, but it is not actually doing anything useful until a source tool
   // can feed it. Sourced from /api/v1/apps/authentication so the signal
   // matches the IntegrationStatus indicator (green dot = validated).
-  const [validatedCategories, setValidatedCategories] = useState<Set<string>>(new Set());
+  const [validatedCategories, setValidatedCategories] = useState<Set<string>>(() => getCachedValidatedCategories() || new Set());
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const fetchValidatedCats = async () => {
       try {
         const res = await fetchAppsCached(apiUrl('/api/v1/apps/authentication'), {
           credentials: 'include',
@@ -5618,12 +5621,29 @@ function UsecasesPageInner() {
             cats.add(categoryId);
           }
         }
-        if (!cancelled) setValidatedCategories(cats);
+        if (!cancelled) {
+          setCachedValidatedCategories(cats);
+          setValidatedCategories(cats);
+        }
       } catch {
         /* keep previous state */
       }
-    })();
-    return () => { cancelled = true; };
+    };
+
+    fetchValidatedCats();
+
+    const handleInvalidate = () => {
+      fetchValidatedCats();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('shuffle-apps-invalidated', handleInvalidate);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('shuffle-apps-invalidated', handleInvalidate);
+      }
+    };
   }, [apiUrl, authHeader]);
 
   // Detect whether the "Run AI Agent" automation is enabled on the
@@ -5845,6 +5865,28 @@ function UsecasesPageInner() {
     return Array.from(tagSet).sort();
   }, [usecases]);
 
+  // Memoize workflow-derived app names and workflowsByAppName mapping so that
+  // opening/closing a drawer or re-rendering UsecasesPageInner does not construct
+  // fresh object/array references that trigger re-fetching in IntegrationStatusLite.
+  const { selectedAppNames, selectedWorkflowsByAppName } = useMemo(() => {
+    const appNameSet = new Set<string>();
+    const wfMap = new Map<string, string[]>();
+    for (const wf of workflows) {
+      const wfLabel = wf.name || 'Untitled workflow';
+      for (const n of extractWorkflowAppNames(wf)) {
+        appNameSet.add(n);
+        const key = normalizeAppName(n);
+        const arr = wfMap.get(key) || [];
+        if (!arr.includes(wfLabel)) arr.push(wfLabel);
+        wfMap.set(key, arr);
+      }
+    }
+    return {
+      selectedAppNames: Array.from(appNameSet),
+      selectedWorkflowsByAppName: wfMap,
+    };
+  }, [workflows]);
+
   const filtered = useMemo(() => {
     let list = usecases;
 
@@ -6062,27 +6104,11 @@ function UsecasesPageInner() {
             }}
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              {(() => {
-                const appNameSet = new Set<string>();
-                const wfMap = new Map<string, string[]>();
-                for (const wf of workflows) {
-                  const wfLabel = wf.name || 'Untitled workflow';
-                  for (const n of extractWorkflowAppNames(wf)) {
-                    appNameSet.add(n);
-                    const key = normalizeAppName(n);
-                    const arr = wfMap.get(key) || [];
-                    if (!arr.includes(wfLabel)) arr.push(wfLabel);
-                    wfMap.set(key, arr);
-                  }
-                }
-                return (
-                  <IntegrationStatusLite
-                    singleLine
-                    workflowAppNames={Array.from(appNameSet)}
-                    workflowsByAppName={wfMap}
-                  />
-                );
-              })()}
+              <IntegrationStatusLite
+                singleLine
+                workflowAppNames={selectedAppNames}
+                workflowsByAppName={selectedWorkflowsByAppName}
+              />
             </Box>
             <Button
               component={Link}
@@ -6284,13 +6310,14 @@ function UsecasesPageInner() {
         </Box>
         <Box sx={{ p: { xs: 2, md: 3 } }}>
           {(() => {
-            const drawerFlow = drawerFlowId ? usecases.find(u => u.id === drawerFlowId) : null;
+            const effectiveFlowId = drawerFlowId || displayedDrawerFlowId;
+            const drawerFlow = effectiveFlowId ? usecases.find(u => u.id === effectiveFlowId) : null;
             const drawerEnabled = drawerFlow ? isFlowVisuallyEnabled(drawerFlow) : false;
             const drawerCanToggle = isAuthenticated && !!drawerFlow?.automationLabel;
             const drawerHasValidatedSource = drawerFlow ? validatedCategories.has(drawerFlow.source) : true;
             return (
               <UsecaseDetailContent
-                flowId={drawerFlowId ?? undefined}
+                flowId={effectiveFlowId ?? undefined}
                 hideBackNav
                 showConnectionPath
                 useAlluvialDiagram
@@ -6945,11 +6972,11 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
 
   // Fetch validated source categories (same call as UsecasesPageInner). Skips
   // out gracefully if the user is not authenticated.
-  const [validatedCategories, setValidatedCategories] = useState<Set<string>>(new Set());
+  const [validatedCategories, setValidatedCategories] = useState<Set<string>>(() => getCachedValidatedCategories() || new Set());
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
-    (async () => {
+    const fetchValidatedCats = async () => {
       try {
         const res = await fetchAppsCached(apiUrl('/api/v1/apps/authentication'), {
           credentials: 'include',
@@ -6967,10 +6994,26 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
             cats.add(categoryId);
           }
         }
-        if (!cancelled) setValidatedCategories(cats);
+        if (!cancelled) {
+          setCachedValidatedCategories(cats);
+          setValidatedCategories(cats);
+        }
       } catch { /* keep previous */ }
-    })();
-    return () => { cancelled = true; };
+    };
+
+    fetchValidatedCats();
+    const handleInvalidate = () => {
+      fetchValidatedCats();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('shuffle-apps-invalidated', handleInvalidate);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('shuffle-apps-invalidated', handleInvalidate);
+      }
+    };
   }, [isAuthenticated, apiUrl, authHeader]);
 
   const [activeFlowId, setActiveFlowId] = useState<string | null>(flowId);
