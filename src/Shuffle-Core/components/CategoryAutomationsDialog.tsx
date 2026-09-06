@@ -731,7 +731,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     >
       <DialogTitle sx={{ pb: 2, pr: 6, pt: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <RocketLaunchIcon size={28} style={{ color: enabledCount > 0 ? '#4ade80' : 'hsl(var(--muted-foreground))' }} />
+          <RocketLaunchIcon size={28} style={{ color: enabledCount > 0 ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))' }} />
           <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
             Automation for {entityPluralCap}
           </Typography>
@@ -797,7 +797,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                           height: 8,
                           borderRadius: '50%',
                           flexShrink: 0,
-                          bgcolor: count > 0 ? '#4ade80' : 'hsl(var(--muted-foreground) / 0.5)',
+                          bgcolor: count > 0 ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground) / 0.5)',
                         }}
                       />
                       <Typography sx={{ fontSize: '0.95rem', flex: 1 }}>
@@ -904,10 +904,10 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                     {(automation.type === 'enrich' ||
                       automation.type === 'security_rules' ||
                       automation.type === 'ai_agent') && (
-                      <Tooltip title={`Reset ${config.name} to default`}>
+                      <Tooltip title={`Reset ${(config.name || '').replace(/[_\-]+/g, ' ')} to default`}>
                         <IconButton
                           size="small"
-                          aria-label={`Reset ${config.name} to default`}
+                          aria-label={`Reset ${(config.name || '').replace(/[_\-]+/g, ' ')} to default`}
                           onClick={(e) => {
                             e.stopPropagation();
                             resetRow(automation.type!);

@@ -52,6 +52,7 @@ import { useUsecaseOutcomes } from '../hooks/useUsecaseOutcomes';
 import { UsecaseOutcomeSection } from '../components/UsecaseOutcome';
 import { resolveOutcomeKind } from '../lib/outcomes';
 import { useWorkflowExecutionStats } from '../hooks/useWorkflowExecutionStats';
+import { useHostMonitorCount } from '@/hooks/useHostMonitorCount';
 // ── Flow phases ────────────────────────────────────────────────────────────────
 
 export type FlowPhase = 'ingest' | 'correlation' | 'response';
@@ -804,15 +805,15 @@ export const DEFAULT_USECASES: Usecase[] = [
   },
   {
     id: 'case_management_asset_management_monitors_1', phase: 'response', source: 'case_management', target: 'asset_management',
-    label: 'Add Host-Monitors', animated: true,
+    label: 'Host Monitoring', animated: true,
     tags: ['Response', 'Monitoring', 'Endpoint'],
     description: 'Deploy host monitors to endpoints for real-time telemetry collection, compliance checks, and on-demand response action execution. Monitors enable direct interaction with hosts during investigations and continuous visibility into endpoint state.',
     agenticDescription: 'An agent identifies hosts missing monitor coverage, generates the appropriate deployment command for each platform, tracks rollout status, and verifies telemetry is flowing back into the platform after install.',
-    automationLabel: 'Add Monitors',
+    automationLabel: 'Host Monitoring',
     automationCategory: 'cases',
     automationArea: 'response',
     customAction: {
-      label: 'Add Monitor',
+      label: 'Deploy Host Monitor',
       href: '/monitors?add_host=true',
       modal: 'add-host',
       description: 'Open the monitor deployment dialog to register a new host.',
@@ -1158,7 +1159,7 @@ interface UsecasesPageConfig {
    *  detail view. Lets the host inject a full configuration component for
    *  a usecase (e.g. the Incident Routing editor) instead of bundling it
    *  into Shuffle-Core. */
-  renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string }) => React.ReactNode;
+  renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string; onOpenModal?: (modal: string) => void }) => React.ReactNode;
   /** Optional host slot that renders an inline modal for a usecase whose
    *  `customAction.modal` key matches. Lets the host embed dialogs (e.g.
    *  "Add Host" for the Add Host-Monitors usecase) directly in the sidebar
@@ -1476,31 +1477,55 @@ interface WorkflowSummary {
   tags?: string[];
   [key: string]: any;
 }
+let workflowsLiteCache: WorkflowSummary[] | null = null;
+let workflowsLiteFetchPromise: Promise<WorkflowSummary[]> | null = null;
+
 function useWorkflowsLite() {
   const { apiUrl, authHeader } = useApi();
-  const [data, setData] = useState<WorkflowSummary[]>([]);
-  const fetchOnce = React.useCallback(async () => {
-    try {
-      const res = await fetch(apiUrl('/api/v1/workflows'), {
-        credentials: 'include',
-        headers: { ...authHeader() },
-      });
-      if (!res.ok) return;
-      const body = await res.json();
-      const list = Array.isArray(body) ? body : (body.workflows || []);
-      setData(list);
-    } catch {
-      /* keep current */
+  const [data, setData] = useState<WorkflowSummary[]>(workflowsLiteCache || []);
+  const fetchOnce = React.useCallback(async (force = false) => {
+    if (!force && workflowsLiteFetchPromise) {
+      try {
+        const list = await workflowsLiteFetchPromise;
+        setData(list);
+        return;
+      } catch { /* ignore */ }
     }
+    const p = (async () => {
+      try {
+        const res = await fetch(apiUrl('/api/v1/workflows'), {
+          credentials: 'include',
+          headers: { ...authHeader() },
+        });
+        if (!res.ok) return workflowsLiteCache || [];
+        const body = await res.json();
+        const list = Array.isArray(body) ? body : (body.workflows || []);
+        workflowsLiteCache = list;
+        return list;
+      } catch {
+        return workflowsLiteCache || [];
+      } finally {
+        workflowsLiteFetchPromise = null;
+      }
+    })();
+    workflowsLiteFetchPromise = p;
+    const list = await p;
+    setData(list);
   }, [apiUrl, authHeader]);
-  useEffect(() => { fetchOnce(); }, [fetchOnce]);
+
+  useEffect(() => {
+    if (!workflowsLiteCache) {
+      fetchOnce();
+    }
+  }, [fetchOnce]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const handleWorkflowsUpdated = () => { fetchOnce(); };
+    const handleWorkflowsUpdated = () => { fetchOnce(true); };
     window.addEventListener('shuffle-workflows-updated', handleWorkflowsUpdated);
     return () => window.removeEventListener('shuffle-workflows-updated', handleWorkflowsUpdated);
   }, [fetchOnce]);
-  return { data, refetch: fetchOnce };
+  return { data, refetch: () => fetchOnce(true) };
 }
 
 /**
@@ -1520,6 +1545,26 @@ function findWorkflowsForUsecase(
   if (usecase.automationArea === 'automatic_ingestion') {
     labels.push(`${usecase.automationLabel.toLowerCase()}_webhook`);
   }
+  const lower = usecase.automationLabel.toLowerCase();
+  if (lower.includes('incident routing')) {
+    labels.push('incident routing', 'incident_routing', 'incident_routing_rules');
+  }
+  const isPhoneNotif =
+    lower.includes('schedules & phone') ||
+    lower.includes('schedules_notifications') ||
+    lower.includes('phone notification');
+  if (isPhoneNotif) {
+    labels.push(
+      'schedules & phone notifications',
+      'schedules_&_phone_notifications',
+      'schedules_notifications',
+      'phone_notifications',
+      'phone notification',
+      'phone notifications',
+      'assign & escalate',
+      'assign_&_escalate',
+    );
+  }
   // The "Ingestion Webhook" workflow is the canonical webhook entrypoint for
   // every automatic_ingestion usecase (SIEM/EDR/Email alerts). It is created
   // by the WebhookIngestionButton / onboarding and is not always tagged with
@@ -1537,11 +1582,12 @@ function findWorkflowsForUsecase(
     // Enabled badge is computed.
     const hits =
       (isIngestion && name === 'ingestion webhook') ||
+      (isPhoneNotif && (tags.includes('paging') || tags.includes('mobile') || tags.includes('phone notification') || tags.includes('schedule'))) ||
       labels.some(
         (label) =>
-          (name && name.includes(label)) ||
+          (name && (name === label || name.includes(label))) ||
           tags.includes(label) ||
-          tags.some((t: string) => t.includes(label)),
+          tags.some((t: string) => t === label || t.includes(label)),
       );
     if (!hits) continue;
     if (wf.id && seen.has(wf.id)) continue;
@@ -1704,34 +1750,57 @@ function buildBackendUsecases(cats: ApiUsecaseCategory[]) {
   return { usecases, drifts };
 }
 
+let usecasesLiteCache: {
+  usecases: Usecase[];
+  apiCategories: ApiUsecaseCategory[];
+  drifts: UsecaseDrift[];
+} | null = null;
+let usecasesLiteFetchPromise: Promise<any> | null = null;
+
 function useUsecasesLite() {
   const [data, setData] = useState<{
     usecases: Usecase[];
     apiCategories: ApiUsecaseCategory[];
     drifts: UsecaseDrift[];
-  }>({ usecases: DEFAULT_USECASES, apiCategories: [], drifts: [] });
+  }>(usecasesLiteCache || { usecases: DEFAULT_USECASES, apiCategories: [], drifts: [] });
 
   const { apiUrl, authHeader } = useApi();
   useEffect(() => {
+    if (usecasesLiteCache && usecasesLiteCache.apiCategories.length > 0) return;
     let cancelled = false;
-    (async () => {
+    if (usecasesLiteFetchPromise) {
+      usecasesLiteFetchPromise.then((built) => {
+        if (!cancelled && built) setData(built);
+      });
+      return;
+    }
+    usecasesLiteFetchPromise = (async () => {
       try {
         const res = await fetch(apiUrl('/api/v1/workflows/usecases'), {
           credentials: 'include',
           headers: { ...authHeader() },
         });
-        if (!res.ok) return;
+        if (!res.ok) return null;
         const body = await res.json();
         const cats: ApiUsecaseCategory[] = Array.isArray(body) ? body : [];
-        if (cancelled || cats.length === 0) return;
+        if (cats.length === 0) return null;
         const built = buildBackendUsecases(cats);
-        setData({ usecases: built.usecases, apiCategories: cats, drifts: built.drifts });
+        const result = { usecases: built.usecases, apiCategories: cats, drifts: built.drifts };
+        usecasesLiteCache = result;
+        return result;
       } catch {
-        /* keep defaults */
+        return null;
+      } finally {
+        usecasesLiteFetchPromise = null;
       }
     })();
+
+    usecasesLiteFetchPromise.then((built) => {
+      if (!cancelled && built) setData(built);
+    });
+
     return () => { cancelled = true; };
-  }, []);
+  }, [apiUrl, authHeader]);
 
   const driftMap = useMemo(() => {
     const m = new Map<string, UsecaseDrift>();
@@ -2080,15 +2149,20 @@ function IntegrationStatusLite({
         : 'hsl(var(--card))';
     const isReady = effectiveValidated || integration.active;
 
+    const cleanIntegrationName = (integration.name || '')
+      .replace(/[_\-]+/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .trim();
+
     return (
       <Tooltip
         key={integration.id}
         title={isShuffleSecurity
-          ? `${integration.name} (always available)`
-          : `${integration.name}${integration.validated ? ' (validated)' : integration.active ? ' (configured)' : ' (not configured)'}${(() => {
+          ? `${cleanIntegrationName} (always available)`
+          : `${cleanIntegrationName}${integration.validated ? ' (validated)' : integration.active ? ' (configured)' : ' (not configured)'}${(() => {
             const wfs = workflowsByAppName?.get(normalizeAppName(integration.name));
             if (!wfs || wfs.length === 0) return '';
-            const shown = wfs.slice(0, 3).join(', ');
+            const shown = wfs.slice(0, 3).map(w => w.replace(/[_\-]+/g, ' ')).join(', ');
             const more = wfs.length > 3 ? ` (+${wfs.length - 3} more)` : '';
             return ` — used in: ${shown}${more}`;
           })()}`}
@@ -3425,6 +3499,22 @@ function UsecaseDetailContent({
       return;
     }
 
+    // Host Monitoring is presence-driven: "activating" means deploying a host monitor
+    if (flow.id === 'case_management_asset_management_monitors_1') {
+      if (willBeEnabled) {
+        setActionModal('add-host');
+      } else {
+        toast.info('Host Monitoring is active on your endpoints', {
+          description: 'To unregister monitors or adjust monitoring groups, manage them in the Monitors view.',
+          action: {
+            label: 'Open Monitors',
+            onClick: () => navigate('/monitors'),
+          },
+        });
+      }
+      return;
+    }
+
     // Forward Tickets, Notifications, and Vulnerability Correlation are Cases/Shuffle/internal-sourced —
     // Shuffle itself IS the source, so there is no third-party source auth to
     // validate. Skip the hard-block for these flows.
@@ -3919,29 +4009,6 @@ function UsecaseDetailContent({
               <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: FG, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
                 {flow.label}
               </Typography>
-              {effectiveEnabled && (
-                <Box
-                  sx={{
-                    flexShrink: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    textTransform: 'none',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    py: 0.5,
-                    px: 1.2,
-                    borderRadius: 1,
-                    bgcolor: 'hsl(var(--severity-low) / 0.12)',
-                    color: 'hsl(var(--severity-low))',
-                    border: '1px solid hsl(var(--severity-low) / 0.4)',
-                    letterSpacing: 0.2,
-                  }}
-                >
-                  <Power size={13} style={{ color: 'inherit' }} />
-                  Active
-                </Box>
-              )}
               {isComingSoon ? (
                 <Box
                   sx={{
@@ -3963,53 +4030,91 @@ function UsecaseDetailContent({
                   <Clock size={14} />
                   Coming soon
                 </Box>
-              ) : canToggle && flow.automationLabel && (
-                <Button
-                  size="small"
-                  variant={effectiveEnabled ? 'outlined' : 'contained'}
-                  disableElevation
-                  onClick={handleToggle}
-                  disabled={toggling}
-                  startIcon={
-                    toggling ? (
-                      <CircularProgress size={12} sx={{ color: 'inherit' }} />
-                    ) : effectiveEnabled ? (
-                      <PowerOff size={14} />
-                    ) : (
-                      <Power size={14} />
-                    )
+              ) : canToggle && flow.automationLabel ? (
+                <Tooltip
+                  title={
+                    !effectiveEnabled && !hasValidatedSource
+                      ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
+                      : effectiveEnabled
+                        ? 'Click to disable'
+                        : 'Click to activate'
                   }
+                  placement="bottom"
+                  arrow
+                >
+                  <span>
+                    <Button
+                      size="small"
+                      disableElevation
+                      onClick={handleToggle}
+                      disabled={toggling}
+                      startIcon={
+                        toggling ? (
+                          <CircularProgress size={12} sx={{ color: 'inherit' }} />
+                        ) : (
+                          <Power size={13} style={{ color: 'inherit' }} />
+                        )
+                      }
+                      sx={{
+                        flexShrink: 0,
+                        textTransform: 'none',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        minHeight: 0,
+                        py: 0.5,
+                        px: 1.2,
+                        borderRadius: 1,
+                        bgcolor: effectiveEnabled
+                          ? 'hsl(var(--severity-low) / 0.12)'
+                          : 'transparent',
+                        color: 'hsl(var(--severity-low))',
+                        border: '1px solid hsl(var(--severity-low) / 0.4)',
+                        letterSpacing: 0.2,
+                        boxShadow: 'none',
+                        '&:hover': {
+                          bgcolor: effectiveEnabled
+                            ? 'hsl(var(--severity-low) / 0.22)'
+                            : 'hsl(var(--severity-low) / 0.1)',
+                          borderColor: 'hsl(var(--severity-low) / 0.7)',
+                          boxShadow: 'none',
+                        },
+                      }}
+                    >
+                      {effectiveEnabled ? 'Active' : 'Activate'}
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : !isAuthenticated && flow.automationLabel ? (
+                <Button
+                  component={Link}
+                  to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
+                  size="small"
+                  disableElevation
+                  startIcon={<Power size={13} style={{ color: 'inherit' }} />}
                   sx={{
                     flexShrink: 0,
                     textTransform: 'none',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
                     minHeight: 0,
-                    py: 0.6,
-                    px: 1.25,
-                    bgcolor: effectiveEnabled
-                      ? 'transparent'
-                      : primaryColor,
-                    color: effectiveEnabled
-                      ? primaryColor
-                      : 'hsl(var(--primary-foreground, 0 0% 100%))',
-                    border: effectiveEnabled
-                      ? `1.5px solid ${primaryColor}`
-                      : '1.5px solid transparent',
+                    py: 0.5,
+                    px: 1.2,
+                    borderRadius: 1,
+                    bgcolor: 'transparent',
+                    color: 'hsl(var(--severity-low))',
+                    border: '1px solid hsl(var(--severity-low) / 0.4)',
+                    letterSpacing: 0.2,
                     boxShadow: 'none',
                     '&:hover': {
-                      bgcolor: effectiveEnabled
-                        ? `${primaryColor}14`
-                        : primaryColor,
-                      opacity: 0.9,
-                      borderColor: primaryColor,
+                      bgcolor: 'hsl(var(--severity-low) / 0.1)',
+                      borderColor: 'hsl(var(--severity-low) / 0.7)',
                       boxShadow: 'none',
                     },
                   }}
                 >
-                  {effectiveEnabled ? 'Disable' : 'Enable'}
+                  Activate
                 </Button>
-              )}
+              ) : null}
             </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.25 }}>
               <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, px: 1, py: 0.35, borderRadius: 1, bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--foreground))', border: '1px solid hsl(var(--border))' }}>
@@ -4170,7 +4275,11 @@ function UsecaseDetailContent({
 
       {(() => {
         const slot = renderUsecaseDetailSlot
-          ? renderUsecaseDetailSlot({ flowId: flow.id, flowLabel: flow.label })
+          ? renderUsecaseDetailSlot({
+              flowId: flow.id,
+              flowLabel: flow.label,
+              onOpenModal: () => setActionModalOpen(true),
+            })
           : null;
         return slot ? (
           <Box sx={{ p: 2.5, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
@@ -4185,7 +4294,7 @@ function UsecaseDetailContent({
 
 
 
-      {showConnectionPath && flow.id !== 'case_management_incident_routing_1' && flow.id !== 'case_management_schedules_notifications_1' && (() => {
+      {showConnectionPath && flow.id !== 'case_management_incident_routing_1' && flow.id !== 'case_management_schedules_notifications_1' && flow.id !== 'case_management_asset_management_monitors_1' && (() => {
         const alluvialEligible = useAlluvialDiagram && ALLUVIAL_ELIGIBLE_FLOW_IDS.has(flow.id);
         const showAlluvial = alluvialEligible && connectionViewMode === 'source_destination';
         return (
@@ -4624,7 +4733,7 @@ function UsecaseDetailContent({
         );
       })()}
 
-      {flow.id !== 'case_management_incident_routing_1' && flow.id !== 'case_management_schedules_notifications_1' && (
+      {flow.id !== 'case_management_incident_routing_1' && flow.id !== 'case_management_schedules_notifications_1' && flow.id !== 'case_management_asset_management_monitors_1' && (
         flow.automationArea === 'notifications'
           ? <NotificationsOutcomeBlock />
           : flow.label === 'IOC feeds'
@@ -4774,7 +4883,25 @@ function UsecaseDetailContent({
         // already covered by tag/name matching.
         const notifWorkflows = notifForLW;
         const allLinked = allLinkedForSet;
-        if (allLinked.length === 0) return null;
+        if (allLinked.length === 0) {
+          return (
+            <Box sx={{ p: 3, borderRadius: 2, border: CARD_BORDER, bgcolor: CARD_BG, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, gap: 2, flexWrap: 'wrap' }}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.06em' }}>
+                  Linked Workflows (0)
+                </Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: MUTED }}>
+                  {flow.automationLabel ? `Matched on label "${flow.automationLabel}"` : ''}
+                </Typography>
+              </Box>
+              <Typography sx={{ fontSize: '0.82rem', color: MUTED }}>
+                {flow.id === 'case_management_asset_management_monitors_1'
+                  ? 'No linked workflows found. Host monitors stream endpoint telemetry directly into Shuffle, and automated response workflows can be attached to trigger containment or diagnostics.'
+                  : `No linked workflows found. Activate this usecase to generate the workflow for ${flow.label}.`}
+              </Typography>
+            </Box>
+          );
+        }
         const labelHint = forwardTicketsWorkflows.length > 0 && flow.automationLabel
           ? `Matched on "${flow.automationLabel}" and "Forward Tickets"`
           : notifWorkflows.length > 0
@@ -4889,7 +5016,7 @@ function UsecaseDetailContent({
                       }}
                     >
                       {actionApps.length > 0 && (
-                        <Box title={`Actions: ${actionApps.join(', ')}`} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box title={`Actions: ${actionApps.map(a => a.replace(/[_\-]+/g, ' ')).join(', ')}`} sx={{ display: 'flex', alignItems: 'center' }}>
                           <IntegrationStatusLite
                             singleLine
                             filterApps={actionApps}
@@ -5106,7 +5233,7 @@ export interface UsecasesPageProps {
    * Optional host slot rendered above the Outcome block in the detail view.
    * Use it to inject a full configuration UI (e.g. Incident Routing editor).
    */
-  renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string }) => React.ReactNode;
+  renderUsecaseDetailSlot?: (params: { flowId: string; flowLabel: string; onOpenModal?: (modal: string) => void }) => React.ReactNode;
   /**
    * Optional host slot that renders an inline modal for a usecase whose
    * `customAction.modal` matches. Used to embed dialogs like "Add Host"
@@ -5123,6 +5250,25 @@ export interface UsecasesPageProps {
    * Optional host callback fired whenever a usecase automation is toggled on/off.
    */
   onToggled?: (label: string, enabled: boolean) => void;
+}
+
+const recordedInterestUsecases = new Set<string>();
+
+function resolveUsecaseBySlug(target: string, list: Usecase[]): Usecase | undefined {
+  if (!target) return undefined;
+  const s = slugify(target);
+  return (
+    list.find(u => u.label && slugify(u.label) === s) ||
+    list.find(u => u.id && slugify(u.id) === s) ||
+    (s === 'add-host-monitors' || s === 'host-monitors' || s === 'add-monitors' || s === 'host-monitoring'
+      ? list.find(u => u.id === 'case_management_asset_management_monitors_1')
+      : undefined) ||
+    (s === 'phishing' || s === 'email-reports'
+      ? list.find(u => u.id === 'email_case_management_1')
+      : undefined) ||
+    list.find(u => u.label && slugify(u.label).includes(s)) ||
+    list.find(u => u.label && s.includes(slugify(u.label)))
+  );
 }
 
 function UsecasesPageInner() {
@@ -5210,9 +5356,7 @@ function UsecasesPageInner() {
     const next = new URLSearchParams(searchParams);
     next.delete('selected_object');
     const qs = next.toString();
-    const match =
-      usecases.find((u) => u.label && slugify(u.label) === slug) ||
-      usecases.find((u) => u.id && slugify(u.id) === slug);
+    const match = resolveUsecaseBySlug(selected, usecases);
     if (match) {
       setDrawerFlowIdState(match.id);
     }
@@ -5226,12 +5370,7 @@ function UsecasesPageInner() {
       setDrawerFlowIdState(null);
       return;
     }
-    const target = slugify(drawerLabel);
-    const match =
-      usecases.find(u => u.label && slugify(u.label) === target) ||
-      usecases.find(u => u.id && slugify(u.id) === target) ||
-      usecases.find(u => u.label && slugify(u.label).includes(target)) ||
-      usecases.find(u => u.label && target.includes(slugify(u.label)));
+    const match = resolveUsecaseBySlug(drawerLabel, usecases);
     if (match) {
       setDrawerFlowIdState(match.id);
     } else if (usecases.length > 0) {
@@ -5251,12 +5390,7 @@ function UsecasesPageInner() {
       }
       const match = path.match(/^\/usecases\/([^/]+)/);
       if (match && match[1]) {
-        const target = slugify(decodeURIComponent(match[1]));
-        const flow =
-          usecases.find((u) => u.label && slugify(u.label) === target) ||
-          usecases.find((u) => u.id && slugify(u.id) === target) ||
-          usecases.find((u) => u.label && slugify(u.label).includes(target)) ||
-          usecases.find((u) => u.label && target.includes(slugify(u.label)));
+        const flow = resolveUsecaseBySlug(decodeURIComponent(match[1]), usecases);
         if (flow) {
           setDrawerFlowIdState(flow.id);
         }
@@ -5313,13 +5447,16 @@ function UsecasesPageInner() {
         setLocalInterests(new Set(list));
       }
     } catch { /* ignore */ }
-    // Fire-and-forget API call — response intentionally ignored per product spec.
-    try {
-      fetch(apiUrl(`/api/v1/workflows/usecases/${encodeURIComponent(name)}`), {
-        credentials: 'include',
-        headers: { ...authHeader() },
-      }).catch(() => { /* ignore */ });
-    } catch { /* ignore */ }
+    // Fire-and-forget API call — deduplicated to at most once per usecase per session.
+    if (!recordedInterestUsecases.has(name)) {
+      recordedInterestUsecases.add(name);
+      try {
+        fetch(apiUrl(`/api/v1/workflows/usecases/${encodeURIComponent(name)}`), {
+          credentials: 'include',
+          headers: { ...authHeader() },
+        }).catch(() => { /* ignore */ });
+      } catch { /* ignore */ }
+    }
     // Update browser URL without triggering TanStack route unmount / remount
     if (typeof window !== 'undefined') {
       const target = `/usecases/${slug}${search}`;
@@ -5439,14 +5576,17 @@ function UsecasesPageInner() {
   }, [routeParams.flowId, searchParams, usecases, workflows, enabledLabels]);
 
   // Page-level outcomes bundle — used to drive presence-based enable signals
-  // (e.g. "Add Host-Monitors" lights up as Enabled when ≥2 host monitors are
+  // (e.g. "Host Monitoring" lights up as Enabled when ≥1 host monitor is
   // actually deployed, regardless of whether a workflow exists).
   const { getOutcome: getPageOutcome } = useUsecaseOutcomes(usecases);
-  const monitorsDeployedCount = (() => {
-    const o = getPageOutcome('case_management_asset_management_monitors_1');
-    const v = o?.extraMetrics?.[0]?.value;
-    return typeof v === 'number' ? v : 0;
-  })();
+  const realHostCount = useHostMonitorCount();
+  const monitorsDeployedCount = typeof realHostCount === 'number'
+    ? realHostCount
+    : (() => {
+        const o = getPageOutcome('case_management_asset_management_monitors_1');
+        const v = o?.extraMetrics?.[0]?.value;
+        return typeof v === 'number' ? v : 0;
+      })();
 
   // Categories (e.g. 'siem', 'edr', 'email') for which the user has at least
   // one *authenticated* / validated source-tool installed. We use this to gate
@@ -5579,10 +5719,10 @@ function UsecasesPageInner() {
         flow.id === 'case_management_agent_response_1' ||
         flow.id === 'case_management_agent_ai_incident_handling_1'
       ) return aiAgentAutomationActive;
-      // Add Host-Monitors is presence-driven: as soon as ≥2 host monitors are
+      // Host Monitoring is presence-driven: as soon as ≥1 host monitor is
       // deployed, treat it as enabled — there is no separate workflow to gate.
       if (flow.id === 'case_management_asset_management_monitors_1') {
-        return monitorsDeployedCount >= 2;
+        return monitorsDeployedCount >= 1;
       }
       // Notifications is driven by the org's `defaults.notification_workflow`
       // pointing to a workflow that has at least one app wired in.
@@ -6537,54 +6677,49 @@ function UsecaseCard({
             <Tooltip
               title={
                 !effectiveEnabled && !hasValidatedSource
-                  ? `No active ${sourceCat} integration is connected. Enabling will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
-                  : ''
+                  ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
+                  : effectiveEnabled
+                    ? 'Click to disable'
+                    : 'Click to activate'
               }
               placement="top"
               arrow
-              disableHoverListener={effectiveEnabled || hasValidatedSource}
-              disableFocusListener={effectiveEnabled || hasValidatedSource}
-              disableTouchListener={effectiveEnabled || hasValidatedSource}
             >
               <span onClick={(e) => e.stopPropagation()}>
                 <Button
                   size="small"
-                  variant={effectiveEnabled ? 'outlined' : 'contained'}
                   disableElevation
                   onClick={handleToggle}
                   disabled={toggling}
                   startIcon={
                     toggling ? (
                       <CircularProgress size={12} sx={{ color: 'inherit' }} />
-                    ) : effectiveEnabled ? (
-                      <PowerOff size={12} />
                     ) : (
-                      <Power size={12} />
+                      <Power size={12} style={{ color: 'inherit' }} />
                     )
                   }
                   sx={{
                     textTransform: 'none',
                     fontSize: '0.7rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     minHeight: 0,
                     py: 0.4,
                     px: 1,
-                    bgcolor: effectiveEnabled ? 'transparent' : primaryColor,
-                    color: effectiveEnabled ? primaryColor : "#FFFFFF",
-                    borderColor: primaryColor,
-                    borderWidth: '1.5px',
-                    borderStyle: 'solid',
+                    borderRadius: 1,
+                    bgcolor: effectiveEnabled ? 'hsl(var(--severity-low) / 0.12)' : 'transparent',
+                    color: 'hsl(var(--severity-low))',
+                    border: '1px solid hsl(var(--severity-low) / 0.4)',
                     boxShadow: 'none',
                     '&:hover': {
                       bgcolor: effectiveEnabled
-                        ? `${primaryColor}14`
-                        : primaryColor,
-                      borderColor: primaryColor,
+                        ? 'hsl(var(--severity-low) / 0.22)'
+                        : 'hsl(var(--severity-low) / 0.1)',
+                      borderColor: 'hsl(var(--severity-low) / 0.7)',
                       boxShadow: 'none',
                     },
                   }}
                 >
-                  {effectiveEnabled ? 'Disable' : 'Enable'}
+                  {effectiveEnabled ? 'Active' : 'Activate'}
                 </Button>
               </span>
             </Tooltip>
@@ -6593,23 +6728,29 @@ function UsecaseCard({
               component={Link}
               to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
               size="small"
-              variant="contained"
               disableElevation
               onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              startIcon={<Power size={12} />}
+              startIcon={<Power size={12} style={{ color: 'inherit' }} />}
               sx={{
                 textTransform: 'none',
                 fontSize: '0.7rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 minHeight: 0,
                 py: 0.4,
                 px: 1,
-                bgcolor: 'hsl(var(--primary))',
-                color: 'hsl(var(--primary-foreground))',
-                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+                borderRadius: 1,
+                bgcolor: 'transparent',
+                color: 'hsl(var(--severity-low))',
+                border: '1px solid hsl(var(--severity-low) / 0.4)',
+                boxShadow: 'none',
+                '&:hover': {
+                  bgcolor: 'hsl(var(--severity-low) / 0.1)',
+                  borderColor: 'hsl(var(--severity-low) / 0.7)',
+                  boxShadow: 'none',
+                },
               }}
             >
-              Enable
+              Activate
             </Button>
           )}
         </Box>

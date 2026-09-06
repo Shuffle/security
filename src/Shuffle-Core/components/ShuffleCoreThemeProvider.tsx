@@ -241,7 +241,15 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
   },
   MuiDialog: {
     defaultProps: { slotProps: { paper: { className: scopeClassName, style: scopeStyle } } },
-    styleOverrides: { root: { zIndex: 10010 } },
+    styleOverrides: {
+      root: { zIndex: 10010 },
+      paper: {
+        backgroundColor: "hsl(var(--card))",
+        color: "hsl(var(--card-foreground))",
+        border: "1px solid hsl(var(--border))",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.2)",
+      },
+    },
   },
   MuiPaper: {
     styleOverrides: {
@@ -260,6 +268,7 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
         border: "1px solid hsl(var(--border))",
+        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
       },
     },
   },
@@ -271,6 +280,7 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
         border: "1px solid hsl(var(--border))",
+        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
       },
     },
   },
@@ -283,6 +293,23 @@ const buildComponentOverrides = (scopeClassName: string, scopeStyle: ShuffleToke
       slotProps: {
         tooltip: { className: scopeClassName, style: scopeStyle },
         popper: { sx: { zIndex: 10030 } },
+      },
+    },
+    styleOverrides: {
+      tooltip: {
+        backgroundColor: "hsl(var(--popover))",
+        color: "hsl(var(--popover-foreground))",
+        border: "1px solid hsl(var(--border))",
+        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
+        fontSize: "0.75rem",
+        borderRadius: 8,
+      },
+      arrow: {
+        color: "hsl(var(--popover))",
+        "&::before": {
+          border: "1px solid hsl(var(--border))",
+          boxSizing: "border-box",
+        },
       },
     },
   },

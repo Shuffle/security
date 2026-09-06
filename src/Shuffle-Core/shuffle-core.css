@@ -147,3 +147,19 @@ body:not(.dark) .shuffle-core-scope:not(.dark),
   --gradient-card: linear-gradient(145deg, hsl(0 0% 14%) 0%, hsl(0 0% 12%) 100%);
 }
 
+.MuiTooltip-popper .MuiTooltip-tooltip {
+  background-color: hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 8px !important;
+}
+
+.MuiTooltip-popper .MuiTooltip-arrow {
+  color: hsl(var(--popover)) !important;
+}
+
+.MuiTooltip-popper .MuiTooltip-arrow::before {
+  border: 1px solid hsl(var(--border)) !important;
+  box-sizing: border-box;
+}

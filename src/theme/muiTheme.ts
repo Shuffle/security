@@ -150,10 +150,18 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
           backgroundColor: tooltipBg,
           color: tooltipColor,
           border: '1px solid hsl(var(--border))',
+          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.12)',
+          borderRadius: 8,
           fontSize: '0.75rem',
           maxWidth: 280,
         },
-        arrow: { color: tooltipBg },
+        arrow: {
+          color: tooltipBg,
+          '&::before': {
+            border: '1px solid hsl(var(--border))',
+            boxSizing: 'border-box',
+          },
+        },
       },
     },
   };

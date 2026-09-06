@@ -680,7 +680,7 @@ const copyExecutionLink = () => {
                   );
                 })()}
                 {appName ? (
-                  <Tooltip title={r?.status ? `${appName} — ${r.status}` : appName} arrow>
+                  <Tooltip title={r?.status ? `${appName.replace(/[_\-]+/g, ' ')} — ${r.status}` : appName.replace(/[_\-]+/g, ' ')} arrow>
                     <Box
                       component={r?.action?.app_id ? 'a' : 'span'}
                       {...(r?.action?.app_id
@@ -692,19 +692,18 @@ const copyExecutionLink = () => {
                         name={appName}
                         imageUrl={imgSrc}
                         size={28}
-                        alt={appName}
+                        alt={appName.replace(/[_\-]+/g, ' ')}
                         style={{
                           borderRadius: '50%',
                           border: `2px solid ${
                             r?.status === 'SUCCESS' || r?.status === 'FINISHED'
-                              ? 'hsl(140 60% 55%)'
+                              ? 'hsl(var(--severity-low))'
                               : r?.status === 'FAILURE' || r?.status === 'ABORTED'
                               ? 'hsl(var(--destructive))'
                               : r?.status
-                              ? 'hsl(45 90% 55%)'
+                              ? 'hsl(var(--severity-medium))'
                               : 'hsl(var(--border))'
                           }`,
-                          backgroundColor: 'hsl(var(--muted))',
                         }}
                       />
                     </Box>

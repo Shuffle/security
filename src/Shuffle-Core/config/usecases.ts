@@ -734,15 +734,15 @@ export const DEFAULT_USECASES: Usecase[] = [
   },
   {
     id: 'case_management_asset_management_monitors_1', phase: 'response', source: 'case_management', target: 'asset_management',
-    label: 'Add Host-Monitors', animated: true,
+    label: 'Host Monitoring', animated: true,
     tags: ['Response', 'Monitoring', 'Endpoint'],
     description: 'Deploy host monitors to endpoints for real-time telemetry collection, compliance checks, and on-demand response action execution. Monitors enable direct interaction with hosts during investigations and continuous visibility into endpoint state.',
     agenticDescription: 'An agent identifies hosts missing monitor coverage, generates the appropriate deployment command for each platform, tracks rollout status, and verifies telemetry is flowing back into the platform after install.',
-    automationLabel: 'Add Monitors',
+    automationLabel: 'Host Monitoring',
     automationCategory: 'cases',
     automationArea: 'response',
     customAction: {
-      label: 'Add Monitor',
+      label: 'Deploy Host Monitor',
       href: '/monitors?add_host=true',
       modal: 'add-host',
       description: 'Open the monitor deployment dialog to register a new host.',
@@ -878,10 +878,15 @@ export function findWorkflowsForUsecase(
   if (labels.length === 0 || !workflows?.length) return [];
   const matched: UsecaseWorkflowCandidate[] = [];
   const seen = new Set<string>();
+  const lower = (usecase.automationLabel || '').toLowerCase();
+  const isPhoneNotif = lower.includes('schedules & phone') || lower.includes('schedules_notifications') || lower.includes('phone notification');
   for (const wf of workflows) {
     const name = (wf?.name || '').toLowerCase();
     const tags = Array.isArray(wf?.tags) ? wf.tags.map((t: any) => String(t).toLowerCase()) : [];
-    if (labels.some((label) => name.includes(label) || tags.some((t: string) => t === label || t.includes(label)))) {
+    if (
+      labels.some((label) => name.includes(label) || tags.some((t: string) => t === label || t.includes(label))) ||
+      (isPhoneNotif && (tags.includes('paging') || tags.includes('mobile') || tags.includes('phone') || tags.includes('schedule')))
+    ) {
       if (wf.id && seen.has(wf.id)) continue;
       if (wf.id) seen.add(wf.id);
       matched.push(wf);

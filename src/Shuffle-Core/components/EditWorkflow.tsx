@@ -1385,7 +1385,7 @@ const EditWorkflow = (props) => {
 														value={action.id}
 													>
 														<Checkbox checked={selectedCleanupActions.includes(action.id)} />
-														<Tooltip title={action.app_name} key={actionIndex}>
+														<Tooltip title={action.app_name ? action.app_name.replace(/[_\-]+/g, ' ') : ''} key={actionIndex}>
 															<img src={action.large_image !== undefined && action.large_image !== null && action.large_image.length > 0 ? action.large_image : theme.palette.defaultImage} style={{ width: 20, height: 20, marginRight: 10, }} />
 														</Tooltip>
 														{action.label}
@@ -1630,7 +1630,7 @@ const EditWorkflow = (props) => {
 														value={action.id}
 													>
 														<Checkbox checked={selectedYieldActions.includes(action.id)} />
-														<Tooltip title={action.app_name} key={actionIndex}>
+														<Tooltip title={action.app_name ? action.app_name.replace(/[_\-]+/g, ' ') : ''} key={actionIndex}>
 															<img src={action.large_image !== undefined && action.large_image !== null && action.large_image.length > 0 ? action.large_image : theme.palette.defaultImage} style={{ width: 20, height: 20, marginRight: 10, }} />
 														</Tooltip>
 														{action.label}

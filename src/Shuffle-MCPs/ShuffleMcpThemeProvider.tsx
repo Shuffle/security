@@ -153,10 +153,25 @@ const buildComponentOverrides = (scopeClassName: string) => ({
   // ---- Portaled surfaces: stamp scopeClassName so HSL tokens resolve ----
   MuiDrawer: {
     defaultProps: { slotProps: { paper: { className: scopeClassName } } },
+    styleOverrides: {
+      paper: {
+        backgroundColor: "hsl(var(--sidebar-background, var(--card)))",
+        color: "hsl(var(--sidebar-foreground, var(--foreground)))",
+        borderRight: "1px solid hsl(var(--sidebar-border, var(--border)))",
+      },
+    },
   },
   MuiDialog: {
     defaultProps: { slotProps: { paper: { className: scopeClassName } } },
-    styleOverrides: { root: { zIndex: 10010 } },
+    styleOverrides: {
+      root: { zIndex: 10010 },
+      paper: {
+        backgroundColor: "hsl(var(--card))",
+        color: "hsl(var(--card-foreground))",
+        border: "1px solid hsl(var(--border))",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.2)",
+      },
+    },
   },
   MuiMenu: {
     defaultProps: { slotProps: { paper: { className: scopeClassName } } },
@@ -166,6 +181,7 @@ const buildComponentOverrides = (scopeClassName: string) => ({
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
         border: "1px solid hsl(var(--border))",
+        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
       },
     },
   },
@@ -177,6 +193,7 @@ const buildComponentOverrides = (scopeClassName: string) => ({
         backgroundColor: "hsl(var(--popover))",
         color: "hsl(var(--popover-foreground))",
         border: "1px solid hsl(var(--border))",
+        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
       },
     },
   },
@@ -186,6 +203,23 @@ const buildComponentOverrides = (scopeClassName: string) => ({
         tooltip: { className: scopeClassName },
         // Render above app drawers, dialogs, menus, and popovers.
         popper: { sx: { zIndex: 10030 } },
+      },
+    },
+    styleOverrides: {
+      tooltip: {
+        backgroundColor: "hsl(var(--popover))",
+        color: "hsl(var(--popover-foreground))",
+        border: "1px solid hsl(var(--border))",
+        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
+        fontSize: "0.75rem",
+        borderRadius: 8,
+      },
+      arrow: {
+        color: "hsl(var(--popover))",
+        "&::before": {
+          border: "1px solid hsl(var(--border))",
+          boxSizing: "border-box",
+        },
       },
     },
   },

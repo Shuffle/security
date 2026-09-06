@@ -30,7 +30,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Search,
-  ExternalLink,
   CheckCircle2,
   AlertCircle,
   Laptop,
@@ -43,7 +42,6 @@ import {
 import { useUsers, User, invalidateUsersCache } from '@/hooks/useUsers';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import {
   OnCallScheduleManager,
   OnCallUser,
@@ -70,10 +68,18 @@ interface PhoneNotificationSetupWizardProps {
   onWorkflowNavigate?: (workflowId: string) => void;
 }
 
-const STEP_ITEMS = [
-  { id: 0, label: '1. Responders & Users', icon: Users, desc: 'Add & verify team members' },
-  { id: 1, label: '2. Team Schedule', icon: Calendar, desc: 'Shifts & escalation tiers' },
-  { id: 2, label: '3. Connected Devices', icon: Smartphone, desc: 'Mobile phones & paging' },
+interface StepItem {
+  id: number;
+  label: string;
+  icon: any;
+  desc: string;
+  disabled?: boolean;
+}
+
+const STEP_ITEMS: StepItem[] = [
+  { id: 0, label: '1. Responders & Users', icon: Users, desc: 'Add & verify team members', disabled: false },
+  { id: 1, label: '2. Team Schedule', icon: Calendar, desc: 'Shifts & escalation tiers', disabled: true },
+  { id: 2, label: '3. Connected Devices', icon: Smartphone, desc: 'Mobile phones & paging', disabled: true },
 ];
 
 export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizardProps> = ({
@@ -89,8 +95,6 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
   const [loadingDevices, setLoadingDevices] = useState<boolean>(false);
   const [registeringDevice, setRegisteringDevice] = useState<boolean>(false);
   const [playingSiren, setPlayingSiren] = useState<boolean>(false);
-  const [pagerWorkflows, setPagerWorkflows] = useState<Array<{ id: string; name: string }>>([]);
-  const [loadingWorkflows, setLoadingWorkflows] = useState<boolean>(false);
 
   // Load registered notification devices
   const loadDevices = useCallback(async () => {
@@ -105,42 +109,9 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
     }
   }, []);
 
-  // Fetch relevant workflow if exists
-  const loadWorkflows = useCallback(async () => {
-    setLoadingWorkflows(true);
-    try {
-      const res = await fetch(getApiUrl('/api/v1/workflows'), {
-        credentials: 'include',
-        headers: { ...getAuthHeader() },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : data.data || [];
-        const matches = list.filter((wf: any) => {
-          const name = (wf.name || '').toLowerCase();
-          const tags = (wf.tags || []).map((t: any) => String(t).toLowerCase());
-          return (
-            name.includes('schedules & phone') ||
-            name.includes('schedules_notifications') ||
-            name.includes('phone notification') ||
-            name.includes('assign & escalate') ||
-            tags.includes('paging') ||
-            tags.includes('mobile')
-          );
-        });
-        setPagerWorkflows(matches);
-      }
-    } catch {
-      // Non-critical
-    } finally {
-      setLoadingWorkflows(false);
-    }
-  }, []);
-
   useEffect(() => {
     loadDevices();
-    loadWorkflows();
-  }, [loadDevices, loadWorkflows]);
+  }, [loadDevices]);
 
   const handleRefreshUsers = useCallback(async () => {
     invalidateUsersCache();
@@ -287,23 +258,6 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
             </Typography>
           </Box>
         </Box>
-
-        {pagerWorkflows.length > 0 && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => onWorkflowNavigate?.(pagerWorkflows[0].id)}
-            endIcon={<ExternalLink size={14} />}
-            sx={{
-              textTransform: 'none',
-              borderColor: 'hsl(var(--border))',
-              color: 'hsl(var(--foreground))',
-              '&:hover': { borderColor: 'hsl(var(--primary))' },
-            }}
-          >
-            View Backend Workflow
-          </Button>
-        )}
       </Box>
 
       {/* 3-Step Wizard Navigation Stepper */}
@@ -318,32 +272,41 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
           const StepIcon = step.icon;
           const isCurrent = activeStep === step.id;
           const isDone = activeStep > step.id;
-          return (
+          const isDisabled = !!step.disabled;
+          const stepCard = (
             <Paper
               key={step.id}
-              onClick={() => setActiveStep(step.id)}
+              onClick={isDisabled ? undefined : () => setActiveStep(step.id)}
               elevation={0}
               sx={{
                 p: 2,
-                cursor: 'pointer',
+                cursor: isDisabled ? 'not-allowed' : 'pointer',
                 borderRadius: 2,
                 border: '1px solid',
-                borderColor: isCurrent
+                borderColor: isDisabled
+                  ? 'hsl(var(--border))'
+                  : isCurrent
                   ? 'hsl(var(--primary))'
                   : isDone
                   ? 'hsl(var(--primary) / 0.4)'
                   : 'hsl(var(--border))',
-                bgcolor: isCurrent
+                bgcolor: isDisabled
+                  ? 'hsl(var(--card))'
+                  : isCurrent
                   ? 'hsl(var(--primary) / 0.06)'
                   : 'hsl(var(--card))',
+                opacity: isDisabled ? 0.6 : 1,
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1.5,
-                '&:hover': {
-                  borderColor: 'hsl(var(--primary) / 0.8)',
-                  bgcolor: 'hsl(var(--primary) / 0.04)',
-                },
+                width: '100%',
+                ...(!isDisabled && {
+                  '&:hover': {
+                    borderColor: 'hsl(var(--primary) / 0.8)',
+                    bgcolor: 'hsl(var(--primary) / 0.04)',
+                  },
+                }),
               }}
             >
               <Box
@@ -354,12 +317,16 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  bgcolor: isCurrent
+                  bgcolor: isDisabled
+                    ? 'hsl(var(--muted))'
+                    : isCurrent
                     ? 'hsl(var(--primary))'
                     : isDone
                     ? 'hsl(var(--primary) / 0.2)'
                     : 'hsl(var(--muted))',
-                  color: isCurrent
+                  color: isDisabled
+                    ? 'hsl(var(--muted-foreground))'
+                    : isCurrent
                     ? 'hsl(var(--primary-foreground))'
                     : isDone
                     ? 'hsl(var(--primary))'
@@ -369,22 +336,48 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
                   flexShrink: 0,
                 }}
               >
-                {isDone ? <CheckCircle2 size={16} /> : <StepIcon size={16} />}
+                {isDone && !isDisabled ? <CheckCircle2 size={16} /> : <StepIcon size={16} />}
               </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: isCurrent ? 600 : 500,
-                    color: isCurrent ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
-                    fontSize: '0.875rem',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {step.label}
-                </Typography>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: isCurrent ? 600 : 500,
+                      color: isDisabled
+                        ? 'hsl(var(--muted-foreground))'
+                        : isCurrent
+                        ? 'hsl(var(--primary))'
+                        : 'hsl(var(--foreground))',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {step.label}
+                  </Typography>
+                  {isDisabled && (
+                    <Box
+                      component="span"
+                      sx={{
+                        px: 0.75,
+                        py: 0.15,
+                        borderRadius: 1,
+                        bgcolor: 'hsl(var(--muted))',
+                        color: 'hsl(var(--muted-foreground))',
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.02em',
+                        lineHeight: 1.2,
+                        textTransform: 'uppercase',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Coming soon
+                    </Box>
+                  )}
+                </Box>
                 <Typography
                   variant="caption"
                   sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem' }}
@@ -394,6 +387,18 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
               </Box>
             </Paper>
           );
+
+          if (isDisabled) {
+            return (
+              <Tooltip key={step.id} title="Coming soon" placement="top" arrow>
+                <Box sx={{ display: 'flex', width: '100%', height: '100%' }}>
+                  {stepCard}
+                </Box>
+              </Tooltip>
+            );
+          }
+
+          return stepCard;
         })}
       </Box>
 
@@ -582,20 +587,21 @@ export const PhoneNotificationSetupWizard: React.FC<PhoneNotificationSetupWizard
           )}
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Button
-              variant="contained"
-              onClick={() => setActiveStep(1)}
-              endIcon={<ArrowRight size={16} />}
-              sx={{
-                bgcolor: 'hsl(var(--primary))',
-                color: 'hsl(var(--primary-foreground))',
-                textTransform: 'none',
-                fontWeight: 600,
-                '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
-              }}
-            >
-              Continue to Team Schedule
-            </Button>
+            <Tooltip title="Coming soon" placement="top" arrow>
+              <span>
+                <Button
+                  variant="contained"
+                  disabled
+                  endIcon={<ArrowRight size={16} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  Continue to Team Schedule
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         </Paper>
       )}

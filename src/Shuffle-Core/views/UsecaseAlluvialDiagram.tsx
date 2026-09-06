@@ -18,7 +18,10 @@ import {
   CheckCircle as CheckCircleOutlineIcon,
   Check as CheckIcon,
   Copy as ContentCopyIcon,
-  ExternalLink as OpenInNewIcon
+  ExternalLink as OpenInNewIcon,
+  ChevronDown,
+  ChevronUp,
+  X as CloseIcon,
 } from 'lucide-react';
 import { AppSearchDrawer } from '@shuffleio/shuffle-mcps';
 import { useAppDetailOptional } from '@shuffleio/shuffle-mcps';
@@ -192,7 +195,7 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
   const [webhookOptimistic, setWebhookOptimistic] = useState<boolean | null>(null);
   const popoverOpen = Boolean(anchorEl);
 
-  const displayName = app.name.replace(/_/g, ' ');
+  const displayName = (app.name || '').replace(/[_\-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
   const isEnabled = app.isEnabled !== false;
   const isWebhook = app.id === 'webhook-ingestion';
   const webhookEnabled = webhookOptimistic !== null ? webhookOptimistic : (webhookInfo?.enabled ?? false);
@@ -258,8 +261,8 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
           sx={{
             width: size,
             height: size,
-            backgroundColor: webhookEnabled ? 'rgba(34, 197, 94, 0.15)' : 'rgba(6, 182, 212, 0.15)',
-            color: webhookEnabled ? '#4ade80' : '#06b6d4',
+            backgroundColor: webhookEnabled ? 'hsl(var(--severity-low) / 0.15)' : 'hsl(var(--severity-info) / 0.15)',
+            color: webhookEnabled ? 'hsl(var(--severity-low))' : 'hsl(var(--severity-info))',
             opacity: webhookEnabled ? 1 : 0.5,
           }}
         >
@@ -269,7 +272,7 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
         <Box
           component="img"
           src={app.icon}
-          alt={app.name}
+          alt={displayName}
           onError={() => setImgFailed(true)}
           sx={{
             width: size,
@@ -354,7 +357,7 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
         title={
           <Box sx={{ textAlign: 'left', p: 0.5 }}>
             <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>
-              {app.name}
+              {displayName}
             </Typography>
             {!isSample && (
               <Typography sx={{ fontSize: '0.7rem', color: disabled ? 'hsl(var(--muted-foreground))' : (app.isEnabled === false) ? 'hsl(var(--muted-foreground))' : app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))' }}>
@@ -376,6 +379,28 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
         disableHoverListener
         disableFocusListener
         disableTouchListener
+        slotProps={{
+          popper: { sx: { zIndex: 10030 } },
+          tooltip: {
+            sx: {
+              bgcolor: 'hsl(var(--popover))',
+              color: 'hsl(var(--popover-foreground))',
+              border: '1px solid hsl(var(--border))',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.12)',
+              borderRadius: '8px',
+              p: 1,
+            },
+          },
+          arrow: {
+            sx: {
+              color: 'hsl(var(--popover))',
+              '&::before': {
+                border: '1px solid hsl(var(--border))',
+                boxSizing: 'border-box',
+              },
+            },
+          },
+        }}
       >
         <Box
           onMouseEnter={openTooltip}
@@ -450,7 +475,7 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
                     setTimeout(() => setCopied(false), 2000);
                   } catch { import('sonner').then(({ toast }) => toast.error('Failed to copy')); }
                 }} sx={{ p: 0.5, color: 'hsl(var(--muted-foreground))' }}>
-                  {copied ? <CheckIcon size={14} color={'#4ade80'} /> : <ContentCopyIcon size={14} />}
+                  {copied ? <CheckIcon size={14} color={'hsl(var(--severity-low))'} /> : <ContentCopyIcon size={14} />}
                 </IconButton>
               </Box>
             )}
@@ -523,26 +548,28 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
                   onClick={handleToggle}
                   sx={{
                     justifyContent: 'flex-start', textTransform: 'none', fontSize: '0.75rem',
-                      color: isEnabled ? 'hsl(var(--destructive))' : 'hsl(var(--severity-low))',
+                    color: isEnabled ? 'hsl(var(--destructive))' : 'hsl(var(--severity-low))',
                     px: 1, py: 0.5, borderRadius: 1,
-                      '&:hover': { bgcolor: isEnabled ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--severity-low) / 0.1)' },
+                    '&:hover': { bgcolor: isEnabled ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--severity-low) / 0.1)' },
                   }}
                 >
-                  {isEnabled ? (side === 'right' ? 'Disable Forwarding' : 'Disable Sync') : (side === 'right' ? 'Enable Forwarding' : 'Enable Sync')}
+                  {isEnabled
+                    ? (side === 'right' ? 'Stop forwarding' : 'Disable')
+                    : (side === 'right' ? 'Forward to this tool' : 'Enable')}
                 </Button>
               )}
               {onRemoveApp && (
                 <Button
                   size="small"
-                  startIcon={<Box component="svg" viewBox="0 0 24 24" sx={{ width: 14, height: 14, stroke: 'currentColor', strokeWidth: 2, fill: 'none' }}><line x1="4" y1="4" x2="20" y2="20" /><line x1="20" y1="4" x2="4" y2="20" /></Box>}
+                  startIcon={<CloseIcon size={14} />}
                   onClick={() => {
                     setAnchorEl(null);
                     setConfirmRemoveOpen(true);
                   }}
                   sx={{
                     justifyContent: 'flex-start', textTransform: 'none', fontSize: '0.75rem',
-                    color: 'hsl(var(--destructive))', px: 1, py: 0.5, borderRadius: 1,
-                    '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.1)' },
+                    color: 'hsl(var(--muted-foreground))', px: 1, py: 0.5, borderRadius: 1,
+                    '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.1)', color: 'hsl(var(--destructive))' },
                   }}
                 >
                   Remove
@@ -569,7 +596,7 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
         }}
       >
         <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'hsl(var(--foreground))', mb: 0.5 }}>
-          Remove {app.name.replace(/_/g, ' ')}?
+          Remove {displayName}?
         </Typography>
         <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', mb: 2 }}>
           This will hide the app from this diagram.
@@ -1261,34 +1288,60 @@ export default function UsecaseAlluvialDiagram({
       ? 'Cases (optional)'
       : (targetMeta?.label || targetCategory);
 
+  // Maximum visible nodes per side when collapsed
+  const MAX_COLLAPSED_NODES = 6;
+  const [expandedLeft, setExpandedLeft] = useState(false);
+  const [expandedRight, setExpandedRight] = useState(false);
+
+  const hasMoreLeft = sourceApps.length > MAX_COLLAPSED_NODES;
+  const hasMoreRight = targetApps.length > MAX_COLLAPSED_NODES;
+
+  const visibleSourceApps = expandedLeft || !hasMoreLeft
+    ? sourceApps
+    : sourceApps.slice(0, MAX_COLLAPSED_NODES);
+
+  const visibleTargetApps = expandedRight || !hasMoreRight
+    ? targetApps
+    : targetApps.slice(0, MAX_COLLAPSED_NODES);
+
   // SVG dimensions
   const nodeSize = 40;
   const colWidth = 80;
   const svgPadding = 20;
   const rowGap = 16;
   const addButtonSpace = 48; // space for the + button below apps
+  const showMoreSpace = (hasMoreLeft || hasMoreRight) ? 36 : 0;
 
-  const maxNodes = Math.max(sourceApps.length, targetApps.length, 1);
+  const maxNodes = Math.max(visibleSourceApps.length, visibleTargetApps.length, 1);
   const colHeight = maxNodes * (nodeSize + rowGap) - rowGap;
-  const svgHeight = colHeight + svgPadding * 2 + 40 + addButtonSpace;
+  const svgHeight = colHeight + svgPadding * 2 + 40 + addButtonSpace + showMoreSpace;
   const svgWidth = colWidth * 3 + 300;
 
   const leftX = svgPadding + nodeSize / 2;
   const centerX = svgWidth / 2;
   const rightX = svgWidth - svgPadding - nodeSize / 2;
 
+  const centerY = (svgHeight - 30 - showMoreSpace) / 2;
+
   const getY = (idx: number, total: number) => {
     const totalHeight = total * (nodeSize + rowGap) - rowGap;
-    const startY = (svgHeight - 30) / 2 - totalHeight / 2 + nodeSize / 2;
+    const startY = centerY - totalHeight / 2 + nodeSize / 2;
     return startY + idx * (nodeSize + rowGap);
   };
 
-  const centerY = (svgHeight - 30) / 2;
-
-  // Y position for the add button (below the last app, or at center if no apps)
-  const getAddButtonY = (appCount: number) => {
+  const getShowMoreY = (appCount: number) => {
     if (appCount === 0) return centerY;
     const lastY = getY(appCount - 1, appCount);
+    return lastY + nodeSize / 2 + 10;
+  };
+
+  // Y position for the add button (below the last app or show-more button, or at center if no apps)
+  const getAddButtonY = (appCount: number, hasShowMore = false) => {
+    if (appCount === 0) return centerY;
+    const lastY = getY(appCount - 1, appCount);
+    if (hasShowMore) {
+      return lastY + nodeSize / 2 + 10 + 32;
+    }
     return lastY + nodeSize / 2 + rowGap + 16;
   };
 
@@ -1397,9 +1450,9 @@ export default function UsecaseAlluvialDiagram({
           </defs>
 
           {/* Flow paths: source → center (only for enabled apps) */}
-          {sourceApps.map((app, i) => {
+          {visibleSourceApps.map((app, i) => {
             if (app.isEnabled === false) return null;
-            const fromY = getY(i, sourceApps.length);
+            const fromY = getY(i, visibleSourceApps.length);
             return (
               <path
                 key={`sl-${i}`}
@@ -1413,9 +1466,9 @@ export default function UsecaseAlluvialDiagram({
           })}
 
           {/* Flow paths: center → target (only for enabled/forwarding apps) */}
-          {targetApps.map((app, i) => {
+          {visibleTargetApps.map((app, i) => {
             if (isLoggedIn && app.isEnabled === false) return null;
-            const toY = getY(i, targetApps.length);
+            const toY = getY(i, visibleTargetApps.length);
             return (
               <path
                 key={`sr-${i}`}
@@ -1429,10 +1482,10 @@ export default function UsecaseAlluvialDiagram({
           })}
 
           {/* Animated particles — for authenticated source apps, or all apps when not logged in */}
-          {sourceApps.map((app, i) => {
+          {visibleSourceApps.map((app, i) => {
             if (app.isEnabled === false) return null;
             if (isLoggedIn && !app.hasValidAuth) return null;
-            const fromY = getY(i, sourceApps.length);
+            const fromY = getY(i, visibleSourceApps.length);
             const pathD = makePath(leftX + nodeSize / 2 + 4, fromY, centerX - 28, centerY);
             return (
               <g key={`pl-${i}`}>
@@ -1442,9 +1495,9 @@ export default function UsecaseAlluvialDiagram({
               </g>
             );
           })}
-          {(isLoggedIn ? sourceApps.some(app => app.hasValidAuth && app.isEnabled !== false) : sourceApps.length > 0) && targetApps.map((app, i) => {
+          {(isLoggedIn ? visibleSourceApps.some(app => app.hasValidAuth && app.isEnabled !== false) : visibleSourceApps.length > 0) && visibleTargetApps.map((app, i) => {
             if (isLoggedIn && (!app.hasValidAuth || app.isEnabled === false)) return null;
-            const toY = getY(i, targetApps.length);
+            const toY = getY(i, visibleTargetApps.length);
             const pathD = makePath(centerX + 28, centerY, rightX - nodeSize / 2 - 4, toY);
             return (
               <g key={`pr-${i}`}>
@@ -1469,8 +1522,8 @@ export default function UsecaseAlluvialDiagram({
 
         {/* Overlay HTML app bubbles */}
         <Box sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: svgWidth, height: svgHeight + 30, pointerEvents: 'none' }}>
-          {sourceApps.map((app, i) => {
-            const y = getY(i, sourceApps.length);
+          {visibleSourceApps.map((app, i) => {
+            const y = getY(i, visibleSourceApps.length);
             return (
               <Box
                 key={app.id}
@@ -1498,12 +1551,34 @@ export default function UsecaseAlluvialDiagram({
             <Tooltip
               placement="bottom"
               arrow
+              slotProps={{
+                popper: { sx: { zIndex: 10030 } },
+                tooltip: {
+                  sx: {
+                    bgcolor: 'hsl(var(--popover))',
+                    color: 'hsl(var(--popover-foreground))',
+                    border: '1px solid hsl(var(--border))',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.12)',
+                    borderRadius: '8px',
+                    p: 1,
+                  },
+                },
+                arrow: {
+                  sx: {
+                    color: 'hsl(var(--popover))',
+                    '&::before': {
+                      border: '1px solid hsl(var(--border))',
+                      boxSizing: 'border-box',
+                    },
+                  },
+                },
+              }}
               title={
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 0.5 }}>
                   {['OCSF translation', 'Enrichment', 'Task creation', 'Agentic response'].map((step) => (
                     <Box key={step} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <CheckIcon size={13} color={'#4ade80'} />
-                      <Typography sx={{ fontSize: '0.75rem', color: 'inherit', lineHeight: 1.3 }}>
+                      <CheckIcon size={13} color={'hsl(var(--severity-low))'} />
+                      <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--foreground))', lineHeight: 1.3 }}>
                         {step}
                       </Typography>
                     </Box>
@@ -1520,8 +1595,8 @@ export default function UsecaseAlluvialDiagram({
             </Tooltip>
           </Box>
 
-          {targetApps.map((app, i) => {
-            const y = getY(i, targetApps.length);
+          {visibleTargetApps.map((app, i) => {
+            const y = getY(i, visibleTargetApps.length);
             return (
               <Box
                 key={app.id}
@@ -1537,17 +1612,58 @@ export default function UsecaseAlluvialDiagram({
             );
           })}
 
+          {/* Show more / less source tools button */}
+          {hasMoreLeft && (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: leftX,
+                top: getShowMoreY(visibleSourceApps.length),
+                transform: 'translateX(-50%)',
+                pointerEvents: 'auto',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Button
+                size="small"
+                onClick={() => setExpandedLeft(prev => !prev)}
+                startIcon={expandedLeft ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  py: 0.25,
+                  px: 1,
+                  minHeight: 24,
+                  borderRadius: '12px',
+                  bgcolor: 'hsla(var(--muted) / 0.8)',
+                  color: 'hsl(var(--muted-foreground))',
+                  border: '1px solid hsla(var(--border) / 0.6)',
+                  backdropFilter: 'blur(4px)',
+                  lineHeight: 1.4,
+                  '&:hover': {
+                    bgcolor: 'hsla(var(--primary) / 0.12)',
+                    color: 'hsl(var(--primary))',
+                    borderColor: 'hsla(var(--primary) / 0.4)',
+                  },
+                }}
+              >
+                {expandedLeft ? 'Show less' : `Show more (+${sourceApps.length - MAX_COLLAPSED_NODES})`}
+              </Button>
+            </Box>
+          )}
+
           {/* Show source tools button */}
           {!lockSource && (
             <Box
               sx={{
                 position: 'absolute',
-                left: sourceApps.length === 0 ? leftX - 20 : leftX - 16,
-                top: getAddButtonY(sourceApps.length),
+                left: visibleSourceApps.length === 0 ? leftX - 20 : leftX - 16,
+                top: getAddButtonY(visibleSourceApps.length, hasMoreLeft),
                 pointerEvents: 'auto',
               }}
             >
-              {sourceApps.length === 0 ? (
+              {visibleSourceApps.length === 0 ? (
                 <Tooltip title="Browse and add source tools" placement="bottom" arrow>
                   <Box
                     onClick={() => { if (onAddTool && onAddTool('left')) return; setSearchOpen('left'); }}
@@ -1600,12 +1716,53 @@ export default function UsecaseAlluvialDiagram({
             </Box>
           )}
 
+          {/* Show more / less destination tools button */}
+          {hasMoreRight && (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: rightX,
+                top: getShowMoreY(visibleTargetApps.length),
+                transform: 'translateX(-50%)',
+                pointerEvents: 'auto',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Button
+                size="small"
+                onClick={() => setExpandedRight(prev => !prev)}
+                startIcon={expandedRight ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  py: 0.25,
+                  px: 1,
+                  minHeight: 24,
+                  borderRadius: '12px',
+                  bgcolor: 'hsla(var(--muted) / 0.8)',
+                  color: 'hsl(var(--muted-foreground))',
+                  border: '1px solid hsla(var(--border) / 0.6)',
+                  backdropFilter: 'blur(4px)',
+                  lineHeight: 1.4,
+                  '&:hover': {
+                    bgcolor: 'hsla(var(--primary) / 0.12)',
+                    color: 'hsl(var(--primary))',
+                    borderColor: 'hsla(var(--primary) / 0.4)',
+                  },
+                }}
+              >
+                {expandedRight ? 'Show less' : `Show more (+${targetApps.length - MAX_COLLAPSED_NODES})`}
+              </Button>
+            </Box>
+          )}
+
           {/* Add destination tool button */}
           <Box
             sx={{
               position: 'absolute',
               left: rightX - 16,
-              top: getAddButtonY(targetApps.length),
+              top: getAddButtonY(visibleTargetApps.length, hasMoreRight),
               pointerEvents: 'auto',
             }}
           >
