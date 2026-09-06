@@ -182,11 +182,13 @@ function buildBackendUsecases(apiCategories: ApiUsecaseCategory[]): Pick<FetchRe
     // Merge local-only usecases into the rendered list so the UI shows the
     // union of both sources. Support users see a "local only" drift badge.
     usecases.push(localUsecase);
-    drifts.push({
-      usecaseId: localUsecase.id,
-      drifts: ['local_only'],
-      localValue: localUsecase,
-    });
+    if (localUsecase.id !== 'threat_intel_ingest_1') {
+      drifts.push({
+        usecaseId: localUsecase.id,
+        drifts: ['local_only'],
+        localValue: localUsecase,
+      });
+    }
   }
 
   return { usecases, drifts };

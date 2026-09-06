@@ -1805,7 +1805,9 @@ function buildBackendUsecases(cats: ApiUsecaseCategory[]) {
     // Merge local-only usecases into the rendered list. Support users see a
     // "local only" drift badge so we can converge the catalogs over time.
     usecases.push(local);
-    drifts.push({ usecaseId: local.id, drifts: ['local_only'], localValue: local });
+    if (local.id !== 'threat_intel_ingest_1') {
+      drifts.push({ usecaseId: local.id, drifts: ['local_only'], localValue: local });
+    }
   }
   return { usecases, drifts };
 }
@@ -5977,12 +5979,11 @@ function UsecasesPageInner() {
       list = list.filter((u) => !u.supportOnly);
     }
 
-    // Only Support users with the "show all" toggle see inactive usecases.
+    // Only Support users with the "show all" toggle see inactive or supportOnly usecases.
     // Everyone else — guests and regular authenticated users — sees only
     // the activated (animated) ones, so the catalog reflects what's live.
-    // For support users, supportOnly usecases are also visible.
     if (!(isSupport && showAllAsSupport)) {
-      list = list.filter((u) => u.animated === true || (isSupport && u.supportOnly));
+      list = list.filter((u) => u.animated === true && !u.supportOnly);
     }
 
     // Guests have no org-level activation state, so the API's `disabled`
@@ -6708,29 +6709,7 @@ function UsecaseCard({
               </Box>
             </Tooltip>
           )}
-          {flow.supportOnly && isSupport && (
-            <Tooltip title="Visible to support users only" placement="top" arrow>
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  px: 0.6,
-                  py: 0.1,
-                  borderRadius: 0.75,
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  letterSpacing: 0.2,
-                  textTransform: 'uppercase',
-                  color: 'hsl(var(--muted-foreground))',
-                  bgcolor: 'hsl(var(--muted) / 0.5)',
-                  border: '1px solid hsl(var(--border))',
-                  lineHeight: 1.4,
-                }}
-              >
-                Support only
-              </Box>
-            </Tooltip>
-          )}
+
 
           {/* Unified Action / Status Chip-Button */}
           {effectiveEnabled ? (
