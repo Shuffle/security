@@ -71,7 +71,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
-    "@mui/material": "^5.15.0",
+    "@mui/material": "^6.0.0",
     
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
@@ -80,6 +80,9 @@
     "react-router-dom": "^6.0.0",
     "react-ga4": "^2.1.0",
     "lucide-react": "^0.300.0",
+    "@capacitor/push-notifications": ">=5",
+    "@capacitor/local-notifications": ">=5",
+    "@capacitor/haptics": ">=5",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
   }
