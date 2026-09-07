@@ -4,6 +4,8 @@
  * the library DTS build without pulling in the full app dependency graph.
  */
 
+/// <reference types="node" />
+
 declare module '@/hooks/useEntityLabel' {
   export function useEntityPreference(...args: any[]): any;
 }
