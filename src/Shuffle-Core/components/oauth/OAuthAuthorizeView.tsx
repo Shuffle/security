@@ -1603,20 +1603,18 @@ export const OAuthAuthorizeView: React.FC<OAuthAuthorizeViewProps> = ({
                       <TextField
                         {...params}
                         placeholder="Select tenant"
-                        slotProps={{
-                          input: {
-                            ...params.InputProps,
-                            startAdornment: currentSelectedOrg ? (
-                              <Tooltip title={currentSelectedOrg.region_url ? `Region URL: ${currentSelectedOrg.region_url}` : region.code} placement="bottom">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5, mr: 0.5, flexShrink: 0 }}>
-                                  <span style={{ fontSize: '14px' }}>{region.flag}</span>
-                                  <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
-                                    {region.code || '?'}
-                                  </Typography>
-                                </Box>
-                              </Tooltip>
-                            ) : null,
-                          },
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: currentSelectedOrg ? (
+                            <Tooltip title={currentSelectedOrg.region_url ? `Region URL: ${currentSelectedOrg.region_url}` : region.code} placement="bottom">
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5, mr: 0.5, flexShrink: 0 }}>
+                                <span style={{ fontSize: '14px' }}>{region.flag}</span>
+                                <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                                  {region.code || '?'}
+                                </Typography>
+                              </Box>
+                            </Tooltip>
+                          ) : null,
                         }}
                         sx={{
                           '& .MuiOutlinedInput-root': {
