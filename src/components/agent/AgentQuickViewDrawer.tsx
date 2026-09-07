@@ -36,6 +36,7 @@ import { getTimeAgo, formatDuration, getRunTitle } from '@/components/agent/Agen
 import InlineMarkdown from '@/components/shared/InlineMarkdown';
 import { getShuffleCoreFormUrl, isAgentApprovalFormUrl } from '@/Shuffle-MCPs/api';
 import { useEntityText } from '@/hooks/useEntityLabel';
+import { useIsSupport } from '@/hooks/useIsSupport';
 
 export type QuickViewItem =
   | { type: 'notification'; notification: AgentNotification }
@@ -269,6 +270,7 @@ const VISIBLE_TIMELINE_COUNT = 3;
 
 const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, onDeny, onConfigureApprove, onSubmitAnswers }: Props) => {
   const t = useEntityText();
+  const isSupport = useIsSupport();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [modifiedAction, setModifiedAction] = useState('');
   const [questionAnswers, setQuestionAnswers] = useState<Record<number, string>>({});
@@ -396,6 +398,7 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
                   workflow: item.run.workflow,
                   authorization: item.run.authorization,
                 }}
+                isSupport={isSupport}
                 readUrlParams={false}
                 autoLoadApps={false}
                 hideHeroIcon
@@ -413,6 +416,7 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
               key={execId}
               executionId={execId}
               authorization={auth}
+              isSupport={isSupport}
               readUrlParams={false}
               autoLoadApps={false}
               hideHeroIcon

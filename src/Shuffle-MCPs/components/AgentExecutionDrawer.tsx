@@ -54,6 +54,8 @@ export interface AgentExecutionDrawerProps extends ShuffleHostProps {
   topBanner?: React.ReactNode;
   /** Handler for scheduling the loaded agent prompt from the execution view. */
   onSchedule?: AgentUIProps['onSchedule'];
+  /** Authoritative support flag. */
+  isSupport?: boolean;
 }
 
 const AgentExecutionDrawer = ({
@@ -70,6 +72,7 @@ const AgentExecutionDrawer = ({
   bodySx,
   topBanner,
   onSchedule,
+  isSupport,
   theme,
   colorMode,
 }: AgentExecutionDrawerProps) => {
@@ -269,6 +272,7 @@ const AgentExecutionDrawer = ({
             apiBaseUrl={apiBaseUrl}
             orgId={orgId}
             onSchedule={onSchedule}
+            isSupport={isSupport}
             theme={theme}
             colorMode={colorMode}
           />

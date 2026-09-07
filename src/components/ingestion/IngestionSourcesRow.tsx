@@ -136,7 +136,14 @@ export const IngestionSourcesRow = ({
         }
 
         // Detect the webhook workflow for this feature.
-        const webhookWorkflow = workflowList.find((w: any) => w.name === webhookWorkflowName);
+        const webhookWorkflow = workflowList.find((w: any) => {
+          const name = (w.name || '').toLowerCase().trim();
+          const target = (webhookWorkflowName || '').toLowerCase().trim();
+          if (name === target) return true;
+          if (target.includes('vulnerab') && (name.includes('vulnerab') && name.includes('webhook'))) return true;
+          if (target.includes('ingest') && target.includes('webhook') && (name.includes('ingest') && name.includes('webhook'))) return true;
+          return false;
+        });
         if (webhookWorkflow) {
           const trigger = (webhookWorkflow.triggers || []).find(
             (t: any) => t.trigger_type === 'WEBHOOK' || t.app_name === 'Webhook'

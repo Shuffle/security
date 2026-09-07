@@ -90,7 +90,7 @@ import { AppFallbackIcon } from './AppFallbackIcon';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 
 import safeHandler from '@/Shuffle-MCPs/safeHandler';
-import AgentPresets, { AGENT_PRESETS, filterAgentPresets, isRequiredPresetApp, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
+import AgentPresets, { AGENT_PRESETS, filterAgentPresets, isRequiredPresetApp, isSupportUser, type AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
 
 import { useAgentPromptPrefix } from '@/Shuffle-MCPs/useAgentPromptPrefix';
 
@@ -2097,6 +2097,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   isSupport,
   presetCtas,
 }) => {
+  const isEffectiveSupport = isSupport !== undefined ? isSupport : isSupportUser();
+
   // Per-instance API target. Props win over the shared API_CONFIG so the
   // component can be embedded against a different Shuffle backend without
   // mutating global state.
@@ -2198,7 +2200,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
         if (initialPresetId === null) setSelectedPreset(null);
         return;
       }
-      const list = filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS, isSupport);
+      const list = filterAgentPresets(presets && presets.length > 0 ? presets : AGENT_PRESETS, isEffectiveSupport);
       const match = list.find((p) => p.id === lastId);
       if (!match || match.enabled === false) return;
       setSelectedPreset(match);
@@ -2216,7 +2218,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     } catch {
       /* ignore storage errors */
     }
-  }, [presets, defaultInput, isSupport, initialPresetId, defaultApps, apps]);
+  }, [presets, defaultInput, isEffectiveSupport, initialPresetId, defaultApps, apps]);
 
 
 
@@ -5368,7 +5370,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Shared post-run discovery block: surfaces the same schedule intent and
   // missing app/category requirements we show before a run, so the finished
   // state can help set it up. Used by both the compact and detailed views.
-  const postRunDiscovery = (Boolean(postRunScheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 || postRunUnauthedApps.length > 0 ? (
+  // Hidden except for support users to guide towards things working better over time.
+  const postRunDiscovery = isEffectiveSupport && ((Boolean(postRunScheduleHint) && !scheduleDisabledReason) || postRunAppReqs.length > 0 || postRunUnauthedApps.length > 0) ? (
     <Box
       sx={{
         display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1,
@@ -5377,9 +5380,41 @@ const AgentUI: React.FC<AgentUIProps> = ({
         bgcolor: 'hsl(var(--muted) / 0.35)',
       }}
     >
-      <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', mr: 0.5 }}>
-        Set this up to run on its own
-      </Typography>
+      <Tooltip
+        title="Visible to support users only — this helps guide us towards things working better over time."
+        arrow
+      >
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.75,
+            mr: 0.5,
+            cursor: 'help',
+          }}
+        >
+          <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))' }}>
+            Set this up to run on its own
+          </Typography>
+          <Box
+            component="span"
+            sx={{
+              fontSize: '0.64rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              px: 0.75,
+              py: 0.15,
+              borderRadius: '4px',
+              bgcolor: 'hsl(var(--muted))',
+              color: 'hsl(var(--muted-foreground))',
+              border: '1px solid hsl(var(--border))',
+            }}
+          >
+            Support only
+          </Box>
+        </Box>
+      </Tooltip>
       {postRunScheduleHint && !scheduleDisabledReason && (
         <Tooltip title={`Detected schedule: ${postRunScheduleHint.label}. Click to review and save.`} arrow>
           <Box
@@ -5492,7 +5527,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       variant="floating"
       chipRef={presetsChipRef}
       presets={presets}
-      isSupport={isSupport}
+      isSupport={isEffectiveSupport}
       selectedPreset={selectedPreset}
       onRemoveSelected={handleRemovePreset}
       onSelectPreset={handleSelectPresetInternal}
@@ -5887,7 +5922,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       variant="floating"
                       chipRef={(!isPhone || !selectedPreset) ? presetsChipRef : undefined}
                       presets={presets}
-                      isSupport={isSupport}
+                      isSupport={isEffectiveSupport}
                       selectedPreset={selectedPreset}
                       onRemoveSelected={handleRemovePreset}
                       onSelectPreset={handleSelectPresetInternal}

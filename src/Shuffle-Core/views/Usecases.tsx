@@ -33,7 +33,9 @@ import {
 import { Search, ArrowRight, ArrowLeft, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink, Flame, PlayCircle, BookOpen, LayoutGrid, Server, Shield, MessageSquare, Mail, Crosshair, HardDrive, KeyRound, Cloud, Sparkles, Plus, Workflow, Rows, Webhook, MousePointerClick, GitBranch, MessageCircleQuestion } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import shuffleSecurityIcon from '../assets/shuffle-icon.png';
-import UsecaseAlluvialDiagram from './UsecaseAlluvialDiagram';
+import UsecaseAlluvialDiagram, { extractNotificationWorkflowAppNames } from './UsecaseAlluvialDiagram';
+import { findForwardTicketsWorkflow } from '../ingestionDetection';
+import { useEntityPreference } from '@/hooks/useEntityLabel';
 import {
   AppSearchDrawer,
   useAppDetailOptional,
@@ -1434,13 +1436,75 @@ interface UserInfoLite {
   support?: boolean;
   interests?: OrgInterest[];
 }
+let pendingAutoEnableFlowId: string | null = null;
+
+export const setPendingAutoEnableFlow = (flowId: string | null) => {
+  pendingAutoEnableFlowId = flowId;
+  if (typeof window !== 'undefined') {
+    if (flowId) {
+      try {
+        sessionStorage.setItem('shuffle_auto_enable_flow_id', flowId);
+      } catch {}
+    } else {
+      try {
+        sessionStorage.removeItem('shuffle_auto_enable_flow_id');
+      } catch {}
+    }
+  }
+};
+
+export const getPendingAutoEnableFlow = (): string | null => {
+  if (pendingAutoEnableFlowId) return pendingAutoEnableFlowId;
+  if (typeof window !== 'undefined') {
+    try {
+      return sessionStorage.getItem('shuffle_auto_enable_flow_id');
+    } catch {}
+  }
+  return null;
+};
+
+function getInitialAuthState(cfg: any): { userInfo: UserInfoLite | null; isAuthenticated: boolean } {
+  if (cfg.hasExternalAuth) {
+    const ext = cfg.externalUserInfo as (UsecasesUserData & { interests?: OrgInterest[] }) | null;
+    return {
+      userInfo: ext
+        ? {
+            id: ext.id,
+            username: ext.username,
+            support: ext.support === true,
+            interests: Array.isArray(ext.interests) ? ext.interests : [],
+          }
+        : null,
+      isAuthenticated: Boolean(cfg.externalIsAuthenticated),
+    };
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const rawUser = localStorage.getItem('shuffle_user_info');
+      const token = localStorage.getItem('shuffle_auth_token');
+      if (rawUser && (token || rawUser.includes('"id"'))) {
+        const parsed = JSON.parse(rawUser);
+        return {
+          userInfo: {
+            id: parsed.id,
+            username: parsed.username,
+            support: parsed.support === true,
+            interests: Array.isArray(parsed.interests) ? parsed.interests : [],
+          },
+          isAuthenticated: true,
+        };
+      }
+    } catch {}
+  }
+  return { userInfo: null, isAuthenticated: false };
+}
+
 function useAuthLite() {
   const cfg = useUsecasesConfig();
   const { apiUrl, authHeader } = useApi();
-  const [state, setState] = useState<{ userInfo: UserInfoLite | null; isAuthenticated: boolean }>({
-    userInfo: null,
-    isAuthenticated: false,
-  });
+  const [state, setState] = useState<{ userInfo: UserInfoLite | null; isAuthenticated: boolean }>(() =>
+    getInitialAuthState(cfg)
+  );
   const refetch = React.useCallback(async () => {
     if (cfg.hasExternalAuth) return;
     try {
@@ -3352,6 +3416,19 @@ function UsecaseDetailContent({
   // tried to enable this usecase — never as a default banner.
   const [enableAttempted, setEnableAttempted] = useState(false);
 
+  const { plural: entityPlural } = useEntityPreference();
+  const dynamicForwardTicketsLabel = useMemo(() => `Forward ${entityPlural || 'Tickets'}`, [entityPlural]);
+  const flowDisplayLabel = flow?.id === 'case_management_cases_forward_1' ? dynamicForwardTicketsLabel : (flow?.label || '');
+  const isShuffleSourcedFlow = flow?.id === 'case_management_cases_forward_1'
+    || flow?.id === 'case_management_communication_1'
+    || flow?.id === 'case_management_incident_routing_1'
+    || flow?.id === 'case_management_schedules_notifications_1'
+    || flow?.id === 'asset_management_case_management_vuln_1'
+    || flow?.id === 'vulnerability_ingestion_1'
+    || flow?.id === 'threat_intel_ingest_1'
+    || flow?.id === 'threat_intel_case_management_1'
+    || flow?.source === 'threat_intel';
+
   const ALLUVIAL_ELIGIBLE_FLOW_IDS = useMemo(() => new Set([
     'siem_case_management_1',
     'edr_case_management_1',
@@ -3359,6 +3436,7 @@ function UsecaseDetailContent({
     'vulnerability_ingestion_1',
     'asset_management_case_management_vuln_1',
     'case_management_communication_1',
+    'case_management_cases_forward_1',
   ]), []);
 
   // Connection-path view mode: 'source_destination' (alluvial) or 'line' (tools strip).
@@ -3556,15 +3634,6 @@ function UsecaseDetailContent({
     // Forward Tickets, Notifications, and Vulnerability Correlation are Cases/Shuffle/internal-sourced —
     // Shuffle itself IS the source, so there is no third-party source auth to
     // validate. Skip the hard-block for these flows.
-    const isShuffleSourcedFlow = flow.id === 'case_management_cases_forward_1'
-      || flow.id === 'case_management_communication_1'
-      || flow.id === 'case_management_incident_routing_1'
-      || flow.id === 'case_management_schedules_notifications_1'
-      || flow.id === 'asset_management_case_management_vuln_1'
-      || flow.id === 'vulnerability_ingestion_1'
-      || flow.id === 'threat_intel_ingest_1'
-      || flow.id === 'threat_intel_case_management_1'
-      || flow.source === 'threat_intel';
     if (willBeEnabled && !hasValidatedSource && !isShuffleSourcedFlow) {
       // Hard-block the enable. The /workflows/generate endpoint may return
       // success: true and then quietly skip creating the workflow when no
@@ -3572,7 +3641,7 @@ function UsecaseDetailContent({
       // until the next /workflows refresh reveals the truth. Refuse up front
       // and point the user at the fix instead.
       toast.error(`Authenticate a ${sourceName} tool first`, {
-        description: `${flow.label} needs a validated ${sourceName} integration as input. Without one, the workflow has nothing to react to and will not be created.`,
+        description: `${flowDisplayLabel} needs a validated ${sourceName} integration as input. Without one, the workflow has nothing to react to and will not be created.`,
         duration: 10000,
         action: flow.source
           ? {
@@ -3583,6 +3652,28 @@ function UsecaseDetailContent({
       });
       return;
     }
+
+    if (willBeEnabled && flow.id === 'case_management_cases_forward_1') {
+      const forwardWf = findForwardTicketsWorkflow(workflows);
+      const appNames = forwardWf ? extractWorkflowAppNames(forwardWf) : [];
+      const count = (appNames as any)?.size ?? (appNames as any)?.length ?? 0;
+      if (count === 0) {
+        toast.warning(`Choose a destination tool to forward ${entityPlural.toLowerCase()} to`);
+        setAddToolFor({ side: 'destination', categoryId: flow.target || 'case_management', multiDest: true });
+        return;
+      }
+    }
+
+    if (willBeEnabled && flow.id === 'case_management_communication_1') {
+      const notifWf = notificationWorkflow || workflows.find(w => w.id === orgDefaults?.notification_workflow);
+      const appNames = notifWf ? extractNotificationWorkflowAppNames(notifWf) : new Set<string>();
+      if (appNames.size === 0) {
+        toast.warning('Choose a notification tool first');
+        setAddToolFor({ side: 'destination', categoryId: flow.target || 'communication', multiDest: true });
+        return;
+      }
+    }
+
     setToggling(true);
     setOptimisticEnabled(willBeEnabled);
 
@@ -3600,6 +3691,13 @@ function UsecaseDetailContent({
       let validatedSourceAppNames: string[] = [];
 
       if (willBeEnabled) {
+        if (flow.id === 'case_management_cases_forward_1') {
+          const forwardWf = findForwardTicketsWorkflow(workflows);
+          const appNames = forwardWf ? extractWorkflowAppNames(forwardWf) : [];
+          if (((appNames as any)?.size || (appNames as any)?.length || 0) > 0) {
+            requestBody.app_name = Array.from(appNames as any).join(',');
+          }
+        }
         // Step 1+2: re-check live which source tools are VALIDATED right now,
         // and forward them explicitly to /workflows/generate. Without this
         // the backend may generate a shell workflow with no source app wired
@@ -3720,7 +3818,7 @@ function UsecaseDetailContent({
           // Step 4: VERY clear failure path. The workflow exists but no
           // source-category app made it in, so the usecase will not run.
           setOptimisticEnabled(null);
-          toast.error(`${flow.label} could not be enabled`, {
+          toast.error(`${flowDisplayLabel} could not be enabled`, {
             description: `The workflow was created but no ${sourceName} app was wired in. Tried: ${validatedSourceAppNames.join(', ') || 'none'}. Try connecting a different ${sourceName} tool or contact support.`,
             duration: 12000,
           });
@@ -3728,12 +3826,12 @@ function UsecaseDetailContent({
           return;
         }
 
-        toast.success(`${flow.label} enabled`, {
+        toast.success(`${flowDisplayLabel} enabled`, {
           description: `Wired in ${wiredApps.length === 1 ? wiredApps[0] : `${wiredApps.length} ${sourceName} tools: ${wiredApps.join(', ')}`}.`,
           duration: 6000,
         });
       } else {
-        toast.success(willBeEnabled ? `${flow.label} enabled` : `${flow.label} disabled`);
+        toast.success(willBeEnabled ? `${flowDisplayLabel} enabled` : `${flowDisplayLabel} disabled`);
       }
 
       onToggled?.(flow.automationLabel, willBeEnabled);
@@ -3746,7 +3844,7 @@ function UsecaseDetailContent({
       const description = isNetwork
         ? 'Could not reach the Shuffle API. Check your connection or backend status and try again.'
         : (raw || 'The backend rejected the request.');
-      toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`, {
+      toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flowDisplayLabel}`, {
         description,
         duration: 8000,
       });
@@ -3761,27 +3859,34 @@ function UsecaseDetailContent({
   // toggleable flow that is not already on. This is what lets a user click
   // Enable on a card and immediately watch the workflow materialize inside the
   // detail view (linked workflow appearing, Enabled chip, etc.).
-  const autoEnableFiredRef = React.useRef(false);
+  const [detailSearchParams, setDetailSearchParams] = useSearchParams();
+  const hasAutoEnableIntent =
+    autoEnable ||
+    (Boolean(flow?.id) && getPendingAutoEnableFlow() === flow?.id) ||
+    detailSearchParams.get('action') === 'activate';
+
+  const autoEnableFiredForFlowRef = React.useRef<string | null>(null);
   useEffect(() => {
-    if (!autoEnable) {
-      autoEnableFiredRef.current = false;
+    if (!hasAutoEnableIntent) {
       return;
     }
-    if (autoEnableFiredRef.current) return;
+    if (!flow?.id) return;
+    if (autoEnableFiredForFlowRef.current === flow.id) return;
     if (toggling) return;
-    if (!flow) return;
+
+    if (!isAuthenticated) {
+      // Don't swallow auto-enable while waiting for auth to hydrate!
+      return;
+    }
+
     if (!canToggle) {
       // Don't silently swallow the click. Tell the user exactly why nothing
       // happened so they can fix it (sign in, or pick a flow that is wired
       // up for automation server-side).
-      autoEnableFiredRef.current = true;
+      autoEnableFiredForFlowRef.current = flow.id;
+      setPendingAutoEnableFlow(null);
       onAutoEnableConsumed?.();
-      if (!isAuthenticated) {
-        toast.error('Sign in to enable usecases', {
-          description: 'You need to be signed in to generate the underlying workflow.',
-          duration: 8000,
-        });
-      } else if (!flow.automationLabel) {
+      if (!flow.automationLabel) {
         toast.warning(`${flow.label} cannot be enabled yet`, {
           description: 'This usecase does not have an automation label wired up server-side. Pick another usecase or contact support.',
           duration: 8000,
@@ -3791,15 +3896,22 @@ function UsecaseDetailContent({
     }
     if (effectiveEnabled) {
       // Already on — nothing to do; just consume the flag.
-      autoEnableFiredRef.current = true;
+      autoEnableFiredForFlowRef.current = flow.id;
+      setPendingAutoEnableFlow(null);
       onAutoEnableConsumed?.();
       return;
     }
-    autoEnableFiredRef.current = true;
+    autoEnableFiredForFlowRef.current = flow.id;
+    setPendingAutoEnableFlow(null);
     onAutoEnableConsumed?.();
+    if (detailSearchParams.get('action') === 'activate') {
+      const nextParams = new URLSearchParams(detailSearchParams);
+      nextParams.delete('action');
+      setDetailSearchParams(nextParams, { replace: true });
+    }
     handleToggle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoEnable, flow?.id, canToggle, effectiveEnabled, toggling]);
+  }, [hasAutoEnableIntent, flow?.id, canToggle, effectiveEnabled, toggling, isAuthenticated]);
 
 
 
@@ -4060,7 +4172,7 @@ function UsecaseDetailContent({
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
               <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: FG, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
-                {flow.label}
+                {flowDisplayLabel}
               </Typography>
               {isComingSoon ? (
                 <Box
@@ -4086,11 +4198,13 @@ function UsecaseDetailContent({
               ) : canToggle && flow.automationLabel ? (
                 <Tooltip
                   title={
-                    !effectiveEnabled && !hasValidatedSource
+                    !effectiveEnabled && !hasValidatedSource && !isShuffleSourcedFlow
                       ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
-                      : effectiveEnabled
-                        ? 'Click to disable'
-                        : 'Click to activate'
+                      : !effectiveEnabled && (flow.id === 'case_management_cases_forward_1' || flow.id === 'case_management_communication_1')
+                        ? 'Click to activate (choose a destination tool)'
+                        : effectiveEnabled
+                          ? 'Click to disable'
+                          : 'Click to activate'
                   }
                   placement="bottom"
                   arrow
@@ -4436,10 +4550,15 @@ function UsecaseDetailContent({
         })()}
         {showAlluvial ? (
           <UsecaseAlluvialDiagram
+            flowId={flow.id}
             sourceCategory={flow.source}
             targetCategory={flow.target}
-            highlightCategory={['case_management_communication_1', 'vulnerability_ingestion_1', 'asset_management_case_management_vuln_1'].includes(flow.id) ? undefined : flow.source}
-            lockSource={flow.id === 'case_management_communication_1'}
+            highlightCategory={['case_management_communication_1', 'case_management_cases_forward_1', 'vulnerability_ingestion_1', 'asset_management_case_management_vuln_1'].includes(flow.id) ? undefined : flow.source}
+            lockSource={flow.id === 'case_management_cases_forward_1'}
+            omitSource={flow.id === 'case_management_communication_1'}
+            notificationWorkflow={notificationWorkflow}
+            isFlowEnabled={effectiveEnabled}
+            usecaseLabel={flowDisplayLabel}
             isLoggedIn={isAuthenticated}
             workflows={workflows}
             // Keep the AppBubble's built-in mini popover (Visit / Enable Sync
@@ -4764,7 +4883,7 @@ function UsecaseDetailContent({
                                 automationCategory: 'cases',
                                 workflows: forwardTicketsLinkedForApps,
                                 enabledNamesSet: destinationEnabledNamesSet,
-                                toastLabel: 'Forward Tickets',
+                                toastLabel: dynamicForwardTicketsLabel,
                               }
                               : {
                                 workflows: side === 'source' ? usecaseLinkedForApps : allLinkedForApps,
@@ -4811,8 +4930,7 @@ function UsecaseDetailContent({
                               selectedId={pinned?.id}
                               usecaseEnabledNames={endpointEnabledNamesSet}
                               onUsecaseAppToggle={endpointToggleHandler}
-                              usecaseLabel={destinationUsesForwardTickets ? 'Forward Tickets' : flow.label}
-
+                              usecaseLabel={destinationUsesForwardTickets ? dynamicForwardTicketsLabel : (flow.id === 'case_management_cases_forward_1' ? dynamicForwardTicketsLabel : flow.label)}
                               onAddApp={addToolBlocked ? undefined : () => setAddToolFor({ side, categoryId: endpoint.categoryId, multiDest: endpointAllowsMultiDestAdd })}
                               addAppLabel={addToolBlocked ? undefined : (endpointAllowsMultiDestAdd ? 'Add destination tool (Communication or Cases)' : `Add ${endpoint.meta?.label || endpoint.title} tool`)}
                               extraTile={renderEndpointSlot && flow ? renderEndpointSlot({ flowId: flow.id, flowLabel: flow.label, side }) : undefined}
@@ -5282,7 +5400,7 @@ function UsecaseDetailContent({
               });
               return;
             }
-            toast.success(`${app.name} added to ${addTargetsForwardTickets ? 'Forward Tickets' : flow.label}`);
+            toast.success(`${app.name} added to ${addTargetsForwardTickets || flow.id === 'case_management_cases_forward_1' ? dynamicForwardTicketsLabel : flow.label}`);
             invalidateAppsCache(); setIntegrationsRefreshKey((k) => k + 1);
             onToggled?.(automationLabel, true);
           }).catch((err) => {
@@ -5534,9 +5652,15 @@ function UsecasesPageInner() {
     return () => window.removeEventListener('shuffle-workflow-toggled', handleWorkflowToggled);
   }, []);
 
-  const setDrawerFlowId = (id: string | null) => {
+  const setDrawerFlowId = (id: string | null, isActivateAction = false) => {
     setDrawerFlowIdState(id);
-    const search = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const params = new URLSearchParams(searchParams);
+    if (isActivateAction) {
+      params.set('action', 'activate');
+    } else {
+      params.delete('action');
+    }
+    const search = params.toString() ? `?${params.toString()}` : '';
     if (!id) {
       if (typeof window !== 'undefined') {
         const target = `/usecases${search}`;
@@ -5826,9 +5950,8 @@ function UsecasesPageInner() {
           if (!cancelled) setNotificationWorkflowReady(false);
           return;
         }
-        const appNames = extractWorkflowAppNames(wf);
-        const count = (appNames as any)?.size ?? (appNames as any)?.length ?? 0;
-        if (!cancelled) setNotificationWorkflowReady(count > 0);
+        const appNames = extractNotificationWorkflowAppNames(wf);
+        if (!cancelled) setNotificationWorkflowReady(appNames.size > 0);
       } catch {
         /* keep previous state */
       }
@@ -5875,10 +5998,16 @@ function UsecasesPageInner() {
         return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
       }
       // Forward Tickets is Cases-sourced: Shuffle itself IS the source, so
-      // there is no third-party source auth to validate. As long as the
-      // "Forward Tickets" workflow exists, treat it as enabled.
+      // there is no third-party source auth to validate. It is only enabled
+      // when the "Forward Tickets" workflow exists and has at least one
+      // destination app wired in.
       if (flow.id === 'case_management_cases_forward_1') {
-        return !!flow.automationLabel && enabledLabels.has(flow.automationLabel);
+        if (!flow.automationLabel || !enabledLabels.has(flow.automationLabel)) return false;
+        const forwardWf = findForwardTicketsWorkflow(workflows);
+        if (!forwardWf) return false;
+        const appNames = extractWorkflowAppNames(forwardWf);
+        const count = (appNames as any)?.size ?? (appNames as any)?.length ?? 0;
+        return count > 0;
       }
       // Incident Routing Rules is Cases-sourced / rule-driven:
       // driven solely by whether its workflow exists.
@@ -6364,8 +6493,9 @@ function UsecasesPageInner() {
                 workflows={workflows}
                 onClick={() => setDrawerFlowId(flow.id)}
                 onEnable={() => {
+                  setPendingAutoEnableFlow(flow.id);
                   setAutoEnableFlowId(flow.id);
-                  setDrawerFlowId(flow.id);
+                  setDrawerFlowId(flow.id, true);
                 }}
               />
 
@@ -6456,8 +6586,14 @@ function UsecasesPageInner() {
                 hasValidatedSource={drawerHasValidatedSource}
                 onToggled={handleUsecaseWorkflowGenerated}
                 workflows={workflows}
-                autoEnable={autoEnableFlowId !== null && autoEnableFlowId === drawerFlowId}
-                onAutoEnableConsumed={() => setAutoEnableFlowId(null)}
+                autoEnable={
+                  (autoEnableFlowId !== null && (autoEnableFlowId === drawerFlowId || autoEnableFlowId === effectiveFlowId)) ||
+                  getPendingAutoEnableFlow() === effectiveFlowId
+                }
+                onAutoEnableConsumed={() => {
+                  setAutoEnableFlowId(null);
+                  setPendingAutoEnableFlow(null);
+                }}
                 showImage={imagesVisible}
               />
             );
@@ -6514,6 +6650,10 @@ function UsecaseCard({
   const effectiveEnabled = optimisticEnabled !== null ? optimisticEnabled : isEnabled;
   const { apiUrl, authHeader } = useApi();
 
+  const { plural: entityPlural } = useEntityPreference();
+  const dynamicForwardTicketsLabel = useMemo(() => `Forward ${entityPlural || 'Tickets'}`, [entityPlural]);
+  const cardDisplayLabel = flow.id === 'case_management_cases_forward_1' ? dynamicForwardTicketsLabel : flow.label;
+
   const theme = useTheme()
   const primaryColor = theme.palette.primary.main
   const navigate = useNavigate();
@@ -6562,11 +6702,11 @@ function UsecaseCard({
       try {
         const ok = willBeEnabled ? await selfContained.enable() : await selfContained.disable();
         if (!ok) throw new Error('Backend rejected the request');
-        toast.success(willBeEnabled ? `${flow.label} enabled` : `${flow.label} disabled`);
+        toast.success(willBeEnabled ? `${cardDisplayLabel} enabled` : `${cardDisplayLabel} disabled`);
         onToggled?.(flow.automationLabel, willBeEnabled);
       } catch (err: any) {
         setOptimisticEnabled(null);
-        toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`);
+        toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${cardDisplayLabel}`);
       } finally {
         setToggling(false);
       }
@@ -6575,7 +6715,7 @@ function UsecaseCard({
     if (willBeEnabled && !hasValidatedSource) {
       // Hard-block — see UsecaseDetailContent.handleToggle for rationale.
       toast.error(`Authenticate a ${sourceCat} tool first`, {
-        description: `${flow.label} needs a validated ${sourceCat} integration as input. Without one, the workflow has nothing to react to and will not be created.`,
+        description: `${cardDisplayLabel} needs a validated ${sourceCat} integration as input. Without one, the workflow has nothing to react to and will not be created.`,
         duration: 10000,
       });
       return;
@@ -6629,7 +6769,7 @@ function UsecaseCard({
       if (!ok) {
         throw new Error(reason || `Request failed (${res.status})`);
       }
-      toast.success(willBeEnabled ? `${flow.label} enabled` : `${flow.label} disabled`);
+      toast.success(willBeEnabled ? `${cardDisplayLabel} enabled` : `${cardDisplayLabel} disabled`);
       onToggled?.(flow.automationLabel, willBeEnabled);
       // Hard safety net in case the server never reflects the change.
       setTimeout(() => setOptimisticEnabled(null), 8000);
@@ -6640,7 +6780,7 @@ function UsecaseCard({
       const description = isNetwork
         ? 'Could not reach the Shuffle API. Check your connection or backend status and try again.'
         : (raw || 'The backend rejected the request.');
-      toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${flow.label}`, {
+      toast.error(`Failed to ${willBeEnabled ? 'enable' : 'disable'} ${cardDisplayLabel}`, {
         description,
         duration: 8000,
       });
@@ -6714,8 +6854,8 @@ function UsecaseCard({
         )}
         {/* Label + sync icon */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%', minHeight: 22 }}>
-          <Typography variant="body2" title={flow.label} sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', flexGrow: 1, fontSize: '0.82rem', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {flow.label}
+          <Typography variant="body2" title={cardDisplayLabel} sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', flexGrow: 1, fontSize: '0.82rem', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {cardDisplayLabel}
           </Typography>
           {showDrift && (
             <Tooltip title={driftTooltip} placement="top" arrow>

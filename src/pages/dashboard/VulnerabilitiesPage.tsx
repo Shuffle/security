@@ -285,7 +285,7 @@ const AuthenticatedVulnerabilitiesView = () => {
             workflowLabel="Ingest Vulnerabilities"
             category="vulnerabilities"
             webhookLabel="vulnerabilities_webhook"
-            webhookWorkflowName="Vulnerability Ingestion Webhook"
+            webhookWorkflowName="Vulnerabilities Webhook"
             titleTooltip="Apps with authentication appear here. Verified apps show in green, unverified in yellow. Toggle them to control which tools automatically pull in vulnerabilities."
             addSubtitle="Search and authenticate vulnerability scanners and security tools to ingest from"
             searchPriorityQuery="vulnerability scanner cve snyk qualys tenable rapid7 trivy"

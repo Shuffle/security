@@ -22,6 +22,8 @@ import {
   ChevronDown,
   ChevronUp,
   X as CloseIcon,
+  Power,
+  PowerOff,
 } from 'lucide-react';
 import { AppSearchDrawer } from '@shuffleio/shuffle-mcps';
 import { useAppDetailOptional } from '@shuffleio/shuffle-mcps';
@@ -68,6 +70,8 @@ interface AppNode {
 }
 
 export interface UsecaseAlluvialDiagramProps extends ShuffleCoreHostProps {
+  /** Optional flow/usecase ID (e.g. 'vulnerability_ingestion_1') */
+  flowId?: string;
   /** Source tool category ID (e.g. 'siem') */
   sourceCategory: string;
   /** Target tool category ID (e.g. 'case_management') */
@@ -79,9 +83,26 @@ export interface UsecaseAlluvialDiagramProps extends ShuffleCoreHostProps {
   highlightCategory?: string;
   /**
    * If true, the source cannot be modified (no '+' button on left, no removing source apps).
-   * Used for flows where Shuffle/Cases is the fixed source (e.g. Notifications).
+   * Used for flows where Shuffle/Cases is the fixed source.
    */
   lockSource?: boolean;
+  /**
+   * If true, omits the entire left side (source). The diagram becomes 2-stage:
+   * Shuffle -> Destination (used for Notifications).
+   */
+  omitSource?: boolean;
+  /**
+   * Optional pre-resolved notification workflow object.
+   */
+  notificationWorkflow?: any;
+  /**
+   * Whether the parent flow is considered enabled/active.
+   */
+  isFlowEnabled?: boolean;
+  /**
+   * Dynamic label for the usecase (e.g. "Forward Incidents" or "Notifications").
+   */
+  usecaseLabel?: string;
   /**
    * Host-side handoff for clicking an app bubble. Return `true` to suppress
    * the diagram's built-in Visit/Enable Sync/Remove popover and let the host
@@ -133,6 +154,92 @@ const SHUFFLE_INTERNAL_PATTERNS = ['shuffle tools', 'shuffle datastore', 'shuffl
 function isShuffleInternalApp(appName: string): boolean {
   const lower = appName.toLowerCase();
   return SHUFFLE_INTERNAL_PATTERNS.some(p => lower.includes(p));
+}
+
+/**
+ * Extract active app names from a Notification workflow, handling both direct
+ * app actions (e.g. Slack, Teams, Email, PagerDuty, Discord, Webhook, etc.)
+ * and Singul-wrapped actions.
+ */
+export function extractNotificationWorkflowAppNames(workflow: any): Set<string> {
+  const names = new Set<string>();
+  if (!workflow || !Array.isArray(workflow.actions)) return names;
+
+  const extractFromObject = (val: any) => {
+    if (!val) return;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          extractFromObject(JSON.parse(trimmed));
+        } catch { /* ignore */ }
+      }
+      return;
+    }
+    if (typeof val === 'object') {
+      for (const k of ['app_name', 'app', 'tool', 'target_app', 'integration', 'destination', 'service']) {
+        if (typeof val[k] === 'string' && val[k].trim()) {
+          names.add(normalizeAppName(val[k].trim()));
+        }
+      }
+      if (Array.isArray(val)) {
+        val.forEach(extractFromObject);
+      } else {
+        Object.values(val).forEach(extractFromObject);
+      }
+    }
+  };
+
+  for (const action of workflow.actions) {
+    if (!action) continue;
+    // Direct app actions
+    if (action.app_name && !isShuffleInternalApp(action.app_name)) {
+      names.add(normalizeAppName(action.app_name));
+    }
+    // Action name if it doesn't match generic words
+    if (action.name && !isShuffleInternalApp(action.name) && !['start', 'condition', 'filter', 'branch'].includes(action.name.toLowerCase())) {
+      const lowerActionName = action.name.toLowerCase();
+      if (COMMUNICATION_PATTERNS.some(p => lowerActionName.includes(p))) {
+        names.add(normalizeAppName(action.name));
+      }
+    }
+    // Singul parameters or generic parameters
+    if (Array.isArray(action.parameters)) {
+      for (const param of action.parameters) {
+        if (!param) continue;
+        const pName = (param.name || '').toLowerCase();
+        if (['app_name', 'app', 'tool', 'target_app', 'integration', 'destination', 'service'].includes(pName) && typeof param.value === 'string') {
+          names.add(normalizeAppName(param.value.trim()));
+        }
+        extractFromObject(param.value);
+      }
+    } else if (action.parameters && typeof action.parameters === 'object') {
+      extractFromObject(action.parameters);
+    }
+    // Check action fields / environment / extra config if present
+    if (action.environment && typeof action.environment === 'object') {
+      extractFromObject(action.environment);
+    }
+  }
+
+  return names;
+}
+
+/**
+ * Find the Notification Workflow from a list of workflows.
+ */
+export function findNotificationWorkflow(workflows: any[], defaultId?: string): any {
+  if (!Array.isArray(workflows)) return undefined;
+  if (defaultId) {
+    const found = workflows.find(w => w.id === defaultId);
+    if (found) return found;
+  }
+  return workflows.find(w =>
+    w.name === 'Notification Workflow' ||
+    w.name?.toLowerCase().includes('notification') ||
+    (Array.isArray(w.usecase_ids) && (w.usecase_ids.includes('Notifications') || w.usecase_ids.includes('case_management_communication_1'))) ||
+    (Array.isArray(w.tags) && (w.tags.includes('notification') || w.tags.includes('notifications')))
+  );
 }
 
 // ── Sample apps for unauthenticated visitors ────────────────────────────────
@@ -188,6 +295,7 @@ function getSampleApps(categoryId: string): AppNode[] {
 // ── Status dot color ───────────────────────────────────────────────────────────
 
 function getStatusColor(app: AppNode): string {
+  if (app.isEnabled === false) return 'hsl(var(--muted-foreground) / 0.4)';
   if (app.hasValidAuth) return 'hsl(var(--severity-low))';       // Green — validated
   if (app.isActiveOnly) return 'hsl(var(--destructive))';        // Red — activated, no auth
   return 'hsl(var(--severity-medium))';                          // Yellow — auth exists, not validated
@@ -195,7 +303,39 @@ function getStatusColor(app: AppNode): string {
 
 // ── App bubble component ───────────────────────────────────────────────────────
 
-function AppBubble({ app, size = 40, highlighted = false, isSample = false, disabled = false, side = 'left', onClickApp, onRemoveApp, onToggleSync, onVisitApp, onPrimaryClick, webhookInfo, onWebhookToggled }: { app: AppNode; size?: number; highlighted?: boolean; isSample?: boolean; disabled?: boolean; side?: 'left' | 'right'; onClickApp?: (appName: string) => void; onRemoveApp?: (appName: string) => void; onToggleSync?: (appName: string, enabled: boolean) => void; onVisitApp?: (appName: string) => void; onPrimaryClick?: (appName: string, anchorEl: HTMLElement, side: 'left' | 'right') => boolean; webhookInfo?: { url: string | null; exists: boolean; enabled: boolean; workflowId: string | null }; onWebhookToggled?: () => void }) {
+function AppBubble({
+  app,
+  size = 40,
+  highlighted = false,
+  isSample = false,
+  disabled = false,
+  side = 'left',
+  usecaseLabel,
+  onClickApp,
+  onRemoveApp,
+  onToggleSync,
+  onVisitApp,
+  onPrimaryClick,
+  webhookInfo,
+  onWebhookToggled,
+  isVuln = false,
+}: {
+  app: AppNode;
+  size?: number;
+  highlighted?: boolean;
+  isSample?: boolean;
+  disabled?: boolean;
+  side?: 'left' | 'right';
+  usecaseLabel?: string;
+  onClickApp?: (appName: string) => void;
+  onRemoveApp?: (appName: string) => void;
+  onToggleSync?: (appName: string, enabled: boolean) => void;
+  onVisitApp?: (appName: string) => void;
+  onPrimaryClick?: (appName: string, anchorEl: HTMLElement, side: 'left' | 'right') => boolean;
+  webhookInfo?: { url: string | null; exists: boolean; enabled: boolean; workflowId: string | null };
+  onWebhookToggled?: () => void;
+  isVuln?: boolean;
+}) {
   const [imgFailed, setImgFailed] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -209,6 +349,8 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
   const isEnabled = app.isEnabled !== false;
   const isWebhook = app.id === 'webhook-ingestion';
   const webhookEnabled = webhookOptimistic !== null ? webhookOptimistic : (webhookInfo?.enabled ?? false);
+  const webhookTitle = isVuln ? 'Vulnerability Webhook' : 'Ingestion Webhook';
+  const webhookLabel = isVuln ? 'vulnerabilities_webhook' : 'Ingest Tickets_webhook';
 
   const closeTooltip = useCallback(() => {
     setTooltipOpen(false);
@@ -452,17 +594,17 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
           /* Webhook popover — same UX as /incidents WebhookIngestionButton */
           <>
             <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', mb: 0.5, display: 'block' }}>
-              Ingestion Webhook
+              {webhookTitle}
               {!webhookEnabled && (
                 <Chip label="Not Active" size="small" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }} />
               )}
             </Typography>
             <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', mb: 1, display: 'block', lineHeight: 1.4 }}>
               {webhookEnabled
-                ? 'Send alerts to this URL to push incidents directly.'
+                ? (isVuln ? 'Send scanner findings to this URL to push vulnerabilities directly.' : 'Send alerts to this URL to push incidents directly.')
                 : webhookInfo?.exists
                   ? 'This webhook is currently stopped. Enable it to receive pushed alerts.'
-                  : 'Enable to create a webhook endpoint for pushing alerts.'}
+                  : (isVuln ? 'Enable to create a webhook endpoint for pushing vulnerabilities.' : 'Enable to create a webhook endpoint for pushing alerts.')}
             </Typography>
 
             {webhookEnabled && webhookInfo?.url && (
@@ -503,12 +645,20 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
                     credentials: 'include',
                     headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      label: 'Ingest Tickets_webhook',
+                      label: webhookLabel,
                       ...(willBeEnabled ? {} : { action_name: 'remove' }),
                     }),
                   });
                   if (!res.ok) throw new Error();
-                  import('sonner').then(({ toast }) => toast.success(willBeEnabled ? 'Ingestion Webhook enabled' : 'Ingestion Webhook disabled'));
+                  import('sonner').then(({ toast }) => toast.success(willBeEnabled ? `${webhookTitle} enabled` : `${webhookTitle} disabled`));
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(
+                      new CustomEvent('shuffle-workflow-toggled', {
+                        detail: { label: webhookLabel, enabled: willBeEnabled },
+                      }),
+                    );
+                    window.dispatchEvent(new CustomEvent('shuffle-workflows-updated'));
+                  }
                   setWebhookOptimistic(null);
                   onWebhookToggled?.();
                 } catch {
@@ -529,63 +679,108 @@ function AppBubble({ app, size = 40, highlighted = false, isSample = false, disa
         ) : (
           /* Regular app popover */
           <>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', textTransform: 'capitalize', mb: 1, display: 'block' }}>
-              {displayName}
-              {!isEnabled && (
-                <Chip label={side === 'right' ? 'Not Forwarding' : 'Not Active'} size="small" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', bgcolor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }} />
-              )}
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Button
-                size="small"
-                startIcon={<OpenInNewIcon size={14} />}
-                onClick={() => {
-                  setAnchorEl(null);
-                  onVisitApp?.(app.name);
-                }}
-                sx={{
-                  justifyContent: 'flex-start', textTransform: 'none', fontSize: '0.75rem',
-                  color: 'hsl(var(--foreground))', px: 1, py: 0.5, borderRadius: 1,
-                  '&:hover': { bgcolor: 'hsl(var(--muted))' },
-                }}
-              >
-                Visit app
-              </Button>
-              {onToggleSync && (
-                <Button
-                  size="small"
-                  startIcon={isEnabled ? <BlockIcon size={14} /> : <CheckCircleOutlineIcon size={14} />}
-                  onClick={handleToggle}
-                  sx={{
-                    justifyContent: 'flex-start', textTransform: 'none', fontSize: '0.75rem',
-                    color: isEnabled ? 'hsl(var(--destructive))' : 'hsl(var(--severity-low))',
-                    px: 1, py: 0.5, borderRadius: 1,
-                    '&:hover': { bgcolor: isEnabled ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--severity-low) / 0.1)' },
-                  }}
-                >
-                  {isEnabled
-                    ? (side === 'right' ? 'Stop forwarding' : 'Disable')
-                    : (side === 'right' ? 'Forward to this tool' : 'Enable')}
-                </Button>
-              )}
-              {onRemoveApp && (
-                <Button
-                  size="small"
-                  startIcon={<CloseIcon size={14} />}
-                  onClick={() => {
-                    setAnchorEl(null);
-                    setConfirmRemoveOpen(true);
-                  }}
-                  sx={{
-                    justifyContent: 'flex-start', textTransform: 'none', fontSize: '0.75rem',
-                    color: 'hsl(var(--muted-foreground))', px: 1, py: 0.5, borderRadius: 1,
-                    '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.1)', color: 'hsl(var(--destructive))' },
-                  }}
-                >
-                  Remove
-                </Button>
-              )}
-            </Box>
+            {(() => {
+              const currentLabel = usecaseLabel || (side === 'right' ? 'Destination' : 'this usecase');
+              const statusLabel = !isEnabled
+                ? 'Not in use'
+                : (app.hasValidAuth ? 'Validated' : (app.isActiveOnly ? 'Active' : 'Active'));
+              const statusColor = !isEnabled
+                ? 'hsl(var(--muted-foreground))'
+                : (app.hasValidAuth ? 'hsl(var(--severity-low))' : 'hsl(var(--severity-medium))');
+              const statusBg = !isEnabled
+                ? 'hsl(var(--muted))'
+                : (app.hasValidAuth ? 'hsl(var(--severity-low) / 0.12)' : 'hsl(var(--severity-medium) / 0.12)');
+
+              return (
+                <>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25, flexWrap: 'wrap' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', textTransform: 'capitalize', fontSize: '0.8rem' }}>
+                      {displayName}
+                    </Typography>
+                    <Chip
+                      label={statusLabel}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: '0.65rem',
+                        bgcolor: statusBg,
+                        color: statusColor,
+                        fontWeight: 500,
+                        border: '1px solid hsla(var(--border) / 0.5)',
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', mb: 1.25 }}>
+                    {isEnabled ? `Active in ${currentLabel}` : `Not part of ${currentLabel}`}
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {onToggleSync && (
+                      <Button
+                        size="small"
+                        startIcon={isEnabled ? <PowerOff size={14} /> : <Power size={14} />}
+                        onClick={handleToggle}
+                        sx={{
+                          justifyContent: 'flex-start',
+                          textTransform: 'none',
+                          fontSize: '0.75rem',
+                          color: isEnabled ? 'hsl(var(--destructive))' : 'hsl(var(--severity-low))',
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          '&:hover': {
+                            bgcolor: isEnabled ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--severity-low) / 0.1)',
+                          },
+                        }}
+                      >
+                        {isEnabled ? `Disable for ${currentLabel}` : `Enable for ${currentLabel}`}
+                      </Button>
+                    )}
+                    <Button
+                      size="small"
+                      startIcon={<OpenInNewIcon size={14} />}
+                      onClick={() => {
+                        setAnchorEl(null);
+                        onVisitApp?.(app.name);
+                      }}
+                      sx={{
+                        justifyContent: 'flex-start',
+                        textTransform: 'none',
+                        fontSize: '0.75rem',
+                        color: 'hsl(var(--foreground))',
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1,
+                        '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                      }}
+                    >
+                      Open app
+                    </Button>
+                    {onRemoveApp && (
+                      <Button
+                        size="small"
+                        startIcon={<CloseIcon size={14} />}
+                        onClick={() => {
+                          setAnchorEl(null);
+                          setConfirmRemoveOpen(true);
+                        }}
+                        sx={{
+                          justifyContent: 'flex-start',
+                          textTransform: 'none',
+                          fontSize: '0.75rem',
+                          color: 'hsl(var(--muted-foreground))',
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.1)', color: 'hsl(var(--destructive))' },
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </Box>
+                </>
+              );
+            })()}
           </>
         )}
       </Popover>
@@ -694,10 +889,15 @@ export function ShufflePipelinesBanner() {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function UsecaseAlluvialDiagram({
+  flowId,
   sourceCategory,
   targetCategory,
   highlightCategory,
   lockSource = false,
+  omitSource = false,
+  notificationWorkflow: propNotificationWorkflow,
+  isFlowEnabled,
+  usecaseLabel,
   isLoggedIn = false,
   onBubbleClick,
   onAddTool,
@@ -710,10 +910,57 @@ export default function UsecaseAlluvialDiagram({
     appDetailCtx?.openApp(appName);
   }, [appDetailCtx]);
 
+  const shouldOmitSource = Boolean(
+    omitSource ||
+    flowId === 'case_management_communication_1' ||
+    (sourceCategory === 'case_management' && targetCategory === 'communication')
+  );
+  const isNotificationFlow =
+    flowId === 'case_management_communication_1' ||
+    (sourceCategory === 'case_management' && targetCategory === 'communication');
+  const isForwardTicketsFlow = flowId === 'case_management_cases_forward_1';
+
+  const isVulnFlow =
+    flowId === 'vulnerability_ingestion_1' ||
+    Boolean(flowId?.includes('vuln')) ||
+    sourceCategory === 'vulnerabilities' ||
+    sourceCategory === 'asset_management';
+
+  const findDiagramWebhookWorkflow = useCallback(
+    (wfList: any[]) => {
+      if (!Array.isArray(wfList)) return null;
+      if (isVulnFlow) {
+        return (
+          wfList.find((w: any) => {
+            const n = (w.name || '').toLowerCase().trim();
+            const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase().trim()) : [];
+            return (
+              n === 'vulnerabilities webhook' ||
+              n === 'vulnerability webhook' ||
+              n === 'vulnerability ingestion webhook' ||
+              (n.includes('vulnerab') && n.includes('webhook')) ||
+              tags.includes('vulnerabilities_webhook') ||
+              tags.includes('vulnerability_webhook')
+            );
+          }) || null
+        );
+      }
+      return (
+        wfList.find((w: any) => {
+          const n = (w.name || '').toLowerCase().trim();
+          return n === 'ingestion webhook' || (n.includes('ingest') && n.includes('webhook') && !n.includes('vulnerab'));
+        }) || null
+      );
+    },
+    [isVulnFlow],
+  );
+
   const cached = getAlluvialCache();
   const [allApps, setAllApps] = useState<AppNode[]>(() => cached?.allApps || []);
   const [ingestAppNames, setIngestAppNames] = useState<Set<string> | null>(() => cached?.ingestAppNames || null);
   const [forwardAppNames, setForwardAppNames] = useState<Set<string> | null>(() => cached?.forwardAppNames || null);
+  const [notificationAppNames, setNotificationAppNames] = useState<Set<string> | null>(null);
+  const [notificationWfEnabled, setNotificationWfEnabled] = useState<boolean>(true);
   const [loading, setLoading] = useState(() => !cached);
   const [webhookInfo, setWebhookInfo] = useState<{ url: string | null; exists: boolean; enabled: boolean; workflowId: string | null }>(
     () => cached?.webhookInfo || { url: null, exists: false, enabled: false, workflowId: null }
@@ -822,23 +1069,26 @@ export default function UsecaseAlluvialDiagram({
         { credentials: 'include', headers: { ...getAuthHeader() } },
         true,
       );
-      const webhookWorkflow = workflows.find((w: any) => w.name === 'Ingestion Webhook');
-        if (webhookWorkflow) {
-          const webhookTrigger = (webhookWorkflow.triggers || []).find(
-            (t: any) => t.trigger_type === 'WEBHOOK' || t.app_name === 'Webhook'
-          );
-          let webhookUrl: string | null = null;
-          if (webhookTrigger) {
-            const webhookId = webhookTrigger.id || webhookTrigger.trigger_id;
-            if (webhookId) webhookUrl = getApiUrl(`/api/v1/hooks/webhook_${webhookId}`);
-          }
-          const triggerStopped = !webhookTrigger || (webhookTrigger.status || '').toLowerCase() === 'stopped';
-          setWebhookInfo({ url: webhookUrl, exists: true, enabled: !triggerStopped, workflowId: webhookWorkflow.id });
-        } else {
-          setWebhookInfo({ url: null, exists: false, enabled: false, workflowId: null });
+      const webhookWorkflow = findDiagramWebhookWorkflow(workflows);
+      if (webhookWorkflow) {
+        const webhookTrigger = (webhookWorkflow.triggers || []).find((t: any) => {
+          const type = (t.trigger_type || '').toUpperCase();
+          const app = (t.app_name || '').toLowerCase();
+          const name = (t.name || '').toLowerCase();
+          return type === 'WEBHOOK' || app === 'webhook' || name === 'webhook';
+        });
+        let webhookUrl: string | null = null;
+        if (webhookTrigger) {
+          const webhookId = webhookTrigger.id || webhookTrigger.trigger_id;
+          if (webhookId) webhookUrl = getApiUrl(`/api/v1/hooks/webhook_${webhookId}`);
         }
+        const triggerStopped = !webhookTrigger || (webhookTrigger.status || '').toLowerCase() === 'stopped';
+        setWebhookInfo({ url: webhookUrl, exists: true, enabled: !triggerStopped, workflowId: webhookWorkflow.id });
+      } else {
+        setWebhookInfo({ url: null, exists: false, enabled: false, workflowId: null });
+      }
     } catch {}
-  }, []);
+  }, [findDiagramWebhookWorkflow]);
 
   // Toggle sync: same debounced approach as /incidents page
   const handleToggleSync = useCallback((appName: string, enabled: boolean) => {
@@ -1011,6 +1261,104 @@ export default function UsecaseAlluvialDiagram({
     });
   }, [forwardAppNames, allApps, pushForwardWorkflow]);
 
+  /**
+   * Re-fetch the Notification Workflow and extract active app names.
+   */
+  const refreshNotificationWorkflow = useCallback(async (): Promise<Set<string> | null> => {
+    try {
+      const workflows = await fetchWorkflowsCached(
+        getApiUrl('/api/v1/workflows'),
+        { credentials: 'include', headers: { ...getAuthHeader() } },
+        true,
+      );
+      const notifWf = propNotificationWorkflow || findNotificationWorkflow(workflows);
+      if (!notifWf) {
+        setNotificationAppNames(new Set());
+        setNotificationWfEnabled(false);
+        return new Set();
+      }
+      const allStopped = Array.isArray(notifWf.triggers) && notifWf.triggers.length > 0 && notifWf.triggers.every((t: any) => t.status === 'stopped' || t.status === 'disabled');
+      const active = (isFlowEnabled !== undefined ? isFlowEnabled : true) && !allStopped;
+      setNotificationWfEnabled(active);
+      const fresh = active ? extractNotificationWorkflowAppNames(notifWf) : new Set<string>();
+      setNotificationAppNames(fresh);
+      return fresh;
+    } catch (err) {
+      console.warn('[AlluvialDiagram] refreshNotificationWorkflow failed:', err);
+      return null;
+    }
+  }, [propNotificationWorkflow, isFlowEnabled]);
+
+  /**
+   * Push the desired full Notification app set to the backend.
+   */
+  const pushNotificationWorkflow = useCallback(async (
+    desiredAppNames: string[],
+    intent: { action: 'add' | 'remove'; appName: string },
+  ): Promise<boolean> => {
+    const { toast } = await import('sonner');
+    try {
+      const body: Record<string, string> = { label: 'Notifications' };
+      if (desiredAppNames.length > 0) {
+        body.app_name = desiredAppNames.join(',');
+      } else {
+        body.action_name = 'remove';
+      }
+      const res = await fetch(getApiUrl('/api/v2/workflows/generate'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        throw new Error(`generate failed: HTTP ${res.status}`);
+      }
+
+      await refreshNotificationWorkflow();
+      const verb = intent.action === 'remove' ? 'disabled for' : 'enabled for';
+      toast.success(`${intent.appName.replace(/_/g, ' ')} ${verb} Notifications`);
+      return true;
+    } catch (error) {
+      console.error('Failed to update Notifications workflow:', error);
+      toast.error('Failed to update notifications');
+      await refreshNotificationWorkflow();
+      return false;
+    }
+  }, [refreshNotificationWorkflow]);
+
+  const handleToggleNotification = useCallback((appName: string, enabled: boolean) => {
+    const normalized = normalizeAppName(appName);
+
+    setNotificationAppNames(prev => {
+      const next = new Set(prev || []);
+      if (enabled) next.add(normalized); else next.delete(normalized);
+      return next;
+    });
+
+    const currentSet = new Set(notificationAppNames || []);
+    if (enabled) currentSet.add(normalized); else currentSet.delete(normalized);
+
+    const desiredAppNames: string[] = [];
+    currentSet.forEach(norm => {
+      const match = allApps.find(a => normalizeAppName(a.name) === norm);
+      if (match) desiredAppNames.push(match.name);
+      else if (norm === normalized) desiredAppNames.push(appName);
+    });
+
+    pushNotificationWorkflow(desiredAppNames, {
+      action: enabled ? 'add' : 'remove',
+      appName,
+    });
+  }, [notificationAppNames, allApps, pushNotificationWorkflow]);
+
+  const handleToggleDestinationApp = useCallback((appName: string, enabled: boolean) => {
+    if (isNotificationFlow) {
+      handleToggleNotification(appName, enabled);
+    } else {
+      handleToggleForward(appName, enabled);
+    }
+  }, [isNotificationFlow, handleToggleNotification, handleToggleForward]);
+
   useEffect(() => {
     if (!isLoggedIn) { setLoading(false); return; }
 
@@ -1096,6 +1444,8 @@ export default function UsecaseAlluvialDiagram({
 
         let nextIngest = new Set<string>();
         let nextForward = new Set<string>();
+        let nextNotification = new Set<string>();
+        let isNotifWfActive = false;
         let nextWebhook = { url: null as string | null, exists: false, enabled: false, workflowId: null as string | null };
 
         if (Array.isArray(workflowsData)) {
@@ -1117,21 +1467,24 @@ export default function UsecaseAlluvialDiagram({
           if (forwardWf) {
             nextForward = extractWorkflowAppNames(forwardWf);
           }
-          const notifWf = workflowsData.find((w: any) => {
-            const n = (w.name || '').toLowerCase();
-            const tags = Array.isArray(w.tags) ? w.tags.map((t: any) => String(t).toLowerCase()) : [];
-            return n.includes('notification') || tags.some((t: string) => t.includes('notification'));
-          });
+
+          const notifWf = propNotificationWorkflow || findNotificationWorkflow(workflowsData);
           if (notifWf) {
-            const notifApps = extractWorkflowAppNames(notifWf);
-            notifApps.forEach(a => nextForward.add(a));
+            const allStopped = Array.isArray(notifWf.triggers) && notifWf.triggers.length > 0 && notifWf.triggers.every((t: any) => t.status === 'stopped' || t.status === 'disabled');
+            isNotifWfActive = (isFlowEnabled !== undefined ? isFlowEnabled : true) && !allStopped;
+            if (isNotifWfActive) {
+              nextNotification = extractNotificationWorkflowAppNames(notifWf);
+            }
           }
 
-          const webhookWorkflow = workflowsData.find((w: any) => w.name === 'Ingestion Webhook');
+          const webhookWorkflow = findDiagramWebhookWorkflow(workflowsData);
           if (webhookWorkflow) {
-            const webhookTrigger = (webhookWorkflow.triggers || []).find(
-              (t: any) => t.trigger_type === 'WEBHOOK' || t.app_name === 'Webhook'
-            );
+            const webhookTrigger = (webhookWorkflow.triggers || []).find((t: any) => {
+              const type = (t.trigger_type || '').toUpperCase();
+              const app = (t.app_name || '').toLowerCase();
+              const name = (t.name || '').toLowerCase();
+              return type === 'WEBHOOK' || app === 'webhook' || name === 'webhook';
+            });
             let webhookUrl: string | null = null;
             if (webhookTrigger) {
               const webhookId = webhookTrigger.id || webhookTrigger.trigger_id;
@@ -1148,6 +1501,8 @@ export default function UsecaseAlluvialDiagram({
           setAllApps(nodes);
           setIngestAppNames(nextIngest);
           setForwardAppNames(nextForward);
+          setNotificationAppNames(nextNotification);
+          setNotificationWfEnabled(isNotifWfActive);
           setWebhookInfo(nextWebhook);
           setAlluvialCache({
             allApps: nodes,
@@ -1178,7 +1533,7 @@ export default function UsecaseAlluvialDiagram({
         window.removeEventListener('shuffle-apps-invalidated', handleInvalidate);
       }
     };
-  }, [isLoggedIn, initialWorkflows]);
+  }, [isLoggedIn, initialWorkflows, propNotificationWorkflow, isFlowEnabled]);
 
   // Permanent webhook node shown at the top of source column when applicable
   const webhookNode: AppNode = useMemo(() => ({
@@ -1192,13 +1547,19 @@ export default function UsecaseAlluvialDiagram({
   }), [webhookInfo, isLoggedIn]);
 
   // Source apps:
+  // Source apps:
+  // If shouldOmitSource is true (e.g. Notifications), omit the left column entirely.
   // If lockSource is true, Shuffle/Cases is fixed as the only source node (cannot be changed).
   // Otherwise if highlightCategory is set, show ingest workflow apps with highlighting.
   const sourceApps = useMemo(() => {
+    if (shouldOmitSource) {
+      return [];
+    }
+
     if (lockSource) {
       const defaultCasesNode: AppNode = {
         id: 'shuffle-cases',
-        name: 'Cases',
+        name: isForwardTicketsFlow && usecaseLabel ? usecaseLabel.replace('Forward ', '') : 'Cases',
         icon: shuffleIcon,
         hasValidAuth: true,
         isActiveOnly: false,
@@ -1272,7 +1633,7 @@ export default function UsecaseAlluvialDiagram({
     return prependWebhook(
       allApps.filter(a => matchesCategory(a.name, sourceCategory) && !hiddenApps.has(a.name.toLowerCase())).map(a => ({ ...a, isEnabled: true }))
     );
-  }, [allApps, sourceCategory, highlightCategory, ingestAppNames, isLoggedIn, guestSourceNames, guestAppIcons, hiddenApps, webhookNode, lockSource]);
+  }, [allApps, sourceCategory, highlightCategory, ingestAppNames, isLoggedIn, guestSourceNames, guestAppIcons, hiddenApps, webhookNode, lockSource, shouldOmitSource, isForwardTicketsFlow, usecaseLabel]);
 
   // Target/destination apps: user-selectable
   const targetApps = useMemo(() => {
@@ -1290,9 +1651,13 @@ export default function UsecaseAlluvialDiagram({
         }));
       return [...samples, ...guestNodes].filter(a => !hiddenApps.has(a.name.toLowerCase()));
     }
+
+    const isMultiCategory = isForwardTicketsFlow || isNotificationFlow;
     const matched = allApps.filter(a =>
       !isShuffleInternalApp(a.name) &&
-      (matchesCategory(a.name, targetCategory) || manualDestApps.has(normalizeAppName(a.name))) &&
+      (matchesCategory(a.name, targetCategory) ||
+        (isMultiCategory && (matchesCategory(a.name, 'communication') || matchesCategory(a.name, 'case_management'))) ||
+        manualDestApps.has(normalizeAppName(a.name))) &&
       !hiddenApps.has(a.name.toLowerCase())
     );
 
@@ -1300,6 +1665,35 @@ export default function UsecaseAlluvialDiagram({
     if (matched.length === 0) {
       const samples = getSampleApps(targetCategory);
       return samples.filter(a => !hiddenApps.has(a.name.toLowerCase()));
+    }
+
+    if (isNotificationFlow) {
+      const isEnabled = (appName: string) => {
+        if (!notificationWfEnabled) return false;
+        const norm = normalizeAppName(appName);
+        return Boolean(notificationAppNames && (notificationAppNames.has(norm) || notificationAppNames.has(appName.toLowerCase().trim())));
+      };
+      const enabledApps = matched
+        .filter(a => isEnabled(a.name))
+        .map(a => ({ ...a, isEnabled: true }));
+      const disabledApps = matched
+        .filter(a => !isEnabled(a.name))
+        .map(a => ({ ...a, isEnabled: false }));
+      return [...enabledApps, ...disabledApps];
+    }
+
+    if (isForwardTicketsFlow) {
+      const isEnabled = (appName: string) => {
+        const norm = normalizeAppName(appName);
+        return Boolean(forwardAppNames && forwardAppNames.size > 0 && (forwardAppNames.has(norm) || forwardAppNames.has(appName.toLowerCase().trim())));
+      };
+      const enabledApps = matched
+        .filter(a => isEnabled(a.name))
+        .map(a => ({ ...a, isEnabled: true }));
+      const disabledApps = matched
+        .filter(a => !isEnabled(a.name))
+        .map(a => ({ ...a, isEnabled: false }));
+      return [...enabledApps, ...disabledApps];
     }
 
     if (forwardAppNames && forwardAppNames.size > 0) {
@@ -1312,37 +1706,43 @@ export default function UsecaseAlluvialDiagram({
       return [...enabledApps, ...disabledApps];
     }
     return matched;
-  }, [allApps, targetCategory, forwardAppNames, isLoggedIn, guestDestNames, guestAppIcons, hiddenApps, manualDestApps]);
+  }, [allApps, targetCategory, forwardAppNames, notificationAppNames, notificationWfEnabled, isNotificationFlow, isForwardTicketsFlow, isLoggedIn, guestDestNames, guestAppIcons, hiddenApps, manualDestApps]);
 
   const sourceMeta = TOOL_CATEGORIES.find(c => c.id === sourceCategory);
   const targetMeta = TOOL_CATEGORIES.find(c => c.id === targetCategory);
 
   // Source label: when showing ingest apps, label as "Ingestion Sources"
-  const sourceLabel = lockSource && sourceCategory === 'case_management'
-    ? 'Cases'
-    : (sourceCategory === 'asset_management' || sourceCategory === 'vulnerabilities')
-      ? 'Vulnerability Scanners'
-      : highlightCategory
-        ? 'Ingestion Sources'
-        : (sourceMeta?.label || sourceCategory);
+  const sourceLabel = shouldOmitSource
+    ? ''
+    : lockSource && sourceCategory === 'case_management'
+      ? (isForwardTicketsFlow && usecaseLabel ? usecaseLabel.replace('Forward ', '') : 'Cases')
+      : (sourceCategory === 'asset_management' || sourceCategory === 'vulnerabilities')
+        ? 'Vulnerability Scanners'
+        : highlightCategory
+          ? 'Ingestion Sources'
+          : (sourceMeta?.label || sourceCategory);
 
-  const targetLabel = targetCategory === 'communication'
+  const targetLabel = isNotificationFlow
     ? 'Notifications'
-    : targetCategory === 'case_management'
-      ? 'Cases (optional)'
-      : (targetMeta?.label || targetCategory);
+    : isForwardTicketsFlow
+      ? 'Destination'
+      : targetCategory === 'communication'
+        ? 'Notifications'
+        : targetCategory === 'case_management'
+          ? 'Cases (optional)'
+          : (targetMeta?.label || targetCategory);
 
   // Maximum visible nodes per side when collapsed
   const MAX_COLLAPSED_NODES = 6;
   const [expandedLeft, setExpandedLeft] = useState(false);
   const [expandedRight, setExpandedRight] = useState(false);
 
-  const hasMoreLeft = sourceApps.length > MAX_COLLAPSED_NODES;
+  const hasMoreLeft = !shouldOmitSource && sourceApps.length > MAX_COLLAPSED_NODES;
   const hasMoreRight = targetApps.length > MAX_COLLAPSED_NODES;
 
-  const visibleSourceApps = expandedLeft || !hasMoreLeft
-    ? sourceApps
-    : sourceApps.slice(0, MAX_COLLAPSED_NODES);
+  const visibleSourceApps = shouldOmitSource
+    ? []
+    : (expandedLeft || !hasMoreLeft ? sourceApps : sourceApps.slice(0, MAX_COLLAPSED_NODES));
 
   const visibleTargetApps = expandedRight || !hasMoreRight
     ? targetApps
@@ -1356,16 +1756,20 @@ export default function UsecaseAlluvialDiagram({
   const addButtonSpace = 48; // space for the + button below apps
   const showMoreSpace = (hasMoreLeft || hasMoreRight) ? 36 : 0;
 
-  const maxNodes = Math.max(visibleSourceApps.length, visibleTargetApps.length, 1);
+  const maxNodes = shouldOmitSource
+    ? Math.max(visibleTargetApps.length, 1)
+    : Math.max(visibleSourceApps.length, visibleTargetApps.length, 1);
   const colHeight = maxNodes * (nodeSize + rowGap) - rowGap;
   const svgHeight = colHeight + svgPadding * 2 + 40 + addButtonSpace + showMoreSpace;
-  const svgWidth = colWidth * 3 + 300;
+  const svgWidth = shouldOmitSource ? 420 : (colWidth * 3 + 300);
 
   const leftX = svgPadding + nodeSize / 2;
-  const centerX = svgWidth / 2;
+  const shuffleX = shouldOmitSource ? (svgPadding + 44) : (svgWidth / 2);
+  const centerX = shouldOmitSource ? shuffleX : (svgWidth / 2);
   const rightX = svgWidth - svgPadding - nodeSize / 2;
 
   const centerY = (svgHeight - 30 - showMoreSpace) / 2;
+  const fromX = shouldOmitSource ? (shuffleX + 28) : (centerX + 28);
 
   const getY = (idx: number, total: number) => {
     const totalHeight = total * (nodeSize + rowGap) - rowGap;
@@ -1405,24 +1809,26 @@ export default function UsecaseAlluvialDiagram({
     return (
       <Box sx={{ display: 'flex', gap: 4, py: 4, px: 2, alignItems: 'center' }}>
         {/* Left column shimmer */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {[1, 2, 3].map((i) => (
-            <Box
-              key={i}
-              sx={{
-                height: 48,
-                borderRadius: 2,
-                background: 'linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground) / 0.08) 50%, hsl(var(--muted)) 75%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 1.5s ease-in-out infinite',
-                '@keyframes shimmer': {
-                  '0%': { backgroundPosition: '200% 0' },
-                  '100%': { backgroundPosition: '-200% 0' },
-                },
-              }}
-            />
-          ))}
-        </Box>
+        {!shouldOmitSource && (
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {[1, 2, 3].map((i) => (
+              <Box
+                key={i}
+                sx={{
+                  height: 48,
+                  borderRadius: 2,
+                  background: 'linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground) / 0.08) 50%, hsl(var(--muted)) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 1.5s ease-in-out infinite',
+                  '@keyframes shimmer': {
+                    '0%': { backgroundPosition: '200% 0' },
+                    '100%': { backgroundPosition: '-200% 0' },
+                  },
+                }}
+              />
+            ))}
+          </Box>
+        )}
         {/* Center lines shimmer */}
         <Box sx={{ width: 60, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
           {[1, 2, 3].map((i) => (
@@ -1493,8 +1899,8 @@ export default function UsecaseAlluvialDiagram({
             </filter>
           </defs>
 
-          {/* Flow paths: source → center (only for enabled apps) */}
-          {visibleSourceApps.map((app, i) => {
+          {/* Flow paths: source → center (only for enabled apps, skipped when shouldOmitSource) */}
+          {!shouldOmitSource && visibleSourceApps.map((app, i) => {
             if (app.isEnabled === false) return null;
             const fromY = getY(i, visibleSourceApps.length);
             return (
@@ -1516,7 +1922,7 @@ export default function UsecaseAlluvialDiagram({
             return (
               <path
                 key={`sr-${i}`}
-                d={makePath(centerX + 28, centerY, rightX - nodeSize / 2 - 4, toY)}
+                d={makePath(fromX, centerY, rightX - nodeSize / 2 - 4, toY)}
                 fill="none"
                 stroke="url(#flow-gradient-right)"
                 strokeWidth={2.5}
@@ -1526,7 +1932,7 @@ export default function UsecaseAlluvialDiagram({
           })}
 
           {/* Animated particles — for authenticated source apps, or all apps when not logged in */}
-          {visibleSourceApps.map((app, i) => {
+          {!shouldOmitSource && visibleSourceApps.map((app, i) => {
             if (app.isEnabled === false) return null;
             if (isLoggedIn && !app.hasValidAuth) return null;
             const fromY = getY(i, visibleSourceApps.length);
@@ -1539,10 +1945,10 @@ export default function UsecaseAlluvialDiagram({
               </g>
             );
           })}
-          {(isLoggedIn ? visibleSourceApps.some(app => app.hasValidAuth && app.isEnabled !== false) : visibleSourceApps.length > 0) && visibleTargetApps.map((app, i) => {
+          {(shouldOmitSource || (isLoggedIn ? visibleSourceApps.some(app => app.hasValidAuth && app.isEnabled !== false) : visibleSourceApps.length > 0)) && visibleTargetApps.map((app, i) => {
             if (isLoggedIn && (!app.hasValidAuth || app.isEnabled === false)) return null;
             const toY = getY(i, visibleTargetApps.length);
-            const pathD = makePath(centerX + 28, centerY, rightX - nodeSize / 2 - 4, toY);
+            const pathD = makePath(fromX, centerY, rightX - nodeSize / 2 - 4, toY);
             return (
               <g key={`pr-${i}`}>
                 <circle r="3" fill="hsl(var(--primary))" opacity="0.6" filter="url(#glow)">
@@ -1553,10 +1959,12 @@ export default function UsecaseAlluvialDiagram({
           })}
 
           {/* Column labels */}
-          <text x={leftX} y={svgHeight + 16} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="11" fontWeight="600">
-            {sourceLabel}
-          </text>
-          <text x={centerX} y={svgHeight + 16} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="11" fontWeight="600">
+          {!shouldOmitSource && (
+            <text x={leftX} y={svgHeight + 16} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="11" fontWeight="600">
+              {sourceLabel}
+            </text>
+          )}
+          <text x={shuffleX} y={svgHeight + 16} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="11" fontWeight="600">
             Shuffle
           </text>
           <text x={rightX} y={svgHeight + 16} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="11" fontWeight="600">
@@ -1566,7 +1974,7 @@ export default function UsecaseAlluvialDiagram({
 
         {/* Overlay HTML app bubbles */}
         <Box sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: svgWidth, height: svgHeight + 30, pointerEvents: 'none' }}>
-          {visibleSourceApps.map((app, i) => {
+          {!shouldOmitSource && visibleSourceApps.map((app, i) => {
             const y = getY(i, visibleSourceApps.length);
             return (
               <Box
@@ -1578,16 +1986,30 @@ export default function UsecaseAlluvialDiagram({
                   pointerEvents: 'auto',
                 }}
               >
-                <AppBubble app={app} size={nodeSize} highlighted={!!app.isHighlighted} isSample={!isLoggedIn} disabled={app.isEnabled === false} onRemoveApp={lockSource ? undefined : handleRemoveApp} onToggleSync={isLoggedIn && highlightCategory ? handleToggleSync : undefined} onVisitApp={handleVisitApp} onPrimaryClick={onBubbleClick ? (name, el, s) => !!onBubbleClick({ appName: name, side: s, anchorEl: el }) : undefined} webhookInfo={app.id === 'webhook-ingestion' ? webhookInfo : undefined} onWebhookToggled={handleWebhookToggled} />
+                <AppBubble
+                  app={app}
+                  size={nodeSize}
+                  highlighted={!!app.isHighlighted}
+                  isSample={!isLoggedIn}
+                  disabled={app.isEnabled === false}
+                  usecaseLabel={usecaseLabel}
+                  onRemoveApp={lockSource ? undefined : handleRemoveApp}
+                  onToggleSync={isLoggedIn && highlightCategory ? handleToggleSync : undefined}
+                  onVisitApp={handleVisitApp}
+                  onPrimaryClick={onBubbleClick ? (name, el, s) => !!onBubbleClick({ appName: name, side: s, anchorEl: el }) : undefined}
+                  webhookInfo={app.id === 'webhook-ingestion' ? webhookInfo : undefined}
+                  onWebhookToggled={handleWebhookToggled}
+                  isVuln={isVulnFlow}
+                />
               </Box>
             );
           })}
 
-          {/* Center: Shuffle logo */}
+          {/* Center / Origin: Shuffle logo */}
           <Box
             sx={{
               position: 'absolute',
-              left: centerX - 24,
+              left: shuffleX - 24,
               top: centerY - 24,
               pointerEvents: 'auto',
             }}
@@ -1651,13 +2073,24 @@ export default function UsecaseAlluvialDiagram({
                   pointerEvents: 'auto',
                 }}
               >
-                <AppBubble app={app} size={nodeSize} isSample={!isLoggedIn} side="right" onRemoveApp={handleRemoveApp} onToggleSync={isLoggedIn ? handleToggleForward : undefined} onVisitApp={handleVisitApp} onPrimaryClick={onBubbleClick ? (name, el, s) => !!onBubbleClick({ appName: name, side: s, anchorEl: el }) : undefined} />
+                <AppBubble
+                  app={app}
+                  size={nodeSize}
+                  isSample={!isLoggedIn}
+                  side="right"
+                  disabled={app.isEnabled === false}
+                  usecaseLabel={usecaseLabel}
+                  onRemoveApp={handleRemoveApp}
+                  onToggleSync={isLoggedIn ? handleToggleDestinationApp : undefined}
+                  onVisitApp={handleVisitApp}
+                  onPrimaryClick={onBubbleClick ? (name, el, s) => !!onBubbleClick({ appName: name, side: s, anchorEl: el }) : undefined}
+                />
               </Box>
             );
           })}
 
           {/* Show more / less source tools button */}
-          {hasMoreLeft && (
+          {!shouldOmitSource && hasMoreLeft && (
             <Box
               sx={{
                 position: 'absolute',
@@ -1698,7 +2131,7 @@ export default function UsecaseAlluvialDiagram({
           )}
 
           {/* Show source tools button */}
-          {!lockSource && (
+          {!shouldOmitSource && !lockSource && (
             <Box
               sx={{
                 position: 'absolute',
@@ -1896,12 +2329,11 @@ export default function UsecaseAlluvialDiagram({
             import('sonner').then(({ toast }) => toast.success(`${addedAppName.replace(/_/g, ' ')} added to ingestion sources`));
           } else {
             // Optimistic UI: show immediately on the destination column,
-            // then push the FULL desired Forward Tickets list to the backend
-            // and verify the workflow picked it up (mirrors the
-            // /onboarding/automate "Forward" pattern).
+            // then push the FULL desired destination app list to the backend
+            // and verify the workflow picked it up.
             setManualDestApps(prev => { const next = new Set(prev); next.add(normalizeAppName(addedAppName)); return next; });
             setHiddenApps(prev => { const next = new Set(prev); next.delete(addedAppName.toLowerCase()); return next; });
-            handleToggleForward(addedAppName, true);
+            handleToggleDestinationApp(addedAppName, true);
           }
           setSearchOpen(null);
         } : undefined}
@@ -1938,7 +2370,7 @@ export default function UsecaseAlluvialDiagram({
               return next;
             });
             // Activate the app in the tenant first (no-op if already active),
-            // then push the FULL desired Forward Tickets list and verify.
+            // then push the FULL desired destination app list and verify.
             (async () => {
               try {
                 if (matchedApp.id) {
@@ -1947,7 +2379,7 @@ export default function UsecaseAlluvialDiagram({
                   });
                 }
               } catch {}
-              handleToggleForward(matchedApp.name, true);
+              handleToggleDestinationApp(matchedApp.name, true);
             })();
           }
           setSearchOpen(null);
@@ -1991,10 +2423,10 @@ export default function UsecaseAlluvialDiagram({
               const { toast } = await import('sonner');
               toast.success(`${match.app.name.replace(/_/g, ' ')} authenticated & added to ingestion`);
             } else {
-              handleToggleForward(match.app.name, true);
+              handleToggleDestinationApp(match.app.name, true);
               setHiddenApps(prev => { const n = new Set(prev); n.delete(match.app.name.toLowerCase()); return n; });
               const { toast } = await import('sonner');
-              toast.success(`${match.app.name.replace(/_/g, ' ')} authenticated & added to forwarding`);
+              toast.success(`${match.app.name.replace(/_/g, ' ')} authenticated & added to destination`);
             }
           } catch (err) {
             console.error('[AlluvialDiagram] post-auth check failed:', err);

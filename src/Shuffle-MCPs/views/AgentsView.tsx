@@ -354,6 +354,7 @@ const AgentsView = ({
         onSchedule={effectiveSchedule}
         apiKey={apiKey}
         orgId={orgId}
+        isSupport={userdata?.support === true || userdata?.support === 'true'}
         theme={resolvedTheme}
         colorMode={colorMode}
       />
