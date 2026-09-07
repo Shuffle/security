@@ -46,6 +46,7 @@ export interface VulnerabilitiesDashboardProps extends ShuffleCoreHostProps {
   customRange?: { fromMs: number; toMs: number } | null;
   onRangeSelect?: (fromMs: number, toMs: number) => void;
   refreshKey?: number;
+  orgId?: string;
 }
 
 type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
@@ -99,6 +100,7 @@ export const VulnerabilitiesDashboard = ({
   customRange,
   onRangeSelect,
   refreshKey = 0,
+  orgId,
   globalUrl,
 }: VulnerabilitiesDashboardProps) => {
   useSyncHostBaseUrl(globalUrl);
@@ -111,11 +113,17 @@ export const VulnerabilitiesDashboard = ({
     (async () => {
       setLoading(true);
       try {
-        const url = getApiUrl(`/api/v1/list_cache?category=${encodeURIComponent('shuffle-security_vulnerabilities')}&top=100`);
+        const url = orgId
+          ? getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent('shuffle-security_vulnerabilities')}&top=100`)
+          : getApiUrl(`/api/v1/list_cache?category=${encodeURIComponent('shuffle-security_vulnerabilities')}&top=100`);
         const res = await fetch(url, {
           method: 'GET',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeader(),
+            ...(orgId ? { 'Org-Id': orgId } : {}),
+          },
         });
         if (!res.ok) { if (!cancelled) { setRows([]); setLoading(false); } return; }
         const data = await res.json();
@@ -149,7 +157,7 @@ export const VulnerabilitiesDashboard = ({
       }
     })();
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [refreshKey, orgId]);
 
   const buckets = useMemo(
     () => (customRange
@@ -244,38 +252,67 @@ export const VulnerabilitiesDashboard = ({
         <KpiTile icon={Server} glow={NEON.cyan} value={totals.hostCount} label="Affected hosts" isLoading={loading} delay={0.15} />
       </Box>
 
-      <Panel title="Findings discovered over time">
-        {loading ? (
-          <ChartShimmer height={260} variant="area" />
-        ) : !hasTrendData ? (
-          <EmptyState text="No vulnerabilities discovered in this period." />
-        ) : (
-          <Box sx={{ height: 260 }}>
+      <Panel
+        title="Findings discovered over time"
+        accent={NEON.magenta}
+        delay={0.2}
+        action={
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {SEV_ORDER.map((s) => (
+              <Box key={s} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: SEV_COLOR[s] }} />
+                <Typography sx={{ fontSize: '0.68rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        }
+      >
+        <Box sx={{ height: 260 }}>
+          {loading ? (
+            <ChartShimmer height={260} variant="area" label="Loading findings activity" />
+          ) : hasTrendData ? (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} {...drag.chartProps}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} />
-                <RechartsTooltip content={<TooltipContent />} cursor={{ fill: 'hsl(var(--muted) / 0.25)' }} />
+              <AreaChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...drag.chartProps}>
+                <defs>
+                  {SEV_ORDER.map((s) => (
+                    <linearGradient key={s} id={`vuln-grad-${s}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={SEV_COLOR[s]} stopOpacity={0.55} />
+                      <stop offset="100%" stopColor={SEV_COLOR[s]} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--border))" strokeOpacity={0.35} vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={32} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
+                <RechartsTooltip content={<TooltipContent />} cursor={{ stroke: NEON.violet, strokeOpacity: 0.3, strokeWidth: 1 }} />
                 {SEV_ORDER.map((s) => (
                   <Area
                     key={s}
                     type="monotone"
                     dataKey={s}
                     name={s.charAt(0).toUpperCase() + s.slice(1)}
-                    stackId="1"
                     stroke={SEV_COLOR[s]}
-                    fill={SEV_COLOR[s]}
-                    fillOpacity={0.2}
+                    strokeWidth={2}
+                    fill={`url(#vuln-grad-${s})`}
+                    fillOpacity={0.6}
+                    isAnimationActive={false}
                   />
                 ))}
                 {drag.refArea && (
-                  <ReferenceArea x1={drag.refArea.x1} x2={drag.refArea.x2} strokeOpacity={0.3} fill="hsl(var(--primary) / 0.15)" />
+                  <ReferenceArea x1={drag.refArea.x1} x2={drag.refArea.x2} stroke="hsl(var(--primary))" strokeOpacity={0.4} fill="hsl(var(--primary))" fillOpacity={0.12} />
                 )}
               </AreaChart>
             </ResponsiveContainer>
-          </Box>
-        )}
+          ) : (
+            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ width: '100%', mt: '-15px' }}>
+                <EmptyState text={customRange ? 'No vulnerabilities discovered in this range' : `No vulnerabilities discovered in the last ${days} days`} />
+              </Box>
+            </Box>
+          )}
+        </Box>
       </Panel>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>

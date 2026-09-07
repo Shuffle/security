@@ -48,6 +48,11 @@ export interface AskAiWidgetProps extends Omit<AskAiSidePanelProps, 'open' | 'on
   permissionsSlot?: React.ReactNode;
   /** Legacy drawer slot */
   localLLMSlot?: React.ReactNode;
+  /**
+   * Whether opening the side panel should sideshift the page layout.
+   * Default: true (or controlled per route rule). Set false for pure overlay mode.
+   */
+  sideshift?: boolean;
 }
 
 export const AskAiWidget: React.FC<AskAiWidgetProps> = ({

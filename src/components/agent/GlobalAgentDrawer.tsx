@@ -25,7 +25,12 @@ import {
 import { useScheduleAgentRun } from '@/hooks/useScheduleAgentRun';
 import { useIsSupport } from '@/hooks/useIsSupport';
 
-const GlobalAgentDrawer = () => {
+export interface GlobalAgentDrawerProps {
+  /** Override sideshift behavior globally (defaults to route rule or true) */
+  sideshift?: boolean;
+}
+
+const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
   const [open, setOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<AgentRunDrawerTab>('run');
   const location = useLocation();
@@ -83,6 +88,7 @@ const GlobalAgentDrawer = () => {
   return (
     <AskAiWidget
       open={open}
+      sideshift={sideshift}
       onOpenChange={(nextOpen: boolean) => {
         setOpen(nextOpen);
         if (!nextOpen) {
@@ -96,8 +102,8 @@ const GlobalAgentDrawer = () => {
       search={location.search}
       globalUrl={API_CONFIG.baseUrl}
       theme={theme}
-      permissionsSlot={open ? <PermissionsPanel compact /> : undefined}
-      localLLMSlot={open ? <LocalLLMConfig globalUrl={API_CONFIG.baseUrl} /> : undefined}
+      permissionsSlot={<PermissionsPanel compact />}
+      localLLMSlot={<LocalLLMConfig globalUrl={API_CONFIG.baseUrl} />}
       agentUIProps={{ onSchedule: handleSchedule, apiBaseUrl: API_CONFIG.baseUrl, theme, isSupport }}
     />
   );

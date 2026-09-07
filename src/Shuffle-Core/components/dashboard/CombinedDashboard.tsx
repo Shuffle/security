@@ -50,8 +50,8 @@ export interface CombinedDashboardProps
  *  "Security" (Security Operations, Vulnerabilities) and "Automation"
  *  (Automation, Agents). */
 export type DashboardTab = 'security' | 'vulnerabilities' | 'automation' | 'agents';
-const DASHBOARD_TABS: DashboardTab[] = ['security', 'vulnerabilities', 'automation', 'agents'];
-const TAB_LABELS: Record<DashboardTab, string> = {
+export const DASHBOARD_TABS: DashboardTab[] = ['security', 'vulnerabilities', 'automation', 'agents'];
+export const TAB_LABELS: Record<DashboardTab, string> = {
   security: 'Security Operations',
   vulnerabilities: 'Vulnerabilities',
   automation: 'Automation',
@@ -461,6 +461,7 @@ const CombinedDashboard = ({
         ) : tab === 'vulnerabilities' ? (
           <VulnerabilitiesDashboard
             {...host}
+            orgId={orgId ?? undefined}
             days={parseInt(days, 10) || 30}
             gran={gran}
             customRange={customRange}

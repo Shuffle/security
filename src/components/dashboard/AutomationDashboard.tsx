@@ -9,7 +9,7 @@ import { API_CONFIG, AutomationDashboard as CoreAutomationDashboard } from '@/Sh
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 
-type Props = Omit<ComponentProps<typeof CoreAutomationDashboard>, 'orgId' | 'displayName'>;
+type Props = ComponentProps<typeof CoreAutomationDashboard>;
 
 export const AutomationDashboard = (props: Props) => {
   const { userInfo } = useAuth();

@@ -47,7 +47,14 @@ export const LandingNavbar = () => {
 
   return (
     <>
-      <AppBar position="fixed" elevation={0}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          width: { xs: '100%', md: 'calc(100% - var(--ask-ai-panel-width, 0px))' },
+          transition: 'width 0.2s ease',
+        }}
+      >
         <Toolbar sx={{ justifyContent: 'space-between', py: 1, position: 'relative' }}>
           <motion.div
             initial={{ opacity: 0, x: -20 }}

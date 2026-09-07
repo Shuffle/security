@@ -19,7 +19,7 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
-import { Search, Plus, RefreshCw, Trash2, MonitorSmartphone, Server, Monitor, Smartphone, Laptop, Tablet, Wifi, HardDrive } from 'lucide-react';
+import { Search, Plus, RefreshCw, Trash2, MonitorSmartphone, Server, Monitor, Smartphone, Laptop, Tablet, Wifi, HardDrive, Network } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useMultiDatastore } from '@/hooks/useMultiDatastore';
 import { setDatastoreItem, deleteDatastoreItem, DatastoreItem } from '@/Shuffle-MCPs/datastore';
@@ -132,9 +132,17 @@ const AssetsPage = () => {
   const { tab: tabParam } = useParams();
   const navigate = useNavigate();
 
-  // URL <-> tab mapping. /assets/users is an alias for the identity users tab.
+  // URL <-> tab mapping. Supports aliases like computer/computers, containers, users, etc.
   const slugToTab = useMemo(() => {
-    const map: Record<string, string> = { users: 'identity_users', endpoints: 'mobile' };
+    const map: Record<string, string> = {
+      users: 'identity_users',
+      user: 'identity_users',
+      endpoints: 'mobile',
+      endpoint: 'mobile',
+      computer: 'compute',
+      computers: 'compute',
+      container: 'containers',
+    };
     ASSET_CATEGORIES.forEach(c => { map[c.id] = c.id; });
     return map;
   }, []);
@@ -212,12 +220,10 @@ const AssetsPage = () => {
 
   const handleCreateAsset = useCallback(async (asset: OCSFDeviceInventory) => {
     const key = asset.metadata?.uid || asset.uid || `asset-${Date.now()}`;
-    // Route by active tab. Users go to the identity_users key; everything else
-    // follows device-type routing (compute vs mobile/endpoints).
+    // Route by active tab.
     const targetKey =
-      activeTab === 'identity_users' ? ASSET_CATEGORY_BY_ID.identity_users.datastoreKey
-      : asset.type_id === 1 ? ASSET_CATEGORY_BY_ID.compute.datastoreKey
-      : ASSET_CATEGORY_BY_ID.mobile.datastoreKey;
+      ASSET_CATEGORY_BY_ID[activeTab]?.datastoreKey ||
+      (asset.type_id === 1 ? ASSET_CATEGORY_BY_ID.compute.datastoreKey : ASSET_CATEGORY_BY_ID.mobile.datastoreKey);
 
     const res = await setDatastoreItem(key, JSON.stringify(asset), targetKey);
     if (res.success) {
@@ -274,9 +280,23 @@ const AssetsPage = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, width: '100%', mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1.2 }}>Assets</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 600, lineHeight: 1.2 }}>Assets</Typography>
+            <Chip
+              label="Beta"
+              size="small"
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                height: 22,
+                color: 'hsl(var(--primary))',
+                backgroundColor: 'hsl(var(--primary) / 0.1)',
+                border: '1px solid hsl(var(--primary) / 0.25)',
+              }}
+            />
+          </Box>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             Unified inventory across endpoints, cloud, identity, and code
           </Typography>
@@ -288,10 +308,34 @@ const AssetsPage = () => {
             </IconButton>
           </Tooltip>
           <Button variant="contained" size="small" startIcon={<Plus size={16} />} onClick={() => setCreateOpen(true)} sx={{ height: 36 }}>
-            {activeTab === 'identity_users' ? 'Add User' : 'Add Device'}
+            {activeTab === 'identity_users' ? 'Add User' : 'Add Asset'}
           </Button>
         </Box>
       </Box>
+
+      {/* Cross-correlation blurb */}
+      <Card
+        variant="outlined"
+        sx={{
+          mb: 3,
+          p: 2,
+          bgcolor: 'action.hover',
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 1.5,
+        }}
+      >
+        <Network size={20} className="text-primary mt-0.5 shrink-0" />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.25 }}>
+            Cross-Asset Correlation
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', lineHeight: 1.5 }}>
+            Assets across endpoints, cloud infrastructure, identities, and code repositories are cross-correlated in real time with vulnerability discoveries, host telemetry, and security alerts. This contextual fabric links affected hosts, users, and resources directly to active incidents for automated investigation and containment.
+          </Typography>
+        </Box>
+      </Card>
 
       {/* Category tabs */}
       <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2 }}>
@@ -314,12 +358,10 @@ const AssetsPage = () => {
             const state = states[cat.datastoreKey];
             const loading = state?.isLoading;
             const count = state?.hasFetched ? state.items.length : null;
-            const isEnabled = cat.id === 'mobile' || cat.id === 'identity_users';
             return (
               <Tab
                 key={cat.id}
                 value={cat.id}
-                disabled={!isEnabled}
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     {loading ? <CircularProgress size={12} /> : <Icon size={14} />}
@@ -445,7 +487,7 @@ const AssetsPage = () => {
               </>
             )}
             <Button variant="contained" startIcon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
-              {activeTab === 'identity_users' ? 'Add User' : 'Add Device'}
+              {activeTab === 'identity_users' ? 'Add User' : 'Add Asset'}
             </Button>
           </CardContent>
         </Card>

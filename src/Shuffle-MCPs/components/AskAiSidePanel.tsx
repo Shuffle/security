@@ -95,6 +95,22 @@ export interface AskAiSidePanelProps extends ShuffleHostProps {
   agentUIProps?: Partial<AgentUIProps>;
   /** Notified when context is resolved or updated */
   onContextResolved?: (context: AgentResolvedContext) => void;
+  /**
+   * Whether opening the side panel should sideshift the page layout by setting
+   * `--ask-ai-panel-width` on the root HTML element.
+   *
+   * When `true` (default), pages consuming `var(--ask-ai-panel-width, 0px)`
+   * (e.g. `DashboardLayout`, `DocsPage`) will smoothly shrink or shift their
+   * main content container to avoid being covered by the panel.
+   *
+   * When `false`, the panel acts as an overlay without adjusting page layout margins.
+   *
+   * If omitted, falls back to the matched route's context rule `sideshift` setting,
+   * which defaults to `true`.
+   *
+   * Default: true
+   */
+  sideshift?: boolean;
   /** Style overrides for the root panel container */
   sx?: SxProps<Theme>;
 }
@@ -119,6 +135,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   globalUrl,
   agentUIProps,
   onContextResolved,
+  sideshift,
   userdata,
   isLoaded,
   isLoggedIn,
@@ -275,11 +292,13 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
       ? Math.max(width, 520)
       : width;
 
+  const effectiveSideshift = sideshift !== undefined ? sideshift : (context.sideshift ?? true);
+
   // Manage UI sideshifting via CSS variable `--ask-ai-panel-width`
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
-    if (open && !isAgentDisabled) {
+    if (open && !isAgentDisabled && effectiveSideshift) {
       document.documentElement.style.setProperty(
         '--ask-ai-panel-width',
         `${effectiveWidth}px`,
@@ -291,7 +310,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     return () => {
       document.documentElement.style.setProperty('--ask-ai-panel-width', '0px');
     };
-  }, [open, isAgentDisabled, effectiveWidth]);
+  }, [open, isAgentDisabled, effectiveWidth, effectiveSideshift]);
 
   const handleAppsChange = useCallback<NonNullable<AgentUIProps['onAppsChange']>>(
     (nextApps) => {

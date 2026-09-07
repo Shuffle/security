@@ -54,6 +54,8 @@ export interface SidebarChildSpec {
   /** Lucide / MUI icon node — pass an already-instantiated element. */
   icon: React.ReactNode;
   supportOnly?: boolean;
+  /** Optional badge label (e.g. 'Beta') displayed alongside the item */
+  badge?: string;
   /** Default visibility when no preference is persisted. Defaults to true. */
   defaultVisible?: boolean;
 }
@@ -68,6 +70,8 @@ export interface SidebarItemSpec {
   /** When true, the item ignores the visibility map (always shown). */
   alwaysVisible?: boolean;
   supportOnly?: boolean;
+  /** Optional badge label (e.g. 'Beta') displayed alongside the item */
+  badge?: string;
   /** Default visibility when no preference is persisted. Defaults to true. */
   defaultVisible?: boolean;
   children?: SidebarChildSpec[];
@@ -120,7 +124,7 @@ export const SIDEBAR_NAV: SidebarItemSpec[] = [
         label: 'Assets',
         path: '/assets',
         icon: <HardDrive size={16} />,
-        supportOnly: true,
+        badge: 'Beta',
       },
     ],
   },

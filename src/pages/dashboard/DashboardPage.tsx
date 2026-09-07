@@ -19,6 +19,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  ListSubheader,
   Collapse,
 } from '@mui/material';
 import { motion } from 'framer-motion';
@@ -43,7 +44,9 @@ import { DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
 import { useVulnerabilities } from '@/hooks/useVulnerabilities';
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { AutomationDashboard } from '@/components/dashboard/AutomationDashboard';
-import { AUTOMATION_RANGE_OPTIONS } from '@/Shuffle-Core';
+import { AgentsDashboard } from '@/components/dashboard/AgentsDashboard';
+import { VulnerabilitiesDashboard } from '@/components/dashboard/VulnerabilitiesDashboard';
+import { AUTOMATION_RANGE_OPTIONS, DASHBOARD_TABS, TAB_LABELS, type DashboardTab } from '@/Shuffle-Core';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useAuth } from '@/context/AuthContext';
 import { useSubOrgs } from '@/hooks/useSubOrgs';
@@ -548,8 +551,12 @@ const DashboardPage = () => {
     try { localStorage.setItem('dashboard-agent-notifications-collapsed', agentNotificationsCollapsed ? '1' : '0'); } catch { /* ignore */ }
   }, [agentNotificationsCollapsed]);
   const setupAutoCollapsedRef = useRef(false);
-  const [dashboardTab, setDashboardTab] = useState<'security' | 'automation'>(() => {
-    try { return (localStorage.getItem('shuffle_dashboard_tab') as 'security' | 'automation') || 'security'; } catch { return 'security'; }
+  const [dashboardTab, setDashboardTab] = useState<DashboardTab>(() => {
+    try {
+      const stored = localStorage.getItem('shuffle_dashboard_tab') as DashboardTab | null;
+      if (stored && DASHBOARD_TABS.includes(stored)) return stored;
+    } catch { return 'security'; }
+    return 'security';
   });
   useEffect(() => { try { localStorage.setItem('shuffle_dashboard_tab', dashboardTab); } catch { } }, [dashboardTab]);
   // Preserve the visual position of the dashboard tab bar across tab swaps.
@@ -577,7 +584,7 @@ const DashboardPage = () => {
     }
     return window;
   };
-  const handleDashboardTabChange = useCallback((next: 'security' | 'automation') => {
+  const handleDashboardTabChange = useCallback((next: DashboardTab) => {
     if (next === dashboardTab) return;
     if (dashboardTabsRef.current) {
       pendingTabsTopRef.current = dashboardTabsRef.current.getBoundingClientRect().top;
@@ -1098,15 +1105,32 @@ const DashboardPage = () => {
             <Box sx={{ mb: 2, mt: 3, order: allComplete ? 0 : 2 }}>
               {(() => {
                 const dashboardTabs = (
-                  <SegmentedControl
-                    ariaLabel="Dashboard view"
-                    value={dashboardTab}
-                    onChange={(v) => handleDashboardTabChange(v as 'security' | 'automation')}
-                    options={[
-                      { value: 'security', label: 'Security Operations' },
-                      { value: 'automation', label: 'Automation' },
-                    ]}
-                  />
+                  <FormControl size="small" sx={{ minWidth: 210 }}>
+                    <Select
+                      value={dashboardTab}
+                      onChange={(e) => handleDashboardTabChange(e.target.value as DashboardTab)}
+                      inputProps={{ 'aria-label': 'Dashboard view' }}
+                      sx={{
+                        height: 36,
+                        borderRadius: '999px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'hsl(var(--border))' },
+                      }}
+                      MenuProps={{ PaperProps: { sx: { mt: 0.5, borderRadius: '10px' } } }}
+                    >
+                      <ListSubheader sx={{ fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 2.4, color: 'hsl(var(--muted-foreground))', bgcolor: 'transparent' }}>
+                        Security
+                      </ListSubheader>
+                      <MenuItem value="security">{TAB_LABELS.security}</MenuItem>
+                      <MenuItem value="vulnerabilities">{TAB_LABELS.vulnerabilities}</MenuItem>
+                      <ListSubheader sx={{ fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 2.4, color: 'hsl(var(--muted-foreground))', bgcolor: 'transparent' }}>
+                        Automation
+                      </ListSubheader>
+                      <MenuItem value="automation">{TAB_LABELS.automation}</MenuItem>
+                      <MenuItem value="agents">{TAB_LABELS.agents}</MenuItem>
+                    </Select>
+                  </FormControl>
                 );
                 const handleDashboardRefresh = () => {
                   // Bump key so AutomationDashboard re-fetches; also refresh Security data.
@@ -1156,14 +1180,14 @@ const DashboardPage = () => {
                         ))}
                       </Select>
                     </FormControl>
-                    <Box sx={{ alignSelf: 'flex-end', opacity: dashboardTab === 'security' ? 0.5 : 1, pointerEvents: dashboardTab === 'security' ? 'none' : 'auto' }}>
+                    <Box sx={{ alignSelf: 'flex-end', opacity: dashboardTab === 'automation' ? 1 : 0.5, pointerEvents: dashboardTab === 'automation' ? 'auto' : 'none' }}>
                       <SegmentedControl
                         ariaLabel="Mode"
                         value={dashboardMode}
                         onChange={(v) => setDashboardMode(v as 'workflows' | 'apps')}
                         options={[
-                          { value: 'workflows', label: 'Workflows', disabled: dashboardTab === 'security' },
-                          { value: 'apps', label: 'Apps', disabled: dashboardTab === 'security' },
+                          { value: 'workflows', label: 'Workflows', disabled: dashboardTab !== 'automation' },
+                          { value: 'apps', label: 'Apps', disabled: dashboardTab !== 'automation' },
                         ]}
                       />
                     </Box>
@@ -1196,39 +1220,57 @@ const DashboardPage = () => {
                     </Box>
                   </Box>
                 );
-                return dashboardTab === 'automation' ? (
+                return (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
                     {sharedHeader}
-                    <AutomationDashboard
-                      days={dashboardDays}
-                      onDaysChange={setDashboardDays}
-                      gran={dashboardGran}
-                      onGranChange={setDashboardGran}
-                      mode={dashboardMode}
-                      onModeChange={setDashboardMode}
-                      refreshKey={dashboardRefreshKey}
-                      hideRefresh
-                      customRange={dashboardCustomRange}
-                      onRangeSelect={(fromMs, toMs) => setDashboardCustomRange({ fromMs, toMs })}
-                    />
-                  </Box>
-                ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
-                    {sharedHeader}
-                    <DashboardOverview
-                      incidents={overviewIncidents}
-                      incidentsLoading={incidentsLoading}
-                      incidentsHasMore={!isViewingChild && incidentsHasMoreDefault}
-                      vulnSeverityCounts={vulnSeverityCounts}
-                      vulnLoading={vulnLoading}
-                      monitorHostCount={hostMonitorCount}
-                      runningSensorCount={runningSensorCount}
-                      monitorsLoading={hasHostMonitor === null}
-                      days={parseInt(dashboardDays, 10) || 30}
-                      gran={dashboardGran}
-                      customRange={dashboardCustomRange}
-                      onRangeSelect={(fromMs, toMs) => setDashboardCustomRange({ fromMs, toMs })}
-                    />
+                    {dashboardTab === 'agents' ? (
+                      <AgentsDashboard
+                        orgId={effectiveOrgId}
+                        days={parseInt(dashboardDays, 10) || 30}
+                        gran={dashboardGran}
+                        customRange={dashboardCustomRange}
+                        onRangeSelect={(fromMs, toMs) => setDashboardCustomRange({ fromMs, toMs })}
+                        refreshKey={dashboardRefreshKey}
+                      />
+                    ) : dashboardTab === 'vulnerabilities' ? (
+                      <VulnerabilitiesDashboard
+                        orgId={effectiveOrgId}
+                        days={parseInt(dashboardDays, 10) || 30}
+                        gran={dashboardGran}
+                        customRange={dashboardCustomRange}
+                        onRangeSelect={(fromMs, toMs) => setDashboardCustomRange({ fromMs, toMs })}
+                        refreshKey={dashboardRefreshKey}
+                      />
+                    ) : dashboardTab === 'automation' ? (
+                      <AutomationDashboard
+                        orgId={effectiveOrgId}
+                        days={dashboardDays}
+                        onDaysChange={setDashboardDays}
+                        gran={dashboardGran}
+                        onGranChange={setDashboardGran}
+                        mode={dashboardMode}
+                        onModeChange={setDashboardMode}
+                        refreshKey={dashboardRefreshKey}
+                        hideRefresh
+                        customRange={dashboardCustomRange}
+                        onRangeSelect={(fromMs, toMs) => setDashboardCustomRange({ fromMs, toMs })}
+                      />
+                    ) : (
+                      <DashboardOverview
+                        incidents={overviewIncidents}
+                        incidentsLoading={incidentsLoading}
+                        incidentsHasMore={!isViewingChild && incidentsHasMoreDefault}
+                        vulnSeverityCounts={vulnSeverityCounts}
+                        vulnLoading={vulnLoading}
+                        monitorHostCount={hostMonitorCount}
+                        runningSensorCount={runningSensorCount}
+                        monitorsLoading={hasHostMonitor === null}
+                        days={parseInt(dashboardDays, 10) || 30}
+                        gran={dashboardGran}
+                        customRange={dashboardCustomRange}
+                        onRangeSelect={(fromMs, toMs) => setDashboardCustomRange({ fromMs, toMs })}
+                      />
+                    )}
                   </Box>
                 );
               })()}

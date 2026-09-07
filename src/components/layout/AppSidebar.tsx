@@ -50,6 +50,7 @@ interface NavChild {
   icon: React.ReactNode;
   disabled?: boolean;
   supportOnly?: boolean;
+  badge?: string;
 }
 
 interface NavItem {
@@ -58,6 +59,7 @@ interface NavItem {
   path?: string;
   children?: NavChild[];
   supportOnly?: boolean;
+  badge?: string;
 }
 
 const childToNav = (c: SidebarChildSpec): NavChild => ({
@@ -65,6 +67,7 @@ const childToNav = (c: SidebarChildSpec): NavChild => ({
   path: c.path,
   icon: c.icon,
   supportOnly: c.supportOnly,
+  badge: c.badge,
 });
 
 interface AppSidebarProps {
@@ -143,6 +146,7 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         icon: spec.icon,
         path: isIncidents ? entityBasePath : spec.path,
         supportOnly: spec.supportOnly,
+        badge: spec.badge,
         children: filteredChildren && filteredChildren.length > 0 ? filteredChildren : undefined,
       });
 
@@ -597,6 +601,26 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                                     Support
                                   </Typography>
                                 )}
+                                {item.badge && !item.supportOnly && (
+                                  <Typography
+                                    component="span"
+                                    sx={{
+                                      fontSize: '0.6rem',
+                                      fontWeight: 700,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.04em',
+                                      px: 0.8,
+                                      py: 0.2,
+                                      borderRadius: '4px',
+                                      backgroundColor: 'hsla(var(--primary) / 0.12)',
+                                      color: 'hsl(var(--primary))',
+                                      lineHeight: 1.4,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {item.badge}
+                                  </Typography>
+                                )}
                               </Box>
                             }
                             primaryTypographyProps={{ 
@@ -684,6 +708,25 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                                       Support
                                     </Typography>
                                   )}
+                                  {child.badge && !child.supportOnly && (
+                                    <Typography
+                                      component="span"
+                                      sx={{
+                                        fontSize: '0.6rem',
+                                        fontWeight: 600,
+                                        color: 'hsl(var(--primary))',
+                                        backgroundColor: 'hsl(var(--primary) / 0.1)',
+                                        px: 0.6,
+                                        py: 0.15,
+                                        borderRadius: 0.5,
+                                        lineHeight: 1.2,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.03em',
+                                      }}
+                                    >
+                                      {child.badge}
+                                    </Typography>
+                                  )}
                                 </Box>
                               }
                               primaryTypographyProps={{
@@ -757,6 +800,25 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                             }}
                           >
                             Support
+                          </Typography>
+                        )}
+                        {item.badge && !item.supportOnly && (
+                          <Typography
+                            sx={{
+                              fontSize: '0.6rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                              px: 0.8,
+                              py: 0.2,
+                              borderRadius: '4px',
+                              backgroundColor: 'hsla(var(--primary) / 0.12)',
+                              color: 'hsl(var(--primary))',
+                              lineHeight: 1.4,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {item.badge}
                           </Typography>
                         )}
                       </Box>

@@ -47,6 +47,8 @@ export interface AgentContextRule {
   sourceCategory?: 'incidents' | 'vulnerabilities' | string;
   /** Explicit flag indicating this route lacks a dedicated MCP mapping */
   missingConfig?: boolean;
+  /** Whether opening the panel should sideshift the page layout. Default: true */
+  sideshift?: boolean;
 }
 
 export interface AgentResolvedContext {
@@ -70,6 +72,8 @@ export interface AgentResolvedContext {
   originalDefaultPresetId?: string;
   /** True when no specific rule was configured for this route (fallback rule used) */
   missingConfig: boolean;
+  /** Whether opening the panel should sideshift the page layout */
+  sideshift?: boolean;
 }
 
 export interface PageContextChoice {
@@ -542,7 +546,24 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   },
 
   // ==========================================
-  // 7. Default Fallback (Support)
+  // 7. Documentation (/docs, /docs/*)
+  // ==========================================
+  {
+    id: 'docs',
+    match: (pathname) => pathname === '/docs' || pathname.startsWith('/docs/'),
+    defaultApps: [{ name: 'shuffle_tools' }],
+    defaultPresetId: 'support',
+    title: 'How can we help with documentation?',
+    subtitle: 'Documentation & Knowledge Assistant',
+    defaultPrompt: 'Help me understand or find information about ',
+    placeholder: 'Ask questions about Shuffle features, guides, or API...',
+    getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    description: 'Documentation assistant for Shuffle guides, features, and API references',
+    sideshift: true,
+  },
+
+  // ==========================================
+  // 8. Default Fallback (Support)
   // ==========================================
   {
     id: 'default',
@@ -714,5 +735,6 @@ export const resolveAgentContext = (
     originalDefaultApps: baseDefaultApps,
     originalDefaultPresetId: matchedRule.defaultPresetId,
     missingConfig,
+    sideshift: matchedRule.sideshift,
   };
 };

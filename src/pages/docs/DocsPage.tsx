@@ -137,6 +137,8 @@ const DocsPage = ({
           sx={{
             flex: 1,
             ml: { xs: 0, md: '280px' },
+            mr: { xs: 0, md: 'var(--ask-ai-panel-width, 0px)' },
+            transition: 'margin 0.2s ease',
             minHeight: 'calc(100vh - 64px)',
           }}
         >
