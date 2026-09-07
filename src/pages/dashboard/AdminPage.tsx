@@ -95,6 +95,19 @@ const AdminPage = () => {
   const [originalImage, setOriginalImage] = useState('');
   const [originalRegionUrl, setOriginalRegionUrl] = useState('');
 
+  // Auto-open create tenant dialog trigger
+  const [createTenantTrigger, setCreateTenantTrigger] = useState(0);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('click') === 'add-tenant') {
+      setCreateTenantTrigger((prev) => prev + 1);
+      params.delete('click');
+      const nextSearch = params.toString();
+      navigate(`${location.pathname}${nextSearch ? `?${nextSearch}` : ''}`, { replace: true });
+    }
+  }, [location.search, location.pathname, navigate]);
+
   // Sync tab with route
   useEffect(() => {
     setActiveTab(getTabFromPath());
@@ -561,6 +574,7 @@ const AdminPage = () => {
             isLoaded: true,
             setActiveOrg,
             handleGetOrg: refreshUserInfo,
+            autoOpenCreate: createTenantTrigger,
           } as any)}
         />
       )}

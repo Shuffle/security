@@ -734,6 +734,8 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Hand off new incidents to an AI Agent that triages, enriches, and resolves them end-to-end — assigning owners, gathering observables, executing safe response actions, and escalating only the cases that need a human.',
     agenticDescription: 'An AI Agent picks up every new incident, builds full context from connected tools, decides the next-best action (assign, enrich, contain, close), executes the safe ones automatically, and queues high-impact actions for analyst approval.',
     automationArea: 'response',
+    automationLabel: 'AI Incident Handling',
+    automationCategory: 'cases',
     customAction: {
       label: 'Configure AI Agents',
       href: '/agents',

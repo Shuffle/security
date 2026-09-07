@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, forwardRef } from 'react';
 import shuffleInfraLogo from '@/assets/shuffle-infrastructure-logo.png';
 import { ShuffleLogo } from '@/components/common/ShuffleLogo';
 import { useLocation, Link, useNavigate } from '@/lib/router-compat';
@@ -21,9 +21,11 @@ import {
   Menu,
   MenuItem,
   CircularProgress,
+  Paper,
+  Button,
 } from '@mui/material';
 import { NOTIFICATIONS_OPEN_EVENT } from '@/Shuffle-Core';
-import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as WarningAmberIcon, Users as PeopleIcon, Building2 as BusinessIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronUp as ExpandLess, ChevronDown as ExpandMore, Search as SearchIcon, Settings as SettingsIcon, FileText as DescriptionIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Radar as RadarIcon, LogOut as LogoutIcon, ShieldCheck as AdminPanelSettingsIcon, Rocket as RocketLaunchIcon, Bell as BellIcon } from 'lucide-react';
+import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as WarningAmberIcon, Users as PeopleIcon, Building2 as BusinessIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronUp as ExpandLess, ChevronDown as ExpandMore, Search as SearchIcon, Settings as SettingsIcon, FileText as DescriptionIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Radar as RadarIcon, LogOut as LogoutIcon, ShieldCheck as AdminPanelSettingsIcon, Rocket as RocketLaunchIcon, Bell as BellIcon, Plus as PlusIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { SHUFFLE_AUTOMATION_URL, getShuffleCoreUrl } from '@/Shuffle-MCPs/api';
@@ -109,6 +111,75 @@ const sortOrgsWithHierarchy = (orgs: Array<{ id: string; name: string; creator_o
 
   return result;
 };
+
+const TenantAutocompletePaper = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLElement>>((props, ref) => {
+  const { children, ...other } = props;
+  const navigate = useNavigate();
+
+  return (
+    <Paper
+      ref={ref}
+      {...other}
+      sx={{
+        backgroundColor: 'hsl(var(--card))',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: 1,
+        mt: 0.5,
+        minWidth: 280,
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+        ...(other.sx || {}),
+      }}
+    >
+      <Box
+        sx={{
+          maxHeight: 260,
+          overflowY: 'auto',
+          '& .MuiAutocomplete-listbox': {
+            padding: 0,
+            maxHeight: 'none',
+          },
+        }}
+      >
+        {children}
+      </Box>
+      <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
+      <Box sx={{ p: 0.75 }}>
+        <Button
+          fullWidth
+          size="small"
+          startIcon={<PlusIcon size={14} />}
+          onMouseDown={(e) => {
+            // Prevent autocomplete input from blurring before click completes
+            e.preventDefault();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent('close-tenant-autocomplete'));
+            navigate('/admin/tenants?click=add-tenant');
+          }}
+          sx={{
+            justifyContent: 'flex-start',
+            color: 'hsl(var(--primary))',
+            fontSize: '0.8125rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            py: 0.75,
+            px: 1.5,
+            borderRadius: 1,
+            '&:hover': {
+              bgcolor: 'hsl(var(--muted))',
+            },
+          }}
+        >
+          Add tenant
+        </Button>
+      </Box>
+    </Paper>
+  );
+});
+TenantAutocompletePaper.displayName = 'TenantAutocompletePaper';
 
 export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const location = useLocation();
@@ -245,6 +316,13 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const organizations = userInfo?.orgs || [];
   const sortedOrgs = sortOrgsWithHierarchy(organizations);
   const selectedOrg = userInfo?.active_org || organizations[0];
+  const [orgSelectOpen, setOrgSelectOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClose = () => setOrgSelectOpen(false);
+    window.addEventListener('close-tenant-autocomplete', handleClose);
+    return () => window.removeEventListener('close-tenant-autocomplete', handleClose);
+  }, []);
 
   const handleExpand = (label: string) => {
     // Only allow one expanded item at a time - toggle off if already open, otherwise switch to new one
@@ -840,9 +918,9 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         {!visuallyCollapsed ? (
           <Box sx={{ p: 2 }}>
             <Autocomplete
-              value={selectedOrg}
-              onChange={(_, newValue) => handleOrgChange(newValue)}
+              open={orgSelectOpen}
               onOpen={() => {
+                setOrgSelectOpen(true);
                 // Scroll the currently-selected tenant into the middle of the
                 // listbox so users in deeply-nested child tenants don't have
                 // to hunt from the top of an alphabetised list.
@@ -857,11 +935,15 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                   }
                 });
               }}
+              onClose={() => setOrgSelectOpen(false)}
+              value={selectedOrg}
+              onChange={(_, newValue) => handleOrgChange(newValue)}
               options={sortedOrgs.map(item => item.org)}
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               size="small"
               disableClearable
+              PaperComponent={TenantAutocompletePaper}
               renderInput={(params) => {
                 // Find the full org data from the list to get region_url
                 const fullOrgData = organizations.find(org => org.id === selectedOrg?.id);
@@ -906,23 +988,6 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
                     }}
                   />
                 );
-              }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 1,
-                    mt: 0.5,
-                    minWidth: 280,
-                    maxHeight: 300,
-                    overflow: 'auto',
-                    '& .MuiAutocomplete-listbox': {
-                      padding: 0,
-                      maxHeight: 'none',
-                    },
-                  },
-                },
               }}
               renderOption={(props, option) => {
                 const sortedItem = sortedOrgs.find(item => item.org.id === option.id);

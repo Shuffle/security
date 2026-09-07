@@ -863,6 +863,8 @@ export const DEFAULT_USECASES: Usecase[] = [
     description: 'Hand off new incidents to an AI Agent that triages, enriches, and resolves them end-to-end — assigning owners, gathering observables, executing safe response actions, and escalating only the cases that need a human.',
     agenticDescription: 'An AI Agent picks up every new incident, builds full context from connected tools, decides the next-best action (assign, enrich, contain, close), executes the safe ones automatically, and queues high-impact actions for analyst approval.',
     automationArea: 'response',
+    automationLabel: 'AI Incident Handling',
+    automationCategory: 'cases',
     customAction: {
       label: 'Configure AI Agents',
       href: '/agents',
@@ -1375,6 +1377,80 @@ const enableThreatIntelFlow = async () => {
   return a && b && c;
 };
 
+function getActiveOrgId(): string | null {
+  try {
+    const info = typeof window !== 'undefined' ? localStorage.getItem('shuffle_user_info') : null;
+    return info ? JSON.parse(info)?.active_org?.id || null : null;
+  } catch {
+    return null;
+  }
+}
+
+export const setAiAgentIncidentAutomation = async (enabled: boolean): Promise<boolean> => {
+  const orgId = getActiveOrgId();
+  if (!orgId) throw new Error('No active organization found');
+
+  const headers = { ...getAuthHeader(orgId) };
+  const listUrl = getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=shuffle-security_incidents&top=1`);
+  const res = await fetch(listUrl, { credentials: 'include', headers });
+  if (!res.ok) throw new Error(`Failed to load incident automations (${res.status})`);
+  const data = await res.json();
+  const existingAutomations: any[] = data?.category_config?.automations || [];
+
+  let nextAutomations: any[];
+  if (!enabled) {
+    nextAutomations = existingAutomations.filter(
+      (a: any) => !(a?.type === 'ai_agent' || a?.name === 'Run AI Agent')
+    );
+  } else {
+    const existingAi = existingAutomations.find(
+      (a: any) => a?.type === 'ai_agent' || a?.name === 'Run AI Agent'
+    );
+    if (existingAi) {
+      nextAutomations = existingAutomations.map((a: any) =>
+        a === existingAi ? { ...a, enabled: true } : a
+      );
+    } else {
+      nextAutomations = [
+        ...existingAutomations,
+        {
+          name: 'Run AI Agent',
+          description: 'Runs an AI Agent to process the updated value. Uses built-in ShuffleAI configs. Learn more: https://shuffler.io/docs/AI',
+          type: 'singul',
+          enabled: true,
+          options: [{ key: 'action', value: 'Triage, enrich, and assess severity for this incident.', apps: null }],
+        },
+      ];
+    }
+  }
+
+  const payload = {
+    category: 'shuffle-security_incidents',
+    automations: nextAutomations,
+    settings: data?.category_config?.settings || { timeout: 0 },
+  };
+
+  const saveRes = await fetch(getApiUrl('/api/v2/datastore/automate'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!saveRes.ok) {
+    throw new Error(`Failed to update incident automations (${saveRes.status})`);
+  }
+
+  invalidateAppsCache();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('shuffle-ai-agent-toggled', { detail: { enabled } }));
+  }
+  return true;
+};
+
 const SELF_CONTAINED_ENABLE: Record<
   string,
   { enable: () => Promise<boolean>; disable: () => Promise<boolean> }
@@ -1394,6 +1470,10 @@ const SELF_CONTAINED_ENABLE: Record<
   threat_intel_edr_1: {
     enable: enableThreatIntelFlow,
     disable: () => disableThreatIntelAutomation(),
+  },
+  case_management_agent_ai_incident_handling_1: {
+    enable: () => setAiAgentIncidentAutomation(true),
+    disable: () => setAiAgentIncidentAutomation(false),
   },
 };
 type ToastOpts = { duration?: number; description?: string; action?: { label: string; onClick: () => void } };
@@ -2829,6 +2909,7 @@ const ACTIVE_USECASE_IDS = [
   'threat_intel_edr_1',
   'case_management_incident_routing_1',
   'case_management_schedules_notifications_1',
+  'case_management_agent_ai_incident_handling_1',
 ];
 
 // Small wrapper so UsecaseDetailContent can render an Outcome block without
@@ -3661,10 +3742,11 @@ function UsecaseDetailContent({
       try {
         const ok = willBeEnabled ? await selfContained.enable() : await selfContained.disable();
         if (!ok) throw new Error('Backend rejected the request');
+        const desc = flow.id === 'case_management_agent_ai_incident_handling_1'
+          ? (willBeEnabled ? 'AI Agent is now active on incoming incidents.' : 'Removed AI Agent from Incident Automation.')
+          : (willBeEnabled ? 'Seeded default threat feeds and started background ingestion.' : undefined);
         toast.success(willBeEnabled ? `${flow.label} enabled` : `${flow.label} disabled`, {
-          description: willBeEnabled
-            ? 'Seeded default threat feeds and started background ingestion.'
-            : undefined,
+          description: desc,
           duration: 6000,
         });
         onToggled?.(flow.automationLabel, willBeEnabled);
@@ -4260,6 +4342,43 @@ function UsecaseDetailContent({
                 >
                   <Clock size={14} />
                   Coming soon
+                </Box>
+              ) : flow.id === 'case_management_asset_management_monitors_1' && effectiveEnabled ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.6,
+                      px: 1.2,
+                      py: 0.5,
+                      borderRadius: 1,
+                      bgcolor: 'hsl(var(--severity-low) / 0.12)',
+                      border: '1px solid hsl(var(--severity-low) / 0.4)',
+                      color: 'hsl(var(--severity-low))',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                  >
+                    <Power size={13} style={{ color: 'inherit' }} />
+                    Active
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => navigate('/monitors')}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      py: 0.4,
+                      px: 1.2,
+                      borderRadius: 1,
+                    }}
+                  >
+                    Manage Monitors
+                  </Button>
                 </Box>
               ) : canToggle && flow.automationLabel ? (
                 <Tooltip
@@ -5785,6 +5904,10 @@ function UsecasesPageInner() {
       for (const uc of usecases) {
         if (!uc.automationLabel) continue;
         const lbl = uc.automationLabel.toLowerCase();
+        if (lbl === 'vulnerability correlation') {
+          const hasActions = Array.isArray(wf.actions) && wf.actions.length > 0;
+          if (!hasActions) continue;
+        }
         const aliases = [lbl];
         if (lbl.includes('incident routing')) {
           aliases.push('incident routing', 'incident_routing', 'incident_routing_rules');
@@ -5996,6 +6119,18 @@ function UsecasesPageInner() {
     return () => { cancelled = true; };
   }, [apiUrl, authHeader]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleAiToggle = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (typeof detail?.enabled === 'boolean') {
+        setAiAgentAutomationActive(detail.enabled);
+      }
+    };
+    window.addEventListener('shuffle-ai-agent-toggled', handleAiToggle);
+    return () => window.removeEventListener('shuffle-ai-agent-toggled', handleAiToggle);
+  }, []);
+
   // Detect whether the Notifications usecase is wired up:
   //   1. /api/v1/orgs/{orgId}.defaults.notification_workflow -> workflow UUID
   //   2. Fetch that workflow and check that it has at least one app wired in.
@@ -6134,6 +6269,7 @@ function UsecasesPageInner() {
 
   const handleUsecaseWorkflowGenerated = React.useCallback((label: string, enabled: boolean) => {
     setTrustedWorkflowStates((prev) => ({ ...prev, [label]: enabled }));
+    invalidateAppsCache();
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('shuffle-workflow-toggled', { detail: { label, enabled } })
@@ -6141,6 +6277,8 @@ function UsecasesPageInner() {
       window.dispatchEvent(new CustomEvent('shuffle-workflows-updated'));
     }
     cfgOnToggled?.(label, enabled);
+    refetchWorkflows();
+    window.setTimeout(() => { refetchWorkflows(); }, 1200);
     window.setTimeout(() => { refetchWorkflows(); }, 3000);
     window.setTimeout(() => { refetchWorkflows(); }, 8000);
   }, [refetchWorkflows, cfgOnToggled]);
@@ -6724,6 +6862,8 @@ function UsecaseCard({
   const { plural: entityPlural } = useEntityPreference();
   const dynamicForwardTicketsLabel = useMemo(() => `Forward ${entityPlural || 'Tickets'}`, [entityPlural]);
   const cardDisplayLabel = flow.id === 'case_management_cases_forward_1' ? dynamicForwardTicketsLabel : flow.label;
+  const isMonitorsFlow = flow.id === 'case_management_asset_management_monitors_1';
+  const canDisable = canToggle && !isMonitorsFlow;
 
   const theme = useTheme()
   const primaryColor = theme.palette.primary.main
@@ -6773,7 +6913,12 @@ function UsecaseCard({
       try {
         const ok = willBeEnabled ? await selfContained.enable() : await selfContained.disable();
         if (!ok) throw new Error('Backend rejected the request');
-        toast.success(willBeEnabled ? `${cardDisplayLabel} enabled` : `${cardDisplayLabel} disabled`);
+        const desc = flow.id === 'case_management_agent_ai_incident_handling_1'
+          ? (willBeEnabled ? 'AI Agent is now active on incoming incidents.' : 'Removed AI Agent from Incident Automation.')
+          : undefined;
+        toast.success(willBeEnabled ? `${cardDisplayLabel} enabled` : `${cardDisplayLabel} disabled`, {
+          description: desc,
+        });
         onToggled?.(flow.automationLabel, willBeEnabled);
       } catch (err: any) {
         setOptimisticEnabled(null);
@@ -6801,31 +6946,45 @@ function UsecaseCard({
       const requestBody: Record<string, string> = { label: flow.automationLabel };
       if (flow.automationCategory) requestBody.category = flow.automationCategory;
       if (!willBeEnabled) {
-        const sourceToIngest: Record<string, string> = {
-          email: 'email', edr: 'edr', siem: 'siem', case_management: 'cases',
-        };
-        const thisCat = sourceToIngest[flow.source];
-        const linked = findWorkflowsForUsecase(flow, workflows);
-        const currentNames: string[] = [];
-        const seen = new Set<string>();
-        for (const wf of linked) {
-          for (const action of (wf.actions || [])) {
-            for (const n of extractActionAppNames(action)) {
-              const k = normalizeAppName(n);
-              if (!seen.has(k)) { currentNames.push(n); seen.add(k); }
+        const isShuffleSourcedFlow = flow?.id === 'case_management_cases_forward_1'
+          || flow?.id === 'case_management_communication_1'
+          || flow?.id === 'case_management_incident_routing_1'
+          || flow?.id === 'case_management_schedules_notifications_1'
+          || flow?.id === 'asset_management_case_management_vuln_1'
+          || flow?.id === 'vulnerability_ingestion_1'
+          || flow?.id === 'threat_intel_ingest_1'
+          || flow?.id === 'threat_intel_case_management_1'
+          || flow?.source === 'threat_intel';
+
+        if (isShuffleSourcedFlow || flow.id === 'asset_management_case_management_vuln_1') {
+          requestBody.action_name = 'remove';
+        } else {
+          const sourceToIngest: Record<string, string> = {
+            email: 'email', edr: 'edr', siem: 'siem', case_management: 'cases',
+          };
+          const thisCat = sourceToIngest[flow.source];
+          const linked = findWorkflowsForUsecase(flow, workflows);
+          const currentNames: string[] = [];
+          const seen = new Set<string>();
+          for (const wf of linked) {
+            for (const action of (wf.actions || [])) {
+              for (const n of extractActionAppNames(action)) {
+                const k = normalizeAppName(n);
+                if (!seen.has(k)) { currentNames.push(n); seen.add(k); }
+              }
             }
           }
+          const remaining = currentNames.filter((n) => {
+            const cat = getIngestionCategory(n);
+            // Only sibling ingestion sources (siem/edr/email) justify keeping
+            // the workflow alive — destination/Cases apps are shared by every
+            // ingestion usecase and would falsely leave it looking enabled.
+            if (!cat || cat === 'other' || cat === 'cases') return false;
+            return thisCat ? cat !== thisCat : true;
+          });
+          if (remaining.length > 0) requestBody.app_name = remaining.join(',');
+          else requestBody.action_name = 'remove';
         }
-        const remaining = currentNames.filter((n) => {
-          const cat = getIngestionCategory(n);
-          // Only sibling ingestion sources (siem/edr/email) justify keeping
-          // the workflow alive — destination/Cases apps are shared by every
-          // ingestion usecase and would falsely leave it looking enabled.
-          if (!cat || cat === 'other' || cat === 'cases') return false;
-          return thisCat ? cat !== thisCat : true;
-        });
-        if (remaining.length > 0) requestBody.app_name = remaining.join(',');
-        else requestBody.action_name = 'remove';
       }
       const res = await fetch(apiUrl('/api/v2/workflows/generate'), {
         method: 'POST',
@@ -6840,6 +6999,7 @@ function UsecaseCard({
       if (!ok) {
         throw new Error(reason || `Request failed (${res.status})`);
       }
+      invalidateAppsCache();
       toast.success(willBeEnabled ? `${cardDisplayLabel} enabled` : `${cardDisplayLabel} disabled`);
       onToggled?.(flow.automationLabel, willBeEnabled);
       // Hard safety net in case the server never reflects the change.
@@ -6884,6 +7044,7 @@ function UsecaseCard({
       variant="outlined"
       sx={{
         position: 'relative',
+        height: '100%',
         bgcolor: effectiveEnabled ? 'hsl(var(--severity-low) / 0.05)' : 'hsl(var(--card))',
         border: effectiveEnabled
           ? '2px solid hsl(var(--severity-low))'
@@ -6898,13 +7059,32 @@ function UsecaseCard({
           borderColor: 'hsl(var(--primary) / 0.4)',
           boxShadow: '0 2px 12px hsl(var(--primary) / 0.08)',
         },
+        '@keyframes ucCardActionIn': {
+          from: { opacity: 0, transform: 'scale(0.96)' },
+          to: { opacity: 1, transform: 'scale(1)' },
+        },
         '&:hover .uc-card-action': {
+          display: 'inline-flex',
           opacity: 1,
           pointerEvents: 'auto',
+          animation: 'ucCardActionIn 0.15s ease-out',
         },
       }}
     >
-      <CardActionArea component="div" onClick={onClick} sx={{ px: 2, py: '14.5px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', cursor: 'pointer' }}>
+      <CardActionArea
+        component="div"
+        onClick={onClick}
+        sx={{
+          px: 2,
+          py: '14.5px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          justifyContent: showImage && flow.referenceImage ? 'flex-start' : 'center',
+          height: '100%',
+          cursor: 'pointer',
+        }}
+      >
         {showImage && flow.referenceImage && (
           <Box
             component="img"
@@ -6923,168 +7103,66 @@ function UsecaseCard({
             }}
           />
         )}
-        {/* Label + sync icon */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%', minHeight: 22 }}>
-          <Typography variant="body2" title={cardDisplayLabel} sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', flexGrow: 1, fontSize: '0.82rem', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {cardDisplayLabel}
-          </Typography>
-          {showDrift && (
-            <Tooltip title={driftTooltip} placement="top" arrow>
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  px: 0.6,
-                  py: 0.1,
-                  borderRadius: 0.75,
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  letterSpacing: 0.2,
-                  textTransform: 'uppercase',
-                  color: driftColor,
-                  bgcolor: `${driftColor.replace(')', ' / 0.12)')}`,
-                  border: `1px solid ${driftColor.replace(')', ' / 0.35)')}`,
-                  lineHeight: 1.4,
-                }}
-              >
-                {driftLabel}
-              </Box>
-            </Tooltip>
-          )}
-          {hasInterest && (
-            <Tooltip title="Interest shown (support only)" placement="top" arrow>
-              <Box sx={{ display: 'inline-flex', flexShrink: 0 }}>
-                <Sparkles size={13} style={{ color: 'hsl(var(--primary))' }} />
-              </Box>
-            </Tooltip>
-          )}
-
-
-          {/* Unified Action / Status Chip-Button */}
-          {effectiveEnabled ? (
-            <Tooltip
-              title={
-                canToggle
-                  ? 'Automation active · Click to disable'
-                  : 'Automation active'
-              }
-              placement="top"
-              arrow
-            >
-              <Box
-                component="button"
-                type="button"
-                disabled={toggling}
-                onClick={handleToggle}
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  px: 0.85,
-                  py: 0.2,
-                  height: 22,
-                  borderRadius: 0.75,
-                  bgcolor: 'hsl(var(--severity-low) / 0.12)',
-                  border: '1px solid hsl(var(--severity-low) / 0.4)',
-                  color: 'hsl(var(--severity-low))',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  lineHeight: 1,
-                  cursor: toggling ? 'default' : 'pointer',
-                  outline: 'none',
-                  boxShadow: 'none',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: 'hsl(var(--severity-low) / 0.22)',
-                    borderColor: 'hsl(var(--severity-low) / 0.7)',
-                  },
-                }}
-              >
-                {toggling ? (
-                  <CircularProgress size={11} sx={{ color: 'inherit' }} />
-                ) : (
-                  <Power size={11} style={{ color: 'inherit' }} />
-                )}
-                <span>Active</span>
-              </Box>
-            </Tooltip>
-          ) : (flow.customAction?.href || flow.customAction?.url) && (!canToggle || flow.id !== 'threat_intel_ingest_1') ? (
-            <Box
-              className="uc-card-action"
-              sx={{
-                opacity: 0,
-                pointerEvents: 'none',
-                transition: 'opacity 0.15s ease',
-                flexShrink: 0,
-              }}
-            >
-              <Button
-                {...(flow.customAction.url
-                  ? { component: 'a' as const, href: flow.customAction.url, target: '_blank', rel: 'noopener noreferrer' }
-                  : { component: Link, to: flow.customAction.href! })}
-                size="small"
-                variant="contained"
-                disableElevation
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                startIcon={<ArrowRight size={11} />}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.65rem',
-                  fontWeight: 600,
-                  minHeight: 0,
-                  height: 22,
-                  py: 0,
-                  px: 0.85,
-                  borderRadius: 0.75,
-                  bgcolor: primaryColor,
-                  color: '#FFFFFF',
-                  '&:hover': { bgcolor: primaryColor },
-                }}
-              >
-                {flow.customAction.label || 'Configure'}
-              </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1 }}>
+          {/* Left: Label + Route */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: 0.25 }}>
+            <Typography variant="body2" title={cardDisplayLabel} sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', fontSize: '0.82rem', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {cardDisplayLabel}
+            </Typography>
+            {/* Source → Target */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
+                {flow.source === 'case_management' ? 'Shuffle' : sourceCat}
+              </Typography>
+              <ArrowRight size={10} style={{ color: 'hsl(var(--muted-foreground))' }} />
+              <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
+                {MULTI_DEST_FLOW_IDS.has(flow.id) ? 'Communication & Cases' : targetCat}
+              </Typography>
             </Box>
-          ) : isComingSoon ? (
-            <Tooltip title="Coming soon" placement="top" arrow>
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.4,
-                  px: 0.7,
-                  py: 0.15,
-                  height: 22,
-                  borderRadius: 0.75,
-                  bgcolor: 'hsl(var(--severity-medium) / 0.08)',
-                  border: '1px solid hsl(var(--severity-medium) / 0.35)',
-                  color: 'hsl(var(--severity-medium))',
-                  fontSize: '0.62rem',
-                  fontWeight: 600,
-                  cursor: 'default',
-                  flexShrink: 0,
-                }}
-              >
-                <Clock size={11} style={{ color: 'inherit' }} />
-                <span>Coming soon</span>
-              </Box>
-            </Tooltip>
-          ) : canToggle ? (
-            <Box
-              className="uc-card-action"
-              sx={{
-                opacity: 0,
-                pointerEvents: 'none',
-                transition: 'opacity 0.15s ease',
-                flexShrink: 0,
-              }}
-            >
+          </Box>
+
+          {/* Right: Badges & Unified Action / Status Chip-Button */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+            {showDrift && (
+              <Tooltip title={driftTooltip} placement="top" arrow>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    px: 0.6,
+                    py: 0.1,
+                    borderRadius: 0.75,
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    letterSpacing: 0.2,
+                    textTransform: 'uppercase',
+                    color: driftColor,
+                    bgcolor: `${driftColor.replace(')', ' / 0.12)')}`,
+                    border: `1px solid ${driftColor.replace(')', ' / 0.35)')}`,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {driftLabel}
+                </Box>
+              </Tooltip>
+            )}
+            {hasInterest && (
+              <Tooltip title="Interest shown (support only)" placement="top" arrow>
+                <Box sx={{ display: 'inline-flex', flexShrink: 0 }}>
+                  <Sparkles size={13} style={{ color: 'hsl(var(--primary))' }} />
+                </Box>
+              </Tooltip>
+            )}
+
+            {/* Unified Action / Status Chip-Button */}
+            {effectiveEnabled ? (
               <Tooltip
                 title={
-                  !hasValidatedSource
-                    ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
-                    : 'Click to activate'
+                  isMonitorsFlow
+                    ? 'Host Monitoring is active on endpoints · Managed in Monitors view'
+                    : canDisable
+                      ? 'Automation active · Click to disable'
+                      : 'Automation active'
                 }
                 placement="top"
                 arrow
@@ -7093,7 +7171,183 @@ function UsecaseCard({
                   component="button"
                   type="button"
                   disabled={toggling}
-                  onClick={handleToggle}
+                  onClick={
+                    isMonitorsFlow
+                      ? (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          navigate('/monitors');
+                        }
+                      : canDisable
+                        ? handleToggle
+                        : undefined
+                  }
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 0.85,
+                    py: 0.2,
+                    height: 22,
+                    borderRadius: 0.75,
+                    bgcolor: 'hsl(var(--severity-low) / 0.12)',
+                    border: '1px solid hsl(var(--severity-low) / 0.4)',
+                    color: 'hsl(var(--severity-low))',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    lineHeight: 1,
+                    cursor: isMonitorsFlow ? 'pointer' : canDisable ? (toggling ? 'default' : 'pointer') : 'default',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                    '&:hover': (isMonitorsFlow || canDisable) ? {
+                      bgcolor: 'hsl(var(--severity-low) / 0.22)',
+                      borderColor: 'hsl(var(--severity-low) / 0.7)',
+                    } : {},
+                  }}
+                >
+                  {toggling ? (
+                    <CircularProgress size={11} sx={{ color: 'inherit' }} />
+                  ) : (
+                    <Power size={11} style={{ color: 'inherit' }} />
+                  )}
+                  <span>Active</span>
+                </Box>
+              </Tooltip>
+            ) : (flow.customAction?.href || flow.customAction?.url) && (!canToggle || (flow.id !== 'threat_intel_ingest_1' && flow.id !== 'case_management_agent_ai_incident_handling_1')) ? (
+              <Box
+                className="uc-card-action"
+                sx={{
+                  display: 'none',
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  flexShrink: 0,
+                }}
+              >
+                <Button
+                  {...(flow.customAction.url
+                    ? { component: 'a' as const, href: flow.customAction.url, target: '_blank', rel: 'noopener noreferrer' }
+                    : { component: Link, to: flow.customAction.href! })}
+                  size="small"
+                  variant="contained"
+                  disableElevation
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  startIcon={<ArrowRight size={11} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    minHeight: 0,
+                    height: 22,
+                    py: 0,
+                    px: 0.85,
+                    borderRadius: 0.75,
+                    bgcolor: primaryColor,
+                    color: '#FFFFFF',
+                    '&:hover': { bgcolor: primaryColor },
+                  }}
+                >
+                  {flow.customAction.label || 'Configure'}
+                </Button>
+              </Box>
+            ) : isComingSoon ? (
+              <Tooltip title="Coming soon" placement="top" arrow>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.4,
+                    px: 0.7,
+                    py: 0.15,
+                    height: 22,
+                    borderRadius: 0.75,
+                    bgcolor: 'hsl(var(--severity-medium) / 0.08)',
+                    border: '1px solid hsl(var(--severity-medium) / 0.35)',
+                    color: 'hsl(var(--severity-medium))',
+                    fontSize: '0.62rem',
+                    fontWeight: 600,
+                    cursor: 'default',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Clock size={11} style={{ color: 'inherit' }} />
+                  <span>Coming soon</span>
+                </Box>
+              </Tooltip>
+            ) : canToggle ? (
+              <Box
+                className="uc-card-action"
+                sx={{
+                  display: 'none',
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  flexShrink: 0,
+                }}
+              >
+                <Tooltip
+                  title={
+                    !hasValidatedSource
+                      ? `No active ${sourceCat} integration is connected. Activating will not do anything until a ${sourceCat} tool is authenticated — the workflow will be disabled again automatically.`
+                      : 'Click to activate'
+                  }
+                  placement="top"
+                  arrow
+                >
+                  <Box
+                    component="button"
+                    type="button"
+                    disabled={toggling}
+                    onClick={handleToggle}
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      px: 0.85,
+                      py: 0.25,
+                      height: 22,
+                      borderRadius: 0.75,
+                      bgcolor: 'hsl(var(--destructive) / 0.12)',
+                      border: '1px solid hsl(var(--destructive) / 0.4)',
+                      color: 'hsl(var(--destructive))',
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.02em',
+                      lineHeight: 1,
+                      cursor: toggling ? 'default' : 'pointer',
+                      outline: 'none',
+                      boxShadow: 'none',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        bgcolor: 'hsl(var(--destructive) / 0.22)',
+                        borderColor: 'hsl(var(--destructive) / 0.7)',
+                      },
+                    }}
+                  >
+                    {toggling ? (
+                      <CircularProgress size={11} sx={{ color: 'inherit' }} />
+                    ) : (
+                      <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
+                    )}
+                    <span>Activate</span>
+                  </Box>
+                </Tooltip>
+              </Box>
+            ) : !isAuthenticated && flow.automationLabel ? (
+              <Box
+                className="uc-card-action"
+                sx={{
+                  display: 'none',
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  flexShrink: 0,
+                }}
+              >
+                <Box
+                  component={Link}
+                  to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
                   sx={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -7109,9 +7363,8 @@ function UsecaseCard({
                     fontWeight: 700,
                     letterSpacing: '0.02em',
                     lineHeight: 1,
-                    cursor: toggling ? 'default' : 'pointer',
-                    outline: 'none',
-                    boxShadow: 'none',
+                    textDecoration: 'none',
+                    cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     '&:hover': {
                       bgcolor: 'hsl(var(--destructive) / 0.22)',
@@ -7119,69 +7372,12 @@ function UsecaseCard({
                     },
                   }}
                 >
-                  {toggling ? (
-                    <CircularProgress size={11} sx={{ color: 'inherit' }} />
-                  ) : (
-                    <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
-                  )}
+                  <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
                   <span>Activate</span>
                 </Box>
-              </Tooltip>
-            </Box>
-          ) : !isAuthenticated && flow.automationLabel ? (
-            <Box
-              className="uc-card-action"
-              sx={{
-                opacity: 0,
-                pointerEvents: 'none',
-                transition: 'opacity 0.15s ease',
-                flexShrink: 0,
-              }}
-            >
-              <Box
-                component={Link}
-                to={`/register?view=${encodeURIComponent(`/usecases/${slugify(flow.label)}`)}`}
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  px: 0.85,
-                  py: 0.25,
-                  height: 22,
-                  borderRadius: 0.75,
-                  bgcolor: 'hsl(var(--destructive) / 0.12)',
-                  border: '1px solid hsl(var(--destructive) / 0.4)',
-                  color: 'hsl(var(--destructive))',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  lineHeight: 1,
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: 'hsl(var(--destructive) / 0.22)',
-                    borderColor: 'hsl(var(--destructive) / 0.7)',
-                  },
-                }}
-              >
-                <Power size={11} style={{ color: 'hsl(var(--destructive))' }} />
-                <span>Activate</span>
               </Box>
-            </Box>
-          ) : null}
-        </Box>
-
-        {/* Source → Target */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
-            {flow.source === 'case_management' ? 'Shuffle' : sourceCat}
-          </Typography>
-          <ArrowRight size={10} style={{ color: 'hsl(var(--muted-foreground))' }} />
-          <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem' }}>
-            {MULTI_DEST_FLOW_IDS.has(flow.id) ? 'Communication & Cases' : targetCat}
-          </Typography>
+            ) : null}
+          </Box>
         </Box>
       </CardActionArea>
     </Card>

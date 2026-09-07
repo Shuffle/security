@@ -319,6 +319,7 @@ function AppBubble({
   webhookInfo,
   onWebhookToggled,
   isVuln = false,
+  isNotification = false,
 }: {
   app: AppNode;
   size?: number;
@@ -335,6 +336,7 @@ function AppBubble({
   webhookInfo?: { url: string | null; exists: boolean; enabled: boolean; workflowId: string | null };
   onWebhookToggled?: () => void;
   isVuln?: boolean;
+  isNotification?: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -516,9 +518,9 @@ function AppBubble({
                 {disabled
                   ? 'Not enabled for ingestion'
                   : (app.isEnabled === false)
-                    ? (side === 'right' ? 'Not forwarding' : 'Not enabled')
+                    ? (side === 'right' ? (isNotification ? 'Notifications disabled' : 'Not forwarding') : 'Not enabled')
                     : app.hasValidAuth
-                      ? (side === 'right' ? 'Forwarding' : 'Enabled')
+                      ? (side === 'right' ? (isNotification ? 'Notifications active' : 'Forwarding') : 'Enabled')
                       : app.isActiveOnly ? 'Not enabled' : 'Inactive'}
               </Typography>
             )}
@@ -680,7 +682,8 @@ function AppBubble({
           /* Regular app popover */
           <>
             {(() => {
-              const currentLabel = usecaseLabel || (side === 'right' ? 'Destination' : 'this usecase');
+              const isDestination = side === 'right';
+              const currentLabel = usecaseLabel || 'this usecase';
               const statusLabel = !isEnabled
                 ? 'Not in use'
                 : (app.hasValidAuth ? 'Validated' : (app.isActiveOnly ? 'Active' : 'Active'));
@@ -690,6 +693,18 @@ function AppBubble({
               const statusBg = !isEnabled
                 ? 'hsl(var(--muted))'
                 : (app.hasValidAuth ? 'hsl(var(--severity-low) / 0.12)' : 'hsl(var(--severity-medium) / 0.12)');
+
+              const subtitleText = isDestination
+                ? (isNotification
+                  ? (isEnabled ? 'Notifications active' : 'Notifications disabled')
+                  : (isEnabled ? 'Forwarding active' : 'Not forwarding'))
+                : (isEnabled ? `Active in ${currentLabel}` : `Not part of ${currentLabel}`);
+
+              const toggleButtonLabel = isDestination
+                ? (isNotification
+                  ? (isEnabled ? 'Disable Notifications' : 'Enable Notifications')
+                  : (isEnabled ? 'Disable Forwarding' : 'Enable Forwarding'))
+                : (isEnabled ? `Disable for ${currentLabel}` : `Enable for ${currentLabel}`);
 
               return (
                 <>
@@ -711,7 +726,7 @@ function AppBubble({
                     />
                   </Box>
                   <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', mb: 1.25 }}>
-                    {isEnabled ? `Active in ${currentLabel}` : `Not part of ${currentLabel}`}
+                    {subtitleText}
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     {onToggleSync && (
@@ -732,7 +747,7 @@ function AppBubble({
                           },
                         }}
                       >
-                        {isEnabled ? `Disable for ${currentLabel}` : `Enable for ${currentLabel}`}
+                        {toggleButtonLabel}
                       </Button>
                     )}
                     <Button
@@ -2084,6 +2099,7 @@ export default function UsecaseAlluvialDiagram({
                   onToggleSync={isLoggedIn ? handleToggleDestinationApp : undefined}
                   onVisitApp={handleVisitApp}
                   onPrimaryClick={onBubbleClick ? (name, el, s) => !!onBubbleClick({ appName: name, side: s, anchorEl: el }) : undefined}
+                  isNotification={isNotificationFlow}
                 />
               </Box>
             );

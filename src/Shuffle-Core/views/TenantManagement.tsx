@@ -27,6 +27,7 @@ import {
   DialogActions,
   TextField,
   Chip,
+  Alert,
 } from '@mui/material';
 import { toast } from '../toast';
 import { getApiUrl, getAuthHeader } from '../api';
@@ -52,6 +53,8 @@ export interface TenantManagementProps {
   handleGetOrg?: () => void;
   serverside?: boolean;
   isLoaded?: boolean;
+  /** Auto-open the Create Sub-Tenant dialog (e.g. from sidebar 'Add tenant' click) */
+  autoOpenCreate?: boolean | number;
 }
 
 // Lightweight region flag helper. Mirrors src/lib/regionFlag so this surface
@@ -67,6 +70,181 @@ const getRegionFlag = (regionUrl?: string): { flag: string; code: string } => {
   return { flag: '🇬🇧', code: 'UK' };
 };
 
+interface OrgRowProps {
+  org: OrgLike;
+  currentOrgId?: string;
+  switchingOrgId?: string | null;
+  onSwitchOrg?: (orgId: string) => void;
+  showSwitch?: boolean;
+}
+
+const OrgRow = React.memo(({ org, currentOrgId, switchingOrgId, onSwitchOrg, showSwitch = true }: OrgRowProps) => {
+  const isCurrent = org.id === currentOrgId;
+  const region = getRegionFlag(org.region_url);
+  return (
+    <TableRow hover sx={{ opacity: switchingOrgId === org.id ? 0.5 : 1 }}>
+      <TableCell>
+        <Avatar
+          src={org.image && org.image.startsWith('data:') ? org.image : undefined}
+          sx={{ bgcolor: 'hsl(var(--primary))', width: 36, height: 36, fontSize: '0.875rem' }}
+        >
+          {(org.name || org.id)?.charAt(0).toUpperCase() || '?'}
+        </Avatar>
+      </TableCell>
+      <TableCell>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 500, color: 'hsl(var(--foreground))' }}>
+            {org.name || org.id}
+          </Typography>
+          {isCurrent && (
+            <Chip label="Current" size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))' }} />
+          )}
+        </Box>
+      </TableCell>
+      <TableCell>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <span>{region.flag}</span>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem' }}>
+            {region.code}
+          </Typography>
+        </Box>
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+          {org.id}
+        </Typography>
+      </TableCell>
+      <TableCell>
+        {showSwitch && !isCurrent && onSwitchOrg && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={switchingOrgId === org.id ? <CircularProgress size={14} /> : <SwapIcon />}
+            disabled={!!switchingOrgId}
+            onClick={() => onSwitchOrg(org.id)}
+            sx={{
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              borderColor: 'hsl(var(--border))',
+              color: 'hsl(var(--foreground))',
+              '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.1)' },
+            }}
+          >
+            Switch
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+});
+
+interface CreateSubTenantDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (name: string) => Promise<string | true>;
+  creating: boolean;
+}
+
+const CreateSubTenantDialog: React.FC<CreateSubTenantDialogProps> = ({
+  open,
+  onClose,
+  onSubmit,
+  creating,
+}) => {
+  const [name, setName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setError(null);
+    }
+  }, [open]);
+
+  const handleSubmit = async () => {
+    if (!name.trim() || creating) return;
+    setError(null);
+    const result = await onSubmit(name.trim());
+    if (result !== true) {
+      setError(typeof result === 'string' ? result : 'Failed to create sub-organization');
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => !creating && onClose()}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 2,
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>
+        Create Sub-Tenant
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 2 }}>
+          Create a new sub-tenant under your current tenant.
+        </Typography>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 1.5 }}>
+            {error}
+          </Alert>
+        )}
+        <TextField
+          autoFocus
+          fullWidth
+          label="Tenant Name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (error) setError(null);
+          }}
+          disabled={creating}
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              color: 'hsl(var(--foreground))',
+              '& fieldset': { borderColor: 'hsl(var(--border))' },
+              '&:hover fieldset': { borderColor: 'hsl(var(--primary))' },
+            },
+            '& .MuiInputLabel-root': { color: 'hsl(var(--muted-foreground))' },
+          }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ p: 2.5 }}>
+        <Button
+          onClick={onClose}
+          disabled={creating}
+          sx={{ color: 'hsl(var(--muted-foreground))', textTransform: 'none' }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={creating || !name.trim()}
+          variant="contained"
+          sx={{
+            textTransform: 'none',
+            bgcolor: 'hsl(var(--primary))',
+            color: 'hsl(var(--primary-foreground))',
+            '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+          }}
+        >
+          {creating ? <CircularProgress size={20} /> : 'Create'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 const TenantManagement: React.FC<TenantManagementProps> = (props) => {
   const { userdata, selectedOrganization, setActiveOrg, handleGetOrg } = props;
   const currentOrgId = selectedOrganization?.id || userdata?.active_org?.id;
@@ -80,11 +258,23 @@ const TenantManagement: React.FC<TenantManagementProps> = (props) => {
   const [showSubOrgs, setShowSubOrgs] = useState(false);
   const [showAllOrgs, setShowAllOrgs] = useState(false);
 
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newOrgName, setNewOrgName] = useState('');
+  const [createDialogOpen, setCreateDialogOpen] = useState(() => {
+    if (props.autoOpenCreate) return true;
+    if (typeof window !== 'undefined') {
+      const search = new URLSearchParams(window.location.search);
+      return search.get('click') === 'add-tenant';
+    }
+    return false;
+  });
   const [creating, setCreating] = useState(false);
 
   const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (props.autoOpenCreate) {
+      setCreateDialogOpen(true);
+    }
+  }, [props.autoOpenCreate]);
 
   const fetchSubOrgs = useCallback(async () => {
     if (!currentOrgId) return;
@@ -142,90 +332,61 @@ const TenantManagement: React.FC<TenantManagementProps> = (props) => {
     }
   };
 
-  const handleCreateSubOrg = async () => {
-    if (!newOrgName.trim() || !currentOrgId) return;
+  const handleCreateSubOrg = async (orgName: string): Promise<string | true> => {
+    if (!orgName.trim() || !currentOrgId) return 'Organization name and current organization are required';
     setCreating(true);
     try {
       const response = await fetch(getApiUrl(`/api/v1/orgs/${currentOrgId}/create_sub_org`), {
         method: 'POST',
         credentials: 'include',
         headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ org_id: currentOrgId, name: newOrgName.trim() }),
+        body: JSON.stringify({ org_id: currentOrgId, name: orgName.trim() }),
       });
+
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.reason || 'Failed to create sub-organization');
+        let errorMsg = '';
+        try {
+          const data = await response.json();
+          if (data && typeof data === 'object') {
+            if (data.reason) {
+              errorMsg = data.reason;
+            } else if (data.message) {
+              errorMsg = data.message;
+            } else if (data.error) {
+              errorMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+            }
+          }
+        } catch {
+          try {
+            const text = await response.text();
+            if (text) errorMsg = text;
+          } catch {}
+        }
+
+        if (response.status === 401) {
+          if (!errorMsg) {
+            errorMsg = 'Unauthorized: You do not have permission or a license to create sub-tenants.';
+          }
+        } else if (!errorMsg) {
+          errorMsg = `Failed to create sub-organization (HTTP ${response.status})`;
+        }
+
+        toast.error(errorMsg);
+        return errorMsg;
       }
-      toast.success(`Sub-organization "${newOrgName.trim()}" created successfully`);
+
+      toast.success(`Sub-organization "${orgName.trim()}" created successfully`);
       setCreateDialogOpen(false);
-      setNewOrgName('');
       fetchSubOrgs();
       handleGetOrg?.();
+      return true;
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create sub-organization');
+      const msg = err?.message || 'Failed to create sub-organization';
+      toast.error(msg);
+      return msg;
     } finally {
       setCreating(false);
     }
-  };
-
-  const OrgRow = ({ org, showSwitch = true }: { org: OrgLike; showSwitch?: boolean }) => {
-    const isCurrent = org.id === currentOrgId;
-    const region = getRegionFlag(org.region_url);
-    return (
-      <TableRow hover sx={{ opacity: switchingOrgId === org.id ? 0.5 : 1 }}>
-        <TableCell>
-          <Avatar
-            src={org.image && org.image.startsWith('data:') ? org.image : undefined}
-            sx={{ bgcolor: 'hsl(var(--primary))', width: 36, height: 36, fontSize: '0.875rem' }}
-          >
-            {(org.name || org.id)?.charAt(0).toUpperCase() || '?'}
-          </Avatar>
-        </TableCell>
-        <TableCell>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 500, color: 'hsl(var(--foreground))' }}>
-              {org.name || org.id}
-            </Typography>
-            {isCurrent && (
-              <Chip label="Current" size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))' }} />
-            )}
-          </Box>
-        </TableCell>
-        <TableCell>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <span>{region.flag}</span>
-            <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem' }}>
-              {region.code}
-            </Typography>
-          </Box>
-        </TableCell>
-        <TableCell>
-          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-            {org.id}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          {showSwitch && !isCurrent && setActiveOrg && (
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={switchingOrgId === org.id ? <CircularProgress size={14} /> : <SwapIcon />}
-              disabled={!!switchingOrgId}
-              onClick={() => handleSwitchOrg(org.id)}
-              sx={{
-                fontSize: '0.75rem',
-                textTransform: 'none',
-                borderColor: 'hsl(var(--border))',
-                color: 'hsl(var(--foreground))',
-                '&:hover': { borderColor: 'hsl(var(--primary))', bgcolor: 'hsl(var(--primary) / 0.1)' },
-              }}
-            >
-              Switch
-            </Button>
-          )}
-        </TableCell>
-      </TableRow>
-    );
   };
 
   return (
@@ -273,7 +434,7 @@ const TenantManagement: React.FC<TenantManagementProps> = (props) => {
             </TableHead>
             <TableBody>
               {activeOrg ? (
-                <OrgRow org={activeOrg} showSwitch={false} />
+                <OrgRow org={activeOrg} currentOrgId={currentOrgId} switchingOrgId={switchingOrgId} onSwitchOrg={handleSwitchOrg} showSwitch={false} />
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
@@ -305,7 +466,7 @@ const TenantManagement: React.FC<TenantManagementProps> = (props) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                <OrgRow org={parentOrg} />
+                <OrgRow org={parentOrg} currentOrgId={currentOrgId} switchingOrgId={switchingOrgId} onSwitchOrg={handleSwitchOrg} />
               </TableBody>
             </Table>
           </TableContainer>
@@ -354,7 +515,7 @@ const TenantManagement: React.FC<TenantManagementProps> = (props) => {
                 </TableHead>
                 <TableBody>
                   {subOrgs.map((org) => (
-                    <OrgRow key={org.id} org={org} />
+                    <OrgRow key={org.id} org={org} currentOrgId={currentOrgId} switchingOrgId={switchingOrgId} onSwitchOrg={handleSwitchOrg} />
                   ))}
                 </TableBody>
               </Table>
@@ -401,7 +562,7 @@ const TenantManagement: React.FC<TenantManagementProps> = (props) => {
                 </TableHead>
                 <TableBody>
                   {allOrgs.map((org) => (
-                    <OrgRow key={org.id} org={org} />
+                    <OrgRow key={org.id} org={org} currentOrgId={currentOrgId} switchingOrgId={switchingOrgId} onSwitchOrg={handleSwitchOrg} />
                   ))}
                 </TableBody>
               </Table>
@@ -410,69 +571,12 @@ const TenantManagement: React.FC<TenantManagementProps> = (props) => {
         </Collapse>
       </Paper>
 
-      <Dialog
+      <CreateSubTenantDialog
         open={createDialogOpen}
-        onClose={() => !creating && setCreateDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              bgcolor: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 2,
-            },
-          },
-        }}
-      >
-        <DialogTitle sx={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>
-          Create Sub-Tenant
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', mb: 2 }}>
-            Create a new sub-tenant under your current tenant.
-          </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Tenant Name"
-            value={newOrgName}
-            onChange={(e) => setNewOrgName(e.target.value)}
-            disabled={creating}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateSubOrg()}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                color: 'hsl(var(--foreground))',
-                '& fieldset': { borderColor: 'hsl(var(--border))' },
-                '&:hover fieldset': { borderColor: 'hsl(var(--primary))' },
-              },
-              '& .MuiInputLabel-root': { color: 'hsl(var(--muted-foreground))' },
-            }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}>
-          <Button
-            onClick={() => setCreateDialogOpen(false)}
-            disabled={creating}
-            sx={{ color: 'hsl(var(--muted-foreground))', textTransform: 'none' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreateSubOrg}
-            disabled={creating || !newOrgName.trim()}
-            variant="contained"
-            sx={{
-              textTransform: 'none',
-              bgcolor: 'hsl(var(--primary))',
-              color: 'hsl(var(--primary-foreground))',
-              '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
-            }}
-          >
-            {creating ? <CircularProgress size={20} /> : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onClose={() => setCreateDialogOpen(false)}
+        onSubmit={handleCreateSubOrg}
+        creating={creating}
+      />
     </Box>
   );
 };

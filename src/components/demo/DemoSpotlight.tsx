@@ -19,8 +19,8 @@ const PADDING = 8;
 // the target's own ancestor stacking contexts — see `computeTargetZIndex`.
 const Z_FALLBACK = 5;
 // Hard ceiling so a runaway ancestor z-index can never make the spotlight
-// punch through actual modal surfaces (MUI Modal/Drawer = 1300).
-const Z_CEILING = 1290;
+// punch through the tour drawer itself (DemoTourDrawer = 2147483000).
+const Z_CEILING = 2147482990;
 
 /**
  * Walk up the target's ancestors and return the highest numeric z-index

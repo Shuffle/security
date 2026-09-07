@@ -12,7 +12,7 @@
  * Does NOT block clicks on the underlying page.
  */
 
-import { Box, IconButton, Typography, Button, LinearProgress, Tooltip } from '@mui/material';
+import { Box, IconButton, Typography, Button, LinearProgress, Tooltip, Chip } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
@@ -437,9 +437,28 @@ export const DemoTourDrawer = () => {
                 )}
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.1 }}>
-                <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
-                  Demo · {step + 1}/{total}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
+                    Demo · {step + 1}/{total}
+                  </Typography>
+                  <Chip
+                    label="Beta"
+                    size="small"
+                    sx={{
+                      height: 16,
+                      fontSize: '0.575rem',
+                      fontWeight: 600,
+                      color: 'hsl(var(--primary))',
+                      backgroundColor: 'hsl(var(--primary) / 0.1)',
+                      border: '1px solid hsl(var(--primary) / 0.25)',
+                      borderRadius: 1,
+                      '& .MuiChip-label': {
+                        px: 0.5,
+                        lineHeight: 1,
+                      },
+                    }}
+                  />
+                </Box>
                 <Typography
                   sx={{
                     fontSize: '0.78rem',
@@ -575,9 +594,31 @@ export const DemoTourDrawer = () => {
                 >
                   <Sparkles size={15} />
                 </Box>
-                <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                  Demo mode · {step + 1}/{total}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'nowrap' }}>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--foreground))', whiteSpace: 'nowrap' }}>
+                    Demo mode
+                  </Typography>
+                  <Chip
+                    label="Beta"
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      color: 'hsl(var(--primary))',
+                      backgroundColor: 'hsl(var(--primary) / 0.1)',
+                      border: '1px solid hsl(var(--primary) / 0.25)',
+                      borderRadius: 1,
+                      '& .MuiChip-label': {
+                        px: 0.75,
+                        lineHeight: 1,
+                      },
+                    }}
+                  />
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
+                    · {step + 1}/{total}
+                  </Typography>
+                </Box>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: isBottom ? 0 : 'auto' }}>
                 <Tooltip title={isBottom ? 'Dock to right' : 'Dock to bottom'} arrow slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
