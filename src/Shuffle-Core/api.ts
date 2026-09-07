@@ -17,7 +17,7 @@ import { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
 installFetchBreaker();
 
 const DEV_BACKEND = 'https://tunnel.schemaless.org';
-const PROD_BACKEND = 'https://shuffler.io';
+const PROD_BACKEND = 'https://uk.shuffler.io';
 
 import {
   getShuffleCoreBaseUrl,
@@ -115,7 +115,11 @@ const _cachedRegion = (() => {
     const raw = localStorage.getItem(REGION_STORAGE_KEY);
     if (!raw) return { url: null, orgId: null };
     const parsed = JSON.parse(raw);
-    return { url: parsed?.url || null, orgId: parsed?.orgId || null };
+    const url = parsed?.url ? parsed.url.replace(/\/+$/, '') : null;
+    if (url === 'https://shuffler.io' || url === PROD_BACKEND) {
+      return { url: null, orgId: parsed?.orgId || null };
+    }
+    return { url, orgId: parsed?.orgId || null };
   } catch { return { url: null, orgId: null }; }
 })();
 
@@ -194,7 +198,8 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
   _trackedOrgId = orgId || null;
   if (regionUrl && isShufflerSubdomain(regionUrl)) {
     const normalized = regionUrl.replace(/\/+$/, '');
-    if (normalized !== PROD_BACKEND) {
+    const isDefaultCloud = normalized === PROD_BACKEND || normalized === 'https://shuffler.io';
+    if (!isDefaultCloud) {
       _regionUrl = normalized;
       persistRegion(_regionUrl, _trackedOrgId);
       return;

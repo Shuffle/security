@@ -309,36 +309,25 @@ const AuthPage = ({ mode }: AuthPageProps) => {
 
       // Extract session token from cookies array or direct field
       const sessionToken = data.session_token || 
+        data.token ||
         data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
 
       if (sessionToken) {
-        // A custom/self-hosted backend (or a native app / preview) cannot rely
-        // on the session cookie, so the session token returned by the login
-        // request is used as the bearer instead.
-        const preferBearer = isCapacitorNative() || isDevEnvironment() || !!getHostBaseUrl();
-        // Verify the session works before showing success
+        // Verify the session works before showing success.
+        // Always attach Authorization: Bearer <sessionToken> and include credentials
+        // so cross-origin and SameSite restrictions are completely bypassed.
         let verifiedUserInfo: any = null;
         try {
           const verifyResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
             method: 'GET',
-            credentials: preferBearer ? 'omit' : 'include',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(preferBearer ? { Authorization: `Bearer ${sessionToken}` } : {}),
+              Authorization: `Bearer ${sessionToken}`,
             },
           });
           
           if (!verifyResponse.ok) {
-            // Login API returned a token but the session was not accepted
-            const backendOrigin = new URL(getApiUrl('')).origin;
-            const isCrossOrigin = backendOrigin !== window.location.origin;
-            if (isCrossOrigin && !preferBearer) {
-              throw new Error(
-                `Login succeeded but the session cookie was not set. ` +
-                `This usually means the backend at ${backendOrigin} is not configured to set cookies for ${window.location.origin}. ` +
-                `Check the backend's cookie domain and SameSite settings.`
-              );
-            }
             throw new Error('Login succeeded but session verification failed. Please try again.');
           }
           verifiedUserInfo = await verifyResponse.json().catch(() => null);
@@ -346,17 +335,8 @@ const AuthPage = ({ mode }: AuthPageProps) => {
             throw new Error('Login succeeded but session verification failed. Please try again.');
           }
         } catch (verifyError) {
-          if (verifyError instanceof Error && verifyError.message.includes('cookie')) {
-            throw verifyError; // Re-throw our specific cookie error
-          }
-          // getinfo fetch itself failed (network/CORS)
-          const backendOrigin = new URL(getApiUrl('')).origin;
-          const isCrossOrigin = backendOrigin !== window.location.origin;
-          if (isCrossOrigin) {
-            throw new Error(
-              `Login succeeded but session verification failed due to a cross-origin issue. ` +
-              `The backend at ${backendOrigin} must allow credentials from ${window.location.origin}.`
-            );
+          if (verifyError instanceof Error && verifyError.message.includes('verification failed')) {
+            throw verifyError;
           }
           throw new Error('Login succeeded but failed to verify session. Please try again.');
         }
@@ -366,9 +346,8 @@ const AuthPage = ({ mode }: AuthPageProps) => {
         trackPredefinedEvent(GA_EVENTS.LOGIN_SUCCESS);
         const wasFirstLogin = !hasLoggedInBefore;
         localStorage.setItem('shuffle_has_logged_in', 'true');
-        // Keep exactly one credential: the bearer token only when the cookie
-        // cannot be used, otherwise nothing (cookie-only).
-        const accepted = await login(preferBearer ? sessionToken : '', verifiedUserInfo);
+        // Always persist and pass the session token so Authorization: Bearer is used for all requests
+        const accepted = await login(sessionToken, verifiedUserInfo);
         if (!accepted) {
           throw new Error('Login succeeded but session verification failed. Please try again.');
         }

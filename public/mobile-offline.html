@@ -108,7 +108,7 @@
         const targetUrl = 'https://shuffle.security' + window.location.pathname + window.location.search;
         
         // Quick probe to check connectivity
-        fetch('https://shuffler.io/api/v1/getinfo', { method: 'HEAD', mode: 'no-cors' })
+        fetch('https://uk.shuffler.io/api/v1/getinfo', { method: 'HEAD', mode: 'no-cors' })
           .then(function() {
             window.location.href = targetUrl;
           })

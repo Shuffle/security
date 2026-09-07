@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
@@ -116,6 +116,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUserInfo(info);
     setRuntimeOrgId(newOrgId);
     localStorage.setItem('shuffle_user_info', JSON.stringify(info));
+
+    // Ensure session token is persisted if returned in the getinfo payload
+    const returnedToken = data.session_token ||
+      data.token ||
+      data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
+    if (returnedToken && !getSessionToken()) {
+      persistSessionToken(returnedToken);
+      setSessionToken(returnedToken);
+    }
+
     try {
       window.dispatchEvent(new CustomEvent('shuffle:getinfo', { detail: data }));
     } catch { /* ignore */ }
@@ -128,10 +138,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
-      const token = _token?.trim() || '';
+      const token = _token?.trim() || getSessionToken() || '';
       const response = await fetch(getApiUrl('/api/v1/getinfo'), {
         method: 'GET',
-        credentials: token ? 'omit' : 'include',
+        credentials: 'include',
         signal: controller.signal,
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -193,10 +203,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (token !== sessionToken) setSessionToken(token);
 
       // Without a session token we can only be logged in through the session
-      // cookie, which is same-origin only. On native apps, and whenever the
-      // frontend points at a custom/self-hosted backend, no cookie can exist —
+      // cookie, which is same-origin only. On native apps, custom backends, and
+      // cross-origin cloud domains, no cookie can exist without a prior session —
       // so skip the boot getinfo entirely and wait for a successful login.
-      if (!token && (isCapacitorNative() || getHostBaseUrl())) {
+      if (!token && !cachedUserInfo && (isCapacitorNative() || getHostBaseUrl() || isCloud())) {
         setIsAuthenticated(false);
         setUserInfo(null);
         setIsLoading(false);
@@ -254,7 +264,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const token = getSessionToken();
         const response = await fetch(getApiUrl('/api/v1/getinfo'), {
           method: 'GET',
-          credentials: token ? 'omit' : 'include',
+          credentials: 'include',
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
@@ -289,11 +299,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRuntimeOrgId(null);
     resetRegionUrl();
 
-    // Same-origin production web authentication is cookie-only. Native apps,
-    // Lovable testing, and any custom/self-hosted backend (where the cookie is
-    // cross-origin and therefore unusable) must carry the session token as the
-    // bearer instead.
-    const tokenToStore = (isCapacitorNative() || isDevEnvironment() || !!getHostBaseUrl()) ? token : '';
+    // Always store the session token so every subsequent request carries
+    // `Authorization: Bearer <session>` regardless of platform, domain, or SameSite cookie rules.
+    const tokenToStore = token?.trim() || '';
 
     persistSessionToken(tokenToStore);
     setSessionToken(tokenToStore || null);

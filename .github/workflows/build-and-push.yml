@@ -8,7 +8,7 @@ on:
       api_url:
         description: 'Shuffle API URL'
         required: false
-        default: 'https://shuffler.io'
+        default: 'https://uk.shuffler.io'
 
 env:
   REGISTRY: ghcr.io
@@ -51,4 +51,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VITE_SHUFFLE_API_URL=${{ inputs.api_url || 'https://shuffler.io' }}
+            VITE_SHUFFLE_API_URL=${{ inputs.api_url || 'https://uk.shuffler.io' }}

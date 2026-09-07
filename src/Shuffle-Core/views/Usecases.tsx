@@ -1093,7 +1093,7 @@ export function getUsecasesJson(
 // NOTE: The host app can override this entirely by passing the `globalUrl`
 // prop on <UsecasesPage />. This resolver only kicks in for standalone use.
 const DEV_BACKEND = 'https://tunnel.schemaless.org';
-const PROD_BACKEND = 'https://shuffler.io';
+const PROD_BACKEND = 'https://uk.shuffler.io';
 
 const resolveApiBaseUrl = () => {
   let envUrl: string | undefined;
