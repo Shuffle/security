@@ -126,7 +126,7 @@ interface AppSearchDrawerProps extends ShuffleHostProps {
   /** Called when the detail drawer closes, with the app name that was being configured */
   onDetailClose?: (appName: string) => void;
   /** When set, replaces Activate with "+ Add" in the detail drawer */
-  onAddToCanvas?: (appInfo: { name: string; icon: string; algoliaId: string | null }) => void;
+  onAddToCanvas?: (appInfo: { name: string; icon: string; algoliaId?: string | null }) => void;
   /** When set, apps matching this category are sorted to the top in user's apps */
   priorityCategory?: string;
   /** Apps currently in the connection path diagram — shown first in the drawer */

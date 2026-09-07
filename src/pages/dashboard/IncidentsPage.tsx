@@ -1861,9 +1861,6 @@ const IncidentsPage = () => {
     let defaultOrg: string[] | null = null;
     if (isParentOrg) {
       const allIds = [currentOrgId || '', ...subOrgs.filter(o => o.id !== currentOrgId).map(o => o.id)];
-      if (parentOrg && parentOrg.id !== currentOrgId && !allIds.includes(parentOrg.id)) {
-        allIds.unshift(parentOrg.id);
-      }
       defaultOrg = allIds;
     } else if (isChildOrg && currentOrgId) {
       defaultOrg = [currentOrgId];
@@ -3302,17 +3299,14 @@ const IncidentsPage = () => {
                 { id: currentOrgId || '', name: currentOrgName },
                 ...subOrgs.map(o => ({ id: o.id, name: o.name })),
               ];
-              if (parentOrg && !allKnownOrgs.some(o => o.id === parentOrg.id)) {
-                allKnownOrgs.push({ id: parentOrg.id, name: parentOrg.name });
-              }
               return orgFilter.map(id => {
                 const found = allKnownOrgs.find(o => o.id === id);
                 return found?.name || id;
               });
             })()}
             totalOrgCount={(() => {
+              if (!isParentOrg) return 1;
               const allIds = new Set([currentOrgId || '', ...subOrgs.map(o => o.id)]);
-              if (parentOrg) allIds.add(parentOrg.id);
               return allIds.size;
             })()}
             onResetOrgFilter={resetToDefaults}
@@ -3322,7 +3316,6 @@ const IncidentsPage = () => {
               // Clear every filter (including the default status filter) and
               // reveal incidents that were hidden for missing/corrupt content.
               const allOrgIds = [currentOrgId || '', ...subOrgs.map(o => o.id)];
-              if (parentOrg && !allOrgIds.includes(parentOrg.id)) allOrgIds.push(parentOrg.id);
               setFilters({ severity: null, status: null, tlp: null, assignee: null, source: null, tag: null, org: isParentOrg ? allOrgIds.filter(Boolean) : null });
               setNegatedFilters(new Set());
               setDateFrom(undefined);

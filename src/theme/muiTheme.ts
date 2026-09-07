@@ -96,9 +96,11 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
         paper: {
           backgroundImage: cardBg,
           border: `1px solid ${border}`,
-          maxWidth: 'calc(100vw - 32px)',
           margin: 16,
           boxSizing: 'border-box' as const,
+          '@media (max-width: 600px)': {
+            maxWidth: 'calc(100vw - 32px)',
+          },
         },
       },
     },

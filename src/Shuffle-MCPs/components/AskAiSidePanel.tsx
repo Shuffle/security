@@ -45,6 +45,7 @@ import { useSyncHostBaseUrl } from '@/Shuffle-MCPs/useSyncHostBaseUrl';
 import {
   isAgentRoute,
   resolveAgentContext,
+  getActivePageEntityName,
   setPageContextChoice,
   clearPageContextChoice,
   type AgentContextRule,
@@ -56,6 +57,10 @@ export const AGENT_DRAWER_OPEN_EVENT = 'agent-drawer-open';
 export interface AgentDrawerOpenDetail {
   tab?: AgentRunDrawerTab;
 }
+
+export const ASK_AI_PANEL_WIDTH_STORAGE_KEY = 'shuffle:ask_ai_panel_width';
+export const MIN_ASK_AI_PANEL_WIDTH = 340;
+export const MAX_ASK_AI_PANEL_WIDTH = 960;
 
 export interface AskAiSidePanelProps extends ShuffleHostProps {
   /** Whether the side panel is open */
@@ -197,6 +202,65 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     [currentPathname, currentSearch, rules],
   );
 
+  // Dynamic entity title detection for pages that load data asynchronously
+  const [entityTitle, setEntityTitle] = useState<string | undefined>(() => getActivePageEntityName());
+
+  useEffect(() => {
+    if (!open) return;
+
+    // Immediate check
+    const current = getActivePageEntityName();
+    if (current) setEntityTitle(current);
+
+    // Staggered polls to catch async fetches on initial mount
+    const t1 = setTimeout(() => {
+      const e = getActivePageEntityName();
+      if (e) setEntityTitle(e);
+    }, 150);
+
+    const t2 = setTimeout(() => {
+      const e = getActivePageEntityName();
+      if (e) setEntityTitle(e);
+    }, 500);
+
+    const t3 = setTimeout(() => {
+      const e = getActivePageEntityName();
+      if (e) setEntityTitle(e);
+    }, 1200);
+
+    // DOM observer for title changes / user edits while panel is open
+    let observer: MutationObserver | null = null;
+    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+      observer = new MutationObserver(() => {
+        const e = getActivePageEntityName();
+        if (e) {
+          setEntityTitle((prev) => (prev !== e ? e : prev));
+        }
+      });
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['data-entity-title', 'value'],
+      });
+    }
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      observer?.disconnect();
+    };
+  }, [open, currentPathname]);
+
+  const displayTitle = React.useMemo(() => {
+    if (context.titleFn) {
+      return context.titleFn(entityTitle);
+    }
+    return context.title || 'How can we help on this page?';
+  }, [context, entityTitle]);
+
   useEffect(() => {
     onContextResolved?.(context);
   }, [context, onContextResolved]);
@@ -287,10 +351,110 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     ? currentTab
     : 'run';
 
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    if (typeof window === 'undefined') return width || 380;
+    try {
+      const stored = localStorage.getItem(ASK_AI_PANEL_WIDTH_STORAGE_KEY);
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed >= MIN_ASK_AI_PANEL_WIDTH && parsed <= MAX_ASK_AI_PANEL_WIDTH) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return width || 380;
+  });
+
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Sync prop changes if caller passes an explicit width prop different from current default
+  const prevWidthPropRef = useRef(width);
+  useEffect(() => {
+    if (width !== prevWidthPropRef.current) {
+      prevWidthPropRef.current = width;
+      setPanelWidth(width);
+    }
+  }, [width]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startW = panelWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = startX - moveEvent.clientX;
+      const maxAllowed = Math.min(MAX_ASK_AI_PANEL_WIDTH, (window.innerWidth || 1200) - 40);
+      const nextWidth = Math.round(
+        Math.max(MIN_ASK_AI_PANEL_WIDTH, Math.min(maxAllowed, startW + deltaX))
+      );
+      setPanelWidth(nextWidth);
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--ask-ai-panel-width', `${nextWidth}px`);
+      }
+    };
+
+    const handleMouseUp = (upEvent: MouseEvent) => {
+      setIsResizing(false);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      const deltaX = startX - upEvent.clientX;
+      const maxAllowed = Math.min(MAX_ASK_AI_PANEL_WIDTH, (window.innerWidth || 1200) - 40);
+      const finalWidth = Math.round(
+        Math.max(MIN_ASK_AI_PANEL_WIDTH, Math.min(maxAllowed, startW + deltaX))
+      );
+      try {
+        localStorage.setItem(ASK_AI_PANEL_WIDTH_STORAGE_KEY, String(finalWidth));
+      } catch {}
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [panelWidth]);
+
+  const handleTouchResizeStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    setIsResizing(true);
+    const startX = e.touches[0].clientX;
+    const startW = panelWidth;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.touches.length !== 1) return;
+      const deltaX = startX - moveEvent.touches[0].clientX;
+      const maxAllowed = Math.min(MAX_ASK_AI_PANEL_WIDTH, (window.innerWidth || 1200) - 40);
+      const nextWidth = Math.round(
+        Math.max(MIN_ASK_AI_PANEL_WIDTH, Math.min(maxAllowed, startW + deltaX))
+      );
+      setPanelWidth(nextWidth);
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--ask-ai-panel-width', `${nextWidth}px`);
+      }
+    };
+
+    const handleTouchEnd = (endEvent: TouchEvent) => {
+      setIsResizing(false);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      const clientX = endEvent.changedTouches[0]?.clientX ?? startX;
+      const deltaX = startX - clientX;
+      const maxAllowed = Math.min(MAX_ASK_AI_PANEL_WIDTH, (window.innerWidth || 1200) - 40);
+      const finalWidth = Math.round(
+        Math.max(MIN_ASK_AI_PANEL_WIDTH, Math.min(maxAllowed, startW + deltaX))
+      );
+      try {
+        localStorage.setItem(ASK_AI_PANEL_WIDTH_STORAGE_KEY, String(finalWidth));
+      } catch {}
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+  }, [panelWidth]);
+
   const effectiveWidth =
     safeActiveTab === 'localLLM'
-      ? Math.max(width, 520)
-      : width;
+      ? Math.max(panelWidth, 520)
+      : panelWidth;
 
   const effectiveSideshift = sideshift !== undefined ? sideshift : (context.sideshift ?? true);
 
@@ -376,16 +540,43 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             display: 'flex',
             flexDirection: 'column',
             transform: isVisible ? 'translateX(0)' : 'translateX(100%)',
-            transition:
-              'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s ease',
+            transition: isResizing
+              ? 'none'
+              : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s ease',
             pointerEvents: isVisible ? 'auto' : 'none',
             visibility: isVisible ? 'visible' : 'hidden',
             boxSizing: 'border-box',
             overflow: 'hidden',
+            userSelect: isResizing ? 'none' : 'auto',
           },
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
       >
+        {/* Left-edge Resize Handle */}
+        <Box
+          onMouseDown={handleResizeStart}
+          onTouchStart={handleTouchResizeStart}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize Ask AI panel"
+          sx={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: 8,
+            cursor: 'col-resize',
+            zIndex: 1300,
+            transition: 'background-color 0.15s ease',
+            userSelect: 'none',
+            display: { xs: 'none', sm: 'block' },
+            '&:hover, &:active': {
+              bgcolor: 'hsl(var(--primary) / 0.35)',
+            },
+            ...(isResizing ? { bgcolor: 'hsl(var(--primary) / 0.55)' } : {}),
+          }}
+        />
+
         {/* Top Header Bar */}
         <Box
           sx={{
@@ -604,10 +795,9 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             <Box
               sx={{
                 flex: 1,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                px: 1.5,
-                pb: 2,
+                overflow: 'hidden',
+                px: 0,
+                pb: 0,
                 minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
@@ -615,15 +805,16 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
             >
               <AgentUI
                 key={context.storageKey}
+                sidebarLayout={true}
                 compact={true}
                 mobileView={true}
                 hideHeroIcon={true}
-                title={context.title || 'How can we help on this page?'}
+                title={displayTitle}
                 subtitle={null}
                 hideChooseLLM={false}
                 disableSchedule={true}
                 hideAttach={false}
-                maxWidth={effectiveWidth - 32}
+                maxWidth={effectiveWidth}
                 defaultApps={context.apps}
                 initialPresetId={context.presetId}
                 placeholder={context.placeholder}
@@ -637,12 +828,12 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 {...agentUIProps}
                 sx={{
                   flex: 1,
-                  minHeight: '100%',
+                  height: '100%',
+                  minHeight: 0,
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'center',
                   pt: 0,
-                  pb: 2,
+                  pb: 0,
                   ...(agentUIProps?.sx
                     ? Array.isArray(agentUIProps.sx)
                       ? {}

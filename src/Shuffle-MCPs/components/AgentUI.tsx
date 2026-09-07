@@ -656,6 +656,7 @@ import {
   resolveConnectedTools,
   mergeConnectedTools,
   setCachedConnectedTools,
+  MAX_AUTO_ASSIGNED_TOOLS,
   type ConnectedToolApp,
 } from '@/Shuffle-MCPs/connectedSourcesService';
 import { getPageContextChoice } from '@/Shuffle-MCPs/agentContextRegistry';
@@ -849,7 +850,35 @@ export interface AgentUIProps {
   contextCategory?: 'incidents' | 'vulnerabilities' | string;
   /** Storage key of the active page context to detect user overrides */
   contextStorageKey?: string;
+  /**
+   * When true, applies the dedicated Ask AI sidebar layout:
+   * - Pins run switcher directly beneath the panel header
+   * - Locks continuation form to the bottom of the sidebar
+   * - Provides independent scroll container for middle content without top clipping
+   */
+  sidebarLayout?: boolean;
 }
+
+/** Set of confirmed live built-in Shuffle services that are always available in the platform */
+export const VERIFIED_BUILTIN_APPS = new Set<string>([
+  'shuffle_incidents',
+  'shuffle_workflows',
+  'shuffle_workflows_builder',
+  'shuffle_datastore',
+  'shuffle_tools',
+  'shuffle_detection',
+  'shuffle_sensors',
+  'shuffle_host_monitors',
+  'shuffle_monitors',
+  'shuffle_files',
+  'shuffle_apps',
+  'shuffles_app_management',
+  'http',
+  'webhook',
+  'email',
+  'core',
+  'singul',
+]);
 
 interface ExecutionData {
   execution_id?: string;
@@ -2096,6 +2125,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   contextStorageKey,
   isSupport,
   presetCtas,
+  sidebarLayout = false,
 }) => {
   const isEffectiveSupport = isSupport !== undefined ? isSupport : isSupportUser();
 
@@ -2493,12 +2523,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
     { name: 'http' },
     { name: 'shuffle_tools' },
   ];
-  // Without a template, the user's own tool selection is remembered under the
-  // NO_PRESET bucket — otherwise removing `http` / `shuffle_tools` would be
-  // undone by the built-in defaults on every reload.
-  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(
-    apps ?? defaultApps ?? readPresetAppsOverride(NO_PRESET_KEY) ?? BUILTIN_DEFAULT_APPS,
-  );
+  const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(() => {
+    if (apps) return apps;
+    const saved = readPresetAppsOverride(NO_PRESET_KEY);
+    if (saved) return saved;
+    if (defaultApps) return defaultApps.slice(0, MAX_AUTO_ASSIGNED_TOOLS);
+    return BUILTIN_DEFAULT_APPS;
+  });
 
   // Apps the caller has authenticated — used to resolve icons by name and as
   // suggestions in the picker. NOT auto-selected as `chosenApps`.
@@ -2686,9 +2717,32 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // execution_id, so the "Agent is working… Xs" counter starts ticking
   // immediately — even before the backend echoes `started_at` back to us.
   const [localRunStart, setLocalRunStart] = useState<number | null>(null);
-  const chipBarRef = useRef<HTMLDivElement>(null);
+  const chipBarRef = useRef<HTMLDivElement | null>(null);
+  const chipBarResizeObserverRef = useRef<ResizeObserver | null>(null);
   const [chipBarMultiline, setChipBarMultiline] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const chipBarCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    chipBarRef.current = node;
+    chipBarResizeObserverRef.current?.disconnect();
+    if (!node) return;
+
+    const measure = () => {
+      // Single line height with p: 0.5 and 28px chips is <= 40px.
+      // If clientHeight or scrollHeight exceeds 40px, it has wrapped to 2+ lines.
+      const isMulti = node.clientHeight > 40 || node.scrollHeight > 40;
+      setChipBarMultiline(isMulti);
+    };
+
+    measure();
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => {
+        measure();
+      });
+      ro.observe(node);
+      chipBarResizeObserverRef.current = ro;
+    }
+  }, []);
   // Tracks the execution_id we currently want to display. Used to discard
   // stale poll responses from a previous run after the user has started a
   // new one (otherwise an in-flight fetch can repaint the old execution).
@@ -2732,17 +2786,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
   stateRef.current.localRunStart = localRunStart;
   stateRef.current.showStarter = showStarter;
 
-  // The app-picker chip bar uses a pill radius when it fits on one line, but
-  // when it wraps to multiple lines the 999px radius becomes comically large.
-  // Measure the rendered height and switch to a fixed corner radius.
-  useLayoutEffect(() => {
+  // Ensure multiline status stays reactive when apps/presets change
+  useEffect(() => {
     const el = chipBarRef.current;
-    if (!el) return;
-    const update = () => setChipBarMultiline(el.clientHeight > 44);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
+    if (el) {
+      setChipBarMultiline(el.clientHeight > 40 || el.scrollHeight > 40);
+    }
+  }, [chosenApps, availableApps, selectedPreset]);
+
+  useEffect(() => {
+    return () => {
+      chipBarResizeObserverRef.current?.disconnect();
+    };
   }, []);
 
   // Reset / capture the local run start. Seed as soon as the user submits
@@ -3073,7 +3128,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
       let connectedTools: ConnectedToolApp[] = [];
       if (effectiveCategory) {
-        connectedTools = resolveConnectedTools(effectiveCategory, list, wfResult);
+        connectedTools = resolveConnectedTools(effectiveCategory, list, wfResult, MAX_AUTO_ASSIGNED_TOOLS);
         if (connectedTools.length > 0) {
           setCachedConnectedTools(effectiveCategory, connectedTools);
         }
@@ -3086,9 +3141,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
         const savedChoice = contextStorageKey ? getPageContextChoice(contextStorageKey) : null;
         let baseList = prev;
 
-        // If user hasn't explicitly customized apps on this page, merge connected tools
+        // If user hasn't explicitly customized apps on this page, merge connected tools (max 4 tools)
         if (!savedChoice?.apps && connectedTools.length > 0) {
-          const merged = mergeConnectedTools(prev, connectedTools);
+          const merged = mergeConnectedTools(prev, connectedTools, MAX_AUTO_ASSIGNED_TOOLS);
           if (merged.length !== prev.length || merged.some((m, idx) => prev[idx]?.name !== m.name)) {
             baseList = merged;
             changed = true;
@@ -5615,8 +5670,74 @@ const AgentUI: React.FC<AgentUIProps> = ({
     </Popover>
   ) : null;
 
-  // ── Render ──
+  // Continuation form (after a finish decision)
+  const continuationElement = (finishDecisionId && !optimisticRunning) ? (
+    <Box sx={{ width: '100%', maxWidth: 640, mx: 'auto' }}>
+      <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mb: 0.75, textAlign: 'center' }}>
+        Continue this agent run with more details
+      </Typography>
+      <Box
+        component="form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (continuationText.trim()) {
+            submitQuestions(finishDecisionId, { continue: continuationText }, true);
+          }
+        }}
+        sx={{
+          display: 'flex', alignItems: 'flex-end', gap: 1,
+          p: 1.25, borderRadius: 999,
+          border: '1.5px solid hsl(var(--border))',
+          bgcolor: 'hsl(var(--card))',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          '&:focus-within': {
+            borderColor: 'hsl(var(--primary))',
+            boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
+          },
+          ...(continueHighlighted && {
+            borderColor: 'hsl(var(--primary))',
+            boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
+          }),
+        }}
+      >
+        <InputBase
+          fullWidth
+          multiline
+          minRows={1}
+          maxRows={4}
+          placeholder={continuationPlaceholder}
+          inputRef={continuationInputRef}
+          autoFocus
+          value={continuationText}
+          onChange={(e) => setContinuationText(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              e.preventDefault();
+              if (continuationText.trim() && !agentRequestLoading) {
+                submitQuestions(finishDecisionId, { continue: continuationText }, true);
+              }
+            }
+          }}
+          disabled={agentRequestLoading}
+          sx={{ fontSize: '0.9rem', color: 'hsl(var(--foreground))', px: 2 }}
+        />
+        <IconButton
+          type="submit"
+          disabled={!continuationText.trim() || agentRequestLoading}
+          sx={{
+            width: 36, height: 36,
+            bgcolor: continuationText.trim() && !agentRequestLoading ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+            color: continuationText.trim() && !agentRequestLoading ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+            '&:hover': continuationText.trim() && !agentRequestLoading ? { filter: 'brightness(1.1)', bgcolor: 'hsl(var(--primary))' } : {},
+          }}
+        >
+          {agentRequestLoading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <SendIcon size={18} />}
+        </IconButton>
+      </Box>
+    </Box>
+  ) : null;
 
+  // ── Render ──
 
   return (
     <Box
@@ -5624,28 +5745,58 @@ const AgentUI: React.FC<AgentUIProps> = ({
       sx={[
         {
           width: '100%',
+          height: sidebarLayout ? '100%' : undefined,
           display: 'flex',
-          justifyContent: 'center',
-          pb: isPhone ? 1 : 4,
-          ...(isPhone && showStarter ? { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' } : {}),
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: sidebarLayout ? 'flex-start' : 'center',
+          overflow: sidebarLayout ? 'hidden' : undefined,
+          pb: sidebarLayout ? 0 : (isPhone ? 1 : 4),
+          ...(isPhone && showStarter && !sidebarLayout ? { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
+      {/* Pinned Top Bar in Sidebar Layout */}
+      {sidebarLayout && showRunSwitcher && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            width: '100%',
+            py: 1,
+            px: 1.5,
+            display: 'flex',
+            justifyContent: 'center',
+            borderBottom: '1px solid hsl(var(--border) / 0.5)',
+            bgcolor: 'hsl(var(--card))',
+            zIndex: 10,
+          }}
+        >
+          {tabBar}
+        </Box>
+      )}
+
+      {/* Middle Scrollable Container */}
       <Box
         sx={[
           {
             width: '100%',
-            maxWidth,
+            maxWidth: sidebarLayout ? '100%' : maxWidth,
             display: 'flex',
             flexDirection: 'column',
-            gap: isPhone ? 1.5 : 3,
-            ...(isPhone && showStarter ? { flex: 1, justifyContent: 'center' } : {}),
+            flex: sidebarLayout ? 1 : (isPhone && showStarter ? 1 : undefined),
+            minHeight: sidebarLayout ? 0 : undefined,
+            overflowY: sidebarLayout ? 'auto' : undefined,
+            overflowX: sidebarLayout ? 'hidden' : undefined,
+            gap: isPhone ? 1.5 : (sidebarLayout ? 2 : 3),
+            px: sidebarLayout ? 1.5 : 0,
+            pb: sidebarLayout ? 1.5 : 0,
+            ...(isPhone && showStarter && !sidebarLayout ? { flex: 1, justifyContent: 'center' } : {}),
           },
           ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
         ]}
       >
-        {showRunSwitcher && tabBar}
+        {!sidebarLayout && showRunSwitcher && tabBar}
         {schedulePopover}
         {mobilePlusMenu}
         {showStarter ? (
@@ -5659,7 +5810,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
               gap: isPhone ? 1.5 : (compact ? 2 : 3),
               py: isPhone ? 1 : (compact ? 2 : 4),
               width: '100%',
-              ...(isPhone ? { flex: 1, justifyContent: 'center', marginTop: compact ? '-16px' : '-50px' } : {}),
+              ...(sidebarLayout
+                ? { my: 'auto' }
+                : (isPhone ? { flex: 1, justifyContent: 'center', marginTop: compact ? '-16px' : '-50px' } : {})),
             }}
           >
             {!hideHeroIcon && !compact && !isPhone && (
@@ -6303,14 +6456,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
             {!hideAppPicker && (
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Box
-                ref={chipBarRef}
+                ref={chipBarCallbackRef}
                 sx={{
                   display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5,
-                  p: 0.5,
-                  borderRadius: chipBarMultiline ? '12px' : 999,
+                  p: chipBarMultiline ? 0.75 : 0.5,
+                  borderRadius: chipBarMultiline ? '20px' : 999,
                   border: '1px solid hsl(var(--border))',
                   bgcolor: 'hsl(var(--card))',
                   maxWidth: '100%',
+                  transition: 'border-radius 0.15s ease, padding 0.15s ease',
                 }}
               >
                 {!hideChooseLLM && (
@@ -6414,17 +6568,28 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 </Tooltip>
                 {chosenApps.map((app, i) => {
                   const slug = normalizeAgentAppName(app.name || '');
-                                const needsAuth = !authAppsLoading && appRequiresAuthentication(slug) && !isAppAuthenticated(app.name || '', app.id || null);
+                  const needsAuth = !authAppsLoading && appRequiresAuthentication(slug) && !isAppAuthenticated(app.name || '', app.id || null);
+                  const isVerifiedBuiltin = VERIFIED_BUILTIN_APPS.has(slug);
+                  const isAvailable =
+                    isVerifiedBuiltin ||
+                    availableApps.some((a) => {
+                      if (app.id && a.id && String(a.id) === String(app.id)) return true;
+                      return !!app.name && normalizeAgentAppName(a.name || '') === slug;
+                    });
+                  const isUnavailable = !authAppsLoading && !isAvailable && !needsAuth;
                   const isRequired = isRequiredPresetApp(selectedPreset, app.name || '');
+                  const appDisplayName = (app.name || '').replace(/_/g, ' ');
                   return (
                   <Tooltip
                     key={`${app.name}-${i}`}
                     title={
                       isRequired
-                        ? `${(app.name || '').replace(/_/g, ' ')} is required by the ${selectedPreset?.label} skill and cannot be removed`
-                        : needsAuth
-                          ? `${(app.name || '').replace(/_/g, ' ')} is not authenticated yet — click to set it up`
-                          : `Open ${(app.name || '').replace(/_/g, ' ')}`
+                        ? `${appDisplayName} is required by the ${selectedPreset?.label} skill and cannot be removed`
+                        : isUnavailable
+                          ? `${appDisplayName} is not configured or available in this workspace — click to view`
+                          : needsAuth
+                            ? `${appDisplayName} is not authenticated yet — click to set it up`
+                            : `Open ${appDisplayName}`
                     }
                     arrow
                   >
@@ -6436,13 +6601,27 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       pr: isPhone ? 0.375 : 0.75,
                       py: 0.25,
                       borderRadius: 999,
-                      bgcolor: needsAuth ? 'hsl(var(--severity-medium) / 0.12)' : 'hsl(var(--muted) / 0.6)',
-                      border: needsAuth ? '1px solid hsl(var(--severity-medium) / 0.55)' : '1px solid transparent',
+                      bgcolor: isUnavailable
+                        ? 'hsl(var(--severity-medium) / 0.08)'
+                        : needsAuth
+                          ? 'hsl(var(--severity-medium) / 0.12)'
+                          : 'hsl(var(--muted) / 0.6)',
+                      border: isUnavailable
+                        ? '1px dashed hsl(var(--severity-medium) / 0.7)'
+                        : needsAuth
+                          ? '1px solid hsl(var(--severity-medium) / 0.55)'
+                          : '1px solid transparent',
                       fontSize: '0.8rem',
                       color: 'hsl(var(--foreground))',
                       cursor: !agentRequestLoading ? 'pointer' : 'default',
                       transition: 'background-color 0.12s ease',
-                      '&:hover': !agentRequestLoading ? { bgcolor: needsAuth ? 'hsl(var(--severity-medium) / 0.18)' : 'hsl(var(--muted) / 0.9)' } : {},
+                      '&:hover': !agentRequestLoading ? {
+                        bgcolor: isUnavailable
+                          ? 'hsl(var(--severity-medium) / 0.16)'
+                          : needsAuth
+                            ? 'hsl(var(--severity-medium) / 0.18)'
+                            : 'hsl(var(--muted) / 0.9)',
+                      } : {},
                     }}
                   >
                     {(() => {
@@ -6466,7 +6645,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         {app.name.replace(/_/g, ' ')}
                       </Typography>
                     )}
-                    {needsAuth && (
+                    {(needsAuth || isUnavailable) && (
                       <WarningIcon size={14} color={'hsl(var(--severity-medium))'} style={{ marginRight: 2 }} />
                     )}
                     {isRequired ? (
@@ -6600,7 +6779,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
             )}
           </Box>
         ) : (
-          <Box sx={{ pb: '200px' }}>
+          <Box sx={{ pb: sidebarLayout ? 1.5 : '200px' }}>
             {/* Status row */}
             <Box sx={{
               display: 'flex', alignItems: 'center', gap: 2,
@@ -7264,72 +7443,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
               );
             })()}
 
-            {/* Continuation form (after a finish decision) */}
-            {finishDecisionId && !optimisticRunning && (
+            {/* Continuation form (after a finish decision) - in standard layout */}
+            {!sidebarLayout && continuationElement && (
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                <Box sx={{ width: '100%', maxWidth: 640 }}>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', mb: 0.75, textAlign: 'center' }}>
-                    Continue this agent run with more details
-                  </Typography>
-                <Box
-                  component="form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (continuationText.trim()) {
-                      submitQuestions(finishDecisionId, { continue: continuationText }, true);
-                    }
-                  }}
-                  sx={{
-                    display: 'flex', alignItems: 'flex-end', gap: 1,
-                    p: 1.25, borderRadius: 999,
-                    border: '1.5px solid hsl(var(--border))',
-                    bgcolor: 'hsl(var(--card))',
-                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                    '&:focus-within': {
-                      borderColor: 'hsl(var(--primary))',
-                      boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
-                    },
-                    ...(continueHighlighted && {
-                      borderColor: 'hsl(var(--primary))',
-                      boxShadow: '0 0 0 3px hsla(var(--primary) / 0.12)',
-                    }),
-                  }}
-                >
-                  <InputBase
-                    fullWidth
-                    multiline
-                    minRows={1}
-                    maxRows={4}
-                    placeholder={continuationPlaceholder}
-                    inputRef={continuationInputRef}
-                    autoFocus
-                    value={continuationText}
-                    onChange={(e) => setContinuationText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                        e.preventDefault();
-                        if (continuationText.trim() && !agentRequestLoading) {
-                          submitQuestions(finishDecisionId, { continue: continuationText }, true);
-                        }
-                      }
-                    }}
-                    disabled={agentRequestLoading}
-                    sx={{ fontSize: '0.9rem', color: 'hsl(var(--foreground))', px: 2 }}
-                  />
-                  <IconButton
-                    type="submit"
-                    disabled={!continuationText.trim() || agentRequestLoading}
-                    sx={{
-                      width: 36, height: 36,
-                      bgcolor: continuationText.trim() && !agentRequestLoading ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                      color: continuationText.trim() && !agentRequestLoading ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                      '&:hover': continuationText.trim() && !agentRequestLoading ? { filter: 'brightness(1.1)', bgcolor: 'hsl(var(--primary))' } : {},
-                    }}
-                  >
-                    {agentRequestLoading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <SendIcon size={18} />}
-                  </IconButton>
-                </Box>
-                </Box>
+                {continuationElement}
               </Box>
             )}
           </Box>
@@ -7438,6 +7555,24 @@ const AgentUI: React.FC<AgentUIProps> = ({
           colorMode={colorMode}
         />
       </Box>
+
+      {/* Pinned Bottom Footer in Sidebar Layout */}
+      {sidebarLayout && continuationElement && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            width: '100%',
+            px: 1.5,
+            pt: 1,
+            pb: 1.5,
+            borderTop: '1px solid hsl(var(--border) / 0.5)',
+            bgcolor: 'hsl(var(--card))',
+            zIndex: 10,
+          }}
+        >
+          {continuationElement}
+        </Box>
+      )}
     </Box>
   );
 };

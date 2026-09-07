@@ -647,11 +647,6 @@ const parseIncidentFromDatastore = (item: { key: string; value: string; created?
 const Section = IncidentSection;
 
 const IncidentDetailPage = () => {
-
-  usePageMeta({
-    title: 'Incident',
-    description: 'Incident details, observables, correlations, timeline, and AI agent triage.',
-  });
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -789,6 +784,23 @@ const IncidentDetailPage = () => {
   
   // Editable fields
   const [editedTitle, setEditedTitle] = useState('');
+  const currentIncidentTitle = (editedTitle || incident?.title || '').trim();
+
+  usePageMeta({
+    title: currentIncidentTitle ? `${currentIncidentTitle} | Incident` : 'Incident',
+    description: 'Incident details, observables, correlations, timeline, and AI agent triage.',
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__shuffleActiveEntityTitle = currentIncidentTitle || undefined;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        (window as any).__shuffleActiveEntityTitle = undefined;
+      }
+    };
+  }, [currentIncidentTitle]);
   const [editedMessage, setEditedMessage] = useState('');
   const [editedSeverity, setEditedSeverity] = useState('');
   const [editedAssignee, setEditedAssignee] = useState('');
@@ -8875,14 +8887,19 @@ const IncidentDetailPage = () => {
           </Box>
 
           {/* Title and meta */}
-          <Box sx={{ flex: 1, minWidth: 0 }} data-tour="incident-title" data-incident-field="title">
+          <Box
+            sx={{ flex: 1, minWidth: 0 }}
+            data-tour="incident-title"
+            data-incident-field="title"
+            data-entity-title={currentIncidentTitle}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <TextField
                 value={editedTitle}
                 onChange={(e) => !isPublicView && setEditedTitle(e.target.value)}
                 variant="standard"
                 placeholder="Enter title..."
-                inputProps={{ readOnly: isPublicView }}
+                inputProps={{ readOnly: isPublicView, 'data-entity-title': currentIncidentTitle }}
                 InputProps={{
                   disableUnderline: true,
                   sx: { 
@@ -12057,7 +12074,7 @@ const IncidentDetailPage = () => {
         onClose={() => { if (!isMoving) setShowMoveDialog(false); }}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' } }}
+        PaperProps={{ sx: { bgcolor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', maxWidth: 480, borderRadius: 2 } }}
       >
         <DialogTitle sx={{ color: 'hsl(var(--foreground))' }}>Move to Tenant</DialogTitle>
         <DialogContent>

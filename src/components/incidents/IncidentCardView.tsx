@@ -954,7 +954,7 @@ export const IncidentCardView = ({
                 )}
               </Box>
             )}
-            {orgFilterNames && orgFilterNames.length > 0 && totalOrgCount && totalOrgCount > orgFilterNames.length && (
+            {isParentOrg && orgFilterNames && orgFilterNames.length > 0 && totalOrgCount && totalOrgCount > orgFilterNames.length && (
               <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
                 Showing {orgFilterNames.length} of {totalOrgCount} tenant{totalOrgCount > 1 ? 's' : ''}: {orgFilterNames.join(', ')}
               </Typography>

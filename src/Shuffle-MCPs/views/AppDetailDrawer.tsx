@@ -32,6 +32,7 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Alert,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { AppAuthCard, isNoAuthRequired, type AppAuthentication } from '@/Shuffle-MCPs/components/AppAuthConfig';
@@ -120,17 +121,46 @@ interface AppDetailDrawerProps extends ShuffleHostProps {
   width?: number;
   /** Called when drawer closes so parent can refresh data */
   onRefresh?: () => void;
-  /** When set, replaces the Activate button with "+ Add" and calls this on click */
-  onAddToCanvas?: (appInfo: { name: string; icon: string; algoliaId: string | null }) => void;
-  /** Whether the current user is authenticated. Defaults to true. */
+  onAddToCanvas?: (app: { name: string; icon: string; algoliaId?: string | null }) => void;
   isAuthenticated?: boolean;
-  /** Host app's currently active org id. If different from the library's tracked org,
-   *  an `Org-Id` header is injected into the Singul curl preview. */
   activeOrgId?: string | null;
   /** When true, automatically fire the Activate action once the app is loaded
    *  and not yet activated. Used when the drawer is opened from a flow that
    *  expects the app to be wired up immediately (e.g. Usecases tool picker). */
   autoActivate?: boolean;
+}
+
+/**
+ * Compares a requested app name against a resolved app name to determine if they match,
+ * close-match (e.g. slight naming variant), or mismatch.
+ */
+export function checkAppNameMatch(
+  requested?: string | null,
+  resolved?: string | null
+): {
+  isMatch: boolean;
+  isCloseMatch: boolean;
+  mismatch: boolean;
+} {
+  if (!requested || !resolved) return { isMatch: true, isCloseMatch: true, mismatch: false };
+  const norm = (s: string) => s.toLowerCase().trim().replace(/[\s_\-]+/g, '');
+  const req = norm(requested);
+  const res = norm(resolved);
+  if (req === res) return { isMatch: true, isCloseMatch: true, mismatch: false };
+
+  // Strip prefixes like "shuffle" or "shuffles"
+  const stripPrefix = (s: string) => s.replace(/^shuffles?/, '');
+  const reqCore = stripPrefix(req);
+  const resCore = stripPrefix(res);
+
+  if (reqCore && resCore) {
+    if (reqCore === resCore) return { isMatch: true, isCloseMatch: true, mismatch: false };
+    if (reqCore.includes(resCore) || resCore.includes(reqCore)) {
+      return { isMatch: false, isCloseMatch: true, mismatch: false };
+    }
+  }
+
+  return { isMatch: false, isCloseMatch: false, mismatch: true };
 }
 
 export default function AppDetailDrawer({
@@ -172,6 +202,7 @@ export default function AppDetailDrawer({
   const lastNoAuthRequiredRef = useRef<boolean | null>(null);
   const [incidentStats, setIncidentStats] = useState<{ ingested: number; forwarded: number } | null>(null);
   const [appNotFound, setAppNotFound] = useState(false);
+  const [isNameMismatch, setIsNameMismatch] = useState(false);
   const [configError, setConfigError] = useState<{ status: number; message: string } | null>(null);
 
   const {
@@ -220,13 +251,17 @@ export default function AppDetailDrawer({
           requests: [{ indexName: 'appsearch', query: searchName, hitsPerPage: 10 }],
         });
         const hits = (res as any)?.results?.[0]?.hits || [];
-        return (
+        const exact =
           (appId && hits.find((h: any) => h.objectID === appId)) ||
           hits.find((h: any) =>
             h.name?.toLowerCase().replace(/[\s_\-]+/g, '_') === normalizedName
-          ) ||
-          (hits.length > 0 ? hits[0] : null)
-        );
+          );
+        if (exact) return { hit: exact, isFallback: false };
+
+        const close = hits.find((h: any) => checkAppNameMatch(appName, h.name).isCloseMatch);
+        if (close) return { hit: close, isFallback: false };
+
+        return hits.length > 0 ? { hit: hits[0], isFallback: true } : null;
       } catch {
         return null;
       }
@@ -259,6 +294,10 @@ export default function AppDetailDrawer({
       }
       if (configData?.name) {
         foundMatch = true;
+        const matchCheck = checkAppNameMatch(appName, configData.name);
+        if (matchCheck.mismatch) {
+          setIsNameMismatch(true);
+        }
         setAppInfo(prev => ({
           ...(prev || {}),
           ...configData,
@@ -268,13 +307,19 @@ export default function AppDetailDrawer({
       }
 
       // Merge in Algolia results for image/categories (and objectID if we didn't have one)
-      const match = await algoliaPromise;
+      const algoliaResult = await algoliaPromise;
       if (cancelled) return;
+      const match = algoliaResult?.hit || null;
+      const isFallback = Boolean(algoliaResult?.isFallback);
       if (match) {
         foundMatch = true;
         if (!algoliaId) {
           algoliaId = match.objectID;
           setResolvedAlgoliaId(match.objectID);
+        }
+        const matchCheck = checkAppNameMatch(appName, match.name);
+        if (isFallback || matchCheck.mismatch) {
+          setIsNameMismatch(true);
         }
         setAppInfo(prev => ({
           name: prev?.name || match.name || searchName,
@@ -342,11 +387,18 @@ export default function AppDetailDrawer({
         setIsActivated(false);
       }
 
-      setAppInfo(prev => prev ?? {
-        name: searchName,
-        description: '',
-        large_image: '',
-        categories: [],
+      setAppInfo(prev => {
+        const next = prev ?? {
+          name: searchName,
+          description: '',
+          large_image: '',
+          categories: [],
+        };
+        const finalCheck = checkAppNameMatch(appName, next.name);
+        if (finalCheck.mismatch) {
+          setIsNameMismatch(true);
+        }
+        return next;
       });
 
       setAppNotFound(!foundMatch);
@@ -595,7 +647,22 @@ export default function AppDetailDrawer({
             <Typography sx={{ color: 'hsl(var(--foreground))', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2, textTransform: 'capitalize' }}>
               {appLoading ? <Skeleton width={140} /> : displayName}
             </Typography>
-            {!appLoading && typeof appInfo?.actions?.length === 'number' && appInfo.actions.length > 0 && (
+            {!appLoading && isNameMismatch && (
+              <Chip
+                size="small"
+                label="Mismatch"
+                sx={{
+                  height: 20,
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  bgcolor: 'hsl(var(--severity-medium) / 0.15)',
+                  color: 'hsl(var(--severity-medium))',
+                  border: '1px solid hsl(var(--severity-medium) / 0.4)',
+                  '& .MuiChip-label': { px: 0.75 },
+                }}
+              />
+            )}
+            {!appLoading && !isNameMismatch && typeof appInfo?.actions?.length === 'number' && appInfo.actions.length > 0 && (
               <Chip
                 size="small"
                 label={`${appInfo.actions.length} action${appInfo.actions.length === 1 ? '' : 's'}`}
@@ -611,8 +678,8 @@ export default function AppDetailDrawer({
               />
             )}
           </Box>
-          <Typography sx={{ color: configError ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', fontSize: '0.75rem' }}>
-            {appLoading ? <Skeleton width={100} /> : (configError ? `Error ${configError.status || ''}`.trim() : (appNotFound ? 'App not found in catalog' : 'App configuration'))}
+          <Typography sx={{ color: (configError || isNameMismatch) ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))', fontSize: '0.75rem' }}>
+            {appLoading ? <Skeleton width={100} /> : (configError ? `Error ${configError.status || ''}`.trim() : (isNameMismatch ? `Unavailable — showing closest catalog match (${displayName})` : (appNotFound ? 'App not found in catalog' : 'App configuration')))}
           </Typography>
         </Box>
         <IconButton
@@ -684,6 +751,29 @@ export default function AppDetailDrawer({
                   </Typography>
                 </Box>
               </Box>
+            )}
+            {/* App Mismatch & Availability Warning */}
+            {isNameMismatch && (
+              <Alert
+                severity="warning"
+                icon={<ErrorOutlineIcon size={18} style={{ color: 'hsl(var(--severity-medium))' }} />}
+                sx={{
+                  mb: 2.5,
+                  borderRadius: 2,
+                  border: '1px solid hsl(var(--severity-medium) / 0.4)',
+                  bgcolor: 'hsl(var(--severity-medium) / 0.08)',
+                  color: 'hsl(var(--foreground))',
+                  '& .MuiAlert-message': { width: '100%' },
+                }}
+              >
+                <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', mb: 0.25, color: 'hsl(var(--foreground))' }}>
+                  App Name Mismatch — Unavailable in Catalog
+                </Typography>
+                <Typography sx={{ fontSize: '0.76rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.45 }}>
+                  You requested <strong>&ldquo;{(appName || '').replace(/_/g, ' ')}&rdquo;</strong>, but it is not available in the catalog. 
+                  Showing the closest match <strong>&ldquo;{displayName}&rdquo;</strong>. Actions and authentication configured here will apply to <strong>{displayName}</strong>.
+                </Typography>
+              </Alert>
             )}
             {/* App header */}
             <AppTitleHeader
@@ -782,9 +872,9 @@ export default function AppDetailDrawer({
             {isAuthenticated && (
               <>
                 <TryMcpSection
-                  appName={appName || ''}
+                  appName={isNameMismatch ? displayName : (appName || '')}
                   appIcon={resolvedImage}
-                  appId={matchingEntries[0]?.app?.id || matchingEntries[0]?.id || appName || ''}
+                  appId={isNameMismatch ? (resolvedAlgoliaId || (appInfo as any)?.id || '') : (matchingEntries[0]?.app?.id || matchingEntries[0]?.id || appName || '')}
                   categories={appInfo?.categories}
                   globalUrl={globalUrl}
                   userdata={userdata}
@@ -795,7 +885,7 @@ export default function AppDetailDrawer({
                   colorMode={colorMode}
                 />
                 <SingulActionsPreview
-                  appName={appName || ''}
+                  appName={isNameMismatch ? displayName : (appName || '')}
                   appIcon={resolvedImage}
                   categories={appInfo?.categories}
                   activeOrgId={activeOrgId}

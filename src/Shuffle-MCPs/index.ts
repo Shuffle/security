@@ -56,7 +56,7 @@ const withMcpThemeRef = <P extends object, R>(Inner: React.ForwardRefExoticCompo
 };
 
 import { ShuffleMCP as ShuffleMCPRaw } from '@/Shuffle-MCPs/views/ShuffleMCP';
-import AppDetailDrawerRaw from '@/Shuffle-MCPs/views/AppDetailDrawer';
+import AppDetailDrawerRaw, { checkAppNameMatch } from '@/Shuffle-MCPs/views/AppDetailDrawer';
 import AppSearchDrawerRaw from '@/Shuffle-MCPs/views/AppSearchDrawer';
 import AiAgentPromptsEditorRaw from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
 import ShufflePipelinesBannerRaw from '@/Shuffle-MCPs/components/ShufflePipelinesBanner';
@@ -64,7 +64,7 @@ import AppTitleHeaderRaw from '@/Shuffle-MCPs/components/AppTitleHeader';
 import AppAuthSectionRaw from '@/Shuffle-MCPs/components/AppAuthSection';
 import TryMcpSectionRaw from '@/Shuffle-MCPs/views/TryMcpSection';
 import SingulActionsPreviewRaw from '@/Shuffle-MCPs/components/SingulActionsPreview';
-import AgentUIRaw from '@/Shuffle-MCPs/components/AgentUI';
+import AgentUIRaw, { VERIFIED_BUILTIN_APPS } from '@/Shuffle-MCPs/components/AgentUI';
 import AgentRunDrawerRaw from '@/Shuffle-MCPs/components/AgentRunDrawer';
 import AgentActivityListRaw from '@/Shuffle-MCPs/components/AgentActivityList';
 import AgentExecutionDrawerRaw from '@/Shuffle-MCPs/components/AgentExecutionDrawer';
@@ -74,7 +74,11 @@ import LocalLLMConfigRaw from '@/Shuffle-MCPs/components/LocalLLMConfig';
 import AddAppModalRaw from '@/Shuffle-MCPs/components/AddAppModal';
 import AskAiButtonRaw from '@/Shuffle-MCPs/components/AskAiButton';
 import AskAiDrawerRaw from '@/Shuffle-MCPs/components/AskAiDrawer';
-import AskAiSidePanelRaw from '@/Shuffle-MCPs/components/AskAiSidePanel';
+import AskAiSidePanelRaw, {
+  ASK_AI_PANEL_WIDTH_STORAGE_KEY,
+  MIN_ASK_AI_PANEL_WIDTH,
+  MAX_ASK_AI_PANEL_WIDTH,
+} from '@/Shuffle-MCPs/components/AskAiSidePanel';
 import AskAiWidgetRaw from '@/Shuffle-MCPs/components/AskAiWidget';
 
 export { ShuffleMcpThemeProvider } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
@@ -86,6 +90,7 @@ export const ShuffleMCP = withMcpThemeRef(ShuffleMCPRaw as React.ForwardRefExoti
 export default ShuffleMCP;
 export type { ShuffleMCPHandle } from '@/Shuffle-MCPs/views/ShuffleMCP';
 export const AppDetailDrawer = withMcpTheme(AppDetailDrawerRaw as React.ComponentType<any>, 'AppDetailDrawer');
+export { checkAppNameMatch } from '@/Shuffle-MCPs/views/AppDetailDrawer';
 export const AppSearchDrawer = withMcpTheme(AppSearchDrawerRaw as React.ComponentType<any>, 'AppSearchDrawer');
 export const AiAgentPromptsEditor = withMcpTheme(AiAgentPromptsEditorRaw as React.ComponentType<any>, 'AiAgentPromptsEditor');
 export type { AiAgentPromptsEditorProps } from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
@@ -99,6 +104,7 @@ export type { TryMcpSectionProps } from '@/Shuffle-MCPs/views/TryMcpSection';
 export const SingulActionsPreview = withMcpTheme(SingulActionsPreviewRaw as React.ComponentType<any>, 'SingulActionsPreview');
 export const AgentUI = withMcpTheme(AgentUIRaw as React.ComponentType<any>, 'AgentUI');
 export type { AgentUIProps, AgentUIApp } from '@/Shuffle-MCPs/components/AgentUI';
+export { VERIFIED_BUILTIN_APPS } from '@/Shuffle-MCPs/components/AgentUI';
 export { AgentPresets, AGENT_PRESETS } from '@/Shuffle-MCPs/components/AgentPresets';
 export type { AgentPreset, AgentPresetsProps } from '@/Shuffle-MCPs/components/AgentPresets';
 export { AgentPromptPrefixChip } from '@/Shuffle-MCPs/components/AgentPromptPrefixChip';
@@ -117,6 +123,11 @@ export const AskAiDrawer = withMcpTheme(AskAiDrawerRaw as React.ComponentType<an
 export type { AskAiDrawerProps } from '@/Shuffle-MCPs/components/AskAiDrawer';
 export const AskAiSidePanel = withMcpTheme(AskAiSidePanelRaw as React.ComponentType<any>, 'AskAiSidePanel');
 export type { AskAiSidePanelProps } from '@/Shuffle-MCPs/components/AskAiSidePanel';
+export {
+  ASK_AI_PANEL_WIDTH_STORAGE_KEY,
+  MIN_ASK_AI_PANEL_WIDTH,
+  MAX_ASK_AI_PANEL_WIDTH,
+} from '@/Shuffle-MCPs/components/AskAiSidePanel';
 export const AskAiWidget = withMcpTheme(AskAiWidgetRaw as React.ComponentType<any>, 'AskAiWidget');
 export type { AskAiWidgetProps } from '@/Shuffle-MCPs/components/AskAiWidget';
 export { useContextAwareAgent } from '@/Shuffle-MCPs/components/AskAiWidget';
@@ -276,3 +287,14 @@ export type { UsageBarProps } from '@/Shuffle-MCPs/components/UsageBar';
 export { ShuffleMarkdown, default as Markdown } from './components/Markdown';
 export { VideoEmbed, resolveVideoUrl } from './components/VideoEmbed';
 export { MarkdownJsonBlock } from './components/Markdown';
+
+// Connected sources service
+export {
+  MAX_AUTO_ASSIGNED_TOOLS,
+  resolveConnectedTools,
+  mergeConnectedTools,
+  getCachedConnectedTools,
+  setCachedConnectedTools,
+  fetchConnectedTools,
+} from '@/Shuffle-MCPs/connectedSourcesService';
+export type { ConnectedToolApp } from '@/Shuffle-MCPs/connectedSourcesService';

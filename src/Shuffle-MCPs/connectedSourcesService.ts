@@ -6,18 +6,10 @@
  */
 
 import {
-  isVulnScannerApp,
   isIgnoredWorkflowAppName,
   normalizeAppName,
   findIngestTicketsWorkflow,
-  findForwardTicketsWorkflow,
   extractWorkflowAppNames,
-  CASES_PATTERNS,
-  COMMUNICATION_PATTERNS_NAMES,
-  SIEM_PATTERNS,
-  EDR_PATTERNS,
-  EMAIL_APP_PATTERNS,
-  VULN_SCANNER_PATTERNS,
 } from './ingestionDetection.ts';
 
 export interface ConnectedToolApp {
@@ -26,7 +18,8 @@ export interface ConnectedToolApp {
   icon?: string;
 }
 
-const CACHE_PREFIX = 'shuffle:connected_tools:';
+const CACHE_PREFIX = 'shuffle:connected_tools:v2:';
+const LEGACY_CACHE_PREFIX = 'shuffle:connected_tools:';
 
 /**
  * Retrieve cached connected tools from localStorage for immediate synchronous render.
@@ -35,6 +28,11 @@ export function getCachedConnectedTools(category?: string): ConnectedToolApp[] {
   if (!category) return [];
   try {
     if (typeof localStorage === 'undefined') return [];
+    try {
+      localStorage.removeItem(`${LEGACY_CACHE_PREFIX}${category}`);
+    } catch {
+      /* ignore storage remove errors */
+    }
     const raw = localStorage.getItem(`${CACHE_PREFIX}${category}`);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
@@ -57,45 +55,64 @@ export function setCachedConnectedTools(category: string, tools: ConnectedToolAp
   }
 }
 
+/** Maximum number of automatically assigned tools. */
+export const MAX_AUTO_ASSIGNED_TOOLS = 4;
+
 /**
- * Merge connected tools into a base app list without duplicating entries.
+ * Merge connected tools into a base app list without duplicating entries,
+ * capping automatically assigned tools at a maximum (default 4).
+ * If connected tools are available, they are prioritized alongside the primary base tool
+ * so that external integrations (e.g. Elastic Security, Qualys) are immediately visible.
  */
 export function mergeConnectedTools(
-  baseApps: ConnectedToolApp[],
-  connectedTools: ConnectedToolApp[],
+  baseApps: ConnectedToolApp[] = [],
+  connectedTools: ConnectedToolApp[] = [],
+  maxTools: number = MAX_AUTO_ASSIGNED_TOOLS,
 ): ConnectedToolApp[] {
-  if (!connectedTools || connectedTools.length === 0) return baseApps;
+  if ((!connectedTools || connectedTools.length === 0) && (!baseApps || baseApps.length === 0)) {
+    return [];
+  }
   const seen = new Set<string>();
   const merged: ConnectedToolApp[] = [];
 
-  for (const app of baseApps) {
-    if (!app?.name) continue;
+  const tryAdd = (app?: ConnectedToolApp) => {
+    if (!app?.name || merged.length >= maxTools) return;
     const norm = normalizeAppName(app.name);
-    if (!seen.has(norm)) {
-      seen.add(norm);
-      merged.push(app);
-    }
+    if (!norm || seen.has(norm) || isIgnoredWorkflowAppName(norm)) return;
+    seen.add(norm);
+    merged.push(app);
+  };
+
+  // 1. Primary base app first (e.g. shuffle_incidents, shuffle_vulnerabilities)
+  if (baseApps.length > 0) {
+    tryAdd(baseApps[0]);
   }
 
-  for (const app of connectedTools) {
-    if (!app?.name) continue;
-    const norm = normalizeAppName(app.name);
-    if (!seen.has(norm) && !isIgnoredWorkflowAppName(norm)) {
-      seen.add(norm);
-      merged.push(app);
-    }
+  // 2. Add authenticated connected tools up to maxTools
+  for (const tool of connectedTools || []) {
+    tryAdd(tool);
+    if (merged.length >= maxTools) return merged;
   }
 
-  return merged;
+  // 3. Fill remaining slots with auxiliary base apps (e.g. shuffle_assets, shuffle_software)
+  for (let i = 1; i < baseApps.length; i++) {
+    tryAdd(baseApps[i]);
+    if (merged.length >= maxTools) return merged;
+  }
+
+  return merged.slice(0, maxTools);
 }
 
 /**
- * Derives connected tools (sources & destinations) from raw API responses.
+ * Derives connected tools from raw API responses.
+ * Strictly includes only available tools that are BOTH authenticated AND configured for ingestion,
+ * capped to a maximum number of tools (default 4).
  */
 export function resolveConnectedTools(
   category: 'incidents' | 'vulnerabilities' | string,
   authApiResponse: any[] = [],
   workflowsResponse: any[] = [],
+  maxTools: number = MAX_AUTO_ASSIGNED_TOOLS,
 ): ConnectedToolApp[] {
   const tools: ConnectedToolApp[] = [];
   const seen = new Set<string>();
@@ -145,58 +162,18 @@ export function resolveConnectedTools(
   }
 
   if (category === 'incidents') {
-    // 1. Workflow Sources: Ingest Tickets
+    // Only tools configured for incident ingestion AND with active/valid credentials
     const ingestWf = findIngestTicketsWorkflow(workflows);
     const ingestAppNames = ingestWf ? extractWorkflowAppNames(ingestWf) : new Set<string>();
 
-    // 2. Workflow Destinations: Forward Tickets
-    const forwardWf = findForwardTicketsWorkflow(workflows);
-    const forwardAppNames = forwardWf ? extractWorkflowAppNames(forwardWf) : new Set<string>();
-
-    // Add apps that are in the Ingest Tickets workflow actions (e.g. Elastic Security, Wazuh, Splunk)
     ingestAppNames.forEach((norm) => {
       const auth = authByName.get(norm);
-      if (auth) {
+      if (auth && (auth.valid || auth.active)) {
         addTool(auth.name, auth.id, auth.icon);
-      } else {
-        const formatted = norm
-          .split('_')
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(' ');
-        addTool(formatted);
       }
     });
-
-    // Add apps that are in the Forward Tickets workflow actions (e.g. Jira, ServiceNow, Slack)
-    forwardAppNames.forEach((norm) => {
-      const auth = authByName.get(norm);
-      if (auth) {
-        addTool(auth.name, auth.id, auth.icon);
-      } else {
-        const formatted = norm
-          .split('_')
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(' ');
-        addTool(formatted);
-      }
-    });
-
-    // Also inspect authenticated apps: if validated/active and matching SIEM, EDR, Email, Cases, or Comms:
-    // If the user has authenticated Elastic Security, Splunk, Jira, ServiceNow, etc., include them!
-    for (const [norm, auth] of authByName.entries()) {
-      if (!auth.valid && !auth.active) continue;
-      const isSiem = SIEM_PATTERNS.some((p) => norm.includes(p));
-      const isEdr = EDR_PATTERNS.some((p) => norm.includes(p));
-      const isEmail = EMAIL_APP_PATTERNS.some((p) => norm.includes(p));
-      const isCases = CASES_PATTERNS.some((p) => norm.includes(p));
-      const isComms = COMMUNICATION_PATTERNS_NAMES.some((p) => norm.includes(p));
-
-      if (isSiem || isEdr || isEmail || isCases || isComms) {
-        addTool(auth.name, auth.id, auth.icon);
-      }
-    }
   } else if (category === 'vulnerabilities') {
-    // 1. Workflow Sources: Ingest Vulnerabilities
+    // Only tools configured for vulnerability ingestion AND with active/valid credentials
     const ingestVulnWf = workflows.find((w: any) =>
       typeof w?.name === 'string' && (
         w.name === 'Ingest Vulnerabilities' ||
@@ -207,28 +184,13 @@ export function resolveConnectedTools(
 
     vulnAppNames.forEach((norm) => {
       const auth = authByName.get(norm);
-      if (auth) {
+      if (auth && (auth.valid || auth.active)) {
         addTool(auth.name, auth.id, auth.icon);
-      } else {
-        const formatted = norm
-          .split('_')
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(' ');
-        addTool(formatted);
       }
     });
-
-    // Also inspect authenticated apps: any validated/active vuln scanner (Qualys, Tenable, Nessus, Snyk, Rapid7, etc.)
-    for (const [norm, auth] of authByName.entries()) {
-      if (!auth.valid && !auth.active) continue;
-      const isScanner = isVulnScannerApp(auth.name) || VULN_SCANNER_PATTERNS.some((p) => norm.includes(p));
-      if (isScanner) {
-        addTool(auth.name, auth.id, auth.icon);
-      }
-    }
   }
 
-  return tools;
+  return tools.slice(0, maxTools);
 }
 
 /**

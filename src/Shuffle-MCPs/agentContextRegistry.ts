@@ -8,7 +8,7 @@
  * Self-contained: No host-app `@/` imports.
  */
 
-import { getCachedConnectedTools, mergeConnectedTools } from './connectedSourcesService';
+import { getCachedConnectedTools, mergeConnectedTools, MAX_AUTO_ASSIGNED_TOOLS } from './connectedSourcesService';
 
 export interface AgentContextApp {
   name: string;
@@ -32,7 +32,7 @@ export interface AgentContextRule {
   /** Default skill/preset id (e.g. 'incident-response', 'vulnerability', 'build-workflows') */
   defaultPresetId?: string;
   /** Title shown on drawer header */
-  title?: string | ((params: Record<string, string>, pathname: string) => string);
+  title?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
   /** Subtitle or context description shown under the drawer header */
   subtitle?: string | ((params: Record<string, string>, pathname: string) => string);
   /** Contextual prompt seed */
@@ -56,6 +56,8 @@ export interface AgentResolvedContext {
   apps: AgentContextApp[];
   presetId?: string;
   title: string;
+  /** Function to dynamically re-evaluate the title with an active entity name override */
+  titleFn?: (entityOverride?: string) => string;
   subtitle: string;
   defaultPrompt: string;
   placeholder?: string;
@@ -132,19 +134,65 @@ export const isAgentRoute = (pathname: string): boolean => {
   return norm === '/agents' || norm === '/agent' || norm.startsWith('/agents/') || norm.startsWith('/agent/');
 };
 
+/** Strips composite org prefixes (e.g. orgId::itemId -> itemId) from entity IDs */
+export const formatEntityDisplayId = (rawId?: string): string => {
+  if (!rawId) return '';
+  if (rawId.includes('::')) {
+    const parts = rawId.split('::');
+    return parts[parts.length - 1] || rawId;
+  }
+  return rawId;
+};
+
 /** Attempts to discover the primary entity name/title from the active DOM (e.g. incident/case/alert title input) */
 export const getActivePageEntityName = (): string | undefined => {
   if (typeof document === 'undefined') return undefined;
   try {
+    // 0. Global window property set by detail views if available
+    if (typeof window !== 'undefined' && (window as any).__shuffleActiveEntityTitle) {
+      const globalTitle = String((window as any).__shuffleActiveEntityTitle).trim();
+      if (globalTitle && globalTitle !== 'Incident') return globalTitle;
+    }
+
+    // 1. Direct entity title data attribute on DOM element
+    const elWithTitle = document.querySelector('[data-entity-title]') as HTMLElement | null;
+    const attrTitle = elWithTitle?.getAttribute('data-entity-title');
+    if (attrTitle && attrTitle.trim().length > 0 && attrTitle.trim() !== 'Incident') {
+      return attrTitle.trim();
+    }
+
+    // 2. Form input or textarea for title
     const titleInput = document.querySelector(
-      '[data-incident-field="title"] input, [data-case-field="title"] input, [data-ticket-field="title"] input, [data-alert-field="title"] input, [data-host-field="name"] input, [data-monitor-field="name"] input, [data-asset-field="name"] input, [data-software-field="name"] input, [data-package-field="name"] input'
-    ) as HTMLInputElement | null;
+      '[data-incident-field="title"] input, [data-incident-field="title"] textarea, [data-case-field="title"] input, [data-ticket-field="title"] input, [data-alert-field="title"] input, [data-host-field="name"] input, [data-monitor-field="name"] input, [data-asset-field="name"] input, [data-software-field="name"] input, [data-package-field="name"] input'
+    ) as HTMLInputElement | HTMLTextAreaElement | null;
     if (titleInput?.value && titleInput.value.trim().length > 0) {
       return titleInput.value.trim();
     }
-    const heading = document.querySelector('h1, h2, [data-entity-title]') as HTMLElement | null;
+
+    // 3. Fallback: text content inside title container
+    const titleContainer = document.querySelector('[data-incident-field="title"], [data-case-field="title"]') as HTMLElement | null;
+    if (titleContainer?.textContent) {
+      const text = titleContainer.textContent.trim();
+      if (text && text.length > 0 && text.length < 120 && text !== 'Enter title...' && text !== 'Incident') {
+        return text;
+      }
+    }
+
+    // 4. Document title (e.g. "huh | Incident | Shuffle Security")
+    if (document.title) {
+      const parts = document.title.split('|').map((s) => s.trim());
+      if (parts.length > 1 && parts[0] && parts[0] !== 'Incident' && parts[0] !== 'Shuffle Security') {
+        return parts[0];
+      }
+    }
+
+    // 5. Explicit heading tags
+    const heading = document.querySelector('h1, h2') as HTMLElement | null;
     if (heading?.textContent && heading.textContent.trim().length > 0 && heading.textContent.trim().length < 90) {
-      return heading.textContent.trim();
+      const hText = heading.textContent.trim();
+      if (hText !== 'Incident' && hText !== 'Incidents') {
+        return hText;
+      }
     }
   } catch {
     /* ignore DOM query errors */
@@ -167,12 +215,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     sourceCategory: 'incidents',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Incidents MCP',
-    defaultPrompt: (params) => `Investigate incident ${params.id} and recommend next steps: `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Investigate incident ${cleanId} and recommend next steps: `;
+    },
     placeholder: 'Ask about this incident, triage observables, or correlate...',
     getStorageKey: (params) => `incident_${params.id}`,
     description: 'Focused on the currently viewed incident with Shuffle Incidents MCP',
@@ -184,12 +236,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     sourceCategory: 'incidents',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help handle incident "${entity}"?` : `How can we help handle incident #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Incidents MCP',
-    defaultPrompt: (params) => `Investigate incident ${params.id} and recommend next steps: `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Investigate incident ${cleanId} and recommend next steps: `;
+    },
     placeholder: 'Ask about this incident, triage observables, or correlate...',
     getStorageKey: (params) => `incident_${params.id}`,
     description: 'Focused on the currently viewed incident with Shuffle Incidents MCP',
@@ -201,12 +257,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     sourceCategory: 'incidents',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help handle case "${entity}"?` : `How can we help handle case #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help handle case "${entity}"?` : `How can we help handle case #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Incidents MCP',
-    defaultPrompt: (params) => `Investigate case ${params.id} and recommend next steps: `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Investigate case ${cleanId} and recommend next steps: `;
+    },
     placeholder: 'Review case evidence, correlate events, or recommend response actions...',
     getStorageKey: (params) => `case_${params.id}`,
     description: 'Focused on the currently viewed case with Shuffle Incidents MCP',
@@ -218,12 +278,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     sourceCategory: 'incidents',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help handle ticket "${entity}"?` : `How can we help handle ticket #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help handle ticket "${entity}"?` : `How can we help handle ticket #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Incidents MCP',
-    defaultPrompt: (params) => `Investigate ticket ${params.id} and recommend next steps: `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Investigate ticket ${cleanId} and recommend next steps: `;
+    },
     placeholder: 'Investigate ticket, draft reply, or correlate related incidents...',
     getStorageKey: (params) => `ticket_${params.id}`,
     description: 'Focused on the currently viewed ticket with Shuffle Incidents MCP',
@@ -235,12 +299,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     sourceCategory: 'incidents',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help handle alert "${entity}"?` : `How can we help handle alert #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help handle alert "${entity}"?` : `How can we help handle alert #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Incidents MCP',
-    defaultPrompt: (params) => `Investigate alert ${params.id} and recommend next steps: `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Investigate alert ${cleanId} and recommend next steps: `;
+    },
     placeholder: 'Analyze alert telemetry, assess false positive probability, or escalate...',
     getStorageKey: (params) => `alert_${params.id}`,
     description: 'Focused on the currently viewed alert with Shuffle Incidents MCP',
@@ -317,12 +385,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     ],
     defaultPresetId: 'vulnerability',
     sourceCategory: 'vulnerabilities',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help with ${entity}?` : `How can we help with vulnerability ${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help with ${entity}?` : `How can we help with vulnerability ${cleanId}?`;
     },
     subtitle: () => 'Shuffle Vulnerabilities, Assets, Software & Packages',
-    defaultPrompt: (params) => `Review vulnerability ${params.id} and draft remediation plan: `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Review vulnerability ${cleanId} and draft remediation plan: `;
+    },
     placeholder: 'Analyze this CVE, check affected hosts, and draft remediation...',
     getStorageKey: (params) => `vulnerability_${params.id}`,
     description: 'Focused on the selected vulnerability with Shuffle Vulnerabilities, Assets, Software & Packages',
@@ -356,12 +428,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/monitors/:id/terminal',
     defaultApps: [{ name: 'shuffle_host_monitors' }],
     defaultPresetId: 'host-monitor-control',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help in terminal for "${entity}"?` : `How can we help in terminal on host #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help in terminal for "${entity}"?` : `How can we help in terminal on host #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Host Monitors MCP',
-    defaultPrompt: (params) => `Run commands on host ${params.id} to `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Run commands on host ${cleanId} to `;
+    },
     placeholder: 'Ask the agent to execute shell commands, inspect logs, or debug...',
     getStorageKey: (params) => `monitor_terminal_${params.id}`,
     description: 'Interactive terminal control with Shuffle Host Monitors MCP',
@@ -398,12 +474,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/monitors/:id',
     defaultApps: [{ name: 'shuffle_host_monitors' }],
     defaultPresetId: 'host-monitor-control',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help with host "${entity}"?` : `How can we help with host #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help with host "${entity}"?` : `How can we help with host #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Host Monitors MCP',
-    defaultPrompt: (params) => `Take control of host ${params.id} and help me with: `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Take control of host ${cleanId} and help me with: `;
+    },
     placeholder: 'Inspect host telemetry, running processes, network connections, or remediate...',
     getStorageKey: (params) => `monitor_${params.id}`,
     description: 'Host detail view with Shuffle Host Monitors MCP',
@@ -431,12 +511,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/workflows/:id',
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
     defaultPresetId: 'build-workflows',
-    title: (params) => {
-      const entity = getActivePageEntityName();
-      return entity ? `How can we help edit "${entity}"?` : `How can we help edit workflow #${params.id}?`;
+    title: (params, _, entityOverride) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      const entity = entityOverride || getActivePageEntityName();
+      return entity ? `How can we help edit "${entity}"?` : `How can we help edit workflow #${cleanId}?`;
     },
     subtitle: () => 'Shuffle Workflows Builder & Shuffle Apps',
-    defaultPrompt: (params) => `Edit workflow ${params.id} to `,
+    defaultPrompt: (params) => {
+      const cleanId = formatEntityDisplayId(params.id);
+      return `Edit workflow ${cleanId} to `;
+    },
     placeholder: 'Describe the changes, new actions, or logic to add...',
     getStorageKey: (params) => `workflow_${params.id}`,
     description: 'Focused on editing the selected workflow with Shuffle Workflows Builder and Shuffle Apps',
@@ -698,7 +782,7 @@ export const resolveAgentContext = (
   const cachedConnected = matchedRule.sourceCategory
     ? getCachedConnectedTools(matchedRule.sourceCategory)
     : [];
-  const baseDefaultApps = mergeConnectedTools(matchedRule.defaultApps, cachedConnected);
+  const baseDefaultApps = mergeConnectedTools(matchedRule.defaultApps, cachedConnected, MAX_AUTO_ASSIGNED_TOOLS);
 
   const effectiveApps = savedChoice?.apps ?? baseDefaultApps;
   const effectivePresetId = savedChoice?.presetId !== undefined
@@ -708,6 +792,17 @@ export const resolveAgentContext = (
   const title = typeof matchedRule.title === 'function'
     ? matchedRule.title(matchedParams, normPath)
     : matchedRule.title ?? 'Agent';
+
+  const titleFn = typeof matchedRule.title === 'function'
+    ? (entityOverride?: string) => {
+        const entity = entityOverride || getActivePageEntityName();
+        return (matchedRule!.title as (params: Record<string, string>, pathname: string, entityOverride?: string) => string)(
+          matchedParams,
+          normPath,
+          entity,
+        );
+      }
+    : undefined;
 
   const subtitle = typeof matchedRule.subtitle === 'function'
     ? matchedRule.subtitle(matchedParams, normPath)
@@ -724,6 +819,7 @@ export const resolveAgentContext = (
     apps: effectiveApps,
     presetId: effectivePresetId,
     title,
+    titleFn,
     subtitle,
     defaultPrompt,
     placeholder: matchedRule.placeholder,
