@@ -113,9 +113,7 @@ export const VulnerabilitiesDashboard = ({
     (async () => {
       setLoading(true);
       try {
-        const url = orgId
-          ? getApiUrl(`/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent('shuffle-security_vulnerabilities')}&top=100`)
-          : getApiUrl(`/api/v1/list_cache?category=${encodeURIComponent('shuffle-security_vulnerabilities')}&top=100`);
+        const url = getApiUrl('/api/v2/vulns?skip_fields=false&top=100');
         const res = await fetch(url, {
           method: 'GET',
           credentials: 'include',
@@ -131,7 +129,7 @@ export const VulnerabilitiesDashboard = ({
         const parsed: VulnRow[] = [];
         for (const item of list) {
           try {
-            const v = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+            const v = item?.value != null ? (typeof item.value === 'string' ? JSON.parse(item.value) : item.value) : item;
             if (!v) continue;
             const severity = normSeverity(
               v.severity && typeof v.severity !== 'object'

@@ -166,7 +166,7 @@ const CombinedDashboard = ({
     (async () => {
       setVulnsFetching(true);
       try {
-        const url = getApiUrl(`/api/v1/list_cache?category=${encodeURIComponent('shuffle-security_vulnerabilities')}&top=100`);
+        const url = getApiUrl('/api/v2/vulns?skip_fields=false&top=100');
         const res = await fetch(url, { method: 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json', ...getAuthHeader() } });
         if (!res.ok) { if (!cancelled) { setFetchedVulns(EMPTY_VULNS); setVulnsFetching(false); } return; }
         const data = await res.json();
@@ -174,7 +174,7 @@ const CombinedDashboard = ({
         const counts: VulnCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
         for (const item of list) {
           try {
-            const v = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+            const v = item?.value != null ? (typeof item.value === 'string' ? JSON.parse(item.value) : item.value) : item;
             const sevRaw = (v?.severity || v?.database_specific?.severity || '').toString().toLowerCase();
             let sev: keyof VulnCounts = 'info';
             if (sevRaw.startsWith('crit')) sev = 'critical';

@@ -33,7 +33,7 @@ import {
 import { Search, ArrowRight, ArrowLeft, Download, Zap, Activity, CheckCircle2, Circle, AlertTriangle, Network, Clock, Power, PowerOff, FileJson, X, ExternalLink, Flame, PlayCircle, BookOpen, LayoutGrid, Server, Shield, MessageSquare, Mail, Crosshair, HardDrive, KeyRound, Cloud, Sparkles, Plus, Workflow, Rows, Webhook, MousePointerClick, GitBranch, MessageCircleQuestion } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import shuffleSecurityIcon from '../assets/shuffle-icon.png';
-import UsecaseAlluvialDiagram, { extractNotificationWorkflowAppNames } from './UsecaseAlluvialDiagram';
+import UsecaseAlluvialDiagram, { extractNotificationWorkflowAppNames, matchesCategory } from './UsecaseAlluvialDiagram';
 import { findForwardTicketsWorkflow } from '../ingestionDetection';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 import {
@@ -71,6 +71,8 @@ import {
   setCachedValidatedAppsByCategory,
   getCachedValidatedCategories,
   setCachedValidatedCategories,
+  getCachedValidatedAppNames,
+  setCachedValidatedAppNames,
   _algoliaIconCache,
 } from './appsFetchCache';
 export { invalidateAppsCache };
@@ -1735,6 +1737,70 @@ function getWorkflowEnabledAppNames(workflows: WorkflowSummary[]): Set<string> {
     for (const name of extractWorkflowAppNames(wf)) names.add(name);
   }
   return names;
+}
+
+/**
+ * Ingestion usecases (Email reports, SIEM alerts, EDR alerts) share the Ingest Tickets
+ * workflow, but each usecase must be INDIVIDUALLY active based strictly on whether
+ * an app in its specific source category is active (authenticated and wired into the workflow).
+ *
+ * This matches the Alluvial diagram's enablement logic and ensures:
+ * 1. An active webhook does NOT mark Email/SIEM/EDR active.
+ * 2. Having incidents in the org does NOT mark Email/SIEM/EDR active.
+ * 3. Connecting an Email app (e.g. Gmail) only marks "Email reports" active, not SIEM/EDR.
+ */
+export function isIngestionUsecaseActive(
+  flow: Pick<Usecase, 'automationArea' | 'target' | 'source'>,
+  workflows: WorkflowSummary[],
+  validatedCategories: Set<string>,
+  validatedAppNames?: Set<string>,
+): boolean {
+  if (flow.automationArea !== 'automatic_ingestion' || flow.target !== 'case_management') {
+    return false;
+  }
+  const sourceToIngest: Record<string, 'email' | 'edr' | 'siem' | 'cases'> = {
+    email: 'email', edr: 'edr', siem: 'siem', case_management: 'cases',
+  };
+  const required = sourceToIngest[flow.source];
+  if (!required || required === 'cases') return false;
+
+  // 1. Must have validated authentication for this specific category
+  if (!validatedCategories.has(flow.source)) return false;
+
+  // 2. Must find the Ingest Tickets workflow (excluding pure webhook workflows)
+  const ingestWf = workflows.find((w: any) => {
+    const name = (w?.name || '').toLowerCase().trim();
+    if (name.endsWith('_webhook') || name === 'ingestion webhook') return false;
+    const tags = ((w as any)?.tags || []).map((t: any) => String(t).toLowerCase());
+    return name === 'ingest tickets' || name.includes('ingest tickets') || tags.includes('ingest tickets');
+  });
+
+  if (!ingestWf) return false;
+
+  // 3. Workflow schedule must not be stopped / disabled
+  if (
+    Array.isArray(ingestWf.triggers) &&
+    ingestWf.triggers.length > 0 &&
+    ingestWf.triggers.every((t: any) => {
+      const s = (t?.status || '').toLowerCase();
+      return s === 'stopped' || s === 'disabled';
+    })
+  ) {
+    return false;
+  }
+
+  // 4. Must have an app matching this specific category wired into the workflow
+  const wfApps = extractWorkflowAppNames(ingestWf);
+  for (const name of wfApps) {
+    const cat = getIngestionCategory(name);
+    if (cat === required || matchesCategory(name, required)) {
+      if (!validatedAppNames || validatedAppNames.size === 0 || validatedAppNames.has(normalizeAppName(name))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 // ============================================================================
@@ -5729,7 +5795,12 @@ function UsecasesPageInner() {
         if (lbl.includes('threat feeds') || lbl.includes('ioc extraction')) {
           aliases.push('enable threat feeds', 'enable threat feeds_webhook', 'realtime ioc extraction', 'threat intel');
         }
-        if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
+        const isMatch = aliases.some(a => {
+          const isWebhookWf = name.endsWith('_webhook') || name === 'ingestion webhook' || tags.some(t => t.endsWith('_webhook'));
+          if (!a.includes('webhook') && isWebhookWf) return false;
+          return name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a));
+        });
+        if (isMatch) {
           set.add(uc.automationLabel);
         }
       }
@@ -5841,6 +5912,7 @@ function UsecasesPageInner() {
   // can feed it. Sourced from /api/v1/apps/authentication so the signal
   // matches the IntegrationStatus indicator (green dot = validated).
   const [validatedCategories, setValidatedCategories] = useState<Set<string>>(() => getCachedValidatedCategories() || new Set());
+  const [validatedAppNames, setValidatedAppNames] = useState<Set<string>>(() => getCachedValidatedAppNames() || new Set());
   useEffect(() => {
     let cancelled = false;
     const fetchValidatedCats = async () => {
@@ -5853,6 +5925,7 @@ function UsecasesPageInner() {
         const body = await res.json();
         const list = Array.isArray(body) ? body : (body?.data || []);
         const cats = new Set<string>();
+        const appNames = new Set<string>();
         for (const entry of Array.isArray(list) ? list : []) {
           // Only count fully-validated authentications — matches the green
           // dot in IntegrationStatus. An unvalidated/active one is not yet
@@ -5860,13 +5933,16 @@ function UsecasesPageInner() {
           if (entry?.validation?.valid !== true) continue;
           const app = entry?.app;
           if (!app?.name) continue;
+          appNames.add(normalizeAppName(app.name));
           for (const categoryId of matchAppToCategoryList(app.name, app.categories || [])) {
             cats.add(categoryId);
           }
         }
         if (!cancelled) {
           setCachedValidatedCategories(cats);
+          setCachedValidatedAppNames(appNames);
           setValidatedCategories(cats);
+          setValidatedAppNames(appNames);
         }
       } catch {
         /* keep previous state */
@@ -5874,7 +5950,8 @@ function UsecasesPageInner() {
     };
 
     const cached = getCachedValidatedCategories();
-    if (!cached || cached.size === 0) {
+    const cachedNames = getCachedValidatedAppNames();
+    if (!cached || cached.size === 0 || !cachedNames) {
       fetchValidatedCats();
     }
 
@@ -5966,6 +6043,15 @@ function UsecasesPageInner() {
   // "Disable" button there is misleading.
   const isFlowVisuallyEnabled = React.useCallback(
     (flow: Usecase): boolean => {
+      // Ingestion usecases (Email reports, SIEM alerts, EDR alerts) share the Ingest Tickets
+      // workflow, but each one must be INDIVIDUALLY active based strictly on whether
+      // an app in its specific source category is active (authenticated and wired into the workflow).
+      // They must NOT be marked active merely because the webhook is active or because
+      // the org has total incident outcomes > 0.
+      if (flow.automationArea === 'automatic_ingestion' && flow.target === 'case_management') {
+        return isIngestionUsecaseActive(flow, workflows, validatedCategories, validatedAppNames);
+      }
+
       // Presence-based override: if the outcome bundle proves the usecase is
       // producing data (enrichments performed, IOCs managed, incidents
       // ingested, …) treat it as enabled regardless of workflow-name / auth
@@ -6040,24 +6126,9 @@ function UsecasesPageInner() {
       if (!enabledLabels.has(flow.automationLabel)) return false;
       if (!validatedCategories.has(flow.source)) return false;
 
-      // Ingestion usecases (email/edr/siem) share a workflow but each one
-      // only counts as "enabled" when an app of its own source category is
-      // actually wired into that workflow. Otherwise "Email reports" would
-      // still look enabled when only a CrowdStrike (EDR) tool is present.
-      const sourceToIngest: Record<string, 'email' | 'edr' | 'siem' | 'cases'> = {
-        email: 'email', edr: 'edr', siem: 'siem', case_management: 'cases',
-      };
-      const required = sourceToIngest[flow.source];
-      if (!required || required === 'cases') return true;
-      const linked = findWorkflowsForUsecase(flow, workflows);
-      for (const wf of linked) {
-        for (const name of extractWorkflowAppNames(wf)) {
-          if (getIngestionCategory(name) === required) return true;
-        }
-      }
-      return false;
+      return true;
     },
-    [enabledLabels, validatedCategories, workflows, aiAgentAutomationActive, monitorsDeployedCount, notificationWorkflowReady, getPageOutcome],
+    [enabledLabels, validatedCategories, validatedAppNames, workflows, aiAgentAutomationActive, monitorsDeployedCount, notificationWorkflowReady, getPageOutcome],
   );
 
 
@@ -7253,7 +7324,12 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
         if (lbl.includes('threat feeds') || lbl.includes('ioc extraction')) {
           aliases.push('enable threat feeds', 'enable threat feeds_webhook', 'realtime ioc extraction', 'threat intel');
         }
-        if (aliases.some(a => name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a)))) {
+        const isMatch = aliases.some(a => {
+          const isWebhookWf = name.endsWith('_webhook') || name === 'ingestion webhook' || tags.some(t => t.endsWith('_webhook'));
+          if (!a.includes('webhook') && isWebhookWf) return false;
+          return name === a || name.includes(a) || tags.includes(a) || tags.some(t => t.includes(a));
+        });
+        if (isMatch) {
           set.add(uc.automationLabel);
         }
       }
@@ -7264,6 +7340,7 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
   // Fetch validated source categories (same call as UsecasesPageInner). Skips
   // out gracefully if the user is not authenticated.
   const [validatedCategories, setValidatedCategories] = useState<Set<string>>(() => getCachedValidatedCategories() || new Set());
+  const [validatedAppNames, setValidatedAppNames] = useState<Set<string>>(() => getCachedValidatedAppNames() || new Set());
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
@@ -7277,23 +7354,28 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
         const body = await res.json();
         const list = Array.isArray(body) ? body : (body?.data || []);
         const cats = new Set<string>();
+        const appNames = new Set<string>();
         for (const entry of Array.isArray(list) ? list : []) {
           if (entry?.validation?.valid !== true) continue;
           const app = entry?.app;
           if (!app?.name) continue;
+          appNames.add(normalizeAppName(app.name));
           for (const categoryId of matchAppToCategoryList(app.name, app.categories || [])) {
             cats.add(categoryId);
           }
         }
         if (!cancelled) {
           setCachedValidatedCategories(cats);
+          setCachedValidatedAppNames(appNames);
           setValidatedCategories(cats);
+          setValidatedAppNames(appNames);
         }
       } catch { /* keep previous */ }
     };
 
     const cached = getCachedValidatedCategories();
-    if (!cached || cached.size === 0) {
+    const cachedNames = getCachedValidatedAppNames();
+    if (!cached || cached.size === 0 || !cachedNames) {
       fetchValidatedCats();
     }
     const handleInvalidate = () => {
@@ -7314,7 +7396,9 @@ function UsecaseDrawerInner({ open, onClose, flowId }: { open: boolean; onClose:
   useEffect(() => { setActiveFlowId(flowId); }, [flowId]);
 
   const flow = activeFlowId ? usecases.find(u => u.id === activeFlowId) : null;
-  const isEnabled = !!flow?.automationLabel && enabledLabels.has(flow.automationLabel);
+  const isEnabled = flow?.automationArea === 'automatic_ingestion' && flow?.target === 'case_management'
+    ? isIngestionUsecaseActive(flow, workflows, validatedCategories, validatedAppNames)
+    : !!flow?.automationLabel && enabledLabels.has(flow.automationLabel);
   const canToggle = isAuthenticated && !!flow?.automationLabel;
   const hasValidatedSource = flow ? validatedCategories.has(flow.source) : true;
 

@@ -56,13 +56,11 @@ export function setCachedConnectedTools(category: string, tools: ConnectedToolAp
 }
 
 /** Maximum number of automatically assigned tools. */
-export const MAX_AUTO_ASSIGNED_TOOLS = 4;
+export const MAX_AUTO_ASSIGNED_TOOLS = 6;
 
 /**
  * Merge connected tools into a base app list without duplicating entries,
- * capping automatically assigned tools at a maximum (default 4).
- * If connected tools are available, they are prioritized alongside the primary base tool
- * so that external integrations (e.g. Elastic Security, Qualys) are immediately visible.
+ * preserving base apps first and appending tools enabled for ingestion.
  */
 export function mergeConnectedTools(
   baseApps: ConnectedToolApp[] = [],
@@ -83,20 +81,14 @@ export function mergeConnectedTools(
     merged.push(app);
   };
 
-  // 1. Primary base app first (e.g. shuffle_incidents, shuffle_vulnerabilities)
-  if (baseApps.length > 0) {
-    tryAdd(baseApps[0]);
+  // 1. Base default apps first (e.g. shuffle_vulnerabilities, shuffle_software_and_packages)
+  for (const base of baseApps) {
+    tryAdd(base);
   }
 
-  // 2. Add authenticated connected tools up to maxTools
+  // 2. Add authenticated connected tools (e.g. tools enabled for ingest) up to maxTools
   for (const tool of connectedTools || []) {
     tryAdd(tool);
-    if (merged.length >= maxTools) return merged;
-  }
-
-  // 3. Fill remaining slots with auxiliary base apps (e.g. shuffle_assets, shuffle_software)
-  for (let i = 1; i < baseApps.length; i++) {
-    tryAdd(baseApps[i]);
     if (merged.length >= maxTools) return merged;
   }
 
@@ -162,7 +154,7 @@ export function resolveConnectedTools(
   }
 
   if (category === 'incidents') {
-    // Only tools configured for incident ingestion AND with active/valid credentials
+    // Only tools configured for incident ingestion
     const ingestWf = findIngestTicketsWorkflow(workflows);
     const ingestAppNames = ingestWf ? extractWorkflowAppNames(ingestWf) : new Set<string>();
 
@@ -170,22 +162,35 @@ export function resolveConnectedTools(
       const auth = authByName.get(norm);
       if (auth && (auth.valid || auth.active)) {
         addTool(auth.name, auth.id, auth.icon);
+      } else if (auth) {
+        addTool(auth.name, auth.id, auth.icon);
+      } else {
+        addTool(norm);
       }
     });
   } else if (category === 'vulnerabilities') {
-    // Only tools configured for vulnerability ingestion AND with active/valid credentials
-    const ingestVulnWf = workflows.find((w: any) =>
+    // Only tools configured for vulnerability ingestion
+    const ingestVulnWorkflows = workflows.filter((w: any) =>
       typeof w?.name === 'string' && (
         w.name === 'Ingest Vulnerabilities' ||
         w.name.toLowerCase().includes('ingest vulnerabilit')
       )
     );
-    const vulnAppNames = ingestVulnWf ? extractWorkflowAppNames(ingestVulnWf) : new Set<string>();
+    const vulnAppNames = new Set<string>();
+    for (const wf of ingestVulnWorkflows) {
+      for (const name of extractWorkflowAppNames(wf)) {
+        vulnAppNames.add(name);
+      }
+    }
 
     vulnAppNames.forEach((norm) => {
       const auth = authByName.get(norm);
       if (auth && (auth.valid || auth.active)) {
         addTool(auth.name, auth.id, auth.icon);
+      } else if (auth) {
+        addTool(auth.name, auth.id, auth.icon);
+      } else {
+        addTool(norm);
       }
     });
   }

@@ -873,12 +873,32 @@ export const VERIFIED_BUILTIN_APPS = new Set<string>([
   'shuffle_files',
   'shuffle_apps',
   'shuffles_app_management',
+  'shuffle_vulnerabilities',
+  'shuffle_software_and_packages',
+  'shuffle_assets',
+  'shuffle_software',
+  'shuffle_packages',
   'http',
   'webhook',
   'email',
   'core',
   'singul',
 ]);
+
+/** Format app names cleanly (e.g. "shuffle_software_and_packages" -> "Shuffle Software and Packages") */
+export const formatAppDisplayName = (name: string): string => {
+  if (!name) return '';
+  const words = name.replace(/_/g, ' ').trim().split(/\s+/);
+  return words
+    .map((w, idx) => {
+      const lower = w.toLowerCase();
+      if (idx > 0 && (lower === 'and' || lower === 'or' || lower === 'of' || lower === 'the' || lower === 'in' || lower === 'on')) {
+        return lower;
+      }
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
+    .join(' ');
+};
 
 interface ExecutionData {
   execution_id?: string;
@@ -6578,7 +6598,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     });
                   const isUnavailable = !authAppsLoading && !isAvailable && !needsAuth;
                   const isRequired = isRequiredPresetApp(selectedPreset, app.name || '');
-                  const appDisplayName = (app.name || '').replace(/_/g, ' ');
+                  const appDisplayName = formatAppDisplayName(app.name || '');
                   return (
                   <Tooltip
                     key={`${app.name}-${i}`}
@@ -6641,8 +6661,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       );
                     })()}
                     {!isPhone && (
-                      <Typography sx={{ fontSize: '0.8rem', mx: 0.25, textTransform: 'capitalize' }}>
-                        {app.name.replace(/_/g, ' ')}
+                      <Typography sx={{ fontSize: '0.8rem', mx: 0.25 }}>
+                        {formatAppDisplayName(app.name || '')}
                       </Typography>
                     )}
                     {(needsAuth || isUnavailable) && (
@@ -6807,7 +6827,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                     availableApps.find((a) => normalizeAgentAppName(a.name || '') === slug)?.icon ||
                     resolvedToolApps[slug]?.icon;
                   return (
-                    <Tooltip key={i} title={(app.name || '').replace(/_/g, ' ')}>
+                    <Tooltip key={i} title={formatAppDisplayName(app.name || '')}>
                       <Box
                         onClick={() => setAuthDrawerApp({ name: app.name, id: (app as any).id || null })}
                         sx={{

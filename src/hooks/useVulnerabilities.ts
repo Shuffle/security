@@ -37,7 +37,7 @@ export interface Vulnerability {
   resolved_at?: string;
 }
 
-const DATASTORE_CATEGORY = 'shuffle-security_vulnerabilities';
+const DATASTORE_CATEGORY = 'shuffle-security_vulns';
 
 function normalizeOsvSeverity(raw?: string | null): VulnSeverity {
   if (!raw) return 'info';
@@ -192,7 +192,7 @@ export const useVulnerabilities = ({ tab = 'assets' }: UseVulnerabilitiesOptions
     const out: Vulnerability[] = [];
     for (const item of items) {
       try {
-        const parsed = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+        const parsed = item?.value != null ? (typeof item.value === 'string' ? JSON.parse(item.value) : item.value) : item;
         out.push(...parseRecord(parsed, (item as any).created));
       } catch {
         // skip

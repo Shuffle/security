@@ -532,7 +532,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
     });
   }, [matches, vulnsWithMeta]);
 
-  // Manual sync of affected vulnerabilities to shuffle-security_vulnerabilities.
+  // Manual sync of affected vulnerabilities to shuffle-security_vulns.
   // For each OSV vuln with at least one affected host, store the OSV record verbatim
   // and inject a `hosts: [{ hostname, paths: [{ last_seen, path, version }] }]` array.
   // Keyed by the OSV vuln id (e.g. "GHSA-xxxx" or "CVE-xxxx"). Direct overwrite.
@@ -562,7 +562,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
         value: { ...meta.vuln, hosts: Array.from(hostMap.values()) },
       };
     });
-    const result = await setDatastoreItems(items, 'shuffle-security_vulnerabilities');
+    const result = await setDatastoreItems(items, 'shuffle-security_vulns');
     setSyncing(false);
     if (result.success) {
       setSyncedCount(items.length);
@@ -669,7 +669,7 @@ const EntityReferencePage = ({ type }: EntityReferencePageProps) => {
             onClick={syncVulns}
             disabled={syncing || vulnsWithMeta.filter(m => m.affectedHosts.length > 0).length === 0}
             className="gap-1.5"
-            title="Persist affected vulnerabilities to shuffle-security_vulnerabilities"
+            title="Persist affected vulnerabilities to shuffle-security_vulns"
           >
             <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
             {syncing ? 'Syncing…' : 'Sync to Vulnerabilities'}

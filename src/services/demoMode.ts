@@ -27,7 +27,7 @@ import {
   type PendingObservable,
 } from '@/lib/demoSeedData';
 
-const VULNS_CATEGORY = 'shuffle-security_vulnerabilities';
+const VULNS_CATEGORY = 'shuffle-security_vulns';
 const SENSORS_CATEGORY = 'shuffle-security_sensors';
 const AGENTS_CATEGORY = 'shuffle-security_agents';
 // Real-IOC categories populated by the backend's threat-feed parser. Keys

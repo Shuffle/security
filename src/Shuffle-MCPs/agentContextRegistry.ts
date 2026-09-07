@@ -371,7 +371,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   },
 
   // ==========================================
-  // 2. Vulnerabilities (shuffle_vulnerabilities, shuffle_assets, shuffle_software, shuffle_packages)
+  // 2. Vulnerabilities (shuffle_vulnerabilities, shuffle_software_and_packages)
   // ==========================================
   // Specific Vulnerability Detail
   {
@@ -379,9 +379,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: '/vulnerabilities/:id',
     defaultApps: [
       { name: 'shuffle_vulnerabilities' },
-      { name: 'shuffle_assets' },
-      { name: 'shuffle_software' },
-      { name: 'shuffle_packages' },
+      { name: 'shuffle_software_and_packages' },
     ],
     defaultPresetId: 'vulnerability',
     sourceCategory: 'vulnerabilities',
@@ -390,14 +388,14 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
       const entity = entityOverride || getActivePageEntityName();
       return entity ? `How can we help with ${entity}?` : `How can we help with vulnerability ${cleanId}?`;
     },
-    subtitle: () => 'Shuffle Vulnerabilities, Assets, Software & Packages',
+    subtitle: () => 'Shuffle Vulnerabilities & Shuffle Software and Packages',
     defaultPrompt: (params) => {
       const cleanId = formatEntityDisplayId(params.id);
       return `Review vulnerability ${cleanId} and draft remediation plan: `;
     },
     placeholder: 'Analyze this CVE, check affected hosts, and draft remediation...',
     getStorageKey: (params) => `vulnerability_${params.id}`,
-    description: 'Focused on the selected vulnerability with Shuffle Vulnerabilities, Assets, Software & Packages',
+    description: 'Focused on the selected vulnerability with Shuffle Vulnerabilities and Shuffle Software and Packages',
   },
   // Vulnerabilities List & Subpages
   {
@@ -405,18 +403,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/vulnerabilities'),
     defaultApps: [
       { name: 'shuffle_vulnerabilities' },
-      { name: 'shuffle_assets' },
-      { name: 'shuffle_software' },
-      { name: 'shuffle_packages' },
+      { name: 'shuffle_software_and_packages' },
     ],
     defaultPresetId: 'vulnerability',
     sourceCategory: 'vulnerabilities',
     title: 'How can we help review vulnerabilities?',
-    subtitle: () => 'Shuffle Vulnerabilities, Assets, Software & Packages',
+    subtitle: () => 'Shuffle Vulnerabilities & Shuffle Software and Packages',
     defaultPrompt: 'Review my current vulnerabilities and prioritize them by ',
     placeholder: 'Review CVEs, prioritize by exploitability, or draft patch workflows...',
     getStorageKey: () => 'vulnerabilities_list',
-    description: 'Vulnerabilities overview with Shuffle Vulnerabilities, Assets, Software & Packages',
+    description: 'Vulnerabilities overview with Shuffle Vulnerabilities and Shuffle Software and Packages',
   },
 
   // ==========================================

@@ -198,6 +198,7 @@ let _cachedCatalogIcons: Record<string, string> = {};
 let _cachedCategoryAppNames: Record<string, string[]> | null = null;
 let _cachedValidatedAppsByCategory: Record<string, Array<{ name: string; icon: string }>> | null = null;
 let _cachedValidatedCategories: Set<string> | null = null;
+let _cachedValidatedAppNames: Set<string> | null = null;
 let _alluvialCache: AlluvialCache | null = null;
 export const _algoliaIconCache = new Map<string, string>();
 
@@ -236,6 +237,13 @@ export function setCachedValidatedCategories(val: Set<string>) {
   _cachedValidatedCategories = val;
 }
 
+export function getCachedValidatedAppNames(): Set<string> | null {
+  return _cachedValidatedAppNames;
+}
+export function setCachedValidatedAppNames(val: Set<string>) {
+  _cachedValidatedAppNames = val;
+}
+
 export function getAlluvialCache(): AlluvialCache | null {
   return _alluvialCache;
 }
@@ -268,6 +276,7 @@ export function invalidateAppsCache() {
   _cachedCategoryAppNames = null;
   _cachedValidatedAppsByCategory = null;
   _cachedValidatedCategories = null;
+  _cachedValidatedAppNames = null;
   _alluvialCache = null;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('shuffle-apps-invalidated'));

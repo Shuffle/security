@@ -18,7 +18,7 @@ import { getApiUrl, getAuthHeader } from '@shuffleio/shuffle-mcps';
 import { resolveOutcomeKind, OUTCOME_PRIMARY_LABEL, type UsecaseOutcome, type OutcomeKind, type OutcomeBreakdownEntry } from '../lib/outcomes';
 
 const INCIDENTS_CATEGORY = 'shuffle-security_incidents';
-const VULNS_CATEGORY = 'shuffle-security_vulnerabilities';
+const VULNS_CATEGORY = 'shuffle-security_vulns';
 const SENSORS_CATEGORY = 'shuffle-security_sensors';
 const IOC_TYPES = ['ipv4_addr', 'domain', 'sha256', 'email_addr', 'url'];
 
@@ -63,9 +63,12 @@ const getOrgId = (): string | null => {
 };
 
 const fetchListCache = async (orgId: string, category: string, top: number) => {
-  const url = getApiUrl(
-    `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}&top=${top}`,
-  );
+  const isVulns = category === VULNS_CATEGORY || category === 'shuffle-security_vulns' || category === 'shuffle-security_vulnerabilities' || category === 'vulns';
+  const url = isVulns
+    ? getApiUrl(`/api/v2/vulns?skip_fields=false&top=${top}`)
+    : getApiUrl(
+        `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}&top=${top}`,
+      );
   try {
     const res = await fetch(url, { credentials: 'include', headers: { ...getAuthHeader() } });
     if (!res.ok) return { items: [] as any[], total: 0 };
@@ -211,7 +214,7 @@ async function fetchOutcomeBundle(): Promise<OutcomeBundle> {
   });
 
   const vulnSample: SampledVuln[] = vulnsRes.items.map((item: any) => {
-    const value = parseJsonValue(item?.value);
+    const value = item?.value !== undefined ? parseJsonValue(item?.value) : item;
     return {
       source: extractVulnSource(value),
       hostname: extractVulnHostname(value),

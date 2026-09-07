@@ -60,7 +60,7 @@ export const useUsecaseAgentFilters = (): AgentUsecaseFilter[] => {
       filters.push({
         id: 'vulnerability-response',
         label: 'Vulnerability Management',
-        matchTokens: ['vulnerab', 'shuffle-security_vulnerabilities'],
+        matchTokens: ['vulnerab', 'shuffle-security_vulns', 'shuffle-security_vulnerabilities'],
       });
     }
     if (assign.active) {

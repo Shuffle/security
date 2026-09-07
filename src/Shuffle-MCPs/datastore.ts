@@ -545,7 +545,10 @@ export const getDatastoreItem = async (
     payload.category = category;
   }
 
-  const requestUrl = getApiUrl(`/api/v1/orgs/${orgId}/get_cache`);
+  const isVulnsCategory = category === 'shuffle-security_vulns' || category === 'shuffle-security_vulnerabilities' || category === 'vulns';
+  const requestUrl = isVulnsCategory
+    ? getApiUrl(`/api/v2/vulns/${encodeURIComponent(rawKey)}`)
+    : getApiUrl(`/api/v1/orgs/${orgId}/get_cache`);
   const baseDiagnostics: DatastoreDiagnostics = {
     operation: 'get',
     category,
@@ -576,10 +579,10 @@ export const getDatastoreItem = async (
     const release = await acquireDatastoreSlot(options?.priority === true);
     try {
       response = await fetch(requestUrl, {
-        method: 'POST',
+        method: isVulnsCategory ? 'GET' : 'POST',
         credentials: 'include',
         headers,
-        body: JSON.stringify(payload),
+        body: isVulnsCategory ? undefined : JSON.stringify(payload),
       });
       rawBody = await response.text();
       if (response.ok || response.status === 404 || !isTransientDatastoreStatus(response.status) || attempt === maxAttempts - 1) {
@@ -738,6 +741,29 @@ export const getDatastoreItem = async (
   // callers would treat the searched key itself as a real incident even
   // though no stored value exists.
   if (typeof data.value !== 'string') {
+    if (data && typeof data === 'object' && (data.id || data.title || data.cve_id || data.affected)) {
+      return {
+        success: true,
+        item: {
+          key: data.id || rawKey,
+          value: JSON.stringify(data),
+          category: category || 'shuffle-security_vulns',
+          org_id: orgId,
+          ...data,
+        },
+        diagnostics: {
+          ...baseDiagnostics,
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type'),
+          bodyPreview: truncateResponsePreview(rawBody),
+          responseShape: 'object',
+          itemCount: 1,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
     return {
       success: true,
       item: undefined,
@@ -903,7 +929,10 @@ export const getDatastoreByCategory = async (
   // payloads are far larger than other categories — pagination via cursor
   // handles the rest.
   const effectiveLimit = getDatastorePageSize(category, limit);
-  let url = `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}&top=${effectiveLimit}`;
+  const isVulnsCategory = category === 'shuffle-security_vulns' || category === 'shuffle-security_vulnerabilities' || category === 'vulns';
+  let url = isVulnsCategory
+    ? `/api/v2/vulns?skip_fields=false&top=${effectiveLimit}`
+    : `/api/v1/orgs/${orgId}/list_cache?category=${encodeURIComponent(category)}&top=${effectiveLimit}`;
   if (cursor) {
     url += `&cursor=${encodeURIComponent(cursor)}`;
   }
@@ -1169,7 +1198,8 @@ export const deleteDatastoreItems = async (
 // Category constants for consistency
 export const DATASTORE_CATEGORIES = {
   INCIDENTS: 'shuffle-security_incidents',
-  VULNERABILITIES: 'shuffle-security_vulnerabilities',
+  VULNERABILITIES: 'shuffle-security_vulns',
+  VULNS: 'shuffle-security_vulns',
   ASSETS: 'shuffle-security_assets',
   PACKAGES: 'shuffle-security_packages',
   SOFTWARE: 'shuffle-security_software',

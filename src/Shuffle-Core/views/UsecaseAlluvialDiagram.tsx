@@ -131,7 +131,7 @@ const ASSET_VULN_PATTERNS = [
   'asset', 'cmdb', 'inventory', 'snipe', 'vulnerability', 'qualys', 'tenable', 'snyk',
 ];
 
-const CATEGORY_PATTERNS: Record<string, string[]> = {
+export const CATEGORY_PATTERNS: Record<string, string[]> = {
   siem: SIEM_PATTERNS,
   case_management: CASES_PATTERNS,
   edr: EDR_PATTERNS,
@@ -141,7 +141,7 @@ const CATEGORY_PATTERNS: Record<string, string[]> = {
   vulnerabilities: ASSET_VULN_PATTERNS,
 };
 
-function matchesCategory(appName: string, categoryId: string): boolean {
+export function matchesCategory(appName: string, categoryId: string): boolean {
   if (isShuffleInternalApp(appName)) return false;
   const patterns = CATEGORY_PATTERNS[categoryId];
   if (!patterns) return false;
@@ -150,8 +150,8 @@ function matchesCategory(appName: string, categoryId: string): boolean {
 }
 
 /** Filter out Shuffle's own internal tools (e.g. "Shuffle Tools", "Shuffle Datastore") */
-const SHUFFLE_INTERNAL_PATTERNS = ['shuffle tools', 'shuffle datastore', 'shuffle workflow'];
-function isShuffleInternalApp(appName: string): boolean {
+export const SHUFFLE_INTERNAL_PATTERNS = ['shuffle tools', 'shuffle datastore', 'shuffle workflow'];
+export function isShuffleInternalApp(appName: string): boolean {
   const lower = appName.toLowerCase();
   return SHUFFLE_INTERNAL_PATTERNS.some(p => lower.includes(p));
 }

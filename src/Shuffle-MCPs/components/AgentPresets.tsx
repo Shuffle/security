@@ -25,6 +25,8 @@ export interface AgentPreset {
   icon: React.ReactNode;
   /** When true, the preset is clickable and pre-fills the prompt. Others are placeholders. */
   enabled?: boolean;
+  /** Optional badge/tag label to display next to the preset name, e.g. "Beta", "Coming soon" */
+  tag?: string;
   /** Optional tools/apps to pre-select when this preset is clicked. */
   defaultApps?: Array<{ name: string; id?: string; icon?: string }>;
   /**
@@ -48,14 +50,19 @@ export const isRequiredPresetApp = (
   return preset.requiredApps.some((r) => normalizeToolName(r) === slug);
 };
 
-/** "shuffle_workflows" -> "Shuffle Workflows" */
-const prettyAppName = (name: string) =>
-  name
-    .replace(/[_-]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+/** "shuffle_software_and_packages" -> "Shuffle Software and Packages" */
+const prettyAppName = (name: string) => {
+  const words = (name || '').replace(/[_-]+/g, ' ').trim().split(/\s+/);
+  return words
+    .map((w, idx) => {
+      const lower = w.toLowerCase();
+      if (idx > 0 && (lower === 'and' || lower === 'or' || lower === 'of' || lower === 'the' || lower === 'in' || lower === 'on')) {
+        return lower;
+      }
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
     .join(' ');
+};
 
 export const AGENT_PRESETS: AgentPreset[] = [
   {
@@ -75,6 +82,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
     defaultPrompt: 'Investigate this incident and recommend next steps: ',
     icon: <ShieldAlert size={16} />,
     enabled: true,
+    tag: 'Beta',
     defaultApps: [{ name: 'shuffle_incidents' }],
   },
   {
@@ -93,21 +101,21 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Uses the platform on your behalf — navigates settings, runs diagnostics, and answers "how do I…" questions.',
     defaultPrompt: 'Help me with the following on the Shuffle platform: ',
     icon: <LifeBuoy size={16} />,
-    enabled: true,
+    enabled: false,
+    tag: 'Coming soon',
     defaultApps: [{ name: 'shuffle_tools' }],
   },
   {
     id: 'vulnerability',
-    label: 'Vulnerability Management',
+    label: 'Vulnerability Mgmt',
     description: 'Helps you solve vulnerabilities — demystifies CVEs in plain language, analyzes realistic exploitability (EPSS/KEV), and guides you through exact remediation steps and fixes.',
     defaultPrompt: 'Help me review and solve this vulnerability: ',
     icon: <Bug size={16} />,
     enabled: true,
+    tag: 'Beta',
     defaultApps: [
       { name: 'shuffle_vulnerabilities' },
-      { name: 'shuffle_assets' },
-      { name: 'shuffle_software' },
-      { name: 'shuffle_packages' },
+      { name: 'shuffle_software_and_packages' },
     ],
   },
   {
@@ -116,7 +124,8 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Creates and tunes detection rules (Sigma, pipelines) — adjusts logic, filters false positives, and validates coverage.',
     defaultPrompt: 'Modify my detections to ',
     icon: <Radar size={16} />,
-    enabled: true,
+    enabled: false,
+    tag: 'Coming soon',
     defaultApps: [{ name: 'shuffle_detection' }],
   },
   {
@@ -125,7 +134,8 @@ export const AGENT_PRESETS: AgentPreset[] = [
     description: 'Automatically handles incoming incidents for you — triages, enriches, and resolves or escalates based on your rules.',
     defaultPrompt: 'Automatically handle incoming incidents by ',
     icon: <BellRing size={16} />,
-    enabled: true,
+    enabled: false,
+    tag: 'Coming soon',
     defaultApps: [{ name: 'shuffle_incidents' }],
   },
 ];
@@ -306,7 +316,9 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter((p) =>
-      p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
+      p.label.toLowerCase().includes(q) ||
+      p.description.toLowerCase().includes(q) ||
+      (p.tag && p.tag.toLowerCase().includes(q)),
     );
   }, [list, query]);
 
@@ -386,6 +398,7 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                       py: 1,
                       px: 1.5,
                       cursor: p.enabled ? 'pointer' : 'not-allowed',
+                      opacity: p.enabled ? 1 : 0.65,
                       '&:hover': { bgcolor: p.enabled ? 'hsl(var(--muted))' : 'transparent' },
                     }}
                   >
@@ -410,25 +423,30 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                           {p.label}
                         </Typography>
-                        {!p.enabled && (
-                          <Typography
-                            sx={{
-                              fontSize: '0.65rem',
-                              fontWeight: 600,
-                              textTransform: 'uppercase',
-                              letterSpacing: 0.5,
-                              color: 'hsl(var(--muted-foreground))',
-                              bgcolor: 'hsl(var(--muted))',
-                              px: 0.75,
-                              py: 0.25,
-                              borderRadius: 999,
-                              lineHeight: 1,
-                              flexShrink: 0,
-                            }}
-                          >
-                            coming soon
-                          </Typography>
-                        )}
+                        {(() => {
+                          const tag = p.tag || (!p.enabled ? 'Coming soon' : null);
+                          if (!tag) return null;
+                          const isBeta = tag.toLowerCase() === 'beta';
+                          return (
+                            <Typography
+                              sx={{
+                                fontSize: '0.65rem',
+                                fontWeight: 600,
+                                letterSpacing: 0.5,
+                                color: isBeta ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                                bgcolor: isBeta ? 'hsl(var(--primary) / 0.12)' : 'hsl(var(--muted))',
+                                border: isBeta ? '1px solid hsl(var(--primary) / 0.25)' : '1px solid transparent',
+                                px: 0.75,
+                                py: '2px',
+                                borderRadius: 999,
+                                lineHeight: 1,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {tag}
+                            </Typography>
+                          );
+                        })()}
                       </Box>
                       <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>
                         {p.description}
@@ -533,18 +551,17 @@ export const AgentPresets = ({ variant = 'default', onSelectPreset, selectedPres
                         sx={{
                           fontSize: '0.65rem',
                           fontWeight: 600,
-                          textTransform: 'uppercase',
                           letterSpacing: 0.5,
                           color: 'hsl(var(--muted-foreground))',
                           bgcolor: 'hsl(var(--muted))',
                           px: 0.75,
-                          py: 0.25,
+                          py: '2px',
                           borderRadius: 999,
                           lineHeight: 1,
                           flexShrink: 0,
                         }}
                       >
-                        coming soon
+                        Coming soon
                       </Typography>
                     </Box>
                     <Typography sx={{ fontSize: '0.72rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, mt: 0.25 }}>

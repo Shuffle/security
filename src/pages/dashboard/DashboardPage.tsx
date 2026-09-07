@@ -691,7 +691,10 @@ const DashboardPage = () => {
     (async () => {
       const fetchCategory = async (category: string) => {
         try {
-          const url = getApiUrl(`/api/v1/orgs/${viewOrgId}/list_cache?category=${encodeURIComponent(category)}&top=50`);
+          const isVulns = category === DATASTORE_CATEGORIES.VULNERABILITIES || category === 'shuffle-security_vulns' || category === 'shuffle-security_vulnerabilities' || category === 'vulns';
+          const url = isVulns
+            ? getApiUrl('/api/v2/vulns?skip_fields=false&top=50')
+            : getApiUrl(`/api/v1/orgs/${viewOrgId}/list_cache?category=${encodeURIComponent(category)}&top=50`);
           const response = await fetch(url, {
             method: 'GET',
             credentials: 'include',
@@ -704,7 +707,7 @@ const DashboardPage = () => {
       };
       const [incs, vulns] = await Promise.all([
         fetchCategory(DATASTORE_CATEGORIES.INCIDENTS),
-        fetchCategory('shuffle-security_vulnerabilities'),
+        fetchCategory(DATASTORE_CATEGORIES.VULNERABILITIES),
       ]);
       if (cancelled) return;
       setViewIncidentItems(incs);
@@ -712,7 +715,7 @@ const DashboardPage = () => {
       const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 } as Record<string, number>;
       for (const item of vulns) {
         try {
-          const v = typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+          const v = item?.value != null ? (typeof item.value === 'string' ? JSON.parse(item.value) : item.value) : item;
           const sevRaw = (v?.severity || v?.database_specific?.severity || '').toString().toLowerCase();
           let sev: keyof typeof counts = 'info';
           if (sevRaw.startsWith('crit')) sev = 'critical';
