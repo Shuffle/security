@@ -31,6 +31,7 @@ import InlineMarkdown from '@/components/shared/InlineMarkdown';
 import { useAgentNotifications } from '@/hooks/useNotifications';
 import { isApprovalNotification, approveAgentAction, continueAgentExecution, stripAgentTitlePrefix, type AgentNotification } from '@/services/notifications';
 import { getShuffleCoreFormUrl, isAgentApprovalFormUrl } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 import { getTimeAgo } from '@/components/agent/AgentRunHeader';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 import { useAppAuth } from '@/Shuffle-MCPs/useAppAuth';
@@ -487,7 +488,13 @@ const NotificationRow = ({ notification, entityBasePath, onApprove, onQuickView,
                 target={isApprovalForm ? '_blank' : undefined}
                 rel={isApprovalForm ? 'noopener noreferrer' : undefined}
                 size="small"
-                onClick={(e) => e.stopPropagation()}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (isApprovalForm && href) {
+                    e.preventDefault();
+                    await navigateToShuffleCore(href, { newTab: true });
+                  }
+                }}
                 sx={{
                   color: 'hsl(var(--muted-foreground))',
                   flexShrink: 0,

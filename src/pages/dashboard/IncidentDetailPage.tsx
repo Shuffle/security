@@ -60,6 +60,7 @@ import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setData
 import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
 import type { GenerateReportInput } from '@/services/incidentReports';
 import { API_CONFIG, getApiUrl, getAuthHeader, getShuffleCoreUrl, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 import { resyncState } from '@/lib/resyncState';
 import { autoCorrectTranslatedString, repairCorruptedOcsfFields, type FieldRepair } from '@/lib/translationFallback';
 import { useUsers } from '@/hooks/useUsers';
@@ -7004,10 +7005,10 @@ const IncidentDetailPage = () => {
             sx={{ display: 'flex', flexDirection: 'column' }}
           >
           <Box
-            onClick={() => {
+            onClick={async () => {
 
               if (run.execution_id) setSelectedWorkflowExecutionId(String(run.execution_id));
-              else if (execUrl) window.open(execUrl, '_blank', 'noopener,noreferrer');
+              else if (execUrl) await navigateToShuffleCore(execUrl, { newTab: true });
             }}
 
             sx={{
@@ -10275,7 +10276,10 @@ const IncidentDetailPage = () => {
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>Original ingestion execution</Typography>
                     <Typography
                       variant="body2"
-                      onClick={() => window.open(getShuffleCoreWorkflowUrl(incident.rawOCSF.shuffle_execution_id, { execution_id: incident.rawOCSF.shuffle_execution_id }), '_blank')}
+                      onClick={async () => {
+                        const target = getShuffleCoreWorkflowUrl(incident.rawOCSF.shuffle_execution_id, { execution_id: incident.rawOCSF.shuffle_execution_id });
+                        await navigateToShuffleCore(target, { newTab: true });
+                      }}
                       sx={{ color: '#06b6d4', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.75rem', wordBreak: 'break-all', '&:hover': { textDecoration: 'underline' } }}
                     >
                       {String(incident.rawOCSF.shuffle_execution_id)}

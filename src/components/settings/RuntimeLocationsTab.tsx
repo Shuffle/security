@@ -44,6 +44,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/lib/toast";
 import { getShuffleCoreWorkflowUrl } from "@/lib/shuffleUrls";
+import { navigateToShuffleCore } from "@/lib/authHandoff";
 import {
   DefaultEnvironmentSelector,
   EnvironmentItem,
@@ -747,6 +748,10 @@ export const RuntimeLocationsTab = () => {
                               href={getShuffleCoreWorkflowUrl(workflow.id)}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={async (e: React.MouseEvent) => {
+                                e.preventDefault();
+                                await navigateToShuffleCore(getShuffleCoreWorkflowUrl(workflow.id), { newTab: true });
+                              }}
                               sx={{
                                 fontWeight: 600,
                                 fontSize: "0.84rem",

@@ -19,6 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import { getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 import { VulnerabilityAutomationBanner } from '@/components/vulnerabilities/VulnerabilityAutomationBanner';
 import { VulnerabilityReadinessBanner } from '@/components/vulnerabilities/VulnerabilityReadinessBanner';
 import { VulnerabilitySidebar } from '@/components/vulnerabilities/VulnerabilitySidebar';
@@ -322,11 +323,11 @@ const AuthenticatedVulnerabilitiesView = () => {
               const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
               return wfId ? 'Click to open automation workflow' : 'Automation for Vulnerabilities';
             })()}
-            onClick={() => {
+            onClick={async () => {
               const workflowAuto = categoryAutomations?.find(a => a.type === 'workflow' && a.enabled);
               const wfId = workflowAuto?.options?.find(o => o.key === 'workflow_id')?.value?.split(',')[0]?.trim();
               if (wfId) {
-                window.open(getShuffleCoreWorkflowUrl(wfId), '_blank');
+                await navigateToShuffleCore(getShuffleCoreWorkflowUrl(wfId), { newTab: true });
               } else {
                 setAutomationsDialogOpen(true);
               }

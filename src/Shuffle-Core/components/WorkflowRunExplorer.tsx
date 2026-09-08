@@ -47,6 +47,7 @@ import {
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { getApiUrl, getAuthHeader, getShuffleCoreUrl, getShuffleCoreWorkflowUrl } from '../api';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 import NotificationsDrawer from './NotificationsDrawer';
 import { AppFallbackIcon } from '@/Shuffle-MCPs/components/AppFallbackIcon';
 import shuffleLogo from '@/assets/shuffle-logo.png';
@@ -221,10 +222,10 @@ const [exec, setExec] = useState<WorkflowExecution | null>(null);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [exec, load, pollIntervalMs]);
 
-const openInShuffle = () => {
+const openInShuffle = async () => {
     if (!exec) return;
     const url = shuffleUrlForExecution(exec);
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    if (url) await navigateToShuffleCore(url, { newTab: true });
   };
 
 const copyExecutionLink = () => {
@@ -465,6 +466,10 @@ const copyExecutionLink = () => {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          await navigateToShuffleCore(href, { newTab: true });
+                        }}
                         sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
                       >
                         Datastore Automation
@@ -516,6 +521,10 @@ const copyExecutionLink = () => {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          await navigateToShuffleCore(href, { newTab: true });
+                        }}
                         sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
                       >
                         {label}
@@ -572,6 +581,10 @@ const copyExecutionLink = () => {
                     href={getShuffleCoreUrl('/admin?tab=locations')}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={async (e: React.MouseEvent) => {
+                      e.preventDefault();
+                      await navigateToShuffleCore(getShuffleCoreUrl('/admin?tab=locations'), { newTab: true });
+                    }}
                     sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
                   >
                     {exec.workflow.actions[0].environment}

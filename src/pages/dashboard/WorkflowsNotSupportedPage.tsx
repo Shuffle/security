@@ -3,6 +3,7 @@ import { useParams, Link } from '@/lib/router-compat';
 import { ExternalLink, ArrowLeft, Workflow } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getShuffleCoreBaseUrl, getShuffleCoreWorkflowUrl } from '@/lib/shuffleUrls';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 
 /**
  * Shuffle Security does not host the workflow editor — that lives in
@@ -25,8 +26,8 @@ export default function WorkflowsNotSupportedPage() {
     const tick = setInterval(() => {
       setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
     }, 1000);
-    const redirect = setTimeout(() => {
-      window.location.href = targetUrl;
+    const redirect = setTimeout(async () => {
+      await navigateToShuffleCore(targetUrl);
     }, AUTO_REDIRECT_MS);
     return () => {
       clearInterval(tick);
@@ -53,11 +54,15 @@ export default function WorkflowsNotSupportedPage() {
         </p>
 
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Button asChild className="h-9">
-            <a href={targetUrl} rel="noopener noreferrer">
-              <ExternalLink size={16} className="mr-2" />
-              Open in Shuffle Core
-            </a>
+          <Button
+            className="h-9"
+            onClick={async (e) => {
+              e.preventDefault();
+              await navigateToShuffleCore(targetUrl);
+            }}
+          >
+            <ExternalLink size={16} className="mr-2" />
+            Open in Shuffle Core
           </Button>
           <Button asChild variant="outline" className="h-9">
             <Link to="/dashboard">

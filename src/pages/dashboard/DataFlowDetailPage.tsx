@@ -13,6 +13,7 @@ import { Clock } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useUsecases } from '@/hooks/useUsecases';
 import { API_CONFIG, getApiUrl, getAuthHeader, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
 import { deduplicateAuthApps, type AuthAppEntry } from '@/lib/utils';
 import {
@@ -619,6 +620,10 @@ export const UsecaseDetailContent = ({
                   href={getShuffleCoreWorkflowUrl(wf.id)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={async (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    await navigateToShuffleCore(getShuffleCoreWorkflowUrl(wf.id), { newTab: true });
+                  }}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',

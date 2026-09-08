@@ -16,6 +16,7 @@ import { Box, Button, Tooltip } from '@mui/material';
 import { ExternalLink, Settings2 } from 'lucide-react';
 import type { OutputDiagnosis } from '@/Shuffle-MCPs/agentDiagnosis';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 
 interface Props extends ShuffleHostProps {
   diagnosis: OutputDiagnosis | null | undefined;
@@ -32,13 +33,9 @@ const openLocalLlmTab = (e: React.MouseEvent) => {
   );
 };
 
-const openSupportContact = (e: React.MouseEvent) => {
+const openSupportContact = async (e: React.MouseEvent) => {
   e.stopPropagation();
-  window.open(
-    'https://shuffler.io/contact?category=Support',
-    '_blank',
-    'noopener,noreferrer',
-  );
+  await navigateToShuffleCore('https://shuffler.io/contact?category=Support', { newTab: true });
 };
 
 export const diagnosisHasCtas = (

@@ -15,6 +15,7 @@ import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 const useIsSupport = (): boolean => false;
 import type { UsecaseOutcome } from '../lib/outcomes';
 import { getShuffleCoreUrl } from '../api';
+import { navigateToShuffleCore, isShuffleCoreUrl } from '@/lib/authHandoff';
 
 /** Frontend routes we know exist in src/App.tsx — used by the support-only
  *  CTA diagnostic chip to flag broken outcome links before users hit them. */
@@ -416,6 +417,12 @@ export function UsecaseOutcomeSection({
                             component="a"
                             href={href}
                             {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                            onClick={async (e: React.MouseEvent) => {
+                              if (isShuffleCoreUrl(href)) {
+                                e.preventDefault();
+                                await navigateToShuffleCore(href, { newTab: external });
+                              }
+                            }}
                             sx={{ textDecoration: 'none', cursor: 'pointer', '&:hover': { opacity: 0.85 } }}
                           >
                             {label}

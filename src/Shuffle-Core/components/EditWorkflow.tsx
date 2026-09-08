@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { getTheme, Context, UsecaseSearch, WorkflowGrid, WorkflowTemplatePopup, WorkflowValidationTimeline, useStyles } from "./stubs";
 import { getAuthHeader, getShuffleCoreWorkflowUrl } from "../api";
+import { navigateToShuffleCore } from "@/lib/authHandoff";
 import { isMobile } from "react-device-detect";
 import { MuiChipsInput } from "mui-chips-input";
 import { toast } from "react-toastify";
@@ -708,10 +709,10 @@ const EditWorkflow = (props) => {
 											}
 
 											// Step 4: Close modal and redirect (after everything is complete)
-											setTimeout(() => {
+											setTimeout(async () => {
 												setModalOpen(false);
 												setAiGenerateLoading(false);
-												window.location.href = getShuffleCoreWorkflowUrl(workflowId);
+												await navigateToShuffleCore(getShuffleCoreWorkflowUrl(workflowId));
 											}, 1500); 
 
 										} catch (error) {

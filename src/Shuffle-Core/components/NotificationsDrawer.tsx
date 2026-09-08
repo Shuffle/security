@@ -37,6 +37,7 @@ import {
   WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
 import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore, isShuffleCoreUrl } from '@/lib/authHandoff';
 import { fetchWorkflowsCached, fetchOrgCached } from '../views/appsFetchCache';
 import { SegmentedControl } from './ui/segmented-control';
 
@@ -746,7 +747,13 @@ const NotificationsDrawer = ({
                     <Tooltip title="Explore" arrow>
                       <IconButton
                         size="small"
-                        onClick={() => window.open(n.reference_url, '_blank', 'noopener,noreferrer')}
+                        onClick={async () => {
+                          if (n.reference_url && isShuffleCoreUrl(n.reference_url)) {
+                            await navigateToShuffleCore(n.reference_url, { newTab: true });
+                          } else if (n.reference_url) {
+                            window.open(n.reference_url, '_blank', 'noopener,noreferrer');
+                          }
+                        }}
                         sx={{
                           color: 'hsl(var(--muted-foreground))',
                           '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted) / 0.6)' },

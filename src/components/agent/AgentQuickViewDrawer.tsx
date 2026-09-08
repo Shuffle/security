@@ -35,6 +35,7 @@ import { hasOutputWarning, getFailureInfo } from '@/components/agent/AgentRunRes
 import { getTimeAgo, formatDuration, getRunTitle } from '@/components/agent/AgentRunHeader';
 import InlineMarkdown from '@/components/shared/InlineMarkdown';
 import { getShuffleCoreFormUrl, isAgentApprovalFormUrl } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore, isShuffleCoreUrl } from '@/lib/authHandoff';
 import { useEntityText } from '@/hooks/useEntityLabel';
 import { useIsSupport } from '@/hooks/useIsSupport';
 
@@ -564,6 +565,12 @@ const AgentQuickViewDrawer = ({ open, onClose, item, entityBasePath, onApprove, 
               variant="outlined"
               endIcon={<ArrowRight size={14} />}
               sx={outlineButtonSx}
+              onClick={async (e) => {
+                if (data.incidentLink && isShuffleCoreUrl(data.incidentLink)) {
+                  e.preventDefault();
+                  await navigateToShuffleCore(data.incidentLink, { newTab: true });
+                }
+              }}
             >
               {t(data.incidentLinkLabel)}
             </Button>

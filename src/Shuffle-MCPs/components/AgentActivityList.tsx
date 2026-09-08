@@ -67,6 +67,7 @@ import {
   subscribeLastOpenedAgentRun,
 } from '@/Shuffle-MCPs/agentRunSync';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 
 import { diagnoseOutputWarning } from '@/Shuffle-MCPs/agentDiagnosis';
 import { fetchAppsViaApiConfig } from '@/Shuffle-MCPs/appsCache';
@@ -661,9 +662,9 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick, apiKey, apiBaseUr
             <Box
               onClick={
                 dsLink
-                  ? (e: React.MouseEvent) => {
+                  ? async (e: React.MouseEvent) => {
                       e.stopPropagation();
-                      window.open(dsLink, '_blank', 'noopener,noreferrer');
+                      await navigateToShuffleCore(dsLink, { newTab: true });
                     }
                   : undefined
               }

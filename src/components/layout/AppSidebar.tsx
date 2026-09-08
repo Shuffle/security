@@ -29,6 +29,7 @@ import { Activity, Sun, Moon, Monitor, Shield, Radar, Users, AlertTriangle as Wa
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { SHUFFLE_AUTOMATION_URL, getShuffleCoreUrl } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
 // IntegrationStatus removed from sidebar; it now lives only on relevant pages (e.g. /onboarding/sources, infrastructure).
 import { SidebarSearchDialog } from './SidebarSearchDialog';
 
@@ -539,11 +540,11 @@ export const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
               color: 'inherit',
               '&:hover': { backgroundColor: 'hsl(var(--muted))' },
             }}
-            onClick={(e: React.MouseEvent) => {
-              // Allow ctrl/cmd+click to open in new tab naturally
-              if (!e.ctrlKey && !e.metaKey) {
-                setToolMenuAnchor(null);
-              }
+            onClick={async (e: React.MouseEvent) => {
+              e.preventDefault();
+              setToolMenuAnchor(null);
+              const isNewTab = e.ctrlKey || e.metaKey || e.button === 1;
+              await navigateToShuffleCore('/new-dashboard', { newTab: isNewTab });
             }}
           >
             <img src={shuffleInfraLogo} alt="Shuffle Core" width={24} height={24} style={{ borderRadius: 4 }} />

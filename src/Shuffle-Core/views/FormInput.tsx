@@ -28,6 +28,7 @@ import RecentWorkflow from "../components/RecentWorkflow";
 import { toast } from "react-toastify";
 import Markdown from "react-markdown";
 import { shuffleFetch, getShuffleCoreWorkflowUrl } from "../api";
+import { navigateToShuffleCore } from "@/lib/authHandoff";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 // SECURITY: raw HTML is intentionally NOT enabled (no rehype-raw). Do not add it.
 // react-markdown v9 already drops raw HTML tags; rehype-sanitize below is
@@ -2285,7 +2286,11 @@ const FormInput = (defaultprops: any) => {
 					{/* Ghost / outline action — visit the underlying workflow */}
 					<Button
 						disabled={workflow.id === undefined || workflow.id === null}
-						onClick={() => { window.open(getShuffleCoreWorkflowUrl(workflow.id), "_blank") }}
+						onClick={async () => {
+							if (workflow.id) {
+								await navigateToShuffleCore(getShuffleCoreWorkflowUrl(workflow.id), { newTab: true });
+							}
+						}}
 						sx={{
 							height: 36,
 							px: 1.75,

@@ -14,6 +14,7 @@ import { Box, Typography, InputBase, CircularProgress } from '@mui/material';
 import { Network, Braces, Waypoints, Link2, Workflow, Activity, BookOpen, LayoutDashboard, Shield, HardDrive, Radar, Users, Bug, MonitorCheck, Search as SearchIcon, AlertTriangle as WarningAmberIcon, Radar as RadarIcon, FileText as DescriptionIcon, SlidersHorizontal as TuneIcon, Fingerprint as FingerprintIcon, Rss as RssFeedIcon, Settings as SettingsIcon, Target } from 'lucide-react';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { getApiUrl, getAuthHeader, getShuffleCoreUrl, getShuffleCoreWorkflowUrl } from '@/Shuffle-MCPs/api';
+import { navigateToShuffleCore, isShuffleCoreUrl } from '@/lib/authHandoff';
 import { useWorkflows } from '@/hooks/useWorkflows';
 import type { AlgoliaSearchApp } from '@/Shuffle-MCPs/shuffle-mcp.helpers';
 
@@ -368,7 +369,11 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
   const handleSelect = (result: SearchResult) => {
     if (result.type === 'nav') {
       if (result.external) {
-        window.open(result.path, '_blank');
+        if (isShuffleCoreUrl(result.path)) {
+          navigateToShuffleCore(result.path, { newTab: true });
+        } else {
+          window.open(result.path, '_blank');
+        }
       } else {
         navigate(result.path);
       }
@@ -377,7 +382,7 @@ export const SidebarSearchDialog = ({ open, onOpenChange }: SidebarSearchDialogP
       navigate(`/apps?app=${result.app.name}`);
     } else if (result.type === 'workflow') {
       // Open workflow in Shuffle Core
-      window.open(getShuffleCoreWorkflowUrl(result.workflow.id), '_blank');
+      navigateToShuffleCore(getShuffleCoreWorkflowUrl(result.workflow.id), { newTab: true });
     } else if (result.type === 'doc') {
       navigate(result.doc.path || `/docs/${result.doc.slug}`);
     } else if (result.type === 'incident') {

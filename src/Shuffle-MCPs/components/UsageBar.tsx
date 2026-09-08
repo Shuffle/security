@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography, Tooltip } from '@mui/material';
+import { navigateToShuffleCore, isShuffleCoreUrl } from '@/lib/authHandoff';
 
 /**
  * Compact, reusable usage bar showing `usage / limit`. Designed to stack
@@ -67,6 +68,12 @@ export const UsageBar: React.FC<UsageBarProps> = ({
                 href={actionHref}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={async (e: React.MouseEvent) => {
+                  if (actionHref && isShuffleCoreUrl(actionHref)) {
+                    e.preventDefault();
+                    await navigateToShuffleCore(actionHref, { newTab: true });
+                  }
+                }}
                 sx={{
                   fontSize: '12.8px',
                   fontWeight: 600,
