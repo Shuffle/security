@@ -26,7 +26,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from '@/lib/router-compat';
 import { useAuth } from '@/context/AuthContext';
-import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, getApiUrl, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
+import { setHostBaseUrl, getHostBaseUrl, isDevEnvironment, getApiUrl, isShuffleCloudDomain, API_ENDPOINTS } from '@/Shuffle-MCPs/api';
 import { setHostBaseUrl as setCoreHostBaseUrl } from '@/Shuffle-Core/api';
 import { ShuffleCompanyLogo } from '@/components/common/ShuffleLogo';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
@@ -258,18 +258,13 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
       setCustomHostUrl(urlToTest);
     }
 
-    // shuffler.io hosts are Shuffle Cloud - switch back to cloud rules
-    let testHostname = '';
-    try {
-      testHostname = new URL(urlToTest).hostname.toLowerCase();
-    } catch {
-      testHostname = '';
-    }
-    if (testHostname === 'shuffler.io' || testHostname.endsWith('.shuffler.io')) {
+    // Shuffle Cloud hosts switch back to cloud rules
+    if (isShuffleCloudDomain(urlToTest)) {
       setCustomHostUrl('');
       setHostPingStatus('idle');
       setHostPingMessage('');
       handleServerModeChange('cloud');
+      setNotice('Switched to Shuffle Cloud login');
       return;
     }
 
@@ -395,6 +390,15 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
         setCustomHostUrl(normalized);
       }
 
+      if (isShuffleCloudDomain(normalized)) {
+        setCustomHostUrl('');
+        setHostPingStatus('idle');
+        setHostPingMessage('');
+        handleServerModeChange('cloud');
+        setNotice('Switched to Shuffle Cloud login');
+        return;
+      }
+
       setHostBaseUrl(normalized);
       setCoreHostBaseUrl(normalized);
       localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'self-hosted');
@@ -517,33 +521,55 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
       }
 
       if (data.success !== false) {
-        // Validate the session with getinfo BEFORE treating the user as logged in,
-        // otherwise we land in a "fake" authenticated UI when the cookie/token
-        // was not actually accepted by the backend.
+        // Validate the session with getinfo BEFORE treating the user as logged in.
+        // Try standard cookie verification first, and fall back to Bearer token if cookies fail.
         let verified = false;
         let verifyData: any = null;
+        let detectedAuthMode: 'cookie' | 'bearer' = 'cookie';
+
         try {
-          const verify = async () => {
-            const res = await fetch(getApiUrl('/api/v1/getinfo'), {
+          // 1. Try standard cookie verification first
+          const cookieRes = await fetch(getApiUrl('/api/v1/getinfo'), {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const cookieData = await cookieRes.json().catch(() => ({} as any));
+          if (cookieRes.ok && cookieData?.success === true) {
+            verified = true;
+            verifyData = cookieData;
+            detectedAuthMode = 'cookie';
+          }
+        } catch {
+          // Cookie verification network error, try fallback
+        }
+
+        if (!verified && sessionToken) {
+          try {
+            // 2. Fallback to Authorization: Bearer
+            const bearerRes = await fetch(getApiUrl('/api/v1/getinfo'), {
               method: 'GET',
               credentials: 'include',
               headers: {
                 'Content-Type': 'application/json',
-                ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+                Authorization: `Bearer ${sessionToken}`,
               },
             });
-            verifyData = await res.json().catch(() => ({} as any));
-            return res.ok && verifyData?.success === true;
-          };
-
-          verified = await verify();
-
-          if (verified) {
-            const accepted = await login(sessionToken || '', verifyData);
-            verified = accepted;
+            const bearerData = await bearerRes.json().catch(() => ({} as any));
+            if (bearerRes.ok && bearerData?.success === true) {
+              verified = true;
+              verifyData = bearerData;
+              detectedAuthMode = 'bearer';
+            }
+          } catch {
+            verified = false;
           }
-        } catch {
-          verified = false;
+        }
+
+        if (verified) {
+          localStorage.setItem('shuffle_auth_mode', detectedAuthMode);
+          const accepted = await login(sessionToken || '', verifyData);
+          verified = accepted;
         }
 
         if (!verified) {
@@ -808,6 +834,18 @@ export const MobileAuthGateway = ({ mode = 'login' }: { mode?: 'login' | 'regist
                       onChange={(e) => {
                         setCustomHostUrl(e.target.value);
                         setHostPingStatus('idle');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handlePingHost();
+                        }
+                      }}
+                      onBlur={() => {
+                        const trimmed = customHostUrl.trim();
+                        if (trimmed && isShuffleCloudDomain(trimmed)) {
+                          handlePingHost();
+                        }
                       }}
                       size="small"
                       fullWidth

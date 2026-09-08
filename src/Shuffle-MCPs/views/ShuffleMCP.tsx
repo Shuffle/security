@@ -130,7 +130,7 @@ export const ShuffleMCP = React.forwardRef<ShuffleMCPHandle, ShuffleMCPProps>(({
   initialFilterQuery,
   hitsPerPage = 20,
   apiKey,
-  apiBaseUrl = 'https://shuffler.io',
+  apiBaseUrl = 'https://uk.shuffle.security',
   authPath = '/api/v1/apps/authentication',
   appAuthPath = '/appauth',
   privateAppsPath = '/api/v1/apps',

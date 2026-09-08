@@ -314,39 +314,68 @@ const AuthPage = ({ mode }: AuthPageProps) => {
 
       if (sessionToken) {
         // Verify the session works before showing success.
-        // Always attach Authorization: Bearer <sessionToken> and include credentials
-        // so cross-origin and SameSite restrictions are completely bypassed.
+        // Try standard cookie verification first (credentials: 'include').
+        // If cookie is not working (e.g. strict cross-site blocking or native webview),
+        // fall back to Authorization: Bearer <sessionToken>.
         let verifiedUserInfo: any = null;
+        let authMode: 'cookie' | 'bearer' = 'cookie';
+
         try {
-          const verifyResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
+          // 1. First attempt: standard cookie verification
+          const cookieResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
             method: 'GET',
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${sessionToken}`,
             },
           });
-          
-          if (!verifyResponse.ok) {
-            throw new Error('Login succeeded but session verification failed. Please try again.');
+
+          if (cookieResponse.ok) {
+            const data = await cookieResponse.json().catch(() => null);
+            if (data?.success === true) {
+              verifiedUserInfo = data;
+              authMode = 'cookie';
+            }
           }
-          verifiedUserInfo = await verifyResponse.json().catch(() => null);
-          if (verifiedUserInfo?.success !== true) {
-            throw new Error('Login succeeded but session verification failed. Please try again.');
-          }
-        } catch (verifyError) {
-          if (verifyError instanceof Error && verifyError.message.includes('verification failed')) {
-            throw verifyError;
-          }
-          throw new Error('Login succeeded but failed to verify session. Please try again.');
+        } catch {
+          // Cookie verification network error, try fallback
         }
-        
+
+        // 2. If cookie verification didn't succeed, fallback to Bearer token
+        if (!verifiedUserInfo) {
+          try {
+            const bearerResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
+              method: 'GET',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${sessionToken}`,
+              },
+            });
+
+            if (bearerResponse.ok) {
+              const data = await bearerResponse.json().catch(() => null);
+              if (data?.success === true) {
+                verifiedUserInfo = data;
+                authMode = 'bearer';
+              }
+            }
+          } catch {
+            // Bearer fallback failed
+          }
+        }
+
+        if (!verifiedUserInfo) {
+          throw new Error('Login succeeded but session verification failed. Please try again.');
+        }
+
+        localStorage.setItem('shuffle_auth_mode', authMode);
         setSuccess(true);
         setLoading(false);
         trackPredefinedEvent(GA_EVENTS.LOGIN_SUCCESS);
         const wasFirstLogin = !hasLoggedInBefore;
         localStorage.setItem('shuffle_has_logged_in', 'true');
-        // Always persist and pass the session token so Authorization: Bearer is used for all requests
+        // Persist session token as fallback and complete login
         const accepted = await login(sessionToken, verifiedUserInfo);
         if (!accepted) {
           throw new Error('Login succeeded but session verification failed. Please try again.');

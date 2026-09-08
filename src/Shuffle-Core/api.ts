@@ -17,7 +17,7 @@ import { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
 installFetchBreaker();
 
 const DEV_BACKEND = 'https://tunnel.schemaless.org';
-const PROD_BACKEND = 'https://uk.shuffler.io';
+const PROD_BACKEND = 'https://uk.shuffle.security';
 
 import {
   getShuffleCoreBaseUrl,
@@ -38,7 +38,88 @@ export {
 // Base URL for Shuffle Automation dashboard
 export const SHUFFLE_AUTOMATION_URL = getShuffleCoreUrl('/new-dashboard');
 
-const CLOUD_DOMAINS = ['shuffle.security', 'www.shuffle.security', 'security.shuffler.io', 'shutdown.no', 'www.shutdown.no'];
+const CLOUD_DOMAINS = [
+  'shuffle.security',
+  'www.shuffle.security',
+  'uk.shuffle.security',
+  'security.shuffler.io',
+  'shuffler.io',
+  'shutdown.no',
+  'www.shutdown.no',
+];
+
+/** Check if a URL belongs to a Shuffle Cloud domain (*.shuffler.io or *.shuffle.security) */
+export const isShuffleCloudDomain = (url?: string | null): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const raw = url.trim();
+    const parsed = new URL(raw.includes('://') ? raw : `https://${raw}`);
+    const host = parsed.hostname.toLowerCase();
+    return (
+      host === 'shuffler.io' ||
+      host.endsWith('.shuffler.io') ||
+      host === 'shuffle.security' ||
+      host.endsWith('.shuffle.security')
+    );
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Maps legacy shuffler.io cloud URLs to shuffle.security redirect routes.
+ *
+ * Mapping rules:
+ * - shuffler.io / shuffle.security -> https://uk.shuffle.security (default cloud backend)
+ * - <subdomain>.shuffler.io -> https://<subdomain>.shuffle.security (e.g. ca, us, eu, au, uk, frankfurt)
+ * - <subdomain>.shuffle.security -> preserved as https://<subdomain>.shuffle.security
+ * - Self-hosted / on-prem / dev URLs -> preserved as-is
+ */
+export const mapCloudRegionUrl = (url?: string | null): string => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  const hasScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(trimmed);
+  const toParse = hasScheme ? trimmed : `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(toParse);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // 1. Exact match for base domains without region subdomain
+    if (
+      hostname === 'shuffler.io' ||
+      hostname === 'www.shuffler.io' ||
+      hostname === 'shuffle.security' ||
+      hostname === 'www.shuffle.security'
+    ) {
+      parsed.protocol = 'https:';
+      parsed.hostname = 'uk.shuffle.security';
+      return parsed.toString().replace(/\/+$/, '');
+    }
+
+    // 2. Subdomains of shuffler.io (e.g. ca.shuffler.io, us.shuffler.io, eu.shuffler.io, au.shuffler.io, uk.shuffler.io)
+    // Directly map the subdomain: <subdomain>.shuffler.io -> <subdomain>.shuffle.security
+    if (hostname.endsWith('.shuffler.io')) {
+      const subdomain = hostname.slice(0, -'.shuffler.io'.length);
+      parsed.protocol = 'https:';
+      parsed.hostname = `${subdomain}.shuffle.security`;
+      return parsed.toString().replace(/\/+$/, '');
+    }
+
+    // 3. Subdomains of shuffle.security (e.g. ca.shuffle.security, us.shuffle.security)
+    if (hostname.endsWith('.shuffle.security')) {
+      parsed.protocol = 'https:';
+      return parsed.toString().replace(/\/+$/, '');
+    }
+
+    // Self-hosted / on-prem / dev URLs remain unchanged
+    return trimmed.replace(/\/+$/, '');
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+};
 
 const getEnvVar = (key: string): string | undefined => {
   // Indirect access via `new Function` keeps `import.meta` out of the emitted
@@ -90,16 +171,27 @@ export {
 };
 
 export const isCloudDomain = (): boolean => {
-  if (isCapacitorNative()) return true;
+  if (isCapacitorNative()) {
+    if (getHostBaseUrl()) return false;
+    return true;
+  }
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  return CLOUD_DOMAINS.includes(hostname);
+  return (
+    CLOUD_DOMAINS.includes(hostname) ||
+    hostname.endsWith('.shuffle.security') ||
+    hostname.endsWith('.shuffler.io')
+  );
 };
 
 const getDefaultBaseUrl = (): string => {
   const envUrl = getEnvVar('VITE_SHUFFLE_API_URL');
   if (envUrl) return envUrl;
   if (isDevEnvironment()) return DEV_BACKEND;
-  if (isCapacitorNative()) return PROD_BACKEND;
+  if (isCapacitorNative()) {
+    const customHost = getHostBaseUrl();
+    if (customHost) return customHost;
+    return PROD_BACKEND;
+  }
   if (isCloudDomain()) return PROD_BACKEND;
   if (typeof window !== 'undefined') return window.location.origin;
   return PROD_BACKEND;
@@ -115,11 +207,19 @@ const _cachedRegion = (() => {
     const raw = localStorage.getItem(REGION_STORAGE_KEY);
     if (!raw) return { url: null, orgId: null };
     const parsed = JSON.parse(raw);
-    const url = parsed?.url ? parsed.url.replace(/\/+$/, '') : null;
-    if (url === 'https://shuffler.io' || url === PROD_BACKEND) {
+    const rawUrl = parsed?.url ? parsed.url.replace(/\/+$/, '') : null;
+    if (!rawUrl) return { url: null, orgId: parsed?.orgId || null };
+    const mapped = mapCloudRegionUrl(rawUrl);
+    if (
+      mapped === 'https://shuffler.io' ||
+      mapped === 'https://uk.shuffler.io' ||
+      mapped === 'https://shuffle.security' ||
+      mapped === 'https://uk.shuffle.security' ||
+      mapped === PROD_BACKEND
+    ) {
       return { url: null, orgId: parsed?.orgId || null };
     }
-    return { url, orgId: parsed?.orgId || null };
+    return { url: mapped, orgId: parsed?.orgId || null };
   } catch { return { url: null, orgId: null }; }
 })();
 
@@ -131,6 +231,16 @@ const _readCachedCustomHost = (): string | null => {
     const raw = localStorage.getItem('shuffle_custom_host_url');
     const cleaned = raw ? raw.trim().replace(/\/+$/, '') : null;
     if (!cleaned) return null;
+    // A cloud domain must never be saved as a self-hosted custom host base URL
+    if (isShuffleCloudDomain(cleaned)) {
+      try {
+        localStorage.removeItem('shuffle_custom_host_url');
+        if (mode === 'self-hosted') {
+          localStorage.setItem('shuffle_selected_server_mode', 'cloud');
+        }
+      } catch { /* ignore */ }
+      return null;
+    }
     // A saved dev/test backend must never leak into a real deployment UNLESS
     // the user explicitly picked it as their self-hosted server.
     if (cleaned === DEV_BACKEND && !isDevEnvironment() && mode !== 'self-hosted') {
@@ -184,27 +294,42 @@ if (typeof window !== 'undefined') {
 
 
 const isShufflerSubdomain = (url: string): boolean => {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.endsWith('.shuffler.io') || parsed.hostname === 'shuffler.io';
-  } catch {
-    return false;
-  }
+  return isShuffleCloudDomain(url);
 };
 
 export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string | undefined | null) => {
-  // region_url from getinfo is ALWAYS honored for the current org/tenant,
-  // including dev/preview environments.
   _trackedOrgId = orgId || null;
-  if (regionUrl && isShufflerSubdomain(regionUrl)) {
-    const normalized = regionUrl.replace(/\/+$/, '');
-    const isDefaultCloud = normalized === PROD_BACKEND || normalized === 'https://shuffler.io';
-    if (!isDefaultCloud) {
-      _regionUrl = normalized;
+
+  if (regionUrl) {
+    const isSelfHosted = !isCloudDomain() || Boolean(_hostBaseUrl);
+    if (isShuffleCloudDomain(regionUrl)) {
+      if (isSelfHosted) {
+        // Self-hosted deployments must not have cloud region overrides
+        _regionUrl = null;
+        persistRegion(null, _trackedOrgId);
+        return;
+      }
+      const mapped = mapCloudRegionUrl(regionUrl);
+      const normalized = mapped.replace(/\/+$/, '');
+      const isDefaultCloud =
+        normalized === PROD_BACKEND ||
+        normalized === 'https://shuffler.io' ||
+        normalized === 'https://uk.shuffler.io' ||
+        normalized === 'https://shuffle.security' ||
+        normalized === 'https://uk.shuffle.security';
+      if (!isDefaultCloud) {
+        _regionUrl = normalized;
+        persistRegion(_regionUrl, _trackedOrgId);
+        return;
+      }
+    } else {
+      // Non-cloud region URL (e.g. custom host per tenant on-prem)
+      _regionUrl = regionUrl.replace(/\/+$/, '');
       persistRegion(_regionUrl, _trackedOrgId);
       return;
     }
   }
+
   _regionUrl = null;
   persistRegion(null, _trackedOrgId);
 };
@@ -215,7 +340,8 @@ export const applyRegionFromPayload = (
 ): string | null => {
   if (!payload || typeof payload !== 'object') return null;
   const orgId = orgIdOverride ?? payload?.active_org?.id ?? payload?.org_id ?? null;
-  const regionUrl = payload?.region_url || payload?.active_org?.region_url || null;
+  const rawRegionUrl = payload?.region_url || payload?.active_org?.region_url || null;
+  const regionUrl = rawRegionUrl ? mapCloudRegionUrl(rawRegionUrl) : null;
   setRegionUrl(regionUrl, orgId);
   return regionUrl;
 };
@@ -318,8 +444,12 @@ export const getApiUrl = (endpoint: string): string => `${API_CONFIG.baseUrl}${e
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 
+  // Normal cookie login is the primary authentication method for cloud and self-hosted.
+  // Authorization: Bearer is used as a fallback if cookies are unavailable
+  // (e.g. Capacitor native app, or explicit bearer fallback mode).
+  const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
   const token = getSessionToken();
-  if (token) {
+  if (token && (authMode === 'bearer' || isCapacitorNative())) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -345,8 +475,12 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
 
 /** Session validation headers intentionally omit any cached organization. */
 export const getSessionAuthHeader = (): Record<string, string> => {
+  const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
   const token = getSessionToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  if (token && (authMode === 'bearer' || isCapacitorNative())) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
 };
 
 /**

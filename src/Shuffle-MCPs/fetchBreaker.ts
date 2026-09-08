@@ -116,6 +116,11 @@ const withStoredAuth = (input: RequestInfo | URL, init?: RequestInit): RequestIn
 
     const sessionToken = window.localStorage.getItem('session_token');
     const token = sessionToken && sessionToken.trim().length > 0 ? sessionToken.trim() : null;
+    const authMode = window.localStorage.getItem('shuffle_auth_mode');
+    const isCapacitor = Boolean(
+      (window as any).Capacitor?.isNativePlatform?.() ||
+      (window as any)._isCapacitorNative
+    );
 
     const requestHeaders = typeof Request !== 'undefined' && input instanceof Request
       ? input.headers
@@ -124,7 +129,7 @@ const withStoredAuth = (input: RequestInfo | URL, init?: RequestInit): RequestIn
     if (init?.headers) {
       new Headers(init.headers).forEach((value, name) => headers.set(name, value));
     }
-    if (token && !headers.has('Authorization')) {
+    if (token && (authMode === 'bearer' || isCapacitor) && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 

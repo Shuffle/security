@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
@@ -103,11 +103,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     applyRegionFromPayload(data, newOrgId);
 
+    const mappedActiveOrg = data.active_org ? {
+      ...data.active_org,
+      region_url: data.active_org.region_url ? (mapCloudRegionUrl(data.active_org.region_url) || data.active_org.region_url) : undefined,
+    } : undefined;
+    const mappedOrgs = Array.isArray(data.orgs)
+      ? data.orgs.map((o: any) => ({
+          ...o,
+          region_url: o.region_url ? (mapCloudRegionUrl(o.region_url) || o.region_url) : undefined,
+        }))
+      : (data.orgs || []);
+
     const info = {
       username: data.username,
       id: data.id,
-      active_org: data.active_org,
-      orgs: data.orgs || [],
+      active_org: mappedActiveOrg,
+      orgs: mappedOrgs,
       support: data.support === true || data.support === 'true',
       app_execution_limit: data.app_execution_limit,
       app_execution_usage: data.app_execution_usage,
@@ -138,13 +149,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
-      const token = _token?.trim() || getSessionToken() || '';
+      // Normal cookie login is the primary authentication method.
+      // If an explicit token argument is passed (e.g. Bearer fallback verification), use it.
+      // Otherwise only send Bearer if auth mode is explicitly 'bearer' or Capacitor native.
+      const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
+      let tokenToSend = '';
+      if (_token !== undefined) {
+        tokenToSend = _token?.trim() || '';
+      } else if (authMode === 'bearer' || isCapacitorNative()) {
+        tokenToSend = getSessionToken() || '';
+      }
+
       const response = await fetch(getApiUrl('/api/v1/getinfo'), {
         method: 'GET',
         credentials: 'include',
         signal: controller.signal,
         headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(tokenToSend ? { Authorization: `Bearer ${tokenToSend}` } : {}),
           'Content-Type': 'application/json',
         },
       });
@@ -152,6 +173,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await response.json().catch(() => ({} as any));
 
       if (response.ok && data.success === true) {
+        if (!tokenToSend && typeof localStorage !== 'undefined' && !authMode) {
+          localStorage.setItem('shuffle_auth_mode', 'cookie');
+        }
         applyAuthenticatedUserInfo(data);
         return 'ok';
       }
@@ -202,36 +226,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem('session_token');
       if (token !== sessionToken) setSessionToken(token);
 
-      // Without a session token we can only be logged in through the session
-      // cookie, which is same-origin only. On native apps, custom backends, and
-      // cross-origin cloud domains, no cookie can exist without a prior session —
-      // so skip the boot getinfo entirely and wait for a successful login.
-      if (!token && !cachedUserInfo && (isCapacitorNative() || getHostBaseUrl() || isCloud())) {
+      // On native apps with no token and no cached user info, skip boot getinfo
+      if (!token && !cachedUserInfo && isCapacitorNative() && !getHostBaseUrl()) {
         setIsAuthenticated(false);
         setUserInfo(null);
         setIsLoading(false);
         return;
       }
 
+      // Step 1: Attempt standard cookie login first (or use token if on native/bearer mode)
+      const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
+      const preferBearer = (authMode === 'bearer' || isCapacitorNative()) && Boolean(token);
+      let result = await fetchUserInfo(preferBearer ? token : null);
 
-      // First attempt resolves the overlay quickly; only a repeated, explicit
-      // auth failure is allowed to clear the stored session.
-      let result = await fetchUserInfo(token);
-      if (result === 'ok') {
-        setIsAuthenticated(true);
-      } else {
-        setIsLoading(false);
-        result = await verifyUserInfo(token, 2);
+      // Step 2: If cookie login failed with unauthenticated and we have a session token,
+      // fallback to Bearer token verification!
+      if (result === 'unauthenticated' && token && !preferBearer) {
+        result = await fetchUserInfo(token);
+        if (result === 'ok' && typeof localStorage !== 'undefined') {
+          localStorage.setItem('shuffle_auth_mode', 'bearer');
+        }
       }
 
       if (result === 'ok') {
         setIsAuthenticated(true);
-      } else if (result === 'unauthenticated') {
+      } else if (result !== 'unauthenticated') {
+        // Retry verification if transient error
+        setIsLoading(false);
+        result = await verifyUserInfo(preferBearer ? token : null, 2);
+        if (result === 'ok') {
+          setIsAuthenticated(true);
+        }
+      }
+
+      if (result === 'unauthenticated') {
         if (token) {
           localStorage.removeItem('session_token');
           setSessionToken(null);
         }
         localStorage.removeItem('shuffle_user_info');
+        localStorage.removeItem('shuffle_auth_mode');
         setIsAuthenticated(false);
         setUserInfo(null);
       }
@@ -357,7 +391,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // 3. If target org has region_url, apply immediately
         if (targetOrg.region_url) {
-          applyRegionFromPayload({ region_url: targetOrg.region_url }, orgId);
+          const mapped = mapCloudRegionUrl(targetOrg.region_url);
+          applyRegionFromPayload({ region_url: mapped || targetOrg.region_url }, orgId);
         } else {
           resetRegionUrl();
         }
@@ -416,6 +451,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearAuthTokens();
       localStorage.removeItem('shuffle_user_info');
       localStorage.removeItem('shuffle_region_url');
+      localStorage.removeItem('shuffle_auth_mode');
       // On web, drop any custom/self-hosted server override so the next login
       // always starts from the default backend for this domain. Native mobile
       // keeps it, since the user typed their own server URL there.

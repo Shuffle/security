@@ -16,7 +16,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { toast } from '@/lib/toast';
-import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
@@ -31,12 +31,12 @@ import TenantOAuthTokens from '@/components/tenants/TenantOAuthTokens';
 
 const REGION_OPTIONS = [
   { value: '', label: 'Default (UK)' },
-  { value: 'https://uk.shuffler.io', label: 'UK' },
-  { value: 'https://us.shuffler.io', label: 'US' },
-  { value: 'https://frankfurt.shuffler.io', label: 'DE' },
-  { value: 'https://eu.shuffler.io', label: 'EU' },
-  { value: 'https://ca.shuffler.io', label: 'CA' },
-  { value: 'https://au.shuffler.io', label: 'AUS' },
+  { value: 'https://uk.shuffle.security', label: 'UK' },
+  { value: 'https://us.shuffle.security', label: 'US' },
+  { value: 'https://frankfurt.shuffle.security', label: 'DE' },
+  { value: 'https://eu.shuffle.security', label: 'EU' },
+  { value: 'https://ca.shuffle.security', label: 'CA' },
+  { value: 'https://au.shuffle.security', label: 'AUS' },
 ];
 
 interface OrgDetails {
@@ -215,7 +215,8 @@ const AdminPage = () => {
       const name = data.name || '';
       const description = data.description || '';
       const image = data.image || '';
-      const regionUrl = data.region_url || '';
+      const rawRegionUrl = data.region_url || '';
+      const regionUrl = rawRegionUrl ? (mapCloudRegionUrl(rawRegionUrl) || rawRegionUrl) : '';
       
       setOrgName(name);
       setOrgDescription(description);
@@ -230,7 +231,8 @@ const AdminPage = () => {
       // Fallback to userInfo
       const name = userInfo?.active_org?.name || '';
       const image = userInfo?.active_org?.image || '';
-      const regionUrl = userInfo?.active_org?.region_url || '';
+      const rawRegionUrl = userInfo?.active_org?.region_url || '';
+      const regionUrl = rawRegionUrl ? (mapCloudRegionUrl(rawRegionUrl) || rawRegionUrl) : '';
       
       setOrgName(name);
       setOrgDescription('');

@@ -48,7 +48,7 @@ import { autoCorrectTranslatedString } from '@/lib/translationFallback';
 import { ResolveIncidentDialog, ResolutionData, RESOLUTION_REASONS } from '@/components/incidents/ResolveIncidentDialog';
 import { CategoryAutomationsDialog } from '@shuffleio/shuffle-core';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, findForwardTicketsWorkflow, extractWorkflowAppNames, normalizeAppName, isWorkflowScheduleStopped } from '@/Shuffle-MCPs/ingestionDetection';
-import { API_CONFIG, getApiUrl, getAuthHeader, isDevEnvironment } from '@/Shuffle-MCPs/api';
+import { API_CONFIG, getApiUrl, getAuthHeader, isDevEnvironment, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { IncidentCardView } from '@/components/incidents/IncidentCardView';
 import { useBackgroundThreadContinuation } from '@/hooks/useBackgroundThreadContinuation';
 import { IncidentStatsCards } from '@/components/incidents/IncidentStatsCards';
@@ -899,8 +899,9 @@ const IncidentsPage = () => {
     // Fetch each org independently so results stream in as they complete
     orgsToFetch.forEach(async (org) => {
       try {
-        const useRegionUrl = org.region_url && !isDevEnvironment();
-        const baseUrl = useRegionUrl ? org.region_url!.replace(/\/+$/, '') : '';
+        const mappedRegionUrl = org.region_url ? mapCloudRegionUrl(org.region_url) : null;
+        const useRegionUrl = mappedRegionUrl && !isDevEnvironment();
+        const baseUrl = useRegionUrl ? mappedRegionUrl!.replace(/\/+$/, '') : '';
         const url = baseUrl
           ? `${baseUrl}/api/v1/orgs/${org.id}/list_cache?category=${encodeURIComponent(DATASTORE_CATEGORIES.INCIDENTS)}&top=50`
           : getApiUrl(`/api/v1/orgs/${org.id}/list_cache?category=${encodeURIComponent(DATASTORE_CATEGORIES.INCIDENTS)}&top=50`);

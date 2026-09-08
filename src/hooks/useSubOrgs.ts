@@ -3,7 +3,7 @@
  * Used for multi-tenant views where parent orgs can see child tenant data.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 
 export interface SubOrg {
@@ -78,7 +78,7 @@ export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn =
           name: org.name || org.id,
           image: org.image,
           creator_org: org.creator_org,
-          region_url: org.region_url || undefined,
+          region_url: org.region_url ? (mapCloudRegionUrl(org.region_url) || org.region_url) : undefined,
         })));
 
         // Extract parent org if available
@@ -89,7 +89,7 @@ export const useSubOrgs = (currentOrgId: string | undefined): UseSubOrgsReturn =
             name: parent.name || parent.id,
             image: parent.image,
             creator_org: parent.creator_org,
-            region_url: parent.region_url || undefined,
+            region_url: parent.region_url ? (mapCloudRegionUrl(parent.region_url) || parent.region_url) : undefined,
             isParent: true,
           });
         } else {
