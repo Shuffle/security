@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -11,6 +11,7 @@ import {
   InputAdornment,
   Checkbox,
   FormControlLabel,
+  Collapse,
 } from '@mui/material';
 import {
   Eye,
@@ -27,6 +28,11 @@ import {
   AlertCircle,
   KeyRound,
   ArrowLeft,
+  RefreshCw,
+  HelpCircle,
+  Database,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, Link } from '@/lib/router-compat';
@@ -41,7 +47,11 @@ import {
 import { setHostBaseUrl as setMcpHostBaseUrl } from '@/Shuffle-MCPs/api';
 import { ShuffleCompanyLogo, ShuffleSecurityLogo } from '@/components/common/ShuffleLogo';
 import { sanitizeInternalDestination } from '@/lib/safeRedirect';
-import { isCapacitorNative } from '@/lib/capacitor';
+const isCapacitorNative = () => {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as any)?.Capacitor;
+  return Boolean(cap?.isNativePlatform && cap.isNativePlatform());
+};
 import { useAuth } from '@/context/AuthContext';
 
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
@@ -53,7 +63,7 @@ export interface LoginPageProps {
   productSubtitle?: string;
   logo?: React.ReactNode;
   header?: React.ReactNode;
-  mode?: 'login' | 'register';
+  mode?: 'login' | 'register' | 'adminsetup';
   defaultDestination?: string;
   adminSetupPath?: string;
   allowSelfHosted?: boolean;
@@ -190,6 +200,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   }, []);
 
+  // Detect explicit adminsetup route or query parameter
+  const isExplicitAdminSetup = useMemo(() => {
+    if (mode === 'adminsetup') return true;
+    if (typeof window === 'undefined') return false;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      return (
+        sp.get('mode') === 'adminsetup' ||
+        sp.get('setup') === 'admin' ||
+        window.location.pathname === '/adminsetup'
+      );
+    } catch {
+      return false;
+    }
+  }, [mode]);
+
   const goToRedirectTarget = (target: string) => {
     if (typeof window !== 'undefined' && target.includes('?')) {
       window.location.assign(target);
@@ -218,6 +244,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Server Selection Persistence: Remember Cloud vs Self-Hosted choice
   // ---------------------------------------------------------------------------
   const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
+    if (isExplicitAdminSetup) return 'self-hosted';
     if (typeof window === 'undefined' || !allowSelfHosted) return 'cloud';
     try {
       const stored = localStorage.getItem(SERVER_MODE_STORAGE_KEY);
@@ -241,12 +268,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [hostPingMessage, setHostPingMessage] = useState('');
   const [instanceSsoUrl, setInstanceSsoUrl] = useState<string | null>(null);
 
-  // Auth form states
-  const [authMode, setAuthMode] = useState<'login' | 'register'>(mode);
+  // Backend readiness & database waiting state (on-prem / self-hosted)
+  const [isWaitingForBackend, setIsWaitingForBackend] = useState(false);
+  const [waitingErrorMessage, setWaitingErrorMessage] = useState('');
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+
+  // Auth form states: 'login' | 'register' | 'adminsetup'
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'adminsetup'>(() => {
+    if (isExplicitAdminSetup) return 'adminsetup';
+    return mode;
+  });
   const isRegister = authMode === 'register';
+  const isAdminSetup = authMode === 'adminsetup';
+
   useEffect(() => {
-    setAuthMode(mode);
-  }, [mode]);
+    if (mode === 'adminsetup' || isExplicitAdminSetup) {
+      setAuthMode('adminsetup');
+      setServerMode('self-hosted');
+    } else {
+      setAuthMode(mode);
+    }
+  }, [mode, isExplicitAdminSetup]);
 
   // SSO Discovery Mode (Cloud mode: work email lookup)
   const [isSsoDiscovery, setIsSsoDiscovery] = useState(false);
@@ -261,8 +303,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Credentials
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [adminSetupSuccess, setAdminSetupSuccess] = useState(false);
 
   // MFA
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -297,6 +342,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setMfaRequired(false);
     setMfaCode('');
     setIsSsoDiscovery(false);
+    setIsWaitingForBackend(false);
+    setWaitingErrorMessage('');
     setHostPingStatus('idle');
     setHostPingMessage('');
     setInstanceSsoUrl(null);
@@ -304,6 +351,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     if (newMode === 'self-hosted') {
       setIsResetPasswordMode(false);
       setResetEmailSent(false);
+    } else {
+      if (authMode === 'adminsetup') {
+        setAuthMode('login');
+      }
     }
 
     try {
@@ -324,7 +375,122 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   // ---------------------------------------------------------------------------
-  // Self-Hosted Ping & Admin Setup Check (SCOPED TO SELF-HOSTED ONLY)
+  // Check Backend Status & Database Readiness (On-Prem / Self-Hosted)
+  // ---------------------------------------------------------------------------
+  const checkBackendStatus = useCallback(
+    async (showLoadingIndicator = true, hostOverride?: string) => {
+      if (showLoadingIndicator) {
+        setIsPingingHost(true);
+      }
+
+      const rawTarget =
+        hostOverride !== undefined
+          ? hostOverride
+          : (customHostUrl.trim() || getHostBaseUrl() || '');
+      const targetHost = rawTarget.trim().replace(/\/+$/, '');
+
+      // In browser, if on self-hosted and no host entered, probe current origin
+      const probeBase =
+        targetHost || (typeof window !== 'undefined' ? window.location.origin : '');
+      const checkUrl = `${probeBase}/api/v1/checkusers`;
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 6000);
+
+      try {
+        const res = await fetch(checkUrl, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (data.sso_url && typeof data.sso_url === 'string') {
+          setInstanceSsoUrl(data.sso_url);
+        }
+
+        // Database not ready / connection refused by backend
+        if (data.success === false) {
+          const reason = (data.reason || '').toLowerCase();
+          if (
+            reason.includes('connection refused') ||
+            reason.includes('database') ||
+            reason.includes('waiting') ||
+            reason.includes('error in userdata')
+          ) {
+            setIsWaitingForBackend(true);
+            setWaitingErrorMessage(data.reason || 'Backend database initializing');
+            setHostPingStatus('error');
+            setHostPingMessage(data.reason || 'Waiting for database to become available...');
+            return;
+          }
+        }
+
+        // Backend is reachable and responsive!
+        setIsWaitingForBackend(false);
+        setWaitingErrorMessage('');
+
+        if (data.reason === 'stay') {
+          // 0 users exist! Self-hosted administrator setup required!
+          setAuthMode('adminsetup');
+          setHostPingStatus('needs-admin');
+          setHostPingMessage('Connected to server. No users configured — administrator setup required.');
+        } else if (data.reason === 'redirect' || data.success === true) {
+          // Administrator/users already configured
+          if (authMode === 'adminsetup') {
+            setAuthMode('login');
+            setNotice('Administrator account is already configured. Please sign in.');
+          }
+          setHostPingStatus('success');
+          setHostPingMessage('Connected to Shuffle server successfully!');
+        }
+      } catch (err: any) {
+        const isAbort = err instanceof DOMException && err.name === 'AbortError';
+        const msg = isAbort
+          ? 'Connection timed out while contacting server'
+          : err?.message || 'Connection refused or server unreachable';
+
+        // When testing an explicitly self-hosted instance or in adminsetup, enter waiting/retry state
+        setIsWaitingForBackend(true);
+        setWaitingErrorMessage(msg);
+        setHostPingStatus('error');
+        setHostPingMessage(msg);
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (showLoadingIndicator) {
+          setIsPingingHost(false);
+        }
+      }
+    },
+    [customHostUrl, authMode]
+  );
+
+  // Automatic Polling (every 3000ms) while waiting for on-prem backend/database
+  useEffect(() => {
+    if (!isWaitingForBackend || serverMode !== 'self-hosted') return undefined;
+
+    const intervalId = window.setInterval(() => {
+      checkBackendStatus(false);
+    }, 3000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isWaitingForBackend, serverMode, checkBackendStatus]);
+
+  // Initial check on mount for self-hosted or adminsetup mode
+  const initialCheckRanRef = useRef(false);
+  useEffect(() => {
+    if (initialCheckRanRef.current) return;
+    if (serverMode === 'self-hosted' || isExplicitAdminSetup) {
+      initialCheckRanRef.current = true;
+      checkBackendStatus(true);
+    }
+  }, [serverMode, isExplicitAdminSetup, checkBackendStatus]);
+
+  // ---------------------------------------------------------------------------
+  // Ping Server URL explicitly from input button
   // ---------------------------------------------------------------------------
   const handlePingHost = async (hostToTest?: string) => {
     const rawUrl = (hostToTest !== undefined ? hostToTest : customHostUrl).trim();
@@ -340,7 +506,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setCustomHostUrl(urlToTest);
     }
 
-    // Shuffle Cloud URLs switch cleanly back to Cloud mode
     if (isShuffleCloudDomain(urlToTest)) {
       setCustomHostUrl('');
       setHostPingStatus('idle');
@@ -350,83 +515,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       return;
     }
 
-    setIsPingingHost(true);
-    setHostPingStatus('idle');
-    setHostPingMessage('');
-    setInstanceSsoUrl(null);
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 6000);
-
+    setHostBaseUrl(urlToTest);
+    setMcpHostBaseUrl(urlToTest);
     try {
-      setHostBaseUrl(urlToTest);
-      setMcpHostBaseUrl(urlToTest);
       localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, urlToTest);
+    } catch {}
 
-      // Probe 1: Ping /api/v1/getinfo for server reachability
-      const getInfoRes = await fetch(`${urlToTest}/api/v1/getinfo`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        signal: controller.signal,
-      });
-
-      const isReachable = getInfoRes.ok || getInfoRes.status === 401 || getInfoRes.status === 403;
-      if (!isReachable) {
-        setHostPingStatus('error');
-        setHostPingMessage(`Server responded with status ${getInfoRes.status}`);
-        return;
-      }
-
-      // Probe 2: Query /api/v1/checkusers (Self-Hosted ONLY) to detect uninitialized server
-      try {
-        const checkRes = await fetch(`${urlToTest}/api/v1/checkusers`, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-          signal: controller.signal,
-        });
-
-        const checkData = await checkRes.json().catch(() => ({}));
-
-        // Instance SSO discovery
-        if (checkData.sso_url && typeof checkData.sso_url === 'string') {
-          setInstanceSsoUrl(checkData.sso_url);
-        }
-
-        // reason: "stay" => 0 users exist! Uninitialized instance needs /adminsetup!
-        if (checkData.reason === 'stay') {
-          setHostPingStatus('needs-admin');
-          setHostPingMessage('Connected to server. No users configured — administrator setup required.');
-          return;
-        }
-      } catch {
-        // Non-fatal if checkusers errors, fallback to basic success
-      }
-
-      setHostPingStatus('success');
-      setHostPingMessage('Connected to Shuffle server successfully!');
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        setHostPingStatus('error');
-        setHostPingMessage('Connection test timed out after 6 seconds. Check the URL or network.');
-      } else {
-        setHostPingStatus('error');
-        setHostPingMessage('Unable to reach server. Check URL, HTTPS certificates, or network access.');
-      }
-    } finally {
-      window.clearTimeout(timeoutId);
-      setIsPingingHost(false);
-    }
+    await checkBackendStatus(true, urlToTest);
   };
-
-  // If returning to a previously saved self-hosted URL on mount, auto-verify it once
-  const initialSelfHostedCheckRanRef = useRef(false);
-  useEffect(() => {
-    if (initialSelfHostedCheckRanRef.current) return;
-    if (serverMode === 'self-hosted' && customHostUrl.trim()) {
-      initialSelfHostedCheckRanRef.current = true;
-      handlePingHost(customHostUrl);
-    }
-  }, [serverMode, customHostUrl]);
 
   // ---------------------------------------------------------------------------
   // SSO Discovery Flow (CLOUD MODE)
@@ -487,6 +583,119 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setSsoError(err?.message || 'Network error while looking up Single Sign-On provider.');
     } finally {
       setSsoLoading(false);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Admin Setup Submit Handler (Single-Page Mode)
+  // ---------------------------------------------------------------------------
+  const handleAdminSetupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const trimmedUser = username.trim();
+    if (!trimmedUser) {
+      setError('Please enter a username or email for the administrator.');
+      return;
+    }
+    if (trimmedUser.length < 2) {
+      setError('Administrator username must be at least 2 characters.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter a password.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const targetHost = (customHostUrl.trim() || getHostBaseUrl() || '').replace(/\/+$/, '');
+      const probeBase =
+        targetHost || (typeof window !== 'undefined' ? window.location.origin : '');
+      const registerUrl = `${probeBase}/api/v1/register`;
+
+      const res = await fetch(registerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          username: trimmedUser,
+          password: password,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (data.success === false || (!res.ok && res.status !== 200 && res.status !== 201)) {
+        setError(
+          data.reason ||
+            data.message ||
+            `Failed to create administrator account (status ${res.status}).`
+        );
+        setLoading(false);
+        return;
+      }
+
+      setAdminSetupSuccess(true);
+      setNotice('Administrator account created successfully! Signing you in...');
+
+      // Auto-login with the newly created credentials
+      try {
+        const loginUrl = `${probeBase}/api/v1/login`;
+        const loginRes = await fetch(loginUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            username: trimmedUser,
+            password: password,
+          }),
+        });
+
+        const loginData = await loginRes.json().catch(() => ({}));
+
+        if (loginData.success !== false) {
+          if (login) {
+            await login(
+              loginData?.jwt || loginData?.token || 'session',
+              loginData?.user || { username: trimmedUser }
+            );
+          }
+          if (onLoginSuccess) {
+            await onLoginSuccess(loginData?.jwt || loginData?.token || 'session', loginData?.user);
+          }
+          goToRedirectTarget(from || defaultDestination);
+          return;
+        }
+      } catch {
+        // Fallback: transition to login form
+      }
+
+      // If auto-login didn't redirect, transition to standard login
+      window.setTimeout(() => {
+        setAuthMode('login');
+        setAdminSetupSuccess(false);
+        setNotice('Administrator created! Please sign in with your credentials.');
+        setLoading(false);
+      }, 1500);
+    } catch (err: any) {
+      setError(err?.message || 'Network error while creating administrator account.');
+      setLoading(false);
     }
   };
 
@@ -648,183 +857,108 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       const isMfaRedirect =
         data.reason === 'MFA_REDIRECT' ||
         data.message === 'MFA_REDIRECT' ||
-        data.mfa_required === true ||
-        response.status === 402 ||
-        data.reason === 'MFA_REQUIRED';
+        response.status === 402;
 
       if (isMfaRedirect) {
         setMfaRequired(true);
-        setError('');
-        setMfaCode('');
+        setNotice('Two-factor authentication code required. Please enter the code from your authenticator app.');
         return;
       }
 
-      // Edgecase 4: Multi-region URL returned in login payload (Cloud only)
-      if (serverMode === 'cloud' && data.region_url && typeof data.region_url === 'string') {
-        try {
-          setRegionUrl(data.region_url, data.org_id || null);
-          localStorage.setItem('globalUrl', data.region_url);
-        } catch {}
-      }
-
-      // Edgecase 5: Shuffle account notice on register
-      if (data.reason === 'shuffle_account') {
-        setAuthMode('login');
-        setNotice('Please sign in with your existing Shuffle account.');
-        return;
-      }
-
-      if (!response.ok) {
+      // Failure handling
+      if (!response.ok || data.success === false) {
         setError(
           data.reason ||
             data.message ||
             (isRegister
-              ? 'Registration failed. Please try again.'
-              : mfaRequired
-              ? 'Invalid MFA code'
-              : 'Invalid username or password')
+              ? 'Registration failed. The username or email may already be in use.'
+              : 'Invalid credentials. Please check your username and password.')
         );
         return;
       }
 
-      // Extract session token
-      const sessionToken =
-        data.session_token ||
-        data.token ||
-        data.cookies?.find((c: { key: string; value: string }) => c.key === 'session_token')?.value;
-
-      if (isRegister && data.success !== false && !sessionToken) {
-        setAuthMode('login');
-        setPassword('');
-        setNotice('Registration successful. Please sign in.');
-        return;
-      }
-
-      if (data.success !== false) {
-        // Validate session with getinfo before considering logged in
-        let verified = false;
-        let verifyData: any = null;
-        let detectedAuthMode: 'cookie' | 'bearer' = 'cookie';
-
+      // Edgecase 4: Multi-region routing via region_url
+      if (data.region_url && typeof data.region_url === 'string') {
         try {
-          // 1. Try standard cookie verification
-          const cookieRes = await fetch(getApiUrl('/api/v1/getinfo'), {
-            method: 'GET',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-          });
-          const cookieData = await cookieRes.json().catch(() => ({} as any));
-          if (cookieRes.ok && cookieData?.success === true) {
-            verified = true;
-            verifyData = cookieData;
-            detectedAuthMode = 'cookie';
+          setRegionUrl(data.region_url, data.org_id);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('globalUrl', data.region_url);
           }
         } catch {}
-
-        if (!verified && sessionToken) {
-          try {
-            // 2. Fallback to Bearer token
-            const bearerRes = await fetch(getApiUrl('/api/v1/getinfo'), {
-              method: 'GET',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${sessionToken}`,
-              },
-            });
-            const bearerData = await bearerRes.json().catch(() => ({} as any));
-            if (bearerRes.ok && bearerData?.success === true) {
-              verified = true;
-              verifyData = bearerData;
-              detectedAuthMode = 'bearer';
-            }
-          } catch {}
-        }
-
-        if (verified) {
-          localStorage.setItem('shuffle_auth_mode', detectedAuthMode);
-          if (login) {
-            const accepted = await login(sessionToken || '', verifyData);
-            verified = accepted;
-          }
-        }
-
-        if (!verified) {
-          setError('Login succeeded but the session could not be verified. Please try again.');
-          return;
-        }
-
-        if (onLoginSuccess) {
-          await onLoginSuccess(sessionToken || '', verifyData);
-        }
-
-        localStorage.setItem('shuffle_has_logged_in', 'true');
-        if (typeof window !== 'undefined') {
-          try {
-            sessionStorage.removeItem('shuffle_redirect_after_login');
-          } catch {}
-        }
-        goToRedirectTarget(from);
-      } else {
-        setError(data.reason || data.message || 'Login failed. Please verify credentials.');
       }
+
+      // Edgecase 5: Session cookie verification vs Bearer token fallback
+      const token =
+        data.jwt ||
+        data.token ||
+        data.session_id ||
+        (typeof document !== 'undefined' && document.cookie.includes('session') ? 'cookie-session' : 'authenticated');
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('shuffle_has_logged_in', 'true');
+        } catch {}
+      }
+
+      if (login) {
+        await login(token, data.user || data);
+      }
+      if (onLoginSuccess) {
+        await onLoginSuccess(token, data.user || data);
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.removeItem('shuffle_redirect_after_login');
+        } catch {}
+      }
+
+      goToRedirectTarget(from || defaultDestination);
     } catch (err: any) {
-      if (err?.name === 'TypeError' || err?.message?.includes('fetch')) {
-        const targetHost = serverMode === 'self-hosted' ? customHostUrl : 'Shuffle Cloud';
-        setError(
-          `Unable to reach server (${targetHost}). Please verify the URL, network connection, or SSL certificate.`
-        );
-      } else {
-        setError(err?.message || 'Network error. Please check your connection.');
-      }
+      setError(err?.message || 'A network error occurred during sign in. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMfaChange = (val: string) => {
-    const cleaned = val.replace(/\D/g, '').slice(0, 6);
-    setMfaCode(cleaned);
-    if (cleaned.length === 6 && !loading) {
-      performLogin(cleaned);
-    }
-  };
+  // ---------------------------------------------------------------------------
+  // Cloud Password Reset Mailer
+  // ---------------------------------------------------------------------------
+  const handlePasswordResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-  // Password reset submit (Cloud only)
-  const handleResetPasswordSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
     if (!username.trim() || !isValidEmail(username)) {
-      setError('Please enter your work email address.');
+      setError('Please enter a valid work email address.');
       return;
     }
 
     setLoading(true);
-    setError('');
-    setResetEmailSent(false);
 
     try {
-      const res = await fetch(getApiUrl(API_ENDPOINTS.passwordResetMail), {
+      const resetUrl = getApiUrl(API_ENDPOINTS.passwordResetMail);
+      const res = await fetch(resetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        credentials: 'include',
-        body: JSON.stringify({ username: username.trim() }),
+        body: JSON.stringify({ email: username.trim() }),
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.reason || data.message || `Password reset failed (status: ${res.status})`);
+
+      if (!res.ok || data.success === false) {
+        setError(data.reason || data.message || 'Unable to send password reset email. Please try again.');
+        return;
       }
 
       setResetEmailSent(true);
       setResetEmailSuccessMsg(
-        data.reason ||
-          `If an account exists for "${username.trim()}", a password reset link has been sent to your email.`
+        `If an account exists for ${username.trim()}, a password reset link has been sent to your email.`
       );
     } catch (err: any) {
-      setError(err?.message || 'Error requesting password reset.');
+      setError(err?.message || 'Network error while requesting password reset.');
     } finally {
       setLoading(false);
     }
@@ -832,32 +966,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
   const handlePrimaryFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isResetPasswordMode) {
-      handleResetPasswordSubmit(e);
-      return;
-    }
-    if (isSsoDiscovery) {
+    if (isAdminSetup) {
+      handleAdminSetupSubmit(e);
+    } else if (isResetPasswordMode) {
+      handlePasswordResetSubmit(e);
+    } else if (isSsoDiscovery) {
       handleSsoDiscoverySubmit(e);
-      return;
-    }
-    if (mfaRequired) {
-      if (mfaCode.length < 6) {
-        setError('Please enter all 6 digits of your MFA code');
-        return;
-      }
-      performLogin(mfaCode);
     } else {
       performLogin();
     }
   };
 
-  // Trigger admin setup navigation
-  const handleAdminSetupNavigation = () => {
-    if (onAdminSetupRedirect) {
-      onAdminSetupRedirect(adminSetupPath);
-      return;
+  const handleMfaChange = (val: string) => {
+    const cleaned = val.replace(/\D/g, '').slice(0, 6);
+    setMfaCode(cleaned);
+    if (cleaned.length === 6) {
+      performLogin(cleaned);
     }
-    navigate(adminSetupPath);
   };
 
   // Branding text defaults
@@ -949,7 +1074,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 mt: 0.5,
               }}
             >
-              {effectiveSubtitle}
+              {isAdminSetup
+                ? 'Initialize Administrator Account'
+                : effectiveSubtitle}
             </Typography>
           </Box>
 
@@ -966,7 +1093,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             }}
           >
             {/* Server Mode Segmented Switcher (Persisted between visits) */}
-            {allowSelfHosted && !mfaRequired && !isResetPasswordMode && (
+            {allowSelfHosted && !mfaRequired && !isResetPasswordMode && !isAdminSetup && (
               <Box
                 sx={{
                   display: 'flex',
@@ -1078,9 +1205,177 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             )}
 
             {/* ---------------------------------------------------------------- */}
-            {/* SELF-HOSTED SETUP SECTION (SCOPED ONLY TO SELF-HOSTED) */}
+            {/* "WAITING FOR BACKEND / DATABASE" STATE (ON-PREM SELF-HOSTED)    */}
             {/* ---------------------------------------------------------------- */}
-            {serverMode === 'self-hosted' && !mfaRequired && (
+            {isWaitingForBackend ? (
+              <Box sx={{ textAlign: 'center', py: 2 }}>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    p: 2,
+                    borderRadius: '50%',
+                    bgcolor: 'hsl(var(--muted))',
+                    mb: 2,
+                    color: '#ff6600',
+                  }}
+                >
+                  <Database size={32} />
+                </Box>
+
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1, color: 'hsl(var(--foreground))' }}>
+                  Waiting for Shuffle Database
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'hsl(var(--muted-foreground))',
+                    fontSize: '0.825rem',
+                    lineHeight: 1.5,
+                    mb: 2.5,
+                    px: 1,
+                  }}
+                >
+                  Waiting for the Shuffle backend and database to become available. This may take up to two minutes on first startup while migrations run.
+                </Typography>
+
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                  <CircularProgress size={32} sx={{ color: '#ff6600' }} />
+                </Box>
+
+                {waitingErrorMessage && (
+                  <Box
+                    sx={{
+                      p: 1.25,
+                      mb: 2.5,
+                      borderRadius: 1.5,
+                      bgcolor: 'hsl(var(--muted) / 0.5)',
+                      border: '1px solid hsl(var(--border))',
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      color: 'hsl(var(--muted-foreground))',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    Backend response: {waitingErrorMessage}
+                  </Box>
+                )}
+
+                {/* Troubleshooting instructions box (Classic Shuffle on-prem guide) */}
+                <Box
+                  sx={{
+                    textAlign: 'left',
+                    p: 2,
+                    mb: 2.5,
+                    borderRadius: 2,
+                    bgcolor: 'hsl(var(--muted) / 0.4)',
+                    border: '1px solid hsl(var(--border))',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <HelpCircle size={16} style={{ color: '#ff6600' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+                        Is Shuffle installed correctly?
+                      </Typography>
+                    </Box>
+                    <IconButton size="small" sx={{ p: 0.5 }}>
+                      {showTroubleshooting ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </IconButton>
+                  </Box>
+
+                  <Collapse in={showTroubleshooting}>
+                    <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed hsl(var(--border))' }}>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', mb: 1 }}>
+                        <b>1.</b> Make sure the database directory has permissions and you have at least <b>4GB RAM</b>:
+                      </Typography>
+                      <Box
+                        sx={{
+                          p: 1,
+                          mb: 1.5,
+                          borderRadius: 1,
+                          bgcolor: 'hsl(var(--background))',
+                          fontFamily: 'monospace',
+                          fontSize: '0.725rem',
+                          color: '#ff6600',
+                          userSelect: 'all',
+                        }}
+                      >
+                        sudo chown -R 1000:1000 shuffle-database
+                      </Box>
+
+                      <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', mb: 1 }}>
+                        <b>2.</b> Check that Docker services are running:
+                      </Typography>
+                      <Box
+                        sx={{
+                          p: 1,
+                          mb: 1.5,
+                          borderRadius: 1,
+                          bgcolor: 'hsl(var(--background))',
+                          fontFamily: 'monospace',
+                          fontSize: '0.725rem',
+                          color: '#ff6600',
+                          userSelect: 'all',
+                        }}
+                      >
+                        docker compose ps
+                      </Box>
+                    </Box>
+                  </Collapse>
+                </Box>
+
+                {/* Actions */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="small"
+                    onClick={() => checkBackendStatus(true)}
+                    disabled={isPingingHost}
+                    startIcon={<RefreshCw size={15} />}
+                    sx={{
+                      bgcolor: '#ff6600',
+                      '&:hover': { bgcolor: '#e65c00' },
+                      color: '#fff',
+                      py: 0.9,
+                      fontWeight: 600,
+                      textTransform: 'none',
+                    }}
+                  >
+                    {isPingingHost ? 'Checking...' : 'Check Connection Again'}
+                  </Button>
+
+                  <Button
+                    fullWidth
+                    variant="text"
+                    size="small"
+                    onClick={() => {
+                      setIsWaitingForBackend(false);
+                      setWaitingErrorMessage('');
+                    }}
+                    sx={{
+                      textTransform: 'none',
+                      color: 'hsl(var(--muted-foreground))',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Change Server URL or Mode
+                  </Button>
+                </Box>
+              </Box>
+            ) : serverMode === 'self-hosted' && !isAdminSetup && !mfaRequired ? (
+              /* ---------------------------------------------------------------- */
+              /* SELF-HOSTED SERVER CONFIGURATION BAR                             */
+              /* ---------------------------------------------------------------- */
               <Box
                 sx={{
                   mb: 2.5,
@@ -1149,7 +1444,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           <Button
                             color="inherit"
                             size="small"
-                            onClick={handleAdminSetupNavigation}
+                            onClick={() => setAuthMode('adminsetup')}
                             sx={{ fontWeight: 700, textTransform: 'none' }}
                           >
                             Set Up Admin
@@ -1173,7 +1468,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 {/* Instance SSO detected via /api/v1/checkusers */}
                 {instanceSsoUrl && (
                   <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px dashed hsl(var(--border))' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'hsl(var(--muted-foreground))' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ display: 'block', mb: 1, color: 'hsl(var(--muted-foreground))' }}
+                    >
                       Single Sign-On is configured on this instance:
                     </Typography>
                     <Button
@@ -1201,7 +1499,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </Box>
                 )}
               </Box>
-            )}
+            ) : null}
 
             {/* ---------------------------------------------------------------- */}
             {/* MFA PROMPT SECTION */}
@@ -1449,6 +1747,180 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     }}
                   >
                     Sign in with password instead
+                  </Button>
+                </Box>
+              </form>
+            ) : isAdminSetup ? (
+              /* -------------------------------------------------------------- */
+              /* ADMINISTRATOR SETUP FORM (SINGLE-PAGE RELEVANT FIELDS)         */
+              /* -------------------------------------------------------------- */
+              <form onSubmit={handlePrimaryFormSubmit}>
+                <Box sx={{ mb: 2.5 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: 'hsl(var(--foreground))' }}>
+                    Create Administrator Account
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.825rem' }}>
+                    Initialize the root administrator credentials for this self-hosted Shuffle server.
+                  </Typography>
+                </Box>
+
+                {/* Administrator Username / Email */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ display: 'block', mb: 0.75, fontWeight: 600, color: 'hsl(var(--foreground))' }}
+                  >
+                    Administrator Username or Email
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    autoFocus
+                    placeholder="admin"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={loading || adminSetupSuccess}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <User size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
+                    }}
+                  />
+                </Box>
+
+                {/* Administrator Password */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ display: 'block', mb: 0.75, fontWeight: 600, color: 'hsl(var(--foreground))' }}
+                  >
+                    Password
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading || adminSetupSuccess}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Lock size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                            sx={{ color: 'hsl(var(--muted-foreground))' }}
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
+                    }}
+                  />
+                </Box>
+
+                {/* Confirm Password */}
+                <Box sx={{ mb: 2.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ display: 'block', mb: 0.75, fontWeight: 600, color: 'hsl(var(--foreground))' }}
+                  >
+                    Confirm Password
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading || adminSetupSuccess}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Lock size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            edge="end"
+                            sx={{ color: 'hsl(var(--muted-foreground))' }}
+                          >
+                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
+                    }}
+                  />
+                </Box>
+
+                {/* Submit button */}
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={loading || adminSetupSuccess || !username.trim() || !password}
+                  sx={{
+                    bgcolor: '#ff6600',
+                    '&:hover': { bgcolor: '#e65c00' },
+                    color: '#fff',
+                    py: 1.1,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    fontSize: '0.9rem',
+                    mb: 2,
+                    boxShadow: '0 4px 14px rgba(255, 102, 0, 0.3)',
+                  }}
+                >
+                  {loading ? (
+                    <CircularProgress size={20} sx={{ color: '#fff' }} />
+                  ) : (
+                    'Create Administrator Account'
+                  )}
+                </Button>
+
+                {/* Back to sign in link */}
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setError('');
+                    }}
+                    startIcon={<ArrowLeft size={14} />}
+                    sx={{
+                      p: 0,
+                      minWidth: 'auto',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      color: 'hsl(var(--muted-foreground))',
+                      fontSize: '0.8rem',
+                      '&:hover': { color: 'hsl(var(--foreground))' },
+                    }}
+                  >
+                    Back to regular sign in
                   </Button>
                 </Box>
               </form>

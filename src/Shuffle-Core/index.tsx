@@ -112,6 +112,9 @@ export const VulnerabilitiesDashboard = withTheme(VulnerabilitiesDashboardRaw, '
 export const CombinedDashboard = withTheme(CombinedDashboardRaw, 'CombinedDashboard');
 export const Billing = withTheme(BillingRaw as any, 'Billing');
 export const TenantManagement = withTheme(TenantManagementRaw as any, 'TenantManagement');
+export const LoginPage = withTheme<LoginPageProps>(LoginPageRaw, 'LoginPage');
+export const AdminSetup = withTheme<AdminSetupProps>(AdminSetupRaw, 'AdminSetup');
+export type { LoginPageProps, AdminSetupProps };
 export type { TenantManagementProps } from './views/TenantManagement';
 export type { AutomationDashboardProps } from './components/dashboard/AutomationDashboard';
 export type { AgentsDashboardProps } from './components/dashboard/AgentsDashboard';
@@ -127,7 +130,7 @@ export { ShuffleCoreThemeProvider };
 export type { ShuffleColorMode };
 export { usePageMeta } from './usePageMeta';
 export { toast, setToastImpl } from './toast';
-export { API_CONFIG, getApiUrl, getAuthHeader, isCloudDomain, isShuffleCloudDomain, mapCloudRegionUrl, shuffleFetch, setRegionUrl, resetRegionUrl, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl } from './api';
+export { API_CONFIG, API_ENDPOINTS, getApiUrl, getAuthHeader, isCloudDomain, isShuffleCloudDomain, mapCloudRegionUrl, shuffleFetch, setRegionUrl, resetRegionUrl, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl } from './api';
 export { useSyncHostBaseUrl } from './useSyncHostBaseUrl';
 export { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
 

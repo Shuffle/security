@@ -38,3 +38,12 @@ declare module '@/context/AuthContext' {
 declare module '@/hooks/useUsers' {
   export function invalidateUsersCache(...args: any[]): any;
 }
+
+declare module '@/lib/capacitor' {
+  export function isCapacitorNative(): boolean;
+}
+
+declare module '@/lib/safeRedirect' {
+  export function sanitizeInternalDestination(rawCandidate: string | null | undefined, fallback?: string): string;
+}
+

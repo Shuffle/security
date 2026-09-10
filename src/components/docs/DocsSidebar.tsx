@@ -1,10 +1,5 @@
 import {
-  FileText as FileTextIcon,
   Search as SearchIcon,
-  BookOpen,
-  Zap,
-  Shield,
-  Cpu,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
@@ -16,7 +11,6 @@ import {
   List,
   ListItem,
   ListItemButton,
-  ListItemIcon,
   ListItemText,
   Typography,
 } from '@mui/material';
@@ -132,22 +126,6 @@ export const DocsSidebar = ({
 
   const handleClick = () => {
     onNavigate?.();
-  };
-
-
-  const getCategoryIcon = (categoryId: string) => {
-    switch (categoryId) {
-      case 'usability':
-        return <BookOpen size={16} />;
-      case 'automation':
-        return <Zap size={16} />;
-      case 'security':
-        return <Shield size={16} />;
-      case 'infrastructure':
-        return <Cpu size={16} />;
-      default:
-        return <FileTextIcon size={16} />;
-    }
   };
 
   return (
@@ -270,7 +248,6 @@ export const DocsSidebar = ({
                               '&:hover': {
                                 backgroundColor: 'rgba(255, 102, 0, 0.15)',
                               },
-                              '& .MuiListItemIcon-root': { color: 'primary.main' },
                               '& .MuiListItemText-primary': {
                                 color: 'primary.main',
                                 fontWeight: 600,
@@ -278,14 +255,6 @@ export const DocsSidebar = ({
                             },
                           }}
                         >
-                          <ListItemIcon
-                            sx={{
-                              minWidth: 28,
-                              color: isSelected ? 'primary.main' : 'text.secondary',
-                            }}
-                          >
-                            {getCategoryIcon(category.id)}
-                          </ListItemIcon>
                           <ListItemText
                             primary={doc.label}
                             primaryTypographyProps={{

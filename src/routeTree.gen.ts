@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CondRouteImport } from './routes/_cond'
 import { Route as DashRouteImport } from './routes/_dash'
 import { Route as OnboardingRouteImport } from './routes/_onboarding'
+import { Route as AdminsetupRouteImport } from './routes/adminsetup'
 import { Route as AppsRouteImport } from './routes/apps'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MobileLoginRouteImport } from './routes/mobile-login'
@@ -115,6 +116,11 @@ const DashRoute = DashRouteImport.update({
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/_onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminsetupRoute = AdminsetupRouteImport.update({
+  id: '/adminsetup',
+  path: '/adminsetup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppsRoute = AppsRouteImport.update({
@@ -567,6 +573,7 @@ const DashMonitorsIdTerminalRoute = DashMonitorsIdTerminalRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/adminsetup': typeof AdminsetupRoute
   '/apps': typeof AppsRoute
   '/login': typeof LoginRouteWithChildren
   '/mobile-login': typeof MobileLoginRoute
@@ -656,6 +663,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/adminsetup': typeof AdminsetupRoute
   '/apps': typeof AppsRoute
   '/login': typeof LoginRouteWithChildren
   '/mobile-login': typeof MobileLoginRoute
@@ -749,6 +757,7 @@ export interface FileRoutesById {
   '/_cond': typeof CondRouteWithChildren
   '/_dash': typeof DashRouteWithChildren
   '/_onboarding': typeof OnboardingRouteWithChildren
+  '/adminsetup': typeof AdminsetupRoute
   '/apps': typeof AppsRoute
   '/login': typeof LoginRouteWithChildren
   '/mobile-login': typeof MobileLoginRoute
@@ -840,6 +849,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/adminsetup'
     | '/apps'
     | '/login'
     | '/mobile-login'
@@ -929,6 +939,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/adminsetup'
     | '/apps'
     | '/login'
     | '/mobile-login'
@@ -1021,6 +1032,7 @@ export interface FileRouteTypes {
     | '/_cond'
     | '/_dash'
     | '/_onboarding'
+    | '/adminsetup'
     | '/apps'
     | '/login'
     | '/mobile-login'
@@ -1114,6 +1126,7 @@ export interface RootRouteChildren {
   CondRoute: typeof CondRouteWithChildren
   DashRoute: typeof DashRouteWithChildren
   OnboardingRoute: typeof OnboardingRouteWithChildren
+  AdminsetupRoute: typeof AdminsetupRoute
   AppsRoute: typeof AppsRoute
   LoginRoute: typeof LoginRouteWithChildren
   MobileLoginRoute: typeof MobileLoginRoute
@@ -1163,6 +1176,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/adminsetup': {
+      id: '/adminsetup'
+      path: '/adminsetup'
+      fullPath: '/adminsetup'
+      preLoaderRoute: typeof AdminsetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/apps': {
@@ -1943,6 +1963,7 @@ const rootRouteChildren: RootRouteChildren = {
   CondRoute: CondRouteWithChildren,
   DashRoute: DashRouteWithChildren,
   OnboardingRoute: OnboardingRouteWithChildren,
+  AdminsetupRoute: AdminsetupRoute,
   AppsRoute: AppsRoute,
   LoginRoute: LoginRouteWithChildren,
   MobileLoginRoute: MobileLoginRoute,
