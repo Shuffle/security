@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import DocsPage from '@/pages/docs/DocsPage';
 import { routeMeta } from '@/lib/routeMeta';
 import { getDocContent } from '@/lib/docs.functions';
+import { getDocGroup } from '@/components/docs/docGroups';
 
 export const Route = createFileRoute("/docs/$slug")({
   loader: async ({ params }) => {
@@ -20,13 +21,25 @@ export const Route = createFileRoute("/docs/$slug")({
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
     const title = doc?.title || fallbackTitle;
+    const group = getDocGroup(params.slug);
+    const categoryLabel = group ? group.label : '';
+    const fullPageTitle =
+      params.slug === 'index'
+        ? 'Shuffle Security Documentation'
+        : categoryLabel
+          ? (categoryLabel === 'Security'
+              ? `Shuffle Security - ${title}`
+              : `Shuffle Security ${categoryLabel} - ${title}`)
+          : `Shuffle Security - ${title}`;
+
     const description =
       doc?.description ||
       `Shuffle Security documentation — ${fallbackTitle}. Learn how to set up and use the platform.`;
     const heroImage = doc?.videos.find((video) => video.thumbnailUrl)?.thumbnailUrl;
 
     const base = routeMeta({
-      title,
+      title: fullPageTitle,
+      rawTitle: true,
       description,
       url: `/docs/${params.slug}`,
       type: 'article',

@@ -105,22 +105,20 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
     return resolveAgentContext(currentPath, search, rules);
   }, [currentPath, search, rules]);
 
-  // Track resolved context reported from side panel / drawer
-  const [currentContext, setCurrentContext] = useState<AgentResolvedContext | null>(null);
+  // Track resolved context reported from side panel / drawer with its associated route
+  const [reportedContext, setReportedContext] = useState<{ path: string; search: string; ctx: AgentResolvedContext } | null>(null);
 
-  // Clear child-reported context whenever route changes so resolvedContext takes immediate effect without lag
-  useEffect(() => {
-    setCurrentContext(null);
-  }, [currentPath, search]);
-
-  const activeContext = currentContext || resolvedContext;
+  const activeContext =
+    reportedContext && reportedContext.path === currentPath && reportedContext.search === search
+      ? reportedContext.ctx
+      : resolvedContext;
 
   const handleContextResolved = useCallback(
     (ctx: AgentResolvedContext) => {
-      setCurrentContext(ctx);
+      setReportedContext({ path: currentPath, search, ctx });
       onContextResolved?.(ctx);
     },
-    [onContextResolved],
+    [currentPath, search, onContextResolved],
   );
 
   // Listen to global openAgentDrawer events so existing UI triggers continue to work seamlessly

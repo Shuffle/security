@@ -23,6 +23,8 @@ export interface RouteMetaInput {
   url: string;
   image?: string;
   type?: string;
+  rawTitle?: boolean;
+  baseTitle?: string;
   /** Product/app pages: keep them out of search results. */
   noindex?: boolean;
   /** Breadcrumb trail for this page (excluding the page itself). */
@@ -52,8 +54,9 @@ const breadcrumbJsonLd = (url: string, title: string, trail: BreadcrumbItem[]) =
   }),
 });
 
-export const routeMeta = ({ title, description, url, image, type = 'website', noindex, breadcrumbs }: RouteMetaInput) => {
-  const fullTitle = title.includes(BASE_TITLE) ? title : `${title} | ${BASE_TITLE}`;
+export const routeMeta = ({ title, description, url, image, type = 'website', rawTitle, baseTitle, noindex, breadcrumbs }: RouteMetaInput) => {
+  const effectiveBase = baseTitle || BASE_TITLE;
+  const fullTitle = rawTitle || title === effectiveBase || title.includes(effectiveBase) ? title : `${title} | ${effectiveBase}`;
   const fullUrl = `${BASE_URL}${url}`;
   const img = image || DEFAULT_IMAGE;
 

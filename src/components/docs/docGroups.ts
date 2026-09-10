@@ -15,7 +15,7 @@ export const DOC_GROUPS: DocGroupDefinition[] = [
     id: 'usability',
     label: 'Usability',
     description: 'Platform overview, getting started, tenants, and features.',
-    slugs: ['about', 'getting_started', 'tenants', 'features'],
+    slugs: ['getting_started', 'getting-started', 'about', 'tenants', 'features'],
   },
   {
     id: 'automation',
@@ -26,8 +26,8 @@ export const DOC_GROUPS: DocGroupDefinition[] = [
   {
     id: 'security',
     label: 'Security',
-    description: 'Incident triage, case management, observables, and response.',
-    slugs: ['incidents'],
+    description: 'Incident triage, vulnerability management, host posture, and response.',
+    slugs: ['incidents', 'vulnerabilities', 'monitors', 'host-monitors'],
   },
   {
     id: 'infrastructure',
@@ -43,6 +43,9 @@ export const DOC_LABEL_OVERRIDES: Record<string, string> = {
   api: 'API Reference',
   getting_started: 'Getting Started',
   incidents: 'Incidents & Cases',
+  vulnerabilities: 'Vulnerabilities',
+  monitors: 'Host Monitors',
+  'host-monitors': 'Host Monitors',
   about: 'About Shuffle',
   tenants: 'Tenants & Multi-Tenancy',
   features: 'Features Overview',
@@ -123,13 +126,16 @@ export const groupRemoteDocs = (
   for (const groupDef of DOC_GROUPS) {
     const groupDocs: (typeof docs)[0][] = [];
     for (const slug of groupDef.slugs) {
-      const match = docMap.get(slug);
-      if (match) {
+      const clean = slug.toLowerCase().replace(/_+/g, '-');
+      const match = docMap.get(slug.toLowerCase()) || docMap.get(clean);
+      if (match && !handledSlugs.has(match.slug.toLowerCase())) {
         groupDocs.push({
           ...match,
           label: getDocDisplayLabel(match.slug, match.label),
         });
-        handledSlugs.add(slug);
+        handledSlugs.add(match.slug.toLowerCase());
+        handledSlugs.add(slug.toLowerCase());
+        handledSlugs.add(clean);
       }
     }
 

@@ -6,6 +6,8 @@ interface PageMeta {
   image?: string;
   url?: string;
   type?: string;
+  rawTitle?: boolean;
+  baseTitle?: string;
   /** Optional JSON-LD structured data. Accepts a single object or an array of objects. */
   jsonLd?: Record<string, any> | Record<string, any>[];
 }
@@ -26,9 +28,10 @@ function setMetaTag(property: string, content: string, isOg = false) {
   el.setAttribute('content', content);
 }
 
-export function usePageMeta({ title, description, image, url, type = 'website', jsonLd }: PageMeta) {
+export function usePageMeta({ title, description, image, url, type = 'website', rawTitle, baseTitle, jsonLd }: PageMeta) {
   useEffect(() => {
-    const fullTitle = title === BASE_TITLE || title.includes(BASE_TITLE) ? title : `${title} | ${BASE_TITLE}`;
+    const effectiveBase = baseTitle || BASE_TITLE;
+    const fullTitle = rawTitle || title === effectiveBase || title.includes(effectiveBase) ? title : `${title} | ${effectiveBase}`;
     const fullUrl = url ? `${BASE_URL}${url}` : window.location.href;
     const img = image || DEFAULT_IMAGE;
 

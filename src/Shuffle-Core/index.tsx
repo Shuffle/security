@@ -31,6 +31,8 @@ import VulnerabilitiesDashboardRaw from './components/dashboard/VulnerabilitiesD
 import CombinedDashboardRaw from './components/dashboard/CombinedDashboard';
 import BillingRaw from './views/Billing';
 import TenantManagementRaw from './views/TenantManagement';
+import LoginPageRaw, { type LoginPageProps } from './views/LoginPage';
+import AdminSetupRaw, { type AdminSetupProps } from './views/AdminSetup';
 
 /**
  * Wrap a Shuffle-Core surface in the theme provider. Every exported

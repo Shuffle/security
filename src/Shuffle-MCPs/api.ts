@@ -620,7 +620,10 @@ export const shuffleFetch = (url: string, init?: RequestInit): Promise<Response>
 // Common endpoints
 export const API_ENDPOINTS = {
   login: '/api/v1/login',
+  loginSso: '/api/v1/login/sso',
+  checkusers: '/api/v1/checkusers',
   register: '/api/v1/users/register',
+  registerAdmin: '/api/v1/register',
   logout: '/api/v1/logout',
   me: '/api/v1/me',
   getinfo: '/api/v1/getinfo',

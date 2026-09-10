@@ -295,11 +295,23 @@ export const getDocPageDisplayName = (pathname: string, entityOverride?: string)
 export const formatDocAskAbout = (topic: string): string => {
   const t = (topic || '').trim();
   if (!t || t.toLowerCase() === 'docs' || t.toLowerCase() === 'documentation') {
-    return 'Ask about Docs';
+    return 'Ask about Shuffle Documentation';
   }
   const lower = t.toLowerCase();
   if (lower === 'about' || lower === 'about shuffle' || lower === 'about us' || lower === 'shuffle') {
     return 'Ask about Shuffle';
+  }
+  if (lower === 'automation') {
+    return 'Ask about Shuffle Automation';
+  }
+  if (lower === 'security') {
+    return 'Ask about Shuffle Security';
+  }
+  if (lower === 'usability') {
+    return 'Ask about Shuffle Usability';
+  }
+  if (lower === 'infrastructure') {
+    return 'Ask about Shuffle Infrastructure';
   }
   if (/^about\s+/i.test(t)) {
     return `Ask about ${t.replace(/^about\s+/i, '').trim()}`;
@@ -307,7 +319,10 @@ export const formatDocAskAbout = (topic: string): string => {
   if (/^how\s+to\s+/i.test(t)) {
     return `Ask ${t.replace(/^how\s+to\s+/i, 'how to ')}`;
   }
-  return `Ask about ${t}`;
+  if (/^shuffle\s+/i.test(t)) {
+    return `Ask about ${t}`;
+  }
+  return `Ask about Shuffle ${t}`;
 };
 
 /**
@@ -316,16 +331,31 @@ export const formatDocAskAbout = (topic: string): string => {
 export const formatDocHelpTitle = (topic: string): string => {
   const t = (topic || '').trim();
   if (!t || t.toLowerCase() === 'docs' || t.toLowerCase() === 'documentation') {
-    return 'How can we help with Shuffle docs?';
+    return 'How can we help with Shuffle Documentation?';
   }
   const lower = t.toLowerCase();
   if (lower === 'about' || lower === 'about shuffle' || lower === 'about us' || lower === 'shuffle') {
     return 'How can we help with Shuffle?';
   }
+  if (lower === 'automation') {
+    return 'How can we help with Shuffle Automation?';
+  }
+  if (lower === 'security') {
+    return 'How can we help with Shuffle Security?';
+  }
+  if (lower === 'usability') {
+    return 'How can we help with Shuffle Usability?';
+  }
+  if (lower === 'infrastructure') {
+    return 'How can we help with Shuffle Infrastructure?';
+  }
   if (/^about\s+/i.test(t)) {
     return `How can we help with ${t.replace(/^about\s+/i, '').trim()}?`;
   }
-  return `How can we help with ${t}?`;
+  if (/^shuffle\s+/i.test(t)) {
+    return `How can we help with ${t}?`;
+  }
+  return `How can we help with Shuffle ${t}?`;
 };
 
 /**

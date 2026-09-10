@@ -490,6 +490,24 @@ export const API_CONFIG = {
 
 export const getApiUrl = (endpoint: string): string => `${API_CONFIG.baseUrl}${endpoint}`;
 
+// Common endpoints
+export const API_ENDPOINTS = {
+  login: '/api/v1/login',
+  loginSso: '/api/v1/login/sso',
+  checkusers: '/api/v1/checkusers',
+  register: '/api/v1/users/register',
+  registerAdmin: '/api/v1/register',
+  logout: '/api/v1/logout',
+  me: '/api/v1/me',
+  getinfo: '/api/v1/getinfo',
+  alerts: '/api/v1/alerts',
+  cases: '/api/v1/cases',
+  workflows: '/api/v1/workflows',
+  apps: '/api/v1/apps',
+  passwordResetMail: '/api/v1/users/passwordresetmail',
+  passwordReset: '/api/v1/users/passwordreset',
+};
+
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 

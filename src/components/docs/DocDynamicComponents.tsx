@@ -18,6 +18,8 @@ import {
 import { openAgentDrawer } from "@/lib/agentDrawer";
 import { fetchAuthenticatedApps } from "@/Shuffle-MCPs/authenticatedApps";
 import { resolveActiveLLMProvider } from "@/Shuffle-MCPs/llmProviderDetect";
+import { IngestionSourcesRow } from "@/components/ingestion/IngestionSourcesRow";
+import { useNavigate } from "@/lib/router-compat";
 
 export interface ContentSegment {
   type: "markdown" | "component";
@@ -454,6 +456,283 @@ export const DocShuffleAI: React.FC<DocShuffleAIProps> = ({
   );
 };
 
+interface DocIngestProps {
+  workflow?: string;
+  category?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+export const DocIngest: React.FC<DocIngestProps> = ({
+  workflow = "Ingest Tickets",
+  category = "cases",
+  title = "Interactive Alert Ingest Pipeline",
+  subtitle = "Configure webhooks and connected tools that feed into your incident queue in real time.",
+}) => {
+  return (
+    <Box
+      sx={{
+        my: 3,
+        p: 2.5,
+        borderRadius: 2.5,
+        border: "1px solid hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+      }}
+    >
+      <Box sx={{ mb: 2 }}>
+        <Typography
+          sx={{
+            fontSize: "1.05rem",
+            fontWeight: 600,
+            color: "hsl(var(--foreground))",
+            mb: 0.5,
+          }}
+        >
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography
+            sx={{
+              fontSize: "0.85rem",
+              color: "hsl(var(--muted-foreground))",
+            }}
+          >
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+      <IngestionSourcesRow
+        workflowLabel={workflow}
+        category={category}
+        webhookLabel={`${workflow}_webhook`}
+        webhookWorkflowName="Ingestion Webhook"
+      />
+    </Box>
+  );
+};
+
+interface DocUsecasesProps {
+  title?: string;
+  subtitle?: string;
+  category?: string;
+}
+
+const USECASES_BY_CATEGORY: Record<
+  string,
+  {
+    title: string;
+    subtitle: string;
+    items: Array<{ title: string; desc: string; icon: string }>;
+  }
+> = {
+  vulnerabilities: {
+    title: "Vulnerability & Patch Automation Use Cases",
+    subtitle:
+      "Turn scanner findings into automated patch playbooks, code reviews, and risk escalations.",
+    items: [
+      {
+        title: "Automated Patch Orchestration",
+        desc: "Ingest CVEs with high EPSS or CISA KEV tags, verify available packages, and trigger Ansible or AWS SSM patching.",
+        icon: "🔧",
+      },
+      {
+        title: "CI/CD Dependency Gate",
+        desc: "Scan npm, pip, and cargo dependencies in PRs; alert engineering in Slack and create Jira tickets for critical flaws.",
+        icon: "📦",
+      },
+      {
+        title: "Emergency Zero-Day Fleet Audit",
+        desc: "When a zero-day drops, instantly query all Host Monitors and cloud assets to identify vulnerable package versions.",
+        icon: "🚨",
+      },
+      {
+        title: "Auto-Ticketing & SLA Escalation",
+        desc: "Automatically sync critical findings to Jira or ServiceNow, and escalate overdue remediations into Incidents.",
+        icon: "📋",
+      },
+    ],
+  },
+  monitors: {
+    title: "Host Monitoring & Endpoint Compliance Use Cases",
+    subtitle:
+      "Continuous posture verification, live endpoint forensics, and automated containment.",
+    items: [
+      {
+        title: "Non-Compliant Laptop Quarantine",
+        desc: "Detect disabled FileVault or BitLocker on endpoints, notify the user, and auto-revoke access if uncorrected.",
+        icon: "🔒",
+      },
+      {
+        title: "Live Incident Forensics",
+        desc: "Directly from an active incident, trigger host actions to dump process trees, open ports, and recent file changes.",
+        icon: "🔍",
+      },
+      {
+        title: "Fleet-Wide Threat Hunting",
+        desc: "Run one-click inspection scripts via the remote web terminal across thousands of endpoints to identify compromised hashes.",
+        icon: "🎯",
+      },
+      {
+        title: "Developer Dependency Audit",
+        desc: "Use the local Code Package Scanner to catch risky open-source packages before code is pushed to production.",
+        icon: "💻",
+      },
+    ],
+  },
+  cases: {
+    title: "Pre-Built Incident & SOC Use Cases",
+    subtitle:
+      "Shuffle bridges ingestion, analysis, and containment into reusable multi-phase pipelines.",
+    items: [
+      {
+        title: "Phishing Triage & Auto-Purge",
+        desc: "Parse headers (SPF/DKIM/DMARC), sandbox attachments, extract IOCs, and purge malicious emails across the entire tenant.",
+        icon: "✉️",
+      },
+      {
+        title: "EDR Detection & Host Isolation",
+        desc: "Ingest alerts from CrowdStrike or SentinelOne, correlate with threat feeds, and trigger one-click host isolation.",
+        icon: "💻",
+      },
+      {
+        title: "Cloud Identity & Impossible Travel",
+        desc: "Detect suspicious Okta or Azure AD logins, prompt user via Slack/Teams, and auto-revoke sessions upon anomaly confirmation.",
+        icon: "🔑",
+      },
+      {
+        title: "IOC Enrichment & Firewall Block",
+        desc: "Extract IPs and domains from SIEM alerts, check reputation in VirusTotal / AbuseIPDB, and push block rules to firewalls.",
+        icon: "🛡️",
+      },
+    ],
+  },
+};
+
+export const DocUsecases: React.FC<DocUsecasesProps> = ({
+  title,
+  subtitle,
+  category = "cases",
+}) => {
+  const navigate = useNavigate();
+
+  const normalizedCategory = category.toLowerCase().includes("vuln")
+    ? "vulnerabilities"
+    : category.toLowerCase().includes("mon") || category.toLowerCase().includes("host")
+    ? "monitors"
+    : "cases";
+
+  const config =
+    USECASES_BY_CATEGORY[normalizedCategory] || USECASES_BY_CATEGORY.cases;
+  const displayTitle = title || config.title;
+  const displaySubtitle = subtitle || config.subtitle;
+  const usecases = config.items;
+
+  return (
+    <Box
+      sx={{
+        my: 3,
+        p: 2.5,
+        borderRadius: 2.5,
+        border: "1px solid hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
+        <Box>
+          <Typography
+            sx={{
+              fontSize: "1.05rem",
+              fontWeight: 600,
+              color: "hsl(var(--foreground))",
+              mb: 0.5,
+            }}
+          >
+            {title}
+          </Typography>
+          {subtitle && (
+            <Typography
+              sx={{
+                fontSize: "0.85rem",
+                color: "hsl(var(--muted-foreground))",
+              }}
+            >
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => navigate("/usecases")}
+          endIcon={<ArrowRightIcon size={14} />}
+          sx={{
+            textTransform: "none",
+            fontWeight: 500,
+            borderRadius: 1.5,
+          }}
+        >
+          View all use cases
+        </Button>
+      </Box>
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+          gap: 1.5,
+        }}
+      >
+        {usecases.map((uc, i) => (
+          <Box
+            key={i}
+            onClick={() => navigate("/usecases")}
+            sx={{
+              p: 1.75,
+              borderRadius: 2,
+              border: "1px solid hsl(var(--border))",
+              backgroundColor: "hsl(var(--background))",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+              "&:hover": {
+                borderColor: "hsl(var(--primary))",
+                transform: "translateY(-1px)",
+              },
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
+              <Typography sx={{ fontSize: "1.2rem", lineHeight: 1 }}>{uc.icon}</Typography>
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
+                  color: "hsl(var(--foreground))",
+                }}
+              >
+                {uc.title}
+              </Typography>
+            </Box>
+            <Typography
+              variant="body2"
+              sx={{ color: "hsl(var(--muted-foreground))", fontSize: "0.8rem", lineHeight: 1.4 }}
+            >
+              {uc.desc}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
 interface DocDynamicComponentProps {
   name: string;
   props: Record<string, string>;
@@ -501,6 +780,16 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
     case "local-llm":
     case "localllm":
       return <DocShuffleAI {...props} />;
+
+    case "ingest":
+    case "ingestion":
+    case "ingest-sources":
+      return <DocIngest {...props} />;
+
+    case "usecases":
+    case "usecase":
+    case "soc-usecases":
+      return <DocUsecases {...props} />;
 
     default:
       return null;

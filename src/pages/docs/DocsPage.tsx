@@ -57,16 +57,27 @@ const DocsPage = ({
       : slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   const docTitle = doc.title || doc.meta?.name || fallbackTitle;
+  const group = getDocGroup(slug);
+  const categoryLabel = group ? group.label : '';
+  const fullPageTitle =
+    slug === 'index'
+      ? 'Shuffle Security Documentation'
+      : categoryLabel
+        ? (categoryLabel === 'Security'
+            ? `Shuffle Security - ${docTitle}`
+            : `Shuffle Security ${categoryLabel} - ${docTitle}`)
+        : `Shuffle Security - ${docTitle}`;
 
   usePageMeta({
-    title: docTitle,
-    description: `Shuffle Security ${sectionTitle.toLowerCase()} — ${docTitle}.`,
+    title: fullPageTitle,
+    rawTitle: true,
+    description: `Shuffle Security ${categoryLabel ? `${categoryLabel.toLowerCase()} — ` : ''}${docTitle}.`,
     url: `${basePath}/${slug}`,
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'TechArticle',
-      headline: docTitle,
-      description: `Shuffle Security ${sectionTitle.toLowerCase()} — ${docTitle}.`,
+      headline: fullPageTitle,
+      description: `Shuffle Security ${categoryLabel ? `${categoryLabel.toLowerCase()} — ` : ''}${docTitle}.`,
       url: `https://shuffle.security${basePath}/${slug}`,
       author: { '@type': 'Organization', name: 'Shuffle Security' },
       publisher: { '@type': 'Organization', name: 'Shuffle Security', url: 'https://shuffle.security' },

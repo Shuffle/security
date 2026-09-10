@@ -1,13 +1,10 @@
 import {
-  ExternalLink as OpenInNewIcon,
-  Download as DownloadIcon,
   FileText as FileTextIcon,
   Search as SearchIcon,
   BookOpen,
   Zap,
   Shield,
   Cpu,
-  Sparkles,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
@@ -16,34 +13,23 @@ import { useNavigate, useParams } from '@/lib/router-compat';
 import {
   Box,
   Collapse,
-  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
 import {
   groupRemoteDocs,
   getDocGroup,
-  loadGroupDocsContent,
   getDocDisplayLabel,
   type GroupedDocsCategory,
 } from '@/components/docs/docGroups';
-import { activateGroupDocPromptContext } from '@/lib/docsPromptContext';
-import { openAgentDrawer } from '@/lib/agentDrawer';
 import { SidebarSearchDialog } from '@/components/layout/SidebarSearchDialog';
 
-interface DocLink {
-  label: string;
-  slug: string;
-  icon: React.ReactNode;
-  external?: boolean;
-  href?: string;
-}
+
 
 interface DocsSidebarProps {
   onNavigate?: () => void;
@@ -53,26 +39,9 @@ interface DocsSidebarProps {
   basePath?: string;
   /** Section heading above the list. */
   title?: string;
-  /** Hide the external resources block (not relevant outside documentation). */
+  /** @deprecated External resources block has been removed */
   hideExternal?: boolean;
 }
-
-const externalLinks: DocLink[] = [
-  {
-    label: 'Shuffle Automation',
-    slug: 'shuffle',
-    icon: <OpenInNewIcon size={16} />,
-    external: true,
-    href: 'https://shuffler.io',
-  },
-  {
-    label: 'Agent Skill (SHUFFLE_CORE.md)',
-    slug: 'shuffle-core-md',
-    icon: <DownloadIcon size={16} />,
-    external: true,
-    href: '/SHUFFLE_CORE.md',
-  },
-];
 
 interface RemoteDoc {
   name: string;
@@ -92,7 +61,6 @@ export const DocsSidebar = ({
   folder,
   basePath = '/docs',
   title = 'Documentation',
-  hideExternal = false,
 }: DocsSidebarProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -166,24 +134,6 @@ export const DocsSidebar = ({
     onNavigate?.();
   };
 
-  const handleAskAboutGroup = async (
-    category: GroupedDocsCategory,
-    e: React.MouseEvent,
-  ) => {
-    e.stopPropagation();
-    try {
-      const contents = await loadGroupDocsContent(category.id, folder);
-      const snippets = Object.entries(contents).map(([s, md]) => ({
-        slug: s,
-        title: getDocDisplayLabel(s),
-        content: md,
-      }));
-      activateGroupDocPromptContext(category.id, category.label, snippets);
-    } catch {
-      // Continue even if group preload fails
-    }
-    openAgentDrawer('run');
-  };
 
   const getCategoryIcon = (categoryId: string) => {
     switch (categoryId) {
@@ -252,20 +202,6 @@ export const DocsSidebar = ({
 
       <SidebarSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
-      <Typography
-        variant="overline"
-        sx={{
-          px: 3,
-          color: 'text.secondary',
-          fontWeight: 600,
-          letterSpacing: 1.5,
-          display: 'block',
-          mb: 1,
-        }}
-      >
-        {title}
-      </Typography>
-
       {/* Render documentation grouped by category */}
       <Box sx={{ px: 1 }}>
         {categories.map((category) => {
@@ -280,7 +216,6 @@ export const DocsSidebar = ({
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
                   px: 1.5,
                   py: 0.6,
                   borderRadius: 1,
@@ -289,9 +224,6 @@ export const DocsSidebar = ({
                   transition: 'background-color 120ms ease',
                   '&:hover': {
                     backgroundColor: 'action.hover',
-                    '& .group-ask-btn': {
-                      opacity: 1,
-                    },
                   },
                 }}
               >
@@ -313,27 +245,6 @@ export const DocsSidebar = ({
                     {category.label}
                   </Typography>
                 </Box>
-
-                <Tooltip title={`Ask AI about ${category.label}`} arrow placement="right">
-                  <IconButton
-                    className="group-ask-btn"
-                    size="small"
-                    onClick={(e) => handleAskAboutGroup(category, e)}
-                    sx={{
-                      p: 0.4,
-                      opacity: 0.7,
-                      color: 'text.secondary',
-                      '&:hover': {
-                        color: 'primary.main',
-                        backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                      },
-                      transition: 'all 120ms ease',
-                    }}
-                    aria-label={`Ask AI about ${category.label}`}
-                  >
-                    <Sparkles size={13} />
-                  </IconButton>
-                </Tooltip>
               </Box>
 
               {/* Group Document Items */}
@@ -383,19 +294,6 @@ export const DocsSidebar = ({
                               noWrap: true,
                             }}
                           />
-                          {doc.read_time ? (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: 'text.disabled',
-                                ml: 0.5,
-                                fontSize: '0.72rem',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {doc.read_time}m
-                            </Typography>
-                          ) : null}
                         </ListItemButton>
                       </ListItem>
                     );
@@ -406,74 +304,6 @@ export const DocsSidebar = ({
           );
         })}
       </Box>
-
-      {!hideExternal && (
-        <>
-          <Typography
-            variant="overline"
-            sx={{
-              px: 3,
-              mt: 3,
-              display: 'block',
-              color: 'text.secondary',
-              fontWeight: 600,
-              letterSpacing: 1.5,
-            }}
-          >
-            External Resources
-          </Typography>
-
-          <List sx={{ px: 1, mt: 0.5 }}>
-            {externalLinks.map((link) => (
-              <ListItem key={link.slug} disablePadding sx={{ mb: 0.2 }}>
-                <ListItemButton
-                  component="a"
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    borderRadius: 1,
-                    mx: 0.5,
-                    py: 0.8,
-                    px: 1.5,
-                    color: 'text.secondary',
-                    transition: 'background-color 120ms ease, color 120ms ease',
-                    '&:hover': {
-                      backgroundColor: 'action.hover',
-                      color: 'text.primary',
-                      '& .MuiListItemIcon-root, & .ext-indicator': {
-                        color: 'primary.main',
-                      },
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 28, color: 'text.secondary' }}>
-                    {link.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={link.label}
-                    primaryTypographyProps={{
-                      fontSize: '0.84rem',
-                      fontWeight: 500,
-                      sx: { color: 'inherit' },
-                    }}
-                  />
-                  <OpenInNewIcon
-                    className="ext-indicator"
-                    size={13}
-                    style={{
-                      color: 'text.disabled',
-                      marginLeft: '6px',
-                      flexShrink: 0,
-                      transition: 'color 120ms ease',
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </>
-      )}
     </Box>
   );
 };

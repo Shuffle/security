@@ -5,7 +5,8 @@ import { routeMeta } from '@/lib/routeMeta';
 export const Route = createFileRoute("/docs/")({
   head: () =>
     routeMeta({
-      title: 'Documentation',
+      title: 'Shuffle Security Documentation',
+      rawTitle: true,
       description:
         'Shuffle Security documentation — set up ingestion, incident automation, detections, vulnerability management and AI agents.',
       url: '/docs',
