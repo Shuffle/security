@@ -51,8 +51,10 @@ export const LandingNavbar = () => {
         position="fixed"
         elevation={0}
         sx={{
-          width: { xs: '100%', md: 'calc(100% - var(--ask-ai-panel-width, 0px))' },
-          transition: 'width 0.2s ease',
+          left: 0,
+          right: { xs: 0, md: 'var(--ask-ai-panel-width, 0px)' },
+          width: 'auto',
+          transition: 'right 0.2s ease',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between', py: 1, position: 'relative' }}>

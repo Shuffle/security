@@ -1,3 +1,4 @@
+import ModernLocalLLMConfig from '@/Shuffle-MCPs/components/LocalLLMConfig';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
@@ -99,7 +100,11 @@ interface LocalLLMConfigProps extends ShuffleHostProps {
   onTestResult?: (result: LocalLLMTestResult) => void;
 }
 
-const LocalLLMConfig = ({ compact, hasOpenAIAuth, globalUrl }: LocalLLMConfigProps) => {
+const LocalLLMConfig = (props: LocalLLMConfigProps) => {
+  return <ModernLocalLLMConfig {...(props as any)} />;
+};
+
+const _LegacyLocalLLMConfig = ({ compact, hasOpenAIAuth, globalUrl }: LocalLLMConfigProps) => {
   useSyncHostBaseUrl(globalUrl);
   const {
     authStates,

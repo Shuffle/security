@@ -9,8 +9,8 @@ import { DocsTableOfContents, MobileTableOfContents } from '@/components/docs/Do
 import { useDocContent, type RemoteDocMeta } from '@/components/docs/useDocContent';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
-const SIDEBAR_WIDTH_MD = 250;
-const SIDEBAR_WIDTH_XL = 270;
+const SIDEBAR_WIDTH_MD = 260;
+const SIDEBAR_WIDTH_XL = 280;
 
 interface DocsPageProps {
   /** SSR-provided markdown/metadata; when present the client fetch is skipped. */
@@ -66,6 +66,17 @@ const DocsPage = ({
       publisher: { '@type': 'Organization', name: 'Shuffle Security', url: 'https://shuffle.security' },
     },
   });
+
+  // Keep global entity title in sync with current doc title for Ask AI contextual handles
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    (window as any).__shuffleActiveEntityTitle = docTitle;
+    return () => {
+      if ((window as any).__shuffleActiveEntityTitle === docTitle) {
+        delete (window as any).__shuffleActiveEntityTitle;
+      }
+    };
+  }, [docTitle]);
 
   const hasHeadings = doc.headings.length > 0;
   const theme = useTheme();
@@ -168,8 +179,6 @@ const DocsPage = ({
             width: { md: SIDEBAR_WIDTH_MD, xl: SIDEBAR_WIDTH_XL },
             backgroundColor: 'background.default',
             zIndex: 1,
-            borderRight: '1px solid',
-            borderColor: 'divider',
           }}
         >
           <DocsSidebar

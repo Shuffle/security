@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
+import { parseMarkdownSegments, DocDynamicComponent } from './DocDynamicComponents';
 import { Link, useLocation, useNavigate } from '@/lib/router-compat';
 import {
   Box,
@@ -262,10 +263,7 @@ export const MarkdownRenderer = ({
           color: 'text.primary',
           fontSize: '2.25rem',
           fontWeight: 700,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          pb: 2,
-          mb: 4,
+          mb: 3,
         },
         '& h2': {
           color: 'text.primary',
@@ -463,11 +461,10 @@ export const MarkdownRenderer = ({
       {mobileToc}
 
       {/* 3. Actual Content */}
-      <ShuffleMarkdown
-        disableBreaks
-        sx={{ '& p': { mb: 2 } }}
-        components={{
-          a: ({ href, children }) => {
+      {(() => {
+        const segments = parseMarkdownSegments(content);
+        const linkComponent = {
+          a: ({ href, children }: any) => {
             // In-page anchors update the URL as well as scrolling. Explicitly
             // scroll too, because selecting the same hash twice does not cause
             // React Router's location state to change.
@@ -520,10 +517,35 @@ export const MarkdownRenderer = ({
               </a>
             );
           },
-        }}
-      >
-        {content}
-      </ShuffleMarkdown>
+        };
+
+        return segments.map((segment, idx) => {
+          if (segment.type === 'markdown' && segment.content) {
+            return (
+              <ShuffleMarkdown
+                key={`md-${idx}`}
+                disableBreaks
+                sx={{ '& p': { mb: 2 } }}
+                components={linkComponent}
+              >
+                {segment.content}
+              </ShuffleMarkdown>
+            );
+          }
+
+          if (segment.type === 'component' && segment.componentName) {
+            return (
+              <DocDynamicComponent
+                key={`comp-${idx}-${segment.componentName}`}
+                name={segment.componentName}
+                props={segment.props || {}}
+              />
+            );
+          }
+
+          return null;
+        });
+      })()}
     </Box>
   );
 };

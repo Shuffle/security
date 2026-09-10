@@ -39,6 +39,10 @@ export interface AgentContextRule {
   defaultPrompt?: string | ((params: Record<string, string>, pathname: string) => string);
   /** Custom placeholder for the prompt input */
   placeholder?: string;
+  /** Custom label for the trigger button (e.g. 'Ask about Workflows') */
+  buttonLabel?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
+  /** Custom title for the panel/drawer header bar */
+  headerTitle?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
   /** Key used for localStorage persistence. Defaults to the rule id or parameterized key */
   getStorageKey?: (params: Record<string, string>, pathname: string) => string;
   /** Human-readable description of what this context provides */
@@ -58,6 +62,12 @@ export interface AgentResolvedContext {
   title: string;
   /** Function to dynamically re-evaluate the title with an active entity name override */
   titleFn?: (entityOverride?: string) => string;
+  /** Custom label for trigger button */
+  buttonLabel?: string;
+  buttonLabelFn?: (entityOverride?: string) => string;
+  /** Custom title for panel header */
+  headerTitle?: string;
+  headerTitleFn?: (entityOverride?: string) => string;
   subtitle: string;
   defaultPrompt: string;
   placeholder?: string;
@@ -198,6 +208,39 @@ export const getActivePageEntityName = (): string | undefined => {
     /* ignore DOM query errors */
   }
   return undefined;
+};
+
+/** Helper to extract a user-friendly page name from documentation path or active entity */
+export const getDocPageDisplayName = (pathname: string, entityOverride?: string): string => {
+  if (entityOverride && entityOverride.trim().length > 0) {
+    return entityOverride.trim();
+  }
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length <= 1) {
+    return 'Documentation';
+  }
+  const slug = parts[parts.length - 1];
+  const known: Record<string, string> = {
+    workflows: 'Workflows',
+    incidents: 'Incidents',
+    vulnerabilities: 'Vulnerabilities',
+    monitors: 'Monitors',
+    detection: 'Detection',
+    detections: 'Detections',
+    apps: 'Apps',
+    api: 'API',
+    ai: 'AI',
+    sigma: 'Sigma',
+    cases: 'Cases',
+    alerts: 'Alerts',
+    assets: 'Assets',
+    software: 'Software',
+    packages: 'Packages',
+  };
+  if (known[slug.toLowerCase()]) {
+    return known[slug.toLowerCase()];
+  }
+  return slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 /**
@@ -626,16 +669,117 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   },
 
   // ==========================================
-  // 7. Documentation (/docs, /docs/*)
+  // 7. Documentation (/docs, /docs/*, /legal/*)
   // ==========================================
+  // 7a. Workflows Documentation
+  {
+    id: 'docs-workflows',
+    match: (pathname) => pathname.startsWith('/docs') && /workflow|automation|subflow|trigger/i.test(pathname),
+    defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
+    defaultPresetId: 'build-workflows',
+    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    subtitle: () => 'Shuffle Workflows Builder & Apps',
+    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    placeholder: 'Ask questions about workflows, nodes, triggers, or building automations...',
+    getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    description: 'Documentation for Shuffle Workflows & Automations with Workflows Builder tools',
+    sideshift: true,
+  },
+  // 7b. Incidents Documentation
+  {
+    id: 'docs-incidents',
+    match: (pathname) => pathname.startsWith('/docs') && /incident|alert|case|ticket|triage/i.test(pathname),
+    defaultApps: [{ name: 'shuffle_incidents' }],
+    defaultPresetId: 'incident-response',
+    sourceCategory: 'incidents',
+    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    subtitle: () => 'Shuffle Incidents MCP',
+    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    placeholder: 'Ask questions about incident response, alert feeds, or investigations...',
+    getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    description: 'Documentation for Shuffle Incidents with Incident Response tools',
+    sideshift: true,
+  },
+  // 7c. Vulnerabilities & Assets Documentation
+  {
+    id: 'docs-vulnerabilities',
+    match: (pathname) => pathname.startsWith('/docs') && /vulnerabilit|cve|asset|software|package/i.test(pathname),
+    defaultApps: [{ name: 'shuffle_vulnerabilities' }, { name: 'shuffle_assets' }],
+    defaultPresetId: 'vulnerability',
+    sourceCategory: 'vulnerabilities',
+    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    subtitle: () => 'Shuffle Vulnerabilities & Assets',
+    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    placeholder: 'Ask questions about vulnerability management, CVEs, or asset posture...',
+    getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    description: 'Documentation for Vulnerabilities & Assets',
+    sideshift: true,
+  },
+  // 7d. Host Monitors Documentation
+  {
+    id: 'docs-monitors',
+    match: (pathname) => pathname.startsWith('/docs') && /monitor|terminal|computer-use|host/i.test(pathname),
+    defaultApps: [{ name: 'shuffle_host_monitors' }],
+    defaultPresetId: 'host-monitor-control',
+    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    subtitle: () => 'Shuffle Host Monitors MCP',
+    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    placeholder: 'Ask questions about host monitors, agent execution, or terminal controls...',
+    getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    description: 'Documentation for Host Monitors',
+    sideshift: true,
+  },
+  // 7e. Detection & Sigma Documentation
+  {
+    id: 'docs-detection',
+    match: (pathname) => pathname.startsWith('/docs') && /detection|sigma|rule|pipeline/i.test(pathname),
+    defaultApps: [{ name: 'shuffle_detection' }],
+    defaultPresetId: 'detection',
+    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    subtitle: () => 'Shuffle Detection MCP',
+    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    placeholder: 'Ask questions about detection engineering, Sigma rules, or alerts...',
+    getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    description: 'Documentation for Detection & Sigma',
+    sideshift: true,
+  },
+  // 7f. Apps & Integrations Documentation
+  {
+    id: 'docs-apps',
+    match: (pathname) => pathname.startsWith('/docs') && /app|integration|connector|openapi/i.test(pathname),
+    defaultApps: [{ name: 'shuffle_apps' }, { name: 'shuffle_workflows_builder' }],
+    defaultPresetId: 'build-workflows',
+    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    subtitle: () => 'Shuffle Apps & Integrations',
+    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    placeholder: 'Ask questions about building or configuring Shuffle apps...',
+    getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    description: 'Documentation for Apps & Integrations',
+    sideshift: true,
+  },
+  // 7g. General Documentation Fallback (/docs, /docs/*, /legal/*)
   {
     id: 'docs',
-    match: (pathname) => pathname === '/docs' || pathname.startsWith('/docs/'),
+    match: (pathname) => pathname === '/docs' || pathname.startsWith('/docs/') || pathname.startsWith('/legal/'),
     defaultApps: [{ name: 'shuffle_tools' }],
     defaultPresetId: 'support',
-    title: 'How can we help with documentation?',
+    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
+    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
     subtitle: 'Documentation & Knowledge Assistant',
-    defaultPrompt: 'Help me understand or find information about ',
+    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
     placeholder: 'Ask questions about Shuffle features, guides, or API...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation assistant for Shuffle guides, features, and API references',
@@ -800,6 +944,36 @@ export const resolveAgentContext = (
       }
     : undefined;
 
+  const buttonLabel = typeof matchedRule.buttonLabel === 'function'
+    ? matchedRule.buttonLabel(matchedParams, normPath, getActivePageEntityName())
+    : matchedRule.buttonLabel;
+
+  const buttonLabelFn = typeof matchedRule.buttonLabel === 'function'
+    ? (entityOverride?: string) => {
+        const entity = entityOverride || getActivePageEntityName();
+        return (matchedRule!.buttonLabel as (params: Record<string, string>, pathname: string, entityOverride?: string) => string)(
+          matchedParams,
+          normPath,
+          entity,
+        );
+      }
+    : undefined;
+
+  const headerTitle = typeof matchedRule.headerTitle === 'function'
+    ? matchedRule.headerTitle(matchedParams, normPath, getActivePageEntityName())
+    : matchedRule.headerTitle;
+
+  const headerTitleFn = typeof matchedRule.headerTitle === 'function'
+    ? (entityOverride?: string) => {
+        const entity = entityOverride || getActivePageEntityName();
+        return (matchedRule!.headerTitle as (params: Record<string, string>, pathname: string, entityOverride?: string) => string)(
+          matchedParams,
+          normPath,
+          entity,
+        );
+      }
+    : undefined;
+
   const subtitle = typeof matchedRule.subtitle === 'function'
     ? matchedRule.subtitle(matchedParams, normPath)
     : matchedRule.subtitle ?? 'Context aware assistant';
@@ -816,6 +990,10 @@ export const resolveAgentContext = (
     presetId: effectivePresetId,
     title,
     titleFn,
+    buttonLabel,
+    buttonLabelFn,
+    headerTitle,
+    headerTitleFn,
     subtitle,
     defaultPrompt,
     placeholder: matchedRule.placeholder,

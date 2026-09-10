@@ -79,9 +79,11 @@ export const AskAiButton: React.FC<AskAiButtonProps> = ({
   const effectiveTooltip =
     tooltipTitle !== undefined
       ? tooltipTitle
-      : contextHint
-      ? `Ask AI (${contextHint})`
-      : 'Ask AI • Context-aware assistant';
+      : label !== 'Ask AI'
+        ? label
+        : contextHint
+          ? `Ask AI (${contextHint})`
+          : 'Ask AI • Context-aware assistant';
 
   return (
     <Box
@@ -95,7 +97,10 @@ export const AskAiButton: React.FC<AskAiButtonProps> = ({
     >
       <Tooltip title={effectiveTooltip} arrow placement="top-end">
         <ButtonBase
-          onClick={onClick}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            onClick?.(e);
+          }}
           focusRipple
           aria-label={`${label}${tagLabel ? ` (${tagLabel})` : ''}`}
           sx={[
@@ -156,6 +161,7 @@ export const AskAiButton: React.FC<AskAiButtonProps> = ({
               letterSpacing: '-0.01em',
               lineHeight: 1,
               color: 'inherit',
+              whiteSpace: 'nowrap',
             }}
           >
             {label}

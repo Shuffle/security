@@ -295,6 +295,36 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     prevOpenRef.current = open;
   }, [open, initialTab, onTabChange]);
 
+  const panelRef = useRef<HTMLElement | null>(null);
+
+  // Automatically focus prompt input when panel opens or switches to 'run' tab
+  useEffect(() => {
+    if (!isVisible || safeActiveTab !== 'run') return;
+
+    const focusInput = () => {
+      if (!panelRef.current) return false;
+      const target = panelRef.current.querySelector<HTMLTextAreaElement | HTMLInputElement>(
+        'textarea, input[type="text"]:not([readonly]), input:not([type]):not([readonly])'
+      );
+      if (target) {
+        target.focus();
+        return true;
+      }
+      return false;
+    };
+
+    if (focusInput()) return;
+    const t1 = setTimeout(focusInput, 40);
+    const t2 = setTimeout(focusInput, 120);
+    const t3 = setTimeout(focusInput, 240);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [isVisible, safeActiveTab]);
+
   // Broadcast mounted status so AgentUI knows a drawer/panel is present
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -520,6 +550,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
 
       {/* Persistent Docked Side Panel */}
       <Box
+        ref={panelRef}
         component="aside"
         aria-label="Ask AI"
         aria-hidden={!isVisible}
@@ -626,7 +657,9 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 ? 'Agent Permissions'
                 : safeActiveTab === 'localLLM'
                   ? 'Local LLM Settings'
-                  : 'Ask AI'}
+                  : (context.headerTitleFn ? context.headerTitleFn(entityTitle) : context.headerTitle) ||
+                    (context.buttonLabelFn ? context.buttonLabelFn(entityTitle) : context.buttonLabel) ||
+                    'Ask AI'}
             </Typography>
             <Box
               sx={{

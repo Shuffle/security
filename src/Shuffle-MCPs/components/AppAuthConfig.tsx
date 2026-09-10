@@ -468,10 +468,9 @@ export const AppAuthCard = ({
         
         // Auto-test the new auth if not already validated and not already auto-tested
         const newestEntry = sorted[0];
-        // Already-validated OR currently-active entries must never be
-        // auto-tested — switching the provider filter can make an existing,
-        // known-good auth look "new" to this effect.
-        const alreadyValid = newestEntry?.validation?.valid === true || newestEntry?.active === true;
+        // Already-validated entries must never be auto-tested — switching the
+        // provider filter can make an existing, known-good auth look "new" to this effect.
+        const alreadyValid = newestEntry?.validation?.valid === true;
         if (!alreadyValid && newestId !== autoTestFiredRef.current) {
           autoTestFiredRef.current = newestId;
           // Small delay to let state settle before firing test
@@ -1311,6 +1310,9 @@ export const AppAuthCard = ({
         toast.success('Authentication saved', {
           description: `Your ${app.name.replace(/_/g, ' ')} credentials have been stored securely.`,
         });
+      }
+      if (onTestConnection) {
+        onTestConnection(app.objectID, selectedAuthId !== ADD_NEW_AUTH ? selectedAuthId : undefined);
       }
     }
 

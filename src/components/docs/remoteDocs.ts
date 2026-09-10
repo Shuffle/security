@@ -26,6 +26,7 @@ const inflight: Record<string, Promise<RemoteDocEntry[]> | null> = {};
 export const fetchDocsList = async (
   resetCache = false,
   folder?: string,
+  signal?: AbortSignal,
 ): Promise<RemoteDocEntry[]> => {
   const key = folder || 'docs';
   if (!resetCache && cachedList[key]) return cachedList[key];
@@ -36,6 +37,7 @@ export const fetchDocsList = async (
       const res = await fetch(getApiUrl(`/api/v1/docs${docsQuery(folder, resetCache)}`), {
         credentials: 'include',
         headers: { ...getAuthHeader() },
+        signal,
       });
       if (!res.ok) return cachedList[key] ?? [];
       const data = await res.json();
@@ -58,8 +60,9 @@ export const resolveDocName = async (
   slug: string,
   resetCache = false,
   folder?: string,
+  signal?: AbortSignal,
 ): Promise<string | null> => {
-  const list = await fetchDocsList(resetCache, folder);
+  const list = await fetchDocsList(resetCache, folder, signal);
   const match = list.find((d) => docSlug(d.name) === slug.toLowerCase());
   return match?.name ?? null;
 };
@@ -69,6 +72,7 @@ export const fetchDocMarkdown = async (
   name: string,
   resetCache = false,
   folder?: string,
+  signal?: AbortSignal,
 ): Promise<string | null> => {
   try {
     const res = await fetch(
@@ -76,6 +80,7 @@ export const fetchDocMarkdown = async (
       {
         credentials: 'include',
         headers: { ...getAuthHeader() },
+        signal,
       },
     );
     if (!res.ok) return null;

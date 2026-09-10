@@ -8,7 +8,7 @@
  * Self-contained: No host-app `@/` imports.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AskAiButton, AskAiButtonProps } from '@/Shuffle-MCPs/components/AskAiButton';
 import { AskAiSidePanel, AskAiSidePanelProps } from '@/Shuffle-MCPs/components/AskAiSidePanel';
 import { AskAiDrawer, AskAiDrawerProps } from '@/Shuffle-MCPs/components/AskAiDrawer';
@@ -100,8 +100,15 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
     }
   }, [isAgentDisabled, isDrawerOpen, setDrawerOpen]);
 
-  // Track resolved context for button tooltip / hint
+  // Synchronously compute resolved context for immediate label & hints
+  const resolvedContext = useMemo(() => {
+    return resolveAgentContext(currentPath, search, rules);
+  }, [currentPath, search, rules]);
+
+  // Track resolved context reported from side panel / drawer
   const [currentContext, setCurrentContext] = useState<AgentResolvedContext | null>(null);
+
+  const activeContext = currentContext || resolvedContext;
 
   const handleContextResolved = useCallback(
     (ctx: AgentResolvedContext) => {
@@ -133,10 +140,16 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
     }
   }, [propInitialTab]);
 
+  // Dynamic button label (e.g. "Ask about Workflows")
+  const effectiveButtonLabel =
+    buttonProps?.label ||
+    (activeContext.buttonLabelFn ? activeContext.buttonLabelFn() : activeContext.buttonLabel) ||
+    'Ask AI';
+
   // Context hint for floating button (e.g. "Shuffle Incidents MCP")
   const contextHint =
-    currentContext?.apps && currentContext.apps.length > 0
-      ? currentContext.apps.map((a) => a.name.replace(/^shuffle_/, '').replace(/_/g, ' ')).join(', ')
+    activeContext?.apps && activeContext.apps.length > 0
+      ? activeContext.apps.map((a) => a.name.replace(/^shuffle_/, '').replace(/_/g, ' ')).join(', ')
       : undefined;
 
   if (isAgentDisabled) {
@@ -154,6 +167,7 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
           requireSupport={requireSupport}
           pathname={pathname}
           contextHint={contextHint}
+          label={effectiveButtonLabel}
           {...buttonProps}
         />
       )}

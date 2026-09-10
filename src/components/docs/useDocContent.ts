@@ -51,27 +51,35 @@ export const fetchRemoteDoc = async (
   slug: string,
   resetCache = false,
   folder?: string,
+  signal?: AbortSignal,
 ): Promise<{ markdown: string; meta: RemoteDocMeta | null } | null> => {
-  const exact = await resolveDocName(slug, resetCache, folder);
+  const exact = await resolveDocName(slug, resetCache, folder, signal);
+  if (signal?.aborted) return null;
   const candidates = Array.from(
     new Set([exact, slug, slug.replace(/-/g, '_')].filter(Boolean) as string[]),
   );
   for (const name of candidates) {
+    if (signal?.aborted) return null;
     try {
       const res = await fetch(
         getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${docsQuery(folder, resetCache)}`),
         {
           credentials: 'include',
           headers: { ...getAuthHeader() },
+          signal,
         },
       );
       if (!res.ok) continue;
       const data = await res.json();
+      if (signal?.aborted) return null;
       if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
         if (isMissingDocBody(data.reason)) continue;
         return { markdown: data.reason, meta: (data.meta as RemoteDocMeta) ?? null };
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || signal?.aborted) {
+        return null;
+      }
       // Try next candidate
     }
   }
@@ -119,6 +127,9 @@ export const useDocContent = ({
   const [meta, setMeta] = useState<RemoteDocMeta | null>(initialMeta);
   const [loading, setLoading] = useState(!initialContent);
   const ssrSlugRef = useRef<string | null>(initialContent ? slug : null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const activeSlugRef = useRef<string>(slug);
+  const requestIdRef = useRef<number>(0);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<DocSuggestion[]>([]);
@@ -131,40 +142,71 @@ export const useDocContent = ({
 
   const loadContent = useCallback(
     async (resetCache = false) => {
+      // Abort previous in-flight request
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const currentRequestId = ++requestIdRef.current;
+      activeSlugRef.current = slug;
+
       ssrSlugRef.current = null;
       setLoading(true);
       setError(null);
       setMeta(null);
 
-      let target = slug;
-      const list = await fetchDocsList(resetCache, folder);
-      if (!list.some((d) => docSlug(d.name) === slug.toLowerCase())) {
-        const preferred =
-          list.find((d) => docSlug(d.name) === 'index') ??
-          list.find((d) => docSlug(d.name) === 'getting-started') ??
-          list[0];
-        if (slug === 'index' && preferred) target = docSlug(preferred.name);
-      }
+      try {
+        let target = slug;
+        const list = await fetchDocsList(resetCache, folder, controller.signal);
+        if (controller.signal.aborted || currentRequestId !== requestIdRef.current) return;
 
-      const remote = await fetchRemoteDoc(target, resetCache, folder);
-      if (remote) {
-        const stripped = stripInContentToc(remote.markdown);
-        const { title: extractedTitle, content: bodyContent } = extractDocTitleAndBody(stripped);
-        setTitle(extractedTitle);
-        setContent(bodyContent);
-        setMeta(remote.meta);
-      } else {
+        if (!list.some((d) => docSlug(d.name) === slug.toLowerCase())) {
+          const preferred =
+            list.find((d) => docSlug(d.name) === 'index') ??
+            list.find((d) => docSlug(d.name) === 'getting-started') ??
+            list[0];
+          if (slug === 'index' && preferred) target = docSlug(preferred.name);
+        }
+
+        const remote = await fetchRemoteDoc(target, resetCache, folder, controller.signal);
+        if (controller.signal.aborted || currentRequestId !== requestIdRef.current) return;
+
+        if (remote) {
+          const stripped = stripInContentToc(remote.markdown);
+          const { title: extractedTitle, content: bodyContent } = extractDocTitleAndBody(stripped);
+          setTitle(extractedTitle);
+          setContent(bodyContent);
+          setMeta(remote.meta);
+        } else {
+          setTitle(null);
+          setContent('');
+          setError(`Documentation not found: ${slug}`);
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError' || controller.signal.aborted) {
+          return;
+        }
         setTitle(null);
-        setError(`Documentation not found: ${slug}`);
+        setContent('');
+        setError(`Failed to load documentation: ${err?.message || slug}`);
+      } finally {
+        if (!controller.signal.aborted && currentRequestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     },
     [slug, folder],
   );
 
   useEffect(() => {
     if (ssrSlugRef.current === slug) return;
+    // When switching to a new doc page, immediately clear stale content
+    setTitle(null);
+    setContent('');
+    setMeta(null);
     loadContent();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [loadContent, slug]);
 
   // Algolia fallback suggestions when doc 404s

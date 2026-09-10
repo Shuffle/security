@@ -177,6 +177,36 @@ const AgentRunDrawer = ({
     ? activeTab
     : 'run';
 
+  const paperRef = useRef<HTMLElement | null>(null);
+
+  // Focus prompt input when drawer opens to 'run' tab
+  useEffect(() => {
+    if (!open || safeActiveTab !== 'run') return;
+
+    const focusInput = () => {
+      if (!paperRef.current) return false;
+      const target = paperRef.current.querySelector<HTMLTextAreaElement | HTMLInputElement>(
+        'textarea, input[type="text"]:not([readonly]), input:not([type]):not([readonly])'
+      );
+      if (target) {
+        target.focus();
+        return true;
+      }
+      return false;
+    };
+
+    if (focusInput()) return;
+    const t1 = setTimeout(focusInput, 50);
+    const t2 = setTimeout(focusInput, 150);
+    const t3 = setTimeout(focusInput, 300);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [open, safeActiveTab]);
+
   return (
     <Drawer
       anchor="right"
@@ -184,6 +214,7 @@ const AgentRunDrawer = ({
       onClose={onClose}
       slotProps={{
         paper: {
+          ref: paperRef,
           className: [themeScope?.scopeClassName, className].filter(Boolean).join(' ') || undefined,
           sx: [
             {

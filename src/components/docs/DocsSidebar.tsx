@@ -105,10 +105,7 @@ export const DocsSidebar = ({ onNavigate, folder, basePath = '/docs', title = 'D
   return (
     <Box
       sx={{
-        width: 280,
-        flexShrink: 0,
-        borderRight: '1px solid',
-        borderColor: 'divider',
+        width: '100%',
         height: '100%',
         overflowY: 'auto',
         py: 3,

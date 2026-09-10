@@ -173,6 +173,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
   const [customUrl, setCustomUrl] = useState<string>('');
+  const activeSwitchSeqRef = useRef<number>(0);
   /** Local override for the LLM chat test so the shared app-auth test (which
    *  refetches the whole auth list mid-test and makes the card flicker) is
    *  never used for LLM providers. */
@@ -240,7 +241,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     () => openaiEntries.find((e: any) => e?.active === true),
     [openaiEntries],
   );
-  const activeEntry = activeEntryRaw || openaiEntries[0];
+  // Only consider an entry active if it is actually flagged active
+  const activeEntry = activeEntryRaw || null;
 
   /** The label of the provider that is currently active (active: true). This
    *  is the single source of truth for what should appear in the "Choose LLM"
@@ -253,14 +255,12 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
   const effectivePreset = useMemo(() => {
     if (selectedPreset) return selectedPreset;
+    if (activeEntryRaw) return providerOfEntry(activeEntryRaw);
     if (!currentUrl && !hasOpenAIEntries) return SHUFFLE_AI_PRESET;
     if (currentUrl) return detectLLMProvider(currentUrl)?.label || CUSTOM_PRESET;
-    // Saved authentications exist but no URL is loaded yet (fields can be
-    // masked). Derive the provider from the active saved entry so the panel
-    // never renders as an empty, provider-less card.
-    return providerOfEntry(activeEntry);
+    return SHUFFLE_AI_PRESET;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPreset, currentUrl, hasOpenAIEntries, activeEntry]);
+  }, [selectedPreset, currentUrl, hasOpenAIEntries, activeEntryRaw]);
 
   /** Saved authentications for the currently selected provider only.
    *  All providers share the OpenAI app auth (that is just the request FORMAT),
@@ -297,18 +297,19 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
 
   /**
-   * Multiple LLM authentications can coexist. Exactly one of them — the
-   * primary provider — carries `active: true`; every other OpenAI-compatible
-   * authentication is written back with `active: false`. Nothing is deleted.
+   * Make one saved LLM authentication `active: true` and all others
+   * `active: false`. The backend uses `active: true` to pick which custom
+   * provider receives agent LLM queries.
    *
-   * Secret field values are replaced with the backend placeholder so the
+   * Fields are preserved during this call by sending placeholder values so the
    * stored credentials survive the update (same pattern as auth renaming).
    */
   const setActiveAuthEntry = async (activeId: string | null, preloadedEntries?: any[]) => {
+    const seq = ++activeSwitchSeqRef.current;
     const placeholder = 'Secret. Replaced during app execution!';
     let entries: any[] = [];
-    if (preloadedEntries) {
-      // Caller already fetched a fresh list — do not hit the API again.
+    if (activeId !== null && preloadedEntries && preloadedEntries.length > 0) {
+      // Caller already fetched a fresh list for an active ID switch
       entries = preloadedEntries;
     } else {
       try {
@@ -318,6 +319,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
         entries = openaiEntries as any[];
       }
     }
+    if (seq !== activeSwitchSeqRef.current) return;
+
     const llmEntries = entries.filter(
       (a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID,
     );
@@ -325,6 +328,8 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     let changed = false;
     for (const entry of llmEntries) {
       if (!entry?.id) continue;
+      if (seq !== activeSwitchSeqRef.current) return;
+
       const shouldBeActive = entry.id === activeId;
       if (entry.active === shouldBeActive) continue;
 
@@ -354,13 +359,12 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
       }
     }
 
-    if (changed) {
+    if (seq !== activeSwitchSeqRef.current) return;
+
+    if (changed || activeId === null) {
       invalidateAuthenticatedAppsCache();
       await refreshAuth();
-      // No integration was added/removed — only the `active` flag moved, so we
-      // deliberately skip refreshAllIntegrationStatus() here to avoid a third
-      // authentication GET on every provider switch. Still broadcast the change
-      // so listeners (e.g. the AgentUI chip) can refresh immediately.
+      // Broadcast change so listeners (e.g. the AgentUI chip) refresh immediately.
       if (typeof window !== 'undefined') {
         try {
           window.dispatchEvent(new CustomEvent('integrations-changed', { detail: { source: 'llm-active-change' } }));
@@ -404,7 +408,19 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    * POST /api/v1/chat/completions?authentication_id=<id>
    */
   const handleTestLLMConnection = async (_appId: string, authenticationId?: string) => {
-    const authId = authenticationId || (providerEntries[0] as any)?.id || (activeEntry as any)?.id;
+    let authId = authenticationId || (providerEntries[0] as any)?.id || (activeEntry as any)?.id;
+    if (!authId) {
+      try {
+        const fresh = (await fetchSharedAuthenticatedApps()) as any[];
+        const latest = fresh
+          .filter((a: any) => a?.app?.name?.toLowerCase() === 'openai' || a?.app?.id === OPENAI_APP_ID)
+          .sort((a: any, b: any) => (Number(b?.edited || b?.created || 0) - Number(a?.edited || a?.created || 0)))[0];
+        if (latest?.id) authId = latest.id;
+      } catch {
+        /* noop */
+      }
+    }
+
     if (!authId) {
       setLlmTest({
         status: 'error',
@@ -530,22 +546,24 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeProviderLabel, authLoading]);
 
-  const applyShuffleAI = () => {
-    // Optimistic: flip the UI to Shuffle AI immediately and deactivate the
-    // saved LLM authentications in the background. Nothing is deleted.
+  const applyShuffleAI = async () => {
+    // Flip the UI to Shuffle AI immediately and deactivate the
+    // saved LLM authentications. Nothing is deleted.
     handleAuthChange(OPENAI_APP_ID, {});
     setSelectedPreset(SHUFFLE_AI_PRESET);
     rememberPreset(SHUFFLE_AI_PRESET);
     setCustomUrl('');
-    void setActiveAuthEntry(null, openaiEntries as any[]).catch((err) => {
+    try {
+      await setActiveAuthEntry(null);
+    } catch (err) {
       console.error('[LocalLLMConfig] Failed to deactivate provider auths:', err);
-    });
+    }
   };
 
   const handlePresetChange = (label: string) => {
     setLlmTest(null);
     if (label === SHUFFLE_AI_PRESET) {
-      applyShuffleAI();
+      void applyShuffleAI();
       return;
     }
 
@@ -555,9 +573,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
     // If this provider already has a saved authentication, make it the
     // primary one (active: true) and deactivate the others.
     const existing = openaiEntries.find((e: any) => e?.id && providerOfEntry(e) === label);
-    // Pass the already-loaded entries so switching provider does not trigger an
-    // extra authentication GET before the PUT.
-    if (existing?.id) void setActiveAuthEntry(existing.id, openaiEntries as any[]);
+    if (existing?.id) void setActiveAuthEntry(existing.id);
 
     const preset = ENDPOINT_PRESETS.find((p) => p.label === label);
     if (!preset) return;
