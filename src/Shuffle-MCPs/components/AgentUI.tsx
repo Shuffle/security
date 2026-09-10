@@ -2762,9 +2762,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (!node) return;
 
     const measure = () => {
-      // Single line height with p: 0.5 and 28px chips is <= 40px.
-      // If clientHeight or scrollHeight exceeds 40px, it has wrapped to 2+ lines.
-      const isMulti = node.clientHeight > 40 || node.scrollHeight > 40;
+      // Single line height with p: 0.5 and 28px chips is 36px.
+      // If clientHeight or scrollHeight exceeds 42px, it has wrapped to 2+ lines.
+      const isMulti = node.clientHeight > 42 || node.scrollHeight > 42;
       setChipBarMultiline(isMulti);
     };
 
@@ -2824,7 +2824,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     const el = chipBarRef.current;
     if (el) {
-      setChipBarMultiline(el.clientHeight > 40 || el.scrollHeight > 40);
+      setChipBarMultiline(el.clientHeight > 42 || el.scrollHeight > 42);
     }
   }, [chosenApps, availableApps, selectedPreset]);
 
@@ -6494,6 +6494,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 ref={chipBarCallbackRef}
                 sx={{
                   display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5,
+                  minHeight: 36,
+                  boxSizing: 'border-box',
                   p: chipBarMultiline ? 0.75 : 0.5,
                   borderRadius: chipBarMultiline ? '20px' : 999,
                   border: '1px solid hsl(var(--border))',
@@ -6541,6 +6543,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       pl: isPhone ? 0.5 : 2.5,
                       pr: isPhone ? 0.5 : 1.5,
                       py: 0.5,
+                      height: 28,
+                      boxSizing: 'border-box',
+                      lineHeight: 1,
                       borderRadius: 999,
                       fontSize: '0.8rem', fontWeight: 500,
                       color: 'hsl(var(--muted-foreground))',
@@ -6588,6 +6593,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       all: 'unset', cursor: agentRequestLoading ? 'not-allowed' : 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
                       px: 1.5, py: 0.5,
+                      height: 28,
+                      boxSizing: 'border-box',
+                      lineHeight: 1,
                       borderRadius: 999,
                       fontSize: '0.8rem', fontWeight: 500,
                       color: 'hsl(var(--muted-foreground))',
@@ -6635,6 +6643,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       pl: 0.5,
                       pr: isPhone ? 0.375 : 0.75,
                       py: 0.25,
+                      height: 28,
+                      boxSizing: 'border-box',
+                      lineHeight: 1,
                       borderRadius: 999,
                       bgcolor: isUnavailable
                         ? 'hsl(var(--severity-medium) / 0.08)'
@@ -6676,7 +6687,18 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       );
                     })()}
                     {!isPhone && (
-                      <Typography sx={{ fontSize: '0.8rem', mx: 0.25 }}>
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.8rem',
+                          mx: 0.25,
+                          m: 0,
+                          p: 0,
+                          lineHeight: 1,
+                          display: 'inline-block',
+                          verticalAlign: 'middle',
+                        }}
+                      >
                         {formatAppDisplayName(app.name || '')}
                       </Typography>
                     )}
@@ -6710,6 +6732,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                       sx={{
                         display: 'inline-flex', alignItems: 'center', gap: 0.5,
                         px: 1, py: 0.25,
+                        height: 28,
+                        boxSizing: 'border-box',
+                        lineHeight: 1,
                         borderRadius: 999,
                         border: '1px dashed hsl(var(--severity-medium) / 0.7)',
                         bgcolor: 'hsl(var(--severity-medium) / 0.12)',

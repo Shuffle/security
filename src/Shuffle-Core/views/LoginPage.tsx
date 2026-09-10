@@ -290,8 +290,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   }, [mode, isExplicitAdminSetup]);
 
-  // SSO Discovery Mode (Cloud mode: work email lookup)
-  const [isSsoDiscovery, setIsSsoDiscovery] = useState(false);
+  // SSO Login state (Cloud mode: work email only, hides password field)
+  const [loginWithSSO, setLoginWithSSO] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      return sp.get('sso') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [ssoLoading, setSsoLoading] = useState(false);
   const [ssoError, setSsoError] = useState('');
 
@@ -341,7 +349,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setSsoError('');
     setMfaRequired(false);
     setMfaCode('');
-    setIsSsoDiscovery(false);
+    setLoginWithSSO(false);
     setIsWaitingForBackend(false);
     setWaitingErrorMessage('');
     setHostPingStatus('idle');
@@ -706,10 +714,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 
   const identifierLabel =
-    serverMode === 'cloud' ? 'Work Email' : 'Username or Email';
+    serverMode === 'cloud'
+      ? loginWithSSO
+        ? 'Work Email (SSO)'
+        : 'Work Email'
+      : 'Username or Email';
 
   const cloudEmailInvalid =
     serverMode === 'cloud' && username.trim().length > 0 && !isValidEmail(username);
+
+  // Auto-login for onprem instance SSO if ?autologin=true (matches classic Shuffle)
+  useEffect(() => {
+    if (serverMode !== 'self-hosted' || !instanceSsoUrl) return;
+    try {
+      const sp = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+      if (sp.get('autologin') === 'true') {
+        if (typeof window !== 'undefined') {
+          if (from) {
+            sessionStorage.setItem('shuffle_redirect_after_login', from);
+          }
+          window.location.href = instanceSsoUrl;
+        }
+      }
+    } catch {}
+  }, [serverMode, instanceSsoUrl, from]);
 
   // Auto-focus MFA input on prompt
   useEffect(() => {
@@ -970,7 +998,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       handleAdminSetupSubmit(e);
     } else if (isResetPasswordMode) {
       handlePasswordResetSubmit(e);
-    } else if (isSsoDiscovery) {
+    } else if (serverMode === 'cloud' && loginWithSSO) {
       handleSsoDiscoverySubmit(e);
     } else {
       performLogin();
@@ -1467,35 +1495,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                 {/* Instance SSO detected via /api/v1/checkusers */}
                 {instanceSsoUrl && (
-                  <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px dashed hsl(var(--border))' }}>
+                  <Box sx={{ mt: 1.5, pt: 1, borderTop: '1px dashed hsl(var(--border))' }}>
                     <Typography
                       variant="caption"
-                      sx={{ display: 'block', mb: 1, color: 'hsl(var(--muted-foreground))' }}
-                    >
-                      Single Sign-On is configured on this instance:
-                    </Typography>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      size="small"
-                      onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
-                          window.location.assign(instanceSsoUrl);
-                        }
-                      }}
-                      startIcon={<ShieldCheck size={16} />}
                       sx={{
-                        bgcolor: '#2563eb',
-                        '&:hover': { bgcolor: '#1d4ed8' },
-                        color: '#fff',
-                        textTransform: 'none',
+                        color: '#10b981',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        fontSize: '0.75rem',
                         fontWeight: 600,
-                        py: 0.8,
                       }}
                     >
-                      Sign in with Instance SSO
-                    </Button>
+                      <CheckCircle2 size={14} />
+                      Single Sign-On is enabled on this instance
+                    </Typography>
                   </Box>
                 )}
               </Box>
@@ -1661,94 +1675,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     </Box>
                   </>
                 )}
-              </form>
-            ) : isSsoDiscovery ? (
-              /* -------------------------------------------------------------- */
-              /* CLOUD SSO DISCOVERY SECTION */
-              /* -------------------------------------------------------------- */
-              <form onSubmit={handlePrimaryFormSubmit}>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    Sign in with Single Sign-On (SSO)
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.825rem' }}>
-                    Enter your work email address. We'll automatically identify your organization's identity provider.
-                  </Typography>
-                </Box>
-
-                <Box sx={{ mb: 2.5 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.75,
-                      fontWeight: 600,
-                      color: 'hsl(var(--foreground))',
-                    }}
-                  >
-                    Work Email
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    autoFocus
-                    type="email"
-                    autoComplete="email"
-                    placeholder="name@company.com"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={ssoLoading}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Mail size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                    }}
-                  />
-                </Box>
-
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={ssoLoading || !username.trim() || !isValidEmail(username)}
-                  sx={{
-                    bgcolor: '#2563eb',
-                    '&:hover': { bgcolor: '#1d4ed8' },
-                    color: '#fff',
-                    py: 1,
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    mb: 2,
-                  }}
-                >
-                  {ssoLoading ? (
-                    <CircularProgress size={20} sx={{ color: '#fff' }} />
-                  ) : (
-                    'Continue with SSO'
-                  )}
-                </Button>
-
-                <Box sx={{ textAlign: 'center' }}>
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setIsSsoDiscovery(false);
-                      setSsoError('');
-                    }}
-                    sx={{
-                      textTransform: 'none',
-                      color: 'hsl(var(--muted-foreground))',
-                      fontSize: '0.825rem',
-                    }}
-                  >
-                    Sign in with password instead
-                  </Button>
-                </Box>
               </form>
             ) : isAdminSetup ? (
               /* -------------------------------------------------------------- */
@@ -1971,69 +1897,71 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   />
                 </Box>
 
-                {/* Password field */}
-                <Box sx={{ mb: 1.5 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
-                    >
-                      Password
-                    </Typography>
-                    {serverMode === 'cloud' && !isRegister && (
-                      <Button
-                        variant="text"
-                        size="small"
-                        onClick={() => {
-                          setIsResetPasswordMode(true);
-                          setError('');
-                        }}
-                        sx={{
-                          p: 0,
-                          minWidth: 'auto',
-                          textTransform: 'none',
-                          fontSize: '0.75rem',
-                          color: '#ff6600',
-                          '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
-                        }}
+                {/* Password field: hidden in Cloud SSO mode */}
+                {!(serverMode === 'cloud' && loginWithSSO) && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
                       >
-                        Forgot password?
-                      </Button>
-                    )}
+                        Password
+                      </Typography>
+                      {serverMode === 'cloud' && !isRegister && (
+                        <Button
+                          variant="text"
+                          size="small"
+                          onClick={() => {
+                            setIsResetPasswordMode(true);
+                            setError('');
+                          }}
+                          sx={{
+                            p: 0,
+                            minWidth: 'auto',
+                            textTransform: 'none',
+                            fontSize: '0.75rem',
+                            color: '#ff6600',
+                            '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                          }}
+                        >
+                          Forgot password?
+                        </Button>
+                      )}
+                    </Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete={isRegister ? 'new-password' : 'current-password'}
+                      placeholder="••••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Lock size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => setShowPassword(!showPassword)}
+                              edge="end"
+                              sx={{ color: 'hsl(var(--muted-foreground))' }}
+                            >
+                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
+                      }}
+                    />
                   </Box>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete={isRegister ? 'new-password' : 'current-password'}
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Lock size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            sx={{ color: 'hsl(var(--muted-foreground))' }}
-                          >
-                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                    }}
-                  />
-                </Box>
+                )}
 
                 {/* Terms Acceptance (Register Mode Only) */}
                 {isRegister && (
@@ -2069,7 +1997,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   type="submit"
                   fullWidth
                   variant="contained"
-                  disabled={loading || Boolean(cloudEmailInvalid)}
+                  disabled={
+                    serverMode === 'cloud' && loginWithSSO
+                      ? ssoLoading || !username.trim() || !isValidEmail(username)
+                      : loading || Boolean(cloudEmailInvalid)
+                  }
                   sx={{
                     bgcolor: '#ff6600',
                     '&:hover': { bgcolor: '#e65c00' },
@@ -2078,12 +2010,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     fontWeight: 600,
                     textTransform: 'none',
                     fontSize: '0.9rem',
-                    mb: 2,
+                    mb: serverMode === 'cloud' && loginWithSSO ? 1.5 : 2,
                     boxShadow: '0 4px 14px rgba(255, 102, 0, 0.3)',
                   }}
                 >
-                  {loading ? (
+                  {ssoLoading || loading ? (
                     <CircularProgress size={20} sx={{ color: '#fff' }} />
+                  ) : serverMode === 'cloud' && loginWithSSO ? (
+                    'Continue with SSO'
                   ) : isRegister ? (
                     'Create Account'
                   ) : (
@@ -2091,8 +2025,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   )}
                 </Button>
 
-                {/* SSO Discovery Button for Cloud */}
-                {serverMode === 'cloud' && !isRegister && (
+                {/* Back to password sign-in for Cloud SSO */}
+                {serverMode === 'cloud' && loginWithSSO && (
+                  <Box sx={{ textAlign: 'center', mb: 1 }}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => {
+                        setLoginWithSSO(false);
+                        setSsoError('');
+                        setError('');
+                      }}
+                      sx={{
+                        textTransform: 'none',
+                        color: 'hsl(var(--muted-foreground))',
+                        fontSize: '0.8rem',
+                        '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'transparent', textDecoration: 'underline' },
+                      }}
+                    >
+                      Sign in with password instead
+                    </Button>
+                  </Box>
+                )}
+
+                {/* SSO Button for Cloud: switches to passwordless work email SSO flow */}
+                {serverMode === 'cloud' && !isRegister && !loginWithSSO && (
                   <>
                     <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
                       <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
@@ -2104,9 +2061,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                     <Button
                       fullWidth
+                      id="sso_button"
                       variant="outlined"
                       size="small"
-                      onClick={() => setIsSsoDiscovery(true)}
+                      onClick={() => {
+                        setLoginWithSSO(true);
+                        setPassword('');
+                        setError('');
+                        setSsoError('');
+                      }}
                       startIcon={<ShieldCheck size={16} />}
                       sx={{
                         borderColor: 'hsl(var(--border))',
@@ -2120,7 +2083,47 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         },
                       }}
                     >
-                      Sign in with SSO
+                      Use SSO
+                    </Button>
+                  </>
+                )}
+
+                {/* SSO Button for On-Prem / Self-Hosted: exact logic from Classic Shuffle */}
+                {serverMode === 'self-hosted' && !isRegister && Boolean(instanceSsoUrl) && (
+                  <>
+                    <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+                      <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                      <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))' }}>
+                        OR
+                      </Typography>
+                      <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                    </Box>
+
+                    <Button
+                      fullWidth
+                      id="sso_button"
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
+                          window.location.href = instanceSsoUrl!;
+                        }
+                      }}
+                      startIcon={<ShieldCheck size={16} />}
+                      sx={{
+                        borderColor: 'hsl(var(--border))',
+                        color: 'hsl(var(--foreground))',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        py: 0.9,
+                        '&:hover': {
+                          borderColor: 'hsl(var(--foreground))',
+                          bgcolor: 'hsl(var(--muted) / 0.5)',
+                        },
+                      }}
+                    >
+                      Use SSO
                     </Button>
                   </>
                 )}

@@ -113,36 +113,15 @@ export const DocAgentUI: React.FC<DocAgentUIProps> = ({
     return [{ name: "Shuffle_tools", id: "3e2bdf9d5069fe3f4746c29d68785a6a" }];
   }, [apps]);
 
+  const effectiveTitle = title !== undefined ? title : "Try the AI Agent";
+
   return (
-    <Box sx={{ my: 3 }}>
-      {title && (
-        <Typography
-          sx={{
-            fontSize: "1.05rem",
-            fontWeight: 600,
-            color: "hsl(var(--foreground))",
-            mb: 0.5,
-          }}
-        >
-          {title}
-        </Typography>
-      )}
-      {subtitle && (
-        <Typography
-          sx={{
-            fontSize: "0.875rem",
-            color: "hsl(var(--muted-foreground))",
-            mb: 1.5,
-          }}
-        >
-          {subtitle}
-        </Typography>
-      )}
+    <Box className="not-prose" sx={{ my: 3 }}>
       <AgentUI
         compact={isCompact}
         hideHeroIcon={true}
-        title={undefined}
-        subtitle={undefined}
+        title={effectiveTitle}
+        subtitle={subtitle}
         placeholder={
           placeholder ||
           'What do you want the agent to do? e.g. "Check if 1.1.1.1 is malicious"'
@@ -756,42 +735,48 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
     );
   }
 
-  switch (name.toLowerCase()) {
-    case "agent-ui":
-    case "agent":
-    case "ai-agent":
-      return <DocAgentUI {...props} />;
+  const renderInner = () => {
+    switch (name.toLowerCase()) {
+      case "agent-ui":
+      case "agent":
+      case "ai-agent":
+        return <DocAgentUI {...props} />;
 
-    case "try-mcp":
-    case "mcp":
-    case "app-mcp":
-      return <DocTryMcp {...props} />;
+      case "try-mcp":
+      case "mcp":
+      case "app-mcp":
+        return <DocTryMcp {...props} />;
 
-    case "agent-sidebar":
-    case "agent-drawer":
-    case "ask-ai":
-      return <DocAgentSidebarButton {...props} />;
+      case "agent-sidebar":
+      case "agent-drawer":
+      case "ask-ai":
+        return <DocAgentSidebarButton {...props} />;
 
-    case "shuffle-ai":
-    case "shuffleai":
-    case "swap-llm":
-    case "choose-llm":
-    case "llm":
-    case "local-llm":
-    case "localllm":
-      return <DocShuffleAI {...props} />;
+      case "shuffle-ai":
+      case "shuffleai":
+      case "swap-llm":
+      case "choose-llm":
+      case "llm":
+      case "local-llm":
+      case "localllm":
+        return <DocShuffleAI {...props} />;
 
-    case "ingest":
-    case "ingestion":
-    case "ingest-sources":
-      return <DocIngest {...props} />;
+      case "ingest":
+      case "ingestion":
+      case "ingest-sources":
+        return <DocIngest {...props} />;
 
-    case "usecases":
-    case "usecase":
-    case "soc-usecases":
-      return <DocUsecases {...props} />;
+      case "usecases":
+      case "usecase":
+      case "soc-usecases":
+        return <DocUsecases {...props} />;
 
-    default:
-      return null;
-  }
+      default:
+        return null;
+    }
+  };
+
+  const rendered = renderInner();
+  if (!rendered) return null;
+  return <Box className="not-prose">{rendered}</Box>;
 };
