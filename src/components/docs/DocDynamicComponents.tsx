@@ -24,6 +24,12 @@ import { useVulnerabilities } from "@/hooks/useVulnerabilities";
 import { useHostMonitorCount } from "@/hooks/useHostMonitorCount";
 import { getApiUrl, getAuthHeader } from "@/Shuffle-MCPs/api";
 import { ComponentErrorBoundary } from "@/components/common/ComponentErrorBoundary";
+import { UsecaseDrawer } from "@/Shuffle-Core";
+import { API_CONFIG } from "@/Shuffle-MCPs/api";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { AutomationReadinessBanner } from "@/components/incidents/AutomationReadinessBanner";
+import { VulnerabilityReadinessBanner } from "@/components/vulnerabilities/VulnerabilityReadinessBanner";
 
 export interface ContentSegment {
   type: "markdown" | "component";
@@ -513,7 +519,7 @@ const USECASES_BY_CATEGORY: Record<
   {
     title: string;
     subtitle: string;
-    items: Array<{ title: string; desc: string }>;
+    items: Array<{ title: string; desc: string; flowId?: string }>;
   }
 > = {
   vulnerabilities: {
@@ -524,18 +530,22 @@ const USECASES_BY_CATEGORY: Record<
       {
         title: "Automated Patch Orchestration",
         desc: "Ingest CVEs with high EPSS or CISA KEV tags, verify available packages, and trigger Ansible or AWS SSM patching.",
+        flowId: "asset_management_case_management_vuln_response_1",
       },
       {
         title: "CI/CD Dependency Gate",
         desc: "Scan npm, pip, and cargo dependencies in PRs; alert engineering in Slack and create Jira tickets for critical flaws.",
+        flowId: "asset_management_case_management_vuln_1",
       },
       {
         title: "Emergency Zero-Day Fleet Audit",
         desc: "When a zero-day drops, instantly query all Host Monitors and cloud assets to identify vulnerable package versions.",
+        flowId: "vulnerability_ingestion_1",
       },
       {
         title: "Auto-Ticketing & SLA Escalation",
         desc: "Automatically sync critical findings to Jira or ServiceNow, and escalate overdue remediations into Incidents.",
+        flowId: "case_management_cases_forward_1",
       },
     ],
   },
@@ -547,18 +557,22 @@ const USECASES_BY_CATEGORY: Record<
       {
         title: "Non-Compliant Laptop Quarantine",
         desc: "Detect disabled FileVault or BitLocker on endpoints, notify the user, and auto-revoke access if uncorrected.",
+        flowId: "case_management_asset_management_monitors_1",
       },
       {
         title: "Live Incident Forensics",
         desc: "Directly from an active incident, trigger host actions to dump process trees, open ports, and recent file changes.",
+        flowId: "case_management_asset_management_monitors_1",
       },
       {
         title: "Fleet-Wide Threat Hunting",
         desc: "Run one-click inspection scripts via the remote web terminal across thousands of endpoints to identify compromised hashes.",
+        flowId: "case_management_asset_management_monitors_1",
       },
       {
         title: "Developer Dependency Audit",
         desc: "Use the local Code Package Scanner to catch risky open-source packages before code is pushed to production.",
+        flowId: "asset_management_case_management_vuln_1",
       },
     ],
   },
@@ -570,18 +584,22 @@ const USECASES_BY_CATEGORY: Record<
       {
         title: "Phishing Triage & Auto-Purge",
         desc: "Parse headers (SPF/DKIM/DMARC), sandbox attachments, extract IOCs, and purge malicious emails across the entire tenant.",
+        flowId: "email_case_management_1",
       },
       {
         title: "EDR Detection & Host Isolation",
         desc: "Ingest alerts from CrowdStrike or SentinelOne, correlate with threat feeds, and trigger one-click host isolation.",
+        flowId: "edr_case_management_1",
       },
       {
         title: "Cloud Identity & Impossible Travel",
         desc: "Detect suspicious Okta or Azure AD logins, prompt user via Slack/Teams, and auto-revoke sessions upon anomaly confirmation.",
+        flowId: "case_management_iam_1",
       },
       {
         title: "IOC Enrichment & Firewall Block",
         desc: "Extract IPs and domains from SIEM alerts, check reputation in VirusTotal / AbuseIPDB, and push block rules to firewalls.",
+        flowId: "threat_intel_case_management_1",
       },
     ],
   },
@@ -593,18 +611,22 @@ const USECASES_BY_CATEGORY: Record<
       {
         title: "Single Server / Docker Compose",
         desc: "All-in-one standalone deployment running frontend, backend, OpenSearch, and Orborus on a single host.",
+        flowId: "siem_case_management_1",
       },
       {
         title: "Distributed Swarm Clustering",
         desc: "Separate backend API from execution runtime across dedicated worker nodes with overlay networking.",
+        flowId: "edr_case_management_1",
       },
       {
         title: "Cloud Hybrid Orchestration",
         desc: "Manage workflows from Shuffle Cloud while Orborus executes actions on-premise inside your private network.",
+        flowId: "case_management_cloud_1",
       },
       {
         title: "Kubernetes Cloud-Native",
         desc: "Scale workers dynamically as ephemeral Kubernetes pods with native namespace isolation and RBAC.",
+        flowId: "cloud_siem_1",
       },
     ],
   },
@@ -616,6 +638,9 @@ export const DocUsecases: React.FC<DocUsecasesProps> = ({
   category = "cases",
 }) => {
   const navigate = useNavigate();
+  const { userInfo } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const [activeDrawerFlowId, setActiveDrawerFlowId] = useState<string | null>(null);
 
   const normalizedCategory = category.toLowerCase().includes("vuln")
     ? "vulnerabilities"
@@ -632,104 +657,146 @@ export const DocUsecases: React.FC<DocUsecasesProps> = ({
   const usecases = config.items;
 
   return (
-    <Box
-      sx={{
-        my: 3,
-        p: 2.5,
-        borderRadius: 2.5,
-        border: "1px solid hsl(var(--border))",
-        backgroundColor: "hsl(var(--card))",
-      }}
-    >
+    <>
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 1.5,
-          mb: 2,
+          my: 3,
+          p: 2.5,
+          borderRadius: 2.5,
+          border: "1px solid hsl(var(--border))",
+          backgroundColor: "hsl(var(--card))",
         }}
       >
-        <Box>
-          <Typography
-            sx={{
-              fontSize: "1.05rem",
-              fontWeight: 600,
-              color: "hsl(var(--foreground))",
-              mb: 0.5,
-            }}
-          >
-            {displayTitle}
-          </Typography>
-          {displaySubtitle && (
-            <Typography
-              sx={{
-                fontSize: "0.85rem",
-                color: "hsl(var(--muted-foreground))",
-              }}
-            >
-              {displaySubtitle}
-            </Typography>
-          )}
-        </Box>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => navigate("/usecases")}
+        <Box
           sx={{
-            textTransform: "none",
-            fontWeight: 500,
-            borderRadius: 1.5,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 1.5,
+            mb: 2,
           }}
         >
-          View all use cases
-        </Button>
-      </Box>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-          gap: 1.5,
-        }}
-      >
-        {usecases.map((uc, i) => (
-          <Box
-            key={i}
-            onClick={() => navigate("/usecases")}
-            sx={{
-              p: 1.75,
-              borderRadius: 2,
-              border: "1px solid hsl(var(--border))",
-              backgroundColor: "hsl(var(--background))",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-              "&:hover": {
-                borderColor: "hsl(var(--primary))",
-                transform: "translateY(-1px)",
-              },
-            }}
-          >
+          <Box>
             <Typography
               sx={{
+                fontSize: "1.05rem",
                 fontWeight: 600,
-                fontSize: "0.9rem",
                 color: "hsl(var(--foreground))",
                 mb: 0.5,
               }}
             >
-              {uc.title}
+              {displayTitle}
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: "hsl(var(--muted-foreground))", fontSize: "0.8rem", lineHeight: 1.4 }}
-            >
-              {uc.desc}
-            </Typography>
+            {displaySubtitle && (
+              <Typography
+                sx={{
+                  fontSize: "0.85rem",
+                  color: "hsl(var(--muted-foreground))",
+                }}
+              >
+                {displaySubtitle}
+              </Typography>
+            )}
           </Box>
-        ))}
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigate("/usecases")}
+            sx={{
+              textTransform: "none",
+              fontWeight: 500,
+              borderRadius: 1.5,
+            }}
+          >
+            View all use cases
+          </Button>
+        </Box>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 1.5,
+          }}
+        >
+          {usecases.map((uc, i) => (
+            <Box
+              key={i}
+              onClick={() => {
+                if (uc.flowId) {
+                  setActiveDrawerFlowId(uc.flowId);
+                } else {
+                  navigate("/usecases");
+                }
+              }}
+              sx={{
+                p: 1.75,
+                borderRadius: 2,
+                border: "1px solid hsl(var(--border))",
+                backgroundColor: "hsl(var(--background))",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  borderColor: "hsl(var(--primary))",
+                  transform: "translateY(-1px)",
+                },
+              }}
+            >
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
+                  color: "hsl(var(--foreground))",
+                  mb: 0.5,
+                }}
+              >
+                {uc.title}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: "hsl(var(--muted-foreground))", fontSize: "0.8rem", lineHeight: 1.4 }}
+              >
+                {uc.desc}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
       </Box>
+
+      <UsecaseDrawer
+        open={!!activeDrawerFlowId}
+        onClose={() => setActiveDrawerFlowId(null)}
+        flowId={activeDrawerFlowId}
+        globalUrl={API_CONFIG.baseUrl}
+        userdata={userInfo as any}
+        isLoaded={true}
+        isLoggedIn={!!userInfo}
+        theme={resolvedTheme}
+      />
+    </>
+  );
+};
+
+interface DocAutomationReadinessProps {
+  type?: string;
+  category?: string;
+}
+
+export const DocAutomationReadiness: React.FC<DocAutomationReadinessProps> = ({
+  type,
+  category,
+}) => {
+  const target = (type || category || "incidents").toLowerCase();
+  const isVuln = target.includes("vuln");
+
+  return (
+    <Box sx={{ my: 3 }}>
+      {isVuln ? (
+        <VulnerabilityReadinessBanner />
+      ) : (
+        <AutomationReadinessBanner />
+      )}
     </Box>
   );
 };
@@ -1966,6 +2033,21 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
       case "architecture-health":
       case "cluster-status":
         return <DocSystemHealth {...props} />;
+
+      case "automation-readiness":
+      case "readiness":
+      case "readiness-banner":
+      case "automation-readiness-banner":
+        return <DocAutomationReadiness {...props} />;
+
+      case "incident-readiness":
+      case "incidents-readiness":
+        return <DocAutomationReadiness {...props} type="incidents" />;
+
+      case "vuln-readiness":
+      case "vulnerability-readiness":
+      case "vulnerabilities-readiness":
+        return <DocAutomationReadiness {...props} type="vulnerabilities" />;
 
       default:
         return null;

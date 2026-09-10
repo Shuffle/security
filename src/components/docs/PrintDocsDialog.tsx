@@ -309,7 +309,7 @@ const PRINT_CSS = `
   img, video, iframe {
     max-width: 100%;
     height: auto;
-    border-radius: 6px;
+    border-radius: 2px;
     margin: 12px 0;
     page-break-inside: avoid;
     break-inside: avoid;

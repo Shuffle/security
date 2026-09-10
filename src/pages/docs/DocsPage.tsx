@@ -1,7 +1,7 @@
-import { Menu as MenuIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from '@/lib/router-compat';
-import { Box, Container, IconButton, Drawer, Typography, useTheme, useMediaQuery } from '@mui/material';
+import { X as XIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams } from '@/lib/router-compat';
+import { Box, Container, IconButton, Drawer, Typography, Skeleton, Stack, useTheme, useMediaQuery } from '@mui/material';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { DocsSidebar } from '@/components/docs/DocsSidebar';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
@@ -44,6 +44,16 @@ const DocsPage = ({
   const { slug = 'index' } = useParams<{ slug: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const effectiveSlug = useMemo(() => {
+    const s = (slug || '').toLowerCase().replace(/_+/g, '-');
+    if (!s || s === 'index') {
+      if (!folder || folder === 'docs') {
+        return 'getting-started';
+      }
+    }
+    return s || slug;
+  }, [slug, folder]);
+
   const doc = useDocContent({
     slug,
     folder,
@@ -57,8 +67,8 @@ const DocsPage = ({
       ? sectionTitle
       : slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const docTitle = doc.title || doc.meta?.name || fallbackTitle;
-  const group = getDocGroup(slug);
+  const docTitle = doc.title || doc.meta?.name || getDocDisplayLabel(effectiveSlug, fallbackTitle);
+  const group = getDocGroup(effectiveSlug);
   const categoryLabel = group ? group.label : '';
   const fullPageTitle =
     slug === 'index'
@@ -88,15 +98,15 @@ const DocsPage = ({
   // Keep global entity title and doc context in sync with current doc and its group for Ask AI contextual handles
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const group = getDocGroup(slug);
+    const group = getDocGroup(effectiveSlug);
     (window as any).__shuffleActiveEntityTitle = group ? group.label : docTitle;
 
     setActiveDocPromptContext({
       title: docTitle,
       content: doc.content,
-      slug,
+      slug: effectiveSlug,
       basePath,
-      pathname: `${basePath}/${slug}`,
+      pathname: basePath === '/docs' && slug === 'index' ? '/docs' : `${basePath}/${effectiveSlug}`,
       groupId: group?.id,
       groupLabel: group?.label,
     });
@@ -167,57 +177,129 @@ const DocsPage = ({
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <LandingNavbar />
+      <LandingNavbar onMobileMenuClick={() => setMobileOpen(true)} />
 
       {/* Spacer for fixed navbar */}
       <Box sx={{ height: 64 }} />
 
-      {/* Mobile menu button */}
-      <Box
-        sx={{
-          display: { xs: 'flex', md: 'none' },
-          position: 'fixed',
-          top: 72,
-          left: 8,
-          zIndex: 1100,
-        }}
-      >
-        <IconButton
-          aria-label="Open documentation menu"
-          onClick={() => setMobileOpen(true)}
-          sx={{
-            backgroundColor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            '&:hover': { backgroundColor: 'action.hover' },
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
-      </Box>
-
       {/* Mobile drawer */}
       <Drawer
         variant="temporary"
+        anchor="right"
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
           '& .MuiDrawer-paper': {
-            width: 280,
+            width: 300,
+            maxWidth: '85vw',
             backgroundColor: 'background.default',
+            display: 'flex',
+            flexDirection: 'column',
           },
         }}
       >
-        <Box sx={{ pt: 2 }}>
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Shuffle
+            </Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              Docs
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={() => setMobileOpen(false)}
+            size="small"
+            aria-label="Close menu"
+            sx={{ color: 'text.secondary' }}
+          >
+            <XIcon size={18} />
+          </IconButton>
+        </Box>
+
+        <Box sx={{ flex: 1, overflowY: 'auto' }}>
           <DocsSidebar
             onNavigate={() => setMobileOpen(false)}
+            activeSlug={effectiveSlug}
             folder={folder}
             basePath={basePath}
             title={sectionTitle}
             hideExternal={Boolean(folder)}
           />
+        </Box>
+
+        <Box
+          sx={{
+            p: 2,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.25,
+            backgroundColor: 'background.paper',
+          }}
+        >
+          <Typography
+            component={Link}
+            to="/"
+            onClick={() => setMobileOpen(false)}
+            sx={{
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              textDecoration: 'none',
+              fontWeight: 500,
+              '&:hover': { color: 'primary.main' },
+            }}
+          >
+            Home
+          </Typography>
+          <Typography
+            component={Link}
+            to="/#features"
+            onClick={() => setMobileOpen(false)}
+            sx={{
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              textDecoration: 'none',
+              fontWeight: 500,
+              '&:hover': { color: 'primary.main' },
+            }}
+          >
+            Features
+          </Typography>
+          <Typography
+            component={Link}
+            to="/usecases"
+            onClick={() => setMobileOpen(false)}
+            sx={{
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              textDecoration: 'none',
+              fontWeight: 500,
+              '&:hover': { color: 'primary.main' },
+            }}
+          >
+            Usecases
+          </Typography>
         </Box>
       </Drawer>
 
@@ -236,6 +318,7 @@ const DocsPage = ({
           }}
         >
           <DocsSidebar
+            activeSlug={effectiveSlug}
             folder={folder}
             basePath={basePath}
             title={sectionTitle}
@@ -285,7 +368,7 @@ const DocsPage = ({
                 <ComponentErrorBoundary name="DocsMarkdownRenderer" onReset={doc.reload}>
                   <MarkdownRenderer
                     title={docTitle}
-                    slug={slug}
+                    slug={effectiveSlug}
                     folder={folder}
                     basePath={basePath}
                     currentProduct={currentProduct}
@@ -306,9 +389,14 @@ const DocsPage = ({
                             top: { xs: 56, sm: 64 },
                             zIndex: 20,
                             backgroundColor: 'background.default',
-                            py: 1,
+                            py: 0.5,
                             mb: 3,
-                            pl: { xs: '48px', sm: '52px', md: 0 },
+                            mx: { xs: -2, sm: -3 },
+                            width: {
+                              xs: 'calc(100% + 32px)',
+                              sm: 'calc(100% + 48px)',
+                              md: '100%',
+                            },
                           }}
                         >
                           <ComponentErrorBoundary name="DocsMobileTOC" fallback={null}>
@@ -322,7 +410,7 @@ const DocsPage = ({
               </Box>
 
               {/* Right Sidebar: Table of Contents (lg+) */}
-              {hasHeadings && showDesktopToc && (
+              {showDesktopToc && (hasHeadings || doc.loading) && (
                 <Box
                   component="aside"
                   aria-label="Table of contents"
@@ -344,9 +432,22 @@ const DocsPage = ({
                     },
                   }}
                 >
-                  <ComponentErrorBoundary name="DocsDesktopTOC" fallback={null}>
-                    <DocsTableOfContents headings={doc.headings} />
-                  </ComponentErrorBoundary>
+                  {doc.loading ? (
+                    <Box sx={{ pt: 1 }}>
+                      <Skeleton variant="text" width={90} height={18} sx={{ mb: 2 }} />
+                      <Stack spacing={1.5}>
+                        <Skeleton variant="text" width="80%" height={14} />
+                        <Skeleton variant="text" width="60%" height={14} sx={{ ml: 1.5 }} />
+                        <Skeleton variant="text" width="70%" height={14} sx={{ ml: 1.5 }} />
+                        <Skeleton variant="text" width="85%" height={14} />
+                        <Skeleton variant="text" width="55%" height={14} sx={{ ml: 1.5 }} />
+                      </Stack>
+                    </Box>
+                  ) : (
+                    <ComponentErrorBoundary name="DocsDesktopTOC" fallback={null}>
+                      <DocsTableOfContents headings={doc.headings} />
+                    </ComponentErrorBoundary>
+                  )}
                 </Box>
               )}
             </Box>

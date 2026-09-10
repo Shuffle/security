@@ -1,7 +1,6 @@
 import {
   Search as SearchIcon,
   ChevronDown,
-  ChevronRight,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from '@/lib/router-compat';
@@ -15,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
+import { fetchRemoteDoc } from '@/components/docs/useDocContent';
 import {
   groupRemoteDocs,
   getDocGroup,
@@ -27,6 +27,8 @@ import { SidebarSearchDialog } from '@/components/layout/SidebarSearchDialog';
 
 interface DocsSidebarProps {
   onNavigate?: () => void;
+  /** Active doc slug (e.g. from page or router). If omitted or 'index', defaults to 'getting-started'. */
+  activeSlug?: string;
   /** API folder to list documents from (e.g. "legal"). */
   folder?: string;
   /** URL prefix for the document links (defaults to /docs). */
@@ -52,6 +54,7 @@ const HIDDEN_DOC_SLUGS = new Set(['triggers', 'liquid', 'onboarding']);
 
 export const DocsSidebar = ({
   onNavigate,
+  activeSlug: propActiveSlug,
   folder,
   basePath = '/docs',
   title = 'Documentation',
@@ -61,6 +64,19 @@ export const DocsSidebar = ({
   const [remoteDocs, setRemoteDocs] = useState<RemoteDoc[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+
+  // Normalize slug: when at root /docs (slug === 'index' or empty), resolve to 'getting-started'
+  // which is the default document auto-loaded by useDocContent.
+  const currentSlug = useMemo(() => {
+    const raw = (propActiveSlug || slug || '').toLowerCase().replace(/_+/g, '-');
+    if (!raw || raw === 'index') {
+      if (!folder || folder === 'docs') {
+        return 'getting-started';
+      }
+      return remoteDocs[0]?.slug ? docSlug(remoteDocs[0].slug) : 'getting-started';
+    }
+    return raw;
+  }, [propActiveSlug, slug, folder, remoteDocs]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -99,18 +115,22 @@ export const DocsSidebar = ({
     return groupRemoteDocs(remoteDocs, folder);
   }, [remoteDocs, folder]);
 
-  // Automatically expand group when navigating to a document within it
-  const activeGroup = useMemo(() => getDocGroup(slug), [slug]);
+  // Identify the active category for the current doc (defaults to 'usability')
+  const activeGroup = useMemo(() => getDocGroup(currentSlug), [currentSlug]);
+
+  // When visiting/navigating to a document or when categories load:
+  // ONLY expand the category containing that document, keeping the other categories collapsed.
   useEffect(() => {
-    if (activeGroup) {
-      setCollapsedGroups((prev) => {
-        if (!prev.has(activeGroup.id)) return prev;
-        const next = new Set(prev);
-        next.delete(activeGroup.id);
-        return next;
-      });
+    if (!categories.length) return;
+    const targetGroupId = activeGroup?.id || 'usability';
+    const nextCollapsed = new Set<string>();
+    for (const cat of categories) {
+      if (cat.id !== targetGroupId) {
+        nextCollapsed.add(cat.id);
+      }
     }
-  }, [slug, activeGroup]);
+    setCollapsedGroups(nextCollapsed);
+  }, [currentSlug, categories, activeGroup?.id]);
 
   const toggleGroup = (groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -181,20 +201,23 @@ export const DocsSidebar = ({
       <SidebarSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
       {/* Render documentation grouped by category */}
-      <Box sx={{ px: 1 }}>
-        {categories.map((category) => {
+      <Box sx={{ px: 1.5 }}>
+        {categories.map((category, catIndex) => {
           const isCollapsed = collapsedGroups.has(category.id);
-          const hasActiveDoc = category.docs.some((d) => d.slug === slug);
+          const hasActiveDoc = category.docs.some(
+            (d) => docSlug(d.slug) === currentSlug || d.slug.toLowerCase() === currentSlug,
+          );
 
           return (
-            <Box key={category.id} sx={{ mb: 1.5 }}>
-              {/* Group Header */}
+            <Box key={category.id} sx={{ mt: catIndex === 0 ? 0.5 : 2.25 }}>
+              {/* Category Header */}
               <Box
                 onClick={() => toggleGroup(category.id)}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  px: 1.5,
+                  justifyContent: 'space-between',
+                  px: 1,
                   py: 0.6,
                   borderRadius: 1,
                   cursor: 'pointer',
@@ -202,72 +225,132 @@ export const DocsSidebar = ({
                   transition: 'background-color 120ms ease',
                   '&:hover': {
                     backgroundColor: 'action.hover',
+                    '& .category-label': {
+                      color: 'text.primary',
+                    },
+                    '& .category-chevron': {
+                      opacity: 1,
+                    },
                   },
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {isCollapsed ? (
-                    <ChevronRight size={14} style={{ opacity: 0.6 }} />
-                  ) : (
-                    <ChevronDown size={14} style={{ opacity: 0.6 }} />
-                  )}
-                  <Typography
+                  <Box
+                    className="category-chevron"
                     sx={{
-                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 14,
+                      height: 14,
+                      color: hasActiveDoc ? 'primary.main' : 'text.secondary',
+                      opacity: 0.6,
+                      transition: 'transform 160ms cubic-bezier(0.4, 0, 0.2, 1), opacity 120ms ease',
+                      transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                    }}
+                  >
+                    <ChevronDown size={13} />
+                  </Box>
+                  <Typography
+                    className="category-label"
+                    sx={{
+                      fontSize: '0.7rem',
                       fontWeight: 700,
-                      letterSpacing: 1.1,
+                      letterSpacing: '0.09em',
                       textTransform: 'uppercase',
                       color: hasActiveDoc ? 'primary.main' : 'text.secondary',
+                      transition: 'color 120ms ease',
                     }}
                   >
                     {category.label}
                   </Typography>
                 </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.68rem',
+                    fontWeight: 500,
+                    color: 'text.disabled',
+                    fontVariantNumeric: 'tabular-nums',
+                    pr: 0.5,
+                  }}
+                >
+                  {category.docs.length}
+                </Typography>
               </Box>
 
-              {/* Group Document Items */}
+              {/* Group Document Items with Structural Tree Indentation */}
               <Collapse in={!isCollapsed} timeout="auto" unmountOnExit>
-                <List dense disablePadding sx={{ mt: 0.5 }}>
-                  {category.docs.map((doc) => {
-                    const isSelected = slug === doc.slug;
-                    return (
-                      <ListItem key={doc.slug} disablePadding sx={{ mb: 0.2 }}>
-                        <ListItemButton
-                          onClick={() => {
-                            handleClick();
-                            navigate(`${basePath}/${doc.slug}`);
-                          }}
-                          selected={isSelected}
-                          sx={{
-                            borderRadius: 1,
-                            mx: 0.5,
-                            py: 0.6,
-                            px: 1.5,
-                            '&.Mui-selected': {
-                              backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                              '&:hover': {
-                                backgroundColor: 'rgba(255, 102, 0, 0.15)',
-                              },
-                              '& .MuiListItemText-primary': {
-                                color: 'primary.main',
-                                fontWeight: 600,
-                              },
-                            },
-                          }}
-                        >
-                          <ListItemText
-                            primary={doc.label}
-                            primaryTypographyProps={{
-                              fontSize: '0.84rem',
-                              fontWeight: isSelected ? 600 : 500,
-                              noWrap: true,
+                <Box
+                  sx={{
+                    ml: 1.75,
+                    pl: 1.25,
+                    borderLeft: '1px solid',
+                    borderColor: hasActiveDoc ? 'rgba(255, 102, 0, 0.28)' : 'divider',
+                    mt: 0.4,
+                    mb: 0.75,
+                    transition: 'border-color 150ms ease',
+                  }}
+                >
+                  <List dense disablePadding>
+                    {category.docs.map((doc) => {
+                      const isSelected =
+                        currentSlug === docSlug(doc.slug) ||
+                        currentSlug === doc.slug.toLowerCase();
+                      return (
+                        <ListItem key={doc.slug} disablePadding sx={{ mb: 0.25 }}>
+                          <ListItemButton
+                            onClick={() => {
+                              handleClick();
+                              navigate(`${basePath}/${doc.slug}`);
                             }}
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    );
-                  })}
-                </List>
+                            onMouseEnter={() => {
+                              fetchRemoteDoc(doc.slug, false, folder);
+                            }}
+                            selected={isSelected}
+                            sx={{
+                              borderRadius: 1,
+                              py: 0.45,
+                              px: 1.2,
+                              minHeight: 28,
+                              transition: 'all 120ms ease',
+                              '&:hover': {
+                                backgroundColor: 'action.hover',
+                                '& .doc-label': {
+                                  color: 'text.primary',
+                                },
+                              },
+                              '&.Mui-selected': {
+                                backgroundColor: 'rgba(255, 102, 0, 0.08)',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(255, 102, 0, 0.14)',
+                                },
+                                '& .doc-label': {
+                                  color: 'primary.main',
+                                  fontWeight: 600,
+                                },
+                              },
+                            }}
+                          >
+                            <ListItemText
+                              primary={doc.label}
+                              primaryTypographyProps={{
+                                className: 'doc-label',
+                                fontSize: '0.825rem',
+                                fontWeight: isSelected ? 600 : 450,
+                                color: isSelected ? 'primary.main' : 'text.primary',
+                                noWrap: true,
+                                sx: {
+                                  lineHeight: 1.35,
+                                  transition: 'color 120ms ease',
+                                },
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Box>
               </Collapse>
             </Box>
           );

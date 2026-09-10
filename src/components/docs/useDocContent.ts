@@ -47,43 +47,73 @@ const docsQuery = (folder?: string, resetCache = false) => {
   return query ? `?${query}` : '';
 };
 
+const docContentCache = new Map<string, { markdown: string; meta: RemoteDocMeta | null }>();
+const docContentInflight = new Map<string, Promise<{ markdown: string; meta: RemoteDocMeta | null } | null>>();
+
 export const fetchRemoteDoc = async (
   slug: string,
   resetCache = false,
   folder?: string,
   signal?: AbortSignal,
 ): Promise<{ markdown: string; meta: RemoteDocMeta | null } | null> => {
-  const exact = await resolveDocName(slug, resetCache, folder, signal);
-  if (signal?.aborted) return null;
-  const candidates = Array.from(
-    new Set([exact, slug, slug.replace(/-/g, '_')].filter(Boolean) as string[]),
-  );
-  for (const name of candidates) {
-    if (signal?.aborted) return null;
-    try {
-      const res = await fetch(
-        getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${docsQuery(folder, resetCache)}`),
-        {
-          credentials: 'include',
-          headers: { ...getAuthHeader() },
-          signal,
-        },
-      );
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (signal?.aborted) return null;
-      if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
-        if (isMissingDocBody(data.reason)) continue;
-        return { markdown: data.reason, meta: (data.meta as RemoteDocMeta) ?? null };
-      }
-    } catch (err: any) {
-      if (err?.name === 'AbortError' || signal?.aborted) {
-        return null;
-      }
-      // Try next candidate
-    }
+  const cleanSlug = (slug || '').toLowerCase().replace(/_+/g, '-');
+  const cacheKey = `${folder || 'docs'}:${cleanSlug}`;
+
+  if (resetCache) {
+    docContentCache.delete(cacheKey);
+    docContentInflight.delete(cacheKey);
+  } else {
+    const cached = docContentCache.get(cacheKey);
+    if (cached) return cached;
+    const inflight = docContentInflight.get(cacheKey);
+    if (inflight) return inflight;
   }
-  return null;
+
+  const run = (async () => {
+    try {
+      const exact = await resolveDocName(cleanSlug, resetCache, folder, signal);
+      if (signal?.aborted) return null;
+      const candidates = Array.from(
+        new Set([exact, cleanSlug, slug, slug.replace(/-/g, '_')].filter(Boolean) as string[]),
+      );
+      for (const name of candidates) {
+        if (signal?.aborted) return null;
+        try {
+          const res = await fetch(
+            getApiUrl(`/api/v1/docs/${encodeURIComponent(name)}${docsQuery(folder, resetCache)}`),
+            {
+              credentials: 'include',
+              headers: { ...getAuthHeader() },
+              signal,
+            },
+          );
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (signal?.aborted) return null;
+          if (data?.success && typeof data.reason === 'string' && data.reason.trim().length > 0) {
+            if (isMissingDocBody(data.reason)) continue;
+            const result = { markdown: data.reason, meta: (data.meta as RemoteDocMeta) ?? null };
+            docContentCache.set(cacheKey, result);
+            if (exact && exact.toLowerCase() !== cleanSlug) {
+              docContentCache.set(`${folder || 'docs'}:${exact.toLowerCase()}`, result);
+            }
+            return result;
+          }
+        } catch (err: any) {
+          if (err?.name === 'AbortError' || signal?.aborted) {
+            return null;
+          }
+          // Try next candidate
+        }
+      }
+      return null;
+    } finally {
+      docContentInflight.delete(cacheKey);
+    }
+  })();
+
+  docContentInflight.set(cacheKey, run);
+  return run;
 };
 
 export interface UseDocContentOptions {
@@ -156,19 +186,30 @@ export const useDocContent = ({
 
       try {
         let target = slug;
-        const list = await fetchDocsList(resetCache, folder, controller.signal);
-        if (controller.signal.aborted || currentRequestId !== requestIdRef.current) return;
+        if (slug === 'index' || !slug) {
+          const list = await fetchDocsList(resetCache, folder, controller.signal);
+          if (controller.signal.aborted || currentRequestId !== requestIdRef.current) return;
 
-        if (!list.some((d) => docSlug(d.name) === slug.toLowerCase())) {
           const preferred =
             list.find((d) => docSlug(d.name) === 'index') ??
             list.find((d) => docSlug(d.name) === 'getting-started') ??
             list[0];
-          if (slug === 'index' && preferred) target = docSlug(preferred.name);
+          if (preferred) target = docSlug(preferred.name);
         }
 
-        const remote = await fetchRemoteDoc(target, resetCache, folder, controller.signal);
+        let remote = await fetchRemoteDoc(target, resetCache, folder, controller.signal);
         if (controller.signal.aborted || currentRequestId !== requestIdRef.current) return;
+
+        // If direct fetch didn't find the doc, consult docs list for fallback/redirects
+        if (!remote && slug !== 'index') {
+          const list = await fetchDocsList(resetCache, folder, controller.signal);
+          if (controller.signal.aborted || currentRequestId !== requestIdRef.current) return;
+          const match = list.find((d) => docSlug(d.name) === slug.toLowerCase());
+          if (match && match.name !== target) {
+            remote = await fetchRemoteDoc(match.name, resetCache, folder, controller.signal);
+            if (controller.signal.aborted || currentRequestId !== requestIdRef.current) return;
+          }
+        }
 
         if (remote) {
           const stripped = stripInContentToc(remote.markdown);
@@ -208,6 +249,16 @@ export const useDocContent = ({
       abortControllerRef.current?.abort();
     };
   }, [loadContent, slug]);
+
+  useEffect(() => {
+    if (initialContent) {
+      const cleanSlug = (slug || '').toLowerCase().replace(/_+/g, '-');
+      const cacheKey = `${folder || 'docs'}:${cleanSlug}`;
+      if (!docContentCache.has(cacheKey)) {
+        docContentCache.set(cacheKey, { markdown: initialContent, meta: initialMeta });
+      }
+    }
+  }, [initialContent, initialMeta, slug, folder]);
 
   // Algolia fallback suggestions when doc 404s
   useEffect(() => {
@@ -277,6 +328,8 @@ export const useDocContent = ({
 
   const handleResetCache = useCallback(async () => {
     setResetting(true);
+    docContentCache.clear();
+    docContentInflight.clear();
     try {
       await loadContent(true);
     } finally {

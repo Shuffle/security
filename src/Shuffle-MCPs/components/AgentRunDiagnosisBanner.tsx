@@ -12,7 +12,7 @@
 
 import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
 import { AlertTriangle, ArrowUpRight, ExternalLink, HelpCircle, Settings2, X } from 'lucide-react';
-import AgentDiagnosisCtas from '@/Shuffle-MCPs/components/AgentDiagnosisCtas';
+import AgentDiagnosisCtas, { diagnosisHasCtas } from '@/Shuffle-MCPs/components/AgentDiagnosisCtas';
 import { useEffect, useMemo, useState } from 'react';
 import type { ShuffleHostProps } from '@/Shuffle-MCPs/host-props';
 import {
@@ -85,7 +85,7 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, e
 
   if (!failureInfo && !diagnosis) return null;
 
-  const isCritical = !!failureInfo || diagnosis?.kind === 'token_limit';
+  const isCritical = !!failureInfo || diagnosis?.kind === 'token_limit' || diagnosis?.kind === 'ai_auth' || Boolean(diagnosis?.isAiAuth);
   const tone = isCritical ? 'critical' : 'medium';
   const Icon = isCritical ? AlertTriangle : HelpCircle;
 
@@ -120,7 +120,7 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, e
     if (canFocusContinue) onFocusContinue!();
   };
 
-  const showTokenCtas = diagnosis?.kind === 'token_limit';
+  const showCtas = diagnosisHasCtas(diagnosis);
 
   return (
     <Box sx={{ px: 2.5, pb: 0.5, ...(sx || {}) }}>
@@ -260,7 +260,7 @@ const AgentRunDiagnosisBanner = ({ run, sx, onJumpToEvidence, onFocusContinue, e
           </Tooltip>
 
         </Box>
-        {showTokenCtas && (
+        {showCtas && (
 
           <Box sx={{ pl: 2.5, pt: 0.25 }}>
             <AgentDiagnosisCtas diagnosis={diagnosis} tone={tone} />

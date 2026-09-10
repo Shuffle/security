@@ -5,21 +5,11 @@ import { Link, useLocation, useNavigate } from '@/lib/router-compat';
 import {
   Box,
   CircularProgress,
-  Avatar,
-  AvatarGroup,
-  Tooltip,
+  Skeleton,
   Stack,
   Typography,
-  Link as MuiLink,
-  Button,
 } from '@mui/material';
-import {
-  Clock as ClockIcon,
-  Github as GithubIcon,
-  RefreshCw as RefreshCwIcon,
-} from 'lucide-react';
 import { docSlug } from '@/components/docs/remoteDocs';
-import { useIsSupport } from '@/hooks/useIsSupport';
 import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
 import { anchorKey, isTocHeading, stripMarkdownInline, safeDecodeURIComponent } from './tocUtils';
 import { ComponentErrorBoundary } from '@/components/common/ComponentErrorBoundary';
@@ -109,8 +99,6 @@ export const MarkdownRenderer = ({
   const suggestions = isControlled ? (propSuggestions ?? []) : hookDoc.suggestions;
   const suggestLoading = isControlled ? Boolean(propSuggestLoading) : hookDoc.suggestLoading;
   const handleResetCache = propOnResetCache || hookDoc.handleResetCache;
-
-  const isSupport = useIsSupport();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -161,42 +149,74 @@ export const MarkdownRenderer = ({
     scrollToDocAnchor(hash);
   }, [content, loading, hash, scrollToDocAnchor]);
 
-  const actionButtons = (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
-      {isSupport && (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleResetCache}
-          disabled={resetting || loading}
-          startIcon={<RefreshCwIcon size={14} className={resetting ? 'animate-spin' : ''} />}
-          sx={{
-            textTransform: 'none',
-            height: 36,
-            borderColor: 'hsl(var(--border))',
-            color: 'text.primary',
-            '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-          }}
-        >
-          {resetting ? 'Resetting…' : 'Reset Cache'}
-        </Button>
-      )}
-      <PrintDocsDialog
-        slug={slug}
-        title={title}
-        currentMarkdown={content}
-        disabled={loading || resetting}
-        folder={folder}
-      />
-    </Stack>
-  );
+  const readingTime = useMemo(() => {
+    if (meta?.read_time) return meta.read_time;
+    const words = (content || '').trim().split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.ceil(words / 200));
+  }, [meta?.read_time, content]);
 
   if (loading) {
     return (
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
+      <Box sx={{ width: '100%', py: 1 }}>
+        {/* Document Title */}
+        {title && (
+          <Typography
+            component="h1"
+            sx={{
+              fontSize: { xs: '30px', md: '36px' },
+              fontWeight: 600,
+              color: 'text.primary',
+              mb: 3,
+            }}
+          >
+            {title}
+          </Typography>
+        )}
+
+        {/* Read-time & Loading Indicator Bar */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 4,
+            pb: 3,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Skeleton variant="text" width={90} height={20} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CircularProgress size={16} sx={{ color: 'primary.main' }} />
+            <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem', fontWeight: 500 }}>
+              Loading…
+            </Typography>
+          </Box>
         </Box>
+
+        {/* Paragraph & Subheading Skeletons */}
+        <Stack spacing={2.2} sx={{ maxWidth: 820 }}>
+          <Skeleton variant="rectangular" height={16} width="95%" sx={{ borderRadius: 1 }} />
+          <Skeleton variant="rectangular" height={16} width="100%" sx={{ borderRadius: 1 }} />
+          <Skeleton variant="rectangular" height={16} width="82%" sx={{ borderRadius: 1 }} />
+
+          <Box sx={{ pt: 3, pb: 0.5 }}>
+            <Skeleton variant="rectangular" height={26} width="36%" sx={{ borderRadius: 1 }} />
+          </Box>
+
+          <Skeleton variant="rectangular" height={16} width="100%" sx={{ borderRadius: 1 }} />
+          <Skeleton variant="rectangular" height={16} width="92%" sx={{ borderRadius: 1 }} />
+          <Skeleton variant="rectangular" height={16} width="88%" sx={{ borderRadius: 1 }} />
+          <Skeleton variant="rectangular" height={16} width="74%" sx={{ borderRadius: 1 }} />
+
+          <Box sx={{ pt: 3, pb: 0.5 }}>
+            <Skeleton variant="rectangular" height={26} width="45%" sx={{ borderRadius: 1 }} />
+          </Box>
+
+          <Skeleton variant="rectangular" height={16} width="98%" sx={{ borderRadius: 1 }} />
+          <Skeleton variant="rectangular" height={16} width="90%" sx={{ borderRadius: 1 }} />
+          <Skeleton variant="rectangular" height={16} width="65%" sx={{ borderRadius: 1 }} />
+        </Stack>
       </Box>
     );
   }
@@ -410,73 +430,42 @@ export const MarkdownRenderer = ({
         </Typography>
       )}
 
-      {/* 2. Metadata Bar: read_time, contributors, Edit on GitHub, Reset Cache, Print */}
-      {(
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          flexWrap="wrap"
-          sx={{
-            mb: 4,
-            pb: 3,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            rowGap: 1,
-          }}
-        >
-          {!hideMeta && meta?.read_time ? (
-            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
-              <ClockIcon size={14} />
-              <Typography variant="caption">{meta.read_time} min read</Typography>
-            </Stack>
-          ) : null}
+      {/* 2. Metadata Bar: read_time and Print / Export */}
+      <Stack
+        direction="row"
+        spacing={2}
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{
+          mb: 4,
+          pb: 3,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        {!hideMeta ? (
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'text.secondary',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+            }}
+          >
+            {readingTime}m to read
+          </Typography>
+        ) : (
+          <Box />
+        )}
 
-          {!hideMeta && meta?.contributors && meta.contributors.length > 0 && (
-            <AvatarGroup max={6} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.7rem', border: '1px solid', borderColor: 'divider' } }}>
-              {meta.contributors.map((c, i) => {
-                const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
-                const avatar = (
-                  <Avatar key={c.url || i} src={c.image} alt={handle}>
-                    {handle.charAt(0).toUpperCase()}
-                  </Avatar>
-                );
-                return (
-                  <Tooltip key={c.url || i} title={handle} arrow>
-                    {c.url ? (
-                      <MuiLink href={c.url} target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-flex' }}>
-                        {avatar}
-                      </MuiLink>
-                    ) : avatar}
-                  </Tooltip>
-                );
-              })}
-            </AvatarGroup>
-          )}
-
-          {!hideMeta && meta?.link && (
-            <MuiLink
-              href={meta.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                fontSize: '0.8125rem',
-                color: 'text.secondary',
-                textDecoration: 'none',
-                '&:hover': { color: 'primary.main' },
-              }}
-            >
-              <GithubIcon size={14} />
-              Edit on GitHub
-            </MuiLink>
-          )}
-
-          {actionButtons}
-        </Stack>
-      )}
+        <PrintDocsDialog
+          slug={slug}
+          title={title}
+          currentMarkdown={content}
+          disabled={loading || resetting}
+          folder={folder}
+        />
+      </Stack>
 
       {/* Mobile / Tablet On this page jumper (< xl) */}
       {mobileToc}
@@ -594,6 +583,7 @@ export const MarkdownRenderer = ({
                 disableBreaks
                 sx={{
                   '& p': { mb: 2 },
+                  '& img': { maxWidth: '100%', borderRadius: '2px' },
                   '& > h2:first-of-type': {
                     mt: idx === 0 ? 0 : { xs: '3.5rem !important', md: '5rem !important' },
                   },

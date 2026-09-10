@@ -131,7 +131,7 @@ const baseSx: SxProps<Theme> = {
   },
   '& th': { backgroundColor: 'hsl(var(--muted))', fontWeight: 600 },
   '& hr': { border: 0, borderTop: '1px solid hsl(var(--border))', my: 1.5 },
-  '& img': { maxWidth: '100%', borderRadius: 4 },
+  '& img': { maxWidth: '100%', borderRadius: '2px' },
 };
 
 const defaultComponents: MarkdownComponentOverrides = {
@@ -159,7 +159,15 @@ const defaultComponents: MarkdownComponentOverrides = {
   img: ({ src, alt, ...props }: any) => {
     const video = resolveVideoUrl(src);
     if (video) return <VideoEmbed video={video} title={alt} />;
-    return <img src={src} alt={alt ?? ''} loading="lazy" {...props} />;
+    return (
+      <img
+        src={src}
+        alt={alt ?? ''}
+        loading="lazy"
+        style={{ borderRadius: 2, ...props.style }}
+        {...props}
+      />
+    );
   },
   pre: ({ children, ...props }: any) => {
     // Render fenced code blocks containing JSON with the standard JSON tree viewer.

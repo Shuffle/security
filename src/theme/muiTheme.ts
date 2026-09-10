@@ -78,7 +78,13 @@ const getComponents = (_mode: 'light' | 'dark', primaryColor: string = '#FF6600'
     },
     MuiChip: { styleOverrides: { root: { fontWeight: 500 } } },
     MuiAppBar: {
-      styleOverrides: { root: { backgroundColor: appBarBg, backdropFilter: 'blur(12px)' } },
+      styleOverrides: {
+        root: {
+          backgroundColor: appBarBg,
+          color: 'hsl(var(--foreground))',
+          backdropFilter: 'blur(12px)',
+        },
+      },
     },
     MuiDrawer: {
       styleOverrides: {

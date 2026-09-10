@@ -6,6 +6,12 @@ import { getDocGroup } from '@/components/docs/docGroups';
 
 export const Route = createFileRoute("/docs/$slug")({
   loader: async ({ params }) => {
+    // On the client, avoid blocking route transitions with server function network requests.
+    // Return immediately for an instantaneous swap, allowing DocsPage and MarkdownRenderer
+    // to render the loader and stream/fetch content smoothly.
+    if (typeof window !== 'undefined') {
+      return { doc: null };
+    }
     try {
       const doc = await getDocContent({ data: { slug: params.slug } });
       return { doc };
@@ -81,6 +87,7 @@ export const Route = createFileRoute("/docs/$slug")({
 });
 
 function DocsRouteComponent() {
+  const { slug } = Route.useParams();
   const { doc } = Route.useLoaderData();
-  return <DocsPage initialContent={doc?.markdown ?? null} initialMeta={doc?.meta ?? null} />;
+  return <DocsPage key={slug} initialContent={doc?.markdown ?? null} initialMeta={doc?.meta ?? null} />;
 }

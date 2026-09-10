@@ -320,9 +320,12 @@ export const MobileTableOfContents: React.FC<{ headings: TocHeading[] }> = ({ he
   return (
     <Box
       sx={{
-        border: '1px solid',
+        borderTop: '1px solid',
+        borderBottom: '1px solid',
         borderColor: 'divider',
-        borderRadius: 2,
+        borderLeft: { xs: 'none', md: '1px solid' },
+        borderRight: { xs: 'none', md: '1px solid' },
+        borderRadius: { xs: 0, md: 2 },
         backgroundColor: 'background.paper',
         boxShadow: (theme) =>
           theme.palette.mode === 'dark'
@@ -330,6 +333,7 @@ export const MobileTableOfContents: React.FC<{ headings: TocHeading[] }> = ({ he
             : '0 4px 16px rgba(0, 0, 0, 0.06)',
         overflow: 'hidden',
         backdropFilter: 'blur(8px)',
+        width: '100%',
       }}
     >
       <Box
@@ -338,7 +342,7 @@ export const MobileTableOfContents: React.FC<{ headings: TocHeading[] }> = ({ he
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          px: 2,
+          px: { xs: 2, sm: 3 },
           py: 1.25,
           cursor: 'pointer',
           userSelect: 'none',
@@ -403,7 +407,7 @@ export const MobileTableOfContents: React.FC<{ headings: TocHeading[] }> = ({ he
         <Stack
           spacing={0.5}
           sx={{
-            px: 2,
+            px: { xs: 2, sm: 3 },
             pb: 2,
             pt: 0.5,
             borderTop: '1px solid',

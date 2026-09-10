@@ -57,16 +57,17 @@ export const DOC_LABEL_OVERRIDES: Record<string, string> = {
   troubleshooting: 'Troubleshooting',
 };
 
-/** Get the group definition that contains a specific doc slug */
-export const getDocGroup = (slug: string): DocGroupDefinition | null => {
-  if (!slug) return null;
+/** Get the group definition that contains a specific doc slug. Defaults to "Usability" for unclassified docs or index. */
+export const getDocGroup = (slug: string): DocGroupDefinition => {
+  const usabilityGroup = DOC_GROUPS.find((g) => g.id === 'usability') || DOC_GROUPS[0];
+  if (!slug || slug === 'index') return usabilityGroup;
   const clean = slug.toLowerCase().replace(/_+/g, '-');
   for (const group of DOC_GROUPS) {
     if (group.slugs.includes(clean)) {
       return group;
     }
   }
-  return null;
+  return usabilityGroup;
 };
 
 /** Get custom human-readable label or fallback to formatted string */
@@ -149,18 +150,26 @@ export const groupRemoteDocs = (
     }
   }
 
-  // Handle any unclassified docs
+  // Handle any unclassified docs: put them into "Usability"
   const remaining = docs.filter((d) => !handledSlugs.has(d.slug.toLowerCase()));
   if (remaining.length > 0) {
-    result.push({
-      id: 'other',
-      label: 'Other',
-      description: 'Additional documentation and resources.',
-      docs: remaining.map((d) => ({
-        ...d,
-        label: getDocDisplayLabel(d.slug, d.label),
-      })),
-    });
+    const formattedRemaining = remaining.map((d) => ({
+      ...d,
+      label: getDocDisplayLabel(d.slug, d.label),
+    }));
+
+    const usabilityCategory = result.find((r) => r.id === 'usability');
+    if (usabilityCategory) {
+      usabilityCategory.docs.push(...formattedRemaining);
+    } else {
+      const usabilityDef = DOC_GROUPS.find((g) => g.id === 'usability') || DOC_GROUPS[0];
+      result.unshift({
+        id: usabilityDef.id,
+        label: usabilityDef.label,
+        description: usabilityDef.description,
+        docs: formattedRemaining,
+      });
+    }
   }
 
   return result;

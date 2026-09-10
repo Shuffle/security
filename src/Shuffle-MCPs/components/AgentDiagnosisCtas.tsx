@@ -38,9 +38,8 @@ const openSupportContact = async (e: React.MouseEvent) => {
   await navigateToShuffleCore('https://shuffler.io/contact?category=Support', { newTab: true });
 };
 
-export const diagnosisHasCtas = (
-  diagnosis: OutputDiagnosis | null | undefined,
-): boolean => diagnosis?.kind === 'token_limit';
+export { diagnosisHasCtas } from '@/Shuffle-MCPs/agentDiagnosis';
+import { diagnosisHasCtas } from '@/Shuffle-MCPs/agentDiagnosis';
 
 const AgentDiagnosisCtas = ({ diagnosis, compact = false, tone = 'medium' }: Props) => {
   if (!diagnosisHasCtas(diagnosis)) return null;
@@ -49,6 +48,33 @@ const AgentDiagnosisCtas = ({ diagnosis, compact = false, tone = 'medium' }: Pro
   const fontSize = compact ? '0.7rem' : '0.78rem';
   const iconSize = compact ? 12 : 14;
   const px = compact ? 1 : 1.5;
+
+  if (diagnosis?.kind === 'ai_auth' || diagnosis?.isAiAuth) {
+    return (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: compact ? 0.5 : 1 }}>
+        <Tooltip title="Open Local LLM settings to update your API key or model configuration" placement="top" arrow>
+          <Button
+            size="small"
+            variant="contained"
+            disableElevation
+            onClick={openLocalLlmTab}
+            sx={{
+              textTransform: 'none',
+              fontSize,
+              fontWeight: 600,
+              height,
+              px,
+              bgcolor: `hsl(var(--severity-${tone}))`,
+              color: 'hsl(var(--background))',
+              '&:hover': { bgcolor: `hsla(var(--severity-${tone}) / 0.88)` },
+            }}
+          >
+            Change authentication
+          </Button>
+        </Tooltip>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: compact ? 0.5 : 1 }}>

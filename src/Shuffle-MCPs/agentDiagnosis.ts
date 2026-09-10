@@ -200,6 +200,30 @@ export const extractDecisionIndex = (path: string | undefined | null): number | 
   return Number.isFinite(n) ? n : null;
 };
 
+/** Detect whether a string contains AI/LLM credentials or authentication failure signals. */
+export const isAiAuthText = (text: string | null | undefined): boolean => {
+  if (!text || typeof text !== 'string') return false;
+  const lower = text.toLowerCase();
+
+  const hasAuthSignal =
+    /\b(401|unauthori[sz]ed|invalid[_\s-]*(api[_\s-]*key|token|credentials?)|incorrect\s+api\s+key|missing[_\s-]*(api[_\s-]*key|token|authorization)|authentication[_\s-]*(failed|required|error)|bearer[_\s-]*token|expired[_\s-]*token)\b/.test(
+      lower
+    );
+
+  if (!hasAuthSignal) return false;
+
+  const hasAiSignal =
+    /\b(failed\s+to\s+start\s+ai\s+agent|ai\s+agent|runactionai|llm\s+request|failed\s+to\s+run\s+llm|no\s+llm|openai|anthropic|mistral|groq|deepseek|together\.ai|together\.xyz|openrouter|gemini|googleapis\.com|ollama|lm\s*studio|platform\.openai\.com|api\.openai\.com|local\s*llm)\b/.test(
+      lower
+    ) ||
+    /error\s+from\s+['"][^'"]*(openai|anthropic|mistral|groq|deepseek|together|openrouter|googleapis|ollama|lmstudio)/.test(
+      lower
+    ) ||
+    /incorrect\s+api\s+key\s+provided/.test(lower);
+
+  return Boolean(hasAiSignal);
+};
+
 /** Detect if the output content hints at an error/failure even if the run
  *  status is "finished". Only returns true when `diagnoseOutputWarning`
  *  would produce a concrete, actionable diagnosis — never on vague keyword
@@ -220,7 +244,8 @@ export type DiagnosisEvidence = {
 };
 
 export type OutputDiagnosis = {
-  kind: 'auth' | 'permission' | 'not_found' | 'rate_limit' | 'token_limit' | 'network' | 'validation' | 'generic';
+  kind: 'auth' | 'ai_auth' | 'permission' | 'not_found' | 'rate_limit' | 'token_limit' | 'network' | 'validation' | 'generic';
+  isAiAuth?: boolean;
   status?: number;
   title: string;
   explanation: string;
@@ -228,6 +253,11 @@ export type OutputDiagnosis = {
   snippet?: string;
   evidence: DiagnosisEvidence[];
 };
+
+/** Detect whether a diagnosis surfaces user actions / CTAs (e.g. token limits, AI credentials). */
+export const diagnosisHasCtas = (
+  diagnosis: OutputDiagnosis | null | undefined,
+): boolean => diagnosis?.kind === 'token_limit' || diagnosis?.kind === 'ai_auth' || Boolean(diagnosis?.isAiAuth);
 
 type ResultEntry = { path: string; value: string };
 
@@ -298,6 +328,38 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
       remediation:
         'Reduce the input size or connected context and re-run, or connect an API vendor/self-hosted model with a larger context window.',
 
+      snippet: evidenceValue,
+      evidence: [{ path: '(root)', value: evidenceValue }],
+    };
+  }
+
+  // AI Authentication failure detection runs against the FULL payload (raw +
+  // parsed) just like token limits, because model credentials failures can happen
+  // during agent initialization before any decisions execute.
+  const aiAuthMatch = (() => {
+    const candidates: string[] = [];
+    if (parsed && typeof parsed === 'object') {
+      for (const e of collectEntries(parsed)) {
+        if (isSentenceLike(e.value)) candidates.push(e.value);
+      }
+    }
+    if (raw) {
+      candidates.push(raw);
+    }
+    return candidates.find((v) => isAiAuthText(v)) || null;
+  })();
+  if (aiAuthMatch) {
+    const evidenceValue = trimEvidenceValue(aiAuthMatch);
+
+    return {
+      kind: 'ai_auth',
+      isAiAuth: true,
+      status: 401,
+      title: 'AI authentication failed (HTTP 401)',
+      explanation:
+        'The AI model provider rejected the request due to invalid, unauthorized, or expired credentials.',
+      remediation:
+        'Open Local LLM settings to update your API key or model configuration, then re-run the agent.',
       snippet: evidenceValue,
       evidence: [{ path: '(root)', value: evidenceValue }],
     };
@@ -418,6 +480,33 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
     const dedup = ev.filter((e) => e.path !== statusEvidence!.path);
     return [statusEvidence, ...dedup].slice(0, 3);
   };
+
+  if (isAiAuthText(errorHaystackLower) || isAiAuthText(raw)) {
+    const ev = findEvidenceByRegex(
+      /unauthori[sz]ed|invalid[_\s-]*(api[_\s-]*key|token|credentials?)|authentication[_\s-]*(failed|required)|missing[_\s-]*(api[_\s-]*key|token|authorization)|bearer[_\s-]*token|expired[_\s-]*token|failed\s+to\s+start\s+ai\s+agent|incorrect\s+api\s+key\s+provided|\b401\b/
+    );
+    return {
+      kind: 'ai_auth',
+      isAiAuth: true,
+      status: status || 401,
+      title: status === 401 ? 'AI authentication failed (HTTP 401)' : 'AI authentication failed',
+      explanation:
+        'The AI model provider rejected the request due to invalid, unauthorized, or expired credentials.',
+      remediation:
+        'Open Local LLM settings to update your API key or model configuration, then re-run the agent.',
+      snippet: findSnippet([
+        '401',
+        'unauthorized',
+        'invalid api',
+        'invalid token',
+        'authentication',
+        'api.openai.com',
+        'incorrect api key',
+        'failed to start',
+      ]),
+      evidence: withStatusEvidence(ev),
+    };
+  }
 
   if (
     status === 401 ||
@@ -578,3 +667,51 @@ export const diagnoseOutputWarning = (run: DiagnosableRun): OutputDiagnosis | nu
   // banner. It is too vague to be actionable and just adds noise.
   return null;
 };
+
+/**
+ * Detect whether an agent execution or output failed due to AI/LLM credentials.
+ * Inspects parsed diagnosis, failure info, decisions, raw output payloads, or extra text.
+ */
+export const isAiAuthFailure = (
+  run?: DiagnosableRun | null,
+  extraText?: string | null,
+): boolean => {
+  if (isAiAuthText(extraText)) return true;
+  if (!run) return false;
+
+  // 1. Direct diagnosis
+  const diagnosis = diagnoseOutputWarning(run);
+  if (diagnosis?.kind === 'ai_auth' || diagnosis?.isAiAuth) return true;
+
+  // 2. Failure info for FAILED/ABORTED runs
+  const fail = getFailureInfo(run);
+  if (fail && isAiAuthText(fail.reason)) return true;
+
+  // 3. Raw result payload
+  if (typeof run.result === 'string' && isAiAuthText(run.result)) return true;
+
+  // 4. Results array
+  if (Array.isArray(run.results)) {
+    for (const r of run.results) {
+      if (typeof r?.result === 'string' && isAiAuthText(r.result)) return true;
+    }
+  }
+
+  // 5. Decisions list (e.g. finalise reason or failed AI agent action)
+  const decisions = (run as any)?.decisions;
+  if (Array.isArray(decisions)) {
+    for (const d of decisions) {
+      if (isAiAuthText(d?.reason)) return true;
+      if (typeof d?.run_details?.error === 'string' && isAiAuthText(d.run_details.error)) return true;
+      if (typeof d?.run_details?.result === 'string' && isAiAuthText(d.run_details.result)) return true;
+      if (Array.isArray(d?.fields)) {
+        for (const f of d.fields) {
+          if (isAiAuthText(f?.value)) return true;
+        }
+      }
+    }
+  }
+
+  return false;
+};
+

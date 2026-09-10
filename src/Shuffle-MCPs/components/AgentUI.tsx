@@ -500,6 +500,7 @@ interface RunFinishedSummaryProps {
   /** Show the "N steps · Ns" meta next to the title. */
   showMeta?: boolean;
   children?: React.ReactNode;
+  bottomContent?: React.ReactNode;
 }
 
 const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
@@ -513,6 +514,7 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
   durationSec,
   showMeta = false,
   children,
+  bottomContent,
 }) => {
   return (
     <>
@@ -630,6 +632,7 @@ const RunFinishedSummary: React.FC<RunFinishedSummaryProps> = ({
         </Typography>
       )}
 
+      {bottomContent}
     </>
   );
 };
@@ -651,6 +654,8 @@ import { runAgent, resolveAgentNodeId } from '@/Shuffle-MCPs/agentRun';
 import { appRequiresAuthentication, isNoAuthApp, normalizeAppName } from '@/Shuffle-MCPs/noAuthApps';
 import { parseScheduleHint } from '@/Shuffle-MCPs/scheduleHint';
 import AgentRunDiagnosisBanner from '@/Shuffle-MCPs/components/AgentRunDiagnosisBanner';
+import { isAiAuthFailure } from '@/Shuffle-MCPs/agentDiagnosis';
+import AiAuthSuggestion from '@/Shuffle-MCPs/components/AiAuthSuggestion';
 import AgentAttachmentsButton from '@/Shuffle-MCPs/components/AgentAttachmentsButton';
 import { collectLlmImageAttachments } from '@/Shuffle-MCPs/agentAttachments';
 import {
@@ -4632,6 +4637,36 @@ const AgentUI: React.FC<AgentUIProps> = ({
     return () => clearTimeout(t);
   }, [finishDecisionId, agentRequestLoading]);
 
+  const openLocalLlmArea = useCallback(() => {
+    if (onChooseLLM) {
+      onChooseLLM();
+      return;
+    }
+    if (typeof window === 'undefined') return;
+    const evt = new CustomEvent('agent-drawer-open', {
+      detail: { tab: 'localLLM' },
+      cancelable: true,
+    });
+    const handled = window.dispatchEvent(evt);
+    if (handled && !(window as any).__shuffleAgentDrawerMounted) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[AgentUI] "Local LLM" was clicked but no drawer listener handled the event. Pass `onChooseLLM` to wire your own drawer, or wrap AgentUI in `<AgentRunDrawer />`.',
+      );
+    }
+  }, [onChooseLLM]);
+
+  const isAiAuthIssue = useMemo(() => {
+    const diagnosable = execution?.results?.length ? execution : (agentData as any);
+    return isAiAuthFailure(diagnosable, finishAnswer || error || '');
+  }, [execution, agentData, finishAnswer, error]);
+
+  const aiAuthSuggestionNode = isAiAuthIssue ? (
+    <Box sx={{ mt: 1.5 }}>
+      <AiAuthSuggestion onOpenLocalLlm={openLocalLlmArea} />
+    </Box>
+  ) : null;
+
   // Clear the optimistic continuation as soon as the backend produces a new
   // decision (or the run visibly restarts), with a hard 5 minute safety stop.
   useEffect(() => {
@@ -6651,34 +6686,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                   <Box
                     component="button"
                     type="button"
-                    onClick={() => {
-                      // Host-provided handler wins. Otherwise dispatch the
-                      // legacy window event for in-app usage where the
-                      // bundled AgentRunDrawer listens. If nothing
-                      // listens, log a clear warning so embedders know
-                      // they need to wire `onChooseLLM`.
-                      if (onChooseLLM) {
-                        onChooseLLM();
-                        return;
-                      }
-                      if (typeof window === 'undefined') return;
-                      const evt = new CustomEvent('agent-drawer-open', {
-                        detail: { tab: 'localLLM' },
-                        cancelable: true,
-                      });
-                      const handled = window.dispatchEvent(evt);
-                      // No listener will preventDefault, but we can detect
-                      // missing host wiring via a global flag the bundled
-                      // drawer sets when mounted.
-                      if (handled && !(window as any).__shuffleAgentDrawerMounted) {
-                        // eslint-disable-next-line no-console
-                        console.warn(
-                          '[AgentUI] "Choose LLM" was clicked but no host handler is wired. ' +
-                          'Pass an `onChooseLLM` prop, mount the bundled `AgentRunDrawer`, ' +
-                          'or set `hideChooseLLM` to remove the chip.',
-                        );
-                      }
-                    }}
+                    onClick={openLocalLlmArea}
                     sx={{
                       all: 'unset', cursor: 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
@@ -7150,7 +7158,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 bgcolor: 'hsl(var(--destructive) / 0.08)',
                 color: 'hsl(var(--destructive))',
                 fontSize: '0.85rem',
-              }}>{error}</Box>
+              }}>
+                {error}
+                {isAiAuthIssue && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <AiAuthSuggestion onOpenLocalLlm={openLocalLlmArea} />
+                  </Box>
+                )}
+              </Box>
             )}
 
             {/* Shared diagnosis banner — same component used by drawers and
@@ -7283,6 +7298,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         decisionCount={decisionCount}
                         durationSec={durationSec}
                         showMeta
+                        bottomContent={aiAuthSuggestionNode}
                       >
                         {pendingAuthApps.map(({ appName, appId, icon }) => {
                           const pretty = appName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -7572,6 +7588,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
                         finishNote={finishNote}
                         raw={finishAnswerRaw}
                         onToggleRaw={() => setFinishAnswerRaw((v) => !v)}
+                        bottomContent={aiAuthSuggestionNode}
                       >
                         {postRunDiscovery}
                       </RunFinishedSummary>

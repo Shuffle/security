@@ -27,7 +27,11 @@ const navItems = [
   { label: 'Docs', href: '/docs', internal: true },
 ];
 
-export const LandingNavbar = () => {
+export interface LandingNavbarProps {
+  onMobileMenuClick?: () => void;
+}
+
+export const LandingNavbar = ({ onMobileMenuClick }: LandingNavbarProps = {}) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -206,10 +210,13 @@ export const LandingNavbar = () => {
               )}
               {isMobile && (
                 <IconButton
-                  color="inherit"
                   aria-label="open drawer"
                   edge="end"
-                  onClick={handleDrawerToggle}
+                  onClick={onMobileMenuClick || handleDrawerToggle}
+                  sx={{
+                    color: 'text.primary',
+                    '&:hover': { backgroundColor: 'action.hover' },
+                  }}
                 >
                   <MenuIcon />
                 </IconButton>
