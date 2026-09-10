@@ -23,6 +23,7 @@ import { DATASTORE_CATEGORIES } from "@/Shuffle-MCPs/datastore";
 import { useVulnerabilities } from "@/hooks/useVulnerabilities";
 import { useHostMonitorCount } from "@/hooks/useHostMonitorCount";
 import { getApiUrl, getAuthHeader } from "@/Shuffle-MCPs/api";
+import { ComponentErrorBoundary } from "@/components/common/ComponentErrorBoundary";
 
 export interface ContentSegment {
   type: "markdown" | "component";
@@ -68,7 +69,10 @@ export const parseMarkdownSegments = (
   while ((match = COMPONENT_DIRECTIVE_REGEX.exec(rawMarkdown)) !== null) {
     const textBefore = rawMarkdown.slice(lastIndex, match.index);
     if (textBefore) {
-      segments.push({ type: "markdown", content: textBefore });
+      const cleanMarkdown = textBefore.replace(/<!--[\s\S]*?-->/g, "");
+      if (cleanMarkdown.trim()) {
+        segments.push({ type: "markdown", content: cleanMarkdown });
+      }
     }
 
     const componentName = match[1].toLowerCase();
@@ -86,7 +90,10 @@ export const parseMarkdownSegments = (
 
   const remainingText = rawMarkdown.slice(lastIndex);
   if (remainingText) {
-    segments.push({ type: "markdown", content: remainingText });
+    const cleanMarkdown = remainingText.replace(/<!--[\s\S]*?-->/g, "");
+    if (cleanMarkdown.trim()) {
+      segments.push({ type: "markdown", content: cleanMarkdown });
+    }
   }
 
   return segments;
@@ -653,16 +660,16 @@ export const DocUsecases: React.FC<DocUsecasesProps> = ({
               mb: 0.5,
             }}
           >
-            {title}
+            {displayTitle}
           </Typography>
-          {subtitle && (
+          {displaySubtitle && (
             <Typography
               sx={{
                 fontSize: "0.85rem",
                 color: "hsl(var(--muted-foreground))",
               }}
             >
-              {subtitle}
+              {displaySubtitle}
             </Typography>
           )}
         </Box>
@@ -1967,5 +1974,11 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
 
   const rendered = renderInner();
   if (!rendered) return null;
-  return <Box className="not-prose">{rendered}</Box>;
+  return (
+    <Box className="not-prose">
+      <ComponentErrorBoundary name={`DocComponent-${name}`} fallback={null}>
+        {rendered}
+      </ComponentErrorBoundary>
+    </Box>
+  );
 };

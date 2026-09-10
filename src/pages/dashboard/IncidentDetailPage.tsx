@@ -1238,17 +1238,20 @@ const IncidentDetailPage = () => {
     * `${type}::${value}` (lowercase) key. Used by clickable timeline pills so
     * the user can see exactly which observable the timeline entry refers to.
     */
-   const focusObservableFromTimeline = (typeValueKey: string | null) => {
-     setActiveTab(2);
-     if (!typeValueKey) return;
-     setFlashedObsKey(typeValueKey);
-     if (flashedObsTimerRef.current) clearTimeout(flashedObsTimerRef.current);
-     flashedObsTimerRef.current = setTimeout(() => setFlashedObsKey(null), 2200);
-     // Defer scroll until the tab content has mounted.
-     setTimeout(() => {
-       const el = document.querySelector(`[data-obs-highlight-key="${typeValueKey}"]`) as HTMLElement | null;
-       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-     }, 80);
+    const focusObservableFromTimeline = (typeValueKey: string | null) => {
+      setActiveTab(2);
+      if (!typeValueKey) return;
+      setFlashedObsKey(typeValueKey);
+      if (flashedObsTimerRef.current) clearTimeout(flashedObsTimerRef.current);
+      flashedObsTimerRef.current = setTimeout(() => setFlashedObsKey(null), 2200);
+      // Defer scroll until the tab content has mounted.
+      setTimeout(() => {
+        try {
+          const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(typeValueKey) : typeValueKey;
+          const el = document.querySelector(`[data-obs-highlight-key="${escaped}"]`) as HTMLElement | null;
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch {}
+      }, 80);
     };
 
     /**
@@ -1259,8 +1262,11 @@ const IncidentDetailPage = () => {
       setActiveTab(1);
       if (!taskId) return;
       setTimeout(() => {
-        const el = document.querySelector(`[data-task-id="${CSS.escape(taskId)}"]`) as HTMLElement | null;
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        try {
+          const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(taskId) : taskId;
+          const el = document.querySelector(`[data-task-id="${escaped}"]`) as HTMLElement | null;
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch {}
       }, 120);
     };
 
@@ -1276,8 +1282,11 @@ const IncidentDetailPage = () => {
        if (flashedCorrTimerRef.current) clearTimeout(flashedCorrTimerRef.current);
        flashedCorrTimerRef.current = setTimeout(() => setFlashedCorrelationKey(null), 2200);
        setTimeout(() => {
-         const el = document.querySelector(`[data-corr-key="${CSS.escape(correlationKey)}"]`) as HTMLElement | null;
-         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+         try {
+           const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(correlationKey) : correlationKey;
+           const el = document.querySelector(`[data-corr-key="${escaped}"]`) as HTMLElement | null;
+           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+         } catch {}
         }, 80);
       }
     };
@@ -1296,8 +1305,11 @@ const IncidentDetailPage = () => {
       if (flashedRelatedTimerRef.current) clearTimeout(flashedRelatedTimerRef.current);
       flashedRelatedTimerRef.current = setTimeout(() => setFlashedRelatedId(null), 2200);
       setTimeout(() => {
-        const el = document.querySelector(`[data-related-id="${CSS.escape(relatedId)}"]`) as HTMLElement | null;
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        try {
+          const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(relatedId) : relatedId;
+          const el = document.querySelector(`[data-related-id="${escaped}"]`) as HTMLElement | null;
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch {}
       }, 120);
     };
 

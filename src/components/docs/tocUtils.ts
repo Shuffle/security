@@ -20,6 +20,19 @@ export const anchorKey = (value: string): string =>
     .replace(/^_+|_+$/g, '');
 
 /**
+ * Safe version of decodeURIComponent that catches URIError (e.g. malformed percent-encoding or raw '%')
+ * and returns the input value instead of crashing React render.
+ */
+export const safeDecodeURIComponent = (value: string): string => {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+/**
  * Checks if a heading title represents an in-page "Table of Contents".
  */
 export const isTocHeading = (text: string): boolean => {

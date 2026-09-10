@@ -21,7 +21,8 @@ import {
 import { docSlug } from '@/components/docs/remoteDocs';
 import { useIsSupport } from '@/hooks/useIsSupport';
 import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
-import { anchorKey, isTocHeading, stripMarkdownInline } from './tocUtils';
+import { anchorKey, isTocHeading, stripMarkdownInline, safeDecodeURIComponent } from './tocUtils';
+import { ComponentErrorBoundary } from '@/components/common/ComponentErrorBoundary';
 import {
   resolveProductLink,
   type ShuffleProduct,
@@ -118,7 +119,7 @@ export const MarkdownRenderer = ({
   const scrollToDocAnchor = useCallback((rawHash: string) => {
     const root = containerRef.current;
     if (!root) return false;
-    const target = anchorKey(decodeURIComponent(rawHash.replace(/^#/, '')));
+    const target = anchorKey(safeDecodeURIComponent(rawHash.replace(/^#/, '')));
     if (!target) return false;
     const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4, h5, h6')) as HTMLElement[];
     const match = headings.find(
@@ -519,26 +520,34 @@ export const MarkdownRenderer = ({
               const resolved = resolveProductLink(trimmed, currentProduct);
 
               if (resolved.targetProduct === 'doc' || isRelativeDoc) {
-                const baseUrl =
-                  typeof window !== 'undefined' && window.location?.origin
-                    ? window.location.href
-                    : 'https://shuffle.security/docs';
-                const parsed = new URL(trimmed, baseUrl);
-                const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
-                const relativeName = parsed.pathname
-                  .split('/')
-                  .filter(Boolean)
-                  .pop()
-                  ?.replace(/\.md$/i, '');
-                const path =
-                  isRelativeDoc && !isDocsPath && relativeName
-                    ? `${basePath}/${docSlug(relativeName)}`
-                    : normalizeDocPath(parsed.pathname, basePath);
-                return (
-                  <Link to={`${path}${parsed.search}${parsed.hash}`}>
-                    {children}
-                  </Link>
-                );
+                let parsed: URL | null = null;
+                try {
+                  const baseUrl =
+                    typeof window !== 'undefined' && window.location?.origin
+                      ? window.location.href
+                      : 'https://shuffle.security/docs';
+                  parsed = new URL(trimmed, baseUrl);
+                } catch {
+                  parsed = null;
+                }
+
+                if (parsed) {
+                  const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
+                  const relativeName = parsed.pathname
+                    .split('/')
+                    .filter(Boolean)
+                    .pop()
+                    ?.replace(/\.md$/i, '');
+                  const path =
+                    isRelativeDoc && !isDocsPath && relativeName
+                      ? `${basePath}/${docSlug(relativeName)}`
+                      : normalizeDocPath(parsed.pathname, basePath);
+                  return (
+                    <Link to={`${path}${parsed.search}${parsed.hash}`}>
+                      {children}
+                    </Link>
+                  );
+                }
               }
 
               // Internal SPA link for the current platform
@@ -602,11 +611,16 @@ export const MarkdownRenderer = ({
 
           if (segment.type === 'component' && segment.componentName) {
             return (
-              <DocDynamicComponent
+              <ComponentErrorBoundary
                 key={`comp-${idx}-${segment.componentName}`}
-                name={segment.componentName}
-                props={segment.props || {}}
-              />
+                name={`DocComponent-${segment.componentName}`}
+                fallback={null}
+              >
+                <DocDynamicComponent
+                  name={segment.componentName}
+                  props={segment.props || {}}
+                />
+              </ComponentErrorBoundary>
             );
           }
 

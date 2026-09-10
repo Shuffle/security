@@ -4686,13 +4686,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (typeof window === 'undefined') return;
     const scrollRowIntoView = () => {
       if (!opening) return;
-      const el = document.querySelector(`[data-timeline-index="${i}"]`);
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      // Only scroll if the expanded row overflows the viewport bottom.
-      if (rect.bottom > window.innerHeight - 8) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }
+      try {
+        const el = document.querySelector(`[data-timeline-index="${i}"]`);
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        // Only scroll if the expanded row overflows the viewport bottom.
+        if (rect.bottom > window.innerHeight - 8) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+      } catch {}
     };
     requestAnimationFrame(() => requestAnimationFrame(scrollRowIntoView));
     window.setTimeout(scrollRowIntoView, 260);
@@ -7204,10 +7206,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 // settled after the tab switch.
                 requestAnimationFrame(() => {
                   requestAnimationFrame(() => {
-                    const el = document.querySelector(
-                      `[data-timeline-index="${targetIndex}"]`
-                    ) as HTMLElement | null;
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    try {
+                      const el = document.querySelector(
+                        `[data-timeline-index="${targetIndex}"]`
+                      ) as HTMLElement | null;
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } catch {}
                   });
                 });
               }}

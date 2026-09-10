@@ -124,7 +124,12 @@ export const DemoSpotlight = () => {
 
     let raf = 0;
     const tick = () => {
-      const el = document.querySelector(selector) as HTMLElement | null;
+      let el: HTMLElement | null = null;
+      try {
+        el = document.querySelector(selector) as HTMLElement | null;
+      } catch {
+        el = null;
+      }
       if (el) {
         const r = el.getBoundingClientRect();
         // Skip if the element is offscreen / collapsed
@@ -158,9 +163,13 @@ export const DemoSpotlight = () => {
   // Scroll target into view once when it first appears
   useEffect(() => {
     if (!selector || suppressForUnlock || modalOpen) return;
-    const el = document.querySelector(selector) as HTMLElement | null;
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try {
+      const el = document.querySelector(selector) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } catch {
+      // Ignore invalid selector
     }
   }, [selector, suppressForUnlock, step, modalOpen]);
 

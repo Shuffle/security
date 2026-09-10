@@ -74,7 +74,12 @@ export const HighlightSpotlight = () => {
     }
     let raf = 0;
     const tick = () => {
-      const el = document.querySelector(target.selector) as HTMLElement | null;
+      let el: HTMLElement | null = null;
+      try {
+        el = document.querySelector(target.selector) as HTMLElement | null;
+      } catch {
+        el = null;
+      }
       if (el) {
         const r = el.getBoundingClientRect();
         if (r.width > 0 && r.height > 0) {
@@ -105,8 +110,12 @@ export const HighlightSpotlight = () => {
   // Scroll target into view once when it first appears.
   useEffect(() => {
     if (!active || !target) return;
-    const el = document.querySelector(target.selector) as HTMLElement | null;
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try {
+      const el = document.querySelector(target.selector) as HTMLElement | null;
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch {
+      // Ignore invalid selector
+    }
   }, [active, target]);
 
   if (!active || !rect) return null;

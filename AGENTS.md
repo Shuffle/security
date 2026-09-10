@@ -46,9 +46,19 @@
 - **No Emojis Anywhere**:
   - Never use emojis in documentation (`.md`), comments, code, UI text, or component properties.
   - No camera emojis, checkmarks, warning/alert emojis, tools, packages, locks, shields, or any Unicode pictorial characters.
-  - In documentation, write plain text: `> **Screenshot Needed: ...**` instead of using any emoji.
   - Instead of checkmark emojis, write plain text: `Passed`, `Verified`, or `Done`.
 - **No Decorative Icons in Components or Documentation**:
   - Do not use emoji characters or decorative icons in UI components, cards, lists, badges, or buttons (e.g., never do `icon: "..."`).
   - Do not create "Icon" or "Icon / Key" columns in documentation tables.
   - Rely exclusively on clean, plain-text engineering typography, crisp borders, and structured data tables.
+
+### Hidden Internal Comments & Editorial Placeholders
+- **Never render visible placeholder callouts in docs** (e.g., never do `> **Screenshot Needed: ...**` or `> **Note: need more info**`).
+- **Always use standard HTML comments** (`<!-- TODO: ... -->` or `<!-- NOTE: ... -->`) for internal editorial notes, missing screenshots, or areas to revisit:
+  ```markdown
+  <!-- TODO: Screenshot Needed: Ingestion Webhook Dialog
+  - Location: /incidents -> Webhook button in header
+  - What to capture: Modal with webhook URL, toggle switch, and curl command
+  - Target path: assets/incidents-webhook-modal.png -->
+  ```
+- Standard HTML comments are completely hidden and never rendered on GitHub or on the documentation website, keeping published documentation production-ready while preserving full context for contributors in the source code.

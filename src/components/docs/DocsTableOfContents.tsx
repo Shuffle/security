@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Collapse, Stack, Typography, type SxProps, type Theme } from '@mui/material';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { type TocHeading } from './tocUtils';
+import { type TocHeading, safeDecodeURIComponent } from './tocUtils';
 import { useScrollSpy } from './useScrollSpy';
 import { useLocation, useNavigate } from '@/lib/router-compat';
 
@@ -71,7 +71,7 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
 
   // Initial expansion based on URL hash or first section
   useEffect(() => {
-    const rawHash = location.hash ? decodeURIComponent(location.hash.replace(/^#/, '')) : '';
+    const rawHash = location.hash ? safeDecodeURIComponent(location.hash.replace(/^#/, '')) : '';
     if (rawHash) {
       const parentId = parentMap.get(rawHash) || rawHash;
       if (parentId) {

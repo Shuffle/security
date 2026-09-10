@@ -10,6 +10,7 @@ import { useDocContent, type RemoteDocMeta } from '@/components/docs/useDocConte
 import { setActiveDocPromptContext, clearActiveDocPromptContext } from '@/lib/docsPromptContext';
 import { getDocGroup, loadGroupDocsContent, getDocDisplayLabel } from '@/components/docs/docGroups';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { ComponentErrorBoundary } from '@/components/common/ComponentErrorBoundary';
 import type { ShuffleProduct } from '@/lib/shuffleUrls';
 
 const SIDEBAR_WIDTH_MD = 260;
@@ -281,39 +282,43 @@ const DocsPage = ({
                   maxWidth: showDesktopToc ? { xs: '100%', lg: 820, xl: 900 } : '100%',
                 }}
               >
-                <MarkdownRenderer
-                  title={docTitle}
-                  slug={slug}
-                  folder={folder}
-                  basePath={basePath}
-                  currentProduct={currentProduct}
-                  content={doc.content}
-                  meta={doc.meta}
-                  loading={doc.loading}
-                  resetting={doc.resetting}
-                  error={doc.error}
-                  suggestions={doc.suggestions}
-                  suggestLoading={doc.suggestLoading}
-                  onResetCache={doc.handleResetCache}
-                  hideMeta={hideMeta ?? folder === 'legal'}
-                  mobileToc={
-                    hasHeadings && !showDesktopToc ? (
-                      <Box
-                        sx={{
-                          position: 'sticky',
-                          top: { xs: 56, sm: 64 },
-                          zIndex: 20,
-                          backgroundColor: 'background.default',
-                          py: 1,
-                          mb: 3,
-                          pl: { xs: '48px', sm: '52px', md: 0 },
-                        }}
-                      >
-                        <MobileTableOfContents headings={doc.headings} />
-                      </Box>
-                    ) : null
-                  }
-                />
+                <ComponentErrorBoundary name="DocsMarkdownRenderer" onReset={doc.reload}>
+                  <MarkdownRenderer
+                    title={docTitle}
+                    slug={slug}
+                    folder={folder}
+                    basePath={basePath}
+                    currentProduct={currentProduct}
+                    content={doc.content}
+                    meta={doc.meta}
+                    loading={doc.loading}
+                    resetting={doc.resetting}
+                    error={doc.error}
+                    suggestions={doc.suggestions}
+                    suggestLoading={doc.suggestLoading}
+                    onResetCache={doc.handleResetCache}
+                    hideMeta={hideMeta ?? folder === 'legal'}
+                    mobileToc={
+                      hasHeadings && !showDesktopToc ? (
+                        <Box
+                          sx={{
+                            position: 'sticky',
+                            top: { xs: 56, sm: 64 },
+                            zIndex: 20,
+                            backgroundColor: 'background.default',
+                            py: 1,
+                            mb: 3,
+                            pl: { xs: '48px', sm: '52px', md: 0 },
+                          }}
+                        >
+                          <ComponentErrorBoundary name="DocsMobileTOC" fallback={null}>
+                            <MobileTableOfContents headings={doc.headings} />
+                          </ComponentErrorBoundary>
+                        </Box>
+                      ) : null
+                    }
+                  />
+                </ComponentErrorBoundary>
               </Box>
 
               {/* Right Sidebar: Table of Contents (lg+) */}
@@ -339,7 +344,9 @@ const DocsPage = ({
                     },
                   }}
                 >
-                  <DocsTableOfContents headings={doc.headings} />
+                  <ComponentErrorBoundary name="DocsDesktopTOC" fallback={null}>
+                    <DocsTableOfContents headings={doc.headings} />
+                  </ComponentErrorBoundary>
                 </Box>
               )}
             </Box>
