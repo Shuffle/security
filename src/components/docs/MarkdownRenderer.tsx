@@ -11,12 +11,10 @@ import {
   Typography,
   Link as MuiLink,
   Button,
-  Divider,
 } from '@mui/material';
 import {
   Clock as ClockIcon,
   Github as GithubIcon,
-  Pencil,
   RefreshCw as RefreshCwIcon,
 } from 'lucide-react';
 import { docSlug } from '@/components/docs/remoteDocs';
@@ -52,7 +50,6 @@ export interface MarkdownRendererProps {
   suggestions?: DocSuggestion[];
   suggestLoading?: boolean;
   onResetCache?: () => Promise<void>;
-  hideDesktopActionButtons?: boolean;
 }
 
 const normalizeDocPath = (pathname: string, basePath = '/docs') => {
@@ -77,7 +74,6 @@ export const MarkdownRenderer = ({
   suggestions: propSuggestions,
   suggestLoading: propSuggestLoading,
   onResetCache: propOnResetCache,
-  hideDesktopActionButtons = false,
 }: MarkdownRendererProps) => {
   const isControlled = propContent !== undefined;
 
@@ -148,15 +144,7 @@ export const MarkdownRenderer = ({
   }, [content, loading, hash, scrollToDocAnchor]);
 
   const actionButtons = (
-    <Stack
-      direction="row"
-      spacing={1}
-      alignItems="center"
-      sx={{
-        ml: 'auto',
-        display: hideDesktopActionButtons ? { xs: 'flex', lg: 'none' } : 'flex',
-      }}
-    >
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
       {isSupport && (
         <Button
           variant="outlined"
@@ -372,108 +360,59 @@ export const MarkdownRenderer = ({
           flexWrap="wrap"
           sx={{
             mb: 4,
-            pb: 2,
+            pb: 3,
             borderBottom: '1px solid',
             borderColor: 'divider',
-            rowGap: 1.5,
+            rowGap: 1,
           }}
         >
-          {/* Metadata pill container matching screenshot */}
-          {!hideMeta && (meta?.link || meta?.read_time || (meta?.contributors && meta.contributors.length > 0)) && (
-            <Box
+          {!hideMeta && meta?.read_time ? (
+            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
+              <ClockIcon size={14} />
+              <Typography variant="caption">{meta.read_time} min read</Typography>
+            </Stack>
+          ) : null}
+
+          {!hideMeta && meta?.contributors && meta.contributors.length > 0 && (
+            <AvatarGroup max={6} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.7rem', border: '1px solid', borderColor: 'divider' } }}>
+              {meta.contributors.map((c, i) => {
+                const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
+                const avatar = (
+                  <Avatar key={c.url || i} src={c.image} alt={handle}>
+                    {handle.charAt(0).toUpperCase()}
+                  </Avatar>
+                );
+                return (
+                  <Tooltip key={c.url || i} title={handle} arrow>
+                    {c.url ? (
+                      <MuiLink href={c.url} target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-flex' }}>
+                        {avatar}
+                      </MuiLink>
+                    ) : avatar}
+                  </Tooltip>
+                );
+              })}
+            </AvatarGroup>
+          )}
+
+          {!hideMeta && meta?.link && (
+            <MuiLink
+              href={meta.link}
+              target="_blank"
+              rel="noopener noreferrer"
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 1.5,
-                p: '6px 14px',
-                borderRadius: 2,
-                backgroundColor: (t) =>
-                  t.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
-                border: '1px solid',
-                borderColor: 'divider',
+                gap: 0.75,
+                fontSize: '0.8125rem',
+                color: 'text.secondary',
+                textDecoration: 'none',
+                '&:hover': { color: 'primary.main' },
               }}
             >
-              {meta?.link && (
-                <Button
-                  component="a"
-                  href={meta.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Pencil size={12} />}
-                  sx={{
-                    textTransform: 'none',
-                    height: 28,
-                    px: 1.25,
-                    fontSize: '0.8125rem',
-                    borderRadius: 1,
-                    borderColor: 'hsl(var(--border))',
-                    color: 'text.primary',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      color: 'primary.main',
-                    },
-                  }}
-                >
-                  Edit
-                </Button>
-              )}
-
-              {meta?.link && meta?.read_time ? (
-                <Divider orientation="vertical" flexItem sx={{ height: 16, my: 'auto' }} />
-              ) : null}
-
-              {meta?.read_time ? (
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
-                  <ClockIcon size={14} />
-                  <Typography variant="caption" sx={{ fontSize: '0.8125rem' }}>
-                    {meta.read_time} minutes to read
-                  </Typography>
-                </Stack>
-              ) : null}
-
-              {meta?.contributors && meta.contributors.length > 0 && (
-                <AvatarGroup
-                  max={6}
-                  sx={{
-                    '& .MuiAvatar-root': {
-                      width: 24,
-                      height: 24,
-                      fontSize: '0.7rem',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                    },
-                  }}
-                >
-                  {meta.contributors.map((c, i) => {
-                    const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
-                    const avatar = (
-                      <Avatar key={c.url || i} src={c.image} alt={handle}>
-                        {handle.charAt(0).toUpperCase()}
-                      </Avatar>
-                    );
-                    return (
-                      <Tooltip key={c.url || i} title={handle} arrow>
-                        {c.url ? (
-                          <MuiLink
-                            href={c.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            sx={{ display: 'inline-flex' }}
-                          >
-                            {avatar}
-                          </MuiLink>
-                        ) : (
-                          avatar
-                        )}
-                      </Tooltip>
-                    );
-                  })}
-                </AvatarGroup>
-              )}
-            </Box>
+              <GithubIcon size={14} />
+              Edit on GitHub
+            </MuiLink>
           )}
 
           {actionButtons}
