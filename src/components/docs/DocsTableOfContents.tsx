@@ -46,18 +46,15 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
     return map;
   }, [headings]);
 
-  // Auto-expand parent section when an item becomes active
+  // Auto-expand current active parent section, keeping others collapsed (accordion style)
   useEffect(() => {
     if (!activeHeadingId) return;
     const parentId = parentMap.get(activeHeadingId) || activeHeadingId;
-    // Check if parentId is an H2 with children
     const parentHeading = headings.find((h) => h.id === parentId);
     if (parentHeading && parentHeading.children.length > 0) {
       setExpandedIds((prev) => {
-        if (prev.has(parentId)) return prev;
-        const next = new Set(prev);
-        next.add(parentId);
-        return next;
+        if (prev.has(parentId) && prev.size === 1) return prev;
+        return new Set([parentId]);
       });
     }
   }, [activeHeadingId, parentMap, headings]);
@@ -78,14 +75,16 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
     if (rawHash) {
       const parentId = parentMap.get(rawHash) || rawHash;
       if (parentId) {
-        setExpandedIds((prev) => new Set(prev).add(parentId));
+        setExpandedIds(new Set([parentId]));
         return;
       }
     }
-    // Default: expand the first section that has children
+    // Default: expand only the first section that has children
     const firstWithChildren = headings.find((h) => h.children.length > 0);
     if (firstWithChildren) {
       setExpandedIds(new Set([firstWithChildren.id]));
+    } else {
+      setExpandedIds(new Set());
     }
   }, [headings, location.hash, parentMap]);
 
@@ -104,9 +103,9 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
 
   const handleHeadingClick = useCallback(
     (heading: TocHeading, hasChildren: boolean) => {
-      // Auto-expand if collapsed
-      if (hasChildren && !expandedIds.has(heading.id)) {
-        setExpandedIds((prev) => new Set(prev).add(heading.id));
+      // Auto-expand active section in accordion style
+      if (hasChildren) {
+        setExpandedIds(new Set([heading.id]));
       }
 
       const el = document.getElementById(heading.id);

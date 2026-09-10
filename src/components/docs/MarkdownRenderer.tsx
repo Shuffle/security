@@ -180,7 +180,12 @@ export const MarkdownRenderer = ({
           {resetting ? 'Resetting…' : 'Reset Cache'}
         </Button>
       )}
-      <PrintDocsDialog slug={slug} currentMarkdown={content} disabled={loading || resetting} />
+      <PrintDocsDialog
+        slug={slug}
+        title={title}
+        currentMarkdown={content}
+        disabled={loading || resetting}
+      />
     </Stack>
   );
 

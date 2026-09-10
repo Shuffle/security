@@ -4,6 +4,13 @@
  */
 
 import { stripInContentToc } from '../components/docs/tocUtils';
+import { getCachedGroupDocs, getDocGroup } from '../components/docs/docGroups';
+
+export interface GroupDocSnippet {
+  slug: string;
+  title: string;
+  content: string;
+}
 
 export interface ActiveDocInfo {
   title: string;
@@ -11,6 +18,9 @@ export interface ActiveDocInfo {
   slug?: string;
   basePath?: string;
   pathname?: string;
+  groupId?: string;
+  groupLabel?: string;
+  groupDocs?: GroupDocSnippet[];
 }
 
 // Global window / globalThis key so any component can access the active doc even across bundles
@@ -82,7 +92,7 @@ const DOC_PROMPT_PREFIX_REGEX = /^Answer the users? question about (?:["']?)(.*?
  * - Normalizes excessive whitespace / newlines
  * - Caps maximum length safely (~35,000 chars) to prevent context exhaustion
  */
-export const sanitizeDocMarkdown = (markdown: string): string => {
+export const sanitizeDocMarkdown = (markdown: string, maxChars: number = 35000): string => {
   if (!markdown || typeof markdown !== 'string') return '';
 
   let cleaned = markdown;
@@ -107,11 +117,10 @@ export const sanitizeDocMarkdown = (markdown: string): string => {
 
   cleaned = cleaned.trim();
 
-  // 7. Maximum length safety cutoff (~35k chars / ~8.5k tokens)
-  const MAX_DOC_CHARS = 35000;
-  if (cleaned.length > MAX_DOC_CHARS) {
-    const cut = cleaned.lastIndexOf('\n\n', MAX_DOC_CHARS);
-    const splitIndex = cut > MAX_DOC_CHARS * 0.7 ? cut : MAX_DOC_CHARS;
+  // 7. Maximum length safety cutoff to prevent context exhaustion
+  if (cleaned.length > maxChars) {
+    const cut = cleaned.lastIndexOf('\n\n', maxChars);
+    const splitIndex = cut > maxChars * 0.7 ? cut : maxChars;
     cleaned = `${cleaned.slice(0, splitIndex).trim()}\n\n[Documentation content truncated for length...]`;
   }
 
@@ -160,7 +169,34 @@ export const extractCleanDisplayPrompt = (prompt?: string | null): string => {
 };
 
 /**
- * Pre-injects current document markdown into the prompt payload sent to the agent.
+ * Normalizes document title for prompt injection, preventing
+ * awkward repetitions like "Answer the users question about About...".
+ */
+export const normalizeDocPromptTitle = (title?: string): string => {
+  const t = (title || '').trim();
+  if (!t || t.toLowerCase() === 'index' || t.toLowerCase() === 'documentation' || t.toLowerCase() === 'docs') {
+    return 'Shuffle documentation';
+  }
+  const lower = t.toLowerCase();
+  if (
+    lower === 'about' ||
+    lower === 'about shuffle' ||
+    lower === 'about us' ||
+    lower === 'about-shuffle' ||
+    lower === 'about-us'
+  ) {
+    return 'Shuffle';
+  }
+  if (/^about\s+/i.test(t)) {
+    const stripped = t.replace(/^about\s+/i, '').trim();
+    return stripped || 'Shuffle';
+  }
+  return t;
+};
+
+/**
+ * Pre-injects current document markdown (and sibling documents in the same group)
+ * into the prompt payload sent to the agent.
  */
 export const composeDocPromptInput = (
   userQuestion: string,
@@ -177,20 +213,45 @@ export const composeDocPromptInput = (
   }
 
   const activeDoc = overrideDocInfo ?? getActiveDocPromptContext();
-  const title = (
+  const rawTitle = (
     activeDoc?.title ||
     fallbackTitle ||
     getGlobalScope()?.__shuffleActiveEntityTitle ||
-    'Documentation'
+    'Shuffle documentation'
   ).trim();
+  const title = normalizeDocPromptTitle(rawTitle);
 
   const rawMarkdown = activeDoc?.content || '';
-  const sanitizedMarkdown = sanitizeDocMarkdown(rawMarkdown);
+  const sanitizedMarkdown = sanitizeDocMarkdown(rawMarkdown, 25000);
 
+  const groupLabel = activeDoc?.groupLabel;
+  const siblings = (activeDoc?.groupDocs || []).filter(
+    (g) => g.slug !== activeDoc?.slug && g.content && g.content.trim().length > 0,
+  );
+
+  let docSection = '';
   if (sanitizedMarkdown) {
-    return `Answer the users question about ${title} based on the following content:
+    if (siblings.length > 0 && groupLabel) {
+      const siblingSections = siblings
+        .map((s) => `## Related Document in ${groupLabel}: ${s.title}\n\n${sanitizeDocMarkdown(s.content, 10000)}`)
+        .join('\n\n---\n\n');
+      docSection = `# Documentation Group: ${groupLabel}\n\n## Primary Document: ${title}\n\n${sanitizedMarkdown}\n\n---\n\n${siblingSections}`;
+    } else {
+      docSection = sanitizedMarkdown;
+    }
+  } else if (siblings.length > 0 && groupLabel) {
+    docSection = `# Documentation Group: ${groupLabel}\n\n${siblings
+      .map((s) => `## Document: ${s.title}\n\n${sanitizeDocMarkdown(s.content, 12000)}`)
+      .join('\n\n---\n\n')}`;
+  }
+
+  if (docSection) {
+    const groupSuffix = groupLabel && !title.toLowerCase().includes(groupLabel.toLowerCase())
+      ? ` (${groupLabel})`
+      : '';
+    return `Answer the users question about ${title}${groupSuffix} based on the following documentation content:
 ${DOC_PROMPT_DELIMITER_START}
-${sanitizedMarkdown}
+${docSection}
 ${DOC_PROMPT_DELIMITER_END}
 
 User Question:
@@ -201,4 +262,27 @@ ${trimmedQuestion}`;
   return `Answer the users question about ${title}:
 
 ${trimmedQuestion}`;
+};
+
+/**
+ * Sets global doc prompt context for an entire documentation group (e.g. from clicking
+ * "Ask about Automation" on the sidebar group header).
+ */
+export const activateGroupDocPromptContext = (
+  groupId: string,
+  groupLabel: string,
+  groupDocs: GroupDocSnippet[],
+) => {
+  setActiveDocPromptContext({
+    title: `Shuffle ${groupLabel}`,
+    content: '',
+    groupId,
+    groupLabel,
+    groupDocs,
+    pathname: `/docs?group=${groupId}`,
+  });
+  const scope = getGlobalScope();
+  if (scope) {
+    scope.__shuffleActiveEntityTitle = `Shuffle ${groupLabel}`;
+  }
 };

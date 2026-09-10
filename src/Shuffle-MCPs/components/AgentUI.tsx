@@ -2559,9 +2559,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   ];
   const [chosenApps, setChosenApps] = useState<AgentUIApp[]>(() => {
     if (apps) return apps;
+    if (defaultApps !== undefined) return defaultApps.slice(0, MAX_AUTO_ASSIGNED_TOOLS);
     const saved = readPresetAppsOverride(NO_PRESET_KEY);
     if (saved) return saved;
-    if (defaultApps) return defaultApps.slice(0, MAX_AUTO_ASSIGNED_TOOLS);
     return BUILTIN_DEFAULT_APPS;
   });
 

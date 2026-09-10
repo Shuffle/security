@@ -8,6 +8,7 @@ import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { DocsTableOfContents, MobileTableOfContents } from '@/components/docs/DocsTableOfContents';
 import { useDocContent, type RemoteDocMeta } from '@/components/docs/useDocContent';
 import { setActiveDocPromptContext, clearActiveDocPromptContext } from '@/lib/docsPromptContext';
+import { getDocGroup, loadGroupDocsContent, getDocDisplayLabel } from '@/components/docs/docGroups';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import type { ShuffleProduct } from '@/lib/shuffleUrls';
 
@@ -72,22 +73,52 @@ const DocsPage = ({
     },
   });
 
-  // Keep global entity title and doc context in sync with current doc for Ask AI contextual handles
+  // Keep global entity title and doc context in sync with current doc and its group for Ask AI contextual handles
   useEffect(() => {
     if (typeof window === 'undefined') return;
     (window as any).__shuffleActiveEntityTitle = docTitle;
+
+    const group = getDocGroup(slug);
     setActiveDocPromptContext({
       title: docTitle,
       content: doc.content,
       slug,
       basePath,
       pathname: `${basePath}/${slug}`,
+      groupId: group?.id,
+      groupLabel: group?.label,
     });
+
+    let cancelled = false;
+    if (group) {
+      loadGroupDocsContent(group.id, folder).then((contents) => {
+        if (cancelled) return;
+        const groupDocs = Object.entries(contents).map(([s, md]) => ({
+          slug: s,
+          title: getDocDisplayLabel(s),
+          content: md,
+        }));
+        setActiveDocPromptContext({
+          title: docTitle,
+          content: doc.content,
+          slug,
+          basePath,
+          pathname: `${basePath}/${slug}`,
+          groupId: group.id,
+          groupLabel: group.label,
+          groupDocs,
+        });
+      }).catch(() => {
+        // Silently keep single doc context if group fetch fails
+      });
+    }
+
     return () => {
+      cancelled = true;
       delete (window as any).__shuffleActiveEntityTitle;
       clearActiveDocPromptContext();
     };
-  }, [docTitle, doc.content, slug, basePath]);
+  }, [docTitle, doc.content, slug, basePath, folder]);
 
   const hasHeadings = doc.headings.length > 0;
   const theme = useTheme();

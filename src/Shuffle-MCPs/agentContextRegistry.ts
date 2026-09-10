@@ -31,7 +31,7 @@ export interface AgentContextRule {
   /** Default MCP apps to pre-select for this context */
   defaultApps: AgentContextApp[];
   /** Default skill/preset id (e.g. 'incident-response', 'vulnerability', 'build-workflows') */
-  defaultPresetId?: string;
+  defaultPresetId?: string | null;
   /** Title shown on drawer header */
   title?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
   /** Subtitle or context description shown under the drawer header */
@@ -61,7 +61,7 @@ export interface AgentContextRule {
 export interface AgentResolvedContext {
   ruleId: string;
   apps: AgentContextApp[];
-  presetId?: string;
+  presetId?: string | null;
   title: string;
   /** Function to dynamically re-evaluate the title with an active entity name override */
   titleFn?: (entityOverride?: string) => string;
@@ -84,7 +84,7 @@ export interface AgentResolvedContext {
   /** The default apps before any user customization */
   originalDefaultApps: AgentContextApp[];
   /** The default preset before any user customization */
-  originalDefaultPresetId?: string;
+  originalDefaultPresetId?: string | null;
   /** True when no specific rule was configured for this route (fallback rule used) */
   missingConfig: boolean;
   /** Whether opening the panel should sideshift the page layout */
@@ -215,13 +215,32 @@ export const getActivePageEntityName = (): string | undefined => {
   return undefined;
 };
 
-/** Helper to extract a user-friendly page name from documentation path */
+/** Helper to extract a user-friendly page name from documentation path or active doc title */
 export const getDocPageDisplayName = (pathname: string, entityOverride?: string): string => {
-  const parts = pathname.split('/').filter(Boolean);
-  if (parts.length <= 1) {
-    return 'Documentation';
+  let candidate = (entityOverride || '').trim();
+  if (!candidate || candidate.toLowerCase() === 'documentation' || candidate.toLowerCase() === 'index') {
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length <= 1) {
+      return 'Docs';
+    }
+    candidate = parts[parts.length - 1];
   }
-  const slug = parts[parts.length - 1];
+
+  const lower = candidate.toLowerCase();
+  if (
+    lower === 'about' ||
+    lower === 'about-shuffle' ||
+    lower === 'about_shuffle' ||
+    lower === 'about shuffle' ||
+    lower === 'about us' ||
+    lower === 'about-us'
+  ) {
+    return 'Shuffle';
+  }
+  if (lower === 'index' || lower === 'documentation') {
+    return 'Docs';
+  }
+
   const known: Record<string, string> = {
     workflows: 'Workflows',
     incidents: 'Incidents',
@@ -231,7 +250,7 @@ export const getDocPageDisplayName = (pathname: string, entityOverride?: string)
     detections: 'Detections',
     apps: 'Apps',
     api: 'API',
-    ai: 'AI',
+    ai: 'Agents & AI',
     sigma: 'Sigma',
     cases: 'Cases',
     alerts: 'Alerts',
@@ -239,10 +258,81 @@ export const getDocPageDisplayName = (pathname: string, entityOverride?: string)
     software: 'Software',
     packages: 'Packages',
   };
-  if (known[slug.toLowerCase()]) {
-    return known[slug.toLowerCase()];
+  if (known[lower]) {
+    return known[lower];
   }
-  return slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  if (candidate.includes(' ') || /[A-Z]/.test(candidate)) {
+    if (/^about\s+/i.test(candidate)) {
+      const stripped = candidate.replace(/^about\s+/i, '').trim();
+      if (stripped.length > 0) return stripped;
+      return 'Shuffle';
+    }
+    return candidate;
+  }
+
+  return candidate.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+/**
+ * Formats a clean, natural "Ask about X" label avoiding grammatical stutter like
+ * "Ask about About", "Ask about How To ...", or repetitive wording.
+ */
+export const formatDocAskAbout = (topic: string): string => {
+  const t = (topic || '').trim();
+  if (!t || t.toLowerCase() === 'docs' || t.toLowerCase() === 'documentation') {
+    return 'Ask about Docs';
+  }
+  const lower = t.toLowerCase();
+  if (lower === 'about' || lower === 'about shuffle' || lower === 'about us' || lower === 'shuffle') {
+    return 'Ask about Shuffle';
+  }
+  if (/^about\s+/i.test(t)) {
+    return `Ask about ${t.replace(/^about\s+/i, '').trim()}`;
+  }
+  if (/^how\s+to\s+/i.test(t)) {
+    return `Ask ${t.replace(/^how\s+to\s+/i, 'how to ')}`;
+  }
+  return `Ask about ${t}`;
+};
+
+/**
+ * Formats the drawer/panel heading for documentation pages.
+ */
+export const formatDocHelpTitle = (topic: string): string => {
+  const t = (topic || '').trim();
+  if (!t || t.toLowerCase() === 'docs' || t.toLowerCase() === 'documentation') {
+    return 'How can we help with Shuffle docs?';
+  }
+  const lower = t.toLowerCase();
+  if (lower === 'about' || lower === 'about shuffle' || lower === 'about us' || lower === 'shuffle') {
+    return 'How can we help with Shuffle?';
+  }
+  if (/^about\s+/i.test(t)) {
+    return `How can we help with ${t.replace(/^about\s+/i, '').trim()}?`;
+  }
+  return `How can we help with ${t}?`;
+};
+
+/**
+ * Formats the initial prompt prefix for documentation pages.
+ */
+export const formatDocDefaultPrompt = (topic: string): string => {
+  const t = (topic || '').trim();
+  if (!t || t.toLowerCase() === 'docs' || t.toLowerCase() === 'documentation') {
+    return 'Help me understand Shuffle documentation: ';
+  }
+  const lower = t.toLowerCase();
+  if (lower === 'about' || lower === 'about shuffle' || lower === 'about us' || lower === 'shuffle') {
+    return 'Help me understand Shuffle: ';
+  }
+  if (/^about\s+/i.test(t)) {
+    return `Help me understand ${t.replace(/^about\s+/i, '').trim()}: `;
+  }
+  if (/^how\s+to\s+/i.test(t)) {
+    return `Help me understand ${t.replace(/^how\s+to\s+/i, 'how to ')}: `;
+  }
+  return `Help me understand ${t}: `;
 };
 
 /**
@@ -679,11 +769,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /workflow|automation|subflow|trigger/i.test(pathname),
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
     defaultPresetId: 'build-workflows',
-    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
+    buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
     subtitle: () => 'Shuffle Workflows Builder & Apps',
-    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
+    defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about workflows, nodes, triggers, or building automations...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Shuffle Workflows & Automations with Workflows Builder tools',
@@ -696,11 +786,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     sourceCategory: 'incidents',
-    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
+    buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
     subtitle: () => 'Shuffle Incidents MCP',
-    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
+    defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about incident response, alert feeds, or investigations...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Shuffle Incidents with Incident Response tools',
@@ -713,11 +803,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_vulnerabilities' }, { name: 'shuffle_assets' }],
     defaultPresetId: 'vulnerability',
     sourceCategory: 'vulnerabilities',
-    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
+    buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
     subtitle: () => 'Shuffle Vulnerabilities & Assets',
-    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
+    defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about vulnerability management, CVEs, or asset posture...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Vulnerabilities & Assets',
@@ -729,11 +819,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /monitor|terminal|computer-use|host/i.test(pathname),
     defaultApps: [{ name: 'shuffle_host_monitors' }],
     defaultPresetId: 'host-monitor-control',
-    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
+    buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
     subtitle: () => 'Shuffle Host Monitors MCP',
-    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
+    defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about host monitors, agent execution, or terminal controls...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Host Monitors',
@@ -745,11 +835,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /detection|sigma|rule|pipeline/i.test(pathname),
     defaultApps: [{ name: 'shuffle_detection' }],
     defaultPresetId: 'detection',
-    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
+    buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
     subtitle: () => 'Shuffle Detection MCP',
-    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
+    defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about detection engineering, Sigma rules, or alerts...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Detection & Sigma',
@@ -761,11 +851,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /app|integration|connector|openapi/i.test(pathname),
     defaultApps: [{ name: 'shuffle_apps' }, { name: 'shuffle_workflows_builder' }],
     defaultPresetId: 'build-workflows',
-    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
+    buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
     subtitle: () => 'Shuffle Apps & Integrations',
-    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
+    defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about building or configuring Shuffle apps...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Apps & Integrations',
@@ -775,13 +865,13 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   {
     id: 'docs',
     match: (pathname) => pathname === '/docs' || pathname.startsWith('/docs/') || pathname.startsWith('/legal/'),
-    defaultApps: [{ name: 'shuffle_tools' }],
-    defaultPresetId: 'support',
-    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
-    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
+    defaultApps: [],
+    defaultPresetId: null,
+    buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
+    title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
     subtitle: 'Documentation & Knowledge Assistant',
-    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
+    defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about Shuffle features, guides, or API...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation assistant for Shuffle guides, features, and API references',
@@ -794,8 +884,8 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
   {
     id: 'default',
     match: () => true,
-    defaultApps: [{ name: 'shuffle_tools' }],
-    defaultPresetId: 'support',
+    defaultApps: [],
+    defaultPresetId: null,
     title: 'How can we help on this page?',
     subtitle: 'General Platform Assistant',
     defaultPrompt: 'Help me with the following on this page: ',
@@ -932,7 +1022,11 @@ export const resolveAgentContext = (
     : matchedRule.defaultPresetId;
 
   const title = typeof matchedRule.title === 'function'
-    ? matchedRule.title(matchedParams, normPath)
+    ? (matchedRule.title as (params: Record<string, string>, pathname: string, entityOverride?: string) => string)(
+        matchedParams,
+        normPath,
+        getActivePageEntityName(),
+      )
     : matchedRule.title ?? 'Agent';
 
   const titleFn = typeof matchedRule.title === 'function'
@@ -993,7 +1087,7 @@ export const resolveAgentContext = (
   const composeInput = matchedRule.composeInput
     ? (rawInput: string) => matchedRule!.composeInput!(rawInput, matchedParams, normPath)
     : isDocsRoute(normPath)
-      ? (rawInput: string) => composeDocPromptInput(rawInput, normPath, getActivePageEntityName())
+      ? (rawInput: string) => composeDocPromptInput(rawInput, normPath, getDocPageDisplayName(normPath, getActivePageEntityName()))
       : undefined;
 
   return {

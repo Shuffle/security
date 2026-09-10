@@ -162,6 +162,9 @@ export const AskAiButton: React.FC<AskAiButtonProps> = ({
               lineHeight: 1,
               color: 'inherit',
               whiteSpace: 'nowrap',
+              maxWidth: { xs: 150, sm: 220, md: 300 },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {label}
