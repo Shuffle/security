@@ -717,11 +717,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 
   const identifierLabel =
-    serverMode === 'cloud'
-      ? loginWithSSO
-        ? 'Work Email (SSO)'
-        : 'Work Email'
-      : 'Username or Email';
+    serverMode === 'cloud' ? 'Email' : 'Username or Email';
 
   const cloudEmailInvalid =
     serverMode === 'cloud' && username.trim().length > 0 && !isValidEmail(username);
@@ -1022,18 +1018,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const inputSx = {
     bgcolor: 'hsl(var(--background))',
     color: 'hsl(var(--foreground))',
-    borderRadius: 2,
-    fontSize: '0.875rem',
-    '& input': {
+    borderRadius: '10px',
+    height: '48px',
+    fontSize: '0.95rem',
+    '& .MuiOutlinedInput-input': {
       color: 'hsl(var(--foreground))',
+      fontSize: '0.95rem',
+      py: 0,
+      height: '100%',
+      boxSizing: 'border-box',
     },
     '& input::placeholder': {
       color: 'hsl(var(--muted-foreground))',
       opacity: 0.8,
+      fontSize: '0.95rem',
     },
-    '& fieldset': { borderColor: 'hsl(var(--border))' },
+    '& fieldset': { borderColor: 'hsl(var(--border))', borderRadius: '10px' },
     '&:hover fieldset': { borderColor: '#FF6600' },
-    '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+    '&.Mui-focused fieldset': { borderColor: '#FF6600', borderWidth: '1.5px' },
   };
 
   // Branding text defaults
@@ -1233,7 +1235,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             handlePingHost();
                           }
                         }}
-                        size="small"
                         fullWidth
                         autoCapitalize="none"
                         autoCorrect="off"
@@ -1241,16 +1242,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           sx: {
                             bgcolor: 'hsl(var(--card))',
                             color: 'hsl(var(--foreground))',
-                            borderRadius: 2,
-                            fontSize: '0.85rem',
+                            borderRadius: '10px',
+                            height: '48px',
+                            fontSize: '0.95rem',
                             pr: 0.75,
-                            '& input': {
+                            '& .MuiOutlinedInput-input': {
                               color: 'hsl(var(--foreground))',
-                              py: 1,
+                              fontSize: '0.95rem',
+                              py: 0,
+                              height: '100%',
+                              boxSizing: 'border-box',
                             },
-                            '& fieldset': { borderColor: 'hsl(var(--border))' },
+                            '& input::placeholder': {
+                              color: 'hsl(var(--muted-foreground))',
+                              opacity: 0.8,
+                              fontSize: '0.95rem',
+                            },
+                            '& fieldset': { borderColor: 'hsl(var(--border))', borderRadius: '10px' },
                             '&:hover fieldset': { borderColor: '#FF6600' },
-                            '&.Mui-focused fieldset': { borderColor: '#FF6600' },
+                            '&.Mui-focused fieldset': { borderColor: '#FF6600', borderWidth: '1.5px' },
                           },
                           endAdornment: (
                             <InputAdornment position="end">
@@ -1258,18 +1268,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                                 onClick={() => handlePingHost()}
                                 variant="contained"
                                 disabled={isPingingHost}
-                                size="small"
                                 sx={{
                                   minWidth: 64,
-                                  height: 28,
+                                  height: 32,
                                   px: 1.5,
-                                  fontSize: '0.75rem',
+                                  fontSize: '0.8rem',
                                   fontWeight: 600,
                                   textTransform: 'none',
-                                  borderRadius: 1.5,
+                                  borderRadius: '6px',
                                   bgcolor: hostPingStatus === 'success' ? '#22c55e' : '#FF6600',
                                   color: '#FFFFFF',
-                                  border: '1px solid hsl(var(--border))',
+                                  border: 'none',
                                   boxShadow: 'none',
                                   '&:hover': {
                                     bgcolor: hostPingStatus === 'success' ? '#16a34a' : '#e65c00',
@@ -1724,10 +1733,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           fullWidth
                           disabled={loading || mfaCode.length < 6}
                           sx={{
-                            py: 1.25,
-                            borderRadius: 2,
+                            height: '48px',
+                            borderRadius: '10px',
                             fontWeight: 700,
-                            fontSize: '0.9rem',
+                            fontSize: '0.95rem',
                             textTransform: 'none',
                             bgcolor: '#FF6600',
                             color: '#FFFFFF',
@@ -1814,13 +1823,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2.5 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
+                              fontSize: '0.875rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
                             }}
                           >
-                            Work Email
+                            {serverMode === 'cloud' ? 'Email' : 'Email or Username'}
                           </Typography>
                           <TextField
                             placeholder="analyst@organization.com"
@@ -1828,7 +1837,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             onChange={(e) => setUsername(e.target.value)}
                             fullWidth
                             required
-                            size="small"
                             autoCapitalize="none"
                             autoCorrect="off"
                             autoComplete="email"
@@ -1842,10 +1850,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           fullWidth
                           disabled={loading || !username.trim()}
                           sx={{
-                            py: 1.25,
-                            borderRadius: 2,
+                            height: '48px',
+                            borderRadius: '10px',
                             fontWeight: 700,
-                            fontSize: '0.9rem',
+                            fontSize: '0.95rem',
                             textTransform: 'none',
                             bgcolor: '#FF6600',
                             color: '#FFFFFF',
@@ -1919,7 +1927,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
+                              fontSize: '0.875rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -1933,7 +1941,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             onChange={(e) => setUsername(e.target.value)}
                             fullWidth
                             required
-                            size="small"
                             autoCapitalize="none"
                             autoCorrect="off"
                             InputProps={{ sx: inputSx }}
@@ -1943,7 +1950,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
+                              fontSize: '0.875rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -1953,12 +1960,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           </Typography>
                           <TextField
                             type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••••••"
+                            placeholder="Enter password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             fullWidth
                             required
-                            size="small"
                             InputProps={{
                               sx: inputSx,
                               endAdornment: (
@@ -1980,7 +1986,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2.5 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
+                              fontSize: '0.875rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -1990,12 +1996,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           </Typography>
                           <TextField
                             type={showConfirmPassword ? 'text' : 'password'}
-                            placeholder="••••••••••••"
+                            placeholder="Enter password again"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             fullWidth
                             required
-                            size="small"
                             InputProps={{
                               sx: inputSx,
                               endAdornment: (
@@ -2020,10 +2025,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           fullWidth
                           disabled={loading || !username.trim() || !password || !confirmPassword}
                           sx={{
-                            py: 1.25,
-                            borderRadius: 2,
+                            height: '48px',
+                            borderRadius: '10px',
                             fontWeight: 700,
-                            fontSize: '0.9rem',
+                            fontSize: '0.95rem',
                             textTransform: 'none',
                             bgcolor: '#FF6600',
                             color: '#FFFFFF',
@@ -2071,7 +2076,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
+                              fontSize: '0.875rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -2084,16 +2089,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               : 'Username or Email'}
                           </Typography>
                           <TextField
-                            placeholder={
-                              serverMode === 'cloud' || isRegister
-                                ? 'analyst@organization.com'
-                                : 'username or email'
-                            }
+                            placeholder="analyst@organization.com"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             fullWidth
                             required
-                            size="small"
                             autoCapitalize="none"
                             autoCorrect="off"
                             autoComplete={serverMode === 'cloud' || isRegister ? 'email' : 'username'}
@@ -2106,7 +2106,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
                               <Typography
                                 sx={{
-                                  fontSize: '0.8rem',
+                                  fontSize: '0.875rem',
                                   fontWeight: 600,
                                   color: 'hsl(var(--foreground))',
                                 }}
@@ -2114,38 +2114,39 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                                 Password
                               </Typography>
                               {serverMode === 'cloud' && !isRegister && (
-                                <Button
+                                <Box
+                                  component="button"
+                                  type="button"
                                   onClick={() => {
                                     setIsResetPasswordMode(true);
                                     setError('');
                                     setResetEmailSent(false);
                                   }}
-                                  size="small"
                                   sx={{
+                                    background: 'none',
+                                    border: 'none',
                                     p: 0,
-                                    minWidth: 0,
-                                    fontSize: '0.75rem',
-                                    textTransform: 'none',
-                                    color: '#FF6600',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
                                     fontWeight: 500,
+                                    color: '#FF6600',
+                                    lineHeight: 1,
                                     '&:hover': {
-                                      bgcolor: 'transparent',
                                       textDecoration: 'underline',
                                     },
                                   }}
                                 >
                                   Forgot password?
-                                </Button>
+                                </Box>
                               )}
                             </Box>
                             <TextField
                               type={showPassword ? 'text' : 'password'}
-                              placeholder="••••••••••••"
+                              placeholder={isRegister ? 'At least 10 characters' : 'Enter password'}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               fullWidth
                               required
-                              size="small"
                               autoComplete={isRegister ? 'new-password' : 'current-password'}
                               InputProps={{
                                 sx: inputSx,
@@ -2170,7 +2171,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           <Box sx={{ mb: 2 }}>
                             <Typography
                               sx={{
-                                fontSize: '0.8rem',
+                                fontSize: '0.875rem',
                                 fontWeight: 600,
                                 color: 'hsl(var(--foreground))',
                                 mb: 0.75,
@@ -2180,12 +2181,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             </Typography>
                             <TextField
                               type={showConfirmPassword ? 'text' : 'password'}
-                              placeholder="••••••••••••"
+                              placeholder="Enter password again"
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
                               fullWidth
                               required
-                              size="small"
                               autoComplete="new-password"
                               InputProps={{
                                 sx: inputSx,
@@ -2264,10 +2264,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               (isRegister && !termsAccepted)
                             }
                             sx={{
-                              py: 1.25,
-                              borderRadius: 2,
+                              height: '48px',
+                              borderRadius: '10px',
                               fontWeight: 700,
-                              fontSize: '0.9rem',
+                              fontSize: '0.95rem',
                               textTransform: 'none',
                               bgcolor: '#FF6600',
                               color: '#FFFFFF',
@@ -2287,7 +2287,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             ) : isResetPasswordMode ? (
                               resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
                             ) : isRegister ? (
-                              'Sign Up'
+                              'Create Account'
                             ) : (
                               'Sign In'
                             )}
@@ -2320,8 +2320,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                                 color: 'hsl(var(--foreground))',
                                 textTransform: 'none',
                                 fontWeight: 600,
-                                py: 1.1,
-                                borderRadius: 2,
+                                height: '48px',
+                                borderRadius: '10px',
                                 '&:hover': {
                                   borderColor: 'hsl(var(--foreground))',
                                   bgcolor: 'rgba(255, 255, 255, 0.05)',

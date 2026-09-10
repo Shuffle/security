@@ -108,7 +108,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
   {
     id: 'vulnerability',
     label: 'Vulnerability Agent',
-    description: 'Helps you solve vulnerabilities — demystifies CVEs in plain language, analyzes realistic exploitability (EPSS/KEV), and guides you through exact remediation steps and fixes.',
+    description: 'Helps you solve vulnerabilities — demystifies CVEs in plain language, reviews affected packages and OSV advisory data, and guides you through remediation steps.',
     defaultPrompt: 'Help me review and solve this vulnerability: ',
     icon: <Bug size={16} />,
     enabled: true,

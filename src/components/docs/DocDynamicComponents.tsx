@@ -529,7 +529,7 @@ const USECASES_BY_CATEGORY: Record<
     items: [
       {
         title: "Automated Patch Orchestration",
-        desc: "Ingest CVEs with high EPSS or CISA KEV tags, verify available packages, and trigger Ansible or AWS SSM patching.",
+        desc: "Ingest CVEs from scanner webhooks or package scans, correlate with monitored hosts, and trigger remediation workflows.",
         flowId: "asset_management_case_management_vuln_response_1",
       },
       {
@@ -1096,7 +1096,7 @@ export const DocVulnStatus: React.FC<DocVulnStatusProps> = ({
                 fontSize: "0.72rem",
               }}
             >
-              CISA KEV + EPSS
+              OSV + Host Posture
             </Typography>
           </Box>
           {subtitle && (
@@ -1159,7 +1159,7 @@ export const DocVulnStatus: React.FC<DocVulnStatusProps> = ({
           }}
         >
           <Typography sx={{ fontSize: "0.75rem", color: "#ef4444", fontWeight: 600, mb: 0.5 }}>
-            Critical (KEV / High EPSS)
+            Critical
           </Typography>
           <Typography sx={{ fontSize: "1.4rem", fontWeight: 700, color: "#ef4444" }}>
             {isLoading ? <Skeleton width={40} height={32} /> : severityCounts.critical}
@@ -1243,8 +1243,8 @@ interface DocCveLookupProps {
 }
 
 export const DocCveLookup: React.FC<DocCveLookupProps> = ({
-  title = "Live CVE & Exploit Intelligence Lookup",
-  placeholder = "e.g. CVE-2024-3094, CVE-2023-38606, or GHSA-xxxx",
+  title = "Live OSV Advisory Lookup",
+  placeholder = "e.g. CVE-2024-3094, GHSA-xxxx, or package name",
 }) => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -1256,9 +1256,9 @@ export const DocCveLookup: React.FC<DocCveLookupProps> = ({
   };
 
   const sampleCves = [
-    { id: "CVE-2024-3094", label: "XZ Backdoor (Critical)" },
-    { id: "CVE-2023-38606", label: "Triangulation (CISA KEV)" },
-    { id: "CVE-2021-44228", label: "Log4Shell (EPSS 97%)" },
+    { id: "CVE-2024-3094", label: "XZ Backdoor" },
+    { id: "CVE-2023-38606", label: "Operation Triangulation" },
+    { id: "CVE-2021-44228", label: "Log4Shell" },
   ];
 
   return (
@@ -1289,7 +1289,7 @@ export const DocCveLookup: React.FC<DocCveLookupProps> = ({
             color: "hsl(var(--muted-foreground))",
           }}
         >
-          Test any advisory against OSV.dev, real-world CISA KEV exploitation, and live EPSS scores.
+          Lookup open source vulnerability advisories directly from OSV.dev.
         </Typography>
       </Box>
 

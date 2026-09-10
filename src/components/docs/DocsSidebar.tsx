@@ -2,7 +2,7 @@ import {
   Search as SearchIcon,
   ChevronDown,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from '@/lib/router-compat';
 import {
   Box,
@@ -23,7 +23,16 @@ import {
 } from '@/components/docs/docGroups';
 import { SidebarSearchDialog } from '@/components/layout/SidebarSearchDialog';
 
+// In-memory session store for category expansion state per folder.
+// Preserves opened and closed categories as the user navigates across doc pages within the session,
+// while resetting cleanly on full page refresh.
+const sessionCollapsedStore = new Map<string, Set<string>>();
+const storeListeners = new Set<(folder: string) => void>();
 
+function setSessionCollapsed(folderKey: string, next: Set<string>) {
+  sessionCollapsedStore.set(folderKey, new Set(next));
+  storeListeners.forEach((listener) => listener(folderKey));
+}
 
 interface DocsSidebarProps {
   onNavigate?: () => void;
@@ -63,7 +72,31 @@ export const DocsSidebar = ({
   const navigate = useNavigate();
   const [remoteDocs, setRemoteDocs] = useState<RemoteDoc[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+
+  const folderKey = folder || 'docs';
+  const prevSlugRef = useRef<string | null>(null);
+
+  // Initialize or get stored collapsed groups for this session
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    const stored = sessionCollapsedStore.get(folderKey);
+    return stored ? new Set(stored) : new Set();
+  });
+
+  // Sync state across multiple DocsSidebar instances (e.g. mobile drawer and desktop sidebar)
+  useEffect(() => {
+    const listener = (changedFolder: string) => {
+      if (changedFolder === folderKey) {
+        const stored = sessionCollapsedStore.get(folderKey);
+        if (stored) {
+          setCollapsedGroups(new Set(stored));
+        }
+      }
+    };
+    storeListeners.add(listener);
+    return () => {
+      storeListeners.delete(listener);
+    };
+  }, [folderKey]);
 
   // Normalize slug: when at root /docs (slug === 'index' or empty), resolve to 'getting-started'
   // which is the default document auto-loaded by useDocContent.
@@ -118,30 +151,48 @@ export const DocsSidebar = ({
   // Identify the active category for the current doc (defaults to 'usability')
   const activeGroup = useMemo(() => getDocGroup(currentSlug), [currentSlug]);
 
-  // When visiting/navigating to a document or when categories load:
-  // ONLY expand the category containing that document, keeping the other categories collapsed.
+  // Handle initial category setup and navigation without closing previously opened areas
   useEffect(() => {
     if (!categories.length) return;
     const targetGroupId = activeGroup?.id || 'usability';
-    const nextCollapsed = new Set<string>();
-    for (const cat of categories) {
-      if (cat.id !== targetGroupId) {
-        nextCollapsed.add(cat.id);
+    const stored = sessionCollapsedStore.get(folderKey);
+
+    if (!stored) {
+      // First initialization for this session (e.g. after refresh or initial load):
+      // Expand the active document's category and collapse the others.
+      const initial = new Set<string>();
+      for (const cat of categories) {
+        if (cat.id !== targetGroupId) {
+          initial.add(cat.id);
+        }
+      }
+      setSessionCollapsed(folderKey, initial);
+      prevSlugRef.current = currentSlug;
+      return;
+    }
+
+    // When navigating to a new document (slug changed):
+    // Ensure the category containing the new document is expanded so the user sees it,
+    // but NEVER close any other areas the user opened during this session.
+    if (prevSlugRef.current !== currentSlug) {
+      prevSlugRef.current = currentSlug;
+      if (stored.has(targetGroupId)) {
+        const next = new Set(stored);
+        next.delete(targetGroupId);
+        setSessionCollapsed(folderKey, next);
       }
     }
-    setCollapsedGroups(nextCollapsed);
-  }, [currentSlug, categories, activeGroup?.id]);
+  }, [currentSlug, categories, activeGroup?.id, folderKey]);
 
   const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      return next;
-    });
+    const current = sessionCollapsedStore.get(folderKey) || collapsedGroups;
+    const next = new Set(current);
+    if (next.has(groupId)) {
+      next.delete(groupId);
+    } else {
+      next.add(groupId);
+    }
+    setSessionCollapsed(folderKey, next);
   };
 
   const handleClick = () => {

@@ -3,12 +3,24 @@ import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
 import { parseMarkdownSegments, DocDynamicComponent } from './DocDynamicComponents';
 import { Link, useLocation, useNavigate } from '@/lib/router-compat';
 import {
+  Avatar,
+  AvatarGroup,
   Box,
+  Button,
   CircularProgress,
+  Link as MuiLink,
   Skeleton,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
+import {
+  Clock as ClockIcon,
+  Github as GithubIcon,
+  RefreshCw as RefreshCwIcon,
+} from 'lucide-react';
+import { useIsSupport } from '@/hooks/useIsSupport';
+import { useAuth } from '@/context/AuthContext';
 import { docSlug } from '@/components/docs/remoteDocs';
 import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
 import { anchorKey, isTocHeading, stripMarkdownInline, safeDecodeURIComponent } from './tocUtils';
@@ -149,11 +161,55 @@ export const MarkdownRenderer = ({
     scrollToDocAnchor(hash);
   }, [content, loading, hash, scrollToDocAnchor]);
 
+  const isSupportHook = useIsSupport();
+  const { userInfo } = useAuth();
+  const isSupport =
+    isSupportHook ||
+    Boolean((userInfo as any)?.admin || (userInfo as any)?.role === 'admin' || (userInfo as any)?.support);
+
+  const editUrl = useMemo(() => {
+    if (meta?.link) return meta.link;
+    if (slug && slug !== 'index') {
+      return `https://github.com/shuffle/shuffle-security/blob/main/docs/${slug}.md`;
+    }
+    return 'https://github.com/shuffle/shuffle-security';
+  }, [meta?.link, slug]);
+
   const readingTime = useMemo(() => {
     if (meta?.read_time) return meta.read_time;
     const words = (content || '').trim().split(/\s+/).filter(Boolean).length;
     return Math.max(1, Math.ceil(words / 200));
   }, [meta?.read_time, content]);
+
+  const actionButtons = (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+      {isSupport && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleResetCache}
+          disabled={resetting || loading}
+          startIcon={<RefreshCwIcon size={14} className={resetting ? 'animate-spin' : ''} />}
+          sx={{
+            textTransform: 'none',
+            height: 36,
+            borderColor: 'hsl(var(--border))',
+            color: 'text.primary',
+            '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+          }}
+        >
+          {resetting ? 'Resetting…' : 'Reset Cache'}
+        </Button>
+      )}
+      <PrintDocsDialog
+        slug={slug}
+        title={title}
+        currentMarkdown={content}
+        disabled={loading || resetting}
+        folder={folder}
+      />
+    </Stack>
+  );
 
   if (loading) {
     return (
@@ -430,13 +486,108 @@ export const MarkdownRenderer = ({
         </Typography>
       )}
 
-      {/* 2. Metadata Bar: read_time and Print / Export */}
+      {/* 2a. Desktop Metadata Bar (>= md): read_time, contributors, Edit on GitHub, Reset Cache, Print */}
+      <Stack
+        direction="row"
+        spacing={2}
+        alignItems="center"
+        flexWrap="wrap"
+        sx={{
+          display: { xs: 'none', md: 'flex' },
+          mb: 4,
+          pb: 3,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          rowGap: 1.5,
+        }}
+      >
+        {!hideMeta && (
+          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
+            <ClockIcon size={14} />
+            <Typography variant="caption" sx={{ fontSize: '0.8125rem' }}>
+              {readingTime} min read
+            </Typography>
+          </Stack>
+        )}
+
+        {!hideMeta && meta?.contributors && meta.contributors.length > 0 && (
+          <AvatarGroup
+            max={6}
+            sx={{
+              '& .MuiAvatar-root': {
+                width: 24,
+                height: 24,
+                fontSize: '0.7rem',
+                border: '1px solid',
+                borderColor: 'divider',
+              },
+            }}
+          >
+            {meta.contributors.map((c, i) => {
+              const handle = c.url?.split('/').filter(Boolean).pop() || c.name || 'contributor';
+              const avatar = (
+                <Avatar key={c.url || i} src={c.image} alt={handle}>
+                  {handle.charAt(0).toUpperCase()}
+                </Avatar>
+              );
+              return (
+                <Tooltip key={c.url || i} title={handle} arrow>
+                  {c.url ? (
+                    <MuiLink
+                      href={c.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ display: 'inline-flex' }}
+                    >
+                      {avatar}
+                    </MuiLink>
+                  ) : (
+                    avatar
+                  )}
+                </Tooltip>
+              );
+            })}
+          </AvatarGroup>
+        )}
+
+        {!hideMeta && editUrl && (
+          <Button
+            component="a"
+            href={editUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="outlined"
+            size="small"
+            startIcon={<GithubIcon size={14} />}
+            sx={{
+              textTransform: 'none',
+              height: 36,
+              px: 1.5,
+              fontSize: '0.8125rem',
+              borderRadius: 1,
+              borderColor: 'hsl(var(--border))',
+              color: 'text.primary',
+              '&:hover': {
+                borderColor: 'primary.main',
+                color: 'primary.main',
+              },
+            }}
+          >
+            Edit on GitHub
+          </Button>
+        )}
+
+        {actionButtons}
+      </Stack>
+
+      {/* 2b. Mobile Metadata Bar (< md): read_time and Print / Export */}
       <Stack
         direction="row"
         spacing={2}
         alignItems="center"
         justifyContent="space-between"
         sx={{
+          display: { xs: 'flex', md: 'none' },
           mb: 4,
           pb: 3,
           borderBottom: '1px solid',
@@ -458,13 +609,34 @@ export const MarkdownRenderer = ({
           <Box />
         )}
 
-        <PrintDocsDialog
-          slug={slug}
-          title={title}
-          currentMarkdown={content}
-          disabled={loading || resetting}
-          folder={folder}
-        />
+        <Stack direction="row" spacing={1} alignItems="center">
+          {isSupport && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleResetCache}
+              disabled={resetting || loading}
+              startIcon={<RefreshCwIcon size={14} className={resetting ? 'animate-spin' : ''} />}
+              sx={{
+                textTransform: 'none',
+                height: 32,
+                fontSize: '0.75rem',
+                borderColor: 'hsl(var(--border))',
+                color: 'text.primary',
+                '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+              }}
+            >
+              {resetting ? 'Resetting…' : 'Reset'}
+            </Button>
+          )}
+          <PrintDocsDialog
+            slug={slug}
+            title={title}
+            currentMarkdown={content}
+            disabled={loading || resetting}
+            folder={folder}
+          />
+        </Stack>
       </Stack>
 
       {/* Mobile / Tablet On this page jumper (< xl) */}

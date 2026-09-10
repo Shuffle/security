@@ -224,7 +224,7 @@ const DEFAULT_VULNERABILITY_AI_PROMPTS: string[] = [
 - Identify the exploit mechanism (e.g. remote code execution, SQLi, authentication bypass, DoS, privilege escalation) and attack prerequisites (e.g. unauthenticated network access vs. local privileged access).
 
 2. REAL-WORLD RISK & EXPLOITABILITY:
-- Evaluate exploitability beyond theoretical CVSS: check CISA KEV (known exploited in the wild), EPSS score, and availability of public weaponized PoCs.
+- Evaluate exploitability: identify affected package versions, attack vector, and prerequisites.
 - Assess asset context: determine if the affected software/system is internet-facing or isolated internally.
 - Classify urgency: Immediate Patching, Next Maintenance Window, Scheduled Backlog, or False Positive / Not Applicable.
 

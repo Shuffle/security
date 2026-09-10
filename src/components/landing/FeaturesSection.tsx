@@ -745,7 +745,7 @@ const features: Omit<FeatureSectionProps, 'reverse'>[] = [
     description: 'Stop drowning in CVEs. Ingest findings from any scanner, enrich with threat intel and reachability, then route fixes through automated patching or ticketing workflows.',
     bullets: [
       'Ingest from Qualys, Tenable, Wiz, Defender and host monitors',
-      'Auto-prioritize using EPSS, KEV and exploitability context',
+      'Auto-prioritize using severity, affected assets and exploitability context',
       'Trigger patch, isolate, ticket or suppression workflows automatically',
       'Track MTTR per team, asset and severity in one place',
     ],

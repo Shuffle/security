@@ -216,7 +216,27 @@ export const useDocContent = ({
           const { title: extractedTitle, content: bodyContent } = extractDocTitleAndBody(stripped);
           setTitle(extractedTitle);
           setContent(bodyContent);
-          setMeta(remote.meta);
+
+          let finalMeta = remote.meta;
+          if (!finalMeta?.contributors?.length || !finalMeta?.link) {
+            try {
+              const list = await fetchDocsList(false, folder, controller.signal);
+              const match = list.find(
+                (d) => docSlug(d.name) === target.toLowerCase() || docSlug(d.name) === slug.toLowerCase(),
+              );
+              if (match) {
+                finalMeta = {
+                  ...match,
+                  ...finalMeta,
+                  contributors: finalMeta?.contributors?.length ? finalMeta.contributors : match.contributors,
+                  link: finalMeta?.link || match.link,
+                };
+              }
+            } catch {
+              // ignore
+            }
+          }
+          setMeta(finalMeta);
         } else {
           setTitle(null);
           setContent('');
